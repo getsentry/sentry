@@ -7,9 +7,9 @@ from typing import Any
 from rest_framework import status
 from rest_framework.response import Response
 
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.utils import sync_group_assignee_inbound
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.shared_integrations.exceptions import ApiError
 
 from ...mixins import IssueSyncMixin

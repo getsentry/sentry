@@ -174,7 +174,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
 
         mock_metrics.incr.assert_called_with("sentry.integration_repo_provider.repo_exists")
 
-    @patch("sentry.services.hybrid_cloud.repository.repository_service.create_repository")
+    @patch("sentry.integrations.services.repository.repository_service.create_repository")
     @patch("sentry.plugins.providers.IntegrationRepositoryProvider.on_delete_repository")
     @responses.activate
     def test_link_all_repos_repo_creation_exception(

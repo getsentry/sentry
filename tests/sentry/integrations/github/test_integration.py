@@ -340,7 +340,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 {"code": "12345678901234567890", "state": "9cae5e88803f35ed7970fc131e6e65d3"}
             ),
         )
-        with self.feature({"organizations:customer-domains": [self.organization_2.slug]}):
+        with self.feature({"system:multi-region": True}):
             resp = self.client.get(self.init_path_2)
             resp = self.client.get(self.setup_path_2)
             self.assertTemplateUsed(resp, "sentry/integrations/github-integration-failed.html")
@@ -447,7 +447,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
                 {"code": "12345678901234567890", "state": "9cae5e88803f35ed7970fc131e6e65d3"}
             ),
         )
-        with self.feature({"organizations:customer-domains": [org_2.slug]}):
+        with self.feature({"system:multi-region": True}):
             resp = self.client.get(init_path_2)
             resp = self.client.get(setup_path_2)
             self.assertTemplateUsed(resp, "sentry/integrations/github-integration-failed.html")
@@ -712,7 +712,7 @@ class GitHubIntegrationTest(IntegrationTestCase):
 
         self._stub_github()
 
-        with self.feature({"organizations:customer-domains": [self.organization.slug]}):
+        with self.feature({"system:multi-region": True}):
             resp = self.client.get(
                 "{}?{}".format(self.init_path, urlencode({"installation_id": self.installation_id}))
             )

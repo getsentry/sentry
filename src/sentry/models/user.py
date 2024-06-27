@@ -31,13 +31,8 @@ from sentry.backup.dependencies import (
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import (
-    BaseManager,
-    BaseModel,
-    BoundedBigAutoField,
-    control_silo_model,
-    sane_repr,
-)
+from sentry.db.models import Model, control_silo_model, sane_repr
+from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.utils import unique_db_instance
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
@@ -94,13 +89,12 @@ class UserManager(BaseManager["User"], DjangoUserManager["User"]):
 
 
 @control_silo_model
-class User(BaseModel, AbstractBaseUser):
+class User(Model, AbstractBaseUser):
     __relocation_scope__ = RelocationScope.User
     __relocation_custom_ordinal__ = ["username"]
 
     replication_version: int = 2
 
-    id = BoundedBigAutoField(primary_key=True)
     username = models.CharField(_("username"), max_length=MAX_USERNAME_LENGTH, unique=True)
     # this column is called first_name for legacy reasons, but it is the entire
     # display name
@@ -368,7 +362,7 @@ class User(BaseModel, AbstractBaseUser):
             with enforce_constraints(
                 transaction.atomic(using=router.db_for_write(OrganizationMemberMapping))
             ):
-                control_side_org_models: tuple[type[BaseModel], ...] = (
+                control_side_org_models: tuple[type[Model], ...] = (
                     OrgAuthToken,
                     OrganizationMemberMapping,
                 )
@@ -383,7 +377,7 @@ class User(BaseModel, AbstractBaseUser):
         # While it would be nice to make the following changes in a transaction, there are too many
         # unique constraints to make this feasible. Instead, we just do it sequentially and ignore
         # the `IntegrityError`s.
-        user_related_models: tuple[type[BaseModel], ...] = (
+        user_related_models: tuple[type[Model], ...] = (
             Authenticator,
             Identity,
             UserAvatar,
@@ -553,7 +547,7 @@ class User(BaseModel, AbstractBaseUser):
         shard_identifier: int,
         payload: Mapping[str, Any] | None,
     ) -> None:
-        from sentry.hybridcloud.rpc.services.caching import region_caching_service
+        from sentry.hybridcloud.rpc.caching import region_caching_service
         from sentry.services.hybrid_cloud.user.service import get_many_by_id, get_user
 
         region_caching_service.clear_key(key=get_user.key_from(identifier), region_name=region_name)
@@ -562,7 +556,7 @@ class User(BaseModel, AbstractBaseUser):
         )
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
-        from sentry.hybridcloud.rpc.services.caching import region_caching_service
+        from sentry.hybridcloud.rpc.caching import region_caching_service
         from sentry.services.hybrid_cloud.user.service import get_many_by_id, get_user
 
         region_caching_service.clear_key(key=get_user.key_from(self.id), region_name=region_name)

@@ -164,6 +164,9 @@ from sentry.monitors.endpoints.project_monitor_stats import ProjectMonitorStatsE
 from sentry.monitors.endpoints.project_processing_errors_details import (
     ProjectProcessingErrorsDetailsEndpoint,
 )
+from sentry.monitors.endpoints.project_processing_errors_index import (
+    ProjectProcessingErrorsIndexEndpoint,
+)
 from sentry.remote_config.endpoints import (
     ProjectConfigurationEndpoint,
     ProjectConfigurationProxyEndpoint,
@@ -491,6 +494,7 @@ from .endpoints.organization_tags import OrganizationTagsEndpoint
 from .endpoints.organization_teams import OrganizationTeamsEndpoint
 from .endpoints.organization_traces import (
     OrganizationTracesEndpoint,
+    OrganizationTraceSpansEndpoint,
     OrganizationTracesStatsEndpoint,
 )
 from .endpoints.organization_transaction_anomaly_detection import (
@@ -1403,6 +1407,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/events-stats/$",
         OrganizationEventsStatsEndpoint.as_view(),
         name="sentry-api-0-organization-events-stats",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/spans/$",
+        OrganizationTraceSpansEndpoint.as_view(),
+        name="sentry-api-0-organization-trace-spans",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/traces/$",
@@ -2787,6 +2796,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/processing-errors/(?P<uuid>[^\/]+)/$",
         ProjectProcessingErrorsDetailsEndpoint.as_view(),
         name="sentry-api-0-project-processing-errors-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/processing-errors/$",
+        ProjectProcessingErrorsIndexEndpoint.as_view(),
+        name="sentry-api-0-project-processing-errors-index",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/processing-errors/$",

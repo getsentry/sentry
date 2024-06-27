@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from enum import Enum, StrEnum
 from typing import TYPE_CHECKING
 
-from sentry.services.hybrid_cloud import ValueEqualityEnum
+from sentry.hybridcloud.rpc import ValueEqualityEnum
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization

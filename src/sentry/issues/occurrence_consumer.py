@@ -17,7 +17,7 @@ from django.core.cache import cache
 from django.utils import timezone
 from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
-from sentry import nodestore
+from sentry import features, nodestore
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import get_group_type_by_type_id
@@ -276,6 +276,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
         raise InvalidEventPayloadError(e)
 
 
+@metrics.wraps("occurrence_consumer.process_occurrence_message")
 def process_occurrence_message(
     message: Mapping[str, Any], txn: Transaction | NoOpSpan | Span
 ) -> tuple[IssueOccurrence, GroupInfo | None] | None:
@@ -330,6 +331,7 @@ def process_occurrence_message(
             return lookup_event_and_process_issue_occurrence(kwargs["occurrence_data"])
 
 
+@metrics.wraps("occurrence_consumer.process_message")
 def _process_message(
     message: Mapping[str, Any]
 ) -> tuple[IssueOccurrence | None, GroupInfo | None] | None:
@@ -365,6 +367,7 @@ def _process_message(
     return None
 
 
+@metrics.wraps("occurrence_consumer.process_batch")
 def _process_batch(worker: ThreadPoolExecutor, message: Message[ValuesBatch[KafkaPayload]]) -> None:
     """
     Receives batches of occurrences. This function will take the batch
@@ -374,6 +377,7 @@ def _process_batch(worker: ThreadPoolExecutor, message: Message[ValuesBatch[Kafk
     By batching we're able to process occurrences in parallel while guaranteeing
     that no occurrences are processed out of order per group.
     """
+
     batch = message.payload
 
     occcurrence_mapping: Mapping[str, list[Mapping[str, Any]]] = defaultdict(list)
@@ -386,8 +390,10 @@ def _process_batch(worker: ThreadPoolExecutor, message: Message[ValuesBatch[Kafk
         except Exception:
             logger.exception("Failed to unpack message payload")
             continue
+
         # group by the fingerprint, there should only be one of them
         partition_key: str = payload["fingerprint"][0] if payload["fingerprint"] else ""
+
         occcurrence_mapping[partition_key].append(payload)
 
     # Number of occurrences that are being processed in this batch
@@ -395,7 +401,7 @@ def _process_batch(worker: ThreadPoolExecutor, message: Message[ValuesBatch[Kafk
 
     # Number of groups we've collected to be processed in parallel
     metrics.gauge("occurrence_consumer.checkin.parallel_batch_groups", len(occcurrence_mapping))
-    # Submit occurrences for processing
+    # Submit occurrences & status changes for processing
     with sentry_sdk.start_transaction(op="process_batch", name="occurrence.occurrence_consumer"):
         futures = [
             worker.submit(process_occurrence_group, group) for group in occcurrence_mapping.values()
@@ -403,11 +409,38 @@ def _process_batch(worker: ThreadPoolExecutor, message: Message[ValuesBatch[Kafk
         wait(futures)
 
 
+@metrics.wraps("occurrence_consumer.process_occurrence_group")
 def process_occurrence_group(items: list[Mapping[str, Any]]) -> None:
     """
     Process a group of related occurrences (all part of the same group)
     completely serially.
     """
+
+    try:
+        project = Project.objects.get_from_cache(id=items[0]["project_id"])
+        organization = Organization.objects.get_from_cache(id=project.organization_id)
+    except Exception:
+        logger.exception("Failed to fetch project or organization")
+        organization = None
+    if organization and features.has(
+        "organizations:occurence-consumer-prune-status-changes", organization
+    ):
+        status_changes = [
+            item for item in items if item.get("payload_type") == PayloadType.STATUS_CHANGE.value
+        ]
+
+        if status_changes:
+            items = [
+                item
+                for item in items
+                if item.get("payload_type") != PayloadType.STATUS_CHANGE.value
+            ] + status_changes[-1:]
+            metrics.incr(
+                "occurrence_consumer.process_occurrence_group.dropped_status_changes",
+                amount=len(status_changes) - 1,
+                sample_rate=1.0,
+            )
+
     for item in items:
         cache_key = f"occurrence_consumer.process_occurrence_group.{item['id']}"
         if cache.get(cache_key):

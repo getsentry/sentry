@@ -12,8 +12,8 @@ from sentry.db.models.base import control_silo_model, sane_repr
 from sentry.db.models.fields import BoundedBigIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel
+from sentry.hybridcloud.rpc import REGION_NAME_LENGTH
 from sentry.models.outbox import OutboxCategory
-from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
 
 
 class OrganizationSlugReservationType(IntEnum):
@@ -70,7 +70,7 @@ class OrganizationSlugReservation(ReplicatedControlModel):
         return [self.region_name]
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
-        from sentry.hybridcloud.rpc_services.control_organization_provisioning.serial import (
+        from sentry.hybridcloud.services.control_organization_provisioning.serial import (
             serialize_slug_reservation,
         )
         from sentry.services.hybrid_cloud.replica import region_replica_service

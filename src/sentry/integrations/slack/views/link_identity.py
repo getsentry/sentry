@@ -7,6 +7,13 @@ from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from rest_framework.request import Request
 
+from sentry import features
+from sentry.integrations.services.integration.model import RpcIntegration
+from sentry.integrations.slack.metrics import (
+    SLACK_BOT_COMMAND_LINK_IDENTITY_FAILURE_DATADOG_METRIC,
+    SLACK_BOT_COMMAND_LINK_IDENTITY_SUCCESS_DATADOG_METRIC,
+)
+from sentry.integrations.slack.utils.notifications import respond_to_slack_command
 from sentry.integrations.slack.views import render_error_page
 from sentry.integrations.slack.views.types import IdentityParams
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
@@ -14,7 +21,6 @@ from sentry.integrations.utils import get_identity_or_404
 from sentry.models.identity import Identity
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.notifications.integration_nudge import IntegrationNudgeNotification
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.utils import metrics
 from sentry.utils.signing import unsign
 from sentry.web.frontend.base import BaseView, control_silo_view
@@ -49,8 +55,8 @@ class SlackLinkIdentityView(BaseView):
     Django view for linking user to slack account. Creates an entry on Identity table.
     """
 
-    _METRICS_SUCCESS_KEY = "sentry.integrations.slack.link_identity_view.success"
-    _METRICS_FAILURE_KEY = "sentry.integrations.slack.link_identity_view.failure"
+    _METRICS_SUCCESS_KEY = SLACK_BOT_COMMAND_LINK_IDENTITY_SUCCESS_DATADOG_METRIC
+    _METRICS_FAILURE_KEY = SLACK_BOT_COMMAND_LINK_IDENTITY_FAILURE_DATADOG_METRIC
 
     @method_decorator(never_cache)
     def dispatch(self, request: HttpRequest, signed_params: str) -> HttpResponseBase:
@@ -107,6 +113,7 @@ class SlackLinkIdentityView(BaseView):
                 idp=kwargs["idp"],
                 slack_id=params_dict["slack_id"],
                 channel_id=params_dict["channel_id"],
+                response_url=params_dict.get("response_url"),
             )
         except KeyError as e:
             _logger.exception("slack.link.missing_params")
@@ -133,10 +140,10 @@ class SlackLinkIdentityView(BaseView):
             )
             raise Http404
 
-        # TODO: We should use use the dataclass to send the slack response
-        send_slack_response(
-            params.integration, SUCCESS_LINKED_MESSAGE, params.__dict__, command="link"
-        )
+        if features.has("organizations:slack-sdk-link-commands", params.organization):
+            respond_to_slack_command(params, SUCCESS_LINKED_MESSAGE, command="link")
+        else:
+            send_slack_response(params, SUCCESS_LINKED_MESSAGE, command="link")
 
         controller = NotificationController(
             recipients=[request.user],

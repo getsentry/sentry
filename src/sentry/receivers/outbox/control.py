@@ -14,7 +14,7 @@ from typing import Any
 
 from django.dispatch import receiver
 
-from sentry.hybridcloud.rpc.services.caching import region_caching_service
+from sentry.hybridcloud.rpc.caching import region_caching_service
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.sentry_app import SentryApp
@@ -22,7 +22,7 @@ from sentry.models.integrations.sentry_app_installation import SentryAppInstalla
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.outbox import OutboxCategory, process_control_outbox
 from sentry.receivers.outbox import maybe_process_tombstone
-from sentry.services.hybrid_cloud.app.service import get_by_application_id, get_installation
+from sentry.sentry_apps.services.app.service import get_by_application_id, get_installation
 from sentry.services.hybrid_cloud.issue import issue_service
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSignal, organization_service
 

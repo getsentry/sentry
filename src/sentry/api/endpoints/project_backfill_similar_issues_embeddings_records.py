@@ -40,6 +40,8 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
             only_delete = True
 
         backfill_seer_grouping_records_for_project.delay(
-            project.id, last_processed_index, only_delete
+            current_project_id=project.id,
+            last_processed_group_index_input=last_processed_index,
+            only_delete=only_delete,
         )
         return Response(status=204)

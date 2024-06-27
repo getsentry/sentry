@@ -9,7 +9,7 @@ import orjson
 from django.core.exceptions import ObjectDoesNotExist
 from sentry_relay.processing import parse_release
 
-from sentry import tagstore
+from sentry import features, tagstore
 from sentry.api.endpoints.group_details import get_group_global_count
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.eventstore.models import GroupEvent
@@ -518,6 +518,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         return self.get_markdown_block(title_text)
 
+    def get_culprit_block(self, event_or_group: GroupEvent | Group) -> SlackBlock | None:
+        if event_or_group.culprit and isinstance(event_or_group.culprit, str):
+            return self.get_context_block(event_or_group.culprit)
+        return None
+
     def get_text_block(self, text) -> SlackBlock:
         if self.group.issue_category == GroupCategory.FEEDBACK:
             max_block_text_length = USER_FEEDBACK_MAX_BLOCK_TEXT_LENGTH
@@ -601,6 +606,11 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
             has_action = True
 
         blocks = [self.get_title_block(rule_id, notification_uuid, obj, has_action)]
+
+        if features.has("organizations:slack-culprit-blocks", project.organization) and (
+            culprit_block := self.get_culprit_block(obj)
+        ):
+            blocks.append(culprit_block)
 
         # build up text block
         text = text.lstrip(" ")

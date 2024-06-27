@@ -7,8 +7,8 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.integration import IntegrationEndpoint
+from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.models.integrations.integration import Integration
-from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 
 
