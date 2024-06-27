@@ -45,17 +45,11 @@ export function SdkDocumentation({
     platformPath,
   });
 
-  if (module === 'none') {
-    return {
-      docs: null,
-    };
-  }
-
   if (!module || projectKeysIsLoading) {
     return <LoadingIndicator />;
   }
 
-  if (projectKeysIsError) {
+  if (projectKeysIsError || module === 'none') {
     return <LoadingError onRetry={refetchProjectKeys} />;
   }
   const {default: docs} = module;
