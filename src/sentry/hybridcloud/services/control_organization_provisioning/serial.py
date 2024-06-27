@@ -1,4 +1,4 @@
-from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
+from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
 from sentry.models.organizationslugreservation import OrganizationSlugReservation

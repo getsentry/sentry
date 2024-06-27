@@ -18,7 +18,7 @@ from sentry.auth.access import OrganizationGlobalAccess
 from sentry.incidents.endpoints.serializers.alert_rule import DetailedAlertRuleSerializer
 from sentry.incidents.models.alert_rule import (
     AlertRule,
-    AlertRuleMonitorType,
+    AlertRuleMonitorTypeInt,
     AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -462,7 +462,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         self.login_as(self.user)
         alert_rule = self.alert_rule
         serialized_alert_rule = self.get_serialized_alert_rule()
-        serialized_alert_rule["monitorType"] = AlertRuleMonitorType.ACTIVATED.value
+        serialized_alert_rule["monitorType"] = AlertRuleMonitorTypeInt.ACTIVATED
         serialized_alert_rule[
             "activationCondition"
         ] = AlertRuleActivationConditionType.RELEASE_CREATION.value
@@ -474,14 +474,14 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        alert_rule.monitorType = AlertRuleMonitorType.ACTIVATED.value
+        alert_rule.monitorType = AlertRuleMonitorTypeInt.ACTIVATED
         alert_rule.activationCondition = AlertRuleActivationConditionType.RELEASE_CREATION.value
         alert_rule.date_modified = resp.data["dateModified"]
         assert resp.data == serialize(alert_rule)
 
         # TODO: determine how to convert activated alert into continuous alert and vice versa (see logic.py)
         # requires creating/disabling activations accordingly
-        # assert resp.data["monitorType"] == AlertRuleMonitorType.ACTIVATED.value
+        # assert resp.data["monitorType"] == AlertRuleMonitorTypeInt.ACTIVATED
         # assert (
         #     resp.data["activationCondition"]
         #     == AlertRuleActivationConditionType.RELEASE_CREATION.value

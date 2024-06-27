@@ -13,7 +13,7 @@ from sentry.api.helpers.constants import ALERT_RULES_COUNT_HEADER, MAX_QUERY_SUB
 from sentry.api.serializers import serialize
 from sentry.incidents.models.alert_rule import (
     AlertRule,
-    AlertRuleMonitorType,
+    AlertRuleMonitorTypeInt,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -114,8 +114,8 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
 
     def test_filter_by_monitor_type(self):
         self.create_team(organization=self.organization, members=[self.user])
-        alert_rule1 = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
-        alert_rule2 = self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
+        alert_rule1 = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.ACTIVATED)
+        alert_rule2 = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
         self.login_as(self.user)
 
         params = {"monitor_type": 1}
@@ -127,8 +127,8 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
 
     def test_response_headers(self):
         self.create_team(organization=self.organization, members=[self.user])
-        self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
-        self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
+        self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.ACTIVATED)
+        self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
         self.login_as(self.user)
 
         with self.feature("organizations:incidents"):
@@ -141,7 +141,7 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
         self.create_team(organization=self.organization, members=[self.user])
         alert_rule = self.create_alert_rule()
         self.create_alert_rule_activation(
-            alert_rule=alert_rule, monitor_type=AlertRuleMonitorType.CONTINUOUS
+            alert_rule=alert_rule, monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS
         )
 
         self.login_as(self.user)
@@ -210,7 +210,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
     def test_monitor_type_with_condition(self):
         data = {
             **self.alert_rule_dict,
-            "monitorType": AlertRuleMonitorType.ACTIVATED.value,
+            "monitorType": AlertRuleMonitorTypeInt.ACTIVATED,
             "activationCondition": AlertRuleActivationConditionType.RELEASE_CREATION.value,
         }
         with (
