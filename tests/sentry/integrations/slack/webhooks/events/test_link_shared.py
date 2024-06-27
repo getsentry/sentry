@@ -146,7 +146,6 @@ class LinkSharedEventTest(BaseEventTest):
         assert unfurls["link1"] == result1
         assert unfurls["link2"] == result2
 
-    @with_feature("organizations:slack-block-kit")
     @patch(
         "sentry.integrations.slack.webhooks.event.match_link",
         # match_link will be called twice, for each our links. Resolve into
