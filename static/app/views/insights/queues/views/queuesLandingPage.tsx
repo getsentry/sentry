@@ -86,11 +86,7 @@ function QueuesLandingPage() {
     ? `*${escapeFilterValue(query.destination)}*`
     : undefined;
 
-  useHasDataTrackAnalytics(
-    new MutableSearch(DEFAULT_QUERY_FILTER),
-    Referrer.QUEUES_LANDING_ONBOARDING,
-    'insight.page_loads.queue'
-  );
+  useHasDataTrackAnalytics(ModuleName.QUEUE, 'insight.page_loads.queue');
 
   const crumbs = useModuleBreadcrumbs('queue');
 
