@@ -44,7 +44,7 @@ def llm_settings(set_sentry_option):
         yield
 
 
-def dummy_response(*args, **kwargs):
+def create_dummy_response(*args, **kwargs):
     return ChatCompletion(
         id="test",
         choices=[
@@ -480,7 +480,7 @@ def test_create_feedback_filters_no_contexts_or_message(
         ("Valid feedback message", None, False),
     ],
 )
-def test_create_feedback_spam_detection_set_ignored(
+def test_create_feedback_spam_detection_produce_to_kafka(
     default_project,
     mock_produce_occurrence_to_kafka,
     input_message,
@@ -524,30 +524,8 @@ def test_create_feedback_spam_detection_set_ignored(
                 "platform": "javascript",
             }
 
-            # def dummy_response(*args, **kwargs):
-            #     return ChatCompletion(
-            #         id="test",
-            #         choices=[
-            #             Choice(
-            #                 index=0,
-            #                 message=ChatCompletionMessage(
-            #                     content=(
-            #                         "spam"
-            #                         if "this is definitely spam" in kwargs["messages"][0]["content"]  # prompt lowercases msg
-            #                         else "not spam"
-            #                     ),
-            #                     role="assistant",
-            #                 ),
-            #                 finish_reason="stop",
-            #             )
-            #         ],
-            #         created=time.time(),
-            #         model="gpt3.5-trubo",
-            #         object="chat.completion",
-            #     )
-
             mock_openai = Mock()
-            mock_openai().chat.completions.create = dummy_response
+            mock_openai().chat.completions.create = create_dummy_response
 
             monkeypatch.setattr("sentry.llm.providers.openai.OpenAI", mock_openai)
 
@@ -622,30 +600,8 @@ def test_create_feedback_spam_detection_project_option_false(
             "platform": "javascript",
         }
 
-        # def dummy_response(*args, **kwargs):
-        #     return ChatCompletion(
-        #         id="test",
-        #         choices=[
-        #             Choice(
-        #                 index=0,
-        #                 message=ChatCompletionMessage(
-        #                     content=(
-        #                         "spam"
-        #                         if kwargs["messages"][0]["content"].lower() == "this is definitely spam"  # prompt lowercases msg
-        #                         else "not spam"
-        #                     ),
-        #                     role="assistant",
-        #                 ),
-        #                 finish_reason="stop",
-        #             )
-        #         ],
-        #         created=time.time(),
-        #         model="gpt3.5-trubo",
-        #         object="chat.completion",
-        #     )
-
         mock_openai = Mock()
-        mock_openai().chat.completions.create = dummy_response
+        mock_openai().chat.completions.create = create_dummy_response
 
         monkeypatch.setattr("sentry.llm.providers.openai.OpenAI", mock_openai)
 
@@ -718,7 +674,7 @@ def test_create_feedback_adds_associated_event_id(
 
 
 @django_db_all
-def test_create_feedback_spam_detection_set_ignored_unit(
+def test_create_feedback_spam_detection_set_status_ignored(
     default_project,
     monkeypatch,
 ):
@@ -764,7 +720,7 @@ def test_create_feedback_spam_detection_set_ignored_unit(
         }
 
         mock_openai = Mock()
-        mock_openai().chat.completions.create = dummy_response
+        mock_openai().chat.completions.create = create_dummy_response
 
         monkeypatch.setattr("sentry.llm.providers.openai.OpenAI", mock_openai)
 
