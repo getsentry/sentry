@@ -13,14 +13,11 @@ exclude: >
   )
 
 repos:
-  - repo: https://github.com/pre-commit/mirrors-eslint
-    rev: 'v8.56.0'
+  - repo: local
     hooks:
       - id: eslint
         name: eslint
-        language: node
-        language_version: 20.13.1
-        # This version needs to be synced with package.json.
-        additional_dependencies: ['eslint@8.57.0', 'eslint-config-sentry-app@2.7.0']
+        language: system
+        entry: node_modules/.bin/eslint
         files: \.[jt]sx?$
         types: [file]
