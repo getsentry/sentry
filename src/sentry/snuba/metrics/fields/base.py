@@ -14,59 +14,18 @@ from snuba_sdk.orderby import Direction, OrderBy
 
 from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
-from sentry.search.events.constants import MISERY_ALPHA, MISERY_BETA
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_weak
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics.fields.histogram import ClickhouseHistogram, rebucket_histogram
-from sentry.snuba.metrics.fields.snql import (
-    abnormal_sessions,
-    abnormal_users,
-    addition,
-    all_duration_transactions,
-    all_sessions,
-    all_spans,
-    all_transactions,
-    all_users,
-    anr_users,
-    apdex,
-    complement,
-    count_transaction_name_snql_factory,
-    count_web_vitals_snql_factory,
-    crashed_sessions,
-    crashed_users,
-    division_float,
-    errored_all_users,
-    errored_preaggr_sessions,
-    failure_count_transaction,
-    foreground_anr_users,
-    histogram_snql_factory,
-    http_error_count_span,
-    http_error_count_transaction,
-    max_timestamp,
-    min_timestamp,
-    miserable_users,
-    on_demand_apdex_snql_factory,
-    on_demand_count_unique_snql_factory,
-    on_demand_count_web_vitals_snql_factory,
-    on_demand_epm_snql_factory,
-    on_demand_eps_snql_factory,
-    on_demand_failure_count_snql_factory,
-    on_demand_failure_rate_snql_factory,
-    on_demand_user_misery_snql_factory,
-    rate_snql_factory,
-    satisfaction_count_transaction,
-    session_duration_filters,
-    subtraction,
-    sum_if_column_snql,
-    team_key_transaction_snql,
-    tolerated_count_transaction,
-    uniq_aggregation_on_metric,
-    uniq_if_column_snql,
+from sentry.snuba.metrics.fields.derived_common import (
+    get_derived_aliases,
+    get_derived_metrics,
+    get_derived_ops,
 )
+from sentry.snuba.metrics.fields.histogram import ClickhouseHistogram
 from sentry.snuba.metrics.naming_layer.mapping import get_public_name_from_mri
-from sentry.snuba.metrics.naming_layer.mri import SessionMRI, SpanMRI, TransactionMRI
+from sentry.snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI
 from sentry.snuba.metrics.utils import (
     DEFAULT_AGGREGATES,
     GENERIC_OP_TO_SNUBA_FUNCTION,
@@ -93,9 +52,7 @@ __all__ = (
     "MetricExpressionBase",
     "DerivedMetricExpression",
     "SingularEntityDerivedMetric",
-    "DERIVED_METRICS",
     "generate_bottom_up_dependency_tree_for_metrics",
-    "get_derived_metrics",
     "org_id_from_projects",
     "COMPOSITE_ENTITY_CONSTITUENT_ALIAS",
 )
@@ -298,6 +255,11 @@ class MetricObject(MetricObjectDefinition, ABC):
     """
     Represents an object that encapsulates a metric_mri or to be more accurate what's between
     the parentheses in an expression that looks like `sum(sentry.sessions.session)`
+
+    NOTE: (nikhar) This class is used very extensively in the metrics codebase and core
+    functionality. Duplicating these for metrics_v2 would be a lot of work and would require
+    a lot of testing. Therefore, we are using the same class for metrics_v2 as well with
+    the added use_metrics_v2 parameter in the methods that require it.
     """
 
     @abstractmethod
@@ -320,26 +282,28 @@ class RawMetric(MetricObject):
     """
 
     def generate_metric_ids(
-        self, projects: Sequence[Project], use_case_id: UseCaseID, use_metrics_v2: bool | None
+        self,
+        projects: Sequence[Project],
+        use_case_id: UseCaseID,
+        use_metrics_v2: bool | None = None,
     ) -> set[int | str]:
-        if use_metrics_v2:
-            return {self.metric_mri}
-        else:
-            return {resolve_weak(use_case_id, org_id_from_projects(projects), self.metric_mri)}
+        return (
+            {self.metric_mri}
+            if use_metrics_v2
+            else {resolve_weak(use_case_id, org_id_from_projects(projects), self.metric_mri)}
+        )
 
     def generate_filter_snql_conditions(
-        self, org_id: int, use_case_id: UseCaseID, use_metrics_v2=False
+        self, org_id: int, use_case_id: UseCaseID, use_metrics_v2: bool | None = None
     ) -> Function:
-        return (
-            Function(
-                "equals",
-                [Column("metric_id"), resolve_weak(use_case_id, org_id, self.metric_mri)],
-            )
-            if not use_metrics_v2
-            else Function(
-                "equals",
-                [Column("metric_mri"), self.metric_mri],
-            )
+        metric_clause = (
+            [Column("metric_mri"), self.metric_mri]
+            if use_metrics_v2
+            else [Column("metric_id"), resolve_weak(use_case_id, org_id, self.metric_mri)]
+        )
+        return Function(
+            "equals",
+            metric_clause,
         )
 
 
@@ -350,37 +314,31 @@ class AliasedDerivedMetric(AliasedDerivedMetricDefinition, MetricObject):
     """
 
     def generate_metric_ids(
-        self, projects: Sequence[Project], use_case_id: UseCaseID, use_metrics_v2: bool | None
+        self,
+        projects: Sequence[Project],
+        use_case_id: UseCaseID,
+        use_metrics_v2: bool | None = None,
     ) -> set[int | str]:
-        if use_metrics_v2:
-            return {self.raw_metric_mri}
-        else:
-            return {resolve_weak(use_case_id, org_id_from_projects(projects), self.raw_metric_mri)}
+        return (
+            {self.raw_metric_mri}
+            if use_metrics_v2
+            else {resolve_weak(use_case_id, org_id_from_projects(projects), self.raw_metric_mri)}
+        )
 
     def generate_filter_snql_conditions(
-        self, org_id: int, use_case_id: UseCaseID, use_metrics_v2: bool | None
+        self, org_id: int, use_case_id: UseCaseID, use_metrics_v2: bool | None = None
     ) -> Function:
-        conditions = (
-            [
-                Function(
-                    "equals",
-                    [
-                        Column("metric_id"),
-                        resolve_weak(use_case_id, org_id, self.raw_metric_mri),
-                    ],
-                )
-            ]
-            if not use_metrics_v2
-            else [
-                Function(
-                    "equals",
-                    [
-                        Column("metric_mri"),
-                        self.raw_metric_mri,
-                    ],
-                )
-            ]
+        metric_clause = (
+            [Column("metric_mri"), self.raw_metric_mri]
+            if use_metrics_v2
+            else [Column("metric_id"), resolve_weak(use_case_id, org_id, self.raw_metric_mri)]
         )
+        conditions = [
+            Function(
+                "equals",
+                metric_clause,
+            )
+        ]
 
         if self.filters is not None:
             for filter_ in self.filters(org_id=org_id):
@@ -653,7 +611,12 @@ class MetricExpressionBase(ABC):
         raise NotImplementedError
 
     @abstractmethod
-    def generate_metric_ids(self, projects: Sequence[Project], use_case_id: UseCaseID) -> set[int]:
+    def generate_metric_ids(
+        self,
+        projects: Sequence[Project],
+        use_case_id: UseCaseID,
+        use_metrics_v2: bool | None = None,
+    ) -> set[int]:
         """
         Method that generates all the metric ids required to query an instance of
         MetricsFieldBase
@@ -827,6 +790,7 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
         use_case_id: UseCaseID,
         alias: str,
         params: MetricOperationParams | None = None,
+        use_metrics_v2: bool | None = None,
     ) -> list[Function]:
         org_id = org_id_from_projects(projects)
         return [
@@ -836,6 +800,7 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
                 use_case_id=use_case_id,
                 alias=alias,
                 params=params,
+                use_metrics_v2=use_metrics_v2,
             )
         ]
 
@@ -894,11 +859,12 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
         use_case_id: UseCaseID,
         alias: str,
         params: MetricOperationParams | None = None,
+        use_metrics_v2: bool | None = None,
     ) -> Function:
         # We don't pass params to the metric object because params are usually applied on the operation not on the
         # metric object/name
         conditions = self.metric_object.generate_filter_snql_conditions(
-            org_id=org_id, use_case_id=use_case_id
+            org_id=org_id, use_case_id=use_case_id, use_metrics_v2=use_metrics_v2
         )
 
         return self.metric_operation.generate_snql_function(
@@ -1011,11 +977,12 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
         until it gets to the raw metrics (leaf nodes) then queries snuba to check which
         entity/entities these raw constituent metrics belong to.
         """
-        if derived_metric_mri not in DERIVED_METRICS:
+        all_derived_metrics = get_derived_metrics()
+        if derived_metric_mri not in all_derived_metrics():
             return {_get_entity_of_metric_mri(projects, derived_metric_mri, use_case_id).value}
 
         entities = set()
-        derived_metric = DERIVED_METRICS[derived_metric_mri]
+        derived_metric = all_derived_metrics[derived_metric_mri]
 
         for metric_mri in derived_metric.metrics:
             entities |= cls.__recursively_get_all_entities_in_derived_metric_dependency_tree(
@@ -1050,12 +1017,13 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
         Method that traverses a derived metric dependency tree to return a set of the metric ids
         of its constituent metrics
         """
-        if derived_metric_mri not in DERIVED_METRICS:
+        all_derived_metrics = get_derived_metrics()
+        if derived_metric_mri not in all_derived_metrics:
             return set()
-        derived_metric = DERIVED_METRICS[derived_metric_mri]
+        derived_metric = all_derived_metrics[derived_metric_mri]
         ids = set()
         for metric_mri in derived_metric.metrics:
-            if metric_mri not in DERIVED_METRICS:
+            if metric_mri not in all_derived_metrics:
                 ids.add(resolve_weak(use_case_id, org_id, metric_mri))
             else:
                 ids |= cls.__recursively_generate_metric_ids(org_id, metric_mri, use_case_id)
@@ -1079,9 +1047,10 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
         """
         Method that generates the SnQL representation for the derived metric
         """
-        if derived_metric_mri not in DERIVED_METRICS:
+        all_derived_metrics = get_derived_metrics()
+        if derived_metric_mri not in all_derived_metrics:
             return []
-        derived_metric = DERIVED_METRICS[derived_metric_mri]
+        derived_metric = all_derived_metrics[derived_metric_mri]
         arg_snql = []
         for arg in derived_metric.metrics:
             arg_snql += cls.__recursively_generate_select_snql(
@@ -1271,9 +1240,10 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
     ) -> dict[MetricEntity, list[str]]:
         entities_and_metric_mris: dict[MetricEntity, list[str]] = {}
         for metric_mri in derived_metric_obj.metrics:
-            if metric_mri not in DERIVED_METRICS:
+            all_derived_metrics = get_derived_metrics()
+            if metric_mri not in all_derived_metrics:
                 continue
-            constituent_metric_obj = DERIVED_METRICS[metric_mri]
+            constituent_metric_obj = all_derived_metrics[metric_mri]
             if isinstance(constituent_metric_obj, SingularEntityDerivedMetric):
                 if is_naive:
                     entity = None
@@ -1313,12 +1283,12 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
         set_alias_root = False
 
         metric_nodes: Deque[DerivedMetricExpression] = deque()
-
+        all_derived_metrics = get_derived_metrics()
         results = []
         metric_nodes.append(self)
         while metric_nodes:
             node = metric_nodes.popleft()
-            if node.metric_mri in DERIVED_METRICS:
+            if node.metric_mri in all_derived_metrics:
                 if set_alias_root:
                     results.append(
                         (
@@ -1337,8 +1307,8 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
                 if isinstance(node, SingularEntityDerivedMetric):
                     continue
             for metric in node.metrics:
-                if metric in DERIVED_METRICS:
-                    metric_nodes.append(DERIVED_METRICS[metric])
+                if metric in all_derived_metrics:
+                    metric_nodes.append(all_derived_metrics[metric])
         return reversed(results)
 
     def naively_generate_singular_entity_constituents(self, use_case_id: UseCaseID) -> set[str]:
@@ -1398,588 +1368,32 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
         raise InvalidParams(f"Cannot filter by metric {get_public_name_from_mri(self.metric_mri)}")
 
 
-# ToDo(ahmed): Investigate dealing with derived metric keys as Enum objects rather than string
-#  values
-DERIVED_METRICS = {
-    derived_metric.metric_mri: derived_metric
-    for derived_metric in [
-        SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.ALL.value,
-            metrics=[SessionMRI.RAW_SESSION.value],
-            unit="sessions",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: all_sessions(
-                org_id, metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.ALL_USER.value,
-            metrics=[SessionMRI.RAW_USER.value],
-            unit="users",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: all_users(
-                org_id, metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.ABNORMAL.value,
-            metrics=[SessionMRI.RAW_SESSION.value],
-            unit="sessions",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: abnormal_sessions(
-                org_id, metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.ABNORMAL_USER.value,
-            metrics=[SessionMRI.RAW_USER.value],
-            unit="users",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: abnormal_users(
-                org_id, metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.CRASHED.value,
-            metrics=[SessionMRI.RAW_SESSION.value],
-            unit="sessions",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: crashed_sessions(
-                org_id, metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.CRASHED_USER.value,
-            metrics=[SessionMRI.RAW_USER.value],
-            unit="users",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: crashed_users(
-                org_id, metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.ANR_USER.value,
-            metrics=[SessionMRI.RAW_USER.value],
-            unit="users",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: anr_users(
-                org_id, metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.FOREGROUND_ANR_USER.value,
-            metrics=[SessionMRI.RAW_USER.value],
-            unit="users",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: foreground_anr_users(
-                org_id, metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.CRASH_RATE.value,
-            metrics=[SessionMRI.CRASHED.value, SessionMRI.ALL.value],
-            unit="percentage",
-            snql=lambda crashed_count, all_count, project_ids, org_id, metric_ids, alias=None: division_float(
-                crashed_count, all_count, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.CRASH_USER_RATE.value,
-            metrics=[
-                SessionMRI.CRASHED_USER.value,
-                SessionMRI.ALL_USER.value,
-            ],
-            unit="percentage",
-            snql=lambda crashed_user_count, all_user_count, project_ids, org_id, metric_ids, alias=None: division_float(
-                crashed_user_count, all_user_count, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.ANR_RATE.value,
-            metrics=[
-                SessionMRI.ANR_USER.value,
-                SessionMRI.ALL_USER.value,
-            ],
-            unit="percentage",
-            snql=lambda anr_user_count, all_user_count, project_ids, org_id, metric_ids, alias=None: division_float(
-                anr_user_count, all_user_count, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.FOREGROUND_ANR_RATE.value,
-            metrics=[
-                SessionMRI.FOREGROUND_ANR_USER.value,
-                SessionMRI.ALL_USER.value,
-            ],
-            unit="percentage",
-            snql=lambda foreground_anr_user_count, all_user_count, project_ids, org_id, metric_ids, alias=None: division_float(
-                foreground_anr_user_count, all_user_count, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.CRASH_FREE_RATE.value,
-            metrics=[SessionMRI.CRASH_RATE.value],
-            unit="percentage",
-            snql=lambda crash_rate_value, project_ids, org_id, metric_ids, alias=None: complement(
-                crash_rate_value, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.CRASH_FREE.value,
-            metrics=[SessionMRI.ALL.value, SessionMRI.CRASHED.value],
-            unit="sessions",
-            snql=lambda all_count, crashed_count, project_ids, org_id, metric_ids, alias=None: subtraction(
-                all_count, crashed_count, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.CRASH_FREE_USER_RATE.value,
-            metrics=[SessionMRI.CRASH_USER_RATE.value],
-            unit="percentage",
-            snql=lambda crash_user_rate_value, project_ids, org_id, metric_ids, alias=None: complement(
-                crash_user_rate_value, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.CRASH_FREE_USER.value,
-            metrics=[
-                SessionMRI.ALL_USER.value,
-                SessionMRI.CRASHED_USER.value,
-            ],
-            unit="users",
-            snql=lambda all_user_count, crashed_user_count, project_ids, org_id, metric_ids, alias=None: subtraction(
-                all_user_count, crashed_user_count, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.ERRORED_PREAGGREGATED.value,
-            metrics=[SessionMRI.RAW_SESSION.value],
-            unit="sessions",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: errored_preaggr_sessions(
-                org_id, metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.ERRORED_SET.value,
-            metrics=[SessionMRI.RAW_ERROR.value],
-            unit="sessions",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: uniq_aggregation_on_metric(
-                metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.CRASHED_AND_ABNORMAL.value,
-            metrics=[
-                SessionMRI.CRASHED.value,
-                SessionMRI.ABNORMAL.value,
-            ],
-            unit="sessions",
-            snql=lambda crashed_count, abnormal_count, project_ids, org_id, metric_ids, alias=None: addition(
-                crashed_count, abnormal_count, alias=alias
-            ),
-        ),
-        CompositeEntityDerivedMetric(
-            metric_mri=SessionMRI.ERRORED_ALL.value,
-            metrics=[
-                SessionMRI.ERRORED_PREAGGREGATED.value,
-                SessionMRI.ERRORED_SET.value,
-            ],
-            unit="sessions",
-            post_query_func=lambda *args: sum([*args]),
-        ),
-        CompositeEntityDerivedMetric(
-            metric_mri=SessionMRI.ERRORED.value,
-            metrics=[
-                SessionMRI.ERRORED_ALL.value,
-                SessionMRI.CRASHED_AND_ABNORMAL.value,
-            ],
-            unit="sessions",
-            post_query_func=lambda errored_all, crashed_abnormal: max(
-                0, errored_all - crashed_abnormal
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.ERRORED_USER_ALL.value,
-            metrics=[SessionMRI.RAW_USER.value],
-            unit="users",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: errored_all_users(
-                org_id, metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.CRASHED_AND_ABNORMAL_USER.value,
-            metrics=[
-                SessionMRI.CRASHED_USER.value,
-                SessionMRI.ABNORMAL_USER.value,
-            ],
-            unit="users",
-            snql=lambda crashed_user_count, abnormal_user_count, project_ids, org_id, metric_ids, alias=None: addition(
-                crashed_user_count, abnormal_user_count, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.ERRORED_USER.value,
-            metrics=[
-                SessionMRI.ERRORED_USER_ALL.value,
-                SessionMRI.CRASHED_AND_ABNORMAL_USER.value,
-            ],
-            unit="users",
-            snql=lambda errored_user_all_count, crashed_and_abnormal_user_count, project_ids, org_id, metric_ids, alias=None: subtraction(
-                errored_user_all_count, crashed_and_abnormal_user_count, alias=alias
-            ),
-            post_query_func=lambda *args: max(0, *args),
-        ),
-        CompositeEntityDerivedMetric(
-            metric_mri=SessionMRI.HEALTHY.value,
-            metrics=[
-                SessionMRI.ALL.value,
-                SessionMRI.ERRORED_ALL.value,
-            ],
-            unit="sessions",
-            post_query_func=lambda init, errored: max(0, init - errored),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SessionMRI.HEALTHY_USER.value,
-            metrics=[
-                SessionMRI.ALL_USER.value,
-                SessionMRI.ERRORED_USER_ALL.value,
-            ],
-            unit="users",
-            snql=lambda all_user_count, errored_user_all_count, project_ids, org_id, metric_ids, alias=None: subtraction(
-                all_user_count, errored_user_all_count, alias=alias
-            ),
-            post_query_func=lambda *args: max(0, *args),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=TransactionMRI.ALL.value,
-            metrics=[TransactionMRI.DURATION.value, TransactionMRI.MEASUREMENTS_LCP.value],
-            unit="transactions",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: all_transactions(
-                project_ids=project_ids, org_id=org_id, metric_ids=metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=TransactionMRI.ALL_DURATION.value,
-            metrics=[TransactionMRI.DURATION.value],
-            unit="transactions",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: all_duration_transactions(
-                metric_ids=metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=TransactionMRI.FAILURE_COUNT.value,
-            metrics=[TransactionMRI.DURATION.value],
-            unit="transactions",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: failure_count_transaction(
-                org_id, metric_ids=metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=TransactionMRI.FAILURE_RATE.value,
-            metrics=[
-                TransactionMRI.FAILURE_COUNT.value,
-                TransactionMRI.ALL_DURATION.value,
-            ],
-            unit="transactions",
-            snql=lambda failure_count, tx_count, project_ids, org_id, metric_ids, alias=None: division_float(
-                failure_count, tx_count, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=TransactionMRI.HTTP_ERROR_COUNT.value,
-            metrics=[TransactionMRI.DURATION.value],
-            unit="transactions",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: http_error_count_transaction(
-                org_id, metric_ids=metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=TransactionMRI.HTTP_ERROR_RATE.value,
-            metrics=[
-                TransactionMRI.HTTP_ERROR_COUNT.value,
-                TransactionMRI.ALL_DURATION.value,
-            ],
-            unit="transactions",
-            snql=lambda http_error_count, tx_count, project_ids, org_id, metric_ids, alias=None: division_float(
-                http_error_count, tx_count, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SpanMRI.ALL.value,
-            metrics=[SpanMRI.SELF_TIME.value],
-            unit="spans",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: all_spans(
-                metric_ids=metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SpanMRI.ALL_LIGHT.value,
-            metrics=[SpanMRI.SELF_TIME_LIGHT.value],
-            unit="spans",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: all_spans(
-                metric_ids=metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SpanMRI.HTTP_ERROR_COUNT.value,
-            metrics=[SpanMRI.SELF_TIME.value],
-            unit="spans",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: http_error_count_span(
-                org_id, metric_ids=metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SpanMRI.HTTP_ERROR_RATE.value,
-            metrics=[
-                SpanMRI.HTTP_ERROR_COUNT.value,
-                SpanMRI.ALL.value,
-            ],
-            unit="transactions",
-            snql=lambda http_error_count, tx_count, project_ids, org_id, metric_ids, alias=None: division_float(
-                http_error_count, tx_count, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SpanMRI.HTTP_ERROR_COUNT_LIGHT.value,
-            metrics=[SpanMRI.SELF_TIME_LIGHT.value],
-            unit="spans",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: http_error_count_span(
-                org_id, metric_ids=metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=SpanMRI.HTTP_ERROR_RATE_LIGHT.value,
-            metrics=[
-                SpanMRI.HTTP_ERROR_COUNT_LIGHT.value,
-                SpanMRI.ALL_LIGHT.value,
-            ],
-            unit="transactions",
-            snql=lambda http_error_count, tx_count, project_ids, org_id, metric_ids, alias=None: division_float(
-                http_error_count, tx_count, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=TransactionMRI.SATISFIED.value,
-            metrics=[TransactionMRI.DURATION.value, TransactionMRI.MEASUREMENTS_LCP.value],
-            unit="transactions",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: satisfaction_count_transaction(
-                project_ids=project_ids, org_id=org_id, metric_ids=metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=TransactionMRI.TOLERATED.value,
-            metrics=[TransactionMRI.DURATION.value, TransactionMRI.MEASUREMENTS_LCP.value],
-            unit="transactions",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: tolerated_count_transaction(
-                project_ids=project_ids, org_id=org_id, metric_ids=metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=TransactionMRI.APDEX.value,
-            metrics=[
-                TransactionMRI.SATISFIED.value,
-                TransactionMRI.TOLERATED.value,
-                TransactionMRI.ALL.value,
-            ],
-            unit="percentage",
-            snql=lambda satisfied, tolerated, total, project_ids, org_id, metric_ids, alias=None: apdex(
-                satisfied, tolerated, total, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=TransactionMRI.MISERABLE_USER.value,
-            metrics=[
-                TransactionMRI.USER.value,
-            ],
-            unit="users",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: miserable_users(
-                org_id=org_id, metric_ids=metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=TransactionMRI.ALL_USER.value,
-            metrics=[TransactionMRI.USER.value],
-            unit="percentage",
-            snql=lambda project_ids, org_id, metric_ids, alias=None: uniq_aggregation_on_metric(
-                metric_ids, alias=alias
-            ),
-        ),
-        SingularEntityDerivedMetric(
-            metric_mri=TransactionMRI.USER_MISERY.value,
-            metrics=[TransactionMRI.MISERABLE_USER.value, TransactionMRI.ALL_USER.value],
-            unit="percentage",
-            snql=lambda miserable_user, user, project_ids, org_id, metric_ids, alias=None: division_float(
-                addition(miserable_user, MISERY_ALPHA),
-                addition(user, MISERY_ALPHA + MISERY_BETA),
-                alias,
-            ),
-        ),
-    ]
-}
-
-DERIVED_OPS: Mapping[MetricOperationType, DerivedOp] = {
-    derived_op.op: derived_op
-    for derived_op in [
-        DerivedOp(
-            op="histogram",
-            can_orderby=False,
-            post_query_func=rebucket_histogram,
-            snql_func=histogram_snql_factory,
-            default_null_value=[],
-        ),
-        DerivedOp(
-            op="rate",
-            can_orderby=True,
-            snql_func=rate_snql_factory,
-            default_null_value=0,
-        ),
-        DerivedOp(
-            op="count_web_vitals",
-            can_orderby=True,
-            snql_func=count_web_vitals_snql_factory,
-            default_null_value=0,
-        ),
-        DerivedOp(
-            op="count_transaction_name",
-            can_orderby=True,
-            snql_func=count_transaction_name_snql_factory,
-            default_null_value=0,
-        ),
-        # This specific derived operation doesn't require a metric_mri supplied to the MetricField but
-        # in order to avoid breaking the contract we should always pass it. When using it in the orderby
-        # clause you should put a metric mri with the same entity as the only entity used in the select.
-        # E.g. if you have a select with user_misery which is a set entity and team_key_transaction and you want
-        # to order by team_key_transaction, you will have to supply to the team_key_transaction MetricField
-        # an mri that has the set entity.
-        #
-        # OrderBy(
-        #     field=MetricField(
-        #         op="team_key_transaction",
-        #         # This has entity type set, which is the entity type of the select (in the select you can only have
-        #         one entity type across selections if you use the team_key_transaction in the order by).
-        #         metric_mri=TransactionMRI.USER.value,
-        #         params={
-        #             "team_key_condition_rhs": [
-        #                 (self.project.id, "foo_transaction"),
-        #             ]
-        #         },
-        #         alias="team_key_transactions",
-        #     ),
-        #     direction=Direction.DESC,
-        # )
-        DerivedOp(
-            op="team_key_transaction",
-            can_orderby=True,
-            can_groupby=True,
-            can_filter=True,
-            snql_func=team_key_transaction_snql,
-            default_null_value=0,
-            meta_type="boolean",
-        ),
-        DerivedOp(
-            op="sum_if_column",
-            can_orderby=True,
-            snql_func=sum_if_column_snql,
-            default_null_value=0,
-        ),
-        DerivedOp(
-            op="uniq_if_column",
-            can_orderby=True,
-            snql_func=uniq_if_column_snql,
-            default_null_value=0,
-        ),
-        DerivedOp(
-            op="min_timestamp",
-            can_groupby=True,
-            can_orderby=True,
-            can_filter=True,
-            snql_func=min_timestamp,
-            meta_type="datetime",
-            default_null_value=None,
-        ),
-        DerivedOp(
-            op="max_timestamp",
-            can_groupby=True,
-            can_orderby=True,
-            can_filter=True,
-            snql_func=max_timestamp,
-            meta_type="datetime",
-            default_null_value=None,
-        ),
-        # Custom operations used for on demand derived metrics.
-        DerivedOp(
-            op="on_demand_apdex",
-            can_orderby=True,
-            snql_func=on_demand_apdex_snql_factory,
-            default_null_value=0,
-        ),
-        DerivedOp(
-            op="on_demand_epm",
-            can_orderby=True,
-            snql_func=on_demand_epm_snql_factory,
-            default_null_value=0,
-        ),
-        DerivedOp(
-            op="on_demand_eps",
-            can_orderby=True,
-            snql_func=on_demand_eps_snql_factory,
-            default_null_value=0,
-        ),
-        DerivedOp(
-            op="on_demand_failure_count",
-            can_orderby=True,
-            snql_func=on_demand_failure_count_snql_factory,
-            default_null_value=0,
-        ),
-        DerivedOp(
-            op="on_demand_failure_rate",
-            can_orderby=True,
-            snql_func=on_demand_failure_rate_snql_factory,
-            default_null_value=0,
-        ),
-        DerivedOp(
-            op="on_demand_count_unique",
-            can_orderby=True,
-            snql_func=on_demand_count_unique_snql_factory,
-        ),
-        DerivedOp(
-            op="on_demand_count_web_vitals",
-            can_orderby=True,
-            snql_func=on_demand_count_web_vitals_snql_factory,
-        ),
-        DerivedOp(
-            op="on_demand_user_misery",
-            can_orderby=True,
-            snql_func=on_demand_user_misery_snql_factory,
-            default_null_value=0,
-        ),
-    ]
-}
-
-DERIVED_ALIASES: Mapping[str, AliasedDerivedMetric] = {
-    derived_alias.metric_mri: derived_alias
-    for derived_alias in [
-        AliasedDerivedMetric(
-            metric_mri=SessionMRI.DURATION.value,
-            raw_metric_mri=SessionMRI.RAW_DURATION.value,
-            filters=lambda *_, org_id: session_duration_filters(org_id),
-        )
-    ]
-}
-
-
-def metric_object_factory(op: MetricOperationType | None, metric_mri: str) -> MetricExpressionBase:
+def metric_object_factory(
+    op: MetricOperationType | None, metric_mri: str, use_metrics_v2: bool | None = None
+) -> MetricExpressionBase:
     """Returns an appropriate instance of MetricsFieldBase object"""
-    if op in DERIVED_OPS and metric_mri in DERIVED_METRICS:
+    all_derived_ops = get_derived_ops(use_metrics_v2)
+    all_derived_metrics = get_derived_metrics(use_metrics_v2)
+    all_derived_aliases = get_derived_aliases(use_metrics_v2)
+    if op in all_derived_ops and metric_mri in all_derived_metrics:
         raise InvalidParams("derived ops cannot be used on derived metrics")
 
     # This function is only used in the query builder, only after func `parse_field` validates
     # that no private derived metrics are required. The query builder requires access to all
     # derived metrics to be able to compute derived metrics that are not private but might have
     # private constituents
-    derived_metrics = get_derived_metrics()
-    if metric_mri in derived_metrics:
-        return derived_metrics[metric_mri]
+    if metric_mri in all_derived_metrics:
+        return all_derived_metrics[metric_mri]
 
     # at this point we know we have an op. Add assertion to appease mypy
     assert op is not None
 
-    metric_operation = DERIVED_OPS[op] if op in DERIVED_OPS else RawOp(op=op)
+    metric_operation = all_derived_ops[op] if op in all_derived_ops else RawOp(op=op)
 
     metric_object = (
-        DERIVED_ALIASES[metric_mri] if metric_mri in DERIVED_ALIASES else RawMetric(metric_mri)
+        all_derived_aliases[metric_mri]
+        if metric_mri in all_derived_aliases
+        else RawMetric(metric_mri)
     )
 
     return MetricExpression(metric_operation=metric_operation, metric_object=metric_object)
@@ -2000,7 +1414,3 @@ def generate_bottom_up_dependency_tree_for_metrics(
             )
         )
     return dependency_list
-
-
-def get_derived_metrics() -> Mapping[str, DerivedMetricExpression]:
-    return DERIVED_METRICS

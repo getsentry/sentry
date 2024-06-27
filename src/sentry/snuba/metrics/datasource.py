@@ -5,6 +5,8 @@ from functools import lru_cache
 import sentry_sdk
 from rest_framework.exceptions import NotFound
 
+from sentry.snuba.metrics.fields.derived_common import get_derived_metrics
+
 """
 Module that gets both metadata and time series from Snuba.
 For metadata, it fetch metrics metadata (metric names, tag names, tag values, ...) from snuba.
@@ -50,7 +52,6 @@ from sentry.snuba.metrics.fields import run_metrics_query
 from sentry.snuba.metrics.fields.base import (
     SnubaDataType,
     build_metrics_query,
-    get_derived_metrics,
     org_id_from_projects,
 )
 from sentry.snuba.metrics.naming_layer.mapping import get_mri
@@ -92,13 +93,14 @@ def _get_metrics_for_entity(
     use_case_id: UseCaseID,
     start: datetime | None = None,
     end: datetime | None = None,
+    use_metrics_v2: bool | None = None,
 ) -> list[SnubaDataType]:
+    metric_clause = Column("metric_mri") if use_metrics_v2 else Column("metric_id")
     return run_metrics_query(
         entity_key=entity_key,
-        select=[Column("metric_id")],
-        groupby=[Column("metric_id")],
-        where=[Condition(Column("use_case_id"), Op.EQ, use_case_id.value)],
-        referrer="snuba.metrics.get_metrics_names_for_entity",
+        select=[metric_clause],
+        groupby=[metric_clause],
+        referrer="snuba.metrics.get_metrics_for_entity",
         project_ids=project_ids,
         org_id=org_id,
         use_case_id=use_case_id,
@@ -114,14 +116,19 @@ def _get_metrics_by_project_for_entity_query(
     use_case_id: UseCaseID,
     start: datetime | None = None,
     end: datetime | None = None,
+    use_metrics_v2: bool | None = None,
 ) -> Request:
     where = [Condition(Column("use_case_id"), Op.EQ, use_case_id.value)]
-    where.extend(_get_mri_constraints_for_use_case(entity_key, use_case_id))
+    if not use_metrics_v2:
+        # Clickhouse does not store indexes in metrics_v2. We should skip the
+        # mri constraints for metrics_v2.
+        where.extend(_get_mri_constraints_for_use_case(entity_key, use_case_id))
 
+    metric_clause = Column("metric_mri") if use_metrics_v2 else Column("metric_id")
     return build_metrics_query(
         entity_key=entity_key,
-        select=[Column("project_id"), Column("metric_id")],
-        groupby=[Column("project_id"), Column("metric_id")],
+        select=[Column("project_id"), metric_clause],
+        groupby=[Column("project_id"), metric_clause],
         where=where,
         project_ids=project_ids,
         org_id=org_id,
@@ -219,11 +226,13 @@ def _get_metrics_by_project_for_entity(
     use_case_id: UseCaseID,
     start: datetime | None = None,
     end: datetime | None = None,
+    use_metrics_v2: bool | None = None,
 ) -> list[SnubaDataType]:
+    metric_clause = Column("metric_mri") if use_metrics_v2 else Column("metric_id")
     return run_metrics_query(
         entity_key=entity_key,
-        select=[Column("project_id"), Column("metric_id")],
-        groupby=[Column("project_id"), Column("metric_id")],
+        select=[Column("project_id"), metric_clause],
+        groupby=[Column("project_id"), metric_clause],
         where=[Condition(Column("use_case_id"), Op.EQ, use_case_id.value)],
         referrer="snuba.metrics.get_metrics_names_for_entity",
         project_ids=project_ids,
@@ -238,6 +247,7 @@ def get_available_derived_metrics(
     projects: Sequence[Project],
     supported_metric_ids_in_entities: dict[MetricType, Sequence[int]],
     use_case_id: UseCaseID,
+    use_metrics_v2: bool | None = None,
 ) -> set[str]:
     """
     Function that takes as input a dictionary of the available ids in each entity, and in turn
@@ -253,11 +263,13 @@ def get_available_derived_metrics(
 
     # Initially, we need all derived metrics to be able to support derived metrics that are not
     # private but might have private constituent metrics
-    all_derived_metrics = get_derived_metrics()
+    all_derived_metrics = get_derived_metrics(use_metrics_v2=use_metrics_v2)
 
     for derived_metric_mri, derived_metric_obj in all_derived_metrics.items():
         try:
-            derived_metric_obj_ids = derived_metric_obj.generate_metric_ids(projects, use_case_id)
+            derived_metric_obj_ids = derived_metric_obj.generate_metric_ids(
+                projects, use_case_id, use_metrics_v2=use_metrics_v2
+            )
         except NotSupportedOverCompositeEntityException:
             # If we encounter a derived metric composed of constituents spanning multiple
             # entities then we store it in this set
@@ -281,7 +293,7 @@ def get_available_derived_metrics(
         if single_entity_constituents.issubset(found_derived_metrics):
             found_derived_metrics.add(composite_derived_metric_obj.metric_mri)
 
-    all_derived_metrics = set(get_derived_metrics().keys())
+    all_derived_metrics = set(get_derived_metrics(use_metrics_v2=use_metrics_v2).keys())
     return found_derived_metrics.intersection(all_derived_metrics)
 
 
@@ -511,6 +523,8 @@ def _fetch_tags_or_values_for_mri(
     selected or in the case of no metric_names passed, returns basically all the tags or the tag
     values available for those projects. In addition, when exactly one metric name is passed in
     metric_names, then the type (i.e. mapping to the entity) is also returned
+
+    TODO(nikhar): Its better to create a separate function to handle the metrics_v2 data model
     """
     org_id = projects[0].organization_id
 

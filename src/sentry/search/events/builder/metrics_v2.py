@@ -116,7 +116,7 @@ class MetricsQueryBuilderV2(QueryBuilder):
         self.percentiles: list[CurriedFunction] = []
         # only used for metrics_layer right now
         self.metrics_layer_functions: list[CurriedFunction] = []
-        self.metric_mris: set[int] = set()
+        self.metric_mris: set[str] = set()
         self._use_default_tags: bool | None = None
         self._has_nullable: bool = False
         # always true if this is being called
@@ -445,7 +445,7 @@ class MetricsQueryBuilderV2(QueryBuilder):
 
         if len(self.metric_mris) > 0 and not self.use_metrics_layer:
             self.where.append(
-                # Metric id is intentionally sorted, so we create consistent queries here both for testing & caching.
+                # Metric mri is intentionally sorted, so we create consistent queries here both for testing & caching.
                 Condition(Column("metric_mri"), Op.IN, sorted(self.metric_mris))
             )
 

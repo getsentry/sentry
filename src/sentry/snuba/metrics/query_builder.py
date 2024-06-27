@@ -13,7 +13,7 @@ __all__ = (
 from collections.abc import Mapping, Sequence
 from datetime import datetime, timedelta
 from enum import Enum
-from typing import Any, Optional
+from typing import Any
 
 import sentry_sdk
 from snuba_sdk import (
@@ -56,6 +56,8 @@ from sentry.snuba.metrics.fields.base import (
     generate_bottom_up_dependency_tree_for_metrics,
     org_id_from_projects,
 )
+from sentry.snuba.metrics.fields.snql import transform_null_transaction_to_unparameterized
+from sentry.snuba.metrics.fields.snql_v2 import transform_null_transaction_to_unparameterized_v2
 from sentry.snuba.metrics.naming_layer.mapping import (
     get_mri,
     get_operation_with_public_name,
@@ -134,41 +136,6 @@ def parse_public_field(field: str) -> MetricField:
     return MetricField(operation, get_mri(metric_name))
 
 
-def transform_null_transaction_to_unparameterized(
-    use_case_id, org_id, alias=None, use_metrics_v2=False
-):
-    """
-    This function transforms any null tag.transaction to '<< unparameterized >>' so that it can be handled
-    as such in any query using that tag value.
-
-    The logic behind this query is that ClickHouse will return '' in case tag.transaction is not set and we want to
-    transform that '' as '<< unparameterized >>'.
-
-    It is important to note that this transformation has to be applied ONLY on tag.transaction.
-    """
-    return (
-        Function(
-            function="transform",
-            parameters=[
-                Column(resolve_tag_key(use_case_id, org_id, "transaction")),
-                [""],
-                [resolve_tag_value(use_case_id, org_id, "<< unparameterized >>")],
-            ],
-            alias=alias,
-        )
-        if not use_metrics_v2
-        else Function(
-            function="transform",
-            parameters=[
-                Column('tags["transaction"]'),
-                [""],
-                ["<< unparameterized >>"],
-            ],
-            alias=alias,
-        )
-    )
-
-
 def _refers_to_column(expression: Column | Function) -> str | None:
     """
     Tries to compute to which column the input expression is referring to.
@@ -197,6 +164,8 @@ def resolve_tags(
     projects: Sequence[Project],
     is_tag_value: bool = False,
     allowed_tag_keys: dict[str, str] | None = None,
+    use_metrics_v2: bool
+    | None = None,  # TODO(nikhar): Update the call sites to pass this parameter
 ) -> Any:
     """Translate tags in snuba condition
 
@@ -213,6 +182,7 @@ def resolve_tags(
                 projects,
                 is_tag_value=True,
                 allowed_tag_keys=allowed_tag_keys,
+                use_metrics_v2=use_metrics_v2,
             )
             for item in input_
         ]
@@ -231,6 +201,7 @@ def resolve_tags(
                 input_.parameters[0],
                 projects,
                 allowed_tag_keys=allowed_tag_keys,
+                use_metrics_v2=use_metrics_v2,
             )
         elif input_.function == "isNull":
             return Function(
@@ -242,6 +213,7 @@ def resolve_tags(
                         input_.parameters[0],
                         projects,
                         allowed_tag_keys=allowed_tag_keys,
+                        use_metrics_v2=use_metrics_v2,
                     ),
                     resolve_tags(
                         use_case_id,
@@ -250,6 +222,7 @@ def resolve_tags(
                         projects,
                         is_tag_value=True,
                         allowed_tag_keys=allowed_tag_keys,
+                        use_metrics_v2=use_metrics_v2,
                     ),
                 ],
             )
@@ -271,6 +244,7 @@ def resolve_tags(
                         input_.parameters[0],
                         projects,
                         allowed_tag_keys=new_allowed_tag_keys,
+                        use_metrics_v2=use_metrics_v2,
                     ),
                     input_.parameters[1],  # We directly pass the regex.
                 ],
@@ -281,7 +255,12 @@ def resolve_tags(
                 parameters=input_.parameters
                 and [
                     resolve_tags(
-                        use_case_id, org_id, item, projects, allowed_tag_keys=allowed_tag_keys
+                        use_case_id,
+                        org_id,
+                        item,
+                        projects,
+                        allowed_tag_keys=allowed_tag_keys,
+                        use_metrics_v2=use_metrics_v2,
                     )
                     for item in input_.parameters
                 ],
@@ -297,14 +276,24 @@ def resolve_tags(
     ):
         # Remove another "null" wrapper. We should really write our own parser instead.
         return resolve_tags(
-            use_case_id, org_id, input_.conditions[1], projects, allowed_tag_keys=allowed_tag_keys
+            use_case_id,
+            org_id,
+            input_.conditions[1],
+            projects,
+            allowed_tag_keys=allowed_tag_keys,
+            use_metrics_v2=use_metrics_v2,
         )
 
     if isinstance(input_, Condition):
         if input_.op == Op.IS_NULL and input_.rhs is None:
             return Condition(
                 lhs=resolve_tags(
-                    use_case_id, org_id, input_.lhs, projects, allowed_tag_keys=allowed_tag_keys
+                    use_case_id,
+                    org_id,
+                    input_.lhs,
+                    projects,
+                    allowed_tag_keys=allowed_tag_keys,
+                    use_metrics_v2=use_metrics_v2,
                 ),
                 op=Op.EQ,
                 rhs=resolve_tags(
@@ -314,6 +303,7 @@ def resolve_tags(
                     projects,
                     is_tag_value=True,
                     allowed_tag_keys=allowed_tag_keys,
+                    use_metrics_v2=use_metrics_v2,
                 ),
             )
         if (
@@ -342,7 +332,12 @@ def resolve_tags(
 
             return Condition(
                 lhs=resolve_tags(
-                    use_case_id, org_id, input_.lhs, projects, allowed_tag_keys=allowed_tag_keys
+                    use_case_id,
+                    org_id,
+                    input_.lhs,
+                    projects,
+                    allowed_tag_keys=allowed_tag_keys,
+                    use_metrics_v2=use_metrics_v2,
                 ),
                 op=op,
                 rhs=rhs_ids,
@@ -359,7 +354,12 @@ def resolve_tags(
 
         return Condition(
             lhs=resolve_tags(
-                use_case_id, org_id, input_.lhs, projects, allowed_tag_keys=allowed_tag_keys
+                use_case_id,
+                org_id,
+                input_.lhs,
+                projects,
+                allowed_tag_keys=allowed_tag_keys,
+                use_metrics_v2=use_metrics_v2,
             ),
             op=input_.op,
             rhs=resolve_tags(
@@ -369,6 +369,7 @@ def resolve_tags(
                 projects,
                 is_tag_value=True,
                 allowed_tag_keys=allowed_tag_keys,
+                use_metrics_v2=use_metrics_v2,
             ),
         )
 
@@ -380,7 +381,14 @@ def resolve_tags(
 
         return input_.__class__(
             conditions=[
-                resolve_tags(use_case_id, org_id, item, projects, allowed_tag_keys=allowed_tag_keys)
+                resolve_tags(
+                    use_case_id,
+                    org_id,
+                    item,
+                    projects,
+                    allowed_tag_keys=allowed_tag_keys,
+                    use_metrics_v2=use_metrics_v2,
+                )
                 for item in input_.conditions
             ],
             **additional_args,
@@ -400,7 +408,14 @@ def resolve_tags(
             # If we are getting the column tags.transaction, we want to transform null values to
             # '<< unparameterized >>'.
             if input_.key == "transaction":
-                return transform_null_transaction_to_unparameterized(use_case_id, org_id)
+                if use_metrics_v2:
+                    return transform_null_transaction_to_unparameterized_v2(
+                        use_case_id, org_id, use_metrics_v2=use_metrics_v2
+                    )
+                else:
+                    return transform_null_transaction_to_unparameterized(
+                        use_case_id, org_id, use_metrics_v2=use_metrics_v2
+                    )
 
             name = input_.key
         else:
@@ -413,12 +428,14 @@ def resolve_tags(
                 f"{set(allowed_tag_keys.values()) if allowed_tag_keys else {} }"
             )
 
-        return Column(name=resolve_tag_key(use_case_id, org_id, name))
+        return Column(
+            name=resolve_tag_key(use_case_id, org_id, name, use_metrics_v2=use_metrics_v2)
+        )
     if isinstance(input_, str):
         if is_tag_value:
-            return resolve_tag_value(use_case_id, org_id, input_)
+            return resolve_tag_value(use_case_id, org_id, input_, use_metrics_v2=use_metrics_v2)
         else:
-            return resolve_weak(use_case_id, org_id, input_)
+            return resolve_weak(use_case_id, org_id, input_, use_metrics_v2=use_metrics_v2)
     if isinstance(input_, int):
         return input_
 
@@ -796,7 +813,9 @@ class SnubaQueryBuilder:
         projects: Sequence[Project],
         metrics_query: DeprecatingMetricsQuery,
         use_case_id: UseCaseID,
-        use_metrics_v2: bool | None = False,
+        use_metrics_v2: (
+            bool | None
+        ) = None,  # TODO(nikhar): Update call sites to pass this parameter
     ):
         self._projects = projects
         self._metrics_query = metrics_query
@@ -828,9 +847,18 @@ class SnubaQueryBuilder:
         if isinstance(metric_action_by_field.field, str):
             # This transformation is currently supported only for group by because OrderBy doesn't support the Function type.
             if is_group_by and metric_action_by_field.field == "transaction":
-                return transform_null_transaction_to_unparameterized(
-                    use_case_id, org_id, metric_action_by_field.alias, self.use_metrics_v2
-                )
+                if self._use_metrics_v2:
+                    return transform_null_transaction_to_unparameterized_v2(
+                        use_case_id,
+                        org_id,
+                        metric_action_by_field.alias,
+                    )
+                else:
+                    return transform_null_transaction_to_unparameterized(
+                        use_case_id,
+                        org_id,
+                        metric_action_by_field.alias,
+                    )
 
             # Handles the case when we are trying to group or order by `project` for example, but we want
             # to translate it to `project_id` as that is what the metrics dataset understands.
@@ -843,7 +871,13 @@ class SnubaQueryBuilder:
                 # need arise, we will implement it.
                 if is_group_by:
                     assert isinstance(metric_action_by_field.field, str)
-                    column_name = resolve_tag_key(use_case_id, org_id, metric_action_by_field.field)
+                    column_name = (
+                        "tags[{metric_action_by_field.field}]"
+                        if self.use_metrics_v2
+                        else resolve_tag_key(
+                            use_case_id, org_id, metric_action_by_field.field, self.use_metrics_v2
+                        )
+                    )
                 else:
                     raise NotImplementedError(
                         f"Unsupported string field: {metric_action_by_field.field}"
@@ -933,7 +967,13 @@ class SnubaQueryBuilder:
                             )[0],
                             op=condition.op,
                             rhs=(
-                                resolve_tag_value(self._use_case_id, self._org_id, condition.rhs)
+                                condition.rhs
+                                if self.use_metrics_v2
+                                else resolve_tag_value(
+                                    self._use_case_id,
+                                    self._org_id,
+                                    condition.rhs,
+                                )
                                 if require_rhs_condition_resolution(condition.lhs.op)
                                 else condition.rhs
                             ),
@@ -1186,6 +1226,10 @@ class SnubaQueryBuilder:
         queries_dict = {}
         for entity, fields in fields_in_entities.items():
             select = []
+            # The metric_ids_set is used to keep track of all the metric ids that are being queried.
+            # This is used to filter the results to only include the metrics that were requested.
+            # In the old data model it will contain a set of metric ids, in the new data model it will contain a set
+            # of metric mris.
             metric_ids_set = set()
             for field in fields:
                 metric_field_obj = metric_mri_to_obj_dict[field]
@@ -1204,12 +1248,15 @@ class SnubaQueryBuilder:
                     params=params,
                 )
                 metric_ids_set |= metric_field_obj.generate_metric_ids(
-                    self._projects, self._use_case_id
+                    self._projects, self._use_case_id, self.use_metrics_v2
                 )
 
+            metric_column_clause = (
+                Column("metric_mri") if self.use_metrics_v2 else Column("metric_id")
+            )
             where_for_entity = [
                 Condition(
-                    Column("metric_id"),
+                    metric_column_clause,
                     Op.IN,
                     list(metric_ids_set),
                 ),

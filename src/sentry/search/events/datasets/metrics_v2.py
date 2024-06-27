@@ -63,23 +63,18 @@ class MetricsDatasetConfigV2(DatasetConfig):
             ),
         }
 
-    def resolve_metric(self, value: str) -> int:
-        metric_id = self.builder.resolve_metric_index(constants.METRICS_MAP.get(value, value))
-        if metric_id is None:
-            # Maybe this is a custom measurment?
-            for measurement in self.builder.custom_measurement_map:
-                if measurement["name"] == value and measurement["metric_id"] is not None:
-                    metric_id = measurement["metric_id"]
-        # If its still None its not a custom measurement
-        if metric_id is None:
-            raise IncompatibleMetricsQuery(f"Metric: {value} could not be resolved")
-        self.builder.metric_ids.add(metric_id)
-        return metric_id
+    def resolve_metric(self, value: str) -> str:
+        """
+        This function is needed in V2 of metrics platform because the input value provided
+        could be an internal metric name which is NOT a MRI. It needs to be mapped to a
+        metric_mri before a query can be run on Snuba
+        """
+        metric_mri = constants.METRICS_MAP.get(value, value)
 
-    def resolve_value(self, value: str) -> int:
-        value_id = self.builder.resolve_tag_value(value)
-
-        return value_id
+        # We need to add the metric_mri to the list of metrics in the builder because the builder
+        # adds all the metric mris in the where clause of the query
+        self.builder.metric_mris.add(metric_mri)
+        return metric_mri
 
     @property
     def function_converter(self) -> Mapping[str, fields.MetricsFunction]:
@@ -89,8 +84,8 @@ class MetricsDatasetConfigV2(DatasetConfig):
         Make sure to update METRIC_FUNCTION_LIST_BY_TYPE when adding functions here, can't be a dynamic list since the
         Metric Layer will actually handle which dataset each function goes to
         """
-        resolve_metric_id = {
-            "name": "metric_id",
+        resolve_metric_mri = {
+            "name": "metric_mri",
             "fn": lambda args: self.resolve_metric(args["column"]),
         }
 
@@ -114,7 +109,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
                             allowed_columns=constants.METRIC_DURATION_COLUMNS,
                         )
                     ],
-                    calculated_args=[resolve_metric_id],
+                    calculated_args=[resolve_metric_mri],
                     snql_distribution=lambda args, alias: Function(
                         "avgIf",
                         [
@@ -122,8 +117,8 @@ class MetricsDatasetConfigV2(DatasetConfig):
                             Function(
                                 "equals",
                                 [
-                                    Column("metric_id"),
-                                    args["metric_id"],
+                                    Column("metric_mri"),
+                                    args["metric_mri"],
                                 ],
                             ),
                         ],
@@ -147,7 +142,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
                             "if_val", unquote=True, unescape_quotes=True, optional_unquote=True
                         ),
                     ],
-                    calculated_args=[resolve_metric_id],
+                    calculated_args=[resolve_metric_mri],
                     snql_distribution=lambda args, alias: Function(
                         "avgIf",
                         [
@@ -158,8 +153,8 @@ class MetricsDatasetConfigV2(DatasetConfig):
                                     Function(
                                         "equals",
                                         [
-                                            Column("metric_id"),
-                                            args["metric_id"],
+                                            Column("metric_mri"),
+                                            args["metric_mri"],
                                         ],
                                     ),
                                     Function(
@@ -189,7 +184,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
                             "if_val", unquote=True, unescape_quotes=True, optional_unquote=True
                         ),
                     ],
-                    calculated_args=[resolve_metric_id],
+                    calculated_args=[resolve_metric_mri],
                     snql_distribution=lambda args, alias: Function(
                         "countIf",
                         [
@@ -200,8 +195,8 @@ class MetricsDatasetConfigV2(DatasetConfig):
                                     Function(
                                         "equals",
                                         [
-                                            Column("metric_id"),
-                                            args["metric_id"],
+                                            Column("metric_mri"),
+                                            args["metric_mri"],
                                         ],
                                     ),
                                     Function(
@@ -223,7 +218,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
                         )
                     ],
                     optional_args=[fields.NullableNumberRange("satisfaction", 0, None)],
-                    calculated_args=[resolve_metric_id],
+                    calculated_args=[resolve_metric_mri],
                     snql_set=self._resolve_count_miserable_function,
                     default_result_type="integer",
                 ),
@@ -239,7 +234,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
                                     Function(
                                         "equals",
                                         [
-                                            Column("metric_id"),
+                                            Column("metric_mri"),
                                             self.resolve_metric("transaction.duration"),
                                         ],
                                     ),
@@ -359,7 +354,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
                             ),
                         ),
                     ],
-                    calculated_args=[resolve_metric_id],
+                    calculated_args=[resolve_metric_mri],
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.5
                     ),
@@ -376,7 +371,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
                             ),
                         ),
                     ],
-                    calculated_args=[resolve_metric_id],
+                    calculated_args=[resolve_metric_mri],
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.75
                     ),
@@ -393,7 +388,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
                             ),
                         ),
                     ],
-                    calculated_args=[resolve_metric_id],
+                    calculated_args=[resolve_metric_mri],
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.90
                     ),
@@ -410,7 +405,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
                             ),
                         ),
                     ],
-                    calculated_args=[resolve_metric_id],
+                    calculated_args=[resolve_metric_mri],
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.95
                     ),
@@ -427,7 +422,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
                             ),
                         ),
                     ],
-                    calculated_args=[resolve_metric_id],
+                    calculated_args=[resolve_metric_mri],
                     snql_distribution=lambda args, alias: self._resolve_percentile(
                         args, alias, 0.99
                     ),
@@ -444,7 +439,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
                             ),
                         ),
                     ],
-                    calculated_args=[resolve_metric_id],
+                    calculated_args=[resolve_metric_mri],
                     snql_distribution=lambda args, alias: self._resolve_percentile(args, alias, 1),
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
@@ -454,7 +449,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
                     required_args=[
                         fields.MetricArg("column"),
                     ],
-                    calculated_args=[resolve_metric_id],
+                    calculated_args=[resolve_metric_mri],
                     snql_distribution=lambda args, alias: Function(
                         "maxIf",
                         [
@@ -470,7 +465,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
                     required_args=[
                         fields.MetricArg("column"),
                     ],
-                    calculated_args=[resolve_metric_id],
+                    calculated_args=[resolve_metric_mri],
                     snql_distribution=lambda args, alias: Function(
                         "minIf",
                         [
@@ -486,7 +481,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
                     required_args=[
                         fields.MetricArg("column"),
                     ],
-                    calculated_args=[resolve_metric_id],
+                    calculated_args=[resolve_metric_mri],
                     snql_distribution=lambda args, alias: Function(
                         "sumIf",
                         [
@@ -530,7 +525,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
                         ),
                         fields.NumberRange("percentile", 0, 1),
                     ],
-                    calculated_args=[resolve_metric_id],
+                    calculated_args=[resolve_metric_mri],
                     snql_distribution=self._resolve_percentile,
                     result_type_fn=self.reflective_result_type(),
                     default_result_type="duration",
@@ -542,7 +537,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
                             "column", allowed_columns=["user"], allow_custom_measurements=False
                         )
                     ],
-                    calculated_args=[resolve_metric_id],
+                    calculated_args=[resolve_metric_mri],
                     snql_set=lambda args, alias: Function(
                         "uniqIf",
                         [
@@ -613,7 +608,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
                             allow_custom_measurements=False,
                         ),
                     ],
-                    calculated_args=[resolve_metric_id],
+                    calculated_args=[resolve_metric_mri],
                     snql_distribution=self._resolve_count_starts_function,
                     default_result_type="integer",
                 ),
@@ -642,7 +637,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
                             "quality", allowed_strings=["good", "meh", "poor", "any"]
                         ),
                     ],
-                    calculated_args=[resolve_metric_id],
+                    calculated_args=[resolve_metric_mri],
                     snql_distribution=self._resolve_web_vital_function,
                     default_result_type="integer",
                 ),
@@ -662,7 +657,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
                             allow_custom_measurements=False,
                         )
                     ],
-                    calculated_args=[resolve_metric_id],
+                    calculated_args=[resolve_metric_mri],
                     snql_distribution=self._resolve_web_vital_score_function,
                     default_result_type="number",
                 ),
@@ -682,7 +677,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
                             allow_custom_measurements=False,
                         )
                     ],
-                    calculated_args=[resolve_metric_id],
+                    calculated_args=[resolve_metric_mri],
                     snql_distribution=(
                         self._resolve_weighted_web_vital_score_with_computed_total_count_function
                         if features.has(
@@ -710,7 +705,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
                             allow_custom_measurements=False,
                         )
                     ],
-                    calculated_args=[resolve_metric_id],
+                    calculated_args=[resolve_metric_mri],
                     snql_distribution=self._resolve_web_vital_opportunity_score_function,
                     default_result_type="number",
                 ),
@@ -731,7 +726,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
                             allow_custom_measurements=False,
                         ),
                     ],
-                    calculated_args=[resolve_metric_id],
+                    calculated_args=[resolve_metric_mri],
                     snql_distribution=self._resolve_count_scores_function,
                     default_result_type="integer",
                 ),
@@ -822,7 +817,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
                 fields.MetricsFunction(
                     "histogram",
                     required_args=[fields.MetricArg("column")],
-                    calculated_args=[resolve_metric_id],
+                    calculated_args=[resolve_metric_mri],
                     snql_distribution=self._resolve_histogram_function,
                     default_result_type="number",
                     private=True,
@@ -878,7 +873,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
                         fields.ConditionArg("condition"),
                         fields.SnQLDateArg("middle"),
                     ],
-                    calculated_args=[resolve_metric_id],
+                    calculated_args=[resolve_metric_mri],
                     snql_distribution=lambda args, alias: function_aliases.resolve_metrics_percentile(
                         args=args,
                         alias=alias,
@@ -917,7 +912,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
                             optional_unquote=True,
                         ),
                     ],
-                    calculated_args=[resolve_metric_id],
+                    calculated_args=[resolve_metric_mri],
                     snql_distribution=lambda args, alias: function_aliases.resolve_avg_compare(
                         self.builder.column, args, alias
                     ),
@@ -1000,8 +995,8 @@ class MetricsDatasetConfigV2(DatasetConfig):
                         "lcp",
                     ],
                 ),
-                self.resolve_metric("measurements.lcp"),
-                self.resolve_metric("transaction.duration"),
+                "measurements.lcp",
+                "transaction.duration",
             ],
         )
 
@@ -1113,8 +1108,8 @@ class MetricsDatasetConfigV2(DatasetConfig):
                 "Cannot query apdex with a threshold parameter on the metrics dataset"
             )
 
-        metric_satisfied = self.builder.resolve_tag_value(constants.METRIC_SATISFIED_TAG_VALUE)
-        metric_tolerated = self.builder.resolve_tag_value(constants.METRIC_TOLERATED_TAG_VALUE)
+        metric_satisfied = constants.METRIC_SATISFIED_TAG_VALUE
+        metric_tolerated = constants.METRIC_TOLERATED_TAG_VALUE
 
         # Nothing is satisfied or tolerated, the score must be 0
         if metric_satisfied is None and metric_tolerated is None:
@@ -1131,7 +1126,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
             "equals", [self.builder.column(constants.METRIC_SATISFACTION_TAG_KEY), metric_tolerated]
         )
         metric_condition = Function(
-            "equals", [Column("metric_id"), self._project_threshold_multi_if_function()]
+            "equals", [Column("metric_mri"), self._project_threshold_multi_if_function()]
         )
 
         return Function(
@@ -1185,7 +1180,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
             raise IncompatibleMetricsQuery(
                 "Cannot query misery with a threshold parameter on the metrics dataset"
             )
-        metric_frustrated = self.builder.resolve_tag_value(constants.METRIC_FRUSTRATED_TAG_VALUE)
+        metric_frustrated = constants.METRIC_FRUSTRATED_TAG_VALUE
 
         # Nobody is miserable, we can return 0
         if metric_frustrated is None:
@@ -1205,8 +1200,8 @@ class MetricsDatasetConfigV2(DatasetConfig):
                         Function(
                             "equals",
                             [
-                                Column("metric_id"),
-                                args["metric_id"],
+                                Column("metric_mri"),
+                                args["metric_mri"],
                             ],
                         ),
                         Function(
@@ -1393,7 +1388,7 @@ class MetricsDatasetConfigV2(DatasetConfig):
         alias: str,
     ) -> SelectType:
         column = args["column"]
-        metric_id = args["metric_id"]
+        metric_mri = args["metric_mri"]
         quality = args["quality"].lower()
 
         if column not in [
@@ -1414,21 +1409,8 @@ class MetricsDatasetConfigV2(DatasetConfig):
                 "countIf",
                 [
                     Column("value"),
-                    Function("equals", [Column("metric_id"), metric_id]),
+                    Function("equals", [Column("metric_mri"), metric_mri]),
                 ],
-                alias,
-            )
-
-        try:
-            quality_id = self.builder.resolve_tag_value(quality)
-        except IncompatibleMetricsQuery:
-            quality_id = None
-
-        if quality_id is None:
-            return Function(
-                # This matches the type from doing `select toTypeName(count()) ...` from clickhouse
-                "toUInt64",
-                [0],
                 alias,
             )
 
@@ -1439,8 +1421,8 @@ class MetricsDatasetConfigV2(DatasetConfig):
                 Function(
                     "and",
                     [
-                        Function("equals", [measurement_rating, quality_id]),
-                        Function("equals", [Column("metric_id"), metric_id]),
+                        Function("equals", [measurement_rating, quality]),
+                        Function("equals", [Column("metric_mri"), metric_mri]),
                     ],
                 ),
             ],

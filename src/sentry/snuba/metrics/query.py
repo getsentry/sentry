@@ -16,7 +16,7 @@ from sentry.exceptions import InvalidParams
 from sentry.models.project import Project
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.fields import metric_object_factory
-from sentry.snuba.metrics.fields.base import get_derived_metrics
+from sentry.snuba.metrics.fields.derived_common import get_derived_metrics
 from sentry.snuba.metrics.naming_layer.mri import parse_mri
 
 # TODO: Add __all__ to be consistent with sibling modules

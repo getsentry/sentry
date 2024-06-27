@@ -1,5 +1,5 @@
 from collections.abc import Collection, Mapping, Sequence
-from typing import Optional, Union, cast
+from typing import Union, cast
 
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics import indexer
@@ -204,7 +204,7 @@ def resolve_weak(
     use_case_id: UseCaseID | UseCaseKey,
     org_id: int,
     string: str,
-    use_metrics_v2: bool | None = False,
+    use_metrics_v2: bool | None = None,
 ) -> int:
     """
     A version of `resolve` that returns -1 for missing values.
@@ -213,12 +213,15 @@ def resolve_weak(
     useful to make the WHERE-clause "impossible" with `WHERE x = -1` instead of
     explicitly handling that exception.
     """
-    use_case_id = to_use_case_id(use_case_id)
-    resolved = indexer.resolve(use_case_id, org_id, string)
-    if resolved is None:
-        return STRING_NOT_FOUND
+    if use_metrics_v2:
+        return string
+    else:
+        use_case_id = to_use_case_id(use_case_id)
+        resolved = indexer.resolve(use_case_id, org_id, string)
+        if resolved is None:
+            return STRING_NOT_FOUND
 
-    return resolved
+        return resolved
 
 
 def resolve_many_weak(
