@@ -25,11 +25,9 @@ from sentry.api.utils import handle_query_errors
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.search.events.builder import (
-    QueryBuilder,
-    SpansIndexedQueryBuilder,
-    TimeseriesSpanIndexedQueryBuilder,
-)
+from sentry.search.events.builder import SpansIndexedQueryBuilder, TimeseriesSpanIndexedQueryBuilder
+from sentry.search.events.builder.base import BaseQueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.constants import TIMEOUT_SPAN_ERROR_MESSAGE
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams, WhereType
 from sentry.sentry_metrics.querying.samples_list import SpanKey, get_sample_list_executor_cls
@@ -587,7 +585,7 @@ class TracesExecutor:
         snuba_params: SnubaParams,
         trace_ids: list[str],
     ) -> tuple[datetime, datetime, list[str]]:
-        all_queries: list[QueryBuilder] = []
+        all_queries: list[BaseQueryBuilder] = []
         timestamp_column: str | None = None
 
         # Putting all the trace ids into a single query will likely encounter the
@@ -652,7 +650,7 @@ class TracesExecutor:
         params: ParamsType,
         snuba_params: SnubaParams,
         sort: str | None = None,
-    ) -> tuple[QueryBuilder, str]:
+    ) -> tuple[BaseQueryBuilder, str]:
         if len(self.user_queries) < 2:
             timestamp_column = "timestamp"
         else:
@@ -730,7 +728,7 @@ class TracesExecutor:
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
-    ) -> list[QueryBuilder]:
+    ) -> list[BaseQueryBuilder]:
         traces_metas_query = self.get_traces_metas_query(
             params,
             snuba_params,
@@ -861,7 +859,7 @@ class TracesExecutor:
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
-    ) -> QueryBuilder:
+    ) -> BaseQueryBuilder:
         query = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             params,
@@ -905,7 +903,7 @@ class TracesExecutor:
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
-    ) -> QueryBuilder:
+    ) -> BaseQueryBuilder:
         query = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             params,
@@ -973,8 +971,8 @@ class TracesExecutor:
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
-    ) -> QueryBuilder:
-        query = QueryBuilder(
+    ) -> BaseQueryBuilder:
+        query = DiscoverQueryBuilder(
             Dataset.Events,
             params,
             snuba_params=snuba_params,
@@ -1004,8 +1002,8 @@ class TracesExecutor:
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
-    ) -> QueryBuilder:
-        query = QueryBuilder(
+    ) -> BaseQueryBuilder:
+        query = DiscoverQueryBuilder(
             Dataset.IssuePlatform,
             params,
             snuba_params=snuba_params,
@@ -1041,7 +1039,7 @@ class OrderedTracesExecutor:
         *,
         params: ParamsType,
         snuba_params: SnubaParams,
-        builder: QueryBuilder,
+        builder: BaseQueryBuilder,
         limit: int,
         timestamp_column: str,
         max_block_size_hours: int,
@@ -1265,7 +1263,7 @@ class TraceSpansExecutor:
         span_keys: list[SpanKey] | None,
         limit: int,
         offset: int,
-    ) -> QueryBuilder:
+    ) -> BaseQueryBuilder:
         user_spans_query = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             params,
@@ -1413,7 +1411,7 @@ class TraceStatsExecutor:
             self.rollup,
         )
 
-    def get_timeseries_query(self) -> QueryBuilder:
+    def get_timeseries_query(self) -> BaseQueryBuilder:
         query = TimeseriesSpanIndexedQueryBuilder(
             Dataset.SpansIndexed,
             self.params,

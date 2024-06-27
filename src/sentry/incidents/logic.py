@@ -48,7 +48,7 @@ from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.fields import is_function, resolve_field
 from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
@@ -334,7 +334,7 @@ def build_incident_query_builder(
     start: datetime | None = None,
     end: datetime | None = None,
     windowed_stats: bool = False,
-) -> QueryBuilder:
+) -> BaseQueryBuilder:
     snuba_query = incident.alert_rule.snuba_query
     start, end = calculate_incident_time_range(incident, start, end, windowed_stats=windowed_stats)
     project_ids = list(

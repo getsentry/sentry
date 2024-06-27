@@ -23,7 +23,7 @@ from sentry.relay.config.metric_extraction import (
     widget_exceeds_max_specs,
 )
 from sentry.search.events import fields
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import EventsResponse, ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
@@ -479,7 +479,7 @@ def _query_cardinality(
     columns_to_check = [column for column in query_columns if not fields.is_function(column)]
     unique_columns = [f"count_unique({column})" for column in columns_to_check]
 
-    query_builder = QueryBuilder(
+    query_builder = DiscoverQueryBuilder(
         dataset=Dataset.Discover,
         params=params,
         selected_columns=unique_columns,
