@@ -54,16 +54,14 @@ class MetricsExtractionRule:
         unit: str,
         tags: set[str],
         condition: str,
-        id: str | None = None,
-        version: str | None = None,
+        id: int,
     ):
         self.span_attribute = self.validate_span_attribute(span_attribute)
         self.type = self.validate_type(type)
         self.unit = HARD_CODED_UNITS.get(span_attribute, unit)
-        self.tags = tags
+        self.tags = set(tags)
         self.condition = condition
         self.id = id
-        self.version = version or ""
 
     def validate_span_attribute(self, span_attribute: str) -> str:
         if not isinstance(span_attribute, str):
@@ -97,7 +95,6 @@ class MetricsExtractionRule:
             tags=set(dictionary.get("tags") or set()),
             condition=dictionary.get("condition"),
             id=dictionary.get("id"),
-            version=dictionary.get("version"),
         )
 
     def to_dict(self) -> Mapping[str, Any]:
@@ -108,16 +105,15 @@ class MetricsExtractionRule:
             "tags": self.tags,
             "condition": self.condition,
             "id": self.id,
-            "version": self.version,
         }
 
     def generate_mri(self, use_case: str = "custom"):
         """Generate the Metric Resource Identifier (MRI) associated with the extraction rule."""
         use_case_id = string_to_use_case_id(use_case)
         if self.type in ("s", "c"):
-            return f"{self.type}:{use_case_id.value}/{self.id}@none"
+            return f"{self.type}:{use_case_id.value}/internal_{self.id}@none"
         else:
-            return f"{self.type}:{use_case_id.value}/{self.id}@{self.unit}"
+            return f"{self.type}:{use_case_id.value}/internal_{self.id}@{self.unit}"
 
     def __hash__(self):
         return hash(self.generate_mri())

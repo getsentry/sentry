@@ -79,7 +79,7 @@ class SpanAttributeMetricSpec(TypedDict):
 def convert_to_metric_spec(extraction_rule: MetricsExtractionRule) -> SpanAttributeMetricSpec:
 
     field = _get_field(extraction_rule)
-    parsed_conditions = _parse_conditions(extraction_rule.conditions)
+    parsed_conditions = _parse_conditions([extraction_rule.condition])
 
     return {
         "category": "span",

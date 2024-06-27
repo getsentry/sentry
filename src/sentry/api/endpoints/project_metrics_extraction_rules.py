@@ -95,24 +95,9 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
         try:
             configs = []
             for obj in config_update:
-                config = SpanAttributeExtractionRuleConfig()
-                config.created_by_id = request.user.id
-                config.project = project
-                config.span_attribute = obj["spanAttribute"]
-                config.aggregates = obj["aggregates"]
-                config.unit = HARD_CODED_UNITS.get(obj["spanAttribute"], obj["unit"])
-                config.tags = obj["tags"]
-                config.save()
-                configs.append(config)
-
-                for condition in obj["conditions"]:
-                    condition_obj = SpanAttributeExtractionRuleCondition.objects.create(
-                        created_by_id=request.user.id,
-                        project=project,
-                        value=condition["value"],
-                        config=config,
-                    )
-                    condition_obj.save()
+                configs.append(
+                    SpanAttributeExtractionRuleConfig.from_dict(obj, request.user.id, project)
+                )
 
         except IntegrityError:
             return Response(

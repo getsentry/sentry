@@ -374,7 +374,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         json_payload = {
             "metricsExtractionRules": [
                 {
-                    "spanAttribute": f"count_clicks_{i:02d}",
+                    "spanAttribute": f"count_clicks_{i:04d}",
                     "aggregates": ["count", "p50", "p75", "p95", "p99"],
                     "unit": "none",
                     "tags": ["tag1", "tag2", "tag3"],
