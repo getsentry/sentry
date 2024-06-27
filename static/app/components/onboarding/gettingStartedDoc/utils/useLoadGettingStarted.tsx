@@ -11,13 +11,11 @@ import type {PlatformKey} from 'sentry/types/project';
 export default function useLoadGettingStarted({
   platformId,
   platformPath,
-  replayPlatformCheck,
-  feedbackPlatformCheck,
+  productType,
 }: {
   platformId: PlatformKey;
   platformPath: string;
-  feedbackPlatformCheck?: boolean;
-  replayPlatformCheck?: boolean;
+  productType?: 'feedback' | 'replay';
 }) {
   const [module, setModule] = useState<
     | null
@@ -29,11 +27,10 @@ export default function useLoadGettingStarted({
 
   useEffect(() => {
     async function getGettingStartedDoc() {
-      if (replayPlatformCheck && !replayPlatforms.includes(platformId)) {
-        setModule('none');
-        return;
-      }
-      if (feedbackPlatformCheck && !feedbackOnboardingPlatforms.includes(platformId)) {
+      if (
+        (productType === 'replay' && !replayPlatforms.includes(platformId)) ||
+        (productType === 'feedback' && !feedbackOnboardingPlatforms.includes(platformId))
+      ) {
         setModule('none');
         return;
       }
@@ -51,7 +48,7 @@ export default function useLoadGettingStarted({
     return () => {
       setModule(null);
     };
-  }, [platformPath, platformId, replayPlatformCheck, feedbackPlatformCheck]);
+  }, [platformPath, platformId, productType]);
 
   return module;
 }

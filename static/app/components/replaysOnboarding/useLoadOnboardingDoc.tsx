@@ -30,7 +30,7 @@ function useLoadOnboardingDoc({
   const module = useLoadGettingStarted({
     platformId: platform.id,
     platformPath,
-    replayPlatformCheck: true,
+    productType: 'replay',
   });
 
   if (module === 'none') {

@@ -60,7 +60,7 @@ function useLoadFeedbackOnboardingDoc({
   const module = useLoadGettingStarted({
     platformId: platform.id,
     platformPath,
-    feedbackPlatformCheck: true,
+    productType: 'feedback',
   });
 
   if (module === 'none') {
