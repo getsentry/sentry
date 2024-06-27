@@ -44,6 +44,32 @@ def llm_settings(set_sentry_option):
         yield
 
 
+def dummy_response(*args, **kwargs):
+    return ChatCompletion(
+        id="test",
+        choices=[
+            Choice(
+                index=0,
+                message=ChatCompletionMessage(
+                    content=(
+                        "spam"
+                        if "this is definitely spam"
+                        in kwargs["messages"][0][
+                            "content"
+                        ]  # assume make_input_prompt lower-cases the msg
+                        else "not spam"
+                    ),
+                    role="assistant",
+                ),
+                finish_reason="stop",
+            )
+        ],
+        created=time.time(),
+        model="gpt3.5-trubo",
+        object="chat.completion",
+    )
+
+
 def test_fix_for_issue_platform():
     event: dict[str, Any] = {
         "project_id": 1,
@@ -498,27 +524,27 @@ def test_create_feedback_spam_detection_set_ignored(
                 "platform": "javascript",
             }
 
-            def dummy_response(*args, **kwargs):
-                return ChatCompletion(
-                    id="test",
-                    choices=[
-                        Choice(
-                            index=0,
-                            message=ChatCompletionMessage(
-                                content=(
-                                    "spam"
-                                    if "this is definitely spam" in kwargs["messages"][0]["content"]
-                                    else "not spam"
-                                ),
-                                role="assistant",
-                            ),
-                            finish_reason="stop",
-                        )
-                    ],
-                    created=time.time(),
-                    model="gpt3.5-trubo",
-                    object="chat.completion",
-                )
+            # def dummy_response(*args, **kwargs):
+            #     return ChatCompletion(
+            #         id="test",
+            #         choices=[
+            #             Choice(
+            #                 index=0,
+            #                 message=ChatCompletionMessage(
+            #                     content=(
+            #                         "spam"
+            #                         if "this is definitely spam" in kwargs["messages"][0]["content"]  # prompt lowercases msg
+            #                         else "not spam"
+            #                     ),
+            #                     role="assistant",
+            #                 ),
+            #                 finish_reason="stop",
+            #             )
+            #         ],
+            #         created=time.time(),
+            #         model="gpt3.5-trubo",
+            #         object="chat.completion",
+            #     )
 
             mock_openai = Mock()
             mock_openai().chat.completions.create = dummy_response
@@ -596,27 +622,27 @@ def test_create_feedback_spam_detection_project_option_false(
             "platform": "javascript",
         }
 
-        def dummy_response(*args, **kwargs):
-            return ChatCompletion(
-                id="test",
-                choices=[
-                    Choice(
-                        index=0,
-                        message=ChatCompletionMessage(
-                            content=(
-                                "spam"
-                                if kwargs["messages"][0]["content"] == "This is definitely spam"
-                                else "not spam"
-                            ),
-                            role="assistant",
-                        ),
-                        finish_reason="stop",
-                    )
-                ],
-                created=time.time(),
-                model="gpt3.5-trubo",
-                object="chat.completion",
-            )
+        # def dummy_response(*args, **kwargs):
+        #     return ChatCompletion(
+        #         id="test",
+        #         choices=[
+        #             Choice(
+        #                 index=0,
+        #                 message=ChatCompletionMessage(
+        #                     content=(
+        #                         "spam"
+        #                         if kwargs["messages"][0]["content"].lower() == "this is definitely spam"  # prompt lowercases msg
+        #                         else "not spam"
+        #                     ),
+        #                     role="assistant",
+        #                 ),
+        #                 finish_reason="stop",
+        #             )
+        #         ],
+        #         created=time.time(),
+        #         model="gpt3.5-trubo",
+        #         object="chat.completion",
+        #     )
 
         mock_openai = Mock()
         mock_openai().chat.completions.create = dummy_response
@@ -736,28 +762,6 @@ def test_create_feedback_spam_detection_set_ignored_unit(
             "breadcrumbs": [],
             "platform": "javascript",
         }
-
-        def dummy_response(*args, **kwargs):
-            return ChatCompletion(
-                id="test",
-                choices=[
-                    Choice(
-                        index=0,
-                        message=ChatCompletionMessage(
-                            content=(
-                                "spam"
-                                if "This is definitely spam" in kwargs["messages"][0]["content"]
-                                else "not spam"
-                            ),
-                            role="assistant",
-                        ),
-                        finish_reason="stop",
-                    )
-                ],
-                created=time.time(),
-                model="gpt3.5-trubo",
-                object="chat.completion",
-            )
 
         mock_openai = Mock()
         mock_openai().chat.completions.create = dummy_response
