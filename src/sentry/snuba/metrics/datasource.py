@@ -5,7 +5,7 @@ from functools import lru_cache
 import sentry_sdk
 from rest_framework.exceptions import NotFound
 
-from sentry.snuba.metrics.fields.derived_common import get_derived_metrics
+from sentry.snuba.metrics.fields.base import get_derived_metrics
 
 """
 Module that gets both metadata and time series from Snuba.

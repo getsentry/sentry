@@ -25,8 +25,8 @@ from sentry.search.events.datasets.function_aliases import resolve_project_thres
 from sentry.search.events.types import SelectType
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
-from sentry.snuba.metrics.fields import addition, division_float
 from sentry.snuba.metrics.fields.histogram import MAX_HISTOGRAM_BUCKET, zoom_histogram
+from sentry.snuba.metrics.fields.snql_base import addition, division_float
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.metrics.naming_layer.public import (
     SpanTagsKey,
@@ -808,7 +808,7 @@ def min_timestamp_v2(
     return timestamp_column_snql_v2("minIf", aggregate_filter, org_id, use_case_id, alias)
 
 
-def max_timestamp(
+def max_timestamp_v2(
     aggregate_filter: Function, org_id: int, use_case_id: UseCaseID, alias: str | None = None
 ) -> Function:
     return timestamp_column_snql_v2("maxIf", aggregate_filter, org_id, use_case_id, alias)
