@@ -14,7 +14,6 @@ jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useProjects');
 
 const requestMocks = {
-  onboardingDataCheck: jest.fn(),
   missRateChart: jest.fn(),
   cacheSamplesMissRateChart: jest.fn(),
   throughputChart: jest.fn(),
@@ -60,6 +59,7 @@ describe('CacheLandingPage', function () {
         name: 'Backend',
         slug: 'backend',
         firstTransactionEvent: true,
+        hasInsightsCaches: true,
         platform: 'javascript',
       }),
     ],
@@ -220,24 +220,27 @@ describe('CacheLandingPage', function () {
     expect(timeSpentCell).toBeInTheDocument();
   });
 
-  it('shows module onboarding', async function () {
-    requestMocks.onboardingDataCheck = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      method: 'GET',
-      match: [
-        MockApiClient.matchQuery({
-          referrer: 'api.performance.cache.landing-cache-onboarding',
+  it('shows module onboarding', function () {
+    jest.mocked(useProjects).mockReturnValue({
+      projects: [
+        ProjectFixture({
+          id: '1',
+          name: 'Backend',
+          slug: 'backend',
+          firstTransactionEvent: false,
+          hasInsightsCaches: false,
+          platform: 'javascript',
         }),
       ],
-      body: {
-        data: [{'count()': 0}],
-        meta: {fields: {'count()': 'integer'}},
-      },
+      onSearch: jest.fn(),
+      placeholders: [],
+      fetching: false,
+      hasMore: null,
+      fetchError: null,
+      initiallyLoaded: false,
     });
+
     render(<CacheLandingPage />, {organization});
-
-    await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
-
     expect(
       screen.getByText('Make sure your application’s caching is behaving properly')
     ).toBeInTheDocument();
@@ -248,22 +251,6 @@ const setRequestMocks = (organization: Organization) => {
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/projects/`,
     body: [ProjectFixture({name: 'backend'})],
-  });
-
-  requestMocks.onboardingDataCheck = MockApiClient.addMockResponse({
-    url: `/organizations/${organization.slug}/events/`,
-    method: 'GET',
-    match: [
-      MockApiClient.matchQuery({
-        referrer: 'api.performance.cache.landing-cache-onboarding',
-      }),
-    ],
-    body: {
-      data: [{'count()': 43374}],
-      meta: {
-        fields: {'count()': 'integer'},
-      },
-    },
   });
 
   requestMocks.missRateChart = MockApiClient.addMockResponse({
