@@ -698,7 +698,7 @@ class MetricExpressionBase(ABC):
         projects: Sequence[Project],
         use_case_id: UseCaseID,
         use_metrics_v2: bool | None = None,
-    ) -> set[int]:
+    ) -> set[int | str]:
         """
         Method that generates all the metric ids required to query an instance of
         MetricsFieldBase
@@ -910,8 +910,13 @@ class MetricExpression(MetricExpressionDefinition, MetricExpressionBase):
     def generate_default_null_values(self) -> int | list[tuple[float]] | None:
         return self.metric_operation.get_default_null_values()
 
-    def generate_metric_ids(self, projects: Sequence[Project], use_case_id: UseCaseID) -> set[int]:
-        return self.metric_object.generate_metric_ids(projects, use_case_id)
+    def generate_metric_ids(
+        self,
+        projects: Sequence[Project],
+        use_case_id: UseCaseID,
+        use_metrics_v2: bool | None = None,
+    ) -> set[int | str]:
+        return self.metric_object.generate_metric_ids(projects, use_case_id, use_metrics_v2)
 
     def run_post_query_function(
         self,
@@ -1093,8 +1098,12 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
 
     @classmethod
     def __recursively_generate_metric_ids(
-        cls, org_id: int, derived_metric_mri: str, use_case_id: UseCaseID
-    ) -> set[int]:
+        cls,
+        org_id: int,
+        derived_metric_mri: str,
+        use_case_id: UseCaseID,
+        use_metrics_v2: bool | None = None,
+    ) -> set[int | str]:
         """
         Method that traverses a derived metric dependency tree to return a set of the metric ids
         of its constituent metrics
@@ -1106,15 +1115,27 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
         ids = set()
         for metric_mri in derived_metric.metrics:
             if metric_mri not in all_derived_metrics:
+                if use_metrics_v2:
+                    ids.add()
                 ids.add(resolve_weak(use_case_id, org_id, metric_mri))
             else:
-                ids |= cls.__recursively_generate_metric_ids(org_id, metric_mri, use_case_id)
+                ids |= cls.__recursively_generate_metric_ids(
+                    org_id, metric_mri, use_case_id, use_metrics_v2
+                )
         return ids
 
-    def generate_metric_ids(self, projects: Sequence[Project], use_case_id: UseCaseID) -> set[int]:
+    def generate_metric_ids(
+        self,
+        projects: Sequence[Project],
+        use_case_id: UseCaseID,
+        use_metrics_v2: bool | None = None,
+    ) -> set[int]:
         org_id = org_id_from_projects(projects)
         return self.__recursively_generate_metric_ids(
-            org_id, derived_metric_mri=self.metric_mri, use_case_id=use_case_id
+            org_id,
+            derived_metric_mri=self.metric_mri,
+            use_case_id=use_case_id,
+            use_metrics_v2=use_metrics_v2,
         )
 
     @classmethod
@@ -1125,6 +1146,7 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
         derived_metric_mri: str,
         use_case_id: UseCaseID,
         alias: str | None = None,
+        use_metrics_v2: bool | None = None,
     ) -> list[Function]:
         """
         Method that generates the SnQL representation for the derived metric
@@ -1151,7 +1173,7 @@ class SingularEntityDerivedMetric(DerivedMetricExpression):
                 project_ids=project_ids,
                 org_id=org_id,
                 metric_ids=cls.__recursively_generate_metric_ids(
-                    org_id, derived_metric_mri, use_case_id
+                    org_id, derived_metric_mri, use_case_id, use_metrics_v2
                 ),
                 alias=alias,
             )
@@ -1266,7 +1288,9 @@ class CompositeEntityDerivedMetric(DerivedMetricExpression):
     def validate_can_orderby(self) -> None:
         raise NotSupportedOverCompositeEntityException()
 
-    def generate_metric_ids(self, projects: Sequence[Project], use_case_id: UseCaseID) -> set[Any]:
+    def generate_metric_ids(
+        self, projects: Sequence[Project], use_case_id: UseCaseID, use_metrics_v2: bool | None
+    ) -> set[int | str]:
         raise NotSupportedOverCompositeEntityException()
 
     def generate_select_statements(

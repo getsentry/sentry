@@ -263,12 +263,12 @@ def get_available_derived_metrics(
 
     # Initially, we need all derived metrics to be able to support derived metrics that are not
     # private but might have private constituent metrics
-    all_derived_metrics = get_derived_metrics(use_metrics_v2=use_metrics_v2)
+    all_derived_metrics = get_derived_metrics(use_metrics_v2)
 
     for derived_metric_mri, derived_metric_obj in all_derived_metrics.items():
         try:
             derived_metric_obj_ids = derived_metric_obj.generate_metric_ids(
-                projects, use_case_id, use_metrics_v2=use_metrics_v2
+                projects, use_case_id, use_metrics_v2
             )
         except NotSupportedOverCompositeEntityException:
             # If we encounter a derived metric composed of constituents spanning multiple
@@ -418,8 +418,11 @@ def get_custom_measurements(
 
 
 def _get_metrics_filter_ids(
-    projects: Sequence[Project], metric_mris: Sequence[str], use_case_id: UseCaseID
-) -> set[int]:
+    projects: Sequence[Project],
+    metric_mris: Sequence[str],
+    use_case_id: UseCaseID,
+    use_metrics_v2: bool | None = None,
+) -> set[int | str]:
     """
     Returns a set of metric_ids that map to input metric names and raises an exception if
     metric cannot be resolved in the indexer
@@ -436,18 +439,20 @@ def _get_metrics_filter_ids(
     while metric_mris_deque:
         mri = metric_mris_deque.popleft()
         if mri not in all_derived_metrics:
-            metric_ids.add(indexer.resolve(use_case_id, org_id, mri))
+            metric_ids.add(mri if use_metrics_v2 else indexer.resolve(use_case_id, org_id, mri))
         else:
             derived_metric_obj = all_derived_metrics[mri]
             try:
-                metric_ids |= derived_metric_obj.generate_metric_ids(projects, use_case_id)
+                metric_ids |= derived_metric_obj.generate_metric_ids(
+                    projects, use_case_id, use_metrics_v2
+                )
             except NotSupportedOverCompositeEntityException:
                 single_entity_constituents = (
                     derived_metric_obj.naively_generate_singular_entity_constituents(use_case_id)
                 )
                 metric_mris_deque.extend(single_entity_constituents)
 
-    if None in metric_ids or -1 in metric_ids:
+    if not use_metrics_v2 and None in metric_ids or -1 in metric_ids:
         # We are looking for tags that appear in all given metrics.
         # A tag cannot appear in a metric if the metric is not even indexed.
         raise MetricDoesNotExistInIndexer()
