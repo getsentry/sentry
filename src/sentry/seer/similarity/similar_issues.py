@@ -1,6 +1,7 @@
 import logging
 
 from django.conf import settings
+from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.conf.server import SEER_MAX_GROUPING_DISTANCE, SEER_SIMILAR_ISSUES_URL
 from sentry.models.grouphash import GroupHash
@@ -90,13 +91,23 @@ def get_similarity_data_from_seer(
         )
         return []
 
-    response = make_signed_seer_api_request(
-        seer_grouping_connection_pool,
-        SEER_SIMILAR_ISSUES_URL,
-        json.dumps({"threshold": SEER_MAX_GROUPING_DISTANCE, **similar_issues_request}).encode(
-            "utf8"
-        ),
-    )
+    try:
+        response = make_signed_seer_api_request(
+            seer_grouping_connection_pool,
+            SEER_SIMILAR_ISSUES_URL,
+            json.dumps({"threshold": SEER_MAX_GROUPING_DISTANCE, **similar_issues_request}).encode(
+                "utf8"
+            ),
+        )
+    # See `SEER_GROUPING_TIMEOUT` in `sentry.conf.server`
+    except (TimeoutError, MaxRetryError) as e:
+        logger.warning("get_seer_similar_issues.request_error", extra=logger_extra)
+        metrics.incr(
+            "seer.similar_issues_request",
+            sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+            tags={**metric_tags, "outcome": "error", "error": type(e).__name__},
+        )
+        return []
 
     metric_tags["response_status"] = response.status
 
