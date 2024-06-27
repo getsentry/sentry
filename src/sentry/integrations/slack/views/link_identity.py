@@ -7,10 +7,12 @@ from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from rest_framework.request import Request
 
+from sentry import features
 from sentry.integrations.slack.metrics import (
     SLACK_BOT_COMMAND_LINK_IDENTITY_FAILURE_DATADOG_METRIC,
     SLACK_BOT_COMMAND_LINK_IDENTITY_SUCCESS_DATADOG_METRIC,
 )
+from sentry.integrations.slack.utils.notifications import respond_to_slack_command
 from sentry.integrations.slack.views import render_error_page
 from sentry.integrations.slack.views.types import IdentityParams
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
@@ -138,7 +140,10 @@ class SlackLinkIdentityView(BaseView):
             )
             raise Http404
 
-        send_slack_response(params, SUCCESS_LINKED_MESSAGE, command="link")
+        if features.has("organizations:slack-sdk-link-commands", params.organization):
+            respond_to_slack_command(params, SUCCESS_LINKED_MESSAGE, command="link")
+        else:
+            send_slack_response(params, SUCCESS_LINKED_MESSAGE, command="link")
 
         controller = NotificationController(
             recipients=[request.user],
