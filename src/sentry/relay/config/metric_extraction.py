@@ -48,7 +48,7 @@ from sentry.snuba.metrics.extraction import (
     are_specs_equal,
     should_use_on_demand_metrics,
 )
-from sentry.snuba.metrics.span_attribute_extraction import convert_to_spec
+from sentry.snuba.metrics.span_attribute_extraction import convert_to_metric_spec
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.referrer import Referrer
 from sentry.utils import json, metrics
@@ -109,18 +109,9 @@ def get_metric_extraction_config(
     """
     # For efficiency purposes, we fetch the flags in batch and propagate them downstream.
     sentry_sdk.set_tag("organization_id", project.organization_id)
-    with sentry_sdk.start_span(op="on_demand_metrics_feature_flags"):
-        enabled_features = on_demand_metrics_feature_flags(project.organization)
-    timeout.check()
 
-    prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
-
-    with sentry_sdk.start_span(op="get_alert_metric_specs"):
-        alert_specs = _get_alert_metric_specs(project, enabled_features, prefilling)
-    timeout.check()
-    with sentry_sdk.start_span(op="get_widget_metric_specs"):
-        widget_specs = _get_widget_metric_specs(project, enabled_features, prefilling)
-    timeout.check()
+    with sentry_sdk.start_span(op="get_on_demand_metric_specs"):
+        alert_specs, widget_specs = get_on_demand_metric_specs(timeout, project)
     with sentry_sdk.start_span(op="generate_span_attribute_specs"):
         span_attr_specs = _generate_span_attribute_specs(project)
     with sentry_sdk.start_span(op="merge_metric_specs"):
@@ -134,6 +125,25 @@ def get_metric_extraction_config(
         "version": _METRIC_EXTRACTION_VERSION,
         "metrics": metric_specs,
     }
+
+
+def get_on_demand_metric_specs(
+    timeout: TimeChecker, project: Project
+) -> tuple[list[HashedMetricSpec], list[HashedMetricSpec]]:
+    with sentry_sdk.start_span(op="on_demand_metrics_feature_flags"):
+        enabled_features = on_demand_metrics_feature_flags(project.organization)
+    timeout.check()
+
+    prefilling = "organizations:on-demand-metrics-prefill" in enabled_features
+
+    with sentry_sdk.start_span(op="get_alert_metric_specs"):
+        alert_specs = _get_alert_metric_specs(project, enabled_features, prefilling)
+    timeout.check()
+    with sentry_sdk.start_span(op="get_widget_metric_specs"):
+        widget_specs = _get_widget_metric_specs(project, enabled_features, prefilling)
+    timeout.check()
+
+    return (alert_specs, widget_specs)
 
 
 def on_demand_metrics_feature_flags(organization: Organization) -> set[str]:
@@ -821,8 +831,11 @@ def _generate_span_attribute_specs(project: Project) -> list[HashedMetricSpec]:
     specs = []
     for rule in extraction_rules_state.get_rules():
         try:
-            spec = cast(MetricSpec, convert_to_spec(rule))
-            validate_rule_condition(json.dumps(spec["condition"]))
+            spec = cast(MetricSpec, convert_to_metric_spec(rule))
+
+            if condition := spec.get("condition"):
+                validate_rule_condition(json.dumps(condition))
+
             specs.append((spec["mri"], spec, version))
         except ValueError:
             logger.exception("Invalid span attribute metric spec", extra=rule.to_dict())

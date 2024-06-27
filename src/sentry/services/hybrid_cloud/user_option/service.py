@@ -6,9 +6,9 @@
 from abc import abstractmethod
 from typing import Any
 
+from sentry.hybridcloud.rpc.filter_query import OpaqueSerializedResponse
+from sentry.hybridcloud.rpc.service import RpcService, rpc_method
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
-from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
-from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user_option import RpcUserOption, UserOptionFilterArgs
 from sentry.silo.base import SiloMode

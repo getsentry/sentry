@@ -9,7 +9,7 @@ from sentry.http import safe_urlread
 from sentry.mediators.external_requests.util import send_and_save_sentry_app_request, validate
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
-from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation
+from sentry.sentry_apps.services.app import RpcSentryAppInstallation
 from sentry.utils import json
 
 logger = logging.getLogger("sentry.mediators.external-requests")

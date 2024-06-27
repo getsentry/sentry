@@ -17,12 +17,12 @@ from sentry.api.helpers.autofix import (
     get_project_codebase_indexing_status,
 )
 from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.code_mapping import get_sorted_code_mapping_configs
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.seer.signed_seer_api import sign_with_seer_secret
-from sentry.services.hybrid_cloud.integration import integration_service
 
 logger = logging.getLogger(__name__)
 

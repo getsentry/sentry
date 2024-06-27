@@ -10,7 +10,7 @@ from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
 
-from sentry import features, onboarding_tasks, options, quotas, roles
+from sentry import features, onboarding_tasks, quotas, roles
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.project import ProjectSerializerResponse
@@ -32,6 +32,7 @@ from sentry.constants import (
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
+    EXTRAPOLATE_METRICS_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
@@ -84,7 +85,6 @@ ORGANIZATION_OPTIONS_AS_FEATURES: Mapping[str, list[OptionFeature]] = {
     ],
     "quotas:new-spike-protection": [
         ("spike-projections", lambda opt: bool(opt.value)),
-        ("project-stats", lambda opt: bool(opt.value)),
     ],
 }
 
@@ -304,17 +304,6 @@ class OrganizationSerializer(Serializer):
         if "dynamic-sampling" not in feature_set and "mep-rollout-flag" in feature_set:
             feature_set.remove("mep-rollout-flag")
 
-        if options.get("hybridcloud.endpoint_flag_logging"):
-            logger.info(
-                "organization_serializer.flags",
-                extra={
-                    "org_features": org_features,
-                    "batch_features": batch_features,
-                    "feature_set": feature_set,
-                    "user.id": user.id if not user.is_anonymous else None,
-                },
-            )
-
         return feature_set
 
     def serialize(
@@ -455,6 +444,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     metricAlertsThreadFlag: bool
     metricsActivatePercentiles: bool
     metricsActivateLastForGauges: bool
+    extrapolateMetrics: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -595,6 +585,11 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 ),
             }
         )
+
+        if features.has("organizations:metrics-extrapolation", obj):
+            context["extrapolateMetrics"] = bool(
+                obj.get_option("sentry:extrapolate_metrics", EXTRAPOLATE_METRICS_DEFAULT)
+            )
 
         trusted_relays_raw = obj.get_option("sentry:trusted-relays") or []
         # serialize trusted relays info into their external form

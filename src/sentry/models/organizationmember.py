@@ -36,11 +36,11 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.outboxes import ReplicatedRegionModel
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import UnableToAcceptMemberInvitationException
+from sentry.hybridcloud.rpc import extract_id_from
 from sentry.models.outbox import OutboxCategory, outbox_context
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole
-from sentry.services.hybrid_cloud import extract_id_from
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
     RpcOrganizationMemberMappingUpdate,
@@ -52,8 +52,8 @@ from sentry.signals import member_invited
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
+    from sentry.integrations.services.integration import RpcIntegration
     from sentry.models.organization import Organization
-    from sentry.services.hybrid_cloud.integration import RpcIntegration
 
 _OrganizationMemberFlags = TypedDict(
     "_OrganizationMemberFlags",
@@ -132,7 +132,7 @@ class OrganizationMemberManager(BaseManager["OrganizationMember"]):
         # This can be moved into the integration service once OrgMemberMapping is completed.
         # We are forced to do an ORM -> service -> ORM call to reduce query size while avoiding
         # cross silo queries until we have a control silo side to map users through.
-        from sentry.services.hybrid_cloud.integration import integration_service
+        from sentry.integrations.services.integration import integration_service
 
         if organization_id is not None:
             if (

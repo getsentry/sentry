@@ -5,8 +5,8 @@
 
 import datetime
 
+from sentry.hybridcloud.rpc import RpcModel
 from sentry.models.lostpasswordhash import LostPasswordHash
-from sentry.services.hybrid_cloud import RpcModel
 
 
 class RpcLostPasswordHash(RpcModel):

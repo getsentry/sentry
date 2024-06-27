@@ -19,6 +19,7 @@ class ErrorsQueryBuilderTest(TestCase):
     def setUp(self):
         self.projects = [self.project.id]
 
+    @pytest.mark.querybuilder
     def test_simple_query(self):
         query = ErrorsQueryBuilder(
             dataset=Dataset.Events,

@@ -12,15 +12,22 @@ from django.utils import timezone
 from pydantic import Field
 
 from sentry import roles
+from sentry.hybridcloud.rpc import RpcModel
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
-from sentry.services.hybrid_cloud import RpcModel
 from sentry.services.hybrid_cloud.project import RpcProject
 from sentry.services.hybrid_cloud.user.model import RpcUser
-from sentry.services.hybrid_cloud.util import flags_to_bits
 from sentry.signals import sso_enabled
 from sentry.silo.base import SiloMode
 from sentry.types.organization import OrganizationAbsoluteUrlMixin
+
+
+def flags_to_bits(*flag_values: bool) -> int:
+    bits = 0
+    for index, value in enumerate(flag_values):
+        if value:
+            bits |= 1 << index
+    return bits
 
 
 class _DefaultEnumHelpers:
@@ -200,6 +207,9 @@ class RpcOrganizationSummary(RpcModel, OrganizationAbsoluteUrlMixin):
     slug: str = ""
     id: int = -1
     name: str = ""
+    flags: RpcOrganizationMappingFlags = Field(
+        default_factory=lambda: RpcOrganizationMappingFlags()
+    )
 
     def __hash__(self) -> int:
         # Mimic the behavior of hashing a Django ORM entity, for compatibility with
