@@ -935,6 +935,12 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "embeddings-grouping.seer.delete-record-batch-size",
+    default=100,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # ## sentry.killswitches
 #
 # The following options are documented in sentry.killswitches in more detail
@@ -2595,5 +2601,11 @@ register(
 register(
     "seer.api.use-shared-secret",
     default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "similarity.backfill_nodestore_use_multithread",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
