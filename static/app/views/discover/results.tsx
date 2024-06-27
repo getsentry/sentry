@@ -674,7 +674,7 @@ export class Results extends Component<Props, State> {
                   isHomepage={isHomepage}
                   setTips={this.setTips}
                   setSplitDecision={(value?: string) => {
-                    this.setState({splitDecision: value});
+                    this.setState({splitDecision: value as SavedQueryDatasets});
                   }}
                 />
               </Layout.Main>
