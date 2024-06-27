@@ -232,7 +232,7 @@ describe('CacheLandingPage', function () {
           id: '1',
           name: 'Backend',
           slug: 'backend',
-          firstTransactionEvent: false,
+          firstTransactionEvent: true,
           hasInsightsCaches: false,
           platform: 'javascript',
         }),
