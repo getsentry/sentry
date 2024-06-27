@@ -408,6 +408,10 @@ class SearchValue(NamedTuple):
                 # some slashes before the *, that's okay.
                 trailing_wildcard = True
             else:
+                # The wildcard happens somewhere in the middle of the value.
+                # We care about this because when this happens, it's not
+                # trivial to optimize the query, so let it fall back to
+                # the existing regex approach.
                 middle_wildcard = True
 
         if not middle_wildcard:
