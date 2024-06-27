@@ -454,7 +454,7 @@ def test_create_feedback_filters_no_contexts_or_message(
         ("Valid feedback message", None, False),
     ],
 )
-def test_create_feedback_spam_detection_adds_field(
+def test_create_feedback_spam_detection_set_ignored(
     default_project,
     mock_produce_occurrence_to_kafka,
     input_message,
@@ -507,7 +507,7 @@ def test_create_feedback_spam_detection_adds_field(
                             message=ChatCompletionMessage(
                                 content=(
                                     "spam"
-                                    if "This is definitely spam" in kwargs["messages"][0]["content"]
+                                    if "this is definitely spam" in kwargs["messages"][0]["content"]
                                     else "not spam"
                                 ),
                                 role="assistant",
@@ -555,7 +555,7 @@ def test_create_feedback_spam_detection_adds_field(
 
 
 @django_db_all
-def test_create_feedback_spam_detection_option_false(
+def test_create_feedback_spam_detection_project_option_false(
     default_project,
     mock_produce_occurrence_to_kafka,
     monkeypatch,
@@ -692,7 +692,7 @@ def test_create_feedback_adds_associated_event_id(
 
 
 @django_db_all
-def test_create_feedback_spam_detection_adds_field_calls(
+def test_create_feedback_spam_detection_set_ignored_unit(
     default_project,
     monkeypatch,
 ):
