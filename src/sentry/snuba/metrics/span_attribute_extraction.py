@@ -1,8 +1,14 @@
 from collections.abc import Sequence
-from typing import Any, Literal, NotRequired, TypedDict
+from typing import Literal, NotRequired, TypedDict
 
 from sentry.api import event_search
-from sentry.api.event_search import ParenExpression, QueryToken, SearchFilter
+from sentry.api.event_search import (
+    ParenExpression,
+    QueryToken,
+    SearchFilter,
+    SearchKey,
+    SearchValue,
+)
 from sentry.sentry_metrics.extraction_rules import MetricsExtractionRule
 from sentry.snuba.metrics.extraction import RuleCondition, SearchQueryConverter, TagSpec
 
@@ -85,20 +91,20 @@ def convert_to_metric_spec(extraction_rule: MetricsExtractionRule) -> SpanAttrib
         "category": "span",
         "mri": extraction_rule.generate_mri(),
         "field": field,
-        "tags": _get_tags(extraction_rule.tags, parsed_conditions),
-        "condition": _get_rule_condition(parsed_conditions),
+        "tags": _get_tags(extraction_rule, parsed_conditions),
+        "condition": _get_rule_condition(extraction_rule, parsed_conditions),
     }
 
 
 def _get_field(extraction_rule: MetricsExtractionRule) -> str | None:
-    if extraction_rule.type == "c":
+    if _is_counter(extraction_rule):
         return None
 
     return _map_span_attribute_name(extraction_rule.span_attribute)
 
 
 def _get_tags(
-    explicitly_defined_tags: set[str], conditions: Sequence[QueryToken] | None
+    extraction_rule: MetricsExtractionRule, conditions: Sequence[QueryToken] | None
 ) -> list[TagSpec]:
     """
     Merges the explicitly defined tags with the tags extracted from the search conditions.
@@ -106,7 +112,7 @@ def _get_tags(
     token_list = _flatten_query_tokens(conditions) if conditions else []
     search_token_keys = {token.key.name for token in token_list}
 
-    tag_keys = explicitly_defined_tags.union(search_token_keys)
+    tag_keys = extraction_rule.tags.union(search_token_keys)
 
     return [TagSpec(key=key, field=_map_span_attribute_name(key)) for key in sorted(tag_keys)]
 
@@ -133,13 +139,35 @@ def _parse_conditions(conditions: Sequence[str] | None) -> Sequence[QueryToken]:
     return event_search.parse_search_query(search_query)
 
 
-def _get_rule_condition(parsed_search_query: Sequence[Any] | None) -> RuleCondition | None:
+def _get_rule_condition(
+    extraction_rule: MetricsExtractionRule, parsed_conditions: Sequence[QueryToken]
+) -> RuleCondition | None:
+    if _is_counter(extraction_rule):
+        parsed_search_query = _append_exists_condition(
+            parsed_conditions, extraction_rule.span_attribute
+        )
+    else:
+        parsed_search_query = parsed_conditions
+
     if not parsed_search_query:
         return None
 
     return SearchQueryConverter(
         parsed_search_query, field_mapper=_map_span_attribute_name
     ).convert()
+
+
+def _append_exists_condition(
+    parsed_conditions: Sequence[QueryToken], span_attribute: str
+) -> Sequence[QueryToken]:
+    exists_search_filter = SearchFilter(
+        key=SearchKey("has"), operator="!=", value=SearchValue(span_attribute)
+    )
+
+    if not parsed_conditions:
+        return [exists_search_filter]
+
+    return [ParenExpression(children=[*parsed_conditions, exists_search_filter])]
 
 
 def _map_span_attribute_name(span_attribute: str) -> str:
@@ -154,3 +182,7 @@ def _map_span_attribute_name(span_attribute: str) -> str:
     sanitized_span_attr = span_attribute.replace(".", "\\.")
 
     return f"{prefix}.{sanitized_span_attr}"
+
+
+def _is_counter(extraction_rule: MetricsExtractionRule) -> bool:
+    return extraction_rule.type == "c"

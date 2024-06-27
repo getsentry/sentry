@@ -154,12 +154,33 @@ def test_counter():
 
     assert not metric_spec["field"]
     assert metric_spec["mri"] == "c:custom/foobar@none"
-    assert metric_spec["tags"] == []
+    assert metric_spec["condition"] == {
+        "inner": {"name": "span.data.has", "op": "eq", "value": "foobar"},
+        "op": "not",
+    }
+
+
+def test_counter_extends_conditions():
+    rule = MetricsExtractionRule(
+        span_attribute="foobar", type="c", unit="none", tags=set(), conditions=["abc:xyz"]
+    )
+
+    metric_spec = convert_to_metric_spec(rule)
+
+    assert not metric_spec["field"]
+    assert metric_spec["mri"] == "c:custom/foobar@none"
+    assert metric_spec["condition"] == {
+        "op": "and",
+        "inner": [
+            {"op": "eq", "name": "span.data.abc", "value": "xyz"},
+            {"inner": {"name": "span.data.has", "op": "eq", "value": "foobar"}, "op": "not"},
+        ],
+    }
 
 
 def test_empty_conditions():
     rule = MetricsExtractionRule(
-        span_attribute="foobar", type="c", unit="none", tags=set(), conditions=[""]
+        span_attribute="foobar", type="d", unit="none", tags=set(), conditions=[""]
     )
 
     metric_spec = convert_to_metric_spec(rule)
