@@ -87,7 +87,7 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
 
         config_update = request.data.get("metricsExtractionRules")
 
-        if not config_update or len(config_update) == 0:
+        if not config_update:
             return Response(
                 status=400,
                 data={"detail": "Please specify the metric extraction rule to be created."},
@@ -118,7 +118,7 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
             return Response(status=404)
 
         config_update = request.data.get("metricsExtractionRules")
-        if not config_update or len(config_update) == 0:
+        if not config_update:
             return Response(status=200)
 
         configs = []
