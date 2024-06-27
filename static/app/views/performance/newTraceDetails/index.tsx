@@ -23,20 +23,16 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
-import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
 import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
-import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
-import type RequestError from 'sentry/utils/requestError/requestError';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import useApi from 'sentry/utils/useApi';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
@@ -60,6 +56,7 @@ import {
   useTraceStateDispatch,
   useTraceStateEmitter,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
+import type {TraceDataRow} from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {useTrace} from './traceApi/useTrace';
@@ -177,9 +174,7 @@ export function TraceView() {
     });
   }, [queryParams, traceSlug]);
 
-  const trace = useTrace();
   const meta = useTraceMeta([traceSlug]);
-  const rootEvent = useTraceRootEvent(trace.data ?? null);
 
   const preferences = useMemo(
     () =>
@@ -202,20 +197,16 @@ export function TraceView() {
             <TraceUXChangeAlert />
             <TraceMetadataHeader
               organization={organization}
-              projectID={rootEvent?.data?.projectID ?? ''}
-              title={rootEvent?.data?.title ?? ''}
               traceSlug={traceSlug}
               traceEventView={traceEventView}
             />
             <TraceInnerLayout>
               <TraceViewWaterfall
-                status={trace.status}
-                trace={trace.data ?? null}
-                traceSlug={traceSlug}
+                traceDataRows={[{traceSlug, timestamp: Number(queryParams.timestamp)}]}
+                traceLabel={traceSlug}
                 organization={organization}
                 traceEventView={traceEventView}
                 metaResults={meta}
-                rootEvent={rootEvent}
                 replayRecord={null}
                 source="performance"
               />
@@ -241,12 +232,10 @@ type TraceViewWaterfallProps = {
   metaResults: TraceMetaQueryResults;
   organization: Organization;
   replayRecord: ReplayRecord | null;
-  rootEvent: UseApiQueryResult<EventTransaction, RequestError>;
   source: string;
-  status: UseApiQueryResult<any, any>['status'];
-  trace: TraceSplitResults<TraceTree.Transaction> | null;
+  traceDataRows: TraceDataRow[] | undefined;
   traceEventView: EventView;
-  traceSlug: string;
+  traceLabel: string;
 };
 
 export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
@@ -255,7 +244,10 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const organization = useOrganization();
   const loadingTraceRef = useRef<TraceTree | null>(null);
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
-
+  const {trace, isIncrementallyFetching, isLoading, errors, hasMultipleTraces} = useTrace(
+    {traceDataRows: props.traceDataRows}
+  );
+  const rootEvent = useTraceRootEvent(trace);
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
   const traceStateEmitter = useTraceStateEmitter();
@@ -297,12 +289,13 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     null
   );
 
+  const treeRef = useRef<TraceTree | null>(null);
   const tree = useMemo(() => {
-    if (props.status === 'error') {
+    if (errors.length > 0) {
       const errorTree = TraceTree.Error(
         {
           project_slug: projects?.[0]?.slug ?? '',
-          event_id: props.traceSlug,
+          event_id: props.traceDataRows ? props.traceDataRows[0].traceSlug : '',
         },
         loadingTraceRef.current
       );
@@ -310,19 +303,18 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     }
 
     if (
-      props.trace?.transactions.length === 0 &&
-      props.trace?.orphan_errors.length === 0
+      isLoading ||
+      (isIncrementallyFetching &&
+        treeRef.current &&
+        treeRef.current.type === 'trace' &&
+        treeRef.current.list.length <= 1)
     ) {
-      return TraceTree.Empty();
-    }
-
-    if (props.status === 'loading') {
       const loadingTrace =
         loadingTraceRef.current ??
         TraceTree.Loading(
           {
             project_slug: projects?.[0]?.slug ?? '',
-            event_id: props.traceSlug,
+            event_id: props.traceDataRows ? props.traceDataRows[0].traceSlug : '',
           },
           loadingTraceRef.current
         );
@@ -331,12 +323,40 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       return loadingTrace;
     }
 
-    if (props.trace) {
-      return TraceTree.FromTrace(props.trace, props.replayRecord);
+    if (
+      !isIncrementallyFetching &&
+      treeRef.current &&
+      treeRef.current.type === 'trace' &&
+      treeRef.current.list.length <= 1
+    ) {
+      return TraceTree.Empty();
+    }
+
+    if (trace) {
+      if (!treeRef.current) {
+        const newTree = TraceTree.FromTrace(trace, props.replayRecord);
+        treeRef.current = newTree;
+        return newTree;
+      }
+
+      if (hasMultipleTraces) {
+        treeRef.current.appendTree(TraceTree.FromTrace(trace, props.replayRecord));
+      }
+
+      return treeRef.current;
     }
 
     throw new Error('Invalid trace state');
-  }, [props.traceSlug, props.trace, props.status, projects, props.replayRecord]);
+  }, [
+    props.traceDataRows,
+    trace,
+    projects,
+    props.replayRecord,
+    isIncrementallyFetching,
+    hasMultipleTraces,
+    errors,
+    isLoading,
+  ]);
 
   // Assign the trace state to a ref so we can access it without re-rendering
   const traceStateRef = useRef<TraceReducerState>(traceState);
@@ -861,9 +881,10 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       </TraceToolbar>
       <TraceGrid layout={traceState.preferences.layout} ref={setTraceGridRef}>
         <Trace
+          isIncrementallyFetching={isIncrementallyFetching}
           trace={tree}
           rerender={rerender}
-          trace_id={props.traceSlug}
+          traceLabel={props.traceLabel}
           scrollQueueRef={scrollQueueRef}
           initializedRef={initializedRef}
           onRowClick={onRowClick}
@@ -889,11 +910,11 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           traceType={shape}
           trace={tree}
           traceGridRef={traceGridRef}
-          traces={props.trace}
+          traces={trace ?? null}
           manager={viewManager}
           onTabScrollToNode={onTabScrollToNode}
           onScrollToNode={onScrollToNode}
-          rootEventResults={props.rootEvent}
+          rootEventResults={rootEvent}
           traceEventView={props.traceEventView}
         />
       </TraceGrid>

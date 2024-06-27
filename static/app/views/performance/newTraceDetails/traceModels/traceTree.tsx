@@ -596,6 +596,59 @@ export class TraceTree {
     return tree.build();
   }
 
+  appendTree(tree: TraceTree) {
+    const baseTraceNode = this.root.children[0];
+    const additionalTraceNode = tree.root.children[0];
+
+    if (!baseTraceNode || !additionalTraceNode) {
+      throw new Error('No trace node found in tree');
+    }
+
+    for (const child of additionalTraceNode.children) {
+      child.parent = baseTraceNode;
+      baseTraceNode.children.push(child);
+    }
+
+    for (const error of additionalTraceNode.errors) {
+      baseTraceNode.errors.add(error);
+    }
+
+    for (const performanceIssue of additionalTraceNode.performance_issues) {
+      baseTraceNode.performance_issues.add(performanceIssue);
+    }
+
+    for (const profile of additionalTraceNode.profiles) {
+      baseTraceNode.profiles.push(profile);
+    }
+
+    for (const [node, vitals] of tree.vitals) {
+      this.vitals.set(node, vitals);
+    }
+
+    for (const [node, _] of tree.vitals) {
+      // Collect all measurements
+      if (
+        baseTraceNode.space?.[0] &&
+        node.value &&
+        'start_timestamp' in node.value &&
+        'measurements' in node.value
+      ) {
+        this.collectMeasurements(
+          node,
+          baseTraceNode.space[0],
+          node.value.measurements as Record<string, Measurement>,
+          this.vitals,
+          this.vital_types,
+          this.indicators
+        );
+      }
+    }
+
+    baseTraceNode.children.sort(chronologicalSort);
+    baseTraceNode.invalidate(baseTraceNode);
+    this.build();
+  }
+
   get shape(): TraceType {
     const trace = this.root.children[0];
     if (!trace) {
@@ -2430,7 +2483,7 @@ function printNode(t: TraceTreeNode<TraceTree.NodeValue>, offset: number): strin
 }
 
 // Creates an example trace response that we use to render the loading placeholder
-function partialTransaction(
+export function partialTransaction(
   partial: Partial<TraceTree.Transaction>
 ): TraceTree.Transaction {
   return {

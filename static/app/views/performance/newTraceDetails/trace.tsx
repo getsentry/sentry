@@ -19,7 +19,8 @@ import {replayPlayerTimestampEmitter} from 'sentry/components/replays/replayCont
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {Organization, PlatformKey, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
 import type {
@@ -140,6 +141,7 @@ function maybeFocusRow(
 interface TraceProps {
   forceRerender: number;
   initializedRef: React.MutableRefObject<boolean>;
+  isIncrementallyFetching: boolean;
   manager: VirtualizedViewManager;
   onRowClick: (
     node: TraceTreeNode<TraceTree.NodeValue>,
@@ -167,12 +169,12 @@ interface TraceProps {
     | undefined
   >;
   trace: TraceTree;
-  trace_id: string;
+  traceLabel: string;
 }
 
 export function Trace({
   trace,
-  trace_id,
+  traceLabel,
   onRowClick,
   manager,
   scrollQueueRef,
@@ -182,6 +184,7 @@ export function Trace({
   rerender,
   initializedRef,
   forceRerender,
+  isIncrementallyFetching,
 }: TraceProps) {
   const theme = useTheme();
   const api = useApi();
@@ -258,7 +261,7 @@ export function Trace({
   }, [
     api,
     trace,
-    trace_id,
+    traceLabel,
     manager,
     onTraceLoad,
     traceDispatch,
@@ -397,7 +400,7 @@ export function Trace({
           isSearchResult={traceState.search.resultsLookup.has(n.item)}
           searchResultsIteratorIndex={traceState.search.resultIndex}
           style={n.style}
-          trace_id={trace_id}
+          traceLabel={traceLabel}
           projects={projectLookup}
           node={n.item}
           manager={manager}
@@ -426,7 +429,7 @@ export function Trace({
       traceState.search.resultsLookup,
       traceState.search.resultIndex,
       theme,
-      trace_id,
+      traceLabel,
       trace.type,
       forceRerender,
     ]
@@ -438,6 +441,9 @@ export function Trace({
       : r => renderVirtualizedRow(r);
   }, [renderLoadingRow, renderVirtualizedRow, trace.type, scrollQueueRef]);
 
+  const traceNode = trace.root.children[0];
+  const traceStartTimestamp = traceNode?.space?.[0];
+
   const [scrollContainer, setScrollContainer] = useState<HTMLElement | null>(null);
   const virtualizedList = useVirtualizedList({
     manager,
@@ -445,9 +451,6 @@ export function Trace({
     container: scrollContainer,
     render: render,
   });
-
-  const traceNode = trace.root.children[0];
-  const traceStartTimestamp = traceNode?.space?.[0];
 
   return (
     <TraceStylingWrapper
@@ -518,6 +521,7 @@ export function Trace({
         data-test-id="trace-virtualized-list-scroll-container"
       >
         <div data-test-id="trace-virtualized-list">{virtualizedList.rendered}</div>
+        {isIncrementallyFetching ? <div> 'Fetching...' </div> : null}
         <div className="TraceRow Hidden">
           <div
             className="TraceLeftColumn"
@@ -565,7 +569,7 @@ function RenderRow(props: {
   style: React.CSSProperties;
   tabIndex: number;
   theme: Theme;
-  trace_id: string;
+  traceLabel: string;
 }) {
   const virtualized_index = props.index - props.manager.start_virtualized_index;
   const rowSearchClassName = `${props.isSearchResult ? 'SearchResult' : ''} ${props.searchResultsIteratorIndex === props.index ? 'Highlight' : ''}`;
@@ -938,7 +942,7 @@ function RenderRow(props: {
             </div>
             <span className="TraceOperation">{t('Trace')}</span>
             <strong className="TraceEmDash"> — </strong>
-            <span className="TraceDescription">{props.trace_id}</span>
+            <span className="TraceDescription">{props.traceLabel}</span>
           </div>
         </div>
         <div

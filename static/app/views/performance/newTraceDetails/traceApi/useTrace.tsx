@@ -1,19 +1,21 @@
-import {useMemo} from 'react';
+import {useEffect, useMemo, useState} from 'react';
 import type {Location} from 'history';
 import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import type {EventTransaction, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {EventTransaction} from 'sentry/types/event';
 import type {
   TraceFullDetailed,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useParams} from 'sentry/utils/useParams';
+import type {TraceDataRow} from 'sentry/views/replays/detail/trace/replayTransactionContext';
 
 import type {TraceTree} from '../traceModels/traceTree';
 
@@ -36,23 +38,14 @@ const DEFAULT_LIMIT = 1_000;
 export function getTraceQueryParams(
   query: Location['query'],
   filters: Partial<PageFilters> = {},
-  options: {limit?: number} = {}
-): {
-  eventId: string | undefined;
-  limit: number;
-  timestamp: string | undefined;
-  useSpans: number;
-  demo?: string | undefined;
-  pageEnd?: string | undefined;
-  pageStart?: string | undefined;
-  statsPeriod?: string | undefined;
-} {
+  options: {limit?: number} = {},
+  traceDataRow: TraceDataRow
+): string {
   const normalizedParams = normalizeDateTimeParams(query, {
     allowAbsolutePageDatetime: true,
   });
   const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
   const demo = decodeScalar(normalizedParams.demo);
-  const timestamp = decodeScalar(normalizedParams.timestamp);
   let decodedLimit: string | number | undefined =
     options.limit ?? decodeScalar(normalizedParams.limit);
 
@@ -62,7 +55,7 @@ export function getTraceQueryParams(
 
   const eventId = decodeScalar(normalizedParams.eventId);
 
-  if (timestamp) {
+  if (traceDataRow?.timestamp) {
     decodedLimit = decodedLimit ?? DEFAULT_TIMESTAMP_LIMIT;
   } else {
     decodedLimit = decodedLimit ?? DEFAULT_LIMIT;
@@ -78,7 +71,7 @@ export function getTraceQueryParams(
 
   // We prioritize timestamp over statsPeriod as it makes the query more specific, faster
   // and not prone to time drift issues.
-  if (timestamp) {
+  if (traceDataRow?.timestamp) {
     delete otherParams.statsPeriod;
   }
 
@@ -86,7 +79,7 @@ export function getTraceQueryParams(
     ...otherParams,
     demo,
     limit,
-    timestamp,
+    timestamp: traceDataRow?.timestamp?.toString(),
     eventId,
     useSpans: 1,
   };
@@ -100,7 +93,7 @@ export function getTraceQueryParams(
     }
   }
 
-  return queryParams;
+  return qs.stringify(queryParams);
 }
 
 function parseDemoEventSlug(
@@ -189,33 +182,126 @@ function useDemoTrace(
 }
 
 type UseTraceParams = {
+  traceDataRows: TraceDataRow[] | undefined;
   limit?: number;
 };
 
-const DEFAULT_OPTIONS = {};
-export function useTrace(
-  options: Partial<UseTraceParams> = DEFAULT_OPTIONS
-): UseApiQueryResult<TraceSplitResults<TraceTree.Transaction> | undefined, any> {
-  const filters = usePageFilters();
-  const organization = useOrganization();
-  const params = useParams<{traceSlug?: string}>();
-  const queryParams = useMemo(() => {
-    const query = qs.parse(location.search);
-    return getTraceQueryParams(query, filters.selection, options);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [options]);
-  const mode = queryParams.demo ? 'demo' : undefined;
-  const demoTrace = useDemoTrace(queryParams.demo, organization);
-  const traceQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
-    [
-      `/organizations/${organization.slug}/events-trace/${params.traceSlug ?? ''}/`,
-      {query: queryParams},
-    ],
-    {
-      staleTime: Infinity,
-      enabled: !!params.traceSlug && !!organization.slug && mode !== 'demo',
-    }
-  );
+type TraceQueryResults = {
+  errors: Error[];
+  hasMultipleTraces: boolean;
+  isIncrementallyFetching: boolean;
+  isLoading: boolean;
+  trace: TraceSplitResults<TraceTree.Transaction> | undefined;
+};
 
-  return mode === 'demo' ? demoTrace : traceQuery;
+const DEFAULT_OPTIONS = {
+  traceDataRows: [],
+};
+export function useTrace(options: UseTraceParams = DEFAULT_OPTIONS): TraceQueryResults {
+  const filters = usePageFilters();
+  const api = useApi();
+  const organization = useOrganization();
+  const urlParams = useMemo(() => {
+    return qs.parse(location.search);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const mode = decodeScalar(urlParams.demo);
+  const demoTrace = useDemoTrace(decodeScalar(urlParams.demo), organization);
+
+  const [traceData, setTraceData] = useState<{
+    errors: Error[];
+    hasMultipleTraces: boolean;
+    isIncrementallyFetching: boolean;
+    isLoading: boolean;
+    trace: TraceSplitResults<TraceTree.Transaction> | undefined;
+  }>({
+    trace: undefined,
+    isLoading: true,
+    isIncrementallyFetching: false,
+    hasMultipleTraces: options.traceDataRows ? options.traceDataRows.length > 1 : false,
+    errors: [],
+  });
+
+  useEffect(() => {
+    async function fetchTracesInBatches(traceDataRows: TraceDataRow[] | undefined) {
+      if (!traceDataRows || traceDataRows.length === 0) {
+        return;
+      }
+
+      const clonedTraceIds = [...traceDataRows];
+      const apiErrors: Error[] = [];
+
+      while (clonedTraceIds.length > 0) {
+        const batch = clonedTraceIds.splice(0, 3);
+        const results = await Promise.allSettled(
+          batch.map(batchTraceData => {
+            return fetchTrace(api, {
+              orgSlug: organization.slug,
+              query: getTraceQueryParams(
+                urlParams,
+                filters.selection,
+                options,
+                batchTraceData
+              ),
+              traceId: batchTraceData.traceSlug,
+            });
+          })
+        );
+
+        const updatedData = results.reduce(
+          (acc, result) => {
+            if (result.status === 'fulfilled') {
+              const {transactions, orphan_errors} = result.value;
+              acc.transactions.push(...transactions);
+              acc.orphan_errors.push(...orphan_errors);
+            } else {
+              apiErrors.push(new Error(result.reason));
+            }
+            return acc;
+          },
+          {
+            transactions: [],
+            orphan_errors: [],
+          } as TraceSplitResults<TraceTree.Transaction>
+        );
+
+        setTraceData(prev => {
+          return {
+            ...prev,
+            trace: updatedData,
+            isLoading: false,
+            isIncrementallyFetching: true,
+          };
+        });
+      }
+
+      setTraceData(prev => {
+        return {
+          ...prev,
+          isIncrementallyFetching: false,
+          errors: apiErrors,
+        };
+      });
+    }
+
+    if (mode !== 'demo') {
+      fetchTracesInBatches(options.traceDataRows);
+    }
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return mode === 'demo'
+    ? {
+        trace: demoTrace.data ?? {
+          transactions: [],
+          orphan_errors: [],
+        },
+        isLoading: demoTrace.isLoading,
+        isIncrementallyFetching: false,
+        errors: demoTrace.error ? [demoTrace.error] : [],
+        hasMultipleTraces: false,
+      }
+    : traceData;
 }
