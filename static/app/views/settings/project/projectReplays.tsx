@@ -6,6 +6,7 @@ import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
 import type {JsonFormObject} from 'sentry/components/forms/types';
 import Link from 'sentry/components/links/link';
+import ReplaySettingsAlert from 'sentry/components/replays/alerts/replaySettingsAlert';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
@@ -76,6 +77,8 @@ function ProjectReplaySettings({organization, project, params: {projectId}}: Pro
         }
       />
       <PermissionAlert project={project} />
+      <ReplaySettingsAlert />
+
       <Form
         saveOnBlur
         apiMethod="PUT"
