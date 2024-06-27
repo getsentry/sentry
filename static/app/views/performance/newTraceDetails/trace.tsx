@@ -30,6 +30,10 @@ import {clamp} from 'sentry/utils/profiling/colors/utils';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
+import type {
+  TraceEvents,
+  TraceScheduler,
+} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
 import {
   useVirtualizedList,
   type VirtualizedRow,
@@ -158,6 +162,7 @@ interface TraceProps {
   ) => void;
   previouslyFocusedNodeRef: React.MutableRefObject<TraceTreeNode<TraceTree.NodeValue> | null>;
   rerender: () => void;
+  scheduler: TraceScheduler;
   scrollQueueRef: React.MutableRefObject<
     | {
         eventId?: string;
@@ -180,6 +185,7 @@ export function Trace({
   onTraceSearch,
   onTraceLoad,
   rerender,
+  scheduler,
   initializedRef,
   forceRerender,
 }: TraceProps) {
@@ -205,6 +211,43 @@ export function Trace({
 
   const traceStateRef = useRef<TraceReducerState>(traceState);
   traceStateRef.current = traceState;
+
+  useLayoutEffect(() => {
+    const onTraceViewChange: TraceEvents['set trace view'] = () => {
+      manager.recomputeTimelineIntervals();
+      manager.recomputeSpanToPXMatrix();
+      manager.draw();
+    };
+    const onPhysicalSpaceChange: TraceEvents['set container physical space'] = () => {
+      manager.recomputeTimelineIntervals();
+      manager.recomputeSpanToPXMatrix();
+      manager.draw();
+    };
+    const onTraceSpaceChange: TraceEvents['initialize trace space'] = () => {
+      manager.recomputeTimelineIntervals();
+      manager.recomputeSpanToPXMatrix();
+      manager.draw();
+    };
+    const onDividerResize: TraceEvents['divider resize'] = view => {
+      manager.recomputeTimelineIntervals();
+      manager.recomputeSpanToPXMatrix();
+      manager.draw(view);
+    };
+
+    scheduler.on('set trace view', onTraceViewChange);
+    scheduler.on('set trace space', onTraceSpaceChange);
+    scheduler.on('set container physical space', onPhysicalSpaceChange);
+    scheduler.on('initialize trace space', onTraceSpaceChange);
+    scheduler.on('divider resize', onDividerResize);
+
+    return () => {
+      scheduler.off('set trace view', onTraceViewChange);
+      scheduler.off('set trace space', onTraceSpaceChange);
+      scheduler.off('set container physical space', onPhysicalSpaceChange);
+      scheduler.off('initialize trace space', onTraceSpaceChange);
+      scheduler.off('divider resize', onDividerResize);
+    };
+  }, [manager, scheduler]);
 
   useLayoutEffect(() => {
     if (initializedRef.current) {
@@ -444,6 +487,7 @@ export function Trace({
     items: trace.list,
     container: scrollContainer,
     render: render,
+    scheduler,
   });
 
   const traceNode = trace.root.children[0];
@@ -499,7 +543,7 @@ export function Trace({
             >
               <div className="TraceIndicatorLabel">
                 {indicatorTimestamp > 0
-                  ? formatTraceDuration(manager.trace_view.x + indicatorTimestamp)
+                  ? formatTraceDuration(manager.view.trace_view.x + indicatorTimestamp)
                   : '0s'}
               </div>
               <div className="TraceIndicatorLine" />
