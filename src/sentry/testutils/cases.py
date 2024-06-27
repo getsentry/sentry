@@ -42,6 +42,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 from rest_framework.test import APITestCase as BaseAPITestCase
+from rest_framework.test import APITransactionTestCase as BaseAPITransactionTestCase
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUSREASONTYPE_TIMEOUT,
@@ -154,11 +155,11 @@ from sentry.utils.snuba import _snuba_pool
 from ..services.hybrid_cloud.organization.serial import serialize_rpc_organization
 from ..shared_integrations.client.proxy import IntegrationProxyClient
 from ..snuba.metrics import (
+    DeprecatingMetricsQuery,
     MetricConditionField,
     MetricField,
     MetricGroupByField,
     MetricOrderByField,
-    MetricsQuery,
     get_date_range,
 )
 from ..snuba.metrics.naming_layer.mri import SessionMRI, TransactionMRI, parse_mri
@@ -684,7 +685,7 @@ class PerformanceIssueTestCase(BaseTestCase):
             return event
 
 
-class APITestCase(BaseTestCase, BaseAPITestCase):
+class APITestCaseMixin:
     """
     Extend APITestCase to inherit access to `client`, an object with methods
     that simulate API calls to Sentry, and the helper `get_response`, which
@@ -694,11 +695,6 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
     The class must set the string `endpoint`.
     If your endpoint requires kwargs implement the `reverse_url` method.
     """
-
-    # We need Django to flush all databases.
-    databases: set[str] | str = "__all__"
-
-    method = "get"
 
     @property
     def endpoint(self):
@@ -851,6 +847,20 @@ class APITestCase(BaseTestCase, BaseAPITestCase):
             "sentry.hybridcloud.apigateway.proxy.external_request", new=proxy_raw_request
         ):
             yield
+
+
+class APITestCase(BaseTestCase, BaseAPITestCase, APITestCaseMixin):
+    # We need Django to flush all databases.
+    databases: set[str] | str = "__all__"
+
+    method = "get"
+
+
+class APITransactionTestCase(BaseTestCase, BaseAPITransactionTestCase, APITestCaseMixin):
+    # We need Django to flush all databases.
+    databases: set[str] | str = "__all__"
+
+    method = "get"
 
 
 class TwoFactorAPITestCase(APITestCase):
@@ -2028,7 +2038,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
             {"statsPeriod": before_now, "interval": granularity}
         )
 
-        return MetricsQuery(
+        return DeprecatingMetricsQuery(
             org_id=self.organization.id,
             project_ids=[self.project.id] + (project_ids if project_ids is not None else []),
             select=select,
@@ -2960,6 +2970,38 @@ class SlackActivityNotificationTest(ActivityTestCase):
             == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}{optional_org_id}|Notification Settings>"
         )
 
+    def assert_performance_issue_blocks_with_culprit_blocks(
+        self,
+        blocks,
+        org: Organization,
+        project_slug: str,
+        group,
+        referrer,
+        alert_type: FineTuningAPIKey = FineTuningAPIKey.WORKFLOW,
+        issue_link_extra_params=None,
+    ):
+        notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
+        issue_link = f"http://testserver/organizations/{org.slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
+        if issue_link_extra_params is not None:
+            issue_link += issue_link_extra_params
+        assert (
+            blocks[1]["text"]["text"]
+            == f":large_blue_circle: :chart_with_upwards_trend: <{issue_link}|*N+1 Query*>"
+        )
+        assert blocks[2]["elements"][0]["text"] == "/books/"
+        assert (
+            blocks[3]["text"]["text"]
+            == "```db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21```"
+        )
+        assert (
+            blocks[4]["elements"][0]["text"] == "State: *Ongoing*   First Seen: *10\xa0minutes ago*"
+        )
+        optional_org_id = f"&organizationId={org.id}" if alert_page_needs_org_id(alert_type) else ""
+        assert (
+            blocks[5]["elements"][0]["text"]
+            == f"{project_slug} | production | <http://testserver/settings/account/notifications/{alert_type}/?referrer={referrer}-user&notification_uuid={notification_uuid}{optional_org_id}|Notification Settings>"
+        )
+
     def assert_generic_issue_attachments(
         self, attachment, project_slug, referrer, alert_type="workflow"
     ):
@@ -2980,6 +3022,7 @@ class SlackActivityNotificationTest(ActivityTestCase):
         referrer,
         alert_type="workflow",
         issue_link_extra_params=None,
+        with_culprit=False,
     ):
         notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
         issue_link = f"http://testserver/organizations/{org.slug}/issues/{group.id}/?referrer={referrer}&notification_uuid={notification_uuid}"
@@ -2989,8 +3032,14 @@ class SlackActivityNotificationTest(ActivityTestCase):
             blocks[1]["text"]["text"]
             == f":red_circle: <{issue_link}|*{TEST_ISSUE_OCCURRENCE.issue_title}*>"
         )
+        if with_culprit:
+            assert blocks[2]["elements"][0]["text"] == "raven.tasks.run_a_test"
+            evidence_index = 3
+        else:
+            evidence_index = 2
+
         assert (
-            blocks[2]["text"]["text"]
+            blocks[evidence_index]["text"]["text"]
             == "```" + TEST_ISSUE_OCCURRENCE.evidence_display[0].value + "```"
         )
 

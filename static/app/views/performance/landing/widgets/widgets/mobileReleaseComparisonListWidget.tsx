@@ -280,7 +280,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
 
         const color = isPrimary ? CHART_PALETTE[3][0] : CHART_PALETTE[3][1];
         transformedReleaseSeries[release] = {
-          seriesName: formatVersion(label),
+          seriesName: formatVersion(label, true),
           color,
           data: seriesData,
         };

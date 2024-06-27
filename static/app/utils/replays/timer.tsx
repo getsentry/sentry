@@ -9,13 +9,14 @@ export class Timer extends EventTarget {
   private _pausedAt: number = 0;
   private _additionalTime: number = 0;
   private _callbacks: Map<number, (() => void)[]> = new Map();
+  private _speed: number = 1;
 
   step = () => {
     if (!this._active) {
       return;
     }
 
-    this._time = window.performance.now() - this._start;
+    this._time = (window.performance.now() - this._start) * this._speed;
     // We don't expect _callbacks to be very large, so we can deal with a
     // linear search
     this._callbacks.forEach((value, key, callbacks) => {
@@ -33,7 +34,10 @@ export class Timer extends EventTarget {
    */
   start(seconds?: number) {
     this._pausedAt = 0;
-    this._start = window.performance.now() - (seconds ?? 0);
+    // we're dividing by the speed here because we multiply
+    // by the same factor up in step(). doing the math,
+    // you'll see that this._time turns out to be just `seconds`.
+    this._start = window.performance.now() - (seconds ?? 0) / this._speed;
     this.resume();
     this.step();
   }
@@ -108,5 +112,9 @@ export class Timer extends EventTarget {
     const callbacksAtOffset = this._callbacks.get(offset)!;
     callbacksAtOffset.push(callback);
     this._callbacks.set(offset, callbacksAtOffset);
+  }
+
+  setSpeed(speed: number) {
+    this._speed = speed;
   }
 }

@@ -1,4 +1,4 @@
-import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/useTransactionSamplesWebVitalsQuery';
+import {useTransactionSamplesWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionSamplesWebVitalsScoresQuery';
 import type {
   TransactionSampleRowWithScore,
   WebVitals,
@@ -20,7 +20,7 @@ export function useTransactionsCategorizedSamplesQuery({
   enabled,
 }: Props) {
   const {data: goodData, isLoading: isGoodTransactionWebVitalsQueryLoading} =
-    useTransactionSamplesWebVitalsQuery({
+    useTransactionSamplesWebVitalsScoresQuery({
       limit: 3,
       transaction: transaction ?? '',
       query: webVital
@@ -33,7 +33,7 @@ export function useTransactionsCategorizedSamplesQuery({
     });
 
   const {data: mehData, isLoading: isMehTransactionWebVitalsQueryLoading} =
-    useTransactionSamplesWebVitalsQuery({
+    useTransactionSamplesWebVitalsScoresQuery({
       limit: 3,
       transaction: transaction ?? '',
       query: webVital
@@ -46,7 +46,7 @@ export function useTransactionsCategorizedSamplesQuery({
     });
 
   const {data: poorData, isLoading: isPoorTransactionWebVitalsQueryLoading} =
-    useTransactionSamplesWebVitalsQuery({
+    useTransactionSamplesWebVitalsScoresQuery({
       limit: 3,
       transaction: transaction ?? '',
       query: webVital
