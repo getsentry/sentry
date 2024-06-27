@@ -88,23 +88,3 @@ class MetricsExtractionRule:
 
     def __hash__(self):
         return hash(self.generate_mri())
-
-
-"""
-def generate_rules(config: SpanAttributeExtractionRuleConfig) -> Sequence[MetricsExtractionRule]:
-    rules = []
-    metric_types = MetricsExtractionRule.infer_types(config.aggregates)
-    for id, condition in config.conditions.items():
-        for metric_type in metric_types:
-            rules.append(
-                MetricsExtractionRule(
-                    span_attribute=config.span_attribute,
-                    type=metric_type,
-                    unit=config.unit,
-                    tags=config.tags,
-                    condition=condition,
-                    id=id,
-                )
-            )
-    return rules
-"""
