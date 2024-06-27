@@ -387,6 +387,60 @@ class SearchValue(NamedTuple):
             return False
         return bool(WILDCARD_CHARS.search(self.raw_value))
 
+    def classify_wildcard(self) -> Literal["prefix", "infix", "suffix", "other"]:
+        if not self.is_wildcard():
+            return "other"
+
+        ret = WILDCARD_CHARS.finditer(self.raw_value)
+
+        leading_wildcard = False
+        trailing_wildcard = False
+        middle_wildcard = False
+
+        for x in ret:
+            start, end = x.span()
+            if start == 0 and end == 1:
+                # It must span exactly [0, 1) because if it spans further,
+                # the pattern also matched on some leading slashes.
+                leading_wildcard = True
+            elif end == len(self.raw_value):
+                # It only needs to match on end because if it matches on
+                # some slashes before the *, that's okay.
+                trailing_wildcard = True
+            else:
+                # The wildcard happens somewhere in the middle of the value.
+                # We care about this because when this happens, it's not
+                # trivial to optimize the query, so let it fall back to
+                # the existing regex approach.
+                middle_wildcard = True
+
+        if not middle_wildcard:
+            if leading_wildcard and trailing_wildcard:
+                return "infix"
+            elif leading_wildcard:
+                return "suffix"
+            elif trailing_wildcard:
+                return "prefix"
+
+        return "other"
+
+    def format_wildcard(self, kind: Literal["prefix", "infix", "suffix", "other"]) -> str:
+        if kind == "prefix":
+            # If it's a prefix wildcard, we strip off the last character
+            # which is always a `*` and match on the rest.
+            return translate_escape_sequences(self.raw_value[:-1])
+        elif kind == "infix":
+            # If it's an infix wildcard, we strip off the first and last character
+            # which is always a `*` and match on the rest.
+            return translate_escape_sequences(self.raw_value[1:-1])
+        elif kind == "suffix":
+            # If it's a suffix wildcard, we strip off the first character
+            # which is always a `*` and match on the rest.
+            return translate_escape_sequences(self.raw_value[1:])
+
+        # Fall back to the usual formatting that includes formatting escape values.
+        return self.value
+
     def is_event_id(self) -> bool:
         """Return whether the current value is a valid event id
 

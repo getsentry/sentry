@@ -710,3 +710,32 @@ def test_search_value_to_query_string(value, expected_query_string):
     actual = search_value.to_query_string()
 
     assert actual == expected_query_string
+
+
+@pytest.mark.parametrize(
+    ["value", "expected_kind", "expected_value"],
+    [
+        (1, "other", 1),
+        ("1", "other", "1"),
+        ("*", "suffix", ""),  # consider special casing this
+        ("*foo", "suffix", "foo"),
+        ("foo*", "prefix", "foo"),
+        ("*foo*", "infix", "foo"),
+        (r"\*foo", "other", r"*foo"),
+        (r"\\*foo", "other", r"^\\.*foo$"),
+        (r"foo\*", "other", r"foo*"),
+        (r"foo\\*", "prefix", r"foo\\"),
+        ("*f*o*o*", "other", "^.*f.*o.*o.*$"),
+        (r"*foo\*", "suffix", r"foo*"),
+        (r"*foo\\*", "infix", r"foo\\"),
+    ],
+)
+def test_search_value_classify_and_format_wildcard(value, expected_kind, expected_value):
+    """
+    Test classifying the wildcard type into one of prefix/suffix/infix/other
+    and formatting the value according to the classification results.
+    """
+    search_value = SearchValue(value)
+    kind = search_value.classify_wildcard()
+    assert kind == expected_kind
+    assert search_value.format_wildcard(kind) == expected_value

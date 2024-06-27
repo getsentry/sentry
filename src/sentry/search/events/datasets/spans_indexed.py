@@ -26,6 +26,8 @@ from sentry.search.utils import DEVICE_CLASS
 
 
 class SpansIndexedDatasetConfig(DatasetConfig):
+    optimize_wildcard_searches = True
+
     def __init__(self, builder: builder.QueryBuilder):
         self.builder = builder
         self.total_count: int | None = None
