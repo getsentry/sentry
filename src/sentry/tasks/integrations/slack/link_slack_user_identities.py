@@ -6,13 +6,13 @@ from collections.abc import Mapping
 from django.utils import timezone
 
 from sentry import features
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.utils import get_slack_data_by_user
 from sentry.integrations.slack.utils.users import SlackUserData, get_slack_data_by_user_via_sdk
 from sentry.integrations.utils import get_identities_by_user
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task

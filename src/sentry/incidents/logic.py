@@ -44,6 +44,8 @@ from sentry.incidents.models.incident import (
     IncidentTrigger,
     TriggerStatus,
 )
+from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
 from sentry.models.scheduledeletion import RegionScheduledDeletion
@@ -51,8 +53,6 @@ from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flag
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import is_function, resolve_field
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
-from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
 from sentry.shared_integrations.exceptions import (
     ApiTimeoutError,
     DuplicateDisplayNameError,

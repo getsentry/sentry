@@ -1,11 +1,11 @@
 from django.utils.functional import cached_property
 
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.services.repository import repository_service
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
 from sentry.plugins.base import plugins
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 
 

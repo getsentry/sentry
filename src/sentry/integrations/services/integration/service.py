@@ -9,8 +9,8 @@ from typing import Any
 
 from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs, RpcPaginationResult
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
-from sentry.services.hybrid_cloud.integration import RpcIntegration, RpcOrganizationIntegration
-from sentry.services.hybrid_cloud.integration.model import (
+from sentry.integrations.services.integration import RpcIntegration, RpcOrganizationIntegration
+from sentry.integrations.services.integration.model import (
     RpcIntegrationExternalProject,
     RpcIntegrationIdentityContext,
     RpcOrganizationContext,
@@ -25,7 +25,7 @@ class IntegrationService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from sentry.services.hybrid_cloud.integration.impl import DatabaseBackedIntegrationService
+        from sentry.integrations.services.integration.impl import DatabaseBackedIntegrationService
 
         return DatabaseBackedIntegrationService()
 

@@ -5,7 +5,7 @@ from unittest import mock
 import orjson
 
 from sentry.integrations.discord.requests.base import DiscordRequest
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 
