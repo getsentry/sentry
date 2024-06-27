@@ -36,6 +36,7 @@ from snuba_sdk import (
 )
 from snuba_sdk.expressions import Expression
 
+from sentry import features
 from sentry.api.event_search import ParenExpression, SearchFilter, SearchKey, SearchValue
 from sentry.models.organization import Organization
 from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
@@ -220,8 +221,12 @@ def query_using_optimized_search(
     can_scalar_sort = sort_is_scalar_compatible(sort or DEFAULT_SORT_FIELD)
     can_scalar_search = can_scalar_search_subquery(search_filters)
 
-    if mv.can_search(search_filters) and mv.can_sort(sort or DEFAULT_SORT_FIELD):
-        query = make_materialized_view_search_query(
+    if (
+        features.has("organizations:session-replay-materialized-view", organization)
+        and mv.can_search(search_filters)
+        and mv.can_sort(sort or DEFAULT_SORT_FIELD)
+    ):
+        query = make_materialized_view_search_conditions_query(
             search_filters=search_filters,
             sort=sort,
             project_ids=project_ids,
@@ -296,7 +301,7 @@ def query_using_optimized_search(
     )
 
 
-def make_materialized_view_search_query(
+def make_materialized_view_search_conditions_query(
     search_filters: Sequence[SearchFilter | str | ParenExpression],
     sort: str | None,
     project_ids: list[int],
@@ -320,24 +325,6 @@ def make_materialized_view_search_query(
         orderby=orderby,
         groupby=[Column("replay_id")],
     )
-
-
-def make_materialized_view_query(
-    fields: list[str],
-    search_filters: Sequence[SearchFilter | str | ParenExpression],
-    sort: str | None,
-    project_ids: list[int],
-    period_start: datetime,
-    period_stop: datetime,
-    pagination: Paginators,
-) -> Query:
-    query = make_materialized_view_search_query(
-        search_filters, sort, project_ids, period_start, period_stop
-    )
-    query = query.set_limit(pagination.limit)
-    query = query.set_offset(pagination.offset)
-    query = query.set_select(mv.make_selection(fields))
-    return query
 
 
 def make_scalar_search_conditions_query(
