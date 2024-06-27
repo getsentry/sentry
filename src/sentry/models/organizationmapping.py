@@ -9,8 +9,8 @@ from sentry import roles
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, sane_repr
 from sentry.db.models.base import Model, control_silo_model
+from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH, REGION_NAME_LENGTH
 from sentry.models.organization import OrganizationStatus
-from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH, REGION_NAME_LENGTH
 
 if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.organization import RpcOrganizationMappingFlags

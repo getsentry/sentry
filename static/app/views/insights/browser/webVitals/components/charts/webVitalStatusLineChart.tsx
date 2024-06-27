@@ -12,7 +12,7 @@ import useRouter from 'sentry/utils/useRouter';
 import {
   PERFORMANCE_SCORE_MEDIANS,
   PERFORMANCE_SCORE_P90S,
-} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/calculatePerformanceScore';
+} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 
 interface Props {
   webVitalSeries: LineChartSeries;

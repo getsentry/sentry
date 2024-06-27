@@ -17,6 +17,10 @@ export function hasCustomMetricsExtractionRules(organization: Organization) {
   return organization.features.includes('custom-metrics-extraction-rule');
 }
 
+export function hasMetricsExtrapolationFeature(organization: Organization) {
+  return organization.features.includes('metrics-extrapolation');
+}
+
 /**
  * Returns the forceMetricsLayer query param for the alert
  * wrapped in an object so it can be spread into existing query params

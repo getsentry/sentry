@@ -32,8 +32,8 @@ import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
+import {useTransactionSamplesWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionSamplesWebVitalsScoresQuery';
 import {useInpSpanSamplesWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/useInpSpanSamplesWebVitalsQuery';
-import {useTransactionSamplesWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/useTransactionSamplesWebVitalsQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {
   InteractionSpanSampleRowWithScore,
@@ -129,7 +129,7 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
     data: tableData,
     isLoading,
     pageLinks,
-  } = useTransactionSamplesWebVitalsQuery({
+  } = useTransactionSamplesWebVitalsScoresQuery({
     limit,
     transaction,
     query: search,
@@ -183,7 +183,6 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         'measurements.fcp',
         'measurements.lcp',
         'measurements.ttfb',
-        'measurements.fid',
         'measurements.cls',
         'measurements.inp',
         'transaction.duration',
@@ -281,7 +280,6 @@ export function PageSamplePerformanceTable({transaction, search, limit = 9}: Pro
         'measurements.fcp',
         'measurements.lcp',
         'measurements.ttfb',
-        'measurements.fid',
         'measurements.inp',
         'transaction.duration',
       ].includes(key)

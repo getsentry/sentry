@@ -7,13 +7,15 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import Form, {type FormProps} from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import type FormModel from 'sentry/components/forms/model';
+import ExternalLink from 'sentry/components/links/externalLink';
 import {IconAdd, IconClose} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricType} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 export interface FormData {
@@ -43,6 +45,20 @@ const ListItemDetails = styled('span')`
   line-height: 1.2;
 `;
 
+const KNOWN_NUMERIC_FIELDS = new Set([
+  SpanIndexedField.SPAN_DURATION,
+  SpanIndexedField.SPAN_SELF_TIME,
+  SpanIndexedField.PROJECT_ID,
+  SpanIndexedField.INP,
+  SpanIndexedField.INP_SCORE,
+  SpanIndexedField.INP_SCORE_WEIGHT,
+  SpanIndexedField.TOTAL_SCORE,
+  SpanIndexedField.CACHE_ITEM_SIZE,
+  SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
+  SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY,
+  SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
+]);
+
 const TYPE_OPTIONS = [
   {
     label: t('Counter'),
@@ -66,6 +82,20 @@ const TYPE_OPTIONS = [
     ],
   },
 ];
+
+const EMPTY_SET = new Set<never>();
+const SPAN_SEARCH_CONFIG = {
+  booleanKeys: EMPTY_SET,
+  dateKeys: EMPTY_SET,
+  durationKeys: EMPTY_SET,
+  numericKeys: EMPTY_SET,
+  percentageKeys: EMPTY_SET,
+  sizeKeys: EMPTY_SET,
+  textOperatorKeys: EMPTY_SET,
+  disallowFreeText: true,
+  disallowWildcard: true,
+  disallowNegation: true,
+};
 
 export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}: Props) {
   const [customAttributes, setCustomeAttributes] = useState<string[]>(() => {
@@ -97,6 +127,13 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [customAttributes, supportedTags]);
 
+  const tagOptions = useMemo(() => {
+    return attributeOptions.filter(
+      // We don't want to suggest numeric fields as tags as they would explode cardinality
+      option => !KNOWN_NUMERIC_FIELDS.has(option.value as SpanIndexedField)
+    );
+  }, [attributeOptions]);
+
   const handleSubmit = useCallback(
     (
       data: Record<string, any>,
@@ -118,9 +155,17 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
             name="spanAttribute"
             options={attributeOptions}
             disabled={isEdit}
-            label={t('Span Attribute')}
-            help={t('The span attribute to extract the metric from.')}
-            placeholder={t('Select an attribute')}
+            label={t('Measure')}
+            help={tct(
+              'Define the span attribute you want to track. Learn how to instrument custom attributes in [link:our docs].',
+              {
+                // TODO(telemetry-experience): add the correct link here once we have it!!!
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/explore/metrics/" />
+                ),
+              }
+            )}
+            placeholder={t('Select a span attribute')}
             creatable
             formatCreateLabel={value => `Custom: "${value}"`}
             onCreateOption={value => {
@@ -134,19 +179,23 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
             disabled={isEdit}
             options={TYPE_OPTIONS}
             label={t('Type')}
-            help={t(
-              'The type of the metric determines which aggregation functions are available and what types of values it can store. For more information, read our docs'
+            help={tct(
+              'The type of the metric determines which aggregation functions are available and what types of values it can store. For more information, read [link:our docs]',
+              {
+                // TODO(telemetry-experience): add the correct link here once we have it!!!
+                link: (
+                  <ExternalLink href="https://docs.sentry.io/product/explore/metrics/" />
+                ),
+              }
             )}
           />
           <SelectField
             name="tags"
-            options={attributeOptions}
-            label={t('Tags')}
+            options={tagOptions}
+            label={t('Group and filter by')}
             multiple
             placeholder={t('Select tags')}
-            help={t(
-              'Those tags will be stored with the metric. They can be used to filter and group the metric in the UI.'
-            )}
+            help={t('Select the tags that can be used to group and filter the metric.')}
             creatable
             formatCreateLabel={value => `Custom: "${value}"`}
             onCreateOption={value => {
@@ -156,9 +205,9 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
             }}
           />
           <FormField
-            label={t('Filters')}
+            label={t('Queries')}
             help={t(
-              'Define filters for spans. The metric will be extracted only from spans that match these conditions.'
+              'Define queries to narrow down the metric extraction to a specific set of spans.'
             )}
             name="conditions"
             inline={false}
@@ -175,6 +224,7 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                         <SearchWrapper hasPrefix={index !== 0}>
                           {index !== 0 && <ConditionLetter>{t('or')}</ConditionLetter>}
                           <SearchBar
+                            {...SPAN_SEARCH_CONFIG}
                             searchSource="metrics-extraction"
                             query={query}
                             onSearch={(queryString: string) =>
@@ -194,7 +244,7 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                         </SearchWrapper>
                         {value.length > 1 && (
                           <Button
-                            aria-label={t('Remove Condition')}
+                            aria-label={t('Remove Query')}
                             onClick={() => onChange(conditions.toSpliced(index, 1), {})}
                             icon={<IconClose />}
                           />
@@ -207,7 +257,7 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                       onClick={() => onChange([...conditions, ''], {})}
                       icon={<IconAdd />}
                     >
-                      {t('Add condition')}
+                      {t('Add Query')}
                     </Button>
                   </ConditionsButtonBar>
                 </Fragment>

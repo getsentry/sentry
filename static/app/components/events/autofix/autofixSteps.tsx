@@ -1,16 +1,20 @@
 import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Button} from 'sentry/components/button';
 import DateTime from 'sentry/components/dateTime';
 import {AutofixChanges} from 'sentry/components/events/autofix/autofixChanges';
+import {AutofixInputField} from 'sentry/components/events/autofix/autofixInputField';
 import {AutofixRootCause} from 'sentry/components/events/autofix/autofixRootCause';
 import {
   type AutofixData,
   type AutofixProgressItem,
   type AutofixStep,
   AutofixStepType,
+  type AutofixUserResponseStep,
 } from 'sentry/components/events/autofix/types';
+import {useAutofixData} from 'sentry/components/events/autofix/useAutofix';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {
@@ -20,6 +24,7 @@ import {
   IconCode,
   IconFatal,
   IconQuestion,
+  IconSad,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -31,6 +36,9 @@ function StepIcon({step}: {step: AutofixStep}) {
   }
 
   if (step.type === AutofixStepType.ROOT_CAUSE_ANALYSIS) {
+    if (step.causes?.length === 0) {
+      return <IconSad size="sm" color="gray300" />;
+    }
     return step.selection ? (
       <IconCheckmark size="sm" color="green300" isCircled />
     ) : (
@@ -52,8 +60,8 @@ function StepIcon({step}: {step: AutofixStep}) {
   }
 }
 
-function stepShouldBeginExpanded(step: AutofixStep) {
-  if (step.type === AutofixStepType.CHANGES) {
+function stepShouldBeginExpanded(step: AutofixStep, isLastStep?: boolean) {
+  if (isLastStep) {
     return true;
   }
 
@@ -70,7 +78,12 @@ interface StepProps {
   runId: string;
   step: AutofixStep;
   isChild?: boolean;
+  isLastStep?: boolean;
   stepNumber?: number;
+}
+
+interface UserStepProps extends StepProps {
+  step: AutofixUserResponseStep;
 }
 
 interface AutofixStepsProps {
@@ -108,25 +121,42 @@ function Progress({
 
   return (
     <ProgressStepContainer>
-      <Step step={progress} isChild groupId={groupId} runId={runId} onRetry={onRetry} />
+      <ExpandableStep
+        step={progress}
+        isChild
+        groupId={groupId}
+        runId={runId}
+        onRetry={onRetry}
+      />
     </ProgressStepContainer>
   );
 }
 
-export function Step({step, isChild, groupId, runId, onRetry}: StepProps) {
+export function ExpandableStep({
+  step,
+  isChild,
+  groupId,
+  runId,
+  isLastStep,
+  onRetry,
+}: StepProps) {
+  const previousIsLastStep = usePrevious(isLastStep);
   const previousStepStatus = usePrevious(step.status);
   const isActive = step.status !== 'PENDING' && step.status !== 'CANCELLED';
-  const [isExpanded, setIsExpanded] = useState(() => stepShouldBeginExpanded(step));
+  const [isExpanded, setIsExpanded] = useState(() =>
+    stepShouldBeginExpanded(step, isLastStep)
+  );
 
   useEffect(() => {
     if (
-      previousStepStatus &&
-      previousStepStatus !== step.status &&
-      step.status === 'COMPLETED'
+      (previousStepStatus &&
+        previousStepStatus !== step.status &&
+        step.status === 'COMPLETED') ||
+      (previousIsLastStep && !isLastStep)
     ) {
       setIsExpanded(false);
     }
-  }, [previousStepStatus, step.status]);
+  }, [previousStepStatus, step.status, previousIsLastStep, isLastStep]);
 
   const logs: AutofixProgressItem[] = step.progress?.filter(isProgressLog) ?? [];
   const activeLog = step.completedMessage ?? logs.at(-1)?.message ?? null;
@@ -194,7 +224,12 @@ export function Step({step, isChild, groupId, runId, onRetry}: StepProps) {
             />
           )}
           {step.type === AutofixStepType.CHANGES && (
-            <AutofixChanges step={step} groupId={groupId} onRetry={onRetry} />
+            <AutofixChanges
+              step={step}
+              groupId={groupId}
+              onRetry={onRetry}
+              isLastStep={isLastStep}
+            />
           )}
         </Fragment>
       )}
@@ -202,10 +237,61 @@ export function Step({step, isChild, groupId, runId, onRetry}: StepProps) {
   );
 }
 
+function UserStep({step, groupId}: UserStepProps) {
+  const data = useAutofixData({groupId});
+  const user = data?.users?.[step.user_id];
+
+  return (
+    <StepCard active>
+      <UserStepContent>
+        <UserAvatar user={user} size={19} />
+        <UserTextContentContainer>
+          <UserStepName>{user?.name}</UserStepName>
+          <UserStepText>{step.text}</UserStepText>
+        </UserTextContentContainer>
+      </UserStepContent>
+    </StepCard>
+  );
+}
+
+function Step({step, groupId, runId, onRetry, stepNumber, isLastStep}: StepProps) {
+  if (step.type === AutofixStepType.USER_RESPONSE) {
+    return (
+      <UserStep
+        step={step}
+        groupId={groupId}
+        runId={runId}
+        onRetry={onRetry}
+        isLastStep={isLastStep}
+      />
+    );
+  }
+
+  return (
+    <ExpandableStep
+      step={step}
+      groupId={groupId}
+      runId={runId}
+      onRetry={onRetry}
+      stepNumber={stepNumber}
+      isLastStep={isLastStep}
+    />
+  );
+}
+
 export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps) {
+  const steps = data.steps;
+
+  if (!steps) {
+    return null;
+  }
+
+  const showInputField =
+    data.options?.iterative_feedback && steps.at(-1)?.type === AutofixStepType.CHANGES;
+
   return (
     <div>
-      {data.steps?.map((step, index) => (
+      {steps.map((step, index) => (
         <Step
           step={step}
           key={step.id}
@@ -213,8 +299,10 @@ export function AutofixSteps({data, groupId, runId, onRetry}: AutofixStepsProps)
           groupId={groupId}
           runId={runId}
           onRetry={onRetry}
+          isLastStep={index === steps.length - 1}
         />
       ))}
+      {showInputField && <AutofixInputField runId={data.run_id} groupId={groupId} />}
     </div>
   );
 }
@@ -243,6 +331,27 @@ const StepHeader = styled('div')<{canToggle: boolean; isChild?: boolean}>`
   }
 `;
 
+const UserStepContent = styled('div')`
+  display: flex;
+  align-items: flex-start;
+  gap: ${space(1)};
+  padding: ${space(2)};
+`;
+
+const UserStepName = styled('div')`
+  font-weight: bold;
+`;
+
+const UserStepText = styled('p')`
+  margin: 0;
+`;
+
+const UserTextContentContainer = styled('div')`
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
+`;
+
 const StepHeaderLeft = styled('div')`
   display: flex;
   align-items: center;
@@ -263,7 +372,7 @@ const StepHeaderDescription = styled('div')`
 const StepIconContainer = styled('div')`
   display: flex;
   align-items: center;
-  margin-right: ${space(1)};
+  margin-right: ${space(1.5)};
 `;
 
 const StepHeaderRight = styled('div')`

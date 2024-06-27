@@ -141,13 +141,14 @@ class DummyTSDB(BaseTSDB):
 
     def get_frequency_totals(
         self,
-        model,
-        items: Mapping[str, Sequence[str]],
-        start,
-        end=None,
-        rollup=None,
-        environment_id=None,
-    ):
+        model: TSDBModel,
+        items: Mapping[TSDBKey, Sequence[TSDBItem]],
+        start: datetime,
+        end: datetime | None = None,
+        rollup: int | None = None,
+        environment_id: int | None = None,
+        tenant_ids: dict[str, str | int] | None = None,
+    ) -> dict[TSDBKey, dict[TSDBItem, float]]:
         self.validate_arguments([model], [environment_id])
         results = {}
         for key, members in items.items():

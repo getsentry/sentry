@@ -1,9 +1,9 @@
 import type {TableDataRow} from 'sentry/utils/discover/discoverQuery';
-import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/calculatePerformanceScore';
 import type {
   ProjectScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
+import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 
 export const calculatePerformanceScoreFromStoredTableDataRow = (
   data?: TableDataRow
@@ -52,7 +52,6 @@ export function getWebVitalScores(data?: TableDataRow): ProjectScore {
       fcpWeight: PERFORMANCE_SCORE_WEIGHTS.fcp,
       clsWeight: PERFORMANCE_SCORE_WEIGHTS.cls,
       ttfbWeight: PERFORMANCE_SCORE_WEIGHTS.ttfb,
-      fidWeight: PERFORMANCE_SCORE_WEIGHTS.fid,
       inpWeight: PERFORMANCE_SCORE_WEIGHTS.inp,
     };
   }
@@ -60,7 +59,6 @@ export function getWebVitalScores(data?: TableDataRow): ProjectScore {
   const hasLcp = hasWebVitalScore(data, 'lcp');
   const hasFcp = hasWebVitalScore(data, 'fcp');
   const hasCls = hasWebVitalScore(data, 'cls');
-  const hasFid = hasWebVitalScore(data, 'fid');
   const hasInp = hasWebVitalScore(data, 'inp');
   const hasTtfb = hasWebVitalScore(data, 'ttfb');
 
@@ -69,7 +67,6 @@ export function getWebVitalScores(data?: TableDataRow): ProjectScore {
     fcpScore: hasFcp ? Math.round(getWebVitalScore(data, 'fcp') * 100) : undefined,
     clsScore: hasCls ? Math.round(getWebVitalScore(data, 'cls') * 100) : undefined,
     ttfbScore: hasTtfb ? Math.round(getWebVitalScore(data, 'ttfb') * 100) : undefined,
-    fidScore: hasFid ? Math.round(getWebVitalScore(data, 'fid') * 100) : undefined,
     inpScore: hasInp ? Math.round(getWebVitalScore(data, 'inp') * 100) : undefined,
     totalScore: Math.round(getTotalScore(data) * 100),
     ...calculateWeights(data),
@@ -78,6 +75,12 @@ export function getWebVitalScores(data?: TableDataRow): ProjectScore {
 }
 
 const calculateWeights = (data: TableDataRow) => {
+  const hasLcp = hasWebVitalScore(data, 'lcp');
+  const hasFcp = hasWebVitalScore(data, 'fcp');
+  const hasCls = hasWebVitalScore(data, 'cls');
+  const hasInp = hasWebVitalScore(data, 'inp');
+  const hasTtfb = hasWebVitalScore(data, 'ttfb');
+
   // We need to do this because INP and pageLoads are different score profiles
   const inpScoreCount = getWebVitalScoreCount(data, 'inp') || 0;
   const totalScoreCount = getWebVitalScoreCount(data, 'total');
@@ -88,8 +91,8 @@ const calculateWeights = (data: TableDataRow) => {
     ((inpWeight * inpScoreCount) / totalScoreCount) * 100
   );
 
-  const pageLoadWebVitals: WebVitals[] = ['lcp', 'fcp', 'cls', 'ttfb', 'fid'];
-  const [lcpWeight, fcpWeight, clsWeight, ttfbWeight, fidWeight] = pageLoadWebVitals.map(
+  const pageLoadWebVitals: WebVitals[] = ['lcp', 'fcp', 'cls', 'ttfb'];
+  const [lcpWeight, fcpWeight, clsWeight, ttfbWeight] = pageLoadWebVitals.map(
     webVital => {
       const weight = getWebVitalWeight(data, webVital);
       const actualWeight = Math.round(((weight * pageLoadCount) / totalScoreCount) * 100);
@@ -97,11 +100,10 @@ const calculateWeights = (data: TableDataRow) => {
     }
   );
   return {
-    lcpWeight,
-    fcpWeight,
-    clsWeight,
-    ttfbWeight,
-    fidWeight,
-    inpWeight: inpActualWeight,
+    lcpWeight: hasLcp ? lcpWeight : 0,
+    fcpWeight: hasFcp ? fcpWeight : 0,
+    clsWeight: hasCls ? clsWeight : 0,
+    ttfbWeight: hasTtfb ? ttfbWeight : 0,
+    inpWeight: hasInp ? inpActualWeight : 0,
   };
 };

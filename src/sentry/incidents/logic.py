@@ -24,7 +24,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleActivity,
     AlertRuleActivityType,
     AlertRuleExcludedProjects,
-    AlertRuleMonitorType,
+    AlertRuleMonitorTypeInt,
     AlertRuleProjects,
     AlertRuleStatus,
     AlertRuleTrigger,
@@ -513,7 +513,7 @@ def create_alert_rule(
     user=None,
     event_types=None,
     comparison_delta: int | None = None,
-    monitor_type: AlertRuleMonitorType = AlertRuleMonitorType.CONTINUOUS,
+    monitor_type: AlertRuleMonitorTypeInt = AlertRuleMonitorTypeInt.CONTINUOUS,
     activation_condition: AlertRuleActivationConditionType | None = None,
     description: str | None = None,
     **kwargs,
@@ -548,7 +548,7 @@ def create_alert_rule(
 
     :return: The created `AlertRule`
     """
-    if monitor_type == AlertRuleMonitorType.ACTIVATED and not activation_condition:
+    if monitor_type == AlertRuleMonitorTypeInt.ACTIVATED and not activation_condition:
         raise ValidationError("Activation condition required for activated alert rule")
 
     resolution = get_alert_resolution(time_window, organization)
@@ -581,7 +581,7 @@ def create_alert_rule(
             include_all_projects=include_all_projects,
             comparison_delta=comparison_delta,
             owner=owner,
-            monitor_type=monitor_type.value,
+            monitor_type=monitor_type,
             description=description,
         )
 
@@ -607,7 +607,7 @@ def create_alert_rule(
             ]
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
 
-        if monitor_type == AlertRuleMonitorType.ACTIVATED and activation_condition:
+        if monitor_type == AlertRuleMonitorTypeInt.ACTIVATED and activation_condition:
             # NOTE: if monitor_type is activated, activation_condition is required
             AlertRuleActivationCondition.objects.create(
                 alert_rule=alert_rule, condition_type=activation_condition.value
@@ -694,7 +694,7 @@ def update_alert_rule(
     user=None,
     event_types=None,
     comparison_delta=NOT_SET,
-    monitor_type: AlertRuleMonitorType | None = None,
+    monitor_type: AlertRuleMonitorTypeInt | None = None,
     description: str | None = None,
     **kwargs,
 ):
@@ -1400,9 +1400,7 @@ def get_alert_rule_trigger_action_slack_channel_id(
         raise InvalidTriggerActionError("Slack workspace is a required field.")
 
     try:
-        _prefix, channel_id, timed_out = get_channel_id(
-            organization, integration, name, use_async_lookup
-        )
+        channel_data = get_channel_id(organization, integration, name, use_async_lookup)
     except DuplicateDisplayNameError as e:
         domain = integration.metadata["domain_name"]
 
@@ -1411,18 +1409,18 @@ def get_alert_rule_trigger_action_slack_channel_id(
             % (e, domain)
         )
 
-    if timed_out:
+    if channel_data.timed_out:
         raise ChannelLookupTimeoutError(
             "Could not find channel %s. We have timed out trying to look for it." % name
         )
 
-    if channel_id is None:
+    if channel_data.channel_id is None:
         raise InvalidTriggerActionError(
             "Could not find channel %s. Channel may not exist, or Sentry may not "
             "have been granted permission to access it" % name
         )
 
-    return channel_id
+    return channel_data.channel_id
 
 
 def get_alert_rule_trigger_action_discord_channel_id(

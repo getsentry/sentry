@@ -12,7 +12,6 @@ from typing import TYPE_CHECKING, Any
 import sentry_sdk
 from django.conf import settings
 
-from sentry import options
 from sentry.options import FLAG_AUTOMATOR_MODIFIABLE, register
 from sentry.utils import metrics
 from sentry.utils.types import Dict
@@ -217,11 +216,6 @@ class FeatureManager(RegisteredFeatureManager):
         """
         Registers a handler that doesn't require a feature name match
         """
-        logging_enabled = options.get("hybridcloud.endpoint_flag_logging")
-        if logging_enabled:
-            logger.info(
-                "feature_manager.register_entity_handler", extra={"entity_handler": type(handler)}
-            )
         self._entity_handler = handler
 
     def has(self, name: str, *args: Any, skip_entity: bool | None = False, **kwargs: Any) -> bool:
@@ -316,23 +310,11 @@ class FeatureManager(RegisteredFeatureManager):
         Will only accept one type of feature, either all ProjectFeatures or all
         OrganizationFeatures.
         """
-        logging_enabled = options.get("hybridcloud.endpoint_flag_logging")
         if self._entity_handler:
-            if logging_enabled:
-                logger.info(
-                    "feature_manager.entity_batch_check",
-                    extra={
-                        "entity_handler": type(self._entity_handler),
-                    },
-                )
             return self._entity_handler.batch_has(
                 feature_names, actor, projects=projects, organization=organization
             )
         else:
-            if logging_enabled:
-                logger.info(
-                    "feature_manager.individual_batch_check",
-                )
             # Fall back to default handler if no entity handler available.
             project_features = [name for name in feature_names if name.startswith("projects:")]
             if projects and project_features:
