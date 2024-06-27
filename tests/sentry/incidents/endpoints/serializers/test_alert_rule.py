@@ -13,6 +13,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
 )
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.rule import Rule
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQueryEventType
@@ -142,13 +143,30 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
 
     def test_activations(self):
         alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
+        activated_alert_rule = self.create_alert_rule(
+            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED
+        )
         other_alert_rule = self.create_alert_rule()
+
         activations = self.create_alert_rule_activation(
             alert_rule=alert_rule, monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS
         )
-        result = serialize([alert_rule, other_alert_rule])
+        activated_alert_rule.subscribe_projects(
+            projects=[self.project],
+            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
+            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
+            activator="testing",
+        )
+        activated_alert_rule.refresh_from_db()
+
+        result = serialize([alert_rule, other_alert_rule, activated_alert_rule])
         assert result[0]["activations"] == serialize(activations)
         assert result[1]["activations"] == []
+        assert result[2]["activations"] == serialize(list(activated_alert_rule.activations.all()))
+        assert (
+            result[2]["activationCondition"]
+            == AlertRuleActivationConditionType.RELEASE_CREATION.value
+        )
 
     def test_truncated_activations(self):
         alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
