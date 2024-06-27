@@ -1,44 +1,52 @@
-import {useMemo, useState} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import color from 'color';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import {CompactSelect} from 'sentry/components/compactSelect';
-import DropdownButton from 'sentry/components/dropdownButton';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {BreadcrumbsDrawerContent} from 'sentry/components/events/breadcrumbs/breadcrumbsDrawer';
 import BreadcrumbsTimeline from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
 import {
-  applyBreadcrumbSearch,
   BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
-  BREADCRUMB_TIME_DISPLAY_OPTIONS,
   BreadcrumbTimeDisplay,
-  getBreadcrumbFilters,
+  getSummaryBreadcrumbs,
 } from 'sentry/components/events/breadcrumbs/utils';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {
   BREADCRUMB_SORT_LOCALSTORAGE_KEY,
-  BREADCRUMB_SORT_OPTIONS,
   BreadcrumbSort,
 } from 'sentry/components/events/interfaces/breadcrumbs';
-import {PANEL_INITIAL_HEIGHT} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumbs';
 import {getVirtualCrumb} from 'sentry/components/events/interfaces/breadcrumbs/utils';
-import Input from 'sentry/components/input';
-import {IconClock, IconFilter, IconSort} from 'sentry/icons';
-import {t, tn} from 'sentry/locale';
+import useDrawer from 'sentry/components/globalDrawer';
+import {
+  IconClock,
+  IconEllipsis,
+  IconFilter,
+  IconPanel,
+  IconSearch,
+  IconSort,
+} from 'sentry/icons';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
 import {EntryType, type Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
 interface BreadcrumbsDataSectionProps {
   event: Event;
+  group: Group;
+  project: Project;
 }
 
-export default function BreadcrumbsDataSection({event}: BreadcrumbsDataSectionProps) {
-  const [search, setSearch] = useState('');
-  const [filterSet, setFilterSet] = useState(new Set<string>());
-  const [sort, setSort] = useLocalStorageState<BreadcrumbSort>(
+export default function BreadcrumbsDataSection({
+  event,
+  group,
+  project,
+}: BreadcrumbsDataSectionProps) {
+  // Use the local storage preferences, but allow the drawer to do updates
+  const [sort] = useLocalStorageState<BreadcrumbSort>(
     BREADCRUMB_SORT_LOCALSTORAGE_KEY,
     BreadcrumbSort.NEWEST
   );
@@ -46,6 +54,7 @@ export default function BreadcrumbsDataSection({event}: BreadcrumbsDataSectionPr
     BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
     BreadcrumbTimeDisplay.RELATIVE
   );
+  const {openDrawer} = useDrawer();
 
   const breadcrumbEntryIndex =
     event.entries?.findIndex(entry => entry.type === EntryType.BREADCRUMBS) ?? -1;
@@ -53,30 +62,34 @@ export default function BreadcrumbsDataSection({event}: BreadcrumbsDataSectionPr
     () => event.entries?.[breadcrumbEntryIndex]?.data?.values ?? [],
     [event, breadcrumbEntryIndex]
   );
-  const allCrumbs = useMemo(() => [...breadcrumbs], [breadcrumbs]);
   // Mapping of breadcrumb index -> breadcrumb meta
   const meta: Record<number, any> =
     event._meta?.entries?.[breadcrumbEntryIndex]?.data?.values;
 
+  let allCrumbs = useMemo(() => [...breadcrumbs], [breadcrumbs]);
   // The virtual crumb is a representation of this event, displayed alongside
   // the rest of the breadcrumbs for more additional context.
-  const virtualCrumb = getVirtualCrumb(event);
+  const virtualCrumb = useMemo(() => getVirtualCrumb(event), [event]);
   let virtualCrumbIndex: number | undefined;
   if (virtualCrumb) {
     virtualCrumbIndex = allCrumbs.length;
-    allCrumbs.push(virtualCrumb);
+    allCrumbs = [...breadcrumbs, virtualCrumb];
   }
 
-  const filterOptions = useMemo(() => getBreadcrumbFilters(allCrumbs), [allCrumbs]);
-  const filteredCrumbs = allCrumbs.filter(bc =>
-    filterSet.size === 0 ? true : filterSet.has(bc.type)
-  );
-  const searchedCrumbs = useMemo(
-    () => applyBreadcrumbSearch(search, filteredCrumbs),
-    [search, filteredCrumbs]
-  );
-
-  const hasFilters = filterSet.size > 0 || search.length > 0;
+  const onViewAllBreadcrumbs = useCallback(() => {
+    openDrawer(({Body}) => (
+      <Body>
+        <BreadcrumbsDrawerContent
+          virtualCrumbIndex={virtualCrumbIndex}
+          allBreadcrumbs={allCrumbs}
+          meta={meta}
+          group={group}
+          event={event}
+          project={project}
+        />
+      </Body>
+    ));
+  }, [virtualCrumbIndex, allCrumbs, meta, group, event, project, openDrawer]);
 
   if (!breadcrumbEntryIndex) {
     return null;
@@ -86,58 +99,50 @@ export default function BreadcrumbsDataSection({event}: BreadcrumbsDataSectionPr
     return null;
   }
 
+  const summaryCrumbs = getSummaryBreadcrumbs(sort, allCrumbs);
+
+  const startTimeString =
+    timeDisplay === BreadcrumbTimeDisplay.RELATIVE
+      ? allCrumbs?.at(-1)?.timestamp
+      : undefined;
+
   const actions = (
     <ButtonBar gap={1}>
-      <Input
+      <Button
+        aria-label={t('Search Breadcrumbs')}
+        icon={<IconSearch size="xs" />}
         size="xs"
-        placeholder={t('Search')}
-        value={search}
-        onChange={e => setSearch(e.target.value)}
       />
-      <CompactSelect
+      <Button
+        aria-label={t('Filter Breadcrumbs')}
+        icon={<IconFilter size="xs" />}
         size="xs"
-        onChange={options => {
-          const newFilters = options.map(({value}) => value);
-          setFilterSet(new Set(newFilters));
-        }}
-        multiple
-        options={filterOptions}
-        maxMenuHeight={400}
-        trigger={(props, isOpen) => (
-          <DropdownButton
-            isOpen={isOpen}
-            size="xs"
-            icon={<IconFilter size="xs" />}
-            {...props}
-          >
-            {filterSet.size
-              ? tn('%s Active Filter', '%s Active Filters', filterSet.size)
-              : t('Filter')}
-          </DropdownButton>
-        )}
       />
-      <CompactSelect
+      <Button
+        aria-label={t('Sort Breadcrumbs')}
+        icon={<IconSort size="xs" />}
         size="xs"
-        triggerProps={{
-          icon: <IconSort size="xs" />,
-        }}
-        onChange={selectedOption => {
-          setSort(selectedOption.value);
-        }}
-        value={sort}
-        options={BREADCRUMB_SORT_OPTIONS}
       />
-      <CompactSelect
+      <Button
+        aria-label={t('Change Breadcrumb Time Format')}
+        icon={<IconClock size="xs" />}
+        onClick={() =>
+          setTimeDisplay(
+            timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE
+              ? BreadcrumbTimeDisplay.RELATIVE
+              : BreadcrumbTimeDisplay.ABSOLUTE
+          )
+        }
         size="xs"
-        triggerProps={{
-          icon: <IconClock size="xs" />,
-        }}
-        onChange={selectedOption => {
-          setTimeDisplay(selectedOption.value);
-        }}
-        value={timeDisplay}
-        options={BREADCRUMB_TIME_DISPLAY_OPTIONS}
       />
+      <Button
+        aria-label={t('View All Breadcrumbs')}
+        icon={<IconPanel direction="right" size="xs" />}
+        size="xs"
+        onClick={onViewAllBreadcrumbs}
+      >
+        {t('View All')}
+      </Button>
     </ButtonBar>
   );
 
@@ -146,36 +151,32 @@ export default function BreadcrumbsDataSection({event}: BreadcrumbsDataSectionPr
       key="breadcrumbs"
       type="breadcrmbs"
       title={t('Breadcrumbs')}
-      actions={actions}
       data-test-id="breadcrumbs-data-section"
+      actions={actions}
     >
       <ErrorBoundary mini message={t('There was an error loading the event breadcrumbs')}>
-        {searchedCrumbs.length ? (
-          <ScrollBox>
-            <BreadcrumbsTimeline
-              breadcrumbs={searchedCrumbs}
-              virtualCrumbIndex={virtualCrumbIndex}
-              meta={meta}
-              sort={sort}
-              timeDisplay={timeDisplay}
-            />
-          </ScrollBox>
+        {allCrumbs.length ? (
+          <BreadcrumbsTimeline
+            breadcrumbs={summaryCrumbs}
+            virtualCrumbIndex={virtualCrumbIndex}
+            meta={meta}
+            startTimeString={startTimeString}
+          />
         ) : (
-          <EmptyBreadcrumbsMessage>
-            {t('No breadcrumbs found. ')}
-            {hasFilters && (
-              <ClearFiltersButton
-                size="xs"
-                onClick={() => {
-                  setFilterSet(new Set());
-                  setSearch('');
-                }}
-              >
-                {t('Clear filters')}
-              </ClearFiltersButton>
-            )}
-          </EmptyBreadcrumbsMessage>
+          <EmptyBreadcrumbsMessage>{t('No breadcrumbs found. ')}</EmptyBreadcrumbsMessage>
         )}
+        <ViewAllContainer>
+          <VerticalEllipsis />
+          <div>
+            <ViewAllButton
+              size="sm"
+              onClick={onViewAllBreadcrumbs}
+              aria-label={t('View All Breadcrumbs')}
+            >
+              {t('View All')}
+            </ViewAllButton>
+          </div>
+        </ViewAllContainer>
       </ErrorBoundary>
     </EventDataSection>
   );
@@ -192,32 +193,29 @@ const EmptyBreadcrumbsMessage = styled('div')`
   padding: ${space(3)} ${space(1)};
 `;
 
-const ClearFiltersButton = styled(Button)`
+const ViewAllContainer = styled('div')`
+  position: relative;
+  display: grid;
+  grid-template-columns: auto 1fr;
   margin-top: ${space(1)};
+  &::after {
+    content: '';
+    position: absolute;
+    left: 10.5px;
+    width: 1px;
+    top: -${space(1)};
+    height: ${space(1)};
+    background: ${p => p.theme.border};
+  }
 `;
 
-const ScrollBox = styled('div')`
-  position: relative;
-  overflow-y: scroll;
-  resize: vertical;
-  max-height: ${PANEL_INITIAL_HEIGHT}px;
-  /* Unsets max-height when resized */
-  &[style*='height'] {
-    max-height: unset;
-  }
-  padding-right: ${space(2)};
-  &:after {
-    content: '';
-    position: sticky;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    height: 20px;
-    display: block;
-    background-image: linear-gradient(
-      to bottom,
-      ${p => color(p.theme.background).alpha(0.15).string()},
-      ${p => p.theme.background}
-    );
-  }
+const VerticalEllipsis = styled(IconEllipsis)`
+  height: 22px;
+  color: ${p => p.theme.subText};
+  margin: ${space(0.5)};
+  transform: rotate(90deg);
+`;
+
+const ViewAllButton = styled(Button)`
+  padding: ${space(0.75)} ${space(1)};
 `;

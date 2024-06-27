@@ -1,7 +1,8 @@
 import styled from '@emotion/styled';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
-import type * as Timeline from 'sentry/components/timeline';
+import {BreadcrumbSort} from 'sentry/components/events/interfaces/breadcrumbs';
+import type {ColorConfig} from 'sentry/components/timeline';
 import {
   IconCursorArrow,
   IconFire,
@@ -23,6 +24,7 @@ import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 export const BREADCRUMB_TIMESTAMP_PLACEHOLDER = '--';
 const BREADCRUMB_TITLE_PLACEHOLDER = t('Generic');
+const BREADCRUMB_SUMMARY_COUNT = 3;
 
 export const enum BreadcrumbTimeDisplay {
   RELATIVE = 'relative',
@@ -34,9 +36,20 @@ export const BREADCRUMB_TIME_DISPLAY_OPTIONS = [
 ];
 export const BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY = 'event-breadcrumb-time-display';
 
-const Color = styled('span')<{colorConfig: Timeline.ColorConfig}>`
+const Color = styled('span')<{colorConfig: ColorConfig}>`
   color: ${p => p.theme[p.colorConfig.primary]};
 `;
+
+/**
+ * Returns a summary of the provided breadcrumbs.
+ * As of writing this, it just grabs a few, but in the future it may collapse,
+ * or manipulate them in some way for a better summary.
+ */
+export function getSummaryBreadcrumbs(sort: BreadcrumbSort, crumbs: RawCrumb[]) {
+  return sort === BreadcrumbSort.NEWEST
+    ? crumbs.slice(0, BREADCRUMB_SUMMARY_COUNT)
+    : crumbs.slice(crumbs.length - BREADCRUMB_SUMMARY_COUNT, crumbs.length);
+}
 
 export function applyBreadcrumbSearch(search: string, crumbs: RawCrumb[]): RawCrumb[] {
   if (search === '') {
@@ -89,7 +102,7 @@ export function getBreadcrumbTitle(category: RawCrumb['category']) {
   }
 }
 
-export function getBreadcrumbColorConfig(type?: BreadcrumbType): Timeline.ColorConfig {
+export function getBreadcrumbColorConfig(type?: BreadcrumbType): ColorConfig {
   switch (type) {
     case BreadcrumbType.ERROR:
       return {primary: 'red400', secondary: 'red200'};
