@@ -1,6 +1,6 @@
 from collections.abc import Callable
 from dataclasses import dataclass
-from typing import Any
+from typing import Any, Literal
 
 from django.conf import settings
 from django.db.models.signals import pre_save
@@ -271,6 +271,22 @@ def find_duplicate_rule(project, rule_data=None, rule_id=None, rule=None):
         rule=rule,
     )
     return evaluator.find_duplicate()
+
+
+def get_max_alerts(project, kind: Literal["slow", "fast"]) -> int:
+    if kind == "slow":
+        if features.has("organizations:more-slow-alerts", project.organization):
+            return settings.MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS
+
+        return settings.MAX_SLOW_CONDITION_ISSUE_ALERTS
+
+    has_grouped_processing = features.has("organizations:process-slow-alerts", project.organization)
+    has_more_fast_alerts = features.has("organizations:more-fast-alerts", project.organization)
+
+    if has_grouped_processing and has_more_fast_alerts:
+        return settings.MAX_MORE_FAST_CONDITION_ISSUE_ALERTS
+
+    return settings.MAX_FAST_CONDITION_ISSUE_ALERTS
 
 
 class ProjectRulesPostSerializer(serializers.Serializer):
@@ -770,9 +786,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                     break
 
         if new_rule_is_slow:
-            max_slow_alerts = settings.MAX_SLOW_CONDITION_ISSUE_ALERTS
-            if features.has("organizations:more-slow-alerts", project.organization):
-                max_slow_alerts = settings.MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS
+            max_slow_alerts = get_max_alerts(project, "slow")
             if slow_rules >= max_slow_alerts:
                 return Response(
                     {
@@ -782,10 +796,8 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-        if (
-            not new_rule_is_slow
-            and (len(rules) - slow_rules) >= settings.MAX_FAST_CONDITION_ISSUE_ALERTS
-        ):
+
+        if not new_rule_is_slow and (len(rules) - slow_rules) >= get_max_alerts(project, "fast"):
             return Response(
                 {
                     "conditions": [

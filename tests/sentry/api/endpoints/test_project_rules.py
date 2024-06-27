@@ -11,6 +11,7 @@ import responses
 from django.test import override_settings
 from rest_framework import status
 
+from sentry.api.endpoints.project_rules import get_max_alerts
 from sentry.constants import ObjectStatus
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.environment import Environment
@@ -79,6 +80,54 @@ class ProjectRuleListTest(ProjectRuleBaseTestCase):
             status_code=status.HTTP_200_OK,
         )
         assert len(response.data) == Rule.objects.filter(project=self.project).count()
+
+
+class GetMaxAlertsTest(ProjectRuleBaseTestCase):
+    @override_settings(MAX_SLOW_CONDITION_ISSUE_ALERTS=1)
+    def test_get_max_alerts_slow(self):
+        result = get_max_alerts(self.project, "slow")
+        assert result == 1
+
+    @with_feature("organizations:more-slow-alerts")
+    @override_settings(MAX_SLOW_CONDITION_ISSUE_ALERTS=1)
+    @override_settings(MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS=2)
+    def test_get_max_alerts_more_slow(self):
+        result = get_max_alerts(self.project, "slow")
+        assert result == 2
+
+    @override_settings(MAX_FAST_CONDITION_ISSUE_ALERTS=1)
+    def test_get_max_alerts_fast(self):
+        result = get_max_alerts(self.project, "fast")
+        assert result == 1
+
+    @with_feature("organizations:more-fast-alerts")
+    @override_settings(MAX_FAST_CONDITION_ISSUE_ALERTS=1)
+    @override_settings(MAX_MORE_FAST_CONDITION_ISSUE_ALERTS=2)
+    def test_get_max_alerts_more_fast_no_group_processing(self):
+        result = get_max_alerts(self.project, "fast")
+        assert result == 1
+
+    @with_feature("organizations:process-slow-alerts")
+    @with_feature("organizations:more-fast-alerts")
+    @override_settings(MAX_FAST_CONDITION_ISSUE_ALERTS=1)
+    @override_settings(MAX_MORE_FAST_CONDITION_ISSUE_ALERTS=2)
+    def test_get_max_alerts_more_fast_with_group_processing(self):
+        result = get_max_alerts(self.project, "fast")
+        assert result == 2
+
+    @with_feature("organizations:process-slow-alerts")
+    @override_settings(MAX_FAST_CONDITION_ISSUE_ALERTS=1)
+    @override_settings(MAX_MORE_FAST_CONDITION_ISSUE_ALERTS=2)
+    def test_get_max_alerts_fast_with_group_processing(self):
+        result = get_max_alerts(self.project, "fast")
+        assert result == 1
+
+    @with_feature("organizations:process-slow-alerts")
+    @override_settings(MAX_SLOW_CONDITION_ISSUE_ALERTS=1)
+    @override_settings(MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS=2)
+    def test_get_max_alerts_slow_with_group_processing(self):
+        result = get_max_alerts(self.project, "slow")
+        assert result == 1
 
 
 class CreateProjectRuleTest(ProjectRuleBaseTestCase):
