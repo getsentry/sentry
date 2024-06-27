@@ -1,5 +1,5 @@
 from sentry.models.integrations.external_actor import ExternalActor
-from sentry.services.hybrid_cloud.notifications import RpcExternalActor
+from sentry.notifications.services.model import RpcExternalActor
 
 
 def serialize_external_actor(actor: ExternalActor) -> RpcExternalActor:

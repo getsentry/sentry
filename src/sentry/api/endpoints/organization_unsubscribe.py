@@ -15,12 +15,12 @@ from sentry.models.group import Group
 from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
+from sentry.notifications.services.service import notifications_service
 from sentry.notifications.types import (
     NotificationScopeEnum,
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.services.hybrid_cloud.notifications.service import notifications_service
 from sentry.types.actor import Actor, ActorType
 from sentry.utils import auth
 

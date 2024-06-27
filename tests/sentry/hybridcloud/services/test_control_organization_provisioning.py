@@ -5,11 +5,11 @@ from django.db import IntegrityError, router, transaction
 from django.db.models import QuerySet
 
 from sentry.hybridcloud.rpc.service import RpcRemoteException
-from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
+from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
     control_organization_provisioning_rpc_service,
 )
-from sentry.hybridcloud.rpc_services.control_organization_provisioning.impl import (
+from sentry.hybridcloud.services.control_organization_provisioning.impl import (
     InvalidOrganizationProvisioningException,
 )
 from sentry.models.organization import Organization

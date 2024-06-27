@@ -7,12 +7,12 @@ from collections.abc import Mapping, MutableMapping
 
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
+from sentry.notifications.services.model import RpcSubscriptionStatus
 from sentry.notifications.types import (
     NotificationScopeEnum,
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.services.hybrid_cloud.notifications.model import RpcSubscriptionStatus
 from sentry.silo.base import SiloMode
 from sentry.types.actor import Actor, ActorType
 
@@ -23,9 +23,7 @@ class NotificationsService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from sentry.services.hybrid_cloud.notifications.impl import (
-            DatabaseBackedNotificationsService,
-        )
+        from sentry.notifications.services.impl import DatabaseBackedNotificationsService
 
         return DatabaseBackedNotificationsService()
 

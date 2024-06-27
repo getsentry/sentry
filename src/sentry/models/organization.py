@@ -28,8 +28,8 @@ from sentry.db.models.utils import slugify_instance
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.locks import locks
 from sentry.models.outbox import OutboxCategory
+from sentry.notifications.services import notifications_service
 from sentry.roles.manager import Role
-from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.services.hybrid_cloud.user import RpcUser, RpcUserProfile
 from sentry.services.hybrid_cloud.user.service import user_service

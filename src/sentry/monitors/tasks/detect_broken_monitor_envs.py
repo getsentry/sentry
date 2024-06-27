@@ -23,8 +23,8 @@ from sentry.monitors.models import (
     MonitorEnvBrokenDetection,
     MonitorIncident,
 )
+from sentry.notifications.services import notifications_service
 from sentry.notifications.types import NotificationSettingEnum
-from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.tasks.base import instrumented_task
 from sentry.types.actor import Actor
 from sentry.utils.email import MessageBuilder

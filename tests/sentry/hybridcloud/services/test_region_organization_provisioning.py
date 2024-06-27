@@ -1,9 +1,9 @@
 from django.db import router, transaction
 
-from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
+from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
-from sentry.hybridcloud.rpc_services.region_organization_provisioning import (
+from sentry.hybridcloud.services.region_organization_provisioning import (
     region_organization_provisioning_rpc_service,
 )
 from sentry.models.organization import Organization
