@@ -1,5 +1,6 @@
 import {Timer} from './timer';
 
+// biome-ignore lint/correctness/useHookAtTopLevel: not a hook
 jest.useFakeTimers();
 
 describe('Replay Timer', () => {
