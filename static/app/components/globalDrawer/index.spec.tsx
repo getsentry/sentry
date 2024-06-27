@@ -1,4 +1,9 @@
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  screen,
+  userEvent,
+  waitForDrawerToHide,
+} from 'sentry-test/reactTestingLibrary';
 
 import useDrawer from 'sentry/components/globalDrawer';
 import type {DrawerConfig} from 'sentry/components/globalDrawer/types';
@@ -48,6 +53,7 @@ describe('GlobalDrawer', function () {
     ).toBeInTheDocument();
 
     await userEvent.click(screen.getByTestId('drawer-test-close'));
+    await waitForDrawerToHide();
 
     expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
     expect(screen.queryByRole('complementary')).not.toBeInTheDocument();
@@ -75,6 +81,7 @@ describe('GlobalDrawer', function () {
     expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
+    await waitForDrawerToHide();
 
     expect(closeSpy).toHaveBeenCalled();
     expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
@@ -99,6 +106,7 @@ describe('GlobalDrawer', function () {
     expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
 
     await userEvent.click(screen.getByTestId('drawer-test-outside'));
+    await waitForDrawerToHide();
 
     expect(closeSpy).toHaveBeenCalled();
     expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
@@ -125,6 +133,7 @@ describe('GlobalDrawer', function () {
 
     // TODO(Leander): Implement the following test case when `useHotKeys` hook allows for userEvent signals
     // await userEvent.keyboard('{Escape}');
+    // await waitForDrawerToHide();
 
     // expect(closeSpy).toHaveBeenCalled();
     // expect(content).not.toBeInTheDocument();
@@ -152,6 +161,7 @@ describe('GlobalDrawer', function () {
     expect(button).toBeInTheDocument();
 
     await userEvent.click(button);
+    await waitForDrawerToHide();
 
     expect(closeSpy).toHaveBeenCalled();
     expect(button).not.toBeInTheDocument();
@@ -190,6 +200,7 @@ describe('GlobalDrawer', function () {
     expect(content).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
+    await waitForDrawerToHide();
 
     expect(closeSpy).toHaveBeenCalled();
     expect(content).not.toBeInTheDocument();
