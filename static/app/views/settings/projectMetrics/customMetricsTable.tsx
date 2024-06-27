@@ -38,7 +38,7 @@ enum BlockingStatusTab {
 type MetricWithCardinality = MetricMeta & {cardinality: number};
 
 export function CustomMetricsTable({project}: Props) {
-  const organiztion = useOrganization();
+  const organization = useOrganization();
   const [selectedTab, setSelectedTab] = useState(BlockingStatusTab.ACTIVE);
   const [query, setQuery] = useSearchQueryParam('metricsQuery');
 
@@ -85,7 +85,7 @@ export function CustomMetricsTable({project}: Props) {
 
   // If we have custom metrics extraction rules,
   // we only show the custom metrics table if the project has custom metrics
-  if (hasCustomMetricsExtractionRules(organiztion) && metricsMeta.data.length === 0) {
+  if (hasCustomMetricsExtractionRules(organization) && metricsMeta.data.length === 0) {
     return null;
   }
 
@@ -94,7 +94,9 @@ export function CustomMetricsTable({project}: Props) {
       <SearchWrapper>
         <Title>
           <h6>{t('Emitted Metrics')}</h6>
-          <Tag type="warning">{t('deprecated')}</Tag>
+          {hasCustomMetricsExtractionRules(organization) && (
+            <Tag type="warning">{t('deprecated')}</Tag>
+          )}
         </Title>
         <SearchBar
           placeholder={t('Search Metrics')}

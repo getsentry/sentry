@@ -10,9 +10,11 @@ import {getItemsWithKeys} from 'sentry/components/compactSelect/utils';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/combobox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/filterValueParser/date/parser';
+import SpecificDatePicker from 'sentry/components/searchQueryBuilder/specificDatePicker';
 import {
   escapeTagValue,
   formatFilterValue,
+  isDateToken,
   unescapeTagValue,
 } from 'sentry/components/searchQueryBuilder/utils';
 import {
@@ -26,6 +28,7 @@ import {
   type SearchGroup,
   type SearchItem,
 } from 'sentry/components/smartSearchBar/types';
+import {IconArrow} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types';
@@ -36,12 +39,13 @@ import {type QueryKey, useQuery} from 'sentry/utils/queryClient';
 type SearchQueryValueBuilderProps = {
   onCommit: () => void;
   token: TokenResult<Token.FILTER>;
+  wrapperRef: React.RefObject<HTMLDivElement>;
 };
 
 type SuggestionItem = {
   value: string;
   description?: ReactNode;
-  label?: string;
+  label?: ReactNode;
 };
 
 type SuggestionSection = {
@@ -95,6 +99,14 @@ const DEFAULT_BOOLEAN_SUGGESTIONS: SuggestionSection[] = [
   },
 ];
 
+function getDefaultAbsoluteDateValue(token: TokenResult<Token.FILTER>) {
+  if (token.value.type === Token.VALUE_ISO_8601_DATE) {
+    return token.value.text;
+  }
+
+  return '';
+}
+
 function getRelativeDateSign(token: TokenResult<Token.FILTER>) {
   return token.value.type === Token.VALUE_RELATIVE_DATE ? token.value.sign : '-';
 }
@@ -130,6 +142,15 @@ function makeDefaultDateSuggestions(
         {value: `${sign}7d`, label: makeRelativeDateDescription(7, 'd')},
         {value: `${sign}14d`, label: makeRelativeDateDescription(14, 'd')},
         {value: `${sign}30d`, label: makeRelativeDateDescription(30, 'd')},
+        {
+          value: 'absolute_date',
+          label: (
+            <AbsoluteDateOption>
+              {t('Absolute date')}
+              <IconArrow direction="right" size="xs" />
+            </AbsoluteDateOption>
+          ),
+        },
       ],
     },
   ];
@@ -500,10 +521,22 @@ function ItemCheckbox({
 export function SearchQueryBuilderValueCombobox({
   token,
   onCommit,
+  wrapperRef,
 }: SearchQueryValueBuilderProps) {
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [inputValue, setInputValue] = useState('');
+  const [inputValue, setInputValue] = useState(() => {
+    if (isDateToken(token)) {
+      return token.value.type === Token.VALUE_ISO_8601_DATE ? token.value.text : '';
+    }
+    return '';
+  });
+  const [showDatePicker, setShowDatePicker] = useState(() => {
+    if (isDateToken(token)) {
+      return token.value.type === Token.VALUE_ISO_8601_DATE;
+    }
+    return false;
+  });
 
   const {keys, dispatch} = useSearchQueryBuilder();
   const canSelectMultipleValues = tokenSupportsMultipleValues(token, keys);
@@ -522,6 +555,12 @@ export function SearchQueryBuilderValueCombobox({
 
   const handleSelectValue = useCallback(
     (value: string) => {
+      if (isDateToken(token) && value === 'absolute_date') {
+        setShowDatePicker(true);
+        setInputValue('');
+        return;
+      }
+
       const cleanedValue = cleanFilterValue(token.key.text, value);
 
       // TODO(malwilley): Add visual feedback for invalid values
@@ -584,6 +623,48 @@ export function SearchQueryBuilderValueCombobox({
     }
   }, []);
 
+  // Ensure that the menu stays open when clicking on the selected items
+  const shouldCloseOnInteractOutside = useCallback(
+    (el: Element) => {
+      if (wrapperRef.current?.contains(el)) {
+        return false;
+      }
+      return true;
+    },
+    [wrapperRef]
+  );
+
+  const customMenu = useMemo(() => {
+    if (!showDatePicker) return undefined;
+
+    return function ({popoverRef, isOpen}) {
+      return (
+        <SpecificDatePicker
+          popoverRef={popoverRef}
+          dateString={inputValue || getDefaultAbsoluteDateValue(token)}
+          handleSelectDateTime={newDateTimeValue => {
+            setInputValue(newDateTimeValue);
+            inputRef.current?.focus();
+          }}
+          handleBack={() => {
+            setShowDatePicker(false);
+            setInputValue('');
+            inputRef.current?.focus();
+          }}
+          handleSave={newDateTimeValue => {
+            dispatch({
+              type: 'UPDATE_TOKEN_VALUE',
+              token: token,
+              value: newDateTimeValue,
+            });
+            onCommit();
+          }}
+          isOpen={isOpen}
+        />
+      );
+    };
+  }, [dispatch, inputValue, onCommit, showDatePicker, token]);
+
   return (
     <ValueEditing ref={ref} onClick={onClick} data-test-id="filter-value-editing">
       {selectedValues.map(value => (
@@ -606,8 +687,8 @@ export function SearchQueryBuilderValueCombobox({
         maxOptions={50}
         openOnFocus
         isLoading={isFetching}
-        // Ensure that the menu stays open when clicking on the selected items
-        shouldCloseOnInteractOutside={el => el !== ref.current}
+        customMenu={customMenu}
+        shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
       >
         {suggestionSectionItems.map(section => (
           <Section key={section.sectionText} title={section.sectionText}>
@@ -648,4 +729,14 @@ const CheckWrap = styled('div')<{visible: boolean}>`
   align-items: center;
   opacity: ${p => (p.visible ? 1 : 0)};
   padding: ${space(0.25)} 0 ${space(0.25)} ${space(0.25)};
+`;
+
+const AbsoluteDateOption = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+
+  svg {
+    color: ${p => p.theme.gray300};
+  }
 `;

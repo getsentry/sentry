@@ -107,7 +107,8 @@ function parseSortParam(widget: Record<string, unknown>, key: string): SortState
     name === 'avg' ||
     name === 'min' ||
     name === 'max' ||
-    name === 'sum'
+    name === 'sum' ||
+    name === 'total'
   ) {
     return {name, order};
   }

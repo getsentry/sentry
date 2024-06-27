@@ -336,7 +336,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "django.middleware.csrf.CsrfViewMiddleware",
     "sentry.middleware.auth.AuthenticationMiddleware",
     "sentry.middleware.integrations.IntegrationControlMiddleware",
-    "sentry.middleware.api_gateway.ApiGatewayMiddleware",
+    "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware",
     "sentry.middleware.customer_domain.CustomerDomainMiddleware",
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
@@ -3433,8 +3433,11 @@ SEER_MAX_SIMILARITY_DISTANCE = 0.15  # Not yet in use - Seer doesn't obey this r
 SEER_GROUPING_RECORDS_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record"
 )
-SEER_GROUPING_RECORDS_DELETE_URL = (
+SEER_PROJECT_GROUPING_RECORDS_DELETE_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete"
+)
+SEER_HASH_GROUPING_RECORDS_DELETE_URL = (
+    f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete-by-hash"
 )
 
 # TODO: Remove this soon, just a way to configure a project for this before we implement properly

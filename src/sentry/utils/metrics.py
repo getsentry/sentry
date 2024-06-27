@@ -11,7 +11,9 @@ from random import random
 from threading import Thread
 from typing import Any, TypeVar
 
+import sentry_sdk
 from django.conf import settings
+from rest_framework.request import Request
 
 from sentry.metrics.base import MetricsBackend, MutableTags, Tags
 from sentry.metrics.middleware import MiddlewareWrapper, add_global_tags, global_tags
@@ -28,6 +30,7 @@ __all__ = [
     "gauge",
     "backend",
     "MutableTags",
+    "ensure_non_negative_crash_free_rate_value",
 ]
 
 
@@ -259,3 +262,57 @@ def event(
     except Exception:
         logger = logging.getLogger("sentry.errors")
         logger.exception("Unable to record backend metric")
+
+
+def ensure_non_negative_crash_free_rate_value(
+    data: Any, request: Request, organization, CRASH_FREE_RATE_METRIC_KEY="session.crash_free_rate"
+):
+    """
+    Ensures that crash_free_rate metric will never have negative
+    value returned to the customer by replacing all the negative values with 0.
+    Negative value of crash_free_metric can happen due to the
+    corrupted data that is used to calculate the metric
+    (see: https://github.com/getsentry/sentry/issues/73172)
+
+    Example format of data argument:
+    {
+        ...
+        "groups" : [
+            ...
+            "series": {..., "session.crash_free_rate": [..., None, 0.35]},
+            "totals": {..., "session.crash_free_rate": 0.35}
+        ]
+    }
+    """
+    groups = data["groups"]
+    for group in groups:
+        if "series" in group:
+            series = group["series"]
+            if CRASH_FREE_RATE_METRIC_KEY in series:
+                for i, value in enumerate(series[CRASH_FREE_RATE_METRIC_KEY]):
+                    try:
+                        value = float(value)
+                        if value < 0:
+                            with sentry_sdk.push_scope() as scope:
+                                scope.set_tag("organization", organization.id)
+                                scope.set_extra("crash_free_rate_in_series", value)
+                                scope.set_extra("request_query_params", request.query_params)
+                                sentry_sdk.capture_message("crash_free_rate in series is negative")
+                            series[CRASH_FREE_RATE_METRIC_KEY][i] = 0
+                    except TypeError:
+                        # value is not a number
+                        continue
+
+        if "totals" in group:
+            totals = group["totals"]
+            if (
+                CRASH_FREE_RATE_METRIC_KEY in totals
+                and totals[CRASH_FREE_RATE_METRIC_KEY] is not None
+                and totals[CRASH_FREE_RATE_METRIC_KEY] < 0
+            ):
+                with sentry_sdk.push_scope() as scope:
+                    scope.set_tag("organization", organization.id)
+                    scope.set_extra("crash_free_rate", totals[CRASH_FREE_RATE_METRIC_KEY])
+                    scope.set_extra("request_query_params", request.query_params)
+                    sentry_sdk.capture_message("crash_free_rate is negative")
+                totals[CRASH_FREE_RATE_METRIC_KEY] = 0

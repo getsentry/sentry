@@ -15,6 +15,7 @@ import type {MetricsAggregate, MetricsExtractionCondition} from 'sentry/types/me
 import type {Project} from 'sentry/types/project';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
 
 export type AggregateGroup = 'count' | 'count_unique' | 'min_max' | 'percentiles';
@@ -37,6 +38,20 @@ interface Props extends Omit<FormProps, 'onSubmit'> {
     model: FormModel
   ) => void;
 }
+
+const KNOWN_NUMERIC_FIELDS = new Set([
+  SpanIndexedField.SPAN_DURATION,
+  SpanIndexedField.SPAN_SELF_TIME,
+  SpanIndexedField.PROJECT_ID,
+  SpanIndexedField.INP,
+  SpanIndexedField.INP_SCORE,
+  SpanIndexedField.INP_SCORE_WEIGHT,
+  SpanIndexedField.TOTAL_SCORE,
+  SpanIndexedField.CACHE_ITEM_SIZE,
+  SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
+  SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY,
+  SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
+]);
 
 const AGGREGATE_OPTIONS: {label: string; value: AggregateGroup}[] = [
   {
@@ -152,6 +167,13 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [customAttributes, supportedTags]);
 
+  const tagOptions = useMemo(() => {
+    return attributeOptions.filter(
+      // We don't want to suggest numeric fields as tags as they would explode cardinality
+      option => !KNOWN_NUMERIC_FIELDS.has(option.value as SpanIndexedField)
+    );
+  }, [attributeOptions]);
+
   const handleSubmit = useCallback(
     (
       data: Record<string, any>,
@@ -210,7 +232,7 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
           />
           <SelectField
             name="tags"
-            options={attributeOptions}
+            options={tagOptions}
             label={t('Group and filter by')}
             multiple
             placeholder={t('Select tags')}
