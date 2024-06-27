@@ -46,7 +46,7 @@ def get_similarity_data_from_seer(
         similar_issues_request,
         keep_keys=["event_id", "project_id", "message", "hash", "referrer"],
     )
-    logger_extra["_message"] = logger_extra.pop("message", None)
+    logger_extra["message_value"] = logger_extra.pop("message", None)
     logger.info(
         "get_seer_similar_issues.request",
         extra=logger_extra,
