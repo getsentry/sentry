@@ -1,12 +1,12 @@
 import {useCallback, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import color from 'color';
+import {useReducedMotion} from 'framer-motion';
 
 import type {ButtonProps} from 'sentry/components/button';
 import {Button} from 'sentry/components/button';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {usePrefersReducedMotion} from 'sentry/utils/usePrefersReducedMotion';
 
 // Content may have margins which can't be measured by our refs, but will affect
 // the total content height. We add this to the max-height to ensure the animation
@@ -141,7 +141,7 @@ function ClippedBox(props: ClippedBoxProps) {
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
 
-  const prefersReducedMotion = usePrefersReducedMotion();
+  const prefersReducedMotion = useReducedMotion();
 
   const [clipped, setClipped] = useState(!!props.defaultClipped);
 
@@ -165,7 +165,7 @@ function ClippedBox(props: ClippedBoxProps) {
         revealRef,
         observerRef,
         clipHeight,
-        prefersReducedMotion,
+        prefersReducedMotion: prefersReducedMotion ?? true,
       });
       if (typeof onReveal === 'function') {
         onReveal();
@@ -241,7 +241,7 @@ function ClippedBox(props: ClippedBoxProps) {
             revealRef,
             observerRef,
             clipHeight,
-            prefersReducedMotion,
+            prefersReducedMotion: prefersReducedMotion ?? true,
           });
         }
 
