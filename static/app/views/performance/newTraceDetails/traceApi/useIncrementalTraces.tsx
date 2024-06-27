@@ -1,15 +1,11 @@
 import {useEffect, useMemo, useState} from 'react';
-import type {Location} from 'history';
 import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import type {PageFilters} from 'sentry/types/core';
 import type {
   TraceFullDetailed,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
-import {decodeScalar} from 'sentry/utils/queryString';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -17,7 +13,9 @@ import type {TraceDataRow} from 'sentry/views/replays/detail/trace/replayTransac
 
 import {TraceTree} from '../traceModels/traceTree';
 
-export function fetchTrace(
+import {getTraceQueryParams} from './useTrace';
+
+export function fetchSingleTrace(
   api: Client,
   params: {
     orgSlug: string;
@@ -28,70 +26,6 @@ export function fetchTrace(
   return api.requestPromise(
     `/organizations/${params.orgSlug}/events-trace/${params.traceId}/?${params.query}`
   );
-}
-
-const DEFAULT_TIMESTAMP_LIMIT = 10_000;
-const DEFAULT_LIMIT = 1_000;
-
-export function getSingleTraceQueryParams(
-  query: Location['query'],
-  filters: Partial<PageFilters> = {},
-  traceLimit: number | undefined,
-  traceDataRow: TraceDataRow
-): string {
-  const normalizedParams = normalizeDateTimeParams(query, {
-    allowAbsolutePageDatetime: true,
-  });
-  const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
-  const demo = decodeScalar(normalizedParams.demo);
-  let decodedLimit: string | number | undefined =
-    traceLimit ?? decodeScalar(normalizedParams.limit);
-
-  if (typeof decodedLimit === 'string') {
-    decodedLimit = parseInt(decodedLimit, 10);
-  }
-
-  const eventId = decodeScalar(normalizedParams.eventId);
-
-  if (traceDataRow?.timestamp) {
-    decodedLimit = decodedLimit ?? DEFAULT_TIMESTAMP_LIMIT;
-  } else {
-    decodedLimit = decodedLimit ?? DEFAULT_LIMIT;
-  }
-
-  const limit = decodedLimit;
-
-  const otherParams: Record<string, string | string[] | undefined | null> = {
-    end: normalizedParams.pageEnd,
-    start: normalizedParams.pageStart,
-    statsPeriod: statsPeriod || filters.datetime?.period,
-  };
-
-  // We prioritize timestamp over statsPeriod as it makes the query more specific, faster
-  // and not prone to time drift issues.
-  if (traceDataRow?.timestamp) {
-    delete otherParams.statsPeriod;
-  }
-
-  const queryParams = {
-    ...otherParams,
-    demo,
-    limit,
-    timestamp: traceDataRow?.timestamp?.toString(),
-    eventId,
-    useSpans: 1,
-  };
-  for (const key in queryParams) {
-    if (
-      queryParams[key] === '' ||
-      queryParams[key] === null ||
-      queryParams[key] === undefined
-    ) {
-      delete queryParams[key];
-    }
-  }
-
-  return qs.stringify(queryParams);
 }
 
 type TraceQueryResults = {
@@ -133,13 +67,15 @@ export function useIncrementalTraces(
         const batch = clonedTraceIds.splice(0, 3);
         const results = await Promise.allSettled(
           batch.map(batchTraceData => {
-            return fetchTrace(api, {
+            return fetchSingleTrace(api, {
               orgSlug: organization.slug,
-              query: getSingleTraceQueryParams(
-                urlParams,
-                filters.selection,
-                traceLimit,
-                batchTraceData
+              query: qs.stringify(
+                getTraceQueryParams(
+                  urlParams,
+                  filters.selection,
+                  traceLimit,
+                  batchTraceData
+                )
               ),
               traceId: batchTraceData.traceSlug,
             });
