@@ -2042,7 +2042,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert response.status_code == 200
         assert [int(r["id"]) for r in response.data] == [event1.group.id]
 
-    @with_feature("organizations:issue-priority-ui")
     def test_default_search_with_priority(self) -> None:
         event1 = self.store_event(
             data={"timestamp": iso_format(before_now(seconds=500)), "fingerprint": ["group-1"]},
@@ -2540,7 +2539,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             project_id=self.project.id,
         )
         self.login_as(user=self.user)
-        response = self.get_success_response(useGroupSnubaDataset=1, qs_params={"query": ""})
+        response = self.get_success_response(useGroupSnubaDataset=1, query="")
         assert len(response.data) == 1
         assert mock_query.call_count == 1
 
@@ -2569,7 +2568,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             sort="new",
             statsPeriod="1h",
             useGroupSnubaDataset=1,
-            qs_params={"query": ""},
+            query="",
         )
 
         assert len(response.data) == 2
@@ -2601,7 +2600,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             sort="freq",
             statsPeriod="1h",
             useGroupSnubaDataset=1,
-            qs_params={"query": ""},
+            query="",
         )
 
         assert len(response.data) == 2
@@ -2674,7 +2673,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         response = self.get_success_response(
             sort="user",
             useGroupSnubaDataset=1,
-            qs_params={"query": ""},
+            query="",
         )
 
         assert len(response.data) == 2
@@ -3837,7 +3836,12 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
         response = self.get_success_response(
-            qs_params={"status": "unresolved", "project": self.project.id}, status="resolved"
+            qs_params={
+                "status": "unresolved",
+                "project": self.project.id,
+                "query": "is:unresolved",
+            },
+            status="resolved",
         )
         assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
 
@@ -3891,7 +3895,12 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=member)
         response = self.get_success_response(
-            qs_params={"status": "unresolved", "project": self.project.id}, status="resolved"
+            qs_params={
+                "status": "unresolved",
+                "project": self.project.id,
+                "query": "is:unresolved",
+            },
+            status="resolved",
         )
         assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
         assert response.status_code == 200
@@ -5341,8 +5350,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        # if query is '' it defaults to is:unresolved
-        response = self.get_response(qs_params={"query": ""})
+        response = self.get_success_response(qs_params={"query": ""})
         assert response.status_code == 204
 
         for group in groups:
@@ -5354,7 +5362,7 @@ class GroupDeleteTest(APITestCase, SnubaTestCase):
         )
 
         with self.tasks():
-            response = self.get_response(qs_params={"query": ""})
+            response = self.get_success_response(qs_params={"query": ""})
 
         assert response.status_code == 204
 
