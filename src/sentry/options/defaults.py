@@ -1797,6 +1797,16 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Used for enabling flags in ST. Should be removed once Flagpole works in all STs.
+register(
+    "performance.use_metrics.orgs_allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Used for enabling flags in ST. Should be removed once Flagpole works in all STs.
+register("performance.use_metrics.enabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Dynamic Sampling system-wide options
 # Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
 register("dynamic-sampling:sliding_window.size", default=24, flags=FLAG_AUTOMATOR_MODIFIABLE)
