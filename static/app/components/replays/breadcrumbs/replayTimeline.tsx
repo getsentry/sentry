@@ -91,8 +91,3 @@ const TimelineEventsContainer = styled('div')`
   padding-top: 10px;
   padding-bottom: 10px;
 `;
-
-const Gap = styled('div')`
-  opacity: 0.16;
-  background: var(--Gray-400, #3e3446);
-`;
