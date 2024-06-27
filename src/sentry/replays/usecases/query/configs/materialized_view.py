@@ -11,7 +11,7 @@ from sentry.replays.lib.new_query.conditions import (
     UUIDScalar,
 )
 from sentry.replays.lib.new_query.fields import ExpressionField, FieldProtocol
-from sentry.replays.lib.new_query.parsers import parse_int, parse_str, parse_uuid
+from sentry.replays.lib.new_query.parsers import parse_int, parse_ipv4, parse_str, parse_uuid
 
 #
 # Expression definition.
@@ -54,7 +54,7 @@ expressions: dict[str, Expression] = {
     "device_name": Function("anyIfMerge", parameters=[Column("device_name")]),
     "dist": Function("anyIfMerge", parameters=[Column("dist")]),
     "duration": Function("anyIfMerge", parameters=[Column("duration")]),
-    "finished_at": Function("maxMerge", parameters=[Column("finished_at")]),
+    "finished_at": Function("maxIfMerge", parameters=[Column("finished_at")]),
     "environment": Function("anyIfMerge", parameters=[Column("environment")]),
     "id": Column("replay_id"),
     "ip_address_v4": Function("anyMerge", parameters=[Column("ip_address_v4")]),
@@ -113,7 +113,7 @@ search_config: dict[str, FieldProtocol] = {
     "sdk.version": ExpressionField(expressions["sdk_version"], parse_str, StringScalar),
     "user": ExpressionField(expressions["user"], parse_str, StringScalar),
     "user.id": ExpressionField(expressions["user_id"], parse_str, StringScalar),
-    "user.ip_address": ExpressionField(expressions["ip_address_v4"], parse_str, IPv4Scalar),
+    "user.ip_address": ExpressionField(expressions["ip_address_v4"], parse_ipv4, IPv4Scalar),
     "user.username": ExpressionField(expressions["user_name"], parse_str, StringScalar),
     "user.email": ExpressionField(expressions["user_email"], parse_str, StringScalar),
 }
