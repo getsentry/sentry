@@ -24,7 +24,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleActivity,
     AlertRuleActivityType,
     AlertRuleExcludedProjects,
-    AlertRuleMonitorType,
+    AlertRuleMonitorTypeInt,
     AlertRuleProjects,
     AlertRuleStatus,
     AlertRuleTrigger,
@@ -513,7 +513,7 @@ def create_alert_rule(
     user=None,
     event_types=None,
     comparison_delta: int | None = None,
-    monitor_type: AlertRuleMonitorType = AlertRuleMonitorType.CONTINUOUS,
+    monitor_type: AlertRuleMonitorTypeInt = AlertRuleMonitorTypeInt.CONTINUOUS,
     activation_condition: AlertRuleActivationConditionType | None = None,
     description: str | None = None,
     **kwargs,
@@ -548,7 +548,7 @@ def create_alert_rule(
 
     :return: The created `AlertRule`
     """
-    if monitor_type == AlertRuleMonitorType.ACTIVATED and not activation_condition:
+    if monitor_type == AlertRuleMonitorTypeInt.ACTIVATED and not activation_condition:
         raise ValidationError("Activation condition required for activated alert rule")
 
     resolution = get_alert_resolution(time_window, organization)
@@ -581,7 +581,7 @@ def create_alert_rule(
             include_all_projects=include_all_projects,
             comparison_delta=comparison_delta,
             owner=owner,
-            monitor_type=monitor_type.value,
+            monitor_type=monitor_type,
             description=description,
         )
 
@@ -607,7 +607,7 @@ def create_alert_rule(
             ]
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
 
-        if monitor_type == AlertRuleMonitorType.ACTIVATED and activation_condition:
+        if monitor_type == AlertRuleMonitorTypeInt.ACTIVATED and activation_condition:
             # NOTE: if monitor_type is activated, activation_condition is required
             AlertRuleActivationCondition.objects.create(
                 alert_rule=alert_rule, condition_type=activation_condition.value
@@ -694,7 +694,7 @@ def update_alert_rule(
     user=None,
     event_types=None,
     comparison_delta=NOT_SET,
-    monitor_type: AlertRuleMonitorType | None = None,
+    monitor_type: AlertRuleMonitorTypeInt | None = None,
     description: str | None = None,
     **kwargs,
 ):

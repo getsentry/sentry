@@ -5,10 +5,8 @@ from collections.abc import Mapping
 
 from django.utils import timezone
 
-from sentry import features
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.slack.utils import get_slack_data_by_user
-from sentry.integrations.slack.utils.users import SlackUserData, get_slack_data_by_user_via_sdk
+from sentry.integrations.slack.utils.users import SlackUserData, get_slack_data_by_user
 from sentry.integrations.utils import get_identities_by_user
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.user import User
@@ -41,11 +39,6 @@ def link_slack_user_identities(
         external_id=integration.external_id,
     )
 
-    if not features.has("organizations:slack-sdk-get-users", organization):
-        slack_data_by_user = get_slack_data_by_user(integration, organization, emails_by_user)
-        update_identities(slack_data_by_user, idp)
-        return None
-
     logger.info(
         "slack.post_install.link_identities.start",
         extra={
@@ -53,7 +46,7 @@ def link_slack_user_identities(
             "integration_id": integration.id,
         },
     )
-    slack_data_by_user = get_slack_data_by_user_via_sdk(integration, organization, emails_by_user)
+    slack_data_by_user = get_slack_data_by_user(integration, organization, emails_by_user)
     for data in slack_data_by_user:
         logger.info(
             "slack.post_install.link_identities.paginate",
@@ -66,7 +59,6 @@ def link_slack_user_identities(
         update_identities(data, idp)
 
 
-# has different typing for slack_data_by_user, need to grab slack_id from a dataclass
 def update_identities(slack_data_by_user: Mapping[User, SlackUserData], idp: IdentityProvider):
     date_verified = timezone.now()
     identities_by_user = get_identities_by_user(idp, slack_data_by_user.keys())

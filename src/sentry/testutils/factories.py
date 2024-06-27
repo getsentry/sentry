@@ -41,7 +41,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import (
     AlertRule,
-    AlertRuleMonitorType,
+    AlertRuleMonitorTypeInt,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
 )
@@ -1522,7 +1522,7 @@ class Factories:
         user=None,
         event_types=None,
         comparison_delta=None,
-        monitor_type=AlertRuleMonitorType.CONTINUOUS,
+        monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS,
         activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
         description=None,
     ):
