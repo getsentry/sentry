@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from django.utils import timezone
 
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleMonitorType
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleMonitorTypeInt
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.environment import Environment
 from sentry.models.release import Release
@@ -132,7 +132,7 @@ class GetOrCreateTest(TestCase):
         # release = Release.objects.create(organization_id=project.organization_id, version="42")
         self.create_alert_rule(
             projects=[self.project],
-            monitor_type=AlertRuleMonitorType.ACTIVATED,
+            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
             activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
         )
 

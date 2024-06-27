@@ -2,7 +2,7 @@ from unittest.mock import call as mock_call
 from unittest.mock import patch
 
 from sentry.dynamic_sampling import ProjectBoostedReleases
-from sentry.incidents.models.alert_rule import AlertRule, AlertRuleMonitorType
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleMonitorTypeInt
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject, ReleaseProjectModelManager
@@ -115,7 +115,7 @@ class ReleaseProjectManagerTestCase(TransactionTestCase):
         release = Release.objects.create(organization_id=project.organization_id, version="42")
         self.create_alert_rule(
             projects=[project],
-            monitor_type=AlertRuleMonitorType.ACTIVATED,
+            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
             activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
         )
 
