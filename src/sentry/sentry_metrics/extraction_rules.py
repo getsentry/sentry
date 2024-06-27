@@ -53,7 +53,8 @@ class MetricsExtractionRule:
     def infer_types(self, aggregates: set[str]) -> set[str]:
         types: set[str] = set()
         for aggregate in aggregates:
-            types.add(AGGREGATES_TO_METRICS.get(aggregate))
+            if new_type := AGGREGATES_TO_METRICS.get(aggregate):
+                types.add(new_type)
 
         return types
 

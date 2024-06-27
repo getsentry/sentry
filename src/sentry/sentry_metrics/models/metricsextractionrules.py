@@ -8,7 +8,6 @@ from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import ArrayField, FlexibleForeignKey, Model, region_silo_model
-from sentry.db.models.fields import uuid
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.project import Project
 from sentry.sentry_metrics.configuration import HARD_CODED_UNITS
@@ -26,7 +25,6 @@ class SpanAttributeExtractionRuleCondition(Model):
     created_by_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
     project = FlexibleForeignKey("sentry.Project")
 
-    uuid = models.UUIDField(default=uuid.uuid4, editable=False)
     value = models.CharField(max_length=1000, null=True, blank=True)
     config = FlexibleForeignKey(
         "sentry.SpanAttributeExtractionRuleConfig", related_name="conditions"
