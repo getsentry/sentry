@@ -130,7 +130,7 @@ export const Tab = forwardRef(
         hidden={hidden}
         orientation={orientation}
         overflowing={overflowing}
-        ref={forwardedRef}
+        ref={ref}
       >
         {rendered}
       </BaseTab>
