@@ -11,10 +11,10 @@ from confluent_kafka import KafkaException
 from django.conf import settings
 
 from sentry.conf.types.kafka_definition import Topic
+from sentry.hybridcloud.rpc import ValueEqualityEnum
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.issues.run import process_message
 from sentry.issues.status_change_message import StatusChangeMessage
-from sentry.services.hybrid_cloud import ValueEqualityEnum
 from sentry.utils import json
 from sentry.utils.arroyo_producer import SingletonProducer
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition

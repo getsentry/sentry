@@ -15,8 +15,10 @@ import type {WebVitalsScoreBreakdown} from 'sentry/views/insights/browser/webVit
 import {useProjectRawWebVitalsTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsTimeseriesQuery';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
-import type {UnweightedWebVitalsScoreBreakdown} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
-import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/useProjectWebVitalsTimeseriesQuery';
+import {
+  type UnweightedWebVitalsScoreBreakdown,
+  useProjectWebVitalsScoresTimeseriesQuery,
+} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 
 export const SCORE_MIGRATION_TIMESTAMP = 1702771200000;
@@ -72,7 +74,7 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
     });
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
-    useProjectWebVitalsTimeseriesQuery({transaction});
+    useProjectWebVitalsScoresTimeseriesQuery({transaction});
   const {data: projectScores, isLoading: isProjectScoresLoading} =
     useProjectWebVitalsScoresQuery({transaction});
 
