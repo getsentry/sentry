@@ -313,6 +313,7 @@ def get_events_from_nodestore(
 
 
 @sentry_sdk.tracing.trace
+@metrics.wraps(f"{BACKFILL_NAME}.send_group_and_stacktrace_to_seer", sample_rate=1.0)
 def send_group_and_stacktrace_to_seer(
     project, groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row, nodestore_results
 ):
