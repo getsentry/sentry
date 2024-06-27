@@ -14,7 +14,7 @@ import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedD
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
 import {PlatformOptionDropdown} from 'sentry/components/replaysOnboarding/platformOptionDropdown';
 import {ReplayOnboardingLayout} from 'sentry/components/replaysOnboarding/replayOnboardingLayout';
-import useLoadOnboardingDoc from 'sentry/components/replaysOnboarding/useLoadOnboardingDoc';
+import useLoadReplayOnboardingDoc from 'sentry/components/replaysOnboarding/useLoadReplayOnboardingDoc';
 import {
   generateDocKeys,
   isPlatformSupported,
@@ -243,7 +243,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     dsn,
     cdn,
     isProjKeysLoading,
-  } = useLoadOnboardingDoc({
+  } = useLoadReplayOnboardingDoc({
     platform:
       showJsFrameworkInstructions && setupMode() === 'npm'
         ? replayJsFrameworkOptions.find(p => p.id === jsFramework.value) ??
@@ -254,7 +254,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   });
 
   // New onboarding docs for initial loading of JS Framework options
-  const {docs: jsFrameworkDocs} = useLoadOnboardingDoc({
+  const {docs: jsFrameworkDocs} = useLoadReplayOnboardingDoc({
     platform:
       replayJsFrameworkOptions.find(p => p.id === jsFramework.value) ??
       replayJsFrameworkOptions[0],
