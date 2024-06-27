@@ -43,6 +43,7 @@ import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/field
 import {
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
+  type SavedQueryDatasets,
 } from 'sentry/utils/discover/types';
 import localStorage from 'sentry/utils/localStorage';
 import marked from 'sentry/utils/marked';
@@ -88,7 +89,7 @@ type State = {
   savedQuery?: SavedQuery;
   showMetricsAlert?: boolean;
   showUnparameterizedBanner?: boolean;
-  splitDecision?: string;
+  splitDecision?: SavedQueryDatasets;
 };
 const SHOW_TAGS_STORAGE_KEY = 'discover2:show-tags';
 const SHOW_UNPARAM_BANNER = 'showUnparameterizedBanner';
