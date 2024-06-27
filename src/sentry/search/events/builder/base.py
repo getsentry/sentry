@@ -1256,12 +1256,15 @@ class BaseQueryBuilder:
         )
         is_context = isinstance(lhs, Column) and lhs.subscriptable == "contexts"
         if is_tag:
+            subscriptable = lhs.subscriptable
             if operator not in ["IN", "NOT IN"] and not isinstance(value, str):
                 sentry_sdk.set_tag("query.lhs", lhs)
                 sentry_sdk.set_tag("query.rhs", value)
                 sentry_sdk.capture_message("Tag value was not a string", level="error")
                 value = str(value)
             lhs = Function("ifNull", [lhs, ""])
+        else:
+            subscriptable = None
 
         # Handle checks for existence
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
@@ -1329,6 +1332,32 @@ class BaseQueryBuilder:
                     Function("match", [lhs, f"(?i){value}"]),
                     Op(search_filter.operator),
                     1,
+                )
+
+            if (
+                self.config.optimize_wildcard_searches
+                and subscriptable is not None
+                and subscriptable in self.config.subscriptables_with_index
+            ):
+                # Some tables have a bloom filter index on the tags.key
+                # column that can be used
+                condition = And(
+                    conditions=[
+                        condition,
+                        Condition(
+                            Function(
+                                "has",
+                                [
+                                    # Each dataset is responsible for making sure
+                                    # the `{subscriptable}.key` is an available column
+                                    self.resolve_column(f"{subscriptable}.key"),
+                                    name,
+                                ],
+                            ),
+                            Op.EQ,
+                            1,
+                        ),
+                    ]
                 )
         else:
             # pull out the aliased expression if it exists
