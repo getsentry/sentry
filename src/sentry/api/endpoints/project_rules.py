@@ -274,18 +274,17 @@ def find_duplicate_rule(project, rule_data=None, rule_id=None, rule=None):
 
 
 def get_max_alerts(project, kind: str) -> int:
-    # setting this up incase we want to change the value in the future.
     if kind == "slow":
+        if features.has("organizations:more-slow-alerts", project.organization):
+            return settings.MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS
+
         return settings.MAX_SLOW_CONDITION_ISSUE_ALERTS
 
-    # use the default setting if the organization is not in the list of enterprise orgs or the feature is not enabled
-    use_default = not (
-        features.has("organizations:process-slow-alerts", project.organization)
-        and project.organization.slug in settings.ENTERPRISE_ISSUE_ALERT_ORGS
-    )
+    has_grouped_processing = features.has("organizations:process-slow-alerts", project.organization)
+    has_more_fast_alerts = features.has("organizations:more-fast-alerts", project.organization)
 
-    if not use_default:
-        return settings.ENTERPRISE_MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS
+    if has_grouped_processing and has_more_fast_alerts:
+        return settings.MAX_MORE_FAST_CONDITION_ISSUE_ALERTS
 
     return settings.MAX_FAST_CONDITION_ISSUE_ALERTS
 
