@@ -7,10 +7,10 @@ import sentry_sdk
 from sentry_sdk import configure_scope
 
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.models.identity import Identity
 from sentry.models.repository import Repository
 from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.repository import RpcRepository, repository_service
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 

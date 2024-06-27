@@ -23,6 +23,7 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.integrations.pipeline import ensure_integration
+from sentry.integrations.services.repository.service import repository_service
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
@@ -42,7 +43,6 @@ from sentry.services.hybrid_cloud.integration.model import (
 )
 from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
-from sentry.services.hybrid_cloud.repository.service import repository_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.integrations.github.open_pr_comment import open_pr_comment_workflow

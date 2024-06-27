@@ -14,13 +14,13 @@ from sentry import analytics
 from sentry.api.exceptions import SentryAPIException
 from sentry.constants import ObjectStatus
 from sentry.integrations.base import IntegrationInstallation
+from sentry.integrations.services.repository import repository_service
+from sentry.integrations.services.repository.model import RpcCreateRepository
 from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
-from sentry.services.hybrid_cloud.repository import repository_service
-from sentry.services.hybrid_cloud.repository.model import RpcCreateRepository
 from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.signals import repo_linked
