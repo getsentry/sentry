@@ -19,7 +19,7 @@ from sentry.models.integrations.sentry_app_installation import (
 from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.models.user import User
 from sentry.sentry_apps.apps import SentryAppCreator
-from sentry.services.hybrid_cloud.app import (
+from sentry.sentry_apps.services.app import (
     AppService,
     RpcAlertRuleActionResult,
     RpcSentryApp,
@@ -30,7 +30,7 @@ from sentry.services.hybrid_cloud.app import (
     RpcSentryAppService,
     SentryAppInstallationFilterArgs,
 )
-from sentry.services.hybrid_cloud.app.serial import (
+from sentry.sentry_apps.services.app.serial import (
     serialize_sentry_app,
     serialize_sentry_app_component,
     serialize_sentry_app_installation,

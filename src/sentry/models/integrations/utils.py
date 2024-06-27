@@ -10,7 +10,7 @@ if TYPE_CHECKING:
     )
     from sentry.models.integrations.integration import Integration
     from sentry.models.integrations.sentry_app import SentryApp
-    from sentry.services.hybrid_cloud.app.model import RpcSentryApp
+    from sentry.sentry_apps.services.app.model import RpcSentryApp
     from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 
 

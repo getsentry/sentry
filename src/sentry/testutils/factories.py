@@ -138,7 +138,7 @@ from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
 )
-from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
+from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.services.hybrid_cloud.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.services.hybrid_cloud.hook import hook_service
 from sentry.services.hybrid_cloud.organization import RpcOrganization
