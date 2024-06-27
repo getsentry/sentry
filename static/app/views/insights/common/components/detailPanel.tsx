@@ -1,5 +1,6 @@
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {AnimatePresence} from 'framer-motion';
 
 import {Button} from 'sentry/components/button';
 import SlideOverPanel from 'sentry/components/slideOverPanel';
@@ -82,45 +83,47 @@ export default function Detail({
   };
 
   return (
-    <SlideOverPanel
-      slidePosition={slidePosition}
-      collapsed={state.collapsed}
-      ref={panelRef}
-      onOpen={onOpen}
-    >
-      <CloseButtonWrapper>
-        <PanelButton
-          priority="link"
-          size="zero"
-          borderless
-          aria-label={t('Dock to the bottom')}
-          disabled={slidePosition === 'bottom'}
-          icon={<IconPanel size="sm" direction="down" />}
-          onClick={() => handleDocking('bottom')}
-        />
-        <PanelButton
-          priority="link"
-          size="zero"
-          borderless
-          aria-label={t('Dock to the right')}
-          disabled={slidePosition === 'right'}
-          icon={<IconPanel size="sm" direction="right" />}
-          onClick={() => handleDocking('right')}
-        />
-        <CloseButton
-          priority="link"
-          size="zero"
-          borderless
-          aria-label={t('Close Details')}
-          icon={<IconClose size="sm" />}
-          onClick={() => {
-            setState({collapsed: true});
-            onClose?.();
-          }}
-        />
-      </CloseButtonWrapper>
-      <DetailWrapper>{children}</DetailWrapper>
-    </SlideOverPanel>
+    <AnimatePresence>
+      <SlideOverPanel
+        slidePosition={slidePosition}
+        collapsed={state.collapsed}
+        ref={panelRef}
+        onOpen={onOpen}
+      >
+        <CloseButtonWrapper>
+          <PanelButton
+            priority="link"
+            size="zero"
+            borderless
+            aria-label={t('Dock to the bottom')}
+            disabled={slidePosition === 'bottom'}
+            icon={<IconPanel size="sm" direction="down" />}
+            onClick={() => handleDocking('bottom')}
+          />
+          <PanelButton
+            priority="link"
+            size="zero"
+            borderless
+            aria-label={t('Dock to the right')}
+            disabled={slidePosition === 'right'}
+            icon={<IconPanel size="sm" direction="right" />}
+            onClick={() => handleDocking('right')}
+          />
+          <CloseButton
+            priority="link"
+            size="zero"
+            borderless
+            aria-label={t('Close Details')}
+            icon={<IconClose size="sm" />}
+            onClick={() => {
+              setState({collapsed: true});
+              onClose?.();
+            }}
+          />
+        </CloseButtonWrapper>
+        <DetailWrapper>{children}</DetailWrapper>
+      </SlideOverPanel>
+    </AnimatePresence>
   );
 }
 

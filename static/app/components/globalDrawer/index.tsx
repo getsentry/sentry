@@ -1,4 +1,5 @@
 import {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
+import {AnimatePresence} from 'framer-motion';
 
 import {DrawerBody, DrawerPanel} from 'sentry/components/globalDrawer/components';
 import type {
@@ -66,11 +67,13 @@ export function GlobalDrawer({children}) {
 
   return (
     <DrawerContext.Provider value={{openDrawer, closeDrawer}}>
-      {isDrawerOpen && (
-        <DrawerPanel onClose={handleClose} ref={panelRef}>
-          {renderedChild}
-        </DrawerPanel>
-      )}
+      <AnimatePresence>
+        {isDrawerOpen && (
+          <DrawerPanel onClose={handleClose} ref={panelRef}>
+            {renderedChild}
+          </DrawerPanel>
+        )}
+      </AnimatePresence>
       {children}
     </DrawerContext.Provider>
   );

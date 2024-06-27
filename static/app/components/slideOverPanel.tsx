@@ -3,7 +3,7 @@ import {forwardRef, useEffect} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion} from 'framer-motion';
+import {motion} from 'framer-motion';
 
 import {space} from 'sentry/styles/space';
 
@@ -45,28 +45,24 @@ function SlideOverPanel(
     ? COLLAPSED_STYLES[slidePosition]
     : COLLAPSED_STYLES.right;
 
-  return (
-    <AnimatePresence>
-      {!collapsed && (
-        <_SlideOverPanel
-          ref={ref}
-          initial={collapsedStyle}
-          animate={openStyle}
-          exit={collapsedStyle}
-          slidePosition={slidePosition}
-          transition={{
-            type: 'spring',
-            stiffness: 500,
-            damping: 50,
-          }}
-          role="complementary"
-          aria-hidden={collapsed}
-          aria-label="slide out drawer"
-        >
-          {children}
-        </_SlideOverPanel>
-      )}
-    </AnimatePresence>
+  return collapsed ? null : (
+    <_SlideOverPanel
+      ref={ref}
+      initial={collapsedStyle}
+      animate={openStyle}
+      exit={collapsedStyle}
+      slidePosition={slidePosition}
+      transition={{
+        type: 'spring',
+        stiffness: 500,
+        damping: 50,
+      }}
+      role="complementary"
+      aria-hidden={collapsed}
+      aria-label="slide out drawer"
+    >
+      {children}
+    </_SlideOverPanel>
   );
 }
 
