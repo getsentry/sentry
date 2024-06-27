@@ -79,7 +79,7 @@ jobs:
         # requirements-dev.txt as a fast path.
         run: |
           npm install --prefix pre-commit-node-env
-          echo "${PWD}/pre-commit-node-env/node_modules/.bin" >> $GITHUB_PATH
+          # echo "${PWD}/pre-commit-node-env/node_modules/.bin" >> $GITHUB_PATH
           pip install https://github.com/joshuarli/pre-commit/archive/josh-debug.zip
           pre-commit install-hooks
 

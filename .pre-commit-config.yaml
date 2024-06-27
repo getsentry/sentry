@@ -18,6 +18,6 @@ repos:
       - id: eslint
         name: eslint
         language: system
-        entry: node_modules/.bin/eslint
+        entry: pre-commit-node-env/node_modules/.bin/eslint
         files: \.[jt]sx?$
         types: [file]
