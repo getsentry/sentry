@@ -432,7 +432,6 @@ export class VirtualizedViewManager {
   onWheel(event: WheelEvent) {
     if (event.metaKey || event.ctrlKey) {
       event.preventDefault();
-
       // If this is the first zoom event, then read the clientX and offset it from the container element as offset
       // is relative to the **target element**. In subsequent events, we can use the offsetX property as
       // the pointer-events are going to be disabled and we will receive the correct offsetX value
@@ -593,7 +592,7 @@ export class VirtualizedViewManager {
     const start = performance.now();
     const rafCallback = (now: number) => {
       const elapsed = now - start;
-      if (elapsed > 200) {
+      if (elapsed > 100) {
         this.onWheelEnd();
       } else {
         this.timers.onWheelEnd = window.requestAnimationFrame(rafCallback);
@@ -604,6 +603,7 @@ export class VirtualizedViewManager {
   }
 
   onWheelStart() {
+    document.body.style.overscrollBehavior = 'none';
     for (let i = 0; i < this.columns.span_list.column_refs.length; i++) {
       const span_list = this.columns.span_list.column_refs[i];
       if (span_list?.children?.[0]) {
@@ -624,6 +624,7 @@ export class VirtualizedViewManager {
   }
 
   onWheelEnd() {
+    document.body.style.overscrollBehavior = '';
     this.timers.onWheelEnd = null;
 
     for (let i = 0; i < this.columns.span_list.column_refs.length; i++) {
