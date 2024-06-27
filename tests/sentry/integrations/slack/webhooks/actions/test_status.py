@@ -271,30 +271,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.data["response_type"] == "ephemeral"
         assert resp.data["text"] == LINK_IDENTITY_MESSAGE.format(associate_url=associate_url)
 
-    def test_archive_issue(self):
-        status_action = {
-            "name": "status",
-            "value": "ignored:archived_until_escalating",
-            "type": "button",
-        }
-
-        expect_status = f"Identity not found.\n*Issue archived by <@{self.external_id}>*"
-
-        resp = self.post_webhook(
-            action_data=[status_action],
-            original_message=self.original_message,
-            type="interactive_message",
-            callback_id=orjson.dumps({"issue": self.group.id}).decode(),
-        )
-        self.group = Group.objects.get(id=self.group.id)
-
-        assert resp.status_code == 200, resp.content
-        assert self.group.get_status() == GroupStatus.IGNORED
-        assert self.group.substatus == GroupSubStatus.UNTIL_ESCALATING
-        expect_status = f"*Issue archived by <@{self.external_id}>*"
-        assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
-        assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status)
-
     @responses.activate
     def test_archive_issue_until_escalating(self):
         original_message = self.get_original_message(self.group.id)
@@ -519,6 +495,43 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status)
 
     def test_assign_issue(self):
+        user2 = self.create_user(is_superuser=False)
+        self.create_member(user=user2, organization=self.organization, teams=[self.team])
+        original_message = self.get_original_message(self.group.id)
+
+        # Assign to user
+        resp = self.assign_issue(original_message, user2)
+        assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
+        expect_status = f"*Issue assigned to {user2.get_display_name()} by <@{self.external_id}>*"
+        assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
+        assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
+        assert ":white_circle:" in resp.data["blocks"][0]["text"]["text"]
+
+        # Assign to team
+        resp = self.assign_issue(original_message, self.team)
+        assert GroupAssignee.objects.filter(group=self.group, team=self.team).exists()
+        expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.external_id}>*"
+        assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
+        assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
+        assert ":white_circle:" in resp.data["blocks"][0]["text"]["text"]
+
+        # Assert group assignment activity recorded
+        group_activity = list(Activity.objects.filter(group=self.group))
+        assert group_activity[0].data == {
+            "assignee": str(user2.id),
+            "assigneeEmail": user2.email,
+            "assigneeType": "user",
+            "integration": ActivityIntegration.SLACK.value,
+        }
+        assert group_activity[-1].data == {
+            "assignee": str(self.team.id),
+            "assigneeEmail": None,
+            "assigneeType": "team",
+            "integration": ActivityIntegration.SLACK.value,
+        }
+
+    @with_feature("organizations:slack-sdk-webhook-handling")
+    def test_assign_issue_with_sdk(self):
         user2 = self.create_user(is_superuser=False)
         self.create_member(user=user2, organization=self.organization, teams=[self.team])
         original_message = self.get_original_message(self.group.id)
