@@ -273,6 +273,23 @@ def find_duplicate_rule(project, rule_data=None, rule_id=None, rule=None):
     return evaluator.find_duplicate()
 
 
+def get_max_alerts(project, kind: str) -> int:
+    # setting this up incase we want to change the value in the future.
+    if kind == "slow":
+        return settings.MAX_SLOW_CONDITION_ISSUE_ALERTS
+
+    # use the default setting if the organization is not in the list of enterprise orgs or the feature is not enabled
+    use_default = not (
+        features.has("organizations:process-slow-alerts", project.organization)
+        and project.organization.slug in settings.ENTERPRISE_ISSUE_ALERT_ORGS
+    )
+
+    if not use_default:
+        return settings.ENTERPRISE_MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS
+
+    return settings.MAX_FAST_CONDITION_ISSUE_ALERTS
+
+
 class ProjectRulesPostSerializer(serializers.Serializer):
     name = serializers.CharField(max_length=256, help_text="The name for the rule.")
     environment = serializers.CharField(
@@ -770,9 +787,7 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                     break
 
         if new_rule_is_slow:
-            max_slow_alerts = settings.MAX_SLOW_CONDITION_ISSUE_ALERTS
-            if features.has("organizations:more-slow-alerts", project.organization):
-                max_slow_alerts = settings.MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS
+            max_slow_alerts = get_max_alerts(project, "slow")
             if slow_rules >= max_slow_alerts:
                 return Response(
                     {
@@ -782,10 +797,8 @@ class ProjectRulesEndpoint(ProjectEndpoint):
                     },
                     status=status.HTTP_400_BAD_REQUEST,
                 )
-        if (
-            not new_rule_is_slow
-            and (len(rules) - slow_rules) >= settings.MAX_FAST_CONDITION_ISSUE_ALERTS
-        ):
+
+        if not new_rule_is_slow and (len(rules) - slow_rules) >= get_max_alerts(project, "fast"):
             return Response(
                 {
                     "conditions": [
