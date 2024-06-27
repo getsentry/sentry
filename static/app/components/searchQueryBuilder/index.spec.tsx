@@ -53,7 +53,6 @@ const FITLER_KEY_SECTIONS: FilterKeySection[] = [
       {
         key: FieldKey.IS,
         name: 'is',
-        alias: 'issue.status',
         predefined: true,
         values: ['resolved', 'unresolved', 'ignored'],
       },
@@ -122,40 +121,6 @@ describe('SearchQueryBuilder', function () {
       await waitFor(() => {
         expect(mockOnBlur).toHaveBeenCalledWith('foo');
       });
-    });
-  });
-
-  describe('filter key aliases', function () {
-    it('displays the key alias instead of the actual value', async function () {
-      render(<SearchQueryBuilder {...defaultProps} initialQuery="is:resolved" />);
-
-      expect(await screen.findByText('issue.status')).toBeInTheDocument();
-    });
-
-    it('displays the key alias when searching for keys', async function () {
-      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
-
-      await userEvent.click(screen.getByRole('grid'));
-      await userEvent.keyboard('issue');
-
-      expect(
-        await screen.findByRole('option', {name: 'issue.status'})
-      ).toBeInTheDocument();
-    });
-
-    it('when adding a filter by typing, replaces aliased tokens', async function () {
-      const mockOnChange = jest.fn();
-      render(
-        <SearchQueryBuilder {...defaultProps} initialQuery="" onChange={mockOnChange} />
-      );
-
-      await userEvent.click(screen.getByRole('grid'));
-      await userEvent.keyboard('issue.status:');
-
-      // Component should display alias `issue.status`
-      expect(await screen.findByText('issue.status')).toBeInTheDocument();
-      // Query should use the actual key `is`
-      expect(mockOnChange).toHaveBeenCalledWith('is:');
     });
   });
 
@@ -259,7 +224,7 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(
         screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
       );
-      await userEvent.click(screen.getByRole('option', {name: 'is not'}));
+      await userEvent.click(screen.getByRole('option', {name: 'browser.name is not'}));
 
       // Token should be modified to be negated
       expect(
@@ -272,6 +237,43 @@ describe('SearchQueryBuilder', function () {
           screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
         ).getByText('is not')
       ).toBeInTheDocument();
+    });
+
+    it('escapes values with spaces and reserved characters', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.type(
+        screen.getByRole('combobox', {name: 'Add a search term'}),
+        'assigned:some" value{enter}'
+      );
+      // Value should be surrounded by quotes and escaped
+      expect(
+        screen.getByRole('row', {name: 'assigned:"some\\" value"'})
+      ).toBeInTheDocument();
+      // Display text should be display the original value
+      expect(
+        within(
+          screen.getByRole('button', {name: 'Edit value for filter: assigned'})
+        ).getByText('some" value')
+      ).toBeInTheDocument();
+    });
+
+    it('can remove parens by clicking the delete button', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="(" />);
+
+      expect(screen.getByRole('row', {name: '('})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('gridcell', {name: 'Delete ('}));
+
+      expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
+    });
+
+    it('can remove boolean ops by clicking the delete button', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="OR" />);
+
+      expect(screen.getByRole('row', {name: 'OR'})).toBeInTheDocument();
+      await userEvent.click(screen.getByRole('gridcell', {name: 'Delete OR'}));
+
+      expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
     });
   });
 
@@ -822,6 +824,38 @@ describe('SearchQueryBuilder', function () {
       });
     });
 
+    describe('has', function () {
+      it('display has and does not have as options', async function () {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="has:key"
+          />
+        );
+
+        expect(
+          within(
+            screen.getByRole('button', {name: 'Edit value for filter: has'})
+          ).getByText('key')
+        ).toBeInTheDocument();
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: has'})
+        );
+        await userEvent.click(await screen.findByRole('option', {name: 'does not have'}));
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith('!has:key');
+        });
+        expect(
+          within(
+            screen.getByRole('button', {name: 'Edit operator for filter: has'})
+          ).getByText('does not have')
+        ).toBeInTheDocument();
+      });
+    });
+
     describe('string', function () {
       it('can modify operator for filter with multiple values', async function () {
         render(
@@ -841,7 +875,7 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit operator for filter: browser.name'})
         );
-        await userEvent.click(screen.getByRole('option', {name: 'is not'}));
+        await userEvent.click(screen.getByRole('option', {name: 'browser.name is not'}));
 
         // Token should be modified to be negated
         expect(
@@ -985,7 +1019,7 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit operator for filter: timesSeen'})
         );
-        await userEvent.click(screen.getByRole('option', {name: '<='}));
+        await userEvent.click(screen.getByRole('option', {name: 'timesSeen <='}));
 
         expect(
           await screen.findByRole('row', {name: 'timesSeen:<=100k'})
@@ -1050,7 +1084,7 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit operator for filter: age'})
         );
-        await userEvent.click(await screen.findByRole('option', {name: 'is before'}));
+        await userEvent.click(await screen.findByRole('option', {name: 'age is before'}));
 
         // Should flip from "-" to "+"
         expect(await screen.findByRole('row', {name: 'age:+24h'})).toBeInTheDocument();
@@ -1062,7 +1096,7 @@ describe('SearchQueryBuilder', function () {
           screen.getByRole('button', {name: 'Edit operator for filter: age'})
         );
         await userEvent.click(
-          await screen.findByRole('option', {name: 'is on or after'})
+          await screen.findByRole('option', {name: 'age is on or after'})
         );
 
         // Changes operator and fills in the current date (ISO format)
