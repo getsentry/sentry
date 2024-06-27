@@ -22,8 +22,8 @@ def make_input_prompt(message: str):
 * **Example 7:** "i can't login to my account wtf??!" -> notspam
 * **Example 8:** "ฉันไม่สามารถเข้าสู่ระบบและไม่มีอะไรทำงาน " -> notspam
 * **Example 9:** "crashed" -> notspam
-* **Example 9:** "my game glitched grrrr!!!!" -> notspam
-* **Example 10:** "this piece of junk does not work!!!" -> notspam
+* **Example 10:** "my game glitched grrrr!!!!" -> notspam
+* **Example 11:** "this piece of junk does not work!!!" -> notspam
 
 **Input Text:** "{message.lower()}"
 
