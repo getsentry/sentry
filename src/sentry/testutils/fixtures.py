@@ -12,7 +12,6 @@ from sentry.eventstore.models import Event
 from sentry.incidents.models.alert_rule import AlertRuleMonitorType
 from sentry.incidents.models.incident import IncidentActivityType
 from sentry.models.activity import Activity
-from sentry.models.actor import Actor, get_actor_id_for_user
 from sentry.models.grouprelease import GroupRelease
 from sentry.models.identity import Identity, IdentityProvider
 from sentry.models.integrations.integration import Integration
@@ -22,9 +21,10 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.user import User
+from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode
@@ -33,6 +33,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 # all of the memoized fixtures are copypasta due to our inability to use pytest fixtures
 # on a per-class method basis
 from sentry.types.activity import ActivityType
+from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
 
 
 class Fixtures:
@@ -159,7 +160,7 @@ class Fixtures:
             project = self.project
         return Factories.create_environment(project=project, **kwargs)
 
-    def create_project(self, **kwargs):
+    def create_project(self, **kwargs) -> Project:
         if "teams" not in kwargs:
             kwargs["teams"] = [self.team]
         return Factories.create_project(**kwargs)
@@ -175,7 +176,13 @@ class Fixtures:
         return Factories.create_project_key(project=project, *args, **kwargs)
 
     def create_project_rule(
-        self, project=None, action_match=None, condition_match=None, *args, **kwargs
+        self,
+        project=None,
+        action_match=None,
+        condition_match=None,
+        comparison_interval=None,
+        *args,
+        **kwargs,
     ):
         if project is None:
             project = self.project
@@ -363,14 +370,14 @@ class Fixtures:
     def create_integration_external_project(self, *args, **kwargs):
         return Factories.create_integration_external_project(*args, **kwargs)
 
-    def create_incident(self, organization=None, projects=None, *args, **kwargs):
+    def create_incident(self, organization=None, projects=None, subscription=None, *args, **kwargs):
         if not organization:
             organization = self.organization
         if projects is None:
             projects = [self.project]
 
         return Factories.create_incident(
-            organization=organization, projects=projects, *args, **kwargs
+            organization=organization, projects=projects, subscription=subscription, *args, **kwargs
         )
 
     def create_incident_activity(self, incident, *args, **kwargs):
@@ -392,17 +399,27 @@ class Fixtures:
         return Factories.create_alert_rule(organization, projects, *args, **kwargs)
 
     def create_alert_rule_activation(
-        self, alert_rule=None, query_subscriptions=None, project=None, *args, **kwargs
+        self,
+        alert_rule=None,
+        query_subscriptions=None,
+        project=None,
+        monitor_type=AlertRuleMonitorType.ACTIVATED,
+        activator=None,
+        activation_condition=None,
+        *args,
+        **kwargs,
     ):
         if not alert_rule:
             alert_rule = self.create_alert_rule(
-                monitor_type=AlertRuleMonitorType.ACTIVATED,
+                monitor_type=monitor_type,
             )
         if not query_subscriptions:
             projects = [project] if project else [self.project]
             query_subscriptions = alert_rule.subscribe_projects(
                 projects=projects,
-                monitor_type=AlertRuleMonitorType.ACTIVATED,
+                monitor_type=monitor_type,
+                activation_condition=activation_condition,
+                activator=activator,
             )
 
         created_activations = []
@@ -450,6 +467,23 @@ class Fixtures:
 
     def create_user_option(self, *args, **kwargs):
         return Factories.create_user_option(*args, **kwargs)
+
+    def create_monitor(self, **kwargs):
+        if "owner_user_id" not in kwargs:
+            kwargs["owner_user_id"] = self.user.id
+
+        return Monitor.objects.create(
+            organization_id=self.organization.id,
+            project_id=self.project.id,
+            type=MonitorType.CRON_JOB,
+            config={
+                "schedule": "* * * * *",
+                "schedule_type": ScheduleType.CRONTAB,
+                "checkin_margin": None,
+                "max_runtime": None,
+            },
+            **kwargs,
+        )
 
     def create_external_user(self, user=None, organization=None, integration=None, **kwargs):
         if not user:
@@ -552,15 +586,12 @@ class Fixtures:
         return Factories.create_identity_provider(integration=integration, config=config, **kwargs)
 
     def create_group_history(self, *args, **kwargs):
-        if "actor" not in kwargs:
-            kwargs["actor"] = Actor.objects.get(id=get_actor_id_for_user(self.user))
+        if "user_id" not in kwargs and "team" not in kwargs and "team_id" not in kwargs:
+            kwargs["user_id"] = self.user.id
         return Factories.create_group_history(*args, **kwargs)
 
     def create_comment(self, *args, **kwargs):
         return Factories.create_comment(*args, **kwargs)
-
-    def create_sentry_function(self, *args, **kwargs):
-        return Factories.create_sentry_function(*args, **kwargs)
 
     def create_saved_search(self, *args, **kwargs):
         return Factories.create_saved_search(*args, **kwargs)
@@ -579,6 +610,34 @@ class Fixtures:
 
     def create_webhook_payload(self, *args, **kwargs):
         return Factories.create_webhook_payload(*args, **kwargs)
+
+    def create_uptime_subscription(
+        self,
+        type: str = "test",
+        subscription_id: str | None = None,
+        status: UptimeSubscription.Status = UptimeSubscription.Status.ACTIVE,
+        url="http://sentry.io/",
+        interval_seconds=60,
+        timeout_ms=100,
+    ) -> UptimeSubscription:
+        return Factories.create_uptime_subscription(
+            type=type,
+            subscription_id=subscription_id,
+            status=status,
+            url=url,
+            interval_seconds=interval_seconds,
+            timeout_ms=timeout_ms,
+        )
+
+    def create_project_uptime_subscription(
+        self, project: Project | None = None, uptime_subscription: UptimeSubscription | None = None
+    ) -> ProjectUptimeSubscription:
+        if project is None:
+            project = self.project
+
+        if uptime_subscription is None:
+            uptime_subscription = self.create_uptime_subscription()
+        return Factories.create_project_uptime_subscription(project, uptime_subscription)
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):

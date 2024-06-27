@@ -32,15 +32,12 @@ describe('IssueList -> Polling', function () {
   let issuesRequest: jest.Mock;
   let pollRequest: jest.Mock;
 
-  beforeEach(() => {
-    jest.useFakeTimers();
-  });
-
   afterEach(() => {
     jest.useRealTimers();
+    MockApiClient.clearMockResponses();
   });
 
-  const {organization, project, routerProps, routerContext} = initializeOrg({
+  const {organization, project, routerProps, router} = initializeOrg({
     organization: {
       access: ['project:releases'],
     },
@@ -66,7 +63,7 @@ describe('IssueList -> Polling', function () {
   /* helpers */
   const renderComponent = async () => {
     render(<IssueList {...routerProps} {...defaultProps} />, {
-      context: routerContext,
+      router,
     });
 
     await Promise.resolve();
@@ -74,6 +71,8 @@ describe('IssueList -> Polling', function () {
   };
 
   beforeEach(function () {
+    jest.useFakeTimers();
+
     // The tests fail because we have a "component update was not wrapped in act" error.
     // It should be safe to ignore this error, but we should remove the mock once we move to react testing library
     // eslint-disable-next-line no-console
@@ -149,10 +148,6 @@ describe('IssueList -> Polling', function () {
 
     jest.mocked(StreamGroup).mockClear();
     TagStore.init();
-  });
-
-  afterEach(function () {
-    MockApiClient.clearMockResponses();
   });
 
   it('toggles polling for new issues', async function () {

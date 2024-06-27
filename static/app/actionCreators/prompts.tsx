@@ -1,7 +1,7 @@
 import {useCallback} from 'react';
 
 import type {Client} from 'sentry/api';
-import type {Organization, OrganizationSummary} from 'sentry/types';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {promptIsDismissed} from 'sentry/utils/promptIsDismissed';
 import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
 import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
@@ -48,8 +48,17 @@ type PromptCheckParams = {
   projectId?: string;
 };
 
+/**
+ * Raw response data from the endpoint
+ */
 export type PromptResponseItem = {
+  /**
+   * Time since dismissed
+   */
   dismissed_ts?: number;
+  /**
+   * Time since snoozed
+   */
   snoozed_ts?: number;
 };
 export type PromptResponse = {
@@ -57,8 +66,17 @@ export type PromptResponse = {
   features?: {[key: string]: PromptResponseItem};
 };
 
+/**
+ * Processed endpoint response data
+ */
 export type PromptData = null | {
+  /**
+   * Time since dismissed
+   */
   dismissedTime?: number;
+  /**
+   * Time since snoozed
+   */
   snoozedTime?: number;
 };
 
@@ -101,9 +119,6 @@ export const makePromptsCheckQueryKey = ({
   ];
 };
 
-/**
- * @param organizationId org numerical id, not the slug
- */
 export function usePromptsCheck(
   {feature, organization, projectId}: PromptCheckParams,
   options: Partial<UseApiQueryOptions<PromptResponse>> = {}
@@ -122,21 +137,28 @@ export function usePrompt({
   feature,
   organization,
   projectId,
+  daysToSnooze,
+  options,
 }: {
   feature: string;
   organization: Organization;
+  daysToSnooze?: number;
+  options?: Partial<UseApiQueryOptions<PromptResponse>>;
   projectId?: string;
 }) {
   const api = useApi({persistInFlight: true});
-  const prompt = usePromptsCheck({feature, organization, projectId});
+  const prompt = usePromptsCheck({feature, organization, projectId}, options);
   const queryClient = useQueryClient();
 
   const isPromptDismissed =
     prompt.isSuccess && prompt.data.data
-      ? promptIsDismissed({
-          dismissedTime: prompt.data.data.dismissed_ts,
-          snoozedTime: prompt.data.data.snoozed_ts,
-        })
+      ? promptIsDismissed(
+          {
+            dismissedTime: prompt.data.data.dismissed_ts,
+            snoozedTime: prompt.data.data.snoozed_ts,
+          },
+          daysToSnooze
+        )
       : undefined;
 
   const dismissPrompt = useCallback(() => {
@@ -166,16 +188,44 @@ export function usePrompt({
     );
   }, [api, feature, organization, projectId, queryClient]);
 
+  const snoozePrompt = useCallback(() => {
+    promptsUpdate(api, {
+      organization,
+      projectId,
+      feature,
+      status: 'snoozed',
+    });
+
+    // Update cached query data
+    // Will set prompt to snoozed
+    setApiQueryData<PromptResponse>(
+      queryClient,
+      makePromptsCheckQueryKey({
+        organization,
+        feature,
+        projectId,
+      }),
+      () => {
+        const snoozedTs = new Date().getTime() / 1000;
+        return {
+          data: {snoozed_ts: snoozedTs},
+          features: {[feature]: {snoozed_ts: snoozedTs}},
+        };
+      }
+    );
+  }, [api, feature, organization, projectId, queryClient]);
+
   return {
     isLoading: prompt.isLoading,
     isError: prompt.isError,
     isPromptDismissed,
     dismissPrompt,
+    snoozePrompt,
   };
 }
 
 /**
- * Get the status of many prompt
+ * Get the status of many prompts
  */
 export async function batchedPromptsCheck<T extends readonly string[]>(
   api: Client,

@@ -1,11 +1,11 @@
 import {t} from 'sentry/locale';
 import type {MetricType} from 'sentry/types/metrics';
-import {defined, formatBytesBase2, formatBytesBase10} from 'sentry/utils';
+import {defined} from 'sentry/utils';
+import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import {
   DAY,
-  formatAbbreviatedNumber,
   formatAbbreviatedNumberWithDynamicPrecision,
-  formatNumberWithDynamicDecimalPoints,
   HOUR,
   MICROSECOND,
   MILLISECOND,
@@ -15,6 +15,7 @@ import {
   SECOND,
   WEEK,
 } from 'sentry/utils/formatters';
+import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
 
 const metricTypeToReadable: Record<MetricType, string> = {
   c: t('counter'),
@@ -280,16 +281,4 @@ export function formatMetricUsingFixedUnit(
   return op === 'count'
     ? formattedNumber
     : `${formattedNumber}${getShortMetricUnit(unit)}`.trim();
-}
-
-export function formatMetricsUsingUnitAndOp(
-  value: number | null,
-  unit: string,
-  operation?: string
-) {
-  if (operation === 'count') {
-    // if the operation is count, we want to ignore the unit and always format the value as a number
-    return value ? formatAbbreviatedNumber(value, 2) : '';
-  }
-  return formatMetricUsingUnit(value, unit);
 }

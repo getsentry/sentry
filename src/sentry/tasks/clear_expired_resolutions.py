@@ -3,7 +3,7 @@ from django.db.models import Q
 from sentry.models.activity import Activity
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.release import Release
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.types.activity import ActivityType
 
@@ -20,7 +20,7 @@ def clear_expired_resolutions(release_id):
     the system that any pending resolutions older than the given release can now
     be safely transitioned to resolved.
 
-    This is currently only used for ``in_next_release`` resolutions.
+    This is currently only used for ``in_next_release`` and ``in_upcoming_release`` resolutions.
     """
     try:
         release = Release.objects.get(id=release_id)
@@ -29,7 +29,9 @@ def clear_expired_resolutions(release_id):
 
     resolution_list = list(
         GroupResolution.objects.filter(
-            Q(type=GroupResolution.Type.in_next_release) | Q(type__isnull=True),
+            Q(type=GroupResolution.Type.in_next_release)
+            | Q(type__isnull=True)
+            | Q(type=GroupResolution.Type.in_upcoming_release),
             release__projects__in=[p.id for p in release.projects.all()],
             release__date_added__lt=release.date_added,
             status=GroupResolution.Status.pending,

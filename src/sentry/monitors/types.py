@@ -1,23 +1,14 @@
+from __future__ import annotations
+
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Literal, NotRequired, TypedDict, Union
 
 from django.utils.functional import cached_property
 from django.utils.text import slugify
+from sentry_kafka_schemas.schema_types.ingest_monitors_v1 import CheckIn
 
 from sentry.monitors.constants import MAX_SLUG_LENGTH
-
-
-class CheckinMessage(TypedDict):
-    message_type: Literal["check_in"]
-    payload: str
-    start_time: float
-    project_id: str
-    sdk: str
-
-
-class ClockPulseMessage(TypedDict):
-    message_type: Literal["clock_pulse"]
 
 
 class CheckinTrace(TypedDict):
@@ -38,6 +29,17 @@ class CheckinPayload(TypedDict):
     contexts: NotRequired[CheckinContexts]
 
 
+class CheckinItemData(TypedDict):
+    """
+    See `CheckinItem` for definition
+    """
+
+    ts: str
+    partition: int
+    message: CheckIn
+    payload: CheckinPayload
+
+
 @dataclass
 class CheckinItem:
     """
@@ -47,7 +49,7 @@ class CheckinItem:
     ts: datetime
     """
     The timestamp the check-in was produced into the kafka topic. This differs
-    from the start_time that is part of the CheckinMessage
+    from the start_time that is part of the CheckIn
     """
 
     partition: int
@@ -55,7 +57,7 @@ class CheckinItem:
     The kafka partition id the check-in was produced into.
     """
 
-    message: CheckinMessage
+    message: CheckIn
     """
     The original unpacked check-in message contents.
     """
@@ -80,6 +82,23 @@ class CheckinItem:
         project_id = self.message["project_id"]
         env = self.payload.get("environment")
         return f"{project_id}:{self.valid_monitor_slug}:{env}"
+
+    def to_dict(self) -> CheckinItemData:
+        return {
+            "ts": self.ts.isoformat(),
+            "partition": self.partition,
+            "message": self.message,
+            "payload": self.payload,
+        }
+
+    @classmethod
+    def from_dict(cls, data: CheckinItemData) -> CheckinItem:
+        return cls(
+            datetime.fromisoformat(data["ts"]),
+            data["partition"],
+            data["message"],
+            data["payload"],
+        )
 
 
 IntervalUnit = Literal["year", "month", "week", "day", "hour", "minute"]

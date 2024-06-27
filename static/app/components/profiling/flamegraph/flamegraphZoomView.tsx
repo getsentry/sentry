@@ -13,7 +13,6 @@ import type {CanvasView} from 'sentry/utils/profiling/canvasView';
 import type {DifferentialFlamegraph} from 'sentry/utils/profiling/differentialFlamegraph';
 import type {Flamegraph} from 'sentry/utils/profiling/flamegraph';
 import {handleFlamegraphKeyboardNavigation} from 'sentry/utils/profiling/flamegraph/flamegraphKeyboardNavigation';
-import type {FlamegraphSearchResult} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
 import {
   useDispatchFlamegraphState,
@@ -22,7 +21,6 @@ import {
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import {getFlamegraphFrameSearchId} from 'sentry/utils/profiling/flamegraphFrame';
 import {
   computeMinZoomConfigViewForFrames,
   getConfigViewTranslationBetweenVectors,
@@ -55,6 +53,22 @@ function isHighlightingAllOccurrences(
     selectedNodes.length > 1 &&
     selectedNodes.includes(node)
   );
+}
+
+function makeSourceCodeLink(frame: FlamegraphFrame['frame']): string | undefined {
+  const path = frame.path || frame.file;
+  const lineComponents = (
+    typeof frame.line === 'number' && typeof frame.column === 'number'
+      ? [frame.line, frame.column]
+      : typeof frame.line === 'number'
+        ? [frame.line]
+        : // We assume that a column without a line is not a valid source location
+          []
+  )
+    .filter(n => n !== undefined)
+    .join(':');
+
+  return path + (lineComponents ? `:${lineComponents}` : '');
 }
 
 interface FlamegraphZoomViewProps {
@@ -289,17 +303,9 @@ function FlamegraphZoomView({
         );
       }
 
-      const frameMap = frames.reduce<Map<string, FlamegraphSearchResult>>(
-        (acc, frame) => {
-          acc.set(getFlamegraphFrameSearchId(frame), {frame, match: []});
-          return acc;
-        },
-        new Map()
-      );
-
-      flamegraphRenderer.setSearchResults('', frameMap);
       selectedFramesRef.current = frames;
     }
+
     if (flamegraphState.search.query && !flamegraphState.search.highlightFrames) {
       flamegraphRenderer.setSearchResults(
         flamegraphState.search.query,
@@ -409,7 +415,7 @@ function FlamegraphZoomView({
         if (action === 'undo') {
           const previousPosition = previousState?.position?.view;
 
-          // If previous position is empty, reset the view to it's max
+          // If previous position is empty, reset the view to its max
           if (previousPosition?.isEmpty()) {
             canvasPoolManager.dispatch('reset zoom', []);
           } else if (
@@ -733,9 +739,15 @@ function FlamegraphZoomView({
     }
 
     const frame = hoveredNodeOnContextMenuOpen.current.frame;
+    const link = makeSourceCodeLink(frame);
+
+    if (!link) {
+      addErrorMessage(t('Failed to resolve path for this function frame.'));
+      return;
+    }
 
     navigator.clipboard
-      .writeText(frame.file ?? frame.path ?? '')
+      .writeText(link)
       .then(() => {
         addSuccessMessage(t('Function source copied to clipboard'));
       })

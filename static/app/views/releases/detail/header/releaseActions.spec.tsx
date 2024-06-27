@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import {HealthFixture} from 'sentry-fixture/health';
 import {LocationFixture} from 'sentry-fixture/locationFixture';
@@ -7,7 +6,6 @@ import {ReleaseFixture} from 'sentry-fixture/release';
 import {ReleaseMetaFixture} from 'sentry-fixture/releaseMeta';
 import {ReleaseProjectFixture} from 'sentry-fixture/releaseProject';
 import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {
   render,
@@ -18,7 +16,8 @@ import {
 } from 'sentry-test/reactTestingLibrary';
 
 import type {ReleaseProject} from 'sentry/types';
-import {ReleaseStatus} from 'sentry/types';
+import {ReleaseStatus} from 'sentry/types/release';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import ReleaseActions from 'sentry/views/releases/detail/header/releaseActions';
 
 describe('ReleaseActions', function () {
@@ -155,7 +154,6 @@ describe('ReleaseActions', function () {
   });
 
   it('navigates to a next/prev release', function () {
-    const routerContext = RouterContextFixture();
     const {rerender} = render(
       <ReleaseActions
         organization={organization}
@@ -164,8 +162,7 @@ describe('ReleaseActions', function () {
         refetchData={jest.fn()}
         releaseMeta={{...ReleaseMetaFixture(), projects: release.projects}}
         location={location}
-      />,
-      {context: routerContext}
+      />
     );
 
     expect(screen.getByLabelText('Oldest')).toHaveAttribute(

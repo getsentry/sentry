@@ -11,7 +11,6 @@ from sentry.models.userrole import UserRole
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
@@ -166,6 +165,7 @@ class UserDetailsUpdateTest(UserDetailsTest):
         user = self.create_user(email="c@example.com", username="diff@example.com")
         self.login_as(user=user, superuser=False)
 
+        self.create_useremail(user, "new@example.com", is_verified=True)
         self.get_success_response("me", username="new@example.com")
 
         user = User.objects.get(id=user.id)
@@ -179,12 +179,26 @@ class UserDetailsUpdateTest(UserDetailsTest):
         user = self.create_user(email="c@example.com", username="c@example.com")
         self.login_as(user=user)
 
+        self.create_useremail(user, "new@example.com", is_verified=True)
         self.get_success_response("me", username="new@example.com")
 
         user = User.objects.get(id=user.id)
 
         assert user.email == "new@example.com"
         assert user.username == "new@example.com"
+
+    def test_cannot_change_username_to_non_verified(self):
+        user = self.create_user(email="c@example.com", username="c@example.com")
+        self.login_as(user=user)
+
+        self.create_useremail(user, "new@example.com", is_verified=False)
+        resp = self.get_error_response("me", username="new@example.com", status_code=400)
+        assert resp.data["detail"] == "Verified email address is not found."
+
+        user = User.objects.get(id=user.id)
+
+        assert user.email == "c@example.com"
+        assert user.username == "c@example.com"
 
 
 @control_silo_test
@@ -219,7 +233,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         assert not user.is_active
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_read_cannot_change_is_active(self):
         self.user.update(is_active=True)
         superuser = self.create_user(email="b@example.com", is_superuser=True)
@@ -235,7 +249,7 @@ class UserDetailsSuperuserUpdateTest(UserDetailsTest):
         assert self.user.is_active
 
     @override_settings(SENTRY_SELF_HOSTED=False)
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     def test_superuser_write_can_change_is_active(self):
         self.user.update(is_active=True)
         superuser = self.create_user(email="b@example.com", is_superuser=True)

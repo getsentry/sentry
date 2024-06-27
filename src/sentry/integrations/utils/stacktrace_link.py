@@ -3,8 +3,6 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING, NotRequired, TypedDict
 
-from sentry import analytics
-from sentry.api.utils import Timer
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.utils.code_mapping import convert_stacktrace_frame_path_to_source_path
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
@@ -27,11 +25,7 @@ class RepositoryLinkOutcome(TypedDict):
 
 
 def get_link(
-    config: RepositoryProjectPathConfig,
-    src_path: str,
-    version: str | None = None,
-    group_id: str | None = None,
-    frame_abs_path: str | None = None,
+    config: RepositoryProjectPathConfig, src_path: str, version: str | None = None
 ) -> RepositoryLinkOutcome:
     result: RepositoryLinkOutcome = {}
 
@@ -47,20 +41,9 @@ def get_link(
     link = None
     try:
         if isinstance(install, RepositoryMixin):
-            with Timer() as t:
-                link = install.get_stacktrace_link(
-                    config.repository, src_path, str(config.default_branch or ""), version
-                )
-                analytics.record(
-                    "function_timer.timed",
-                    function_name="get_stacktrace_link",
-                    duration=t.duration,
-                    organization_id=config.project.organization_id,
-                    project_id=config.project_id,
-                    group_id=group_id,
-                    frame_abs_path=frame_abs_path,
-                )
-
+            link = install.get_stacktrace_link(
+                config.repository, src_path, str(config.default_branch or ""), version
+            )
     except ApiError as e:
         if e.code != 403:
             raise
@@ -115,7 +98,7 @@ def get_stacktrace_config(
             result["error"] = "stack_root_mismatch"
             continue
 
-        outcome = get_link(config, src_path, ctx["commit_id"], ctx["group_id"], ctx["abs_path"])
+        outcome = get_link(config, src_path, ctx["commit_id"])
         result["iteration_count"] += 1
 
         result["current_config"] = {

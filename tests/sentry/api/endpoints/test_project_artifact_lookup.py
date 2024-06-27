@@ -5,6 +5,7 @@ from hashlib import sha1
 from io import BytesIO
 from uuid import uuid4
 
+import orjson
 from django.core.files.base import ContentFile
 from django.urls import reverse
 
@@ -21,7 +22,6 @@ from sentry.models.releasefile import ReleaseFile, read_artifact_index, update_a
 from sentry.tasks.assemble import assemble_artifacts
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.utils import json
 
 
 def make_file(artifact_name, content, type="artifact.bundle", headers=None):
@@ -42,7 +42,7 @@ def make_compressed_zip_file(files):
 
         zip_file.writestr(
             "manifest.json",
-            json.dumps(
+            orjson.dumps(
                 {
                     # We remove the "content" key in the original dict, thus no subsequent calls should be made.
                     "files": {
@@ -50,7 +50,7 @@ def make_compressed_zip_file(files):
                         for file_path, info in files.items()
                     }
                 }
-            ),
+            ).decode(),
         )
     compressed.seek(0)
 
@@ -85,7 +85,7 @@ class ArtifactLookupTest(APITestCase):
         )
         buffer = BytesIO()
         with zipfile.ZipFile(buffer, mode="w") as zf:
-            zf.writestr("manifest.json", json.dumps(manifest))
+            zf.writestr("manifest.json", orjson.dumps(manifest).decode())
             for filename, content in files.items():
                 zf.writestr(filename, content)
 
@@ -142,8 +142,8 @@ class ArtifactLookupTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-artifact-lookup",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
@@ -207,8 +207,8 @@ class ArtifactLookupTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-artifact-lookup",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
@@ -247,8 +247,8 @@ class ArtifactLookupTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-artifact-lookup",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
@@ -268,8 +268,8 @@ class ArtifactLookupTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-artifact-lookup",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
@@ -358,8 +358,8 @@ class ArtifactLookupTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-artifact-lookup",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
@@ -506,8 +506,8 @@ class ArtifactLookupTest(APITestCase):
             url = reverse(
                 "sentry-api-0-project-artifact-lookup",
                 kwargs={
-                    "organization_slug": self.project.organization.slug,
-                    "project_slug": self.project.slug,
+                    "organization_id_or_slug": self.project.organization.slug,
+                    "project_id_or_slug": self.project.slug,
                 },
             )
 
@@ -577,8 +577,8 @@ class ArtifactLookupTest(APITestCase):
             url = reverse(
                 "sentry-api-0-project-artifact-lookup",
                 kwargs={
-                    "organization_slug": self.project.organization.slug,
-                    "project_slug": self.project.slug,
+                    "organization_id_or_slug": self.project.organization.slug,
+                    "project_id_or_slug": self.project.slug,
                 },
             )
 
@@ -637,8 +637,8 @@ class ArtifactLookupTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-artifact-lookup",
             kwargs={
-                "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "organization_id_or_slug": self.project.organization.slug,
+                "project_id_or_slug": self.project.slug,
             },
         )
 
@@ -659,8 +659,8 @@ class ArtifactLookupTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-artifact-lookup",
             kwargs={
-                "organization_slug": other_org.slug,
-                "project_slug": other_project.slug,
+                "organization_id_or_slug": other_org.slug,
+                "project_id_or_slug": other_project.slug,
             },
         )
         self.login_as(user=other_user)

@@ -9,7 +9,8 @@ import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 type PageAlertType = keyof Theme['alert'];
 
 export enum DismissId {
-  RESOURCE_SIZE_ALERT,
+  RESOURCE_SIZE_ALERT = 0,
+  CACHE_SDK_UPDATE_ALERT = 1,
 }
 
 export type PageAlertOptions = {
@@ -81,7 +82,7 @@ export function PageAlertProvider({children}: {children: React.ReactNode}) {
 
 export function PageAlert() {
   const {pageAlert} = useContext(pageErrorContext);
-  const [dismissedAlerts, setDismissedAlerts] = useLocalStorageState<string[]>(
+  const [dismissedAlerts, setDismissedAlerts] = useLocalStorageState<number[]>(
     localStorageKey,
     []
   );

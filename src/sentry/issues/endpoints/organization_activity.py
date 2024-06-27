@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from datetime import datetime
 
 from rest_framework.request import Request
@@ -11,6 +13,8 @@ from sentry.api.helpers.deprecation import deprecated
 from sentry.api.paginator import DateTimePaginator
 from sentry.api.serializers import OrganizationActivitySerializer, serialize
 from sentry.models.activity import Activity
+from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.types.activity import ActivityType
@@ -26,8 +30,11 @@ class OrganizationActivityEndpoint(OrganizationMemberEndpoint, EnvironmentMixin)
     @deprecated(
         datetime.fromisoformat("2024-05-01T00:00:00Z"),
         "Activities for each issue at 'GET /api/0/organizations/{organization_slug}/issues/{issue_id}/activities/'",
+        "api.organization-activity.brownout",
     )
-    def get(self, request: Request, organization, member) -> Response:
+    def get(
+        self, request: Request, organization: Organization, member: OrganizationMember
+    ) -> Response:
         # There is an activity record created for both sides of the unmerge
         # operation, so we only need to include one of them here to avoid
         # showing the same entry twice.
@@ -65,7 +72,7 @@ class OrganizationActivityEndpoint(OrganizationMemberEndpoint, EnvironmentMixin)
             ).values_list("id", flat=True)
         )
 
-        union_qs = Activity.objects.none()
+        union_qs = Activity.objects.none().values_list("id", flat=True)
         if project_ids:
             projects_qs = [
                 base_qs.filter(project_id=project)[: paginator.max_limit] for project in project_ids

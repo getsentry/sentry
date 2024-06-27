@@ -16,6 +16,7 @@ from sentry.options.manager import (
     FLAG_PRIORITIZE_DISK,
     FLAG_REQUIRED,
     FLAG_STOREONLY,
+    NotWritableReason,
     OptionsManager,
     UnknownOption,
     UpdateChannel,
@@ -257,6 +258,22 @@ class OptionsManagerTest(TestCase):
         # Ensure None on disk are NOT preferred over DB (See #14557)
         with self.settings(SENTRY_OPTIONS={"prioritize_disk": None}):
             assert self.manager.get("prioritize_disk") == "foo"
+
+    def test_flag_prioritize_disk_falsy(self):
+        self.manager.register(
+            "prioritize_disk_falsy",
+            default=1,
+            flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+        )
+        assert self.manager.get("prioritize_disk_falsy") == 1
+        assert self.manager.can_update("prioritize_disk_falsy", 0, UpdateChannel.AUTOMATOR) is None
+
+        with self.settings(SENTRY_OPTIONS={"prioritize_disk_falsy": 0}):
+            assert self.manager.get("prioritize_disk_falsy") == 0
+            assert (
+                self.manager.can_update("prioritize_disk_falsy", 0, UpdateChannel.AUTOMATOR)
+                == NotWritableReason.OPTION_ON_DISK
+            )
 
     @override_settings(SENTRY_OPTIONS_COMPLAIN_ON_ERRORS=False)
     def test_db_unavailable(self):

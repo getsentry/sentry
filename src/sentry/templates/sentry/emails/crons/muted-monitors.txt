@@ -1,8 +1,9 @@
 Your Cron Monitors Have Been Muted
 
 The Cron Monitors below have not processed a successful check-in for multiple weeks. We have automatically muted the failing environments for these monitors:
-{% for monitor_name, monitor_url, earliest_incident_start_date in muted_monitors %}
-* {{monitor_name}} {{monitor_url}} | Failing since {{earliest_incident_start_date|date:"N j, Y, g:i:s a e"}}
+{% for monitor_name, project_slug, monitor_url, earliest_incident_start_date in muted_monitors %}
+* {{monitor_name}}
+{{project_slug}} {{monitor_url}} | Failing since {{earliest_incident_start_date|date:"N j, Y, g:i:s a e"}}
 {% endfor %}
 
 To unmute your monitors, please head over to Crons and manually unmute your monitors.

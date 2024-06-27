@@ -8,12 +8,14 @@ from django.db import models
 from django.utils import timezone
 
 from bitfield import TypedClassBitField
+from sentry.backup.dependencies import NormalizedModelName, get_model_name
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     Model,
-    control_silo_only_model,
+    control_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
@@ -31,7 +33,7 @@ SCIM_INTERNAL_INTEGRATION_OVERVIEW = (
 )
 
 
-@control_silo_only_model
+@control_silo_model
 class AuthProviderDefaultTeams(Model):
     # Completely defunct model.
     __relocation_scope__ = RelocationScope.Excluded
@@ -45,7 +47,7 @@ class AuthProviderDefaultTeams(Model):
         unique_together = ()
 
 
-@control_silo_only_model
+@control_silo_model
 class AuthProvider(ReplicatedControlModel):
     __relocation_scope__ = RelocationScope.Global
     category = OutboxCategory.AUTH_PROVIDER_UPDATE
@@ -222,6 +224,16 @@ class AuthProvider(ReplicatedControlModel):
             )
             for region_name in find_regions_for_orgs([self.organization_id])
         ]
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        model_name = get_model_name(cls) if model_name is None else model_name
+        super().sanitize_relocation_json(json, sanitizer, model_name)
+
+        sanitizer.set_json(json, SanitizableField(model_name, "config"), {})
+        sanitizer.set_string(json, SanitizableField(model_name, "provider"))
 
 
 def get_scim_token(scim_enabled: bool, organization_id: int, provider: str) -> str | None:

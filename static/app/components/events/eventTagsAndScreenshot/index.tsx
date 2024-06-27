@@ -7,12 +7,10 @@ import {
 } from 'sentry/actionCreators/events';
 import {openModal} from 'sentry/actionCreators/modal';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import {useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
 import {DataSection} from 'sentry/components/events/styles';
 import Link from 'sentry/components/links/link';
 import {t, tn} from 'sentry/locale';
 import type {EventAttachment} from 'sentry/types/group';
-import {objectIsEmpty} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -39,9 +37,7 @@ type Props = React.ComponentProps<typeof Tags> & {
 export function EventTagsAndScreenshot({projectSlug, event, isShare = false}: Props) {
   const location = useLocation();
   const organization = useOrganization();
-  const hasNewTagsUI = useHasNewTagsUI();
   const {tags = []} = event;
-  const hasContext = !objectIsEmpty(event.user ?? {}) || !objectIsEmpty(event.contexts);
   const {data: attachments} = useFetchEventAttachments(
     {
       orgSlug: organization.slug,
@@ -56,13 +52,13 @@ export function EventTagsAndScreenshot({projectSlug, event, isShare = false}: Pr
 
   const [screenshotInFocus, setScreenshotInFocus] = useState<number>(0);
 
-  if (!tags.length && !hasContext && (isShare || !screenshots.length)) {
+  if (!tags.length && (isShare || !screenshots.length)) {
     return null;
   }
 
   const showScreenshot = !isShare && !!screenshots.length;
   const screenshot = screenshots[screenshotInFocus];
-  const showTags = !!tags.length || hasContext;
+  const showTags = !!tags.length;
 
   const handleDeleteScreenshot = (attachmentId: string) => {
     deleteAttachment({
@@ -123,9 +119,7 @@ export function EventTagsAndScreenshot({projectSlug, event, isShare = false}: Pr
 
   return (
     <Wrapper showScreenshot={showScreenshot} showTags={showTags}>
-      <TagWrapper hasNewTagsUI={hasNewTagsUI}>
-        {showTags && <Tags event={event} projectSlug={projectSlug} />}
-      </TagWrapper>
+      <div>{showTags && <Tags event={event} projectSlug={projectSlug} />}</div>
       {showScreenshot && (
         <div>
           <ScreenshotWrapper>
@@ -157,9 +151,8 @@ export function EventTagsAndScreenshot({projectSlug, event, isShare = false}: Pr
 }
 
 /**
- * Used to adjust padding based on which 3 elements are shown
+ * Used to adjust padding based on which elements are shown
  * - screenshot
- * - context
  * - tags
  */
 const Wrapper = styled(DataSection)<{
@@ -187,8 +180,4 @@ const ScreenshotWrapper = styled('div')`
     border: 0;
     height: 100%;
   }
-`;
-
-const TagWrapper = styled('div')<{hasNewTagsUI: boolean}>`
-  overflow: ${p => (p.hasNewTagsUI ? 'visible' : 'hidden')};
 `;

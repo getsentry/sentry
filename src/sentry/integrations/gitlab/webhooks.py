@@ -5,6 +5,7 @@ from collections.abc import Mapping
 from datetime import timezone
 from typing import Any
 
+import orjson
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
 from django.http import Http404, HttpResponse
@@ -26,7 +27,6 @@ from sentry.plugins.providers import IntegrationRepositoryProvider
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.utils import json
 
 logger = logging.getLogger("sentry.webhooks")
 
@@ -270,9 +270,11 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
             return result
         (external_id, secret) = result
 
-        integration, installs = integration_service.get_organization_contexts(
+        result = integration_service.organization_contexts(
             provider=self.provider, external_id=external_id
         )
+        integration = result.integration
+        installs = result.organization_integrations
         if integration is None:
             logger.info("gitlab.webhook.invalid-organization", extra=extra)
             extra["reason"] = "There is no integration that matches your organization."
@@ -309,8 +311,8 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
             return HttpResponse(status=409, reason=extra["reason"])
 
         try:
-            event = json.loads(request.body.decode("utf-8"))
-        except json.JSONDecodeError:
+            event = orjson.loads(request.body)
+        except orjson.JSONDecodeError:
             logger.info("gitlab.webhook.invalid-json", extra=extra)
             extra["reason"] = "Data received is not JSON."
             logger.exception(extra["reason"])

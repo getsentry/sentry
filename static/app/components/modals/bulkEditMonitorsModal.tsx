@@ -78,7 +78,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
     const resp = await bulkEditMonitors(
       api,
       organization.slug,
-      selectedMonitors.map(monitor => monitor.slug),
+      selectedMonitors.map(monitor => monitor.id),
       operation
     );
     setSelectedMonitors([]);
@@ -212,7 +212,7 @@ export function BulkEditMonitorsModal({Header, Body, Footer, closeModal}: Props)
 
 export const modalCss = css`
   width: 100%;
-  max-width: 800px;
+  max-width: 900px;
 `;
 
 const Actions = styled('div')`

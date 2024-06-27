@@ -6,12 +6,9 @@ from typing import Any
 from django.db.models import QuerySet
 
 from sentry.api.serializers.base import Serializer
+from sentry.hybridcloud.rpc.filter_query import FilterQueryDatabaseImpl, OpaqueSerializedResponse
 from sentry.models.options.user_option import UserOption
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
-from sentry.services.hybrid_cloud.filter_query import (
-    FilterQueryDatabaseImpl,
-    OpaqueSerializedResponse,
-)
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user_option import (
     RpcUserOption,
@@ -56,8 +53,8 @@ class DatabaseBackedUserOptionService(UserOptionService):
     class _UserOptionFilterQuery(
         FilterQueryDatabaseImpl[UserOption, UserOptionFilterArgs, RpcUserOption, None]
     ):
-        def base_query(self, ids_only: bool = False) -> QuerySet[UserOption]:
-            return UserOption.objects
+        def base_query(self, select_related: bool = True) -> QuerySet[UserOption]:
+            return UserOption.objects.all()
 
         def filter_arg_validator(self) -> Callable[[UserOptionFilterArgs], str | None]:
             return self._filter_has_any_key_validator("user_ids")

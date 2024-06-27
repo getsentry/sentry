@@ -21,6 +21,7 @@ class SdkConfig(TypedDict):
     before_send: NotRequired[Callable[[Event, Hint], Event | None]]
     before_send_transaction: NotRequired[Callable[[Event, Hint], Event | None]]
     profiles_sample_rate: NotRequired[float]
+    profiles_sampler: NotRequired[Callable[[dict[str, Any]], float]]
     profiler_mode: NotRequired[Literal["sleep", "thread", "gevent", "unknown"]]
     enable_db_query_source: NotRequired[bool]
     db_query_source_threshold_ms: NotRequired[int]
@@ -31,4 +32,3 @@ class ServerSdkConfig(SdkConfig):
     # these get popped before sending along to the sdk
     dsn: NotRequired[str]
     relay_dsn: NotRequired[str]
-    experimental_dsn: NotRequired[str]

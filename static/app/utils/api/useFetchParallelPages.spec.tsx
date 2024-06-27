@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import useFetchParallelPages from 'sentry/utils/api/useFetchParallelPages';
 import type {QueryClient} from 'sentry/utils/queryClient';
@@ -26,7 +26,7 @@ describe('useFetchParallelPages', () => {
     });
     const getQueryKey = queryKeyFactory();
 
-    const {result} = reactHooks.renderHook(useFetchParallelPages, {
+    const {result} = renderHook(useFetchParallelPages, {
       wrapper: makeWrapper(makeTestQueryClient()),
       initialProps: {
         enabled: false,
@@ -47,7 +47,7 @@ describe('useFetchParallelPages', () => {
     });
     const getQueryKey = queryKeyFactory();
 
-    const {result, rerender, waitFor} = reactHooks.renderHook(useFetchParallelPages, {
+    const {result, rerender} = renderHook(useFetchParallelPages, {
       wrapper: makeWrapper(makeTestQueryClient()),
       initialProps: {
         enabled: false,
@@ -75,7 +75,7 @@ describe('useFetchParallelPages', () => {
     });
     const getQueryKey = queryKeyFactory();
 
-    const {result} = reactHooks.renderHook(useFetchParallelPages, {
+    const {result} = renderHook(useFetchParallelPages, {
       wrapper: makeWrapper(makeTestQueryClient()),
       initialProps: {
         enabled: true,
@@ -96,7 +96,7 @@ describe('useFetchParallelPages', () => {
     });
     const getQueryKey = queryKeyFactory();
 
-    const {result, waitFor} = reactHooks.renderHook(useFetchParallelPages, {
+    const {result} = renderHook(useFetchParallelPages, {
       wrapper: makeWrapper(makeTestQueryClient()),
       initialProps: {
         enabled: true,
@@ -118,7 +118,7 @@ describe('useFetchParallelPages', () => {
     });
     const getQueryKey = queryKeyFactory();
 
-    const {result, waitFor} = reactHooks.renderHook(useFetchParallelPages, {
+    const {result} = renderHook(useFetchParallelPages, {
       wrapper: makeWrapper(makeTestQueryClient()),
       initialProps: {
         enabled: true,
@@ -146,7 +146,7 @@ describe('useFetchParallelPages', () => {
     });
     const getQueryKey = queryKeyFactory();
 
-    const {result, waitFor} = reactHooks.renderHook(useFetchParallelPages, {
+    const {result} = renderHook(useFetchParallelPages, {
       wrapper: makeWrapper(makeTestQueryClient()),
       initialProps: {
         enabled: true,
@@ -171,7 +171,7 @@ describe('useFetchParallelPages', () => {
     });
     const getQueryKey = queryKeyFactory();
 
-    const {result, waitFor} = reactHooks.renderHook(useFetchParallelPages, {
+    const {result} = renderHook(useFetchParallelPages, {
       wrapper: makeWrapper(makeTestQueryClient()),
       initialProps: {
         enabled: true,
@@ -200,7 +200,7 @@ describe('useFetchParallelPages', () => {
     });
     const getQueryKey = queryKeyFactory();
 
-    const {result, waitFor} = reactHooks.renderHook(useFetchParallelPages, {
+    const {result} = renderHook(useFetchParallelPages, {
       wrapper: makeWrapper(makeTestQueryClient()),
       initialProps: {
         enabled: true,
@@ -231,7 +231,7 @@ describe('useFetchParallelPages', () => {
 
     const getQueryKey = queryKeyFactory();
 
-    const {result, waitFor} = reactHooks.renderHook(useFetchParallelPages, {
+    const {result} = renderHook(useFetchParallelPages, {
       wrapper: makeWrapper(makeTestQueryClient()),
       initialProps: {
         enabled: true,

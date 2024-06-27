@@ -1,6 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 import {TeamIssuesBreakdownFixture} from 'sentry-fixture/teamIssuesBreakdown';
 import {TeamResolutionTimeFixture} from 'sentry-fixture/teamResolutionTime';
@@ -59,6 +58,8 @@ describe('TeamStatsIssues', () => {
   const {routerProps, router} = initializeOrg();
 
   beforeEach(() => {
+    TeamStore.reset();
+
     MockApiClient.addMockResponse({
       method: 'GET',
       url: `/organizations/org-slug/projects/`,
@@ -124,10 +125,6 @@ describe('TeamStatsIssues', () => {
     });
   });
 
-  beforeEach(() => {
-    TeamStore.reset();
-  });
-
   afterEach(() => {
     jest.resetAllMocks();
   });
@@ -140,22 +137,15 @@ describe('TeamStatsIssues', () => {
     teams = teams ?? [team1, team2, team3];
     projects = projects ?? [project1, project2];
     ProjectsStore.loadInitialData(projects);
-    const organization = OrganizationFixture({
-      teams,
-      projects,
-    });
+    const organization = OrganizationFixture();
 
     if (isOrgOwner !== undefined && !isOrgOwner) {
       organization.access = organization.access.filter(scope => scope !== 'org:admin');
     }
 
-    const context = RouterContextFixture([{organization}]);
     TeamStore.loadInitialData(teams, false, null);
 
-    return render(<TeamStatsIssues {...routerProps} />, {
-      context,
-      organization,
-    });
+    return render(<TeamStatsIssues {...routerProps} />, {organization});
   }
 
   it('defaults to first team', async () => {

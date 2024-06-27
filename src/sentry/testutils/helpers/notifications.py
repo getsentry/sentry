@@ -5,6 +5,7 @@ from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
 from typing import Any
 
+from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import (
     FeedbackGroup,
     PerformanceNPlusOneAPICallsGroupType,
@@ -19,9 +20,8 @@ from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils.actions import MessageAction
-from sentry.services.hybrid_cloud.actor import RpcActor
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.types.integrations import ExternalProviders
+from sentry.types.actor import Actor
 
 
 class DummyNotification(BaseNotification):
@@ -58,7 +58,7 @@ class DummyNotification(BaseNotification):
         return []
 
     def get_message_actions(
-        self, recipient: RpcActor, provider: ExternalProviders
+        self, recipient: Actor, provider: ExternalProviders
     ) -> Sequence[MessageAction]:
         zombo_link = MessageAction(
             name="Go to Zombo.com",

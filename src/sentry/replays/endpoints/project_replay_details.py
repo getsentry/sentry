@@ -73,8 +73,8 @@ class ProjectReplayDetailsEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Delete a Replay Instance",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             ReplayParams.REPLAY_ID,
         ],
         responses={

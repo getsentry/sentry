@@ -1,14 +1,14 @@
-import {useEffect, useMemo} from 'react';
+import {useEffect} from 'react';
 import * as Sentry from '@sentry/react';
 
+import {ChartType} from 'sentry/chartcuterie/types';
 import Chart from 'sentry/components/events/eventStatisticalDetector/lineChart';
 import {DataSection} from 'sentry/components/events/styles';
-import type {Event} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {useProfileEventsStats} from 'sentry/utils/profiling/hooks/useProfileEventsStats';
 import {useRelativeDateTime} from 'sentry/utils/profiling/hooks/useRelativeDateTime';
 import type {NormalizedTrendsTransaction} from 'sentry/views/performance/trends/types';
-import transformEventStats from 'sentry/views/performance/trends/utils/transformEventStats';
 
 import {RELATIVE_DAYS_WINDOW} from './consts';
 
@@ -75,18 +75,6 @@ function EventFunctionBreakpointChartInner({
     yAxes: SERIES,
   });
 
-  const p95Series = useMemo(() => {
-    const rawData = functionStats?.data?.data?.find(({axis}) => axis === 'p95()');
-    const timestamps = functionStats?.data?.timestamps;
-    if (!timestamps) {
-      return [];
-    }
-    return transformEventStats(
-      timestamps.map((timestamp, i) => [timestamp, [{count: rawData.values[i]}]]),
-      'p95(function.duration)'
-    );
-  }, [functionStats]);
-
   const normalizedOccurrenceEvent = {
     aggregate_range_1: evidenceData.aggregateRange1 / 1e6,
     aggregate_range_2: evidenceData.aggregateRange2 / 1e6,
@@ -96,9 +84,10 @@ function EventFunctionBreakpointChartInner({
   return (
     <DataSection>
       <Chart
-        percentileSeries={p95Series}
+        percentileData={functionStats}
         evidenceData={normalizedOccurrenceEvent}
         datetime={datetime}
+        chartType={ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION}
       />
     </DataSection>
   );

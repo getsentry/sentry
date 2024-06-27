@@ -2,7 +2,7 @@ from sentry.deletions import default_manager
 from sentry.deletions.base import _delete_children
 from sentry.deletions.defaults.repository import _get_repository_child_relations
 from sentry.models.repository import Repository
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 
 

@@ -12,7 +12,7 @@ class OrganizationProjectsSentFirstEventEndpointTest(APITestCase):
         self.team = self.create_team(organization=self.org)
         self.url = reverse(
             "sentry-api-0-organization-sent-first-event",
-            kwargs={"organization_slug": self.org.slug},
+            kwargs={"organization_id_or_slug": self.org.slug},
         )
 
     def test_simple_sent_first_event(self):

@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
+import orjson
 from django.http import HttpResponse, HttpResponseRedirect
 from rest_framework import serializers
 from rest_framework.exceptions import ParseError
@@ -23,7 +24,6 @@ from sentry.profiles.utils import (
     parse_profile_filters,
     proxy_profiling_service,
 )
-from sentry.utils import json
 
 
 class ProjectProfilingBaseEndpoint(ProjectEndpoint):
@@ -56,7 +56,7 @@ class ProjectProfilingPaginatedBaseEndpoint(ProjectProfilingBaseEndpoint, ABC):
 
     def get(self, request: Request, project: Project) -> Response:
         if not features.has("organizations:profiling", project.organization, actor=request.user):
-            return Response(404)
+            return Response(status=404)
 
         params = self.get_profiling_params(request, project)
 
@@ -96,7 +96,7 @@ class ProjectProfilingProfileEndpoint(ProjectProfilingBaseEndpoint):
         )
 
         if response.status == 200:
-            profile = json.loads(response.data)
+            profile = orjson.loads(response.data)
 
             if "release" in profile:
                 profile["release"] = get_release(project, profile["release"])
@@ -140,60 +140,6 @@ class ProjectProfilingRawProfileEndpoint(ProjectProfilingBaseEndpoint):
             "path": f"/organizations/{project.organization_id}/projects/{project.id}/raw_profiles/{profile_id}",
         }
         return proxy_profiling_service(**kwargs)
-
-
-@region_silo_endpoint
-class ProjectProfilingFlamegraphEndpoint(ProjectProfilingBaseEndpoint):
-    def get(self, request: Request, project: Project) -> HttpResponse:
-        if not features.has("organizations:profiling", project.organization, actor=request.user):
-            return Response(status=404)
-
-        kwargs: dict[str, Any] = {
-            "method": "GET",
-            "path": f"/organizations/{project.organization_id}/projects/{project.id}/flamegraph",
-            "params": self.get_profiling_params(request, project),
-        }
-        return proxy_profiling_service(**kwargs)
-
-
-@region_silo_endpoint
-class ProjectProfilingFunctionsEndpoint(ProjectProfilingPaginatedBaseEndpoint):
-    DEFAULT_PER_PAGE = 5
-    MAX_PER_PAGE = 50
-
-    def get_data_fn(self, request: Request, project: Project, kwargs: dict[str, Any]) -> Any:
-        def data_fn(offset: int, limit: int) -> Any:
-            is_application = request.query_params.get("is_application", None)
-            if is_application is not None:
-                if is_application == "1":
-                    kwargs["params"]["is_application"] = "1"
-                elif is_application == "0":
-                    kwargs["params"]["is_application"] = "0"
-                else:
-                    raise ParseError(detail="Invalid query: Illegal value for is_application")
-
-            sort = request.query_params.get("sort", None)
-            if sort is None:
-                raise ParseError(detail="Invalid query: Missing value for sort")
-            kwargs["params"]["sort"] = sort
-
-            kwargs["params"]["offset"] = offset
-            kwargs["params"]["limit"] = limit
-
-            response = get_from_profiling_service(
-                "GET",
-                f"/organizations/{project.organization_id}/projects/{project.id}/functions",
-                **kwargs,
-            )
-
-            data = json.loads(response.data)
-
-            return data.get("functions", [])
-
-        return data_fn
-
-    def get_on_result(self) -> Any:
-        return lambda results: {"functions": results}
 
 
 class ProjectProfileEventSerializer(serializers.Serializer):

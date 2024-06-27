@@ -1,5 +1,3 @@
-from typing import Any
-
 from snuba_sdk import Condition, Granularity
 
 from sentry.search.events import constants
@@ -8,29 +6,22 @@ from sentry.search.events.builder import (
     TimeseriesMetricQueryBuilder,
     TopMetricsQueryBuilder,
 )
-from sentry.search.events.types import QueryBuilderConfig, SelectType
+from sentry.search.events.datasets.spans_metrics import SpansMetricsDatasetConfig
+from sentry.search.events.types import SelectType
 
 
 class SpansMetricsQueryBuilder(MetricsQueryBuilder):
     requires_organization_condition = True
     spans_metrics_builder = True
     has_transaction = False
+    config_class = SpansMetricsDatasetConfig
 
-    def __init__(
-        self,
-        *args: Any,
-        **kwargs: Any,
-    ):
-        config = kwargs.pop("config", None)
-        if config is None:
-            config = QueryBuilderConfig()
-        parser_config_overrides = (
-            config.parser_config_overrides if config.parser_config_overrides else {}
-        )
-        parser_config_overrides["free_text_key"] = "span.description"
-        config.parser_config_overrides = parser_config_overrides
-        kwargs["config"] = config
-        super().__init__(*args, **kwargs)
+    column_remapping = {
+        # We want to remap `message` to `span.description` for the free
+        # text search use case so that it searches the `span.description`
+        # when the user performs a free text search
+        "message": "span.description",
+    }
 
     @property
     def use_default_tags(self) -> bool:

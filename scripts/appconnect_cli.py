@@ -10,11 +10,12 @@ first one found.
 import sys
 from pprint import pprint
 
+import orjson
+
 from sentry.lang.native.appconnect import SYMBOL_SOURCES_PROP_NAME
 from sentry.models.appconnectbuilds import AppConnectBuild
 from sentry.models.project import Project
 from sentry.tasks import app_store_connect
-from sentry.utils import json
 
 PROJECT_ID = 2
 
@@ -24,7 +25,7 @@ def main(argv):
         # Dumps the symbolSource configuration as stored in the project option.
         project = Project.objects.get(pk=PROJECT_ID)
         raw_config = project.get_option(SYMBOL_SOURCES_PROP_NAME, default="[]")
-        config = json.loads(raw_config)
+        config = orjson.loads(raw_config)
         pprint(config)
 
     elif argv[0] == "dsyms":
@@ -65,7 +66,7 @@ def main(argv):
 def appconnect_config():
     project = Project.objects.get(pk=PROJECT_ID)
     raw_config = project.get_option(SYMBOL_SOURCES_PROP_NAME, default="[]")
-    symbol_sources = json.loads(raw_config)
+    symbol_sources = orjson.loads(raw_config)
     for config in symbol_sources:
         if config["type"] == "appStoreConnect":
             return config

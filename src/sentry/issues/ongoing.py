@@ -7,8 +7,11 @@ from django.db.models.signals import post_save
 from sentry import options
 from sentry.models.group import Group, GroupStatus
 from sentry.models.groupinbox import bulk_remove_groups_from_inbox
+from sentry.signals import issue_unresolved
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
+
+TRANSITION_AFTER_DAYS = 7
 
 
 def bulk_transition_group_to_ongoing(
@@ -39,6 +42,14 @@ def bulk_transition_group_to_ongoing(
     for group in groups_to_transistion:
         group.status = GroupStatus.UNRESOLVED
         group.substatus = GroupSubStatus.ONGOING
+        if from_status != GroupStatus.UNRESOLVED:
+            issue_unresolved.send_robust(
+                project=group.project,
+                group=group,
+                user=None,
+                transition_type="automatic",
+                sender=bulk_transition_group_to_ongoing,
+            )
 
     with sentry_sdk.start_span(description="bulk_remove_groups_from_inbox"):
         bulk_remove_groups_from_inbox(groups_to_transistion)

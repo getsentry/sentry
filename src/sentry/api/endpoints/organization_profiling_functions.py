@@ -19,13 +19,13 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.events.builder import ProfileTopFunctionsTimeseriesQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
-from sentry.seer.utils import BreakpointData, detect_breakpoints
+from sentry.seer.breakpoints import BreakpointData, BreakpointRequest, detect_breakpoints
 from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.dates import parse_stats_period, validate_interval
 from sentry.utils.sdk import set_measurement
-from sentry.utils.snuba import bulk_snql_query
+from sentry.utils.snuba import bulk_snuba_queries
 
 TOP_FUNCTIONS_LIMIT = 50
 FUNCTIONS_PER_QUERY = 10
@@ -138,7 +138,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                 )
                 for chunk in chunks
             ]
-            bulk_results = bulk_snql_query(
+            bulk_results = bulk_snuba_queries(
                 [builder.get_snql_query() for builder in builders],
                 Referrer.API_PROFILING_FUNCTION_TRENDS_STATS.value,
             )
@@ -163,7 +163,7 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
             if not stats_data:
                 return []
 
-            trends_request = {
+            trends_request: BreakpointRequest = {
                 "data": {
                     k: {
                         "data": v[data["function"]]["data"],
@@ -182,7 +182,6 @@ class OrganizationProfilingFunctionTrendsEndpoint(OrganizationEventsV2EndpointBa
                     if v[data["function"]]["data"]
                 },
                 "sort": data["trend"].as_sort(),
-                "trendFunction": data["function"],
             }
 
             return detect_breakpoints(trends_request)["data"]

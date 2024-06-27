@@ -2,7 +2,7 @@ import styled from '@emotion/styled';
 
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {WidgetType} from 'sentry/views/dashboards/types';
 import {DisplayType} from 'sentry/views/dashboards/types';

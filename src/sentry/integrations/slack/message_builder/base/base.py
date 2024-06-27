@@ -1,15 +1,13 @@
 from __future__ import annotations
 
 from abc import ABC
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping
 from typing import Any
 
 from sentry.eventstore.models import Event, GroupEvent
-from sentry.integrations.slack.message_builder import LEVEL_TO_COLOR, SlackAttachment, SlackBody
+from sentry.integrations.slack.message_builder import SlackBody
 from sentry.models.group import Group
 from sentry.notifications.utils.actions import MessageAction
-from sentry.utils.assets import get_asset_url
-from sentry.utils.http import absolute_uri
 
 
 def get_slack_button(action: MessageAction) -> Mapping[str, Any]:
@@ -49,46 +47,3 @@ class SlackMessageBuilder(ABC):
         Returns True if we need to escape the text in the message.
         """
         return False
-
-    def _build(
-        self,
-        text: str,
-        title: str | None = None,
-        title_link: str | None = None,
-        footer: str | None = None,
-        color: str | None = None,
-        actions: Sequence[MessageAction] | None = None,
-        **kwargs: Any,
-    ) -> SlackAttachment:
-        """
-        Helper to DRY up Slack specific fields.
-
-        :param string text: Body text.
-        :param [string] title: Title text.
-        :param [string] title_link: Optional URL attached to the title.
-        :param [string] footer: Footer text.
-        :param [string] color: The key in the Slack palate table, NOT hex. Default: "info".
-        :param [list[MessageAction]] actions: List of actions displayed alongside the message.
-        :param kwargs: Everything else.
-        """
-        # If `footer` string is passed, automatically attach a `footer_icon`.
-        if footer:
-            kwargs["footer"] = footer
-            kwargs["footer_icon"] = str(
-                absolute_uri(get_asset_url("sentry", "images/sentry-email-avatar.png"))
-            )
-
-        if title:
-            kwargs["title"] = title
-            if title_link:
-                kwargs["title_link"] = title_link
-
-        if actions is not None:
-            kwargs["actions"] = [get_slack_button(action) for action in actions]
-
-        return {
-            "text": text,
-            "mrkdwn_in": ["text"],
-            "color": LEVEL_TO_COLOR[color or "info"],
-            **kwargs,
-        }

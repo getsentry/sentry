@@ -21,11 +21,10 @@ import Text from 'sentry/components/text';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import slugify from 'sentry/utils/slugify';
 import commonTheme from 'sentry/utils/theme';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -34,6 +33,8 @@ import {crontabAsText} from 'sentry/views/monitors/utils/crontabAsText';
 
 import type {IntervalConfig, Monitor, MonitorConfig, MonitorType} from '../types';
 import {ScheduleType} from '../types';
+
+import {platformsWithGuides} from './monitorQuickStartGuide';
 
 const SCHEDULE_OPTIONS: SelectValue<string>[] = [
   {value: ScheduleType.CRONTAB, label: t('Crontab')},
@@ -48,8 +49,8 @@ export const DEFAULT_CRONTAB = '0 0 * * *';
 //
 // XXX(epurkhiser): For whatever reason the rules API wants the team and member
 // to be capitalized.
-const RULE_TARGET_MAP = {team: 'Team', member: 'Member'} as const;
-const RULES_SELECTOR_MAP = {Team: 'team', Member: 'member'} as const;
+const RULE_TARGET_MAP = {team: 'Team', user: 'Member'} as const;
+const RULES_SELECTOR_MAP = {Team: 'team', Member: 'user'} as const;
 
 // In minutes
 export const DEFAULT_MAX_RUNTIME = 30;
@@ -173,7 +174,6 @@ function MonitorForm({
       mapFormErrors: mapMonitorFormErrors,
     })
   );
-  const organization = useOrganization();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
 
@@ -215,6 +215,8 @@ function MonitorForm({
     target => `${RULES_SELECTOR_MAP[target.targetType]}:${target.targetIdentifier}`
   );
 
+  const owner = monitor?.owner ? `${monitor.owner.type}:${monitor.owner.id}` : null;
+
   const envOptions = selectedProject?.environments.map(e => ({value: e, label: e})) ?? [];
   const alertRuleEnvs = [
     {
@@ -223,8 +225,6 @@ function MonitorForm({
     },
     ...envOptions,
   ];
-
-  const hasIssuePlatform = organization.features.includes('issue-platform');
 
   return (
     <Form
@@ -238,6 +238,7 @@ function MonitorForm({
           ? {
               name: monitor.name,
               slug: monitor.slug,
+              owner: owner,
               type: monitor.type ?? DEFAULT_MONITOR_TYPE,
               project: monitor.project.slug,
               'alertRule.targets': alertRuleTarget,
@@ -282,6 +283,13 @@ function MonitorForm({
           <StyledSentryProjectSelectorField
             name="project"
             aria-label={t('Project')}
+            groupProjects={project =>
+              platformsWithGuides.includes(project.platform) ? 'suggested' : 'other'
+            }
+            groups={[
+              {key: 'suggested', label: t('Suggested Projects')},
+              {key: 'other', label: t('Other Projects')},
+            ]}
             projects={filteredProjects}
             placeholder={t('Choose Project')}
             disabled={!!monitor}
@@ -419,38 +427,54 @@ function MonitorForm({
             </PanelBody>
           </Panel>
         </InputGroup>
-        {hasIssuePlatform && (
-          <Fragment>
-            <StyledListItem>{t('Set thresholds')}</StyledListItem>
-            <ListItemSubText>
-              {t('Configure when an issue is created or resolved.')}
-            </ListItemSubText>
-            <InputGroup>
-              <Panel>
-                <PanelBody>
-                  <NumberField
-                    name="config.failureIssueThreshold"
-                    min={1}
-                    placeholder="1"
-                    help={t(
-                      'Create a new issue when this many consecutive missed or error check-ins are processed.'
-                    )}
-                    label={t('Failure Tolerance')}
-                  />
-                  <NumberField
-                    name="config.recoveryThreshold"
-                    min={1}
-                    placeholder="1"
-                    help={t(
-                      'Resolve the issue when this many consecutive healthy check-ins are processed.'
-                    )}
-                    label={t('Recovery Tolerance')}
-                  />
-                </PanelBody>
-              </Panel>
-            </InputGroup>
-          </Fragment>
-        )}
+        <Fragment>
+          <StyledListItem>{t('Set thresholds')}</StyledListItem>
+          <ListItemSubText>
+            {t('Configure when an issue is created or resolved.')}
+          </ListItemSubText>
+          <InputGroup>
+            <Panel>
+              <PanelBody>
+                <NumberField
+                  name="config.failureIssueThreshold"
+                  min={1}
+                  placeholder="1"
+                  help={t(
+                    'Create a new issue when this many consecutive missed or error check-ins are processed.'
+                  )}
+                  label={t('Failure Tolerance')}
+                />
+                <NumberField
+                  name="config.recoveryThreshold"
+                  min={1}
+                  placeholder="1"
+                  help={t(
+                    'Resolve the issue when this many consecutive healthy check-ins are processed.'
+                  )}
+                  label={t('Recovery Tolerance')}
+                />
+              </PanelBody>
+            </Panel>
+          </InputGroup>
+        </Fragment>
+        <StyledListItem>{t('Set Owner')}</StyledListItem>
+        <ListItemSubText>
+          {t(
+            'Choose a team or member as the monitor owner. Issues created will be automatically assigned to the owner.'
+          )}
+        </ListItemSubText>
+        <InputGroup>
+          <Panel>
+            <PanelBody>
+              <SentryMemberTeamSelectorField
+                name="owner"
+                label={t('Owner')}
+                help={t('Automatically assign issues to a team or user.')}
+                menuPlacement="auto"
+              />
+            </PanelBody>
+          </Panel>
+        </InputGroup>
         <StyledListItem>{t('Notifications')}</StyledListItem>
         <ListItemSubText>
           {t('Configure who to notify upon issue creation and when.')}
@@ -469,13 +493,21 @@ function MonitorForm({
                   {t('Customize this monitors notification configuration in Alerts')}
                 </AlertLink>
               )}
-              <SentryMemberTeamSelectorField
-                label={t('Notify')}
-                help={t('Send notifications to a member or team.')}
-                name="alertRule.targets"
-                multiple
-                menuPlacement="auto"
-              />
+              <Observer>
+                {() => {
+                  const projectSlug = form.current.getValue('project')?.toString();
+                  return (
+                    <SentryMemberTeamSelectorField
+                      label={t('Notify')}
+                      help={t('Send notifications to a member or team.')}
+                      name="alertRule.targets"
+                      memberOfProjectSlugs={projectSlug ? [projectSlug] : undefined}
+                      multiple
+                      menuPlacement="auto"
+                    />
+                  );
+                }}
+              </Observer>
               <Observer>
                 {() => {
                   const selectedAssignee = form.current.getValue('alertRule.targets');
@@ -534,12 +566,12 @@ const StyledSentryProjectSelectorField = styled(SentryProjectSelectorField)`
 
 const StyledListItem = styled(ListItem)`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1.3;
 `;
 
 const LabelText = styled(Text)`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
 `;
 
@@ -565,7 +597,7 @@ const MultiColumnInput = styled('div')<{columns?: string}>`
 `;
 
 const CronstrueText = styled(LabelText)`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   font-family: ${p => p.theme.text.familyMono};
   grid-column: auto / span 2;

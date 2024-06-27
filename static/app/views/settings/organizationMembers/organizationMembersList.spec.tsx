@@ -1,9 +1,7 @@
-import {browserHistory} from 'react-router';
 import {AuthProviderFixture} from 'sentry-fixture/authProvider';
 import {MemberFixture} from 'sentry-fixture/member';
 import {MembersFixture} from 'sentry-fixture/members';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
@@ -22,6 +20,7 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import OrganizationMembersList from 'sentry/views/settings/organizationMembers/organizationMembersList';
 
 jest.mock('sentry/utils/analytics');
@@ -100,7 +99,7 @@ describe('OrganizationMembersList', function () {
   jest.spyOn(ConfigStore, 'get').mockImplementation(() => currentUser.user);
 
   afterAll(function () {
-    (ConfigStore.get as jest.Mock).mockRestore();
+    jest.mocked(ConfigStore.get).mockRestore();
   });
 
   beforeEach(function () {
@@ -171,7 +170,7 @@ describe('OrganizationMembersList', function () {
         snoozed_ts: undefined,
       },
     });
-    (browserHistory.push as jest.Mock).mockReset();
+    jest.mocked(browserHistory.push).mockReset();
     OrganizationsStore.load([organization]);
   });
 
@@ -181,9 +180,7 @@ describe('OrganizationMembersList', function () {
       method: 'DELETE',
     });
 
-    render(<OrganizationMembersList {...defaultProps} />, {
-      context: RouterContextFixture([{organization}]),
-    });
+    render(<OrganizationMembersList {...defaultProps} />);
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
 
@@ -204,9 +201,7 @@ describe('OrganizationMembersList', function () {
       statusCode: 500,
     });
 
-    render(<OrganizationMembersList {...defaultProps} />, {
-      context: RouterContextFixture([{organization}]),
-    });
+    render(<OrganizationMembersList {...defaultProps} />);
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
 
@@ -226,9 +221,7 @@ describe('OrganizationMembersList', function () {
       method: 'DELETE',
     });
 
-    render(<OrganizationMembersList {...defaultProps} />, {
-      context: RouterContextFixture([{organization}]),
-    });
+    render(<OrganizationMembersList {...defaultProps} />);
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Leave'})[0]);
 
@@ -256,9 +249,7 @@ describe('OrganizationMembersList', function () {
     });
     OrganizationsStore.addOrReplace(secondOrg);
 
-    render(<OrganizationMembersList {...defaultProps} />, {
-      context: RouterContextFixture([{organization}]),
-    });
+    render(<OrganizationMembersList {...defaultProps} />);
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Leave'})[0]);
 
@@ -282,9 +273,7 @@ describe('OrganizationMembersList', function () {
       statusCode: 500,
     });
 
-    render(<OrganizationMembersList {...defaultProps} />, {
-      context: RouterContextFixture([{organization}]),
-    });
+    render(<OrganizationMembersList {...defaultProps} />);
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Leave'})[0]);
 
@@ -307,9 +296,7 @@ describe('OrganizationMembersList', function () {
       },
     });
 
-    render(<OrganizationMembersList {...defaultProps} />, {
-      context: RouterContextFixture([{organization}]),
-    });
+    render(<OrganizationMembersList {...defaultProps} />);
 
     expect(inviteMock).not.toHaveBeenCalled();
 
@@ -326,9 +313,7 @@ describe('OrganizationMembersList', function () {
       },
     });
 
-    render(<OrganizationMembersList {...defaultProps} />, {
-      context: RouterContextFixture([{organization}]),
-    });
+    render(<OrganizationMembersList {...defaultProps} />);
 
     expect(inviteMock).not.toHaveBeenCalled();
 
@@ -342,10 +327,8 @@ describe('OrganizationMembersList', function () {
       body: [],
     });
 
-    const routerContext = RouterContextFixture();
-
     render(<OrganizationMembersList {...defaultProps} />, {
-      context: routerContext,
+      router,
     });
 
     await userEvent.type(screen.getByPlaceholderText('Search Members'), 'member');
@@ -362,7 +345,7 @@ describe('OrganizationMembersList', function () {
 
     await userEvent.keyboard('{enter}');
 
-    expect(routerContext.context.router.push).toHaveBeenCalledTimes(1);
+    expect(router.push).toHaveBeenCalledTimes(1);
   });
 
   it('can filter members', async function () {
@@ -370,10 +353,7 @@ describe('OrganizationMembersList', function () {
       url: '/organizations/org-slug/members/',
       body: [],
     });
-    const routerContext = RouterContextFixture();
-    render(<OrganizationMembersList {...defaultProps} />, {
-      context: routerContext,
-    });
+    render(<OrganizationMembersList {...defaultProps} />);
 
     await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
     await userEvent.click(screen.getByRole('option', {name: 'Member'}));
@@ -465,9 +445,7 @@ describe('OrganizationMembersList', function () {
         method: 'PUT',
       });
 
-      render(<OrganizationMembersList {...defaultProps} organization={org} />, {
-        context: RouterContextFixture([{organization: org}]),
-      });
+      render(<OrganizationMembersList {...defaultProps} organization={org} />);
 
       expect(await screen.findByText('Pending Members')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Approve'})).toBeDisabled();
@@ -491,9 +469,7 @@ describe('OrganizationMembersList', function () {
         method: 'PUT',
       });
 
-      render(<OrganizationMembersList {...defaultProps} />, {
-        context: RouterContextFixture([{organization: org}]),
-      });
+      render(<OrganizationMembersList {...defaultProps} />);
 
       expect(screen.getByText('Pending Members')).toBeInTheDocument();
 
@@ -529,9 +505,7 @@ describe('OrganizationMembersList', function () {
         method: 'DELETE',
       });
 
-      render(<OrganizationMembersList {...defaultProps} />, {
-        context: RouterContextFixture([{organization: org}]),
-      });
+      render(<OrganizationMembersList {...defaultProps} />);
 
       expect(screen.getByText('Pending Members')).toBeInTheDocument();
 
@@ -565,9 +539,7 @@ describe('OrganizationMembersList', function () {
         method: 'PUT',
       });
 
-      render(<OrganizationMembersList {...defaultProps} />, {
-        context: RouterContextFixture([{organization: org}]),
-      });
+      render(<OrganizationMembersList {...defaultProps} />, {organization: org});
 
       await selectEvent.select(screen.getAllByRole('textbox')[1], ['Admin']);
 

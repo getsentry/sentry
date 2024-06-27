@@ -1,4 +1,4 @@
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {getKeyCode} from 'sentry/utils/getKeyCode';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
@@ -19,7 +19,6 @@ describe('useHotkeys', function () {
     events = {};
 
     // Define the addEventListener method with a Jest mock function
-    // @ts-expect-error we are overriding the global document object
     document.addEventListener = jest.fn((event: string, callback: () => any) => {
       events[event] = callback;
     });
@@ -32,7 +31,7 @@ describe('useHotkeys', function () {
   it('handles a simple match', function () {
     const callback = jest.fn();
 
-    reactHooks.renderHook(p => useHotkeys(p, []), {
+    renderHook(p => useHotkeys(p, []), {
       initialProps: [{match: 'ctrl+s', callback}],
     });
 
@@ -49,7 +48,7 @@ describe('useHotkeys', function () {
   it('handles multiple matches', function () {
     const callback = jest.fn();
 
-    reactHooks.renderHook(p => useHotkeys(p, []), {
+    renderHook(p => useHotkeys(p, []), {
       initialProps: [{match: ['ctrl+s', 'command+m'], callback}],
     });
 
@@ -69,7 +68,7 @@ describe('useHotkeys', function () {
   it('handles a complex match', function () {
     const callback = jest.fn();
 
-    reactHooks.renderHook(p => useHotkeys(p, []), {
+    renderHook(p => useHotkeys(p, []), {
       initialProps: [{match: ['command+ctrl+alt+shift+x'], callback}],
     });
 
@@ -91,7 +90,7 @@ describe('useHotkeys', function () {
   it('does not match when extra modifiers are pressed', function () {
     const callback = jest.fn();
 
-    reactHooks.renderHook(p => useHotkeys(p, []), {
+    renderHook(p => useHotkeys(p, []), {
       initialProps: [{match: ['command+shift+x'], callback}],
     });
 
@@ -113,12 +112,9 @@ describe('useHotkeys', function () {
   it('updates with rerender', function () {
     const callback = jest.fn();
 
-    const {rerender} = reactHooks.renderHook(
-      p => useHotkeys([{match: p.match, callback}], [p]),
-      {
-        initialProps: {match: 'ctrl+s'},
-      }
-    );
+    const {rerender} = renderHook(p => useHotkeys([{match: p.match, callback}], [p]), {
+      initialProps: {match: 'ctrl+s'},
+    });
 
     expect(events.keydown).toBeDefined();
     expect(callback).not.toHaveBeenCalled();
@@ -140,7 +136,7 @@ describe('useHotkeys', function () {
   it('skips input and textarea', function () {
     const callback = jest.fn();
 
-    reactHooks.renderHook(p => useHotkeys(p, []), {
+    renderHook(p => useHotkeys(p, []), {
       initialProps: [{match: ['/'], callback}],
     });
 
@@ -152,7 +148,7 @@ describe('useHotkeys', function () {
   it('does not skips input and textarea with includesInputs', function () {
     const callback = jest.fn();
 
-    reactHooks.renderHook(p => useHotkeys(p, []), {
+    renderHook(p => useHotkeys(p, []), {
       initialProps: [{match: ['/'], callback, includeInputs: true}],
     });
 
@@ -164,7 +160,7 @@ describe('useHotkeys', function () {
   it('skips preventDefault', function () {
     const callback = jest.fn();
 
-    reactHooks.renderHook(p => useHotkeys(p, []), {
+    renderHook(p => useHotkeys(p, []), {
       initialProps: [{match: 'ctrl+s', callback, skipPreventDefault: true}],
     });
 

@@ -1,9 +1,10 @@
 import {Fragment} from 'react';
-import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
+import Link from 'sentry/components/links/link';
+import Placeholder from 'sentry/components/placeholder';
 import ErrorCounts from 'sentry/components/replays/header/errorCounts';
-import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
+import ReplayViewers from 'sentry/components/replays/header/replayViewers';
 import {IconCursorArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -17,10 +18,16 @@ import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 type Props = {
   replayErrors: ReplayError[];
   replayRecord: ReplayRecord | undefined;
+  isLoading?: boolean;
   showDeadRageClicks?: boolean;
 };
 
-function ReplayMetaData({replayErrors, replayRecord, showDeadRageClicks = true}: Props) {
+function ReplayMetaData({
+  replayErrors,
+  replayRecord,
+  showDeadRageClicks = true,
+  isLoading,
+}: Props) {
   const location = useLocation();
   const routes = useRoutes();
   const referrer = getRouteStringFromRoutes(routes);
@@ -36,7 +43,9 @@ function ReplayMetaData({replayErrors, replayRecord, showDeadRageClicks = true}:
     },
   };
 
-  return (
+  return isLoading ? (
+    <Placeholder height="47px" width="203px" />
+  ) : (
     <KeyMetrics>
       {showDeadRageClicks && (
         <Fragment>
@@ -79,7 +88,15 @@ function ReplayMetaData({replayErrors, replayRecord, showDeadRageClicks = true}:
         {replayRecord ? (
           <ErrorCounts replayErrors={replayErrors} replayRecord={replayRecord} />
         ) : (
-          <HeaderPlaceholder width="20px" height="16px" />
+          <Placeholder width="20px" height="16px" />
+        )}
+      </KeyMetricData>
+      <KeyMetricLabel>{t('Seen By')}</KeyMetricLabel>
+      <KeyMetricData>
+        {replayRecord ? (
+          <ReplayViewers projectId={replayRecord.project_id} replayId={replayRecord.id} />
+        ) : (
+          <Placeholder width="55px" height="27px" />
         )}
       </KeyMetricData>
     </KeyMetrics>
@@ -108,7 +125,7 @@ const KeyMetricLabel = styled('dt')`
 
 const KeyMetricData = styled('dd')`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   display: flex;
   align-items: center;
   gap: ${space(1)};

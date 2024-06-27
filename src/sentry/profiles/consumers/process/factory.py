@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from collections.abc import Iterable, Mapping
 
 from arroyo.backends.kafka.consumer import KafkaPayload
 from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
@@ -38,7 +38,7 @@ class ProcessProfileStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         )
 
 
-def is_sampled(headers) -> bool:
+def is_sampled(headers: Iterable[tuple[str, str | bytes]]) -> bool:
     for k, v in headers:
         if k == "sampled":
             if isinstance(v, bytes):

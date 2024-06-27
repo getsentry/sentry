@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import * as Sentry from '@sentry/react';
 import Cookies from 'js-cookie';
 import * as qs from 'query-string';
@@ -13,13 +12,13 @@ import {
 } from 'sentry/constants/apiErrorCodes';
 import controlsilopatterns from 'sentry/data/controlsiloUrlPatterns';
 import {metric} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import getCsrfToken from 'sentry/utils/getCsrfToken';
 import {uniqueId} from 'sentry/utils/guid';
 import RequestError from 'sentry/utils/requestError/requestError';
 import {sanitizePath} from 'sentry/utils/requestError/sanitizePath';
 
 import ConfigStore from './stores/configStore';
-import OrganizationStore from './stores/organizationStore';
 
 export class Request {
   /**
@@ -698,11 +697,11 @@ export class Client {
 }
 
 export function resolveHostname(path: string, hostname?: string): string {
-  const storeState = OrganizationStore.get();
   const configLinks = ConfigStore.get('links');
+  const systemFeatures = ConfigStore.get('features');
 
   hostname = hostname ?? '';
-  if (!hostname && storeState.organization?.features.includes('frontend-domainsplit')) {
+  if (!hostname && systemFeatures.has('system:multi-region')) {
     // /_admin/ is special: since it doesn't update OrganizationStore, it's
     // commonly the case that requests will be made for data which does not
     // exist in the same region as the one in configLinks.regionUrl. Because of

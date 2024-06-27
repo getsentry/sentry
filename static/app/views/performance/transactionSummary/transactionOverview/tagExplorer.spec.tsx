@@ -1,4 +1,3 @@
-import {browserHistory} from 'react-router';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -6,6 +5,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -22,11 +22,10 @@ function WrapperComponent(props) {
   );
 }
 
-function initialize(projects, query, additionalFeatures = []) {
+function initialize(query, additionalFeatures = []) {
   const features = ['transaction-event', 'performance-view', ...additionalFeatures];
   const organization = OrganizationFixture({
     features,
-    projects,
   });
   const initialOrgData = {
     organization,
@@ -37,7 +36,7 @@ function initialize(projects, query, additionalFeatures = []) {
     },
   };
   const initialData = initializeOrg(initialOrgData);
-  ProjectsStore.loadInitialData(initialData.organization.projects);
+  ProjectsStore.loadInitialData(initialData.projects);
   const eventView = EventView.fromLocation(initialData.router.location);
 
   const spanOperationBreakdownFilter = SpanOperationBreakdownFilter.NONE;
@@ -108,7 +107,7 @@ describe('WrapperComponent', function () {
       api,
       spanOperationBreakdownFilter,
       transactionName,
-    } = initialize(projects, {});
+    } = initialize({});
 
     render(
       <WrapperComponent
@@ -137,7 +136,7 @@ describe('WrapperComponent', function () {
       api,
       spanOperationBreakdownFilter,
       transactionName,
-    } = initialize(projects, {
+    } = initialize({
       project: '123',
     });
 
@@ -176,9 +175,8 @@ describe('WrapperComponent', function () {
       api,
       spanOperationBreakdownFilter,
       transactionName,
-      routerContext,
+      router,
     } = initialize(
-      projects,
       {
         project: '123',
       },
@@ -195,7 +193,7 @@ describe('WrapperComponent', function () {
         transactionName={transactionName}
         currentFilter={spanOperationBreakdownFilter}
       />,
-      {context: routerContext}
+      {router}
     );
 
     const button = await screen.findByTestId('tags-explorer-open-tags');
@@ -208,10 +206,7 @@ describe('WrapperComponent', function () {
 
   it('Tag explorer uses the operation breakdown as a column', async function () {
     const projects = [ProjectFixture({platform: 'javascript-react'})];
-    const {organization, location, eventView, api, transactionName} = initialize(
-      projects,
-      {}
-    );
+    const {organization, location, eventView, api, transactionName} = initialize({});
 
     render(
       <WrapperComponent
@@ -248,8 +243,8 @@ describe('WrapperComponent', function () {
       api,
       spanOperationBreakdownFilter,
       transactionName,
-      routerContext,
-    } = initialize(projects, {});
+      router,
+    } = initialize({});
 
     render(
       <WrapperComponent
@@ -261,7 +256,7 @@ describe('WrapperComponent', function () {
         transactionName={transactionName}
         currentFilter={spanOperationBreakdownFilter}
       />,
-      {context: routerContext}
+      {router}
     );
 
     await waitFor(() => expect(facetApiMock).toHaveBeenCalled());

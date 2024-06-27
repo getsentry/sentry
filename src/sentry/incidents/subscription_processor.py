@@ -27,8 +27,10 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTrigger,
+    AlertRuleTriggerActionMethod,
     invoke_alert_subscription_callback,
 )
+from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
 from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
@@ -49,7 +51,6 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription_from_snuba_query,
 )
 from sentry.snuba.models import QuerySubscription
-from sentry.snuba.tasks import build_query_builder
 from sentry.utils import metrics, redis
 from sentry.utils.dates import to_datetime
 
@@ -76,6 +77,10 @@ class SubscriptionProcessor:
     and then can process one or more updates via `process_update`. Keeps track of how
     close an alert rule is to alerting, creates an incident, and auto resolves the
     incident if a resolve threshold is set and the threshold is triggered.
+
+    TODO:
+    IF processing a subscription update with NO QuerySubscription - delete the query _in_ snuba
+    IF processing a subscription for a QuerySubscription with NO AlertRule - delete the query _in_ snuba _and_ the QuerySubscription
     """
 
     # Each entry is a tuple in format (<alert_operator>, <resolve_operator>)
@@ -104,10 +109,21 @@ class SubscriptionProcessor:
 
     @property
     def active_incident(self) -> Incident:
+        """
+        fetches an incident given the alert rule, project (and subscription if available)
+        """
         if not hasattr(self, "_active_incident"):
-            self._active_incident = Incident.objects.get_active_incident(
-                self.alert_rule, self.subscription.project
+            incident = Incident.objects.get_active_incident(
+                alert_rule=self.alert_rule,
+                project=self.subscription.project,
+                subscription=self.subscription,
             )
+            if not incident:
+                # TODO: make subscription required
+                incident = Incident.objects.get_active_incident(
+                    alert_rule=self.alert_rule, project=self.subscription.project
+                )
+            self._active_incident = incident
         return self._active_incident
 
     @active_incident.setter
@@ -115,7 +131,11 @@ class SubscriptionProcessor:
         self._active_incident = active_incident
 
     @property
-    def incident_triggers(self) -> dict[int, IncidentTrigger]:
+    def incident_trigger_map(self) -> dict[int, IncidentTrigger]:
+        """
+        mapping of alert rule trigger id to incident trigger
+        NOTE: IncidentTrigger is keyed via ("incident", "alert_rule_trigger")
+        """
         if not hasattr(self, "_incident_triggers"):
             incident = self.active_incident
             incident_triggers = {}
@@ -128,14 +148,16 @@ class SubscriptionProcessor:
             self._incident_triggers = incident_triggers
         return self._incident_triggers
 
-    def check_trigger_status(self, trigger: AlertRuleTrigger, status: TriggerStatus) -> bool:
+    def check_trigger_matches_status(
+        self, trigger: AlertRuleTrigger, status: TriggerStatus
+    ) -> bool:
         """
         Determines whether a trigger is currently at the specified status
         :param trigger: An `AlertRuleTrigger`
         :param status: A `TriggerStatus`
         :return: True if at the specified status, otherwise False
         """
-        incident_trigger = self.incident_triggers.get(trigger.id)
+        incident_trigger = self.incident_trigger_map.get(trigger.id)
         return incident_trigger is not None and incident_trigger.status == status.value
 
     def reset_trigger_counts(self) -> None:
@@ -197,11 +219,11 @@ class SubscriptionProcessor:
         )
         try:
             project_ids = [self.subscription.project_id]
-            query_builder = build_query_builder(
-                entity_subscription,
-                snuba_query.query,
-                project_ids,
-                snuba_query.environment,
+            # TODO: determine whether we need to include the subscription query_extra here
+            query_builder = entity_subscription.build_query_builder(
+                query=snuba_query.query,
+                project_ids=project_ids,
+                environment=snuba_query.environment,
                 params={
                     "organization_id": self.subscription.project.organization.id,
                     "project_id": project_ids,
@@ -221,7 +243,14 @@ class SubscriptionProcessor:
             comparison_aggregate = list(results["data"][0].values())[0]
 
         except Exception:
-            logger.exception("Failed to run comparison query")
+            logger.exception(
+                "Failed to run comparison query",
+                extra={
+                    "alert_rule_id": self.alert_rule.id,
+                    "subscription_id": subscription_update.get("subscription_id"),
+                    "organization_id": self.alert_rule.organization_id,
+                },
+            )
             return None
 
         if not comparison_aggregate:
@@ -394,9 +423,7 @@ class SubscriptionProcessor:
         return aggregation_value
 
     def get_aggregation_value(self, subscription_update: QuerySubscriptionUpdate) -> float | None:
-        if self.subscription.snuba_query.dataset == Dataset.Sessions.value:
-            aggregation_value = self.get_crash_rate_alert_aggregation_value(subscription_update)
-        elif self.subscription.snuba_query.dataset == Dataset.Metrics.value:
+        if self.subscription.snuba_query.dataset == Dataset.Metrics.value:
             aggregation_value = self.get_crash_rate_alert_metrics_aggregation_value(
                 subscription_update
             )
@@ -413,6 +440,7 @@ class SubscriptionProcessor:
                 aggregation_value = self.get_comparison_aggregation_value(
                     subscription_update, aggregation_value
                 )
+
         return aggregation_value
 
     def process_update(self, subscription_update: QuerySubscriptionUpdate) -> None:
@@ -440,12 +468,14 @@ class SubscriptionProcessor:
             return
 
         if not hasattr(self, "alert_rule"):
+            # QuerySubscriptions must _always_ have an associated AlertRule
             # If the alert rule has been removed then just skip
             metrics.incr("incidents.alert_rules.no_alert_rule_for_subscription")
             logger.error(
                 "Received an update for a subscription, but no associated alert rule exists"
             )
-            # TODO: Delete subscription here.
+            # TODO: Delete QuerySubscription here
+            # TODO: Delete SnubaQuery here
             return
 
         if subscription_update["timestamp"] <= self.last_update:
@@ -470,24 +500,8 @@ class SubscriptionProcessor:
 
         aggregation_value = self.get_aggregation_value(subscription_update)
 
-        if self.subscription.snuba_query.dataset == Dataset.Sessions.value:
-            try:
-                # Temporarily logging results from session updates for comparison with data from metric
-                # updates
-                logger.info(
-                    "subscription_processor.message",
-                    extra={
-                        "subscription_id": self.subscription.id,
-                        "dataset": self.subscription.snuba_query.dataset,
-                        "snuba_subscription_id": self.subscription.subscription_id,
-                        "result": subscription_update,
-                        "aggregation_value": aggregation_value,
-                    },
-                )
-            except Exception:
-                logger.exception("Failed to log subscription results for session subscription")
-
         # Trigger callbacks for any AlertRules that may need to know about the subscription update
+        # Current callback will update the activation metric values & delete querysubscription on finish
         # TODO: register over/under triggers as alert rule callbacks as well
         invoke_alert_subscription_callback(
             AlertRuleMonitorType(self.alert_rule.monitor_type),
@@ -506,11 +520,15 @@ class SubscriptionProcessor:
         ]
         fired_incident_triggers = []
         with transaction.atomic(router.db_for_write(AlertRule)):
+            # Triggers is the threshold - NOT an instance of a trigger
             for trigger in self.triggers:
                 if alert_operator(
                     aggregation_value, trigger.alert_threshold
-                ) and not self.check_trigger_status(trigger, TriggerStatus.ACTIVE):
+                ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
+                    # If the value has breached our threshold (above/below)
+                    # And the trigger is not yet active
                     metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
+                    # triggering a threshold will create an incident and set the status to active
                     incident_trigger = self.trigger_alert_threshold(trigger, aggregation_value)
                     if incident_trigger is not None:
                         fired_incident_triggers.append(incident_trigger)
@@ -520,7 +538,7 @@ class SubscriptionProcessor:
                 if (
                     resolve_operator(aggregation_value, self.calculate_resolve_threshold(trigger))
                     and self.active_incident
-                    and self.check_trigger_status(trigger, TriggerStatus.ACTIVE)
+                    and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
                 ):
                     metrics.incr("incidents.alert_rules.threshold", tags={"type": "resolve"})
                     incident_trigger = self.trigger_resolve_threshold(trigger, aggregation_value)
@@ -531,7 +549,11 @@ class SubscriptionProcessor:
                     self.trigger_resolve_counts[trigger.id] = 0
 
             if fired_incident_triggers:
-                self.handle_trigger_actions(fired_incident_triggers, aggregation_value)
+                # For all the newly created incidents
+                # handle the associated actions (eg. send an email/notification)
+                self.handle_trigger_actions(
+                    incident_triggers=fired_incident_triggers, metric_value=aggregation_value
+                )
 
         # We update the rule stats here after we commit the transaction. This guarantees
         # that we'll never miss an update, since we'll never roll back if the process
@@ -601,25 +623,42 @@ class SubscriptionProcessor:
                 },
             )
             return None
+        # 'threshold_period' - how many times an alert value must exceed the threshold to fire/resolve the alert
         if self.trigger_alert_counts[trigger.id] >= self.alert_rule.threshold_period:
             metrics.incr("incidents.alert_rules.trigger", tags={"type": "fire"})
 
-            # Only create a new incident if we don't already have an active one
+            # Only create a new incident if we don't already have an active incident for the AlertRule
             if not self.active_incident:
                 detected_at = self.calculate_event_date_from_update_date(self.last_update)
+                activation: AlertRuleActivations | None = None
+                if self.alert_rule.monitor_type == AlertRuleMonitorType.ACTIVATED.value:
+                    activations = list(self.subscription.alertruleactivations_set.all())
+                    if len(activations) != 1:
+                        logger.error(
+                            "activated alert rule subscription has unexpected activation instances",
+                            extra={
+                                "activations_count": len(activations),
+                            },
+                        )
+                    else:
+                        activation = activations[0]
+
                 self.active_incident = create_incident(
-                    self.alert_rule.organization,
-                    IncidentType.ALERT_TRIGGERED,
+                    organization=self.alert_rule.organization,
+                    type_=IncidentType.ALERT_TRIGGERED,
                     # TODO: Include more info in name?
-                    self.alert_rule.name,
+                    title=self.alert_rule.name,
                     alert_rule=self.alert_rule,
                     date_started=detected_at,
                     date_detected=self.last_update,
                     projects=[self.subscription.project],
+                    activation=activation,
+                    subscription=self.subscription,
                 )
             # Now create (or update if it already exists) the incident trigger so that
             # we have a record of this trigger firing for this incident
-            incident_trigger = self.incident_triggers.get(trigger.id)
+            # NOTE: `incident_triggers` is derived from `self.active_incident`
+            incident_trigger = self.incident_trigger_map.get(trigger.id)
             if incident_trigger:
                 incident_trigger.status = TriggerStatus.ACTIVE.value
                 incident_trigger.save()
@@ -630,7 +669,7 @@ class SubscriptionProcessor:
                     status=TriggerStatus.ACTIVE.value,
                 )
             self.handle_incident_severity_update()
-            self.incident_triggers[trigger.id] = incident_trigger
+            self.incident_trigger_map[trigger.id] = incident_trigger
 
             # TODO: We should create an audit log, and maybe something that keeps
             # all of the details available for showing on the incident. Might be a json
@@ -650,7 +689,7 @@ class SubscriptionProcessor:
         `TriggerStatus.Resolved` state.
         :return:
         """
-        for incident_trigger in self.incident_triggers.values():
+        for incident_trigger in self.incident_trigger_map.values():
             if incident_trigger.status != TriggerStatus.RESOLVED.value:
                 return False
         return True
@@ -666,7 +705,7 @@ class SubscriptionProcessor:
         self.trigger_resolve_counts[trigger.id] += 1
         if self.trigger_resolve_counts[trigger.id] >= self.alert_rule.threshold_period:
             metrics.incr("incidents.alert_rules.trigger", tags={"type": "resolve"})
-            incident_trigger = self.incident_triggers[trigger.id]
+            incident_trigger = self.incident_trigger_map[trigger.id]
             incident_trigger.status = TriggerStatus.RESOLVED.value
             incident_trigger.save()
             self.trigger_resolve_counts[trigger.id] = 0
@@ -679,7 +718,7 @@ class SubscriptionProcessor:
                     date_closed=self.calculate_event_date_from_update_date(self.last_update),
                 )
                 self.active_incident = None
-                self.incident_triggers.clear()
+                self.incident_trigger_map.clear()
             else:
                 self.handle_incident_severity_update()
 
@@ -690,16 +729,24 @@ class SubscriptionProcessor:
     def handle_trigger_actions(
         self, incident_triggers: list[IncidentTrigger], metric_value: float
     ) -> None:
+        # Actions represent the notification type that should be triggered when an alert is fired
         actions = deduplicate_trigger_actions(triggers=deepcopy(self.triggers))
         # Grab the first trigger to get incident id (they are all the same)
         # All triggers should either be firing or resolving, so doesn't matter which we grab.
         incident_trigger = incident_triggers[0]
-        method = "fire" if incident_trigger.status == TriggerStatus.ACTIVE.value else "resolve"
-        try:
+        method = (
+            AlertRuleTriggerActionMethod.FIRE.value
+            if incident_trigger.status == TriggerStatus.ACTIVE.value
+            else AlertRuleTriggerActionMethod.RESOLVE.value
+        )
+
+        # NOTE: all incident_triggers are derived from self.active_incident, so if active_incident is
+        # still set we can save ourselves a query
+        incident = self.active_incident
+        if not incident:
+            # NOTE: trigger_resolve_threshold clears the active incident cache
+            # So fetch the incident if active_incident has already been removed
             incident = Incident.objects.get(id=incident_trigger.incident_id)
-        except Incident.DoesNotExist:
-            metrics.incr("incidents.alert_rules.action.skipping_missing_incident")
-            return
 
         incident_activities = IncidentActivity.objects.filter(incident=incident).values_list(
             "value", flat=True
@@ -719,7 +766,7 @@ class SubscriptionProcessor:
         actions_to_fire = []
         new_status = IncidentStatus.CLOSED.value
 
-        if method == "resolve":
+        if method == AlertRuleTriggerActionMethod.RESOLVE.value:
             if incident.status != IncidentStatus.CLOSED.value:
                 # Critical -> warning
                 actions_to_fire = actions

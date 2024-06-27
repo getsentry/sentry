@@ -6,10 +6,10 @@
 from abc import abstractmethod
 from typing import Any
 
+from sentry.hybridcloud.rpc.service import RpcService, rpc_method
 from sentry.services.hybrid_cloud.identity import RpcIdentity, RpcIdentityProvider
 from sentry.services.hybrid_cloud.identity.model import IdentityFilterArgs
-from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 
 class IdentityService(RpcService):

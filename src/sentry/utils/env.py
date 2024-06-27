@@ -1,3 +1,4 @@
+import logging
 import os
 import sys
 
@@ -13,6 +14,7 @@ def in_test_environment() -> bool:
         "pytest" in sys.argv[0]
         or "vscode" in sys.argv[0]
         or os.environ.get("SENTRY_IN_TEST_ENVIRONMENT") in {"1", "true"}
+        or "PYTEST_XDIST_WORKER" in os.environ
     )
 
 
@@ -41,7 +43,7 @@ def gcp_project_id() -> str:
 
 
 # TODO(getsentry/team-ospo#190): Remove once fully deployed.
-def log_gcp_credentials_details(logger) -> None:
+def log_gcp_credentials_details(logger: logging.Logger) -> None:
     if in_test_environment():
         return
 
@@ -126,9 +128,9 @@ def log_gcp_credentials_details(logger) -> None:
 
 
 def is_split_db() -> bool:
-    if len(settings.DATABASES) != 1:  # type: ignore[misc]
+    if len(settings.DATABASES) != 1:
         return True
-    for db in settings.DATABASES.values():  # type: ignore[misc]
+    for db in settings.DATABASES.values():
         if db["NAME"] in {"region", "control"}:
             return True
     return False

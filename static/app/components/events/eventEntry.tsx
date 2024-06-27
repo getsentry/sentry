@@ -2,9 +2,9 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {t} from 'sentry/locale';
 import type {Group, Organization, Project, SharedViewOrganization} from 'sentry/types';
-import {IssueCategory} from 'sentry/types';
 import type {Entry, Event, EventTransaction} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import {IssueCategory} from 'sentry/types/group';
 
 import {Breadcrumbs} from './interfaces/breadcrumbs';
 import {Csp} from './interfaces/csp';
@@ -109,6 +109,10 @@ function EventEntryContent({
       );
 
     case EntryType.DEBUGMETA:
+      if (isShare) {
+        return null;
+      }
+
       return (
         <DebugMeta
           event={event}

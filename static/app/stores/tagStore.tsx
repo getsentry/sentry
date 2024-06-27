@@ -1,11 +1,18 @@
 import {createStore} from 'reflux';
 
-import type {Organization, Tag, TagCollection} from 'sentry/types';
-import {IssueCategory, IssueType, PriorityLevel} from 'sentry/types';
+import {ItemType, type SearchGroup} from 'sentry/components/smartSearchBar/types';
+import type {Tag, TagCollection} from 'sentry/types/group';
+import {
+  getIssueTitleFromType,
+  IssueCategory,
+  IssueType,
+  PriorityLevel,
+} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {FieldKey, ISSUE_FIELDS} from 'sentry/utils/fields';
 
-import type {CommonStoreDefinition} from './types';
+import type {StrictStoreDefinition} from './types';
 
 // This list is only used on issues. Events/discover
 // have their own field list that exists elsewhere.
@@ -15,13 +22,11 @@ const BUILTIN_TAGS = ISSUE_FIELDS.reduce<TagCollection>((acc, tag) => {
   return acc;
 }, {});
 
-interface TagStoreDefinition extends CommonStoreDefinition<TagCollection> {
-  getIssueAttributes(org: Organization): TagCollection;
+interface TagStoreDefinition extends StrictStoreDefinition<TagCollection> {
+  getIssueAttributes(): TagCollection;
   getIssueTags(org: Organization): TagCollection;
-  init(): void;
   loadTagsSuccess(data: Tag[]): void;
   reset(): void;
-  state: TagCollection;
 }
 
 const storeConfig: TagStoreDefinition = {
@@ -36,7 +41,7 @@ const storeConfig: TagStoreDefinition = {
   /**
    * Gets only predefined issue attributes
    */
-  getIssueAttributes(org: Organization) {
+  getIssueAttributes() {
     // TODO(mitsuhiko): what do we do with translations here?
     const isSuggestions = [
       'resolved',
@@ -86,7 +91,7 @@ const storeConfig: TagStoreDefinition = {
           IssueCategory.ERROR,
           IssueCategory.PERFORMANCE,
           IssueCategory.REPLAY,
-          ...(org.features.includes('issue-platform') ? [IssueCategory.CRON] : []),
+          IssueCategory.CRON,
         ],
         predefined: true,
       },
@@ -100,17 +105,21 @@ const storeConfig: TagStoreDefinition = {
           IssueType.PERFORMANCE_SLOW_DB_QUERY,
           IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
           IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
-          ...(org.features.includes('issue-platform')
-            ? [
-                IssueType.PERFORMANCE_ENDPOINT_REGRESSION,
-                IssueType.PROFILE_FILE_IO_MAIN_THREAD,
-                IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD,
-                IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
-                IssueType.PROFILE_REGEX_MAIN_THREAD,
-                IssueType.PROFILE_FUNCTION_REGRESSION,
-              ]
-            : []),
-        ],
+          IssueType.PERFORMANCE_ENDPOINT_REGRESSION,
+          IssueType.PROFILE_FILE_IO_MAIN_THREAD,
+          IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD,
+          IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
+          IssueType.PROFILE_REGEX_MAIN_THREAD,
+          IssueType.PROFILE_FUNCTION_REGRESSION,
+        ].map(value => ({
+          icon: null,
+          title: value,
+          name: value,
+          documentation: getIssueTitleFromType(value),
+          value,
+          type: ItemType.TAG_VALUE,
+          children: [],
+        })) as SearchGroup[],
         predefined: true,
       },
       [FieldKey.LAST_SEEN]: {
@@ -153,16 +162,13 @@ const storeConfig: TagStoreDefinition = {
         values: [],
         predefined: true,
       },
-    };
-
-    if (org.features.includes('issue-priority-ui')) {
-      tagCollection[FieldKey.ISSUE_PRIORITY] = {
+      [FieldKey.ISSUE_PRIORITY]: {
         key: FieldKey.ISSUE_PRIORITY,
         name: 'Issue Priority',
         values: [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW],
         predefined: true,
-      };
-    }
+      },
+    };
 
     // Ony include fields that that are part of the ISSUE_FIELDS. This is
     // because we may sometimes have fields that are turned off by removing
@@ -184,7 +190,7 @@ const storeConfig: TagStoreDefinition = {
       // State tags should overwrite built ins.
       ...this.state,
       // We want issue attributes to overwrite any built in and state tags
-      ...this.getIssueAttributes(org),
+      ...this.getIssueAttributes(),
     };
     if (!org.features.includes('device-classification')) {
       delete issueTags[FieldKey.DEVICE_CLASS];
@@ -206,7 +212,7 @@ const storeConfig: TagStoreDefinition = {
     // assign to this.state directly, but there is a change someone may
     // be relying on referential equality somewhere in the codebase and
     // we dont want to risk breaking that.
-    const newState = {};
+    const newState: TagCollection = {};
 
     for (let i = 0; i < data.length; i++) {
       const tag = data[i];

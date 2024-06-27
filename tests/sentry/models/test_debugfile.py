@@ -112,6 +112,11 @@ class DebugFileTest(TestCase):
         )
         assert debug_id not in difs
 
+    def test_find_missing(self):
+        dif = self.create_dif_file(debug_id="dfb8e43a-f242-3d73-a453-aeb6a777ef75-feedface")
+        ret = ProjectDebugFile.objects.find_missing([dif.checksum, "a" * 40], self.project)
+        assert ret == ["a" * 40]
+
 
 class CreateDebugFileTest(APITestCase):
     @property
@@ -240,7 +245,10 @@ class DebugFilesClearTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-dsym-files",
-            kwargs={"organization_slug": project.organization.slug, "project_slug": project.slug},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
+            },
         )
 
         self.login_as(user=self.user)

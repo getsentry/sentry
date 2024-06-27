@@ -1,4 +1,11 @@
-import {createContext, useCallback, useContext, useEffect, useRef} from 'react';
+import {
+  createContext,
+  type ReactNode,
+  useContext,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 
 import {fetchOrganizationDetails} from 'sentry/actionCreators/organization';
 import {switchOrganization} from 'sentry/actionCreators/organizations';
@@ -8,12 +15,21 @@ import ConfigStore from 'sentry/stores/configStore';
 import OrganizationsStore from 'sentry/stores/organizationsStore';
 import OrganizationStore from 'sentry/stores/organizationStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {Organization, User} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import {metric} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import useApi from 'sentry/utils/useApi';
 import {useParams} from 'sentry/utils/useParams';
 import {useRoutes} from 'sentry/utils/useRoutes';
+
+interface OrganizationLoaderContextProps {
+  organizationPromise: Promise<unknown> | null;
+}
+
+interface Props {
+  children: ReactNode;
+}
 
 /**
  * Holds the current organization if loaded.
@@ -23,23 +39,23 @@ export const OrganizationContext = createContext<Organization | null>(null);
 /**
  * Holds a function to load the organization.
  */
-const OrganizationLoaderContext = createContext<null | (() => void)>(null);
-
-interface Props {
-  children: React.ReactNode;
-}
+export const OrganizationLoaderContext = createContext<OrganizationLoaderContextProps>({
+  organizationPromise: null,
+});
 
 /**
  * Ensures that an organization is loaded when the hook is used. This will only
  * be done on first render and if an organization is not already loaded.
  */
 export function useEnsureOrganization() {
-  const loadOrganization = useContext(OrganizationLoaderContext);
+  const {organizationPromise} = useContext(OrganizationLoaderContext);
 
-  // XXX(epurkhiser): The loadOrganization function is stable as long as the
-  // organization slug is stable. A change to the organization slug will cause
-  // the organization to be reloaded.
-  useEffect(() => loadOrganization?.(), [loadOrganization]);
+  useEffect(() => {
+    async function fetchData() {
+      await organizationPromise;
+    }
+    fetchData();
+  }, [organizationPromise]);
 }
 
 /**
@@ -56,6 +72,9 @@ export function OrganizationContextProvider({children}: Props) {
 
   const {organizations} = useLegacyStore(OrganizationsStore);
   const {organization, error} = useLegacyStore(OrganizationStore);
+  const [organizationPromise, setOrganizationPromise] = useState<Promise<unknown> | null>(
+    null
+  );
 
   const lastOrganizationSlug: string | null =
     configStore.lastOrganization ?? organizations[0]?.slug ?? null;
@@ -69,20 +88,20 @@ export function OrganizationContextProvider({children}: Props) {
     ? lastOrganizationSlug
     : params.orgId || lastOrganizationSlug;
 
-  // Provided to the OrganizationLoaderContext. Loads the organization if it is
-  // not already present.
-  const loadOrganization = useCallback(() => {
+  useEffect(() => {
     // Nothing to do if we already have the organization loaded
     if (organization && organization.slug === orgSlug) {
       return;
     }
+
     if (!orgSlug) {
       OrganizationStore.setNoOrganization();
       return;
     }
 
     metric.mark({name: 'organization-details-fetch-start'});
-    fetchOrganizationDetails(api, orgSlug, false, true);
+
+    setOrganizationPromise(fetchOrganizationDetails(api, orgSlug, false, true));
   }, [api, orgSlug, organization]);
 
   // Take a measurement for when organization details are done loading and the
@@ -92,7 +111,6 @@ export function OrganizationContextProvider({children}: Props) {
       if (organization === null) {
         return;
       }
-
       metric.measure({
         name: 'app.component.perf',
         start: 'organization-details-fetch-start',
@@ -161,7 +179,7 @@ export function OrganizationContextProvider({children}: Props) {
   }, [orgSlug]);
 
   return (
-    <OrganizationLoaderContext.Provider value={loadOrganization}>
+    <OrganizationLoaderContext.Provider value={{organizationPromise}}>
       <OrganizationContext.Provider value={organization}>
         {children}
       </OrganizationContext.Provider>

@@ -293,7 +293,7 @@ class DbAccess(Access):
     def has_role_in_organization(
         self, role: str, organization: Organization, user_id: int | None
     ) -> bool:
-        if self._member:
+        if self._member and self._member.user_id is not None:
             return has_role_in_organization(
                 role=role, organization=organization, user_id=self._member.user_id
             )
@@ -1061,7 +1061,7 @@ def _from_sentry_app(
     if not sentry_app_query.exists():
         return NoAccess()
 
-    sentry_app = sentry_app_query.first()
+    sentry_app = sentry_app_query.get()
 
     if not sentry_app.is_installed_on(organization):
         return NoAccess()
@@ -1129,7 +1129,7 @@ def from_member(
     else:
         scope_intersection = member.get_scopes()
 
-    if is_superuser or is_staff:
+    if (is_superuser or is_staff) and member.user_id is not None:
         # "permissions" is a bit of a misnomer -- these are all admin level permissions, and the intent is that if you
         # have them, you can only use them when you are acting, as a superuser or staff. This is intentional.
         permissions = access_service.get_permissions_for_user(member.user_id)

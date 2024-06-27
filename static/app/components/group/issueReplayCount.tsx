@@ -5,7 +5,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconPlay} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import useOrganization from 'sentry/utils/useOrganization';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -27,7 +27,7 @@ function IssueReplayCount({group}: Props) {
   }
 
   const countDisplay = count > 50 ? '50+' : count;
-  const titleOver50 = t('This issue has 50+ replay available to view');
+  const titleOver50 = t('This issue has 50+ replays available to view');
   const title50OrLess = tn(
     'This issue has %s replay available to view',
     'This issue has %s replays available to view',
@@ -40,7 +40,7 @@ function IssueReplayCount({group}: Props) {
         to={normalizeUrl(
           `/organizations/${organization.slug}/issues/${group.id}/replays/`
         )}
-        aria-label="replay-count"
+        aria-label={t('replay-count')}
       >
         <IconPlay size="xs" />
         {countDisplay}

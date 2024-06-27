@@ -10,8 +10,8 @@ import PanelFooter from 'sentry/components/panels/panelFooter';
 import Placeholder from 'sentry/components/placeholder';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
 import type {IssueAlertRule, ProjectAlertRuleStats} from 'sentry/types/alerts';
+import type {Project} from 'sentry/types/project';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -140,7 +140,7 @@ const FooterHeader = styled(SectionHeading)`
   display: flex;
   align-items: center;
   margin: 0;
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: 1;
 `;

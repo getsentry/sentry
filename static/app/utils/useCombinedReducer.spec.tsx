@@ -1,4 +1,4 @@
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {makeCombinedReducers, useCombinedReducer} from 'sentry/utils/useCombinedReducer';
 
@@ -29,7 +29,7 @@ describe('makeCombinedReducers', () => {
 
 describe('useCombinedReducer', () => {
   it('initializes with init state', () => {
-    const {result} = reactHooks.renderHook(
+    const {result} = renderHook(
       (args: Parameters<typeof useCombinedReducer>) =>
         useCombinedReducer(args[0], args[1]),
       {initialProps: [{first: jest.fn()}, {first: 'initial'}]}
@@ -39,24 +39,24 @@ describe('useCombinedReducer', () => {
   });
 
   it('updates state', () => {
-    const {result} = reactHooks.renderHook(
+    const {result} = renderHook(
       (args: Parameters<typeof useCombinedReducer>) =>
         useCombinedReducer(args[0], args[1]),
       {initialProps: [{first: (state, action) => state + action}, {first: 'initial'}]}
     );
 
-    reactHooks.act(() => result.current[1]('_action'));
+    act(() => result.current[1]('_action'));
     expect(result.current[0]).toEqual({first: 'initial_action'});
   });
   it('doesnt keep old state around', () => {
-    const {result} = reactHooks.renderHook(
+    const {result} = renderHook(
       (args: Parameters<typeof useCombinedReducer>) =>
         useCombinedReducer(args[0], args[1]),
       {initialProps: [{first: (state, action) => state + action}, {first: 'initial'}]}
     );
 
-    reactHooks.act(() => result.current[1]('_action'));
-    reactHooks.act(() => result.current[1]('_action'));
+    act(() => result.current[1]('_action'));
+    act(() => result.current[1]('_action'));
     expect(result.current[0]).toEqual({first: 'initial_action_action'});
   });
 });

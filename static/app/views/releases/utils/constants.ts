@@ -1,5 +1,3 @@
-export const NEW_THRESHOLD_PREFIX = 'newthreshold';
-
 export const TOTAL_ERROR_COUNT_STR = 'total_error_count';
 export const NEW_ISSUE_COUNT_STR = 'new_issue_count';
 export const UNHANDLED_ISSUE_COUNT_STR = 'unhandled_issue_count';

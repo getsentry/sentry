@@ -4,7 +4,7 @@ from django.http import HttpRequest
 from sentry.api.invite_helper import ApiInviteHelper
 from sentry.models.organizationmember import OrganizationMember
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 

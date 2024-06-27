@@ -4,7 +4,7 @@ import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
-import {objectIsEmpty} from 'sentry/utils';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
 type Props = {
   event: Event;
@@ -34,7 +34,7 @@ export function EventPackageData({event}: Props) {
       title = t('Packages');
   }
 
-  if (objectIsEmpty(event.packages)) {
+  if (isEmptyObject(event.packages)) {
     return null;
   }
 

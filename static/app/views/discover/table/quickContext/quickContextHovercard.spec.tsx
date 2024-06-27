@@ -6,8 +6,8 @@ import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ConfigStore from 'sentry/stores/configStore';
-import {ReleaseStatus} from 'sentry/types';
 import {EventOrGroupType} from 'sentry/types/event';
+import {ReleaseStatus} from 'sentry/types/release';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import type EventView from 'sentry/utils/discover/eventView';
 import {QueryClientProvider} from 'sentry/utils/queryClient';

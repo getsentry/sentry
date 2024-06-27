@@ -11,11 +11,11 @@ import type {useReplayContext} from 'sentry/components/replays/replayContext';
 import {formatTime} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {formatBytesBase2} from 'sentry/utils';
+import toArray from 'sentry/utils/array/toArray';
+import {formatBytesBase2} from 'sentry/utils/bytes/formatBytesBase2';
 import {getFormattedDate} from 'sentry/utils/dates';
 import domId from 'sentry/utils/domId';
 import type {MemoryFrame} from 'sentry/utils/replays/types';
-import toArray from 'sentry/utils/toArray';
 
 interface Props
   extends Pick<
@@ -80,7 +80,7 @@ export default function MemoryChart({
       xAxis: XAxis({
         type: 'time',
         axisLabel: {
-          formatter: (time: number) => formatTime(startTimestampMs + time, false),
+          formatter: (time: number) => formatTime(time),
         },
         theme,
       }),

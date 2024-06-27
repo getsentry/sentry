@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {TeamFixture} from 'sentry-fixture/team';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {act, renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationStore from 'sentry/stores/organizationStore';
 import TeamStore from 'sentry/stores/teamStore';
@@ -20,7 +20,7 @@ describe('useTeams', function () {
   it('provides teams from the team store', function () {
     TeamStore.loadInitialData(mockTeams);
 
-    const {result} = reactHooks.renderHook(useTeams);
+    const {result} = renderHook(useTeams);
     const {teams} = result.current;
 
     expect(teams).toEqual(mockTeams);
@@ -37,11 +37,11 @@ describe('useTeams', function () {
       body: [newTeam2, newTeam3],
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useTeams);
+    const {result} = renderHook(useTeams);
     const {onSearch} = result.current;
 
     // Works with append
-    await reactHooks.act(() => onSearch('test'));
+    await act(() => onSearch('test'));
     expect(result.current.fetching).toBe(false);
 
     // Wait for state to be reflected from the store
@@ -52,7 +52,7 @@ describe('useTeams', function () {
 
     // de-duplicates items in the query results
     mockRequest.mockClear();
-    await reactHooks.act(() => onSearch('test'));
+    await act(() => onSearch('test'));
 
     // No new items have been added
     expect(mockRequest).toHaveBeenCalled();
@@ -64,7 +64,7 @@ describe('useTeams', function () {
     const nonUserTeams = [TeamFixture({id: '2', isMember: false})];
     TeamStore.loadInitialData([...userTeams, ...nonUserTeams], false, null);
 
-    const {result} = reactHooks.renderHook(useTeams, {
+    const {result} = renderHook(useTeams, {
       initialProps: {provideUserTeams: true},
     });
     const {teams} = result.current;
@@ -82,7 +82,7 @@ describe('useTeams', function () {
       body: [teamFoo],
     });
 
-    const {result, waitFor} = reactHooks.renderHook(useTeams, {
+    const {result} = renderHook(useTeams, {
       initialProps: {slugs: ['foo']},
     });
 
@@ -98,7 +98,7 @@ describe('useTeams', function () {
   it('only loads slugs when needed', function () {
     TeamStore.loadInitialData(mockTeams);
 
-    const {result} = reactHooks.renderHook(useTeams, {
+    const {result} = renderHook(useTeams, {
       initialProps: {slugs: [mockTeams[0].slug]},
     });
 
@@ -108,13 +108,13 @@ describe('useTeams', function () {
   });
 
   it('correctly returns hasMore before and after store update', async function () {
-    const {result, waitFor} = reactHooks.renderHook(useTeams);
+    const {result} = renderHook(useTeams);
 
     const {teams, hasMore} = result.current;
     expect(hasMore).toBe(null);
     expect(teams).toEqual(expect.arrayContaining([]));
 
-    reactHooks.act(() => TeamStore.loadInitialData(mockTeams, false, null));
+    act(() => TeamStore.loadInitialData(mockTeams, false, null));
     await waitFor(() => expect(result.current.teams.length).toBe(1));
 
     expect(result.current.hasMore).toBe(false);

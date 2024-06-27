@@ -23,6 +23,7 @@ export type Project = {
   eventProcessing: {
     symbolicationDegraded: boolean;
   };
+  extrapolateMetrics: boolean;
   features: string[];
   firstEvent: string | null;
   firstTransactionEvent: boolean;
@@ -31,6 +32,15 @@ export type Project = {
   hasAccess: boolean;
   hasCustomMetrics: boolean;
   hasFeedbacks: boolean;
+  hasInsightsAppStart: boolean;
+  hasInsightsAssets: boolean;
+  hasInsightsCaches: boolean;
+  hasInsightsDb: boolean;
+  hasInsightsHttp: boolean;
+  hasInsightsLlmMonitoring: boolean;
+  hasInsightsQueues: boolean;
+  hasInsightsScreenLoad: boolean;
+  hasInsightsVitals: boolean;
   hasMinifiedStackTrace: boolean;
   hasMonitors: boolean;
   hasNewFeedbacks: boolean;
@@ -43,9 +53,10 @@ export type Project = {
   isMember: boolean;
   name: string;
   organization: Organization;
-  plugins: Plugin[];
 
+  plugins: Plugin[];
   processingIssues: number;
+  relayCustomMetricCardinalityLimit: number | null;
   relayPiiConfig: string;
   resolveAge: number;
   safeFields: string[];
@@ -59,6 +70,12 @@ export type Project = {
   builtinSymbolSources?: string[];
   defaultEnvironment?: string;
   hasUserReports?: boolean;
+  highlightContext?: Record<string, string[]>;
+  highlightPreset?: {
+    context: Record<string, string[]>;
+    tags: string[];
+  };
+  highlightTags?: string[];
   latestDeploys?: Record<string, Pick<Deploy, 'dateFinished' | 'version'>> | null;
   latestRelease?: {version: string} | null;
   options?: Record<string, boolean | string>;
@@ -154,6 +171,7 @@ export type PlatformKey =
   | 'csharp-aspnetcore'
   | 'dart'
   | 'dart-flutter'
+  | 'deno'
   | 'django'
   | 'dotnet'
   | 'dotnet-aspnet'
@@ -172,6 +190,7 @@ export type PlatformKey =
   | 'go'
   | 'go-echo'
   | 'go-fasthttp'
+  | 'go-fiber'
   | 'go-gin'
   | 'go-http'
   | 'go-iris'
@@ -202,6 +221,7 @@ export type PlatformKey =
   | 'javascript-nextjs'
   | 'javascript-react'
   | 'javascript-remix'
+  | 'javascript-solid'
   | 'javascript-svelte'
   | 'javascript-sveltekit'
   | 'javascript-vue'
@@ -212,17 +232,19 @@ export type PlatformKey =
   | 'native-breakpad'
   | 'native-minidump'
   | 'native-qt'
-  | 'nintendo'
+  | 'nintendo-switch'
   | 'node'
   | 'node-awslambda'
   | 'node-azurefunctions'
   | 'node-connect'
   | 'node-express'
+  | 'node-fastify'
   | 'node-gcpfunctions'
+  | 'node-hapi'
   | 'node-koa'
+  | 'node-nestjs'
   | 'node-nodeawslambda'
   | 'node-nodegcpfunctions'
-  | 'node-serverlesscloud'
   | 'objc'
   | 'other'
   | 'perl'
@@ -232,6 +254,7 @@ export type PlatformKey =
   | 'php-monolog'
   | 'php-symfony'
   | 'php-symfony2'
+  | 'powershell'
   | 'python'
   | 'python-aiohttp'
   | 'python-asgi'

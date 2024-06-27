@@ -1,3 +1,4 @@
+import orjson
 import responses
 
 from sentry.integrations.slack.views.link_identity import SUCCESS_LINKED_MESSAGE, build_linking_url
@@ -6,9 +7,10 @@ from sentry.integrations.slack.views.unlink_identity import (
     build_unlinking_url,
 )
 from sentry.integrations.slack.webhooks.base import NOT_LINKED_MESSAGE
+from sentry.models.identity import Identity
+from sentry.models.integrations import OrganizationIntegration
 from sentry.testutils.helpers import get_response_text
 from sentry.testutils.silo import control_silo_test
-from sentry.utils import json
 from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
 
 
@@ -26,7 +28,7 @@ class SlackLinkIdentityViewTest(SlackCommandsTest):
         assert response.status_code == 200
 
         assert len(responses.calls) >= 1
-        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        data = orjson.loads(responses.calls[0].request.body)
         assert SUCCESS_LINKED_MESSAGE in get_response_text(data)
 
 
@@ -49,6 +51,24 @@ class SlackUnlinkIdentityViewTest(SlackCommandsTest):
     """Slack Linking Views are returned on Control Silo"""
 
     @responses.activate
+    def test_unlink_user_identity_auth(self):
+        self.link_user()
+
+        unlinking_url = build_unlinking_url(
+            self.integration.id,
+            self.slack_id,
+            self.external_id,
+            self.response_url,
+        )
+
+        response = self.client.get(unlinking_url)
+        assert response.status_code == 200
+        assert (
+            "Confirm that you'd like to unlink your Slack identity from your Sentry account."
+            in response.content.decode("utf-8")
+        )
+
+    @responses.activate
     def test_unlink_user_identity(self):
         self.link_user()
 
@@ -63,8 +83,27 @@ class SlackUnlinkIdentityViewTest(SlackCommandsTest):
         assert response.status_code == 200
 
         assert len(responses.calls) >= 1
-        data = json.loads(str(responses.calls[0].request.body.decode("utf-8")))
+        data = orjson.loads(responses.calls[0].request.body)
         assert SUCCESS_UNLINKED_MESSAGE in get_response_text(data)
+        assert not Identity.objects.filter(external_id=self.slack_id).exists()
+
+    def test_404(self):
+        self.link_user()
+
+        unlinking_url = build_unlinking_url(
+            self.integration.id,
+            self.slack_id,
+            self.external_id,
+            self.response_url,
+        )
+
+        OrganizationIntegration.objects.filter(integration_id=self.integration.id).delete()
+
+        response = self.client.get(unlinking_url)
+        assert response.status_code == 404
+
+        response = self.client.post(unlinking_url)
+        assert response.status_code == 404
 
 
 class SlackCommandsUnlinkUserTest(SlackCommandsTest):

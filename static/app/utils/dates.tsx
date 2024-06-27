@@ -1,8 +1,6 @@
 import moment from 'moment';
 
-import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 import ConfigStore from 'sentry/stores/configStore';
-import type {DateString} from 'sentry/types';
 
 import type {TableDataRow} from './discover/discoverQuery';
 
@@ -183,78 +181,6 @@ export function getStartOfPeriodAgo(
   unit: number
 ): Date {
   return getStartOfDay(getPeriodAgo(period, unit));
-}
-
-/**
- * Convert an interval string into a number of seconds.
- * This allows us to create end timestamps from starting ones
- * enabling us to find events in narrow windows.
- *
- * @param {String} interval The interval to convert.
- * @return {Integer}
- */
-export function intervalToMilliseconds(interval: string): number {
-  const pattern = /^(\d+)(w|d|h|m)$/;
-  const matches = pattern.exec(interval);
-  if (!matches) {
-    return 0;
-  }
-  const [, value, unit] = matches;
-  const multipliers = {
-    w: 60 * 60 * 24 * 7,
-    d: 60 * 60 * 24,
-    h: 60 * 60,
-    m: 60,
-  };
-  return parseInt(value, 10) * multipliers[unit] * 1000;
-}
-
-/**
- * This parses our period shorthand strings (e.g. <int><unit>)
- * and converts it into hours
- */
-export function parsePeriodToHours(str: string): number {
-  const result = parseStatsPeriod(str);
-
-  if (!result) {
-    return -1;
-  }
-
-  const {period, periodLength} = result;
-
-  const periodNumber = parseInt(period, 10);
-
-  switch (periodLength) {
-    case 's':
-      return periodNumber / (60 * 60);
-    case 'm':
-      return periodNumber / 60;
-    case 'h':
-      return periodNumber;
-    case 'd':
-      return periodNumber * 24;
-    case 'w':
-      return periodNumber * 24 * 7;
-    default:
-      return -1;
-  }
-}
-
-export function statsPeriodToDays(
-  statsPeriod?: string | null,
-  start?: DateString,
-  end?: DateString
-) {
-  if (statsPeriod?.endsWith('d')) {
-    return parseInt(statsPeriod.slice(0, -1), 10);
-  }
-  if (statsPeriod?.endsWith('h')) {
-    return parseInt(statsPeriod.slice(0, -1), 10) / 24;
-  }
-  if (start && end) {
-    return (new Date(end).getTime() - new Date(start).getTime()) / (24 * 60 * 60 * 1000);
-  }
-  return 0;
 }
 
 /**

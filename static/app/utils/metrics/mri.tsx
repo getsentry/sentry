@@ -7,21 +7,33 @@ export const DEFAULT_MRI: MRI = 'c:custom/sentry_metric@none';
 export const DEFAULT_METRIC_ALERT_FIELD = `sum(${DEFAULT_MRI})`;
 
 export function isMRI(mri?: unknown): mri is MRI {
-  return !!parseMRI(mri);
-}
-
-export function parseMRI(mri?: unknown): ParsedMRI | null {
-  if (!mri) {
-    return null;
+  if (typeof mri !== 'string') {
+    return false;
   }
   try {
-    return _parseMRI(mri as MRI);
-  } catch (e) {
-    return null;
+    _parseMRI(mri);
+    return true;
+  } catch {
+    return false;
   }
 }
 
-function _parseMRI(mri: MRI): ParsedMRI {
+type ParseResult<T extends MRI | string | null> = T extends MRI
+  ? ParsedMRI
+  : ParsedMRI | null;
+export function parseMRI<T extends MRI | string | null>(mri?: T): ParseResult<T> {
+  if (!mri) {
+    // TODO: How can this be done without casting?
+    return null as ParseResult<T>;
+  }
+  try {
+    return _parseMRI(mri) as ParseResult<T>;
+  } catch {
+    return null as ParseResult<T>;
+  }
+}
+
+function _parseMRI(mri: string): ParsedMRI {
   const mriArray = mri.split(new RegExp(/[:/@]/));
 
   if (mriArray.length !== 4) {
@@ -49,14 +61,12 @@ function parseName(name: string, useCase: UseCase): string {
     return name;
   }
   if (useCase === 'spans') {
-    if (name === 'exclusive_time') {
-      return 'span.self_time';
-    }
-    if (name === 'duration') {
-      return 'span.duration';
+    if (['duration', 'self_time', 'exclusive_time'].includes(name)) {
+      return `span.${name}`;
     }
     return name;
   }
+
   return `${useCase}.${name}`;
 }
 

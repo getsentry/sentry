@@ -9,7 +9,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.fileblobowner import FileBlobOwner
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import ChunkFileState, assemble_artifacts
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.outbox import outbox_runner

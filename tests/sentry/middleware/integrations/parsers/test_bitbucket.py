@@ -41,7 +41,7 @@ class BitbucketRequestParserTest(TestCase):
             reverse(
                 "sentry-extensions-bitbucket-search",
                 kwargs={
-                    "organization_slug": self.organization.slug,
+                    "organization_id_or_slug": self.organization.slug,
                     "integration_id": self.integration.id,
                 },
             ),

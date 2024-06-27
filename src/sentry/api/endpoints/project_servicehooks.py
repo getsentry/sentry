@@ -37,9 +37,9 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
         This endpoint requires the 'servicehooks' feature to
         be enabled for your project.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           client keys belong to.
-        :pparam string project_slug: the slug of the project the client keys
+        :pparam string project_id_or_slug: the id or slug of the project the client keys
                                      belong to.
         :auth: required
         """
@@ -83,9 +83,9 @@ class ProjectServiceHooksEndpoint(ProjectEndpoint):
         This endpoint requires the 'servicehooks' feature to
         be enabled for your project.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           client keys belong to.
-        :pparam string project_slug: the slug of the project the client keys
+        :pparam string project_id_or_slug: the id or slug of the project the client keys
                                      belong to.
         :param string url: the url for the webhook
         :param array[string] events: the events to subscribe to

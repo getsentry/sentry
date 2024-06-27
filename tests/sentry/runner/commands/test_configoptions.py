@@ -2,9 +2,15 @@ from collections.abc import Generator
 from pathlib import Path
 
 import pytest
+from django.conf import settings
 
 from sentry import options
-from sentry.options.manager import FLAG_AUTOMATOR_MODIFIABLE, FLAG_IMMUTABLE, UpdateChannel
+from sentry.options.manager import (
+    FLAG_AUTOMATOR_MODIFIABLE,
+    FLAG_IMMUTABLE,
+    FLAG_PRIORITIZE_DISK,
+    UpdateChannel,
+)
 from sentry.runner.commands.configoptions import configoptions
 from sentry.runner.commands.presenters.consolepresenter import ConsolePresenter
 from sentry.testutils.cases import CliTestCase
@@ -24,6 +30,12 @@ class ConfigOptionsTest(CliTestCase):
         options.register("change_channel_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("to_unset_option", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
         options.register("invalid_type", default=15, flags=FLAG_AUTOMATOR_MODIFIABLE)
+        options.register(
+            "set_on_disk_option",
+            default="",
+            flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
+        )
+        settings.SENTRY_OPTIONS["set_on_disk_option"] = "test"
 
         yield
 
@@ -36,6 +48,8 @@ class ConfigOptionsTest(CliTestCase):
         options.unregister("change_channel_option")
         options.unregister("to_unset_option")
         options.unregister("invalid_type")
+        options.unregister("set_on_disk_option")
+        del settings.SENTRY_OPTIONS["set_on_disk_option"]
 
     @pytest.fixture(autouse=True)
     def set_options(self) -> None:
@@ -183,6 +197,58 @@ class ConfigOptionsTest(CliTestCase):
         assert options.get("drifted_option") == [1, 2, 3]
 
         assert not options.isset("to_unset_option")
+
+    def test_bad_sync(self):
+        rv = self.invoke(
+            "-f",
+            "tests/sentry/runner/commands/badsync.yaml",
+            "sync",
+        )
+        assert rv.exit_code == 2, rv.output
+
+        assert ConsolePresenter.ERROR_MSG % ("set_on_disk_option", "option_on_disk") in rv.output
+
+    def test_sync_unset_options(self):
+
+        # test options set on disk with and without prioritize disk, tracked
+        # and not tracked
+        # test options set on db, verify that untracked options are properly deleted
+
+        options.delete("drifted_option")
+
+        rv = self.invoke(
+            "-f",
+            "tests/sentry/runner/commands/unsetsync.yaml",
+            "sync",
+        )
+        assert rv.exit_code == 0, rv.output
+        expected_output = "\n".join(
+            [
+                ConsolePresenter.CHANNEL_UPDATE_MSG % "change_channel_option",
+                ConsolePresenter.SET_MSG % ("map_option", {"a": 1, "b": 2}),
+                ConsolePresenter.SET_MSG % ("list_option", [1, 2]),
+                ConsolePresenter.UNSET_MSG % "str_option",
+                ConsolePresenter.UNSET_MSG % "to_unset_option",
+            ]
+        )
+
+        assert expected_output in rv.output
+
+        assert options.get("int_option") == 20
+        assert options.get("str_option") == "blabla"
+        assert options.get("map_option") == {
+            "a": 1,
+            "b": 2,
+        }
+        assert options.get("list_option") == [1, 2]
+
+        # assert there's no drift after unsetting
+        rv = self.invoke(
+            "-f",
+            "tests/sentry/runner/commands/unsetsync.yaml",
+            "sync",
+        )
+        assert rv.exit_code == 0, rv.output
 
     def test_bad_patch(self):
         rv = self.invoke(

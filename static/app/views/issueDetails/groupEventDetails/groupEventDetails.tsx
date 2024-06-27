@@ -1,6 +1,5 @@
 import {Fragment, useEffect} from 'react';
 import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 
@@ -23,9 +22,8 @@ import type {
 } from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
-import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
-import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import usePrevious from 'sentry/utils/usePrevious';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -70,11 +68,6 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
     eventError,
     params,
   } = props;
-  const eventWithMeta = withMeta(event);
-  // Reprocessing
-  const hasReprocessingV2Feature = organization.features?.includes('reprocessing-v2');
-  const {activity: activities} = group;
-  const mostRecentActivity = getGroupMostRecentActivity(activities);
   const projectId = project.id;
   const environments = useEnvironmentsFromUrl();
   const prevEnvironment = usePrevious(environments);
@@ -162,6 +155,7 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
     );
   };
 
+  const eventWithMeta = withMeta(event);
   const issueTypeConfig = getConfigForIssueType(group, project);
 
   return (
@@ -176,43 +170,30 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
         isLoading={loadingEvent}
       >
         <StyledLayoutBody data-test-id="group-event-details">
-          {hasReprocessingV2Feature &&
-          groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
+          {groupReprocessingStatus === ReprocessingStatus.REPROCESSING ? (
             <ReprocessingProgress
-              totalEvents={(mostRecentActivity as GroupActivityReprocess).data.eventCount}
+              totalEvents={
+                (getGroupMostRecentActivity(group.activity) as GroupActivityReprocess)
+                  .data.eventCount
+              }
               pendingEvents={
                 (group.statusDetails as GroupReprocessing['statusDetails']).pendingEvents
               }
             />
           ) : (
             <Fragment>
-              <QuickTraceQuery
-                event={eventWithMeta}
-                location={location}
-                orgSlug={organization.slug}
-              >
-                {results => {
-                  return (
-                    <StyledLayoutMain>
-                      {renderGroupStatusBanner()}
-                      <EscalatingIssuesFeedback
-                        organization={organization}
-                        group={group}
-                      />
-                      <QuickTraceContext.Provider value={results}>
-                        {eventWithMeta && issueTypeConfig.stats.enabled && (
-                          <GroupEventHeader
-                            group={group}
-                            event={eventWithMeta}
-                            project={project}
-                          />
-                        )}
-                        {renderContent()}
-                      </QuickTraceContext.Provider>
-                    </StyledLayoutMain>
-                  );
-                }}
-              </QuickTraceQuery>
+              <StyledLayoutMain>
+                {renderGroupStatusBanner()}
+                <EscalatingIssuesFeedback organization={organization} group={group} />
+                {eventWithMeta && issueTypeConfig.stats.enabled && (
+                  <GroupEventHeader
+                    group={group}
+                    event={eventWithMeta}
+                    project={project}
+                  />
+                )}
+                {renderContent()}
+              </StyledLayoutMain>
               <StyledLayoutSide>
                 <GroupSidebar
                   organization={organization}

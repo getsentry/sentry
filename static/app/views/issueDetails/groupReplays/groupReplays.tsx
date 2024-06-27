@@ -1,17 +1,19 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import {browserHistory} from 'react-router';
+import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Placeholder from 'sentry/components/placeholder';
 import {StaticReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import {IconPlay, IconUser} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Group, Organization} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
 import useReplayList from 'sentry/utils/replays/hooks/useReplayList';
@@ -19,11 +21,12 @@ import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useUrlParams from 'sentry/utils/useUrlParams';
-import ReplayTableWrapper from 'sentry/views/issueDetails/groupReplays/replayTableWrapper';
-import useReplaysFromIssue from 'sentry/views/issueDetails/groupReplays/useReplaysFromIssue';
 import ReplayTable from 'sentry/views/replays/replayTable';
 import {ReplayColumn} from 'sentry/views/replays/replayTable/types';
-import type {ReplayListLocationQuery} from 'sentry/views/replays/types';
+import type {ReplayListLocationQuery, ReplayListRecord} from 'sentry/views/replays/types';
+
+import {ReplayClipPreviewWrapper} from './replayClipPreviewWrapper';
+import useReplaysFromIssue from './useReplaysFromIssue';
 
 type Props = {
   group: Group;
@@ -61,8 +64,17 @@ function GroupReplays({group}: Props) {
   }, []);
 
   if (!eventView) {
+    // Shown on load and no replay data available
     return (
       <StyledLayoutPage withPadding>
+        <ReplayCountHeader>
+          <IconUser size="sm" />
+          {isFetching ? (
+            <Placeholder height="18px" width="400px" />
+          ) : (
+            t('No replay data available.')
+          )}
+        </ReplayCountHeader>
         <ReplayTable
           fetchError={fetchError}
           isFetching={isFetching}
@@ -86,19 +98,26 @@ function GroupReplays({group}: Props) {
 }
 
 function GroupReplaysTableInner({
+  children,
   organization,
   group,
   replaySlug,
-  ...props
+  setSelectedReplayIndex,
+  selectedReplayIndex,
+  overlayContent,
+  replays,
+  pageLinks,
 }: {
+  children: React.ReactNode;
   group: Group;
   organization: Organization;
   pageLinks: string | null;
   replaySlug: string;
+  replays: ReplayListRecord[] | undefined;
   selectedReplayIndex: number;
   setSelectedReplayIndex: (index: number) => void;
   overlayContent?: React.ReactNode;
-} & ReturnType<typeof useReplayList>) {
+}) {
   const orgSlug = organization.slug;
   const {fetching, replay} = useReplayReader({
     orgSlug,
@@ -114,23 +133,23 @@ function GroupReplaysTableInner({
       replay={replay}
       autoStart
     >
-      <ReplayTableWrapper
+      <ReplayClipPreviewWrapper
         orgSlug={orgSlug}
         replaySlug={replaySlug}
-        sort={undefined}
         group={group}
-        pageLinks={props.pageLinks}
-        selectedReplayIndex={props.selectedReplayIndex}
-        setSelectedReplayIndex={props.setSelectedReplayIndex}
+        pageLinks={pageLinks}
+        selectedReplayIndex={selectedReplayIndex}
+        setSelectedReplayIndex={setSelectedReplayIndex}
         visibleColumns={VISIBLE_COLUMNS_WITH_PLAY}
-        overlayContent={props.overlayContent}
-        replays={props.replays}
-        isFetching={props.isFetching}
-        fetchError={props.fetchError}
+        overlayContent={overlayContent}
+        replays={replays}
       />
+      {children}
     </ReplayContextProvider>
   );
 }
+
+const locationForFetching = {query: {}} as Location<ReplayListLocationQuery>;
 
 function GroupReplaysTable({
   eventView,
@@ -143,10 +162,6 @@ function GroupReplaysTable({
   pageLinks: string | null;
   visibleColumns: ReplayColumn[];
 }) {
-  const locationForFetching = useMemo(
-    () => ({query: {}}) as Location<ReplayListLocationQuery>,
-    []
-  );
   const location = useLocation();
   const urlParams = useUrlParams();
   const {getReplayCountForIssue} = useReplayCountForIssues({
@@ -179,24 +194,6 @@ function GroupReplaysTable({
 
   const selectedReplay = replays?.[selectedReplayIndex];
 
-  // If the selected replay changes, we want to force the replay to hide to cause the
-  // replay context to unmount and reset
-  const [previousReplayIndex, setPreviousReplayIndex] =
-    useState<number>(selectedReplayIndex);
-  const [forceHideReplay, setForceHideReplay] = useState<boolean>(false);
-  useEffect(() => {
-    if (selectedReplayIndex !== previousReplayIndex) {
-      setPreviousReplayIndex(selectedReplayIndex);
-      setForceHideReplay(true);
-    }
-  }, [selectedReplayIndex, previousReplayIndex]);
-
-  useEffect(() => {
-    if (forceHideReplay) {
-      setForceHideReplay(false);
-    }
-  }, [forceHideReplay]);
-
   const replayCount = getReplayCountForIssue(group.id, group.issueCategory);
   const nextReplay = replays?.[selectedReplayIndex + 1];
   const nextReplayText = nextReplay?.id
@@ -221,42 +218,45 @@ function GroupReplaysTable({
       </Fragment>
     ) : undefined;
 
-  const hasFeature = organization.features.includes('replay-play-from-replay-tab');
+  const replayTable = (
+    <ReplayTable
+      sort={undefined}
+      visibleColumns={selectedReplay ? VISIBLE_COLUMNS_WITH_PLAY : VISIBLE_COLUMNS}
+      showDropdownFilters={false}
+      onClickPlay={setSelectedReplayIndex}
+      fetchError={replayListData.fetchError}
+      isFetching={replayListData.isFetching}
+      replays={replays}
+    />
+  );
 
-  const inner =
-    hasFeature && selectedReplay && !forceHideReplay ? (
-      <GroupReplaysTableInner
-        setSelectedReplayIndex={setSelectedReplayIndex}
-        selectedReplayIndex={selectedReplayIndex}
-        overlayContent={overlayContent}
-        organization={organization}
-        group={group}
-        replaySlug={selectedReplay.id}
-        pageLinks={replayListData.pageLinks}
-        fetchError={replayListData.fetchError}
-        isFetching={replayListData.isFetching}
-        replays={replays}
-      />
-    ) : (
-      <ReplayTable
-        sort={undefined}
-        visibleColumns={VISIBLE_COLUMNS}
-        showDropdownFilters={false}
-        onClickPlay={hasFeature ? setSelectedReplayIndex : undefined}
-        fetchError={replayListData.fetchError}
-        isFetching={replayListData.isFetching}
-        replays={replays}
-      />
-    );
+  const inner = selectedReplay ? (
+    <GroupReplaysTableInner
+      // Use key to force unmount/remount of component to reset the context and replay iframe
+      key={selectedReplay.id}
+      setSelectedReplayIndex={setSelectedReplayIndex}
+      selectedReplayIndex={selectedReplayIndex}
+      overlayContent={overlayContent}
+      organization={organization}
+      group={group}
+      replaySlug={selectedReplay.id}
+      pageLinks={replayListData.pageLinks}
+      replays={replays}
+    >
+      {replayTable}
+    </GroupReplaysTableInner>
+  ) : (
+    replayTable
+  );
 
   return (
     <StyledLayoutPage withPadding>
       <ReplayCountHeader>
-        <StyledIconUser size="sm" />
+        <IconUser size="sm" />
         {t(
-          'Replay captured %s users experiencing this issue across %s events.',
-          replayCount,
-          group.count
+          'Replay captured %s experiencing this issue across %s.',
+          tn('%s user', '%s users', replayCount ?? 0),
+          tn('%s event', '%s events', group.count)
         )}
       </ReplayCountHeader>
       {inner}
@@ -274,12 +274,6 @@ const ReplayCountHeader = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(1)};
-`;
-
-const StyledIconUser = styled(IconUser)`
-  margin-right: ${p => p.theme.grid}px;
-  height: 16px;
-  width: 16px;
 `;
 
 const OverlayText = styled('div')`

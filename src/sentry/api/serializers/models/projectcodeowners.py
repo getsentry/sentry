@@ -1,7 +1,6 @@
 import logging
 from typing import Any
 
-# from sentry.api.endpoints.project_ownership import rename_schema_identifier_for_parsing
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.repository_project_path_config import (
     RepositoryProjectPathConfigSerializer,
@@ -22,6 +21,8 @@ class ProjectCodeOwnersSerializer(Serializer):
         self.expand = expand or []
 
     def get_attrs(self, item_list, user, **kwargs):
+        from sentry.integrations.mixins import RepositoryMixin  # XXX: circular import
+
         attrs = {}
         integrations = {
             i.id: i
@@ -37,11 +38,15 @@ class ProjectCodeOwnersSerializer(Serializer):
                 organization_id=item.repository_project_path_config.organization_id,
             )
             codeowners_url = "unknown"
-            if item.repository_project_path_config.organization_integration_id:
+            if item.repository_project_path_config.organization_integration_id and isinstance(
+                install, RepositoryMixin
+            ):
                 try:
-                    codeowners_url = install.get_codeowner_file(
+                    codeowners_response = install.get_codeowner_file(
                         code_mapping.repository, ref=code_mapping.default_branch
-                    )["html_url"]
+                    )
+                    if codeowners_response is not None:
+                        codeowners_url = codeowners_response["html_url"]
 
                 except Exception:
                     logger.exception("Could not get CODEOWNERS URL. Continuing execution.")

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Sequence
 from datetime import timedelta
 from unittest import mock
@@ -5,14 +7,14 @@ from unittest import mock
 import pytest
 from django.utils import timezone
 
-from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.alert_rule import AlertRule, AlertRuleProjects
 from sentry.models.dashboard_widget import DashboardWidgetQuery, DashboardWidgetQueryOnDemand
 from sentry.models.environment import Environment
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.relay.config.experimental import TimeChecker
 from sentry.relay.config.metric_extraction import (
-    _set_bulk_cached_query,
+    _set_bulk_cached_query_chunk,
     get_current_widget_specs,
     get_metric_extraction_config,
 )
@@ -34,6 +36,7 @@ from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.on_demand import create_widget
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils import json
 
 ON_DEMAND_METRICS = "organizations:on-demand-metrics-extraction"
 ON_DEMAND_METRICS_WIDGETS = "organizations:on-demand-metrics-extraction-widgets"
@@ -63,8 +66,11 @@ def create_alert(
     )
 
     alert_rule = AlertRule.objects.create(
-        snuba_query=snuba_query, threshold_period=1, organization=project.organization
+        snuba_query=snuba_query,
+        threshold_period=1,
+        organization=project.organization,
     )
+    AlertRuleProjects.objects.create(alert_rule=alert_rule, project=project)
 
     return alert_rule
 
@@ -766,24 +772,24 @@ def test_get_metric_extraction_config_alerts_and_widgets_off(default_project: Pr
 @django_db_all
 def test_get_metric_extraction_config_uses_cache_for_widgets(default_project: Project) -> None:
     # widgets should be skipped if the feature is off
-    original_set_bulk_cached_query = _set_bulk_cached_query
+    original_set_bulk_cached_query = _set_bulk_cached_query_chunk
 
     with (
         Feature({ON_DEMAND_METRICS: True, ON_DEMAND_METRICS_WIDGETS: True}),
         override_options({"on_demand_metrics.cache_should_use_on_demand": 1.0}),
         mock.patch(
-            "sentry.relay.config.metric_extraction._set_bulk_cached_query"
-        ) as mock_set_cache_spy,
+            "sentry.relay.config.metric_extraction._set_bulk_cached_query_chunk"
+        ) as mock_set_cache_chunk_spy,
     ):
-        mock_set_cache_spy.side_effect = original_set_bulk_cached_query
+        mock_set_cache_chunk_spy.side_effect = original_set_bulk_cached_query
         create_widget(["count()"], "transaction.duration:>=1000", default_project)
 
         get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
-        assert mock_set_cache_spy.call_count == 1
+        assert mock_set_cache_chunk_spy.call_count == 6  # One for each chunk
 
         get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
-        assert mock_set_cache_spy.call_count == 1
+        assert mock_set_cache_chunk_spy.call_count == 6
 
 
 @django_db_all
@@ -2087,29 +2093,13 @@ def test_widget_modifed_after_on_demand(default_project: Project) -> None:
 def test_get_current_widget_specs(
     default_project: Project, current_version: SpecVersion, expected: set[str]
 ) -> None:
-    for i, spec in enumerate(
-        [
-            {
-                "version": 1,
-                "hashes": ["abcd", "defg"],
-                "state": "enabled:manual",
-            },
-            {
-                "version": 2,
-                "hashes": ["1234", "5678"],
-                "state": "enabled:manual",
-            },
-            {
-                "version": 2,
-                "hashes": ["ab12", "cd78"],
-                "state": "disabled:high-cardinality",
-            },
-            {
-                "version": 2,
-                "hashes": ["1234"],
-                "state": "enabled:manual",
-            },
-        ]
+    for i, (version, hashes, state) in enumerate(
+        (
+            (1, ["abcd", "defg"], "enabled:manual"),
+            (2, ["1234", "5678"], "enabled:manual"),
+            (2, ["ab12", "cd78"], "disabled:high-cardinality"),
+            (2, ["1234"], "enabled:manual"),
+        )
     ):
         widget_query, _, _ = create_widget(
             ["epm()"],
@@ -2120,9 +2110,9 @@ def test_get_current_widget_specs(
         )
         DashboardWidgetQueryOnDemand.objects.create(
             dashboard_widget_query=widget_query,
-            spec_version=spec["version"],
-            spec_hashes=spec["hashes"],
-            extraction_state=spec["state"],
+            spec_version=version,
+            spec_hashes=hashes,
+            extraction_state=state,
         )
     with mock.patch(
         "sentry.snuba.metrics.extraction.OnDemandMetricSpecVersioning.get_query_spec_version",
@@ -2130,3 +2120,57 @@ def test_get_current_widget_specs(
     ):
         specs = get_current_widget_specs(default_project.organization)
     assert specs == expected
+
+
+@django_db_all
+def test_get_span_attribute_metrics(default_project: Project) -> None:
+    rules = [
+        {
+            "spanAttribute": "span.duration",
+            "mri": "d:custom/span.duration@none",
+            "type": "d",
+            "tags": ["foo"],
+            "unit": "millisecond",
+            "conditions": ["bar:baz", "abc:xyz"],
+        },
+        {
+            "spanAttribute": "span.duration",
+            "mri": "c:custom/span.duration@none",
+            "type": "c",
+            "unit": "none",
+        },
+    ]
+    default_project.update_option("sentry:metrics_extraction_rules", json.dumps(rules))
+
+    config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
+    assert not config
+
+    with Feature(["organizations:custom-metrics-extraction-rule"]):
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
+        assert config
+        assert config["metrics"] == [
+            {
+                "category": "span",
+                "condition": {
+                    "inner": [
+                        {"name": "span.data.bar", "op": "eq", "value": "baz"},
+                        {"name": "span.data.abc", "op": "eq", "value": "xyz"},
+                    ],
+                    "op": "or",
+                },
+                "field": "span.duration",
+                "mri": "d:custom/span.duration@millisecond",
+                "tags": [
+                    {"field": "span.data.abc", "key": "abc"},
+                    {"field": "span.data.bar", "key": "bar"},
+                    {"field": "span.data.foo", "key": "foo"},
+                ],
+            },
+            {
+                "category": "span",
+                "condition": None,
+                "field": None,
+                "mri": "c:custom/span.duration@none",
+                "tags": [],
+            },
+        ]

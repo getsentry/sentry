@@ -5,22 +5,22 @@
 
 from abc import abstractmethod
 
-from sentry.services.hybrid_cloud import OptionValue
+from sentry.hybridcloud.rpc import OptionValue
+from sentry.hybridcloud.rpc.filter_query import OpaqueSerializedResponse
+from sentry.hybridcloud.rpc.resolvers import (
+    ByOrganizationId,
+    ByOrganizationIdAttribute,
+    ByRegionName,
+)
+from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.services.hybrid_cloud.auth import AuthenticationContext
-from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.services.hybrid_cloud.project import (
     ProjectFilterArgs,
     RpcProject,
     RpcProjectOptionValue,
 )
-from sentry.services.hybrid_cloud.region import (
-    ByOrganizationId,
-    ByOrganizationIdAttribute,
-    ByRegionName,
-)
-from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 
 class ProjectService(RpcService):

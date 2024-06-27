@@ -83,8 +83,8 @@ class JSONField(models.TextField):
             if callable(default):
                 default = default()
             if isinstance(default, str):
-                return json.loads(default, skip_trace=True)
-            return json.loads(json.dumps(default), skip_trace=True)
+                return json.loads(default)
+            return json.loads(json.dumps(default))
         return super().get_default()
 
     def get_internal_type(self):
@@ -101,7 +101,7 @@ class JSONField(models.TextField):
                 if self.blank:
                     return ""
             try:
-                value = json.loads(value, skip_trace=True)
+                value = json.loads(value)
             except ValueError:
                 msg = self.error_messages["invalid"] % value
                 raise ValidationError(msg)

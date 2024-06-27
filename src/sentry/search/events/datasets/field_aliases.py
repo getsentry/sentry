@@ -84,7 +84,7 @@ def resolve_project_slug_alias(builder: builder.QueryBuilder, alias: str) -> Sel
     return AliasedExpression(exp=builder.column("project_id"), alias=alias)
 
 
-def resolve_span_module(builder, alias: str) -> SelectType:
+def resolve_span_module(builder: builder.QueryBuilder, alias: str) -> SelectType:
     OP_MAPPING = {
         "db.redis": "cache",
         "db.sql.room": "other",
@@ -110,11 +110,13 @@ def resolve_span_module(builder, alias: str) -> SelectType:
                         "cache",
                         "db",
                         "http",
+                        "queue",
                     ],
                     [
                         "cache",
                         "db",
                         "http",
+                        "queue",
                     ],
                     "other",
                 ],
@@ -137,7 +139,7 @@ def resolve_device_class(builder: builder.QueryBuilder, alias: str) -> SelectTyp
     )
 
 
-def resolve_precise_timestamp(timestamp_column, ms_column, alias: str) -> SelectType:
+def resolve_precise_timestamp(timestamp_column: str, ms_column: str, alias: str) -> SelectType:
     return Function(
         "plus",
         [

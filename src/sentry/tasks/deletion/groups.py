@@ -1,7 +1,7 @@
 from uuid import uuid4
 
 from sentry.exceptions import DeleteAborted
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry, track_group_async_operation
 from sentry.tasks.deletion.scheduled import MAX_RETRIES, logger
 

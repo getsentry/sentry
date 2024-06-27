@@ -6,6 +6,7 @@ from typing import Any
 
 from rest_framework import status as status_
 from rest_framework.request import Request
+from slack_sdk.signature import SignatureVerifier
 
 from sentry import options
 from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
@@ -15,7 +16,7 @@ from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.utils.safe import get_path
 
-from ..utils import check_signing_secret, logger
+from ..utils import logger
 
 
 def _get_field_id_option(data: Mapping[str, Any], field_name: str) -> str | None:
@@ -115,7 +116,7 @@ class SlackRequest:
         return self._integration
 
     @property
-    def channel_id(self) -> str:
+    def channel_id(self) -> str | None:
         return get_field_id(self.data, "channel")
 
     @property
@@ -123,12 +124,12 @@ class SlackRequest:
         return self.data.get("response_url", "")
 
     @property
-    def team_id(self) -> str:
-        return get_field_id(self.data, "team")
+    def team_id(self) -> str | None:
+        return _get_field_id_option(self.data, "team")
 
     @property
-    def user_id(self) -> str:
-        return get_field_id(self.data, "user")
+    def user_id(self) -> str | None:
+        return _get_field_id_option(self.data, "user")
 
     @property
     def data(self) -> Mapping[str, Any]:
@@ -147,7 +148,6 @@ class SlackRequest:
             "slack_callback_id": _data.get("callback_id"),
             "slack_api_app_id": _data.get("api_app_id"),
         }
-        data["request_data"] = _data
 
         if self._integration:
             data["integration_id"] = self.integration.id
@@ -213,7 +213,9 @@ class SlackRequest:
         if not (signature and timestamp):
             return False
 
-        return check_signing_secret(signing_secret, self.request.body, timestamp, signature)
+        return SignatureVerifier(signing_secret).is_valid(
+            body=self.request.body, timestamp=timestamp, signature=signature
+        )
 
     def _check_verification_token(self, verification_token: str) -> bool:
         return self.data.get("token") == verification_token

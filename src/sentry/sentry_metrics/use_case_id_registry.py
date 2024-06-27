@@ -22,7 +22,6 @@ class UseCaseID(Enum):
     ESCALATING_ISSUES = "escalating_issues"
     CUSTOM = "custom"
     PROFILES = "profiles"
-    BUNDLE_ANALYSIS = "bundle_analysis"
     METRIC_STATS = "metric_stats"
 
 
@@ -33,7 +32,6 @@ USE_CASE_ID_API_ACCESSES: Mapping[UseCaseID, UseCaseIDAPIAccess] = {
     UseCaseID.ESCALATING_ISSUES: UseCaseIDAPIAccess.PRIVATE,
     UseCaseID.CUSTOM: UseCaseIDAPIAccess.PUBLIC,
     UseCaseID.PROFILES: UseCaseIDAPIAccess.PRIVATE,
-    UseCaseID.BUNDLE_ANALYSIS: UseCaseIDAPIAccess.PRIVATE,
     UseCaseID.METRIC_STATS: UseCaseIDAPIAccess.PRIVATE,
 }
 
@@ -44,7 +42,6 @@ METRIC_PATH_MAPPING: Mapping[UseCaseID, UseCaseKey] = {
     UseCaseID.SESSIONS: UseCaseKey.RELEASE_HEALTH,
     UseCaseID.ESCALATING_ISSUES: UseCaseKey.PERFORMANCE,
     UseCaseID.CUSTOM: UseCaseKey.PERFORMANCE,
-    UseCaseID.BUNDLE_ANALYSIS: UseCaseKey.PERFORMANCE,
     UseCaseID.PROFILES: UseCaseKey.PERFORMANCE,
     UseCaseID.METRIC_STATS: UseCaseKey.PERFORMANCE,
 }
@@ -57,13 +54,14 @@ REVERSE_METRIC_PATH_MAPPING: Mapping[UseCaseKey, UseCaseID] = {
     UseCaseKey.PERFORMANCE: UseCaseID.TRANSACTIONS,
 }
 
-USE_CASE_ID_CARDINALITY_LIMIT_QUOTA_OPTIONS = {
-    UseCaseID.TRANSACTIONS: "sentry-metrics.cardinality-limiter.limits.performance.per-org",
-    UseCaseID.SESSIONS: "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
-    UseCaseID.SPANS: "sentry-metrics.cardinality-limiter.limits.spans.per-org",
-    UseCaseID.CUSTOM: "sentry-metrics.cardinality-limiter.limits.custom.per-org",
-    UseCaseID.PROFILES: "sentry-metrics.cardinality-limiter.limits.profiles.per-org",
-}
+# Temporary allowlist until all use cases have cardinality limit options
+CARDINALITY_LIMIT_USE_CASES = (
+    UseCaseID.TRANSACTIONS,
+    UseCaseID.SESSIONS,
+    UseCaseID.SPANS,
+    UseCaseID.CUSTOM,
+    UseCaseID.PROFILES,
+)
 
 USE_CASE_ID_WRITES_LIMIT_QUOTA_OPTIONS = {
     UseCaseID.SPANS: "sentry-metrics.writes-limiter.limits.spans",

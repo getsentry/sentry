@@ -18,8 +18,8 @@ from sentry.auth import access
 from sentry.auth.staff import has_staff_option, is_active_staff
 from sentry.auth.superuser import SUPERUSER_ORG_ID, is_active_superuser
 from sentry.auth.system import is_system_auth
+from sentry.hybridcloud.rpc import extract_id_from
 from sentry.models.orgauthtoken import is_org_auth_token_auth, update_org_auth_token_last_used
-from sentry.services.hybrid_cloud import extract_id_from
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
     RpcUserOrganizationContext,
@@ -160,7 +160,7 @@ class ScopedPermission(BasePermission):
         if is_org_auth_token_auth(request.auth):
             # Ensure we always update the last used date for the org auth token.
             # At this point, we don't have the projects yet, so we only update the org auth token's
-            # last used date, clearning the project_last_used_id. We call this method again in endpoints
+            # last used date, clearing the project_last_used_id. We call this method again in endpoints
             # where a project is available to update the project_last_used_id.
             update_org_auth_token_last_used(request.auth, [])
 

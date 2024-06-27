@@ -1,7 +1,6 @@
-import {browserHistory} from 'react-router';
-
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {browserHistory} from 'sentry/utils/browserHistory';
 import SsoForm from 'sentry/views/auth/ssoForm';
 
 describe('SsoForm', function () {

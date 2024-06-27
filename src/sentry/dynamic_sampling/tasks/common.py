@@ -24,8 +24,9 @@ from sentry import quotas
 from sentry.dynamic_sampling.rules.utils import OrganizationId
 from sentry.dynamic_sampling.tasks.constants import CHUNK_SIZE, MAX_ORGS_PER_QUERY, MAX_SECONDS
 from sentry.dynamic_sampling.tasks.helpers.sliding_window import extrapolate_monthly_volume
-from sentry.dynamic_sampling.tasks.logging import log_extrapolated_monthly_volume, log_query_timeout
+from sentry.dynamic_sampling.tasks.logging import log_extrapolated_monthly_volume
 from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
+from sentry.dynamic_sampling.tasks.utils import sample_function
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -577,12 +578,6 @@ def fetch_orgs_with_total_root_transactions_count(
 
         if not more_results:
             break
-    else:
-        log_query_timeout(
-            query="fetch_orgs_with_total_root_transactions_count",
-            offset=offset,
-            timeout_seconds=MAX_SECONDS,
-        )
 
     return aggregated_projects
 
@@ -679,8 +674,14 @@ def compute_sliding_window_sample_rate(
         return None
 
     # We want to log the monthly volume for observability purposes.
-    log_extrapolated_monthly_volume(
-        org_id, project_id, total_root_count, extrapolated_volume, window_size
+    sample_function(
+        function=log_extrapolated_monthly_volume,
+        _sample_rate=0.1,
+        org_id=org_id,
+        project_id=project_id,
+        volume=total_root_count,
+        extrapolated_volume=extrapolated_volume,
+        window_size=window_size,
     )
 
     func_name = "get_transaction_sampling_tier_for_volume"

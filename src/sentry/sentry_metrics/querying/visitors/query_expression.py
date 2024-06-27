@@ -1,10 +1,17 @@
 from collections.abc import Sequence
+from typing import Any
 
 from snuba_sdk import AliasedExpression, Column, Condition, Formula, Op, Timeseries
 from snuba_sdk.conditions import ConditionGroup
 
 from sentry.models.environment import Environment
+from sentry.models.project import Project
 from sentry.sentry_metrics.querying.constants import COEFFICIENT_OPERATORS
+from sentry.sentry_metrics.querying.data.mapping.base import (
+    Mapper,
+    MapperConfig,
+    get_or_create_mapper,
+)
 from sentry.sentry_metrics.querying.errors import InvalidMetricsQueryError
 from sentry.sentry_metrics.querying.types import QueryExpression
 from sentry.sentry_metrics.querying.units import (
@@ -20,6 +27,7 @@ from sentry.sentry_metrics.querying.visitors.base import (
     QueryConditionVisitor,
     QueryExpressionVisitor,
 )
+from sentry.sentry_metrics.querying.visitors.query_condition import MapperConditionVisitor
 from sentry.snuba.metrics import parse_mri
 
 
@@ -245,6 +253,9 @@ class UsedGroupBysVisitor(QueryExpressionVisitor[set[str]]):
     Visitor that recursively computes all the groups of the `QueryExpression`.
     """
 
+    def __init__(self, mappers: list[Mapper] | None = None):
+        self.mappers = mappers or []
+
     def _visit_formula(self, formula: Formula) -> set[str]:
         group_bys: set[str] = set()
 
@@ -271,12 +282,27 @@ class UsedGroupBysVisitor(QueryExpressionVisitor[set[str]]):
 
         string_group_bys = set()
         for group_by in group_bys:
+            selected_mapper = None
             if isinstance(group_by, AliasedExpression):
-                string_group_bys.add(group_by.exp.name)
+                selected_mapper = self._get_matching_mapper(group_by.exp.name)
             elif isinstance(group_by, Column):
-                string_group_bys.add(group_by.name)
+                selected_mapper = self._get_matching_mapper(group_by.name)
+
+            if selected_mapper:
+                string_group_bys.add(selected_mapper.from_key)
+            else:
+                if isinstance(group_by, AliasedExpression):
+                    string_group_bys.add(group_by.exp.name)
+                elif isinstance(group_by, Column):
+                    string_group_bys.add(group_by.name)
 
         return string_group_bys
+
+    def _get_matching_mapper(self, to_key: Any) -> Mapper | None:
+        for mapper in self.mappers:
+            if mapper.to_key == to_key:
+                return mapper
+        return None
 
 
 class UnitsNormalizationVisitor(QueryExpressionVisitor[tuple[UnitMetadata, QueryExpression]]):
@@ -437,3 +463,64 @@ class NumericScalarsNormalizationVisitor(QueryExpressionVisitor[QueryExpression]
 
     def _is_numeric_scalar(self, value: QueryExpression) -> bool:
         return isinstance(value, int) or isinstance(value, float)
+
+
+class MapperVisitor(QueryExpressionVisitor):
+    """
+    Visitor that recursively transforms the QueryExpression components to modulate certain attributes to be queried
+    by API that need to be translated for Snuba to be able to query the data.
+    """
+
+    def __init__(self, projects: Sequence[Project], mapper_config: MapperConfig):
+        self.projects = projects
+        self.mapper_config = mapper_config
+        self.mappers: list[Mapper] = []
+
+    def _visit_formula(self, formula: Formula) -> Formula:
+        formula = super()._visit_formula(formula)
+        visitor = MapperConditionVisitor(self.projects, self.mapper_config)
+        filters = visitor.visit_group(formula.filters)
+        formula = formula.set_filters(filters)
+        if len(visitor.mappers) > 0:
+            self.mappers.extend(visitor.mappers)
+
+        if formula.groupby:
+            new_group_bys = self._map_groupby(formula.groupby)
+            formula = formula.set_groupby(new_group_bys)
+
+        return formula
+
+    def _visit_timeseries(self, timeseries: Timeseries) -> Timeseries:
+        visitor = MapperConditionVisitor(self.projects, self.mapper_config)
+        filters = visitor.visit_group(timeseries.filters)
+        timeseries = timeseries.set_filters(filters)
+        if len(visitor.mappers) > 0:
+            self.mappers.extend(visitor.mappers)
+
+        if timeseries.groupby:
+            new_group_bys = self._map_groupby(timeseries.groupby)
+            timeseries = timeseries.set_groupby(new_group_bys)
+
+        return timeseries
+
+    def _map_groupby(
+        self, groupby: list[Column | AliasedExpression]
+    ) -> list[Column | AliasedExpression]:
+        new_group_bys = []
+        for group in groupby:
+            new_group = group
+            if isinstance(group, Column):
+                mapper = get_or_create_mapper(self.mapper_config, self.mappers, from_key=group.name)
+                if mapper:
+                    new_group = Column(name=mapper.to_key)
+                    mapper.applied_on_groupby = True
+
+            elif isinstance(group, AliasedExpression):
+                mapper = get_or_create_mapper(
+                    self.mapper_config, self.mappers, from_key=group.exp.name
+                )
+                if mapper:
+                    new_group = AliasedExpression(exp=Column(name=mapper.to_key), alias=group.alias)
+                    mapper.applied_on_groupby = True
+            new_group_bys.append(new_group)
+        return new_group_bys

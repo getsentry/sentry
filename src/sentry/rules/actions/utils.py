@@ -4,6 +4,7 @@ from typing import Any, DefaultDict
 from sentry.api.serializers.models.rule import generate_rule_label
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule
+from sentry.types.actor import Actor
 
 ONE_HOUR = 60
 ONE_DAY = ONE_HOUR * 24
@@ -14,8 +15,8 @@ def get_updated_rule_data(rule: Rule) -> dict[str, Any]:
     rule_data = dict(rule.data)
     if rule.environment_id:
         rule_data["environment_id"] = rule.environment_id
-    if rule.owner:
-        rule_data["owner"] = rule.owner
+    if rule.owner_user_id or rule.owner_team_id:
+        rule_data["owner"] = Actor.from_id(user_id=rule.owner_user_id, team_id=rule.owner_team_id)
     rule_data["label"] = rule.label
     return rule_data
 
@@ -26,7 +27,7 @@ def check_value_changed(
     if present_state.get(key) != prior_state.get(key):
         old_value = prior_state.get(key)
         new_value = present_state.get(key)
-        return f"Changed {word} from *{old_value}* to *{new_value}*"
+        return f"Changed {word} from '{old_value}' to '{new_value}'"
     return None
 
 
@@ -53,7 +54,7 @@ def generate_diff_labels(
         if prior_state.get(changed_id) != present_state.get(changed_id):
             old_label = generate_rule_label(rule.project, rule, prior_state.get(changed_id))
             new_label = generate_rule_label(rule.project, rule, present_state.get(changed_id))
-            changed_data[changed_id] = [(f"Changed {key} from *{old_label}* to *{new_label}*")]
+            changed_data[changed_id] = [(f"Changed {key} from '{old_label}' to '{new_label}'")]
 
     # Removed items
     for removed_id in prior_ids.difference(present_ids):
@@ -109,7 +110,7 @@ def get_changed_data(
     current_frequency = get_frequency_label(rule_data.get("frequency"))
     previous_frequency = get_frequency_label(rule_data_before.get("frequency"))
     if current_frequency != previous_frequency:
-        frequency_text = f"Changed frequency from *{previous_frequency}* to *{current_frequency}*"
+        frequency_text = f"Changed frequency from '{previous_frequency}' to '{current_frequency}'"
         changed_data["changed_frequency"].append(frequency_text)
 
     if rule_data.get("environment_id") and not rule_data_before.get("environment_id"):
@@ -120,7 +121,7 @@ def get_changed_data(
             pass
 
         if environment:
-            changed_data["environment"].append(f"Added *{environment.name}* environment")
+            changed_data["environment"].append(f"Added '{environment.name}' environment")
 
     if rule_data_before.get("environment_id") and not rule_data.get("environment_id"):
         environment = None
@@ -130,7 +131,7 @@ def get_changed_data(
             pass
 
         if environment:
-            changed_data["environment"].append(f"Removed *{environment.name}* environment")
+            changed_data["environment"].append(f"Removed '{environment.name}' environment")
 
     label_text = check_value_changed(rule_data, rule_data_before, "label", "rule name")
     if label_text:
@@ -154,7 +155,7 @@ def get_changed_data(
         new_actor = "Unassigned"
         if new_owner:
             new_actor = new_owner.resolve()
-        owner_changed_text = f"Changed owner from *{old_actor}* to *{new_actor}*"
+        owner_changed_text = f"Changed owner from '{old_actor}' to '{new_actor}'"
         changed_data["owner"].append(owner_changed_text)
 
     return changed_data

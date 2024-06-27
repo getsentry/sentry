@@ -1,3 +1,5 @@
+import {SentryGlobalSearch} from '@sentry-internal/global-search';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import HelpSearch from 'sentry/components/helpSearch';
@@ -60,11 +62,15 @@ const mockResults = [
   },
 ];
 
-jest.mock('@sentry-internal/global-search', () => ({
-  SentryGlobalSearch: jest
-    .fn()
-    .mockImplementation(() => ({query: () => Promise.resolve(mockResults)})),
-}));
+jest.mock('@sentry-internal/global-search', () => {
+  const mockQuery = jest.fn(() => Promise.resolve(mockResults));
+
+  return {
+    SentryGlobalSearch: jest.fn().mockImplementation(() => ({
+      query: mockQuery,
+    })),
+  };
+});
 
 describe('HelpSearch', function () {
   it('produces search results', async function () {
@@ -78,6 +84,17 @@ describe('HelpSearch', function () {
     );
 
     await userEvent.type(screen.getByTestId('search'), 'dummy');
+
+    const mockSentryGlobalSearch = new SentryGlobalSearch();
+
+    expect(mockSentryGlobalSearch.query).toHaveBeenLastCalledWith(
+      'dummy',
+      {
+        platforms: [],
+        searchAllIndexes: true,
+      },
+      {analyticsTags: ['source:dashboard']}
+    );
 
     await screen.findByText('From Documentation');
 

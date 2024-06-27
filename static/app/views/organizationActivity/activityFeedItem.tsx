@@ -410,7 +410,7 @@ export default styled(ActivityItem)`
 `;
 
 const ActivityAuthor = styled('span')`
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const Meta = styled('div')`
@@ -418,7 +418,7 @@ const Meta = styled('div')`
   font-size: ${p => p.theme.fontSizeRelativeSmall};
 `;
 const Project = styled('span')`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const Bubble = styled('div')<{clipped: boolean}>`

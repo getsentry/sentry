@@ -7,7 +7,11 @@ from urllib.parse import urlencode
 from django.urls import reverse
 
 from sentry.auth.access import from_user
-from sentry.incidents.models.alert_rule import AlertRuleStatus, AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import (
+    AlertRuleStatus,
+    AlertRuleTriggerAction,
+    AlertRuleTriggerActionMethod,
+)
 from sentry.incidents.models.incident import (
     INCIDENT_STATUS,
     Incident,
@@ -24,7 +28,7 @@ from sentry.incidents.utils.types import QuerySubscriptionUpdate
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.query_subscriptions.consumer import register_subscriber
@@ -182,7 +186,7 @@ def handle_trigger_action(
     action_id: int,
     incident_id: int,
     project_id: int,
-    method: str,
+    method: AlertRuleTriggerActionMethod,
     new_status: int,
     metric_value: int | None = None,
     **kwargs: Any,

@@ -14,10 +14,10 @@ const formGroups: JsonFormObject[] = [
         type: 'boolean',
 
         // additional data/props that is related to rendering of form field rather than data
-        label: t('Show Sentry Branding'),
+        label: t('Show Sentry Branding in Crash Report Modal'),
         placeholder: 'e.g. secondary@example.com',
         help: t(
-          'Show "powered by Sentry" within the feedback dialog. We appreciate you helping get the word out about Sentry! <3'
+          'Show "powered by Sentry" within the Crash Report Modal. We appreciate you helping get the word out about Sentry! <3'
         ),
         getData: data => ({options: data}),
       },
@@ -38,6 +38,15 @@ const formGroups: JsonFormObject[] = [
               ),
             }
           ),
+        getData: data => ({options: data}),
+      },
+      {
+        name: 'sentry:feedback_ai_spam_detection',
+        type: 'boolean',
+
+        // additional data/props that is related to rendering of form field rather than data
+        label: 'Enable Spam Detection',
+        help: 'Toggles whether or not to enable auto spam detection in User Feedback.',
         getData: data => ({options: data}),
       },
     ],

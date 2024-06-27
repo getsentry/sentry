@@ -1,11 +1,10 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
-import {EntryType, type Event} from 'sentry/types';
-import type {
-  TraceFullDetailed,
-  TraceSplitResults,
-} from 'sentry/utils/performance/quickTrace/types';
+import {EntryType, type Event} from 'sentry/types/event';
+import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
+import {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
+import {TraceView} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
 import {
   type VirtualizedList,
   VirtualizedViewManager,
@@ -21,16 +20,18 @@ function makeEvent(overrides: Partial<Event> = {}, spans: RawSpanType[] = []): E
 }
 
 function makeTrace(
-  overrides: Partial<TraceSplitResults<TraceFullDetailed>>
-): TraceSplitResults<TraceFullDetailed> {
+  overrides: Partial<TraceSplitResults<TraceTree.Transaction>>
+): TraceSplitResults<TraceTree.Transaction> {
   return {
     transactions: [],
     orphan_errors: [],
     ...overrides,
-  } as TraceSplitResults<TraceFullDetailed>;
+  } as TraceSplitResults<TraceTree.Transaction>;
 }
 
-function makeTransaction(overrides: Partial<TraceFullDetailed> = {}): TraceFullDetailed {
+function makeTransaction(
+  overrides: Partial<TraceTree.Transaction> = {}
+): TraceTree.Transaction {
   return {
     children: [],
     start_timestamp: 0,
@@ -41,7 +42,7 @@ function makeTransaction(overrides: Partial<TraceFullDetailed> = {}): TraceFullD
     errors: [],
     performance_issues: [],
     ...overrides,
-  } as TraceFullDetailed;
+  } as TraceTree.Transaction;
 }
 
 function makeSpan(overrides: Partial<RawSpanType> = {}): RawSpanType {
@@ -93,7 +94,8 @@ function makeSingleTransactionTree(): TraceTree {
           event_id: 'event_id',
         }),
       ],
-    })
+    }),
+    null
   );
 }
 
@@ -104,67 +106,89 @@ function makeList(): VirtualizedList {
 }
 
 const EVENT_REQUEST_URL =
-  '/organizations/org-slug/events/project:event_id/?averageColumn=span.self_time';
+  '/organizations/org-slug/events/project:event_id/?averageColumn=span.self_time&averageColumn=span.duration';
 
 describe('VirtualizedViewManger', () => {
   it('initializes space', () => {
-    const manager = new VirtualizedViewManager({
-      list: {width: 0.5},
-      span_list: {width: 0.5},
-    });
+    const manager = new VirtualizedViewManager(
+      {
+        list: {width: 0.5},
+        span_list: {width: 0.5},
+      },
+      new TraceScheduler(),
+      new TraceView()
+    );
 
-    manager.initializeTraceSpace([10_000, 0, 1000, 1]);
+    manager.view.setTraceSpace([10_000, 0, 1000, 1]);
 
-    expect(manager.trace_space.serialize()).toEqual([0, 0, 1000, 1]);
-    expect(manager.trace_view.serialize()).toEqual([0, 0, 1000, 1]);
+    expect(manager.view.trace_space.serialize()).toEqual([0, 0, 1000, 1]);
+    expect(manager.view.trace_view.serialize()).toEqual([0, 0, 1000, 1]);
   });
 
   it('initializes physical space', () => {
-    const manager = new VirtualizedViewManager({
-      list: {width: 0.5},
-      span_list: {width: 0.5},
-    });
+    const manager = new VirtualizedViewManager(
+      {
+        list: {width: 0.5},
+        span_list: {width: 0.5},
+      },
+      new TraceScheduler(),
+      new TraceView()
+    );
 
-    manager.initializePhysicalSpace(1000, 1);
+    manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 500, 1]);
 
-    expect(manager.container_physical_space.serialize()).toEqual([0, 0, 1000, 1]);
-    expect(manager.trace_physical_space.serialize()).toEqual([0, 0, 500, 1]);
+    expect(manager.view.trace_container_physical_space.serialize()).toEqual([
+      0, 0, 1000, 1,
+    ]);
+    expect(manager.view.trace_physical_space.serialize()).toEqual([0, 0, 500, 1]);
   });
 
   describe('computeSpanCSSMatrixTransform', () => {
     it('enforces min scaling', () => {
-      const manager = new VirtualizedViewManager({
-        list: {width: 0},
-        span_list: {width: 1},
-      });
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView()
+      );
 
-      manager.initializeTraceSpace([0, 0, 1000, 1]);
-      manager.initializePhysicalSpace(1000, 1);
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
 
       expect(manager.computeSpanCSSMatrixTransform([0, 0.1])).toEqual([
         0.001, 0, 0, 1, 0, 0,
       ]);
     });
     it('computes width scaling correctly', () => {
-      const manager = new VirtualizedViewManager({
-        list: {width: 0},
-        span_list: {width: 1},
-      });
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView()
+      );
 
-      manager.initializeTraceSpace([0, 0, 100, 1]);
-      manager.initializePhysicalSpace(1000, 1);
+      manager.view.setTraceSpace([0, 0, 100, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
 
       expect(manager.computeSpanCSSMatrixTransform([0, 100])).toEqual([1, 0, 0, 1, 0, 0]);
     });
 
     it('computes x position correctly', () => {
-      const manager = new VirtualizedViewManager({
-        list: {width: 0},
-        span_list: {width: 1},
-      });
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView()
+      );
 
-      manager.initializeTraceSpace([0, 0, 1000, 1]);
-      manager.initializePhysicalSpace(1000, 1);
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
 
       expect(manager.computeSpanCSSMatrixTransform([50, 1000])).toEqual([
         1, 0, 0, 1, 50, 0,
@@ -172,13 +196,17 @@ describe('VirtualizedViewManger', () => {
     });
 
     it('computes span x position correctly', () => {
-      const manager = new VirtualizedViewManager({
-        list: {width: 0},
-        span_list: {width: 1},
-      });
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView()
+      );
 
-      manager.initializeTraceSpace([0, 0, 1000, 1]);
-      manager.initializePhysicalSpace(1000, 1);
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
 
       expect(manager.computeSpanCSSMatrixTransform([50, 1000])).toEqual([
         1, 0, 0, 1, 50, 0,
@@ -187,26 +215,34 @@ describe('VirtualizedViewManger', () => {
 
     describe('when start is not 0', () => {
       it('computes width scaling correctly', () => {
-        const manager = new VirtualizedViewManager({
-          list: {width: 0},
-          span_list: {width: 1},
-        });
+        const manager = new VirtualizedViewManager(
+          {
+            list: {width: 0},
+            span_list: {width: 1},
+          },
+          new TraceScheduler(),
+          new TraceView()
+        );
 
-        manager.initializeTraceSpace([100, 0, 100, 1]);
-        manager.initializePhysicalSpace(1000, 1);
+        manager.view.setTraceSpace([100, 0, 100, 1]);
+        manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
 
         expect(manager.computeSpanCSSMatrixTransform([100, 100])).toEqual([
           1, 0, 0, 1, 0, 0,
         ]);
       });
       it('computes x position correctly when view is offset', () => {
-        const manager = new VirtualizedViewManager({
-          list: {width: 0},
-          span_list: {width: 1},
-        });
+        const manager = new VirtualizedViewManager(
+          {
+            list: {width: 0},
+            span_list: {width: 1},
+          },
+          new TraceScheduler(),
+          new TraceView()
+        );
 
-        manager.initializeTraceSpace([100, 0, 100, 1]);
-        manager.initializePhysicalSpace(1000, 1);
+        manager.view.setTraceSpace([100, 0, 100, 1]);
+        manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
 
         expect(manager.computeSpanCSSMatrixTransform([100, 100])).toEqual([
           1, 0, 0, 1, 0, 0,
@@ -215,105 +251,79 @@ describe('VirtualizedViewManger', () => {
     });
   });
 
-  describe('computeTransformXFromTimestamp', () => {
+  describe('transformXFromTimestamp', () => {
     it('computes x position correctly', () => {
-      const manager = new VirtualizedViewManager({
-        list: {width: 0},
-        span_list: {width: 1},
-      });
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView()
+      );
 
-      manager.initializeTraceSpace([0, 0, 1000, 1]);
-      manager.initializePhysicalSpace(1000, 1);
+      manager.view.setTraceSpace([0, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
 
-      expect(manager.computeTransformXFromTimestamp(50)).toEqual(50);
+      expect(manager.transformXFromTimestamp(50)).toEqual(50);
     });
 
     it('computes x position correctly when view is offset', () => {
-      const manager = new VirtualizedViewManager({
-        list: {width: 0},
-        span_list: {width: 1},
-      });
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView()
+      );
 
-      manager.initializeTraceSpace([50, 0, 1000, 1]);
-      manager.initializePhysicalSpace(1000, 1);
+      manager.view.setTraceSpace([50, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
 
-      manager.trace_view.x = 50;
+      manager.view.trace_view.x = 50;
 
-      expect(manager.computeTransformXFromTimestamp(-50)).toEqual(-150);
+      expect(manager.transformXFromTimestamp(-50)).toEqual(-150);
     });
 
     it('when view is offset and scaled', () => {
-      const manager = new VirtualizedViewManager({
-        list: {width: 0},
-        span_list: {width: 1},
-      });
+      const manager = new VirtualizedViewManager(
+        {
+          list: {width: 0},
+          span_list: {width: 1},
+        },
+        new TraceScheduler(),
+        new TraceView()
+      );
 
-      manager.initializeTraceSpace([50, 0, 100, 1]);
-      manager.initializePhysicalSpace(1000, 1);
+      manager.view.setTraceSpace([100, 0, 1000, 1]);
+      manager.view.setTracePhysicalSpace([0, 0, 1000, 1], [0, 0, 1000, 1]);
+      manager.view.setTraceView({width: 500, x: 500});
 
-      manager.trace_view.width = 50;
-      manager.trace_view.x = 50;
-
-      expect(Math.round(manager.computeTransformXFromTimestamp(75))).toEqual(-250);
+      expect(Math.round(manager.transformXFromTimestamp(100))).toEqual(-500);
     });
   });
 
-  describe('getConfigSpaceCursor', () => {
-    it('returns the correct x position', () => {
-      const manager = new VirtualizedViewManager({
-        list: {width: 0},
-        span_list: {width: 1},
-      });
-
-      manager.initializeTraceSpace([0, 0, 100, 1]);
-      manager.initializePhysicalSpace(1000, 1);
-
-      expect(manager.getConfigSpaceCursor({x: 500, y: 0})).toEqual([50, 0]);
-    });
-
-    it('returns the correct x position when view scaled', () => {
-      const manager = new VirtualizedViewManager({
-        list: {width: 0},
-        span_list: {width: 1},
-      });
-
-      manager.initializeTraceSpace([0, 0, 100, 1]);
-      manager.initializePhysicalSpace(1000, 1);
-
-      manager.trace_view.x = 50;
-      manager.trace_view.width = 50;
-      expect(manager.getConfigSpaceCursor({x: 500, y: 0})).toEqual([75, 0]);
-    });
-
-    it('returns the correct x position when view is offset', () => {
-      const manager = new VirtualizedViewManager({
-        list: {width: 0},
-        span_list: {width: 1},
-      });
-
-      manager.initializeTraceSpace([0, 0, 100, 1]);
-      manager.initializePhysicalSpace(1000, 1);
-
-      manager.trace_view.x = 50;
-      expect(manager.getConfigSpaceCursor({x: 500, y: 0})).toEqual([100, 0]);
-    });
-  });
-
-  describe('scrollToPath', () => {
+  describe('expandToPath', () => {
     const organization = OrganizationFixture();
     const api = new MockApiClient();
 
-    const manager = new VirtualizedViewManager({
-      list: {width: 0.5},
-      span_list: {width: 0.5},
-    });
+    const manager = new VirtualizedViewManager(
+      {
+        list: {width: 0.5},
+        span_list: {width: 0.5},
+      },
+      new TraceScheduler(),
+      new TraceView()
+    );
 
     it('scrolls to root node', async () => {
       const tree = TraceTree.FromTrace(
         makeTrace({
           transactions: [makeTransaction()],
           orphan_errors: [],
-        })
+        }),
+        null
       );
 
       manager.list = makeList();
@@ -336,7 +346,8 @@ describe('VirtualizedViewManger', () => {
               children: [],
             }),
           ],
-        })
+        }),
+        null
       );
 
       manager.list = makeList();
@@ -368,7 +379,8 @@ describe('VirtualizedViewManger', () => {
               ],
             }),
           ],
-        })
+        }),
+        null
       );
 
       manager.list = makeList();
@@ -403,7 +415,8 @@ describe('VirtualizedViewManger', () => {
               children: [],
             }),
           ],
-        })
+        }),
+        null
       );
 
       MockApiClient.addMockResponse({
@@ -438,7 +451,8 @@ describe('VirtualizedViewManger', () => {
               children: [],
             }),
           ],
-        })
+        }),
+        null
       );
 
       MockApiClient.addMockResponse({
@@ -479,7 +493,8 @@ describe('VirtualizedViewManger', () => {
               ],
             }),
           ],
-        })
+        }),
+        null
       );
 
       MockApiClient.addMockResponse({
@@ -492,7 +507,7 @@ describe('VirtualizedViewManger', () => {
       });
 
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/events/project_slug:child_event_id/?averageColumn=span.self_time',
+        url: '/organizations/org-slug/events/project_slug:child_event_id/?averageColumn=span.self_time&averageColumn=span.duration',
         method: 'GET',
         body: makeEvent(undefined, [makeSpan({span_id: 'other_child_span'})]),
       });
@@ -679,10 +694,12 @@ describe('VirtualizedViewManger', () => {
               span: '',
               level: 'error',
               title: 'ded fo good',
+              message: 'ded fo good',
               timestamp: 1,
             },
           ],
-        })
+        }),
+        null
       );
 
       const result = await TraceTree.ExpandToPath(tree, ['error-ded'], () => void 0, {
@@ -691,6 +708,54 @@ describe('VirtualizedViewManger', () => {
       });
 
       expect(result?.node).toBe(tree.list[2]);
+    });
+
+    describe('error handling', () => {
+      it('scrolls to child span of sibling autogrouped node when path is missing autogrouped node', async () => {
+        manager.list = makeList();
+        const tree = makeSingleTransactionTree();
+
+        MockApiClient.addMockResponse({
+          url: EVENT_REQUEST_URL,
+          method: 'GET',
+          body: makeEvent({}, makeSiblingAutogroupedSpans()),
+        });
+
+        const result = await TraceTree.ExpandToPath(
+          tree,
+          ['span-middle_span', 'txn-event_id'],
+          () => void 0,
+          {
+            api: api,
+            organization,
+          }
+        );
+
+        expect(result).toBeTruthy();
+      });
+
+      it('scrolls to child span of parent autogrouped node when path is missing autogrouped node', async () => {
+        manager.list = makeList();
+        const tree = makeSingleTransactionTree();
+
+        MockApiClient.addMockResponse({
+          url: EVENT_REQUEST_URL,
+          method: 'GET',
+          body: makeEvent({}, makeParentAutogroupSpans()),
+        });
+
+        const result = await TraceTree.ExpandToPath(
+          tree,
+          ['span-middle_span', 'txn-event_id'],
+          () => void 0,
+          {
+            api: api,
+            organization,
+          }
+        );
+
+        expect(result).toBeTruthy();
+      });
     });
   });
 });

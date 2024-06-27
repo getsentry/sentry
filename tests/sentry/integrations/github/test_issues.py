@@ -3,6 +3,7 @@ from functools import cached_property
 from typing import cast
 from unittest.mock import patch
 
+import orjson
 import responses
 from django.test import RequestFactory
 from django.utils import timezone
@@ -20,7 +21,6 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.silo import all_silo_test
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -226,7 +226,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
             request = responses.calls[1].request
             assert request.headers["Authorization"] == "Bearer token_1"
-            payload = json.loads(request.body)
+            payload = orjson.loads(request.body)
             assert payload == {
                 "body": "This is the description",
                 "assignee": None,
@@ -455,7 +455,7 @@ class GitHubIssueBasicTest(TestCase, PerformanceIssueTestCase, IntegratedApiTest
 
         request = responses.calls[1].request
         assert request.headers["Authorization"] == "Bearer token_1"
-        payload = json.loads(request.body)
+        payload = orjson.loads(request.body)
         assert payload == {"body": "hello"}
 
     @responses.activate

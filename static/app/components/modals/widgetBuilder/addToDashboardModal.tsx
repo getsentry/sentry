@@ -16,7 +16,8 @@ import ButtonBar from 'sentry/components/buttonBar';
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {DateString, Organization, PageFilters, SelectValue} from 'sentry/types';
+import type {DateString, PageFilters, SelectValue} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import useApi from 'sentry/utils/useApi';
@@ -64,6 +65,7 @@ export type AddToDashboardModalProps = {
   widget: Widget;
   widgetAsQueryParams: WidgetAsQueryParams;
   actions?: AddToDashboardModalActions[];
+  allowCreateNewDashboard?: boolean;
 };
 
 type Props = ModalRenderProps & AddToDashboardModalProps;
@@ -87,6 +89,7 @@ function AddToDashboardModal({
   widget,
   widgetAsQueryParams,
   actions = DEFAULT_ACTIONS,
+  allowCreateNewDashboard = true,
 }: Props) {
   const api = useApi();
   const [dashboards, setDashboards] = useState<DashboardListItem[] | null>(null);
@@ -193,7 +196,7 @@ function AddToDashboardModal({
     addSuccessMessage(t('Successfully added widget to dashboard'));
   }
 
-  async function handleAddAndOpenDaashboard() {
+  async function handleAddAndOpenDashboard() {
     await handleAddWidget();
 
     goToDashboard('preview');
@@ -216,7 +219,10 @@ function AddToDashboardModal({
             value={selectedDashboardId}
             options={
               dashboards && [
-                {label: t('+ Create New Dashboard'), value: 'new'},
+                allowCreateNewDashboard && {
+                  label: t('+ Create New Dashboard'),
+                  value: 'new',
+                },
                 ...dashboards.map(({title, id, widgetDisplay}) => ({
                   label: title,
                   value: id,
@@ -290,8 +296,8 @@ function AddToDashboardModal({
           )}
           {actions.includes('add-and-open-dashboard') && (
             <Button
-              onClick={handleAddAndOpenDaashboard}
-              disabled={!canSubmit || selectedDashboardId === NEW_DASHBOARD_ID}
+              onClick={handleAddAndOpenDashboard}
+              disabled={!canSubmit}
               title={canSubmit ? undefined : SELECT_DASHBOARD_MESSAGE}
             >
               {t('Add + Open Dashboard')}

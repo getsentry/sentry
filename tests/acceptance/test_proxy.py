@@ -10,7 +10,7 @@ from rest_framework.test import APIClient
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 from sentry.models.team import Team
-from sentry.silo import SiloMode, SingleProcessSiloModeState
+from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.testutils.asserts import assert_status_code
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import Factories

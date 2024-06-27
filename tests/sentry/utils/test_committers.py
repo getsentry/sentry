@@ -17,7 +17,7 @@ from sentry.models.integrations.integration import Integration
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.repository import Repository
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode
@@ -841,7 +841,7 @@ class GetEventFileCommitters(CommitTestCase):
             group_id=event.group.id, project_id=self.project.id, release_id=self.release.id
         )
         GroupOwner.objects.create(
-            group_id=event.group_id,
+            group_id=event.group.id,
             project=self.project,
             organization_id=self.organization.id,
             type=GroupOwnerType.SUSPECT_COMMIT.value,

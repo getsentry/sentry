@@ -29,6 +29,7 @@ export type SearchGroup = {
    */
   childrenWrapper?: React.FC<{children: React.ReactNode}>;
   desc?: string;
+  documentation?: React.ReactNode;
   value?: string;
 };
 

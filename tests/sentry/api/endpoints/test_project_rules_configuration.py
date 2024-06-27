@@ -190,32 +190,26 @@ class ProjectRuleConfigurationTest(APITestCase):
         filter_ids = {f["id"] for f in response.data["filters"]}
         assert IssueCategoryFilter.id in filter_ids
 
-    def test_issue_severity_filter_feature(self):
-        # Hide the issue severity filter when issue-severity-alerts is off
-        with self.feature({"projects:first-event-severity-alerting": False}):
-            response = self.get_success_response(self.organization.slug, self.project.slug)
-            assert "sentry.rules.filters.issue_severity.IssueSeverityFilter" not in [
-                filter["id"] for filter in response.data["filters"]
-            ]
-
-        # Show the issue severity filter when issue-severity-alerts is on
-        with self.feature({"projects:first-event-severity-alerting": True}):
-            response = self.get_success_response(self.organization.slug, self.project.slug)
-            assert "sentry.rules.filters.issue_severity.IssueSeverityFilter" in [
-                filter["id"] for filter in response.data["filters"]
-            ]
-
     def test_high_priority_issue_condition_feature(self):
         # Hide the high priority issue condition when high-priority-alerts is off
         with self.feature({"projects:high-priority-alerts": False}):
             response = self.get_success_response(self.organization.slug, self.project.slug)
-            assert "sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition" not in [
-                filter["id"] for filter in response.data["conditions"]
-            ]
+            assert (
+                "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition"
+                not in [filter["id"] for filter in response.data["conditions"]]
+            )
+            assert (
+                "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition"
+                not in [filter["id"] for filter in response.data["conditions"]]
+            )
 
         # Show the high priority issue condition when high-priority-alerts is on
         with self.feature({"projects:high-priority-alerts": True}):
             response = self.get_success_response(self.organization.slug, self.project.slug)
-            assert "sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition" in [
+            assert "sentry.rules.conditions.high_priority_issue.NewHighPriorityIssueCondition" in [
                 filter["id"] for filter in response.data["conditions"]
             ]
+            assert (
+                "sentry.rules.conditions.high_priority_issue.ExistingHighPriorityIssueCondition"
+                in [filter["id"] for filter in response.data["conditions"]]
+            )

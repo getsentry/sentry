@@ -8,7 +8,7 @@ from typing import Any
 from sentry.eventstore.models import GroupEvent
 from sentry.models.rule import Rule
 from sentry.models.rulefirehistory import RuleFireHistory
-from sentry.rules.base import CallbackFuture, EventState, RuleBase
+from sentry.rules.base import CallbackFuture, RuleBase
 
 logger = logging.getLogger("sentry.rules")
 
@@ -37,7 +37,7 @@ class EventAction(RuleBase, abc.ABC):
 
     @abc.abstractmethod
     def after(
-        self, event: GroupEvent, state: EventState, notification_uuid: str | None = None
+        self, event: GroupEvent, notification_uuid: str | None = None
     ) -> Generator[CallbackFuture, None, None]:
         """
         Executed after a Rule matches.
@@ -47,10 +47,8 @@ class EventAction(RuleBase, abc.ABC):
 
         See the notification implementation for example usage.
 
-        Does not need to handle group state (e.g. is resolved or not)
-        Caller will handle state
 
-        >>> def after(self, event, state):
+        >>> def after(self, state):
         >>>     yield self.future(self.print_results)
         >>>
         >>> def print_results(self, event, futures):

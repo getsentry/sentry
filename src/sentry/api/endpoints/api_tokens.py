@@ -19,6 +19,7 @@ from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.models.apitoken import ApiToken
 from sentry.models.outbox import outbox_context
 from sentry.security.utils import capture_security_activity
+from sentry.types.token import AuthTokenType
 
 
 class ApiTokenSerializer(serializers.Serializer):
@@ -38,7 +39,7 @@ class ApiTokensEndpoint(Endpoint):
     permission_classes = (IsAuthenticated,)
 
     @classmethod
-    def _get_appropriate_user_id(cls, request: Request) -> str:
+    def _get_appropriate_user_id(cls, request: Request) -> int:
         """
         Gets the user id to use for the request, based on what the current state of the request is.
         If the request is made by a superuser, then they are allowed to act on behalf of other user's data.
@@ -53,7 +54,7 @@ class ApiTokensEndpoint(Endpoint):
         if has_elevated_mode(request):
             datastore = request.GET if request.GET else request.data
             # If a userId override is not found, use the id for the user who made the request
-            user_id = datastore.get("userId", user_id)
+            user_id = int(datastore.get("userId", user_id))
 
         return user_id
 
@@ -78,8 +79,8 @@ class ApiTokensEndpoint(Endpoint):
             token = ApiToken.objects.create(
                 user_id=request.user.id,
                 name=result.get("name", None),
+                token_type=AuthTokenType.USER,
                 scope_list=result["scopes"],
-                refresh_token=None,
                 expires_at=None,
             )
 

@@ -128,7 +128,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
         rule = self.get_rule(data={"targetType": "IssueOwners"})
         ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event))
         assert len(results) == 1
 
     def test_full_integration(self):
@@ -162,6 +162,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
             )
 
         assert len(mail.outbox) == 1
@@ -199,6 +200,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
             )
 
         assert len(mail.outbox) == 1
@@ -235,6 +237,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
             )
 
         # See that the ActiveMembers default results in notifications still being sent
@@ -265,14 +268,6 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 is_regression=False,
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
-                group_states=[
-                    {
-                        "id": event.group_id,
-                        "is_new": True,
-                        "is_regression": False,
-                        "is_new_group_environment": False,
-                    }
-                ],
                 occurrence_id=event.occurrence_id,
                 project_id=event.group.project_id,
                 group_id=event.group_id,
@@ -326,6 +321,7 @@ class NotifyEmailTest(RuleTestCase, PerformanceIssueTestCase):
                 is_new_group_environment=False,
                 cache_key=write_event_to_cache(event),
                 group_id=event.group_id,
+                project_id=self.project.id,
             )
 
         assert len(mail.outbox) == 3

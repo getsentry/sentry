@@ -6,10 +6,10 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {ActionableItems} from 'sentry/components/events/interfaces/crashContent/exception/actionableItems';
 import {JavascriptProcessingErrors} from 'sentry/constants/eventErrors';
-import {EntryType} from 'sentry/types';
+import {EntryType} from 'sentry/types/event';
 
 describe('Actionable Items', () => {
-  const organization = OrganizationFixture({});
+  const organization = OrganizationFixture();
   const project = ProjectFixture();
 
   const url = `/projects/${organization.slug}/${project.slug}/events/1/actionable-items/`;

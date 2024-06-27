@@ -11,6 +11,8 @@ import {
   getCrashReportModalConfigDescription,
   getCrashReportModalIntroduction,
 } from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
+import exampleSnippets from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsExampleSnippets';
+import {metricTagsExplanation} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
 import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 
@@ -46,14 +48,11 @@ const getVerifySnippet = () => `try {
 const getMetricsConfigureSnippet = (params: DocsParams) => `
 Sentry.init({
   dsn: "${params.dsn}",
-  _experiments: {
-    metricsAggregator: true,
-  },
+  // Only needed for SDK versions < 8.0.0
+  // _experiments: {
+  //   metricsAggregator: true,
+  // },
 });`;
-
-const getMetricsVerifySnippet = () => `
-// Add 4 to a counter named 'hits'
-Sentry.metrics.increment('hits', 4);`;
 
 const onboarding: OnboardingConfig = {
   install: () => [
@@ -125,23 +124,13 @@ const customMetricsOnboarding: OnboardingConfig = {
   configure: params => [
     {
       type: StepType.CONFIGURE,
-      description: tct(
-        'To enable capturing metrics, you first need to add the [codeIntegration:metricsAggregator] experiment to your [codeNamespace:Sentry.init] call in your main process.',
-        {
-          codeIntegration: <code />,
-          codeNamespace: <code />,
-        }
+      description: t(
+        'With the default snippet in place, there is no need for any further configuration.'
       ),
       configurations: [
         {
-          code: [
-            {
-              label: 'JavaScript',
-              value: 'javascript',
-              language: 'javascript',
-              code: getMetricsConfigureSnippet(params),
-            },
-          ],
+          code: getMetricsConfigureSnippet(params),
+          language: 'javascript',
         },
       ],
     },
@@ -150,7 +139,7 @@ const customMetricsOnboarding: OnboardingConfig = {
     {
       type: StepType.VERIFY,
       description: tct(
-        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics] namespace. This API is available in both renderer and main processes. Try out this example:",
+        "Then you'll be able to add metrics as [codeCounters:counters], [codeSets:sets], [codeDistribution:distributions], and [codeGauge:gauges]. These are available under the [codeNamespace:Sentry.metrics] namespace. This API is available in both renderer and main processes.",
         {
           codeCounters: <code />,
           codeSets: <code />,
@@ -161,18 +150,40 @@ const customMetricsOnboarding: OnboardingConfig = {
       ),
       configurations: [
         {
+          description: metricTagsExplanation,
+        },
+        {
+          description: t('Try out these examples:'),
           code: [
             {
-              label: 'JavaScript',
-              value: 'javascript',
+              label: 'Counter',
+              value: 'counter',
               language: 'javascript',
-              code: getMetricsVerifySnippet(),
+              code: exampleSnippets.javascript.counter,
+            },
+            {
+              label: 'Distribution',
+              value: 'distribution',
+              language: 'javascript',
+              code: exampleSnippets.javascript.distribution,
+            },
+            {
+              label: 'Set',
+              value: 'set',
+              language: 'javascript',
+              code: exampleSnippets.javascript.set,
+            },
+            {
+              label: 'Gauge',
+              value: 'gauge',
+              language: 'javascript',
+              code: exampleSnippets.javascript.gauge,
             },
           ],
         },
         {
           description: t(
-            'With a bit of delay you can see the data appear in the Sentry UI.'
+            'It can take up to 3 minutes for the data to appear in the Sentry UI.'
           ),
         },
         {

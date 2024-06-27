@@ -1,15 +1,13 @@
-import copy
-
+import orjson
 import responses
 
 from sentry.integrations.bitbucket.issues import ISSUE_TYPES, PRIORITIES
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.factories import DEFAULT_EVENT_DATA
+from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -41,9 +39,9 @@ class BitbucketIssueTest(APITestCase):
                 "event_id": "a" * 32,
                 "message": "message",
                 "timestamp": min_ago,
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
         self.group = event.group
         self.repo_choices = [
@@ -99,7 +97,7 @@ class BitbucketIssueTest(APITestCase):
 
         request = responses.calls[0].request
         assert responses.calls[0].response.status_code == 201
-        payload = json.loads(request.body)
+        payload = orjson.loads(request.body)
         assert payload == {"content": {"raw": comment["comment"]}}
 
     @responses.activate

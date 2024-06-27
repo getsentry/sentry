@@ -22,6 +22,7 @@ const FILE_EXTENSION_TO_PLATFORM = {
   fs: 'fsharp',
   vb: 'visualbasic',
   ps1: 'powershell',
+  psd1: 'powershell',
   psm1: 'powershell',
   kt: 'kotlin',
   dart: 'dart',

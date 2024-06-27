@@ -1,11 +1,9 @@
 from datetime import timedelta
 
-from django.apps import apps
 from django.db import DatabaseError, IntegrityError, router
 from django.utils import timezone
 
-from sentry.locks import locks
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.deletion.scheduled import MAX_RETRIES
 from sentry.utils.db import atomic_transaction
@@ -103,52 +101,3 @@ def delete_unreferenced_blobs(blob_model, blob_index_model, blob_ids):
                 # Do nothing if the blob was deleted in another task, or
                 # if had another reference added concurrently.
                 pass
-
-
-# TODO(hybrid-cloud): Remove this once backfills are done?
-@instrumented_task(
-    name="sentry.tasks.files.copy_to_control",
-    queue="files.copy",
-    default_retry_delay=60 * 5,
-    max_retries=MAX_RETRIES,
-    autoretry_for=(DatabaseError, IntegrityError),
-    acks_late=True,
-)
-def copy_file_to_control_and_update_model(
-    app_name: str,
-    model_name: str,
-    model_id: int,
-    file_id: int,
-    **kwargs,
-):
-    from sentry.models.files import ControlFile, File
-
-    if SiloMode.get_current_mode() != SiloMode.MONOLITH:
-        # We can only run this task in monolith mode.
-        return
-
-    lock = f"copy-file-lock-{model_name}:{model_id}"
-
-    with locks.get(lock, duration=60, name="copy-file-lock").acquire():
-        # Short circuit duplicate copy calls
-        model_class = apps.get_model(app_name, model_name)
-        instance = model_class.objects.get(id=model_id)
-        if instance.control_file_id:
-            return
-
-        file_model = File.objects.get(id=file_id)
-        file_handle = file_model.getfile()
-
-        control_file = ControlFile.objects.create(
-            name=file_model.name,
-            type=file_model.type,
-            headers=file_model.headers,
-            timestamp=file_model.timestamp,
-            size=file_model.size,
-            checksum=file_model.checksum,
-        )
-        control_file.putfile(file_handle)
-
-        instance.control_file_id = control_file.id
-        instance.file_id = None
-        instance.save()

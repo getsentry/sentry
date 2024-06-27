@@ -1,5 +1,6 @@
 import {Component, Fragment} from 'react';
 import styled from '@emotion/styled';
+import type {Location} from 'history';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {Button} from 'sentry/components/button';
@@ -9,10 +10,12 @@ import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
 import GroupingStore from 'sentry/stores/groupingStore';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 type Props = {
+  location: Location;
   onMerge: () => void;
   groupId?: string;
   itemsWouldGroup?: Array<{id: string; shouldBeGrouped: string | undefined}> | undefined;
@@ -75,11 +78,11 @@ class SimilarToolbar extends Component<Props, State> {
   };
 
   render() {
-    const {onMerge, project} = this.props;
+    const {onMerge, project, location} = this.props;
     const {mergeCount} = this.state;
-    const hasSimilarityEmbeddingsFeature = project?.features.includes(
-      'similarity-embeddings'
-    );
+    const hasSimilarityEmbeddingsFeature =
+      project?.features.includes('similarity-embeddings') ||
+      location.query.similarityEmbeddings === '1';
 
     return (
       <PanelHeader hasButtons>

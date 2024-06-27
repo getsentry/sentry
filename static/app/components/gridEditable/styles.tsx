@@ -5,7 +5,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {space} from 'sentry/styles/space';
 
 export const GRID_HEAD_ROW_HEIGHT = 45;
-export const GRID_BODY_ROW_HEIGHT = 40;
+export const GRID_BODY_ROW_HEIGHT = 42;
 export const GRID_STATUS_MESSAGE_HEIGHT = GRID_BODY_ROW_HEIGHT * 4;
 
 /**
@@ -52,6 +52,7 @@ export const Body = styled(({children, ...props}) => (
   </Panel>
 ))`
   overflow-x: auto;
+  overflow-y: hidden;
   z-index: ${Z_INDEX_PANEL};
 `;
 
@@ -107,7 +108,7 @@ export const GridHead = styled('thead')`
   background-color: ${p => p.theme.backgroundSecondary};
   border-bottom: 1px solid ${p => p.theme.border};
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1;
   text-transform: uppercase;
   user-select: none;
@@ -269,7 +270,9 @@ export const GridResizer = styled('div')<{dataRows: number}>`
 
   height: ${p => {
     const numOfRows = p.dataRows;
-    const height = GRID_HEAD_ROW_HEIGHT + numOfRows * GRID_BODY_ROW_HEIGHT;
+    // 1px for the border
+    const totalRowHeight = numOfRows * (GRID_BODY_ROW_HEIGHT + 1);
+    const height = GRID_HEAD_ROW_HEIGHT + totalRowHeight;
 
     return height;
   }}px;

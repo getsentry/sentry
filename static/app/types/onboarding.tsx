@@ -1,4 +1,4 @@
-import type {RouteContextInterface} from 'react-router';
+import type {InjectedRouter} from 'react-router';
 
 import type {OnboardingContextProps} from 'sentry/components/onboarding/onboardingContext';
 import type {Category} from 'sentry/components/platformPicker';
@@ -89,7 +89,7 @@ interface OnboardingTaskDescriptorBase {
 }
 
 interface OnboardingTypeDescriptorWithAction extends OnboardingTaskDescriptorBase {
-  action: (props: RouteContextInterface) => void;
+  action: (props: InjectedRouter) => void;
   actionType: 'action';
 }
 

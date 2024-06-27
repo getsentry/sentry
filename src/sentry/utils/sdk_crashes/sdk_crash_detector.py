@@ -51,10 +51,14 @@ class SDKCrashDetector:
         is_unhandled = (
             get_path(event_data, "exception", "values", -1, "mechanism", "handled") is False
         )
-        if not is_unhandled:
-            return False
+        if is_unhandled:
+            return True
 
-        return True
+        is_fatal = get_path(event_data, "level") == "fatal"
+        if is_fatal and self.config.report_fatal_errors:
+            return True
+
+        return False
 
     def is_sdk_crash(self, frames: Sequence[Mapping[str, Any]]) -> bool:
         """
@@ -74,7 +78,8 @@ class SDKCrashDetector:
         # Furthermore, if they use static linking for including, for example, the Sentry Cocoa,
         # Cocoa SDK frames can be marked as in_app. Therefore, the algorithm only checks if frames
         # are SDK frames or from system libraries.
-        for frame in reversed(frames):
+        iter_frames = [f for f in reversed(frames) if f is not None]
+        for frame in iter_frames:
             function = frame.get("function")
             if function:
                 for matcher in self.config.sdk_crash_ignore_functions_matchers:

@@ -1,8 +1,7 @@
-import {act} from 'react-test-renderer';
 import {RawReplayErrorFixture} from 'sentry-fixture/replay/error';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {act, renderHook} from 'sentry-test/reactTestingLibrary';
 
 import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
 import useSortErrors from 'sentry/views/replays/detail/errorList/useSortErrors';
@@ -63,7 +62,7 @@ describe('useSortErrors', () => {
   const items = [ERROR_1_JS_RANGEERROR, ERROR_3_JS_UNDEFINED, ERROR_2_NEXTJS_TYPEERROR];
 
   it('should the list by timestamp by default', () => {
-    const {result} = reactHooks.renderHook(useSortErrors, {
+    const {result} = renderHook(useSortErrors, {
       initialProps: {items},
     });
 
@@ -80,7 +79,7 @@ describe('useSortErrors', () => {
   });
 
   it('should reverse the sort order', () => {
-    const {result, rerender} = reactHooks.renderHook(useSortErrors, {
+    const {result, rerender} = renderHook(useSortErrors, {
       initialProps: {items},
     });
 
@@ -103,7 +102,7 @@ describe('useSortErrors', () => {
   });
 
   it('should sort by the title field', () => {
-    const {result, rerender} = reactHooks.renderHook(useSortErrors, {
+    const {result, rerender} = renderHook(useSortErrors, {
       initialProps: {items},
     });
 
@@ -131,7 +130,7 @@ describe('useSortErrors', () => {
       ERROR_2_NEXTJS_TYPEERROR,
       ERROR_1_JS_RANGEERROR,
     ];
-    const {result, rerender} = reactHooks.renderHook(useSortErrors, {
+    const {result, rerender} = renderHook(useSortErrors, {
       initialProps: {items: mixedItems},
     });
 

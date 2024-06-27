@@ -10,7 +10,7 @@ import Version from 'sentry/components/version';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {EventTag} from 'sentry/types/event';
-import {isUrl} from 'sentry/utils';
+import {isUrl} from 'sentry/utils/string/isUrl';
 
 interface Props {
   generateUrl: (tag: EventTag) => LocationDescriptor;

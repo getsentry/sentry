@@ -5,7 +5,8 @@ import CommitLink from 'sentry/components/commitLink';
 import TimeSince from 'sentry/components/timeSince';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {AvatarUser, Commit} from 'sentry/types';
+import type {Commit} from 'sentry/types/integrations';
+import type {AvatarUser} from 'sentry/types/user';
 
 type Props = {
   commit: Commit;

@@ -6,12 +6,12 @@
 from abc import abstractmethod
 from typing import Any
 
-from sentry.services.hybrid_cloud.region import ByOrganizationId
+from sentry.hybridcloud.rpc.resolvers import ByOrganizationId
+from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.services.hybrid_cloud.repository import RpcRepository
 from sentry.services.hybrid_cloud.repository.model import RpcCreateRepository
-from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method
 from sentry.services.hybrid_cloud.user.model import RpcUser
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 
 class RepositoryService(RpcService):

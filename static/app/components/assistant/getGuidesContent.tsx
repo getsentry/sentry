@@ -3,8 +3,11 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import type {Organization} from 'sentry/types/organization';
 
-export default function getGuidesContent(orgSlug: string | null): GuidesContent {
+export default function getGuidesContent(
+  organization: Organization | null
+): GuidesContent {
   if (ConfigStore.get('demoMode')) {
     return getDemoModeGuides();
   }
@@ -90,7 +93,11 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
           description: tct(
             `Today only admins in your organization can create alert rules but we recommend [link:allowing members to create alerts], too.`,
             {
-              link: <Link to={orgSlug ? `/settings/${orgSlug}` : `/settings`} />,
+              link: (
+                <Link
+                  to={organization?.slug ? `/settings/${organization.slug}` : `/settings`}
+                />
+              ),
             }
           ),
           nextText: t('Allow'),
@@ -175,14 +182,49 @@ export default function getGuidesContent(orgSlug: string | null): GuidesContent 
       ],
     },
     {
-      guide: 'ddm_view',
-      requiredTargets: ['create_scratchpad'],
+      guide: 'metrics_onboarding',
+      requiredTargets: ['metrics_onboarding'],
       steps: [
         {
-          title: t('Save your charts'),
-          target: 'create_scratchpad',
+          title: t('Metrics Selector'),
+          target: 'metrics_selector',
+          description: t('Your metrics are available here.'),
+        },
+        {
+          title: t('Aggregate Metrics'),
+          target: 'metrics_aggregate',
+          description: t('See different facets of your metric through aggregations.'),
+        },
+        {
+          title: t('Grouping & Filtering'),
+          target: 'metrics_groupby',
+          description: t('Segment or filter your data by the tags you’ve attached.'),
+        },
+        {
+          title: t('Multiple Metrics'),
+          target: 'add_metric_query',
+          description: t('Plot a second metric to see correlations.'),
+        },
+        {
+          title: t('Visualization'),
+          target: 'metrics_chart',
           description: t(
-            `Scratchpads are stored locally on your device. If you want to share them, simply send the URL to your teammates.`
+            'View plotted metrics, dots on the chart represent associated sample spans.'
+          ),
+        },
+        {
+          title: t('Span Samples'),
+          target: 'metrics_table',
+          description: tct(
+            'See sample spans summarized in a table format. [openInTraces]',
+            {
+              openInTraces:
+                organization?.features.includes(
+                  'performance-trace-explorer-with-metrics'
+                ) && organization?.features.includes('performance-trace-explorer')
+                  ? t('To filter by tags found only on spans, click "Open in Traces".')
+                  : '',
+            }
           ),
         },
       ],

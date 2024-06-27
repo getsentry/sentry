@@ -1,6 +1,7 @@
 import datetime
 import logging
 import re
+from typing import Any
 from urllib.parse import parse_qs, urlparse, urlsplit
 
 from requests import PreparedRequest
@@ -11,7 +12,6 @@ from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import jwt
 from sentry.utils.http import absolute_uri
-from sentry.utils.json import JSONData
 
 logger = logging.getLogger("sentry.integrations.jira")
 
@@ -52,7 +52,7 @@ class JiraCloudClient(ApiClient):
         self,
         integration: RpcIntegration,
         verify_ssl: bool,
-        logging_context: JSONData | None = None,
+        logging_context: Any | None = None,
     ):
         self.base_url = integration.metadata.get("base_url")
         self.shared_secret = integration.metadata.get("shared_secret")

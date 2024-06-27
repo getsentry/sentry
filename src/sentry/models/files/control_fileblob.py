@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from sentry import options
-from sentry.db.models import control_silo_only_model
+from sentry.db.models import control_silo_model
 from sentry.models.files.abstractfileblob import AbstractFileBlob
 from sentry.models.files.control_fileblobowner import ControlFileBlobOwner
 from sentry.options.manager import UnknownOption
@@ -36,7 +36,7 @@ def control_file_storage_config() -> dict[str, Any] | None:
     return None
 
 
-@control_silo_only_model
+@control_silo_model
 class ControlFileBlob(AbstractFileBlob):
     class Meta:
         app_label = "sentry"

@@ -162,5 +162,5 @@ const DropdownWrapper = styled('div')`
 `;
 
 const RepoName = styled('div')`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;

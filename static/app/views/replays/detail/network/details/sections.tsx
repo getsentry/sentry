@@ -2,13 +2,13 @@ import type {MouseEvent} from 'react';
 import {useEffect, useMemo} from 'react';
 import queryString from 'query-string';
 
+import {Flex} from 'sentry/components/container/flex';
 import ObjectInspector from 'sentry/components/objectInspector';
-import {Flex} from 'sentry/components/profiling/flex';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {formatBytesBase10} from 'sentry/utils';
+import {formatBytesBase10} from 'sentry/utils/bytes/formatBytesBase10';
 import type {
   NetworkMetaWarning,
   ReplayNetworkRequestOrResponse,
@@ -54,7 +54,9 @@ export function GeneralSection({item, startTimestampMs}: SectionProps) {
       key: t('Request Body Size'),
       value: (
         <SizeTooltip>
-          {formatBytesBase10(requestFrame?.data?.request?.size ?? 0)}
+          {formatBytesBase10(
+            requestFrame?.data?.request?.size ?? requestFrame?.data?.requestBodySize ?? 0
+          )}
         </SizeTooltip>
       ),
     },
@@ -62,7 +64,11 @@ export function GeneralSection({item, startTimestampMs}: SectionProps) {
       key: t('Response Body Size'),
       value: (
         <SizeTooltip>
-          {formatBytesBase10(requestFrame?.data?.response?.size ?? 0)}
+          {formatBytesBase10(
+            requestFrame?.data?.response?.size ??
+              requestFrame?.data?.responseBodySize ??
+              0
+          )}
         </SizeTooltip>
       ),
     },

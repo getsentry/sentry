@@ -8,9 +8,9 @@ import type {ProfilingBreadcrumbsProps} from 'sentry/components/profiling/profil
 import {ProfilingBreadcrumbs} from 'sentry/components/profiling/profilingBreadcrumbs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getTransactionDetailsUrl} from 'sentry/utils/performance/urls';
+import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {isSchema, isSentrySampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -44,7 +44,15 @@ function ProfileHeader({transaction, projectId, eventId}: ProfileHeaderProps) {
   const projectSlug = projectId ?? '';
 
   const transactionTarget = transaction?.id
-    ? getTransactionDetailsUrl(organization.slug, `${projectSlug}:${transaction.id}`)
+    ? generateLinkToEventInTraceView({
+        timestamp: transaction.endTimestamp ?? '',
+        eventId: transaction.id,
+        projectSlug,
+        traceSlug: transaction.contexts?.trace?.trace_id ?? '',
+        location,
+        organization,
+        transactionName: transactionName,
+      })
     : null;
 
   const handleGoToTransaction = useCallback(() => {

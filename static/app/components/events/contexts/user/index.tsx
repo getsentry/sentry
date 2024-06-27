@@ -3,11 +3,16 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import ContextBlock from 'sentry/components/events/contexts/contextBlock';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {removeFilterMaskedEntries} from 'sentry/components/events/interfaces/utils';
-import type {AvatarUser} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
+import type {AvatarUser} from 'sentry/types/user';
 import {defined} from 'sentry/utils';
 
-import {getContextMeta, getKnownData, getUnknownData} from '../utils';
+import {
+  getContextMeta,
+  getKnownData,
+  getKnownStructuredData,
+  getUnknownData,
+} from '../utils';
 
 import {getUserKnownDataDetails} from './getUserKnownDataDetails';
 
@@ -43,32 +48,38 @@ export const userKnownDataValues = [
 
 const userIgnoredDataValues = [UserIgnoredDataType.DATA];
 
+export function getKnownUserContextData({data, meta}: Pick<Props, 'data' | 'meta'>) {
+  return getKnownData<UserEventContextData, UserKnownDataType>({
+    data,
+    meta,
+    knownDataTypes: userKnownDataValues,
+    onGetKnownDataDetails: v => getUserKnownDataDetails(v),
+  }).map(v => ({
+    ...v,
+    subjectDataTestId: `user-context-${v.key.toLowerCase()}-value`,
+  }));
+}
+
+export function getUnknownUserContextData({data, meta}: Pick<Props, 'data' | 'meta'>) {
+  return getUnknownData({
+    allData: data,
+    knownKeys: [...userKnownDataValues, ...userIgnoredDataValues],
+    meta,
+  });
+}
 export function UserEventContext({data, event, meta: propsMeta}: Props) {
   const meta = propsMeta ?? getContextMeta(event, 'user');
+  const knownData = getKnownUserContextData({data, meta});
+  const knownStructuredData = getKnownStructuredData(knownData, meta);
+  const unknownData = getUnknownUserContextData({data, meta});
 
   return (
     <div className="user-widget">
       <div className="pull-left">
         <UserAvatar user={removeFilterMaskedEntries(data)} size={48} gravatar={false} />
       </div>
-      <ContextBlock
-        data={getKnownData<UserEventContextData, UserKnownDataType>({
-          data,
-          meta,
-          knownDataTypes: userKnownDataValues,
-          onGetKnownDataDetails: v => getUserKnownDataDetails(v),
-        }).map(v => ({
-          ...v,
-          subjectDataTestId: `user-context-${v.key.toLowerCase()}-value`,
-        }))}
-      />
-      <ContextBlock
-        data={getUnknownData({
-          allData: data,
-          knownKeys: [...userKnownDataValues, ...userIgnoredDataValues],
-          meta,
-        })}
-      />
+      <ContextBlock data={knownStructuredData} />
+      <ContextBlock data={unknownData} />
       {defined(data?.data) && (
         <ErrorBoundary mini>
           <KeyValueList

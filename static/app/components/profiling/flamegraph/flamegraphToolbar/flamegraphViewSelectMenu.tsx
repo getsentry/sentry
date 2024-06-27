@@ -20,7 +20,7 @@ function FlamegraphViewSelectMenu({
   return (
     <FlamegraphViewSelectMenuWrap>
       <SegmentedControl
-        aria-label="Sorting"
+        aria-label={t('Sorting')}
         size="xs"
         value={sorting}
         priority="primary"
@@ -33,7 +33,7 @@ function FlamegraphViewSelectMenu({
         <SegmentedControl.Item key="left heavy">{t('Left Heavy')}</SegmentedControl.Item>
       </SegmentedControl>
       <SegmentedControl
-        aria-label="View"
+        aria-label={t('View')}
         size="xs"
         value={view}
         onChange={onViewChange}

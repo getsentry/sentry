@@ -1,29 +1,33 @@
 from collections import defaultdict
 from datetime import datetime, timedelta
+from typing import Any
 
 import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
 from snuba_sdk import Column, Condition, Function, Op
 
-from sentry import eventstore
+from sentry import eventstore, features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEventsEndpointBase
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.event import SqlFormatEventSerializer
 from sentry.api.utils import handle_query_errors
 from sentry.constants import ObjectStatus
+from sentry.middleware import is_frontend_request
 from sentry.models.project import Project
 from sentry.search.events.builder import SpansMetricsQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
 
 VALID_AVERAGE_COLUMNS = {"span.self_time", "span.duration"}
 
 
-def add_comparison_to_event(event, average_columns):
+def add_comparison_to_event(event, average_columns, request: Request):
     if "spans" not in event.data:
         return
     group_to_span_map = defaultdict(list)
@@ -66,7 +70,12 @@ def add_comparison_to_event(event, average_columns):
             ]
         )
         result = builder.process_results(
-            builder.run_query(Referrer.API_PERFORMANCE_ORG_EVENT_AVERAGE_SPAN.value)
+            builder.run_query(
+                referrer=Referrer.API_PERFORMANCE_ORG_EVENT_AVERAGE_SPAN.value,
+                query_source=(
+                    QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
+                ),
+            )
         )
         sentry_sdk.set_measurement("query.groups_found", len(result["data"]))
         for row in result["data"]:
@@ -85,17 +94,37 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
+    snuba_methods = ["GET"]
 
-    def get(self, request: Request, organization, project_slug, event_id) -> Response:
-        """event_id is validated by a regex in the URL"""
-        if not self.has_feature(organization, request):
-            return Response(status=404)
+    def convert_args(
+        self,
+        request: Request,
+        organization_id_or_slug: int | str | None = None,
+        *args: Any,
+        **kwargs: Any,
+    ) -> tuple[tuple[Any, ...], dict[str, Any]]:
+        args, kwargs = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
+
+        organization = kwargs["organization"]
+        project_id_or_slug = kwargs.pop("project_id_or_slug")
 
         try:
             project = Project.objects.get(
-                slug=project_slug, organization_id=organization.id, status=ObjectStatus.ACTIVE
+                slug__id_or_slug=project_id_or_slug,
+                organization_id=organization.id,
+                status=ObjectStatus.ACTIVE,
             )
+
+            kwargs["project"] = project
+
         except Project.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        return args, kwargs
+
+    def get(self, request: Request, organization, project: Project, event_id) -> Response:
+        """event_id is validated by a regex in the URL"""
+        if not self.has_feature(organization, request):
             return Response(status=404)
 
         # Check access to the project as this endpoint doesn't use membership checks done
@@ -115,8 +144,11 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         if (
             all(col in VALID_AVERAGE_COLUMNS for col in average_columns)
             and len(average_columns) > 0
+            and features.has(
+                "organizations:insights-initial-modules", organization, actor=request.user
+            )
         ):
-            add_comparison_to_event(event, average_columns)
+            add_comparison_to_event(event=event, average_columns=average_columns, request=request)
 
         # TODO: Remove `for_group` check once performance issues are moved to the issue platform
         if hasattr(event, "for_group") and event.group:
@@ -125,6 +157,6 @@ class OrganizationEventDetailsEndpoint(OrganizationEventsEndpointBase):
         data = serialize(
             event, request.user, SqlFormatEventSerializer(), include_full_release_data=False
         )
-        data["projectSlug"] = project_slug
+        data["projectSlug"] = project.slug
 
         return Response(data)

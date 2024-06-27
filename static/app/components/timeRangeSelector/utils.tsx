@@ -6,7 +6,7 @@ import autoCompleteFilter from 'sentry/components/dropdownAutoComplete/autoCompl
 import type {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
-import type {DateString} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
 import {
   DEFAULT_DAY_END_TIME,
   DEFAULT_DAY_START_TIME,

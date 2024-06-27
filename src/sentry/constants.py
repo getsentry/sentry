@@ -8,6 +8,7 @@ import os.path
 from collections import namedtuple
 from collections.abc import Sequence
 from datetime import timedelta
+from enum import Enum
 from typing import cast
 
 import sentry_relay.consts
@@ -228,6 +229,8 @@ DEFAULT_LOG_LEVEL = "error"
 DEFAULT_LOGGER_NAME = ""
 LOG_LEVELS_MAP = {v: k for k, v in LOG_LEVELS.items()}
 
+PLACEHOLDER_EVENT_TITLES = frozenset(["<untitled>", "<unknown>", "<unlabeled event>", "Error"])
+
 # Default alerting threshold values
 DEFAULT_ALERT_PROJECT_THRESHOLD = (500, 25)  # 500%, 25 events
 DEFAULT_ALERT_GROUP_THRESHOLD = (1000, 25)  # 1000%, 25 events
@@ -264,7 +267,8 @@ _SENTRY_RULES = (
     "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition",
     "sentry.rules.conditions.regression_event.RegressionEventCondition",
     "sentry.rules.conditions.reappeared_event.ReappearedEventCondition",
-    "sentry.rules.conditions.high_priority_issue.HighPriorityIssueCondition",
+    "sentry.rules.conditions.new_high_priority_issue.NewHighPriorityIssueCondition",
+    "sentry.rules.conditions.existing_high_priority_issue.ExistingHighPriorityIssueCondition",
     "sentry.rules.conditions.tagged_event.TaggedEventCondition",
     "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
     "sentry.rules.conditions.event_frequency.EventUniqueUserFrequencyCondition",
@@ -277,7 +281,6 @@ _SENTRY_RULES = (
     "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter",
     "sentry.rules.filters.latest_release.LatestReleaseFilter",
     "sentry.rules.filters.issue_category.IssueCategoryFilter",
-    "sentry.rules.filters.issue_severity.IssueSeverityFilter",
     # The following filters are duplicates of their respective conditions and are conditionally shown if the user has issue alert-filters
     "sentry.rules.filters.event_attribute.EventAttributeFilter",
     "sentry.rules.filters.tagged_event.TaggedEventFilter",
@@ -597,6 +600,43 @@ class ExportQueryType:
             raise ValueError(f"Not an ExportQueryType str: {string!r}")
 
 
+class InsightModules(Enum):
+    HTTP = "http"
+    DB = "db"
+    ASSETS = "assets"  # previously named resources
+    APP_START = "app_start"
+    SCREEN_LOAD = "screen_load"
+    VITAL = "vital"
+    CACHE = "cache"
+    QUEUE = "queue"
+    LLM_MONITORING = "llm_monitoring"
+
+
+# each span filter takes in a span object and returns whether
+# the span belongs in the corresponding insight module
+INSIGHT_MODULE_SPAN_FILTERS = {
+    InsightModules.HTTP: lambda span: span.get("op") == "http.client"
+    and span.get("module") == "http",
+    InsightModules.DB: lambda span: span.get("module") == "db" and "description" in span.keys(),
+    InsightModules.ASSETS: lambda span: span.get("op")
+    in ["resource.script", "resource.css", "resource.font", "resource.img"],
+    InsightModules.APP_START: lambda span: span.get("op").startswith("app.start."),
+    InsightModules.SCREEN_LOAD: lambda span: span.get("sentry_tags", {}).get("transaction.op")
+    == "ui.load",
+    InsightModules.VITAL: lambda span: span.get("op")
+    in [
+        "ui.interaction.click",
+        "ui.interaction.hover",
+        "ui.interaction.drag",
+        "ui.interaction.press",
+    ],
+    InsightModules.CACHE: lambda span: span.get("op")
+    in ["cache.get_item", "cache.get", "cache.put"],
+    InsightModules.QUEUE: lambda span: span.get("op") in ["queue.process", "queue.publish"],
+    InsightModules.LLM_MONITORING: lambda span: span.get("op").startswith("ai.pipeline"),
+}
+
+
 StatsPeriod = namedtuple("StatsPeriod", ("segments", "interval"))
 
 LEGACY_RATE_LIMIT_OPTIONS = frozenset(("sentry:project-rate-limit", "sentry:account-rate-limit"))
@@ -640,7 +680,12 @@ TRUSTED_RELAYS_DEFAULT = None
 JOIN_REQUESTS_DEFAULT = True
 AI_SUGGESTED_SOLUTION = True
 GITHUB_COMMENT_BOT_DEFAULT = True
+ISSUE_ALERTS_THREAD_DEFAULT = True
+METRIC_ALERTS_THREAD_DEFAULT = True
+METRICS_ACTIVATE_PERCENTILES_DEFAULT = False
+METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT = False
 DATA_CONSENT_DEFAULT = False
+EXTRAPOLATE_METRICS_DEFAULT = False
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True
@@ -705,6 +750,8 @@ HEALTH_CHECK_GLOBS = [
     "*/health",
     "*/healthy",
     "*/healthz",
+    "*/_health",
+    r"*/\[_health\]",
     "*/live",
     "*/livez",
     "*/ready",

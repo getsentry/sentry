@@ -1,4 +1,3 @@
-import copy
 from unittest import mock
 
 from sentry.integrations.example.integration import ExampleIntegration
@@ -8,7 +7,7 @@ from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.factories import DEFAULT_EVENT_DATA
+from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -26,9 +25,9 @@ class GroupIntegrationDetailsTest(APITestCase):
                 "event_id": "a" * 32,
                 "timestamp": iso_format(self.min_ago),
                 "message": "message",
-                "stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"]),
             },
             project_id=self.project.id,
+            event_type=EventType.ERROR,
         )
         self.group = self.event.group
 
@@ -213,6 +212,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                 "provider": "Example",
                 "location": "https://example/issues/APP-123",
                 "label": "display name: APP-123",
+                "new": False,
             }
 
     def test_put_feature_disabled(self):
@@ -282,6 +282,7 @@ class GroupIntegrationDetailsTest(APITestCase):
                 "provider": "Example",
                 "location": "https://example/issues/APP-123",
                 "label": "display name: APP-123",
+                "new": True,
             }
 
     def test_post_feature_disabled(self):

@@ -25,17 +25,17 @@ from sentry import options
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import KNOWN_DIF_FORMATS
 from sentry.db.models import (
-    BaseManager,
     BoundedBigIntegerField,
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
+from sentry.db.models.manager.base import BaseManager
 from sentry.models.files.file import File
 from sentry.models.files.utils import clear_cached_files
-from sentry.reprocessing import bump_reprocessing_revision, resolve_processing_issue
+from sentry.reprocessing import resolve_processing_issue
 from sentry.utils import json
 from sentry.utils.zip import safe_extract_zip
 
@@ -67,10 +67,9 @@ class ProjectDebugFileManager(BaseManager["ProjectDebugFile"]):
 
         found = ProjectDebugFile.objects.filter(
             checksum__in=checksums, project_id=project.id
-        ).values("checksum")
+        ).values_list("checksum", flat=True)
 
-        for values in found:
-            missing.discard(list(values.values())[0])
+        missing.difference_update(checksum for checksum in found if checksum is not None)
 
         return sorted(missing)
 
@@ -121,7 +120,7 @@ class ProjectDebugFileManager(BaseManager["ProjectDebugFile"]):
         return rv
 
 
-@region_silo_only_model
+@region_silo_model
 class ProjectDebugFile(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -356,7 +355,7 @@ def _analyze_progard_filename(filename: str) -> str | None:
         return None
 
 
-@region_silo_only_model
+@region_silo_model
 class ProguardArtifactRelease(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -609,9 +608,7 @@ def create_files_from_dif_zip(
 
         rv = create_debug_file_from_dif(to_create, project)
 
-        # Uploading new dsysm changes the reprocessing revision
         record_last_upload(project)
-        bump_reprocessing_revision(project)
 
         return rv
     finally:

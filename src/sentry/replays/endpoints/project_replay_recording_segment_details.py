@@ -34,8 +34,8 @@ class ProjectReplayRecordingSegmentDetailsEndpoint(ProjectEndpoint):
     @extend_schema(
         operation_id="Fetch Recording Segment",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
             ReplayParams.REPLAY_ID,
             ReplayParams.SEGMENT_ID,
         ],

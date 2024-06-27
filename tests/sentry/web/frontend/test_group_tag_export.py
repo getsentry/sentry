@@ -58,7 +58,7 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
             "sentry-group-tag-export",
             kwargs={
                 "organization_slug": self.project.organization.slug,
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "group_id": self.group.id,
                 "key": self.key,
             },
@@ -72,7 +72,7 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
         url = reverse(
             "sentry-customer-domain-sentry-group-tag-export",
             kwargs={
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "group_id": self.group.id,
                 "key": self.key,
             },
@@ -93,7 +93,7 @@ class GroupTagExportTest(TestCase, SnubaTestCase):
         url = reverse(
             "sentry-customer-domain-sentry-group-tag-export",
             kwargs={
-                "project_slug": self.project.slug,
+                "project_id_or_slug": self.project.slug,
                 "group_id": self.group.id,
                 "key": self.key,
             },

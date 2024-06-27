@@ -7,7 +7,7 @@ import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction, Organization} from 'sentry/types';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import toPercent from 'sentry/utils/number/toPercent';
 import {TraceType} from 'sentry/views/performance/traceDetails/newTraceDetailsContent';
 import type {TraceInfo} from 'sentry/views/performance/traceDetails/types';

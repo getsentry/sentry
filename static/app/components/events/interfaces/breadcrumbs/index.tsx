@@ -12,10 +12,10 @@ import type {BreadcrumbWithMeta} from 'sentry/components/events/interfaces/bread
 import {IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization} from 'sentry/types';
 import type {BreadcrumbLevelType, RawCrumb} from 'sentry/types/breadcrumbs';
 import type {Event} from 'sentry/types/event';
 import {EntryType} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 
@@ -37,14 +37,14 @@ type Props = {
   hideTitle?: boolean;
 };
 
-enum BreadcrumbSort {
+export enum BreadcrumbSort {
   NEWEST = 'newest',
   OLDEST = 'oldest',
 }
 
-const EVENT_BREADCRUMB_SORT_LOCALSTORAGE_KEY = 'event-breadcrumb-sort';
+export const BREADCRUMB_SORT_LOCALSTORAGE_KEY = 'event-breadcrumb-sort';
 
-const sortOptions = [
+export const BREADCRUMB_SORT_OPTIONS = [
   {label: t('Newest'), value: BreadcrumbSort.NEWEST},
   {label: t('Oldest'), value: BreadcrumbSort.OLDEST},
 ];
@@ -54,7 +54,7 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
   const [filterSelections, setFilterSelections] = useState<SelectOption<string>[]>([]);
   const [displayRelativeTime, setDisplayRelativeTime] = useState(false);
   const [sort, setSort] = useLocalStorageState<BreadcrumbSort>(
-    EVENT_BREADCRUMB_SORT_LOCALSTORAGE_KEY,
+    BREADCRUMB_SORT_LOCALSTORAGE_KEY,
     BreadcrumbSort.NEWEST
   );
 
@@ -301,7 +301,7 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
           setSort(selectedOption.value);
         }}
         value={sort}
-        options={sortOptions}
+        options={BREADCRUMB_SORT_OPTIONS}
       />
     </SearchAndSortWrapper>
   );
@@ -332,7 +332,7 @@ function BreadcrumbsContainer({data, event, organization, hideTitle = false}: Pr
 
 export {BreadcrumbsContainer as Breadcrumbs};
 
-const SearchAndSortWrapper = styled('div')`
+export const SearchAndSortWrapper = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
   gap: ${space(1)};

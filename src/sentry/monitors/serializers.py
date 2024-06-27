@@ -6,12 +6,10 @@ from typing import Any, Literal, TypedDict
 from django.db.models import prefetch_related_objects
 
 from sentry.api.serializers import ProjectSerializerResponse, Serializer, register, serialize
+from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
+from sentry.models.environment import Environment
 from sentry.models.project import Project
-from sentry.monitors.utils import fetch_associated_groups
-from sentry.monitors.validators import IntervalNames
-
-from ..models import Environment
-from .models import (
+from sentry.monitors.models import (
     Monitor,
     MonitorCheckIn,
     MonitorEnvBrokenDetection,
@@ -19,6 +17,13 @@ from .models import (
     MonitorIncident,
     MonitorStatus,
 )
+from sentry.monitors.processing_errors.errors import (
+    CheckinProcessingError,
+    CheckinProcessingErrorData,
+)
+from sentry.monitors.utils import fetch_associated_groups
+from sentry.monitors.validators import IntervalNames
+from sentry.types.actor import Actor
 
 
 class MonitorEnvBrokenDetectionSerializerResponse(TypedDict):
@@ -157,6 +162,7 @@ class MonitorSerializerResponse(MonitorSerializerResponseOptional):
     dateCreated: datetime
     project: ProjectSerializerResponse
     environments: MonitorEnvironmentSerializerResponse
+    owner: ActorSerializerResponse
 
 
 class MonitorBulkEditResponse:
@@ -172,11 +178,22 @@ class MonitorSerializer(Serializer):
 
     def get_attrs(self, item_list, user, **kwargs):
         # TODO(dcramer): assert on relations
-        projects = {
-            p["id"]: p
-            for p in serialize(
-                list(Project.objects.filter(id__in=[i.project_id for i in item_list])), user
-            )
+        projects = Project.objects.filter(id__in=[i.project_id for i in item_list])
+        projects_data = {
+            project.id: serialized_project
+            for project, serialized_project in zip(projects, serialize(list(projects), user))
+        }
+
+        actors = [Actor.from_id(user_id=m.owner_user_id) for m in item_list if m.owner_user_id]
+        actors.extend(
+            [Actor.from_id(team_id=m.owner_team_id) for m in item_list if m.owner_team_id]
+        )
+        filtered_actors = list(filter(None, actors))
+
+        actors_serialized = serialize(Actor.resolve_many(filtered_actors), user, ActorSerializer())
+        actor_data = {
+            actor: serialized_actor
+            for actor, serialized_actor in zip(filtered_actors, actors_serialized)
         }
 
         monitor_environments = (
@@ -199,13 +216,14 @@ class MonitorSerializer(Serializer):
             serialized_monitor_environments[monitor_env.monitor_id].append(serialized)
 
         environment_data = {
-            str(item.id): serialized_monitor_environments.get(item.id, []) for item in item_list
+            item.id: serialized_monitor_environments.get(item.id, []) for item in item_list
         }
 
         attrs = {
             item: {
-                "project": projects[str(item.project_id)] if item.project_id else None,
-                "environments": environment_data[str(item.id)],
+                "project": projects_data[item.project_id] if item.project_id else None,
+                "environments": environment_data[item.id],
+                "owner": actor_data.get(item.owner_actor),
             }
             for item in item_list
         }
@@ -232,6 +250,7 @@ class MonitorSerializer(Serializer):
             "dateCreated": obj.date_added,
             "project": attrs["project"],
             "environments": attrs["environments"],
+            "owner": attrs["owner"],
         }
 
         if self._expand("alertRule"):
@@ -333,3 +352,11 @@ class MonitorCheckInSerializer(Serializer):
             return False
 
         return key in self.expand
+
+
+@register(CheckinProcessingError)
+class CheckinProcessingErrorSerializer(Serializer):
+    def serialize(
+        self, obj: CheckinProcessingError, attrs, user, **kwargs
+    ) -> CheckinProcessingErrorData:
+        return obj.to_dict()

@@ -1,4 +1,4 @@
-import {Fragment, useContext, useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import type {AriaListBoxSectionProps} from '@react-aria/listbox';
 import {useListBoxSection} from '@react-aria/listbox';
 import {useSeparator} from '@react-aria/separator';
@@ -7,7 +7,6 @@ import type {Node} from '@react-types/shared';
 
 import type {FormSize} from 'sentry/utils/theme';
 
-import {SelectFilterContext} from '../list';
 import {
   SectionGroup,
   SectionHeader,
@@ -21,6 +20,7 @@ import {SectionToggle} from '../utils';
 import {ListBoxOption} from './option';
 
 interface ListBoxSectionProps extends AriaListBoxSectionProps {
+  hiddenOptions: Set<SelectKey>;
   item: Node<any>;
   listState: ListState<any>;
   size: FormSize;
@@ -31,7 +31,13 @@ interface ListBoxSectionProps extends AriaListBoxSectionProps {
  * A <li /> element that functions as a list box section (renders a nested <ul />
  * inside). https://react-spectrum.adobe.com/react-aria/useListBox.html
  */
-export function ListBoxSection({item, listState, onToggle, size}: ListBoxSectionProps) {
+export function ListBoxSection({
+  item,
+  listState,
+  onToggle,
+  size,
+  hiddenOptions,
+}: ListBoxSectionProps) {
   const {itemProps, headingProps, groupProps} = useListBoxSection({
     heading: item.rendered,
     'aria-label': item['aria-label'],
@@ -43,7 +49,6 @@ export function ListBoxSection({item, listState, onToggle, size}: ListBoxSection
     listState.selectionManager.selectionMode === 'multiple' &&
     item.value.showToggleAllButton;
 
-  const hiddenOptions = useContext(SelectFilterContext);
   const childItems = useMemo(
     () => [...item.childNodes].filter(child => !hiddenOptions.has(child.props.value)),
     [item.childNodes, hiddenOptions]

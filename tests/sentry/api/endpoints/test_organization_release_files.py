@@ -24,7 +24,10 @@ class ReleaseFilesListTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-organization-release-files",
-            kwargs={"organization_slug": project.organization.slug, "version": release.version},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "version": release.version,
+            },
         )
 
         self.login_as(user=self.user)
@@ -56,7 +59,10 @@ class ReleaseFilesListTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-organization-release-files",
-            kwargs={"organization_slug": project.organization.slug, "version": release.version},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "version": release.version,
+            },
         )
 
         self.login_as(user=self.user)
@@ -115,7 +121,10 @@ class ReleaseFilesListTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-organization-release-files",
-            kwargs={"organization_slug": project.organization.slug, "version": release.version},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "version": release.version,
+            },
         )
 
         self.login_as(user=self.user)
@@ -172,7 +181,10 @@ class ReleaseFilesListTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-organization-release-files",
-            kwargs={"organization_slug": project.organization.slug, "version": release.version},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "version": release.version,
+            },
         )
 
         self.login_as(user=self.user)
@@ -204,7 +216,10 @@ class ReleaseFileCreateTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-organization-release-files",
-            kwargs={"organization_slug": project.organization.slug, "version": release.version},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "version": release.version,
+            },
         )
 
         self.login_as(user=self.user)
@@ -241,7 +256,10 @@ class ReleaseFileCreateTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-organization-release-files",
-            kwargs={"organization_slug": project.organization.slug, "version": release.version},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "version": release.version,
+            },
         )
 
         self.login_as(user=self.user)
@@ -260,7 +278,10 @@ class ReleaseFileCreateTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-organization-release-files",
-            kwargs={"organization_slug": project.organization.slug, "version": release.version},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "version": release.version,
+            },
         )
 
         self.login_as(user=self.user)
@@ -289,7 +310,10 @@ class ReleaseFileCreateTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-organization-release-files",
-            kwargs={"organization_slug": project.organization.slug, "version": release.version},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "version": release.version,
+            },
         )
 
         self.login_as(user=self.user)
@@ -316,7 +340,10 @@ class ReleaseFileCreateTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-organization-release-files",
-            kwargs={"organization_slug": project.organization.slug, "version": release.version},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "version": release.version,
+            },
         )
 
         self.login_as(user=self.user)
@@ -359,7 +386,10 @@ class ReleaseFileCreateTest(APITestCase):
 
         url = reverse(
             "sentry-api-0-organization-release-files",
-            kwargs={"organization_slug": project.organization.slug, "version": release.version},
+            kwargs={
+                "organization_id_or_slug": project.organization.slug,
+                "version": release.version,
+            },
         )
 
         self.login_as(user=self.user)

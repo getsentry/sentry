@@ -1,8 +1,8 @@
 import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
+import toArray from 'sentry/utils/array/toArray';
 import {getKeyCode} from 'sentry/utils/getKeyCode';
-import toArray from 'sentry/utils/toArray';
 
 const macModifiers = {
   18: '⌥',

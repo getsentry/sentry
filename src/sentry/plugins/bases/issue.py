@@ -24,7 +24,7 @@ class NewIssueForm(forms.Form):
 
 class IssueTrackingPlugin(Plugin):
     # project_conf_form = BaseIssueOptionsForm
-    new_issue_form = NewIssueForm
+    new_issue_form: type[forms.Form] = NewIssueForm
     link_issue_form = None
 
     create_issue_template = "sentry/plugins/bases/issue/create_issue.html"
@@ -40,7 +40,7 @@ class IssueTrackingPlugin(Plugin):
     def _get_group_body(self, request: Request, group, event, **kwargs):
         result = []
         for interface in event.interfaces.values():
-            output = safe_execute(interface.to_string, event, _with_transaction=False)
+            output = safe_execute(interface.to_string, event)
             if output:
                 result.append(output)
         return "\n\n".join(result)

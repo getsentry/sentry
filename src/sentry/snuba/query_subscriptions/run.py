@@ -17,7 +17,7 @@ from sentry.conf.types.kafka_definition import Topic
 from sentry.features.rollout import in_random_rollout
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_subscriptions.constants import dataset_to_logical_topic
-from sentry.utils.arroyo import MultiprocessingPool, RunTaskWithMultiprocessing
+from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 from sentry.utils.kafka_config import get_topic_definition
 
 logger = logging.getLogger(__name__)
@@ -51,7 +51,7 @@ class QuerySubscriptionStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
     ) -> ProcessingStrategy[KafkaPayload]:
         callable = partial(process_message, self.dataset, self.topic, self.logical_topic)
         if self.multi_proc:
-            return RunTaskWithMultiprocessing(
+            return run_task_with_multiprocessing(
                 function=callable,
                 next_step=CommitOffsets(commit),
                 max_batch_size=self.max_batch_size,

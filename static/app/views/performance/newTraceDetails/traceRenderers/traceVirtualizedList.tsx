@@ -5,6 +5,7 @@ import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
 import {
   VirtualizedList,
   type VirtualizedViewManager,
@@ -21,6 +22,7 @@ interface UseVirtualizedListProps {
   items: ReadonlyArray<TraceTreeNode<TraceTree.NodeValue>>;
   manager: VirtualizedViewManager;
   render: (item: VirtualizedRow) => React.ReactNode;
+  scheduler: TraceScheduler;
 }
 
 interface UseVirtualizedListResult {
@@ -148,7 +150,7 @@ export const useVirtualizedList = (
     scrollContainerRef.current!.style.willChange = 'transform';
     scrollContainerRef.current!.style.height = `${props.items.length * 24}px`;
 
-    managerRef.current.dispatch('virtualized list init');
+    props.scheduler.dispatch('initialize virtualized list');
 
     maybeToggleScrollbar(
       props.container,
@@ -217,7 +219,7 @@ export const useVirtualizedList = (
           scrollContainerRef.current.style.pointerEvents = 'auto';
           pointerEventsRaf.current = null;
         }
-      }, 50);
+      }, 150);
     };
 
     props.container.addEventListener('scroll', onScroll, {passive: true});
@@ -225,7 +227,7 @@ export const useVirtualizedList = (
     return () => {
       props.container?.removeEventListener('scroll', onScroll);
     };
-  }, [props.container, props.items, props.items.length, props.manager]);
+  }, [props.container, props.items, props.items.length, props.manager, props.scheduler]);
 
   useLayoutEffect(() => {
     if (!list.current || !styleCache.current || !renderCache.current) {
@@ -321,7 +323,7 @@ function findRenderedItems({
     if (elementTop >= viewport.top && elementBottom <= viewport.bottom) {
       let style = styleCache.get(indexPointer);
       if (!style) {
-        style = {position: 'absolute', top: elementTop};
+        style = {position: 'absolute', transform: `translate(0px, ${elementTop}px)`};
         styleCache.set(indexPointer, style);
       }
 

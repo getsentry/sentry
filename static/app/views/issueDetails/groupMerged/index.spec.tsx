@@ -40,10 +40,7 @@ describe('Issues -> Merged View', function () {
   });
 
   it('renders initially with loading component', async function () {
-    const {organization, project, router, routerContext} = initializeOrg({
-      project: {
-        slug: 'projectId',
-      },
+    const {organization, project, router} = initializeOrg({
       router: {
         location: {
           query: {},
@@ -62,7 +59,7 @@ describe('Issues -> Merged View', function () {
         routes={router.routes}
         router={router}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(screen.getByTestId('loading-indicator')).toBeInTheDocument();
@@ -70,10 +67,7 @@ describe('Issues -> Merged View', function () {
   });
 
   it('renders with mocked data', async function () {
-    const {organization, project, router, routerContext} = initializeOrg({
-      project: {
-        slug: 'projectId',
-      },
+    const {organization, project, router} = initializeOrg({
       router: {
         location: {
           query: {},
@@ -92,7 +86,7 @@ describe('Issues -> Merged View', function () {
         routes={router.routes}
         router={router}
       />,
-      {context: routerContext}
+      {router}
     );
 
     await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));

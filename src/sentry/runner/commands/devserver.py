@@ -36,7 +36,6 @@ _SUBSCRIPTION_RESULTS_CONSUMERS = [
     "events-subscription-results",
     "transactions-subscription-results",
     "generic-metrics-subscription-results",
-    "sessions-subscription-results",
     "metrics-subscription-results",
 ]
 
@@ -319,6 +318,9 @@ def devserver(
             kafka_consumers.add("ingest-generic-metrics")
             kafka_consumers.add("billing-metrics-consumer")
 
+        if settings.SENTRY_USE_UPTIME:
+            kafka_consumers.add("uptime-results")
+
         if settings.SENTRY_USE_RELAY:
             daemons += [("relay", ["sentry", "devservices", "attach", "relay"])]
 
@@ -327,6 +329,9 @@ def devserver(
             kafka_consumers.add("ingest-transactions")
             kafka_consumers.add("ingest-monitors")
             kafka_consumers.add("ingest-feedback-events")
+
+            kafka_consumers.add("monitors-clock-tick")
+            kafka_consumers.add("monitors-clock-tasks")
 
             if settings.SENTRY_USE_PROFILING:
                 kafka_consumers.add("ingest-profiles")

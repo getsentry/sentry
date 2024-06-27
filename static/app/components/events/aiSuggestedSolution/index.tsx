@@ -1,6 +1,7 @@
 import {useState} from 'react';
 
-import type {Event, Project} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getAnalyticsDataForEvent} from 'sentry/utils/events';
 import useOrganization from 'sentry/utils/useOrganization';

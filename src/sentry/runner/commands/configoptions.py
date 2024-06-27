@@ -37,7 +37,7 @@ def _attempt_update(
     last_update_channel = options.get_last_update_channel(key)
     if db_value == value:
         # This script is making changes with UpdateChannel.AUTOMATOR
-        # channel. Thus, if the laast update channel was already
+        # channel. Thus, if the last update channel was already
         # UpdateChannel.AUTOMATOR, and the value we are trying to set
         # is the same as the value already stored we do nothing.
         if last_update_channel is None:
@@ -259,25 +259,31 @@ def sync(ctx: click.Context) -> None:
                     presenter_delegator.flush()
                     raise
             else:
-                if options.isset(opt.name):
-                    if options.get_last_update_channel(opt.name) == options.UpdateChannel.AUTOMATOR:
-                        if not dry_run:
-                            try:
-                                options.delete(opt.name)
-                            except Exception:
-                                metrics.incr(
-                                    "options_automator.run",
-                                    amount=2,
-                                    tags={"status": "update_failed"},
-                                    sample_rate=1.0,
-                                )
-                                presenter_delegator.flush()
-                                raise
+                last_updated = options.get_last_update_channel(opt.name)
 
-                        presenter_delegator.unset(opt.name)
-                    else:
-                        presenter_delegator.drift(opt.name, "")
-                        drift_found = True
+                # for options that are set on disk, last_updated should be None
+                if last_updated == options.UpdateChannel.AUTOMATOR:
+                    if not dry_run:
+                        try:
+                            options.delete(opt.name)
+                        except Exception:
+                            metrics.incr(
+                                "options_automator.run",
+                                amount=2,
+                                tags={"status": "update_failed"},
+                                sample_rate=1.0,
+                            )
+                            presenter_delegator.flush()
+                            raise
+                    presenter_delegator.unset(opt.name)
+                elif last_updated == options.UpdateChannel.CLI:
+                    presenter_delegator.drift(opt.name, options.get(opt.name))
+                    drift_found = True
+                elif last_updated == options.UpdateChannel.UNKNOWN:
+                    presenter_delegator.drift(opt.name, options.get(opt.name))
+                    drift_found = True
+                else:
+                    continue
 
     if invalid_options:
         status = "update_failed"

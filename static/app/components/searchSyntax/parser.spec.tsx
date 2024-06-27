@@ -1,6 +1,12 @@
+import {parse} from 'query-string';
+
 import {loadFixtures} from 'sentry-test/loadFixtures';
 
-import type {ParseResult, TokenResult} from 'sentry/components/searchSyntax/parser';
+import type {
+  ParseResult,
+  SearchConfig,
+  TokenResult,
+} from 'sentry/components/searchSyntax/parser';
 import {
   BooleanOperator,
   InvalidReason,
@@ -45,6 +51,11 @@ const normalizeResult = (tokens: TokenResult<Token>[]) =>
       // @ts-expect-error
       delete token.config;
 
+      if (!parse) {
+        // @ts-expect-error
+        delete token.parsed;
+      }
+
       // token warnings only exist in the FE atm
       // @ts-expect-error
       delete token.warning;
@@ -54,9 +65,14 @@ const normalizeResult = (tokens: TokenResult<Token>[]) =>
         delete token.invalid;
       }
 
-      if (token.type === Token.VALUE_ISO_8601_DATE) {
-        // Date values are represented as ISO strings in the test case json
-        return {...token, value: token.value.toISOString()};
+      if (
+        token.type === Token.VALUE_ISO_8601_DATE ||
+        token.type === Token.VALUE_RELATIVE_DATE
+      ) {
+        if (token.parsed?.value instanceof Date) {
+          // @ts-expect-error we cannot have dates in JSON
+          token.parsed.value = token.parsed.value.toISOString();
+        }
       }
 
       return token;
@@ -66,9 +82,15 @@ const normalizeResult = (tokens: TokenResult<Token>[]) =>
 describe('searchSyntax/parser', function () {
   const testData = loadFixtures('search-syntax') as unknown as Record<string, TestCase[]>;
 
-  const registerTestCase = (testCase: TestCase) =>
+  const registerTestCase = (
+    testCase: TestCase,
+    additionalConfig: Partial<SearchConfig> = {}
+  ) =>
     it(`handles ${testCase.query}`, () => {
-      const result = parseSearch(testCase.query, testCase.additionalConfig);
+      const result = parseSearch(testCase.query, {
+        ...testCase.additionalConfig,
+        ...additionalConfig,
+      });
       // Handle errors
       if (testCase.raisesError) {
         expect(result).toBeNull();
@@ -84,7 +106,7 @@ describe('searchSyntax/parser', function () {
 
   Object.entries(testData).map(([name, cases]) =>
     describe(`${name}`, () => {
-      cases.map(registerTestCase);
+      cases.map(c => registerTestCase(c, {parse: true}));
     })
   );
 
@@ -183,6 +205,160 @@ describe('searchSyntax/parser', function () {
     expect(and.invalid).toEqual({
       type: InvalidReason.LOGICAL_AND_NOT_ALLOWED,
       reason: 'Custom message',
+    });
+  });
+
+  it('applies disallowNegation', () => {
+    const result = parseSearch('!foo:bar', {
+      disallowNegation: true,
+      invalidMessages: {
+        [InvalidReason.NEGATION_NOT_ALLOWED]: 'Custom message',
+      },
+    });
+
+    // check with error to satisfy type checker
+    if (result === null) {
+      throw new Error('Parsed result as null');
+    }
+    expect(result).toHaveLength(3);
+
+    const foo = result[1] as TokenResult<Token.FILTER>;
+
+    expect(foo.negated).toEqual(true);
+    expect(foo.invalid).toEqual({
+      type: InvalidReason.NEGATION_NOT_ALLOWED,
+      reason: 'Custom message',
+    });
+  });
+
+  describe('flattenParenGroups', () => {
+    it('tokenizes mismatched parens with flattenParenGroups=true', () => {
+      const result = parseSearch('foo(', {
+        flattenParenGroups: true,
+      });
+
+      if (result === null) {
+        throw new Error('Parsed result as null');
+      }
+
+      // foo( is parsed as free text a single paren
+      expect(result).toEqual([
+        expect.objectContaining({type: Token.SPACES}),
+        expect.objectContaining({type: Token.FREE_TEXT}),
+        expect.objectContaining({type: Token.SPACES}),
+        expect.objectContaining({
+          type: Token.L_PAREN,
+          value: '(',
+        }),
+        expect.objectContaining({type: Token.SPACES}),
+      ]);
+    });
+
+    it('tokenizes matching parens with flattenParenGroups=true', () => {
+      const result = parseSearch('(foo)', {
+        flattenParenGroups: true,
+      });
+
+      if (result === null) {
+        throw new Error('Parsed result as null');
+      }
+
+      // (foo) is parsed as free text and two parens
+      expect(result).toEqual([
+        expect.objectContaining({type: Token.SPACES}),
+        expect.objectContaining({
+          type: Token.L_PAREN,
+          value: '(',
+        }),
+        expect.objectContaining({type: Token.SPACES}),
+        expect.objectContaining({type: Token.FREE_TEXT}),
+        expect.objectContaining({type: Token.SPACES}),
+        expect.objectContaining({
+          type: Token.R_PAREN,
+          value: ')',
+        }),
+        expect.objectContaining({type: Token.SPACES}),
+      ]);
+    });
+
+    it('tokenizes mismatched left paren with flattenParenGroups=false', () => {
+      const result = parseSearch('foo(', {
+        flattenParenGroups: false,
+      });
+
+      if (result === null) {
+        throw new Error('Parsed result as null');
+      }
+
+      // foo( is parsed as free text and a paren
+      expect(result).toEqual([
+        expect.objectContaining({type: Token.SPACES}),
+        expect.objectContaining({type: Token.FREE_TEXT}),
+        expect.objectContaining({type: Token.SPACES}),
+        expect.objectContaining({
+          type: Token.L_PAREN,
+          value: '(',
+        }),
+        expect.objectContaining({type: Token.SPACES}),
+      ]);
+    });
+
+    it('tokenizes mismatched right paren with flattenParenGroups=false', () => {
+      const result = parseSearch('foo)', {
+        flattenParenGroups: false,
+      });
+
+      if (result === null) {
+        throw new Error('Parsed result as null');
+      }
+
+      // foo( is parsed as free text and a paren
+      expect(result).toEqual([
+        expect.objectContaining({type: Token.SPACES}),
+        expect.objectContaining({type: Token.FREE_TEXT}),
+        expect.objectContaining({type: Token.SPACES}),
+        expect.objectContaining({
+          type: Token.R_PAREN,
+          value: ')',
+        }),
+        expect.objectContaining({type: Token.SPACES}),
+      ]);
+    });
+
+    it('parses matching parens as logic group with flattenParenGroups=false', () => {
+      const result = parseSearch('(foo)', {
+        flattenParenGroups: false,
+      });
+
+      if (result === null) {
+        throw new Error('Parsed result as null');
+      }
+
+      // (foo) is parsed as a logic group
+      expect(result).toEqual([
+        expect.objectContaining({type: Token.SPACES}),
+        expect.objectContaining({type: Token.LOGIC_GROUP}),
+        expect.objectContaining({type: Token.SPACES}),
+      ]);
+    });
+
+    it('tokenizes empty matched parens and flattenParenGroups=false', () => {
+      const result = parseSearch('()', {
+        flattenParenGroups: false,
+      });
+
+      if (result === null) {
+        throw new Error('Parsed result as null');
+      }
+
+      expect(result).toEqual([
+        expect.objectContaining({type: Token.SPACES}),
+        expect.objectContaining({
+          type: Token.LOGIC_GROUP,
+          inner: [expect.objectContaining({type: Token.SPACES})],
+        }),
+        expect.objectContaining({type: Token.SPACES}),
+      ]);
     });
   });
 });

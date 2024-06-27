@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import {openBulkEditMonitorsModal} from 'sentry/actionCreators/modal';
+import {deleteProjectProcessingErrorByType} from 'sentry/actionCreators/monitors';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
@@ -22,11 +23,15 @@ import {IconAdd, IconList} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {decodeScalar} from 'sentry/utils/queryString';
+import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
+import useApi from 'sentry/utils/useApi';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import useRouter from 'sentry/utils/useRouter';
+import MonitorProcessingErrors from 'sentry/views/monitors/components/processingErrors/monitorProcessingErrors';
+import {makeMonitorListErrorsQueryKey} from 'sentry/views/monitors/components/processingErrors/utils';
 
 import {
   CronsLandingPanel,
@@ -35,7 +40,8 @@ import {
 } from './components/cronsLandingPanel';
 import {NewMonitorButton} from './components/newMonitorButton';
 import {OverviewTimeline} from './components/overviewTimeline';
-import type {Monitor} from './types';
+import {OwnerFilter} from './components/ownerFilter';
+import type {CheckinProcessingError, Monitor, ProcessingErrorType} from './types';
 import {makeMonitorListQueryKey} from './utils';
 
 const CronsListPageHeader = HookOrDefault({
@@ -43,12 +49,15 @@ const CronsListPageHeader = HookOrDefault({
 });
 
 export default function Monitors() {
+  const api = useApi();
   const organization = useOrganization();
-  const router = useRouter();
-  const platform = decodeScalar(router.location.query?.platform) ?? null;
-  const guide = decodeScalar(router.location.query?.guide);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const platform = decodeScalar(location.query?.platform) ?? null;
+  const guide = decodeScalar(location.query?.guide);
+  const project = decodeList(location.query?.project);
 
-  const queryKey = makeMonitorListQueryKey(organization, router.location.query);
+  const queryKey = makeMonitorListQueryKey(organization, location.query);
 
   const {
     data: monitorList,
@@ -59,18 +68,30 @@ export default function Monitors() {
     staleTime: 0,
   });
 
+  const processingErrorQueryKey = makeMonitorListErrorsQueryKey(organization, project);
+  const {data: processingErrors, refetch: refetchErrors} = useApiQuery<
+    CheckinProcessingError[]
+  >(processingErrorQueryKey, {
+    staleTime: 0,
+  });
+
   useRouteAnalyticsEventNames('monitors.page_viewed', 'Monitors: Page Viewed');
   useRouteAnalyticsParams({empty_state: !monitorList || monitorList.length === 0});
 
   const monitorListPageLinks = monitorListHeaders?.('Link');
 
   const handleSearch = (query: string) => {
-    const currentQuery = {...(router.location.query ?? {}), cursor: undefined};
-    router.push({
+    const currentQuery = {...(location.query ?? {}), cursor: undefined};
+    navigate({
       pathname: location.pathname,
       query: normalizeDateTimeParams({...currentQuery, query}),
     });
   };
+
+  function handleDismissError(errortype: ProcessingErrorType, projectId: string) {
+    deleteProjectProcessingErrorByType(api, organization.slug, projectId, errortype);
+    refetchErrors();
+  }
 
   const showAddMonitor = !isValidPlatform(platform) || !isValidGuide(guide);
 
@@ -117,6 +138,18 @@ export default function Monitors() {
         <Layout.Body>
           <Layout.Main fullWidth>
             <Filters>
+              <OwnerFilter
+                selectedOwners={decodeList(location.query.owner)}
+                onChangeFilter={owner => {
+                  navigate(
+                    {
+                      ...location,
+                      query: {...location.query, owner},
+                    },
+                    {replace: true}
+                  );
+                }}
+              />
               <PageFilterBar>
                 <ProjectPageFilter resetParamsOnChange={['cursor']} />
                 <EnvironmentPageFilter resetParamsOnChange={['cursor']} />
@@ -128,6 +161,16 @@ export default function Monitors() {
                 onSearch={handleSearch}
               />
             </Filters>
+            {!!processingErrors?.length && (
+              <MonitorProcessingErrors
+                checkinErrors={processingErrors}
+                onDismiss={handleDismissError}
+              >
+                {t(
+                  'Errors were encountered while ingesting check-ins for the selected projects'
+                )}
+              </MonitorProcessingErrors>
+            )}
             {isLoading ? (
               <LoadingIndicator />
             ) : monitorList?.length ? (
@@ -146,8 +189,11 @@ export default function Monitors() {
 }
 
 const Filters = styled('div')`
-  display: grid;
-  grid-template-columns: max-content 1fr;
+  display: flex;
   gap: ${space(1.5)};
   margin-bottom: ${space(2)};
+
+  > :last-child {
+    flex-grow: 1;
+  }
 `;

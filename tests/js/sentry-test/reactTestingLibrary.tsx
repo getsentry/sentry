@@ -8,7 +8,8 @@ import userEvent from '@testing-library/user-event'; // eslint-disable-line no-r
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 
 import GlobalModal from 'sentry/components/globalModal';
-import type {Organization} from 'sentry/types';
+import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
+import type {Organization} from 'sentry/types/organization';
 import {QueryClientProvider} from 'sentry/utils/queryClient';
 import {lightTheme} from 'sentry/utils/theme';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -18,12 +19,7 @@ import {instrumentUserEvent} from '../instrumentedEnv/userEventIntegration';
 
 import {initializeOrg} from './initializeOrg';
 
-type ProviderOptions = {
-  /**
-   * Sets legacy context providers. This value is directly passed to a
-   * `getChildContext`.
-   */
-  context?: Record<string, any>;
+interface ProviderOptions {
   /**
    * Sets the OrganizationContext. You may pass null to provide no organization
    */
@@ -32,39 +28,36 @@ type ProviderOptions = {
    * Sets the RouterContext
    */
   router?: Partial<InjectedRouter>;
-};
+}
 
-type Options = ProviderOptions & rtl.RenderOptions;
+interface Options extends ProviderOptions, rtl.RenderOptions {}
 
-function createProvider(contextDefs: Record<string, any>) {
-  return class ContextProvider extends Component<{children?: React.ReactNode}> {
-    static childContextTypes = contextDefs.childContextTypes;
+function makeAllTheProviders(providers: ProviderOptions) {
+  const {organization, router} = initializeOrg({
+    organization: providers.organization === null ? undefined : providers.organization,
+    router: providers.router,
+  });
+
+  class LegacyRouterProvider extends Component<{children?: React.ReactNode}> {
+    static childContextTypes = {
+      router: SentryPropTypeValidators.isObject,
+    };
 
     getChildContext() {
-      return contextDefs.context;
+      return {router};
     }
 
     render() {
       return this.props.children;
     }
-  };
-}
-
-function makeAllTheProviders({context, ...initializeOrgOptions}: ProviderOptions) {
-  const {organization, router, routerContext} = initializeOrg(
-    initializeOrgOptions as any
-  );
-  const ContextProvider = context
-    ? createProvider(context)
-    : createProvider(routerContext);
+  }
 
   // In some cases we may want to not provide an organization at all
-  const optionalOrganization =
-    initializeOrgOptions.organization === null ? null : organization;
+  const optionalOrganization = providers.organization === null ? null : organization;
 
   return function ({children}: {children?: React.ReactNode}) {
     return (
-      <ContextProvider>
+      <LegacyRouterProvider>
         <CacheProvider value={{...cache, compat: true}}>
           <ThemeProvider theme={lightTheme}>
             <QueryClientProvider client={makeTestQueryClient()}>
@@ -83,7 +76,7 @@ function makeAllTheProviders({context, ...initializeOrgOptions}: ProviderOptions
             </QueryClientProvider>
           </ThemeProvider>
         </CacheProvider>
-      </ContextProvider>
+      </LegacyRouterProvider>
     );
   };
 }
@@ -94,26 +87,19 @@ function makeAllTheProviders({context, ...initializeOrgOptions}: ProviderOptions
  *
  * render(<TestedComponent />);
  *
- * If your component requires routerContext or organization to render, pass it
- * via context options argument. render(<TestedComponent />, {context:
- * routerContext, organization});
+ * If your component requires additional context you can pass it in the
+ * options.
  */
-function render(ui: React.ReactElement, options?: Options) {
-  options = options ?? {};
-  const {context, organization, ...otherOptions} = options;
-  let {router} = options;
-
-  if (router === undefined && context?.context?.router) {
-    router = context.context.router;
-  }
-
+function render(
+  ui: React.ReactElement,
+  {router, organization, ...rtlOptions}: Options = {}
+) {
   const AllTheProviders = makeAllTheProviders({
-    context,
     organization,
     router,
   });
 
-  return rtl.render(ui, {wrapper: AllTheProviders, ...otherOptions});
+  return rtl.render(ui, {wrapper: AllTheProviders, ...rtlOptions});
 }
 
 /**
@@ -140,56 +126,14 @@ function renderGlobalModal(options?: Options) {
 }
 
 /**
- * jest-sentry-environment attaches a global Sentry object that can be used.
- * The types on it conflicts with the existing window.Sentry object so it's using any here.
- */
-const globalSentry = (global as any).Sentry;
-
-/**
  * This cannot be implemented as a Sentry Integration because Jest creates an
  * isolated environment for each test suite. This means that if we were to apply
  * the monkey patching ahead of time, it would be shadowed by Jest.
  */
-instrumentUserEvent(globalSentry?.getCurrentHub.bind(globalSentry));
+instrumentUserEvent();
 
 // eslint-disable-next-line no-restricted-imports, import/export
 export * from '@testing-library/react';
-
-/**
- * makes waitFor available again
- */
-interface PatchRenderHookResult<Result, Props>
-  extends rtl.RenderHookResult<Result, Props> {
-  waitFor: typeof rtl.waitFor;
-}
-
-/**
- * TODO(react18): Remove wrapper and migrate waitFor
- * `import {waitFor} from 'sentry-test/reactTestingLibrary';`
- *
- * @deprecated
- */
-const renderHookWrapper = <Result, Props>(
-  ...args: Parameters<typeof rtl.renderHook<Result, Props>>
-): PatchRenderHookResult<Result, Props> => {
-  const result = rtl.renderHook(...args) as PatchRenderHookResult<Result, Props>;
-  result.waitFor = rtl.waitFor;
-  return result;
-};
-
-/**
- * @deprecated use `import {renderHook} from 'sentry-test/reactTestingLibrary';` instead
- */
-export const reactHooks = {
-  /**
-   * @deprecated use `import {renderHook} from 'sentry-test/reactTestingLibrary';` instead
-   */
-  renderHook: renderHookWrapper,
-  /**
-   * @deprecated use `import {act} from 'sentry-test/reactTestingLibrary';` instead
-   */
-  act: rtl.act,
-};
 
 // eslint-disable-next-line import/export
 export {render, renderGlobalModal, userEvent, fireEvent};

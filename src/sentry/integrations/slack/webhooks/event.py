@@ -4,6 +4,7 @@ from collections import defaultdict
 from collections.abc import Mapping, MutableMapping
 from typing import Any
 
+import orjson
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -21,7 +22,6 @@ from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.utils import json
 from sentry.utils.urls import parse_link
 
 from ..utils import logger
@@ -156,7 +156,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 return True
 
             # Don't unfurl the same thing multiple times
-            seen_marker = hash(json.dumps((link_type, args)))
+            seen_marker = hash(orjson.dumps((link_type, list(args))).decode())
             if seen_marker in links_seen:
                 continue
 
@@ -184,15 +184,14 @@ class SlackEventEndpoint(SlackDMEndpoint):
         # XXX(isabella): we use our message builders to create the blocks for each link to be
         # unfurled, so the original result will include the fallback text string, however, the
         # unfurl endpoint does not accept fallback text.
-        if features.has("organizations:slack-block-kit", organization):
-            for link_info in results.values():
-                if "text" in link_info:
-                    del link_info["text"]
+        for link_info in results.values():
+            if "text" in link_info:
+                del link_info["text"]
 
         payload = {
             "channel": data["channel"],
             "ts": data["message_ts"],
-            "unfurls": json.dumps(results),
+            "unfurls": orjson.dumps(results).decode(),
         }
 
         client = SlackClient(integration_id=slack_request.integration.id)

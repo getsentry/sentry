@@ -10,13 +10,13 @@ import pathlib
 from typing import Any
 
 import jsonschema
+import orjson
 import requests
 import sentry_sdk
 from django.db import router, transaction
 
 from sentry.lang.native.sources import APP_STORE_CONNECT_SCHEMA, secret_fields
 from sentry.models.project import Project
-from sentry.utils import json
 from sentry.utils.appleconnect import appstore_connect
 
 logger = logging.getLogger(__name__)
@@ -123,7 +123,7 @@ class AppStoreConnectConfig:
         if not raw:
             raw = "[]"
 
-        all_sources = json.loads(raw)
+        all_sources = orjson.loads(raw)
         for source in all_sources:
             if source.get("type") == SYMBOL_SOURCE_TYPE_NAME and (source.get("id") == config_id):
                 return cls.from_json(source)
@@ -136,7 +136,7 @@ class AppStoreConnectConfig:
         raw = project.get_option(SYMBOL_SOURCES_PROP_NAME)
         if not raw:
             raw = "[]"
-        all_sources = json.loads(raw)
+        all_sources = orjson.loads(raw)
         return [
             s.get("id")
             for s in all_sources
@@ -177,7 +177,7 @@ class AppStoreConnectConfig:
                 data[to_redact] = {"hidden-secret": True}
         return data
 
-    def update_project_symbol_source(self, project: Project, allow_multiple: bool) -> json.JSONData:
+    def update_project_symbol_source(self, project: Project, allow_multiple: bool) -> Any:
         """Updates this configuration in the Project's symbol sources.
 
         If a symbol source of type ``appStoreConnect`` already exists the ID must match and it
@@ -194,7 +194,7 @@ class AppStoreConnectConfig:
         """
         with transaction.atomic(router.db_for_write(Project)):
             all_sources_raw = project.get_option(SYMBOL_SOURCES_PROP_NAME)
-            all_sources = json.loads(all_sources_raw) if all_sources_raw else []
+            all_sources = orjson.loads(all_sources_raw) if all_sources_raw else []
             for i, source in enumerate(all_sources):
                 if source.get("type") == SYMBOL_SOURCE_TYPE_NAME:
                     if source.get("id") == self.id:
@@ -207,7 +207,7 @@ class AppStoreConnectConfig:
             else:
                 # No matching existing appStoreConnect symbol source, append it.
                 all_sources.append(self.to_json())
-            project.update_option(SYMBOL_SOURCES_PROP_NAME, json.dumps(all_sources))
+            project.update_option(SYMBOL_SOURCES_PROP_NAME, orjson.dumps(all_sources).decode())
         return all_sources
 
 

@@ -138,7 +138,7 @@ export function ErrorItem({error, meta}: ErrorItemProps) {
 
 const ToggleButton = styled(Button)`
   margin-left: ${space(1.5)};
-  font-weight: 700;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
   :hover,
   :focus {

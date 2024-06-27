@@ -9,6 +9,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface AutofixContextModalProps extends ModalRenderProps {
+  groupId: string;
   triggerAutofix: (value: string) => void;
 }
 
@@ -17,6 +18,7 @@ export function AutofixInstructionsModal({
   Footer,
   closeModal,
   triggerAutofix,
+  groupId,
 }: AutofixContextModalProps) {
   return (
     <Form
@@ -27,7 +29,7 @@ export function AutofixInstructionsModal({
       }}
     >
       <Header>
-        <h4>{t('Give the Autofix Agent Some Instructions')}</h4>
+        <h4>{t('Provide context to Autofix')}</h4>
       </Header>
 
       <div>
@@ -36,7 +38,7 @@ export function AutofixInstructionsModal({
             <FullSizeTextAreaField
               id={id}
               name={name}
-              aria-label={t('Provide instructions')}
+              aria-label={t('Provide context')}
               placeholder={t(
                 'This error seems to be caused by ... go look at path/file to make sure it does …'
               )}
@@ -54,7 +56,13 @@ export function AutofixInstructionsModal({
       <Footer>
         <FooterButtons>
           <Button onClick={closeModal}>{t('Cancel')}</Button>
-          <Button priority="primary" type="submit">
+          <Button
+            priority="primary"
+            type="submit"
+            analyticsEventKey="autofix.start_fix_with_instructions_clicked"
+            analyticsEventName="Autofix: Start Fix With Instructions Clicked"
+            analyticsParams={{group_id: groupId}}
+          >
             {t("Let's go!")}
           </Button>
         </FooterButtons>
@@ -68,9 +76,14 @@ const FullSizeTextAreaField = styled(TextareaAutosize)`
   width: 100%;
   border: none;
   resize: none;
+  min-height: 100px;
 
   &:focus {
     outline: none;
+  }
+
+  &::placeholder {
+    color: ${p => p.theme.subText};
   }
 `;
 

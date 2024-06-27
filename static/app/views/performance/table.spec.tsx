@@ -1,10 +1,10 @@
-import {browserHistory} from 'react-router';
 import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeData as _initializeData} from 'sentry-test/performance/initializePerformanceData';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {MEPSettingProvider} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -192,7 +192,7 @@ describe('Performance > Table', function () {
         query: 'event.type:transaction transaction:/api*',
       });
 
-      ProjectsStore.loadInitialData(data.organization.projects);
+      ProjectsStore.loadInitialData(data.projects);
 
       render(
         <WrappedComponent
@@ -202,7 +202,7 @@ describe('Performance > Table', function () {
           summaryConditions=""
           projects={data.projects}
         />,
-        {context: data.routerContext}
+        {router: data.router}
       );
 
       const rows = await screen.findAllByTestId('grid-body-row');
@@ -277,7 +277,7 @@ describe('Performance > Table', function () {
         projects,
       });
 
-      ProjectsStore.loadInitialData(data.organization.projects);
+      ProjectsStore.loadInitialData(data.projects);
 
       render(
         <WrappedComponent
@@ -308,7 +308,7 @@ describe('Performance > Table', function () {
         projects,
       });
 
-      ProjectsStore.loadInitialData(data.organization.projects);
+      ProjectsStore.loadInitialData(data.projects);
 
       render(
         <WrappedComponent

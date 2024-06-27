@@ -27,7 +27,7 @@ class OrganizationRelayUsage(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="List an Organization's trusted Relays",
-        parameters=[GlobalParams.ORG_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG],
         request=None,
         responses={
             200: inline_sentry_response_serializer(

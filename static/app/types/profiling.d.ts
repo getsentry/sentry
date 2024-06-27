@@ -200,6 +200,7 @@ declare namespace Profiling {
       traceID: string;
       transactionID: string;
       transactionName: string;
+      timestamp?: string;
     };
     profileID: string;
     projectID: number;

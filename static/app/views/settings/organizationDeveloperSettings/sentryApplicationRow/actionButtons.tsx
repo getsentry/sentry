@@ -63,7 +63,7 @@ function ActionButtons({
         title={disableDeleteReason}
         size="xs"
         icon={<IconDelete />}
-        aria-label="Delete"
+        aria-label={t('Delete')}
       />
     ) : (
       onDelete && (
@@ -73,7 +73,7 @@ function ActionButtons({
           priority="danger"
           onConfirm={() => onDelete(app)}
         >
-          <StyledButton size="xs" icon={<IconDelete />} aria-label="Delete" />
+          <StyledButton size="xs" icon={<IconDelete />} aria-label={t('Delete')} />
         </ConfirmDelete>
       )
     )

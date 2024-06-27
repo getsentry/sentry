@@ -18,16 +18,17 @@ from rest_framework.response import Response
 
 from sentry import analytics, features, options
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.actor import ActorSerializer
+from sentry.api.serializers.models.actor import ActorSerializer, ActorSerializerResponse
 from sentry.db.models.query import create_or_update
+from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.issues.grouptype import GroupCategory
 from sentry.issues.ignored import handle_archived_until_escalating, handle_ignored
 from sentry.issues.merge import handle_merge
+from sentry.issues.ongoing import TRANSITION_AFTER_DAYS
 from sentry.issues.priority import update_priority
 from sentry.issues.status_change import handle_status_update
 from sentry.issues.update_inbox import update_inbox
 from sentry.models.activity import Activity, ActivityIntegration
-from sentry.models.actor import Actor, ActorTuple
 from sentry.models.group import STATUS_UPDATE_CHOICES, Group, GroupStatus
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupbookmark import GroupBookmark
@@ -43,17 +44,15 @@ from sentry.models.groupsubscription import GroupSubscription
 from sentry.models.grouptombstone import TOMBSTONE_FIELDS_FROM_GROUP, GroupTombstone
 from sentry.models.project import Project
 from sentry.models.release import Release, follows_semver_versioning_scheme
-from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.types import SUBSCRIPTION_REASON_MAP, GroupSubscriptionReason
-from sentry.services.hybrid_cloud import coerce_id_from
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.signals import issue_resolved
-from sentry.tasks.auto_ongoing_issues import TRANSITION_AFTER_DAYS
 from sentry.tasks.integrations import kick_off_status_syncs
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor, ActorType
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus, PriorityLevel
 from sentry.utils import metrics
 
@@ -107,7 +106,7 @@ def handle_discard(
 
 def self_subscribe_and_assign_issue(
     acting_user: User | RpcUser | None, group: Group, self_assign_issue: str
-) -> ActorTuple | None:
+) -> Actor | None:
     # Used during issue resolution to assign to acting user
     # returns None if the user didn't elect to self assign on resolution
     # or the group is assigned already, otherwise returns Actor
@@ -118,7 +117,7 @@ def self_subscribe_and_assign_issue(
         )
 
         if self_assign_issue == "1" and not group.assignee_set.exists():
-            return ActorTuple(type=User, id=acting_user.id)
+            return Actor(id=acting_user.id, actor_type=ActorType.USER)
     return None
 
 
@@ -189,8 +188,6 @@ def update_groups(
     else:
         group_list = None
 
-    has_priority = False
-
     serializer = None
     # TODO(jess): We may want to look into refactoring GroupValidator
     # to support multiple projects, but this is pretty complicated
@@ -207,8 +204,6 @@ def update_groups(
         )
         if not serializer.is_valid():
             raise serializers.ValidationError(serializer.errors)
-        if not has_priority and features.has("projects:issue-priority", project, actor=user):
-            has_priority = True
 
     if serializer is None:
         return
@@ -226,7 +221,6 @@ def update_groups(
         )
         if user_options:
             self_assign_issue = user_options[0].value
-
     if search_fn and not group_ids:
         try:
             cursor_result, _ = search_fn(
@@ -260,7 +254,7 @@ def update_groups(
     res_type = None
     activity_type = None
     activity_data: MutableMapping[str, Any | None] | None = None
-    if has_priority and "priority" in result:
+    if "priority" in result:
         handle_priority(
             priority=result["priority"],
             group_list=group_list,
@@ -300,6 +294,34 @@ def update_groups(
                 new_status_details["actor"] = serialized_user[0]
             res_type = GroupResolution.Type.in_next_release
             res_type_str = "in_next_release"
+            res_status = GroupResolution.Status.pending
+        elif status_details.get("inUpcomingRelease"):
+            if len(projects) > 1:
+                return Response(
+                    {"detail": "Cannot set resolved in upcoming release for multiple projects."},
+                    status=400,
+                )
+            release = (
+                status_details.get("inUpcomingRelease")
+                or Release.objects.filter(
+                    projects=projects[0], organization_id=projects[0].organization_id
+                )
+                .extra(select={"sort": "COALESCE(date_released, date_added)"})
+                .order_by("-sort")[0]
+            )
+            activity_type = ActivityType.SET_RESOLVED_IN_RELEASE.value
+            activity_data = {"version": ""}
+
+            serialized_user = user_service.serialize_many(
+                filter=dict(user_ids=[user.id]), as_user=user
+            )
+            new_status_details = {
+                "inUpcomingRelease": True,
+            }
+            if serialized_user:
+                new_status_details["actor"] = serialized_user[0]
+            res_type = GroupResolution.Type.in_upcoming_release
+            res_type_str = "in_upcoming_release"
             res_status = GroupResolution.Status.pending
         elif status_details.get("inRelease"):
             # TODO(jess): We could update validation to check if release
@@ -607,6 +629,7 @@ def update_groups(
             if res_type in (
                 GroupResolution.Type.in_next_release,
                 GroupResolution.Type.in_release,
+                GroupResolution.Type.in_upcoming_release,
             ):
                 result["activity"] = serialize(
                     Activity.objects.get_activities_for_group(
@@ -781,7 +804,10 @@ def handle_has_seen(
 
 
 def handle_priority(
-    priority: str, group_list: Sequence[Group], actor: User, project_lookup: dict[int, Project]
+    priority: str,
+    group_list: Sequence[Group],
+    actor: User | None,
+    project_lookup: dict[int, Project],
 ) -> None:
     for group in group_list:
         priority_value = PriorityLevel.from_str(priority) if priority else None
@@ -839,13 +865,13 @@ def handle_is_public(
 
 
 def handle_assigned_to(
-    assigned_actor: str,
-    assigned_by: str,
-    integration: str,
+    assigned_actor: Actor,
+    assigned_by: str | None,
+    integration: str | None,
     group_list: list[Group],
     project_lookup: dict[int, Project],
     acting_user: User | None,
-) -> Actor | None:
+) -> ActorSerializerResponse | None:
     """
     Handle the assignedTo field on a group update.
 
@@ -861,8 +887,8 @@ def handle_assigned_to(
         else dict()
     )
     if assigned_actor:
+        resolved_actor = assigned_actor.resolve()
         for group in group_list:
-            resolved_actor: RpcUser | Team = assigned_actor.resolve()
             assignment = GroupAssignee.objects.assign(
                 group, resolved_actor, acting_user, extra=extra
             )
@@ -874,7 +900,7 @@ def handle_assigned_to(
                 assigned_by=assigned_by,
                 had_to_deassign=assignment["updated_assignment"],
             )
-        return serialize(assigned_actor.resolve(), acting_user, ActorSerializer())
+        return serialize(resolved_actor, acting_user, ActorSerializer())
     else:
         for group in group_list:
             GroupAssignee.objects.deassign(group, acting_user)

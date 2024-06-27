@@ -7,7 +7,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, control_silo_model, sane_repr
 from sentry.utils.http import absolute_uri
 from sentry.utils.security import get_secure_token
 
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from sentry.services.hybrid_cloud.lost_password_hash import RpcLostPasswordHash
 
 
-@control_silo_only_model
+@control_silo_model
 class LostPasswordHash(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

@@ -4,8 +4,7 @@ import ErrorLevel from 'sentry/components/events/errorLevel';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EventOrGroupType, type Level} from 'sentry/types';
-import useOrganization from 'sentry/utils/useOrganization';
+import {EventOrGroupType, type Level} from 'sentry/types/event';
 
 type Props = {
   type: EventOrGroupType;
@@ -49,25 +48,6 @@ function EventMessage({
   type,
   showUnhandled = false,
 }: Props) {
-  const organization = useOrganization({allowNull: true});
-  const hasIssuePriority = organization?.features.includes('issue-priority-ui');
-
-  if (!hasIssuePriority) {
-    return (
-      <LevelMessageContainer className={className}>
-        {level ? (
-          <EventOrGroupLevel
-            level={level}
-            levelIndicatorSize={levelIndicatorSize}
-            type={type}
-          />
-        ) : null}
-        {showUnhandled ? <UnhandledTag /> : null}
-        {message ? <Message>{message}</Message> : null}
-      </LevelMessageContainer>
-    );
-  }
-
   return (
     <LevelMessageContainer className={className}>
       <EventOrGroupLevel

@@ -3,6 +3,7 @@ from __future__ import annotations
 import hashlib
 import logging
 import os
+from collections import defaultdict
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import Enum
@@ -58,6 +59,9 @@ OPS_REQUIRE_FEAT_FLAG = {
     "count_unique": SPEC_VERSION_TWO_FLAG,
     "user_misery": SPEC_VERSION_TWO_FLAG,
 }
+
+# Splits the bulk cache for on-demand resolution into N chunks
+WIDGET_QUERY_CACHE_MAX_CHUNKS = 6
 
 
 # This helps us control the different spec versions
@@ -401,6 +405,20 @@ class MetricSpec(TypedDict):
     tags: NotRequired[Sequence[TagSpec]]
 
 
+class TagMapping(TypedDict):
+    #: A list of Metric Resource Identifiers (MRI) to apply tags to.
+    #:
+    #: Entries in this list can contain wildcards to match metrics with dynamic MRIs.
+    metrics: list[str]
+
+    #: A list of tags to add to the metric.
+    #:
+    #: Tags can be conditional, see `TagSpec` for configuration options. For this reason, it is
+    #: possible to list tag keys multiple times, each with different conditions. The first matching
+    #: condition will be applied.
+    tags: list[TagSpec]
+
+
 def _check_event_type_transaction(
     query: Sequence[QueryToken], is_top_level_call: bool = True
 ) -> bool:
@@ -670,18 +688,22 @@ def should_use_on_demand_metrics(
     query: str | None,
     groupbys: Sequence[str] | None = None,
     prefilling: bool = False,
-    organization_bulk_query_cache: dict[str, Any] | None = None,
+    organization_bulk_query_cache: dict[int, dict[str, bool]] | None = None,
 ) -> bool:
     if in_random_rollout("on_demand_metrics.cache_should_use_on_demand"):
         if organization_bulk_query_cache is None:
-            organization_bulk_query_cache = {}
+            organization_bulk_query_cache = defaultdict(dict)
 
         dataset_str = dataset.value if isinstance(dataset, Enum) else str(dataset or "")
         groupbys_str = ",".join(sorted(groupbys)) if groupbys else ""
-        local_cache_key = md5_text(
+        local_cache_md5 = md5_text(
             f"{dataset_str}-{aggregate}-{query or ''}-{groupbys_str}-prefilling={prefilling}"
-        ).hexdigest()
-        cached_result = organization_bulk_query_cache.get(local_cache_key, None)
+        )
+        local_cache_digest_chunk = local_cache_md5.digest()[0] % WIDGET_QUERY_CACHE_MAX_CHUNKS
+        local_cache_key = local_cache_md5.hexdigest()
+        cached_result = organization_bulk_query_cache.get(local_cache_digest_chunk, {}).get(
+            local_cache_key, None
+        )
         if cached_result:
             metrics.incr("on_demand_metrics.should_use_on_demand_metrics.cache_hit")
             return cached_result
@@ -700,7 +722,7 @@ def should_use_on_demand_metrics(
                 prefilling=prefilling,
             )
             metrics.incr("on_demand_metrics.should_use_on_demand_metrics.cache_miss")
-            organization_bulk_query_cache[local_cache_key] = result
+            organization_bulk_query_cache[local_cache_digest_chunk][local_cache_key] = result
             return result
 
     return _should_use_on_demand_metrics(
@@ -1299,7 +1321,7 @@ class OnDemandMetricSpec:
     @cached_property
     def query_hash(self) -> str:
         str_to_hash = self._query_str_for_hash
-        hash = hashlib.shake_128(bytes(str_to_hash, encoding="utf-8")).hexdigest(4)
+        hash = hashlib.shake_128(str_to_hash.encode()).hexdigest(4)
         return hash
 
     def _field_for_hash(self) -> str | None:
@@ -1668,9 +1690,13 @@ class SearchQueryConverter:
     The converter can be used exactly once.
     """
 
-    def __init__(self, tokens: Sequence[QueryToken]):
+    def __init__(
+        self, tokens: Sequence[QueryToken], field_mapper: Callable[[str], str] = _map_field_name
+    ):
         self._tokens = tokens
         self._position = 0
+        # The field mapper is used to map the field names in the search query to the event protocol path.
+        self._field_mapper = field_mapper
 
     def convert(self) -> RuleCondition:
         """
@@ -1741,7 +1767,7 @@ class SearchQueryConverter:
         if filt := self._consume(SearchFilter):
             return self._filter(filt)
         elif paren := self._consume(ParenExpression):
-            return SearchQueryConverter(paren.children).convert()
+            return SearchQueryConverter(paren.children, self._field_mapper).convert()
         elif token := self._peek():
             raise ValueError(f"Unexpected token {token}")
         else:
@@ -1758,7 +1784,7 @@ class SearchQueryConverter:
         if operator == "eq" and token.value.is_wildcard():
             condition: RuleCondition = {
                 "op": "glob",
-                "name": _map_field_name(key),
+                "name": self._field_mapper(key),
                 "value": [_escape_wildcard(value)],
             }
         else:
@@ -1774,7 +1800,7 @@ class SearchQueryConverter:
 
             condition = {
                 "op": operator,
-                "name": _map_field_name(key),
+                "name": self._field_mapper(key),
                 "value": value,
             }
 

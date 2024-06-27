@@ -48,7 +48,7 @@ export function getAlertTypeFromAggregateDataset({
 }: Pick<WizardRuleTemplate, 'aggregate' | 'dataset'>): MetricAlertType {
   const {mri: mri} = parseField(aggregate) ?? {};
 
-  if (getUseCaseFromMRI(mri) === 'custom') {
+  if (getUseCaseFromMRI(mri) === 'custom' || getUseCaseFromMRI(mri) === 'spans') {
     return 'custom_metrics';
   }
   const identifierForDataset = alertTypeIdentifiers[dataset];

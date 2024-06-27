@@ -1,7 +1,7 @@
 import re
 from collections.abc import Sequence
 
-from django.db.models import Count, Max
+from django.db.models import Count, Max, QuerySet
 from rest_framework import serializers
 from rest_framework.serializers import ListField
 
@@ -9,7 +9,11 @@ from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.utils import get_date_range_from_params
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.discover.arithmetic import ArithmeticError, categorize_columns
-from sentry.discover.models import MAX_TEAM_KEY_TRANSACTIONS, TeamKeyTransaction
+from sentry.discover.models import (
+    MAX_TEAM_KEY_TRANSACTIONS,
+    DiscoverSavedQueryTypes,
+    TeamKeyTransaction,
+)
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.team import Team
 from sentry.search.events.builder import QueryBuilder
@@ -142,6 +146,10 @@ class DiscoverQuerySerializer(serializers.Serializer):
 class DiscoverSavedQuerySerializer(serializers.Serializer):
     name = serializers.CharField(required=True, max_length=255)
     projects = ListField(child=serializers.IntegerField(), required=False, default=[])
+    queryDataset = serializers.ChoiceField(
+        choices=DiscoverSavedQueryTypes.as_text_choices(),
+        default=DiscoverSavedQueryTypes.get_type_name(DiscoverSavedQueryTypes.DISCOVER),
+    )
     start = serializers.DateTimeField(required=False, allow_null=True)
     end = serializers.DateTimeField(required=False, allow_null=True)
     range = serializers.CharField(required=False, allow_null=True)
@@ -238,11 +246,14 @@ class DiscoverSavedQuerySerializer(serializers.Serializer):
             except (InvalidSearchQuery, ArithmeticError) as err:
                 raise serializers.ValidationError(f"Cannot save invalid query: {err}")
 
+        dataset = DiscoverSavedQueryTypes.get_id_for_type_name(data["queryDataset"])
+
         return {
             "name": data["name"],
             "project_ids": data["projects"],
             "query": query,
             "version": version,
+            "query_dataset": dataset,
         }
 
     def validate_version_fields(self, version, query):
@@ -262,7 +273,7 @@ class TeamKeyTransactionSerializer(serializers.Serializer):
     transaction = serializers.CharField(required=True, max_length=200)
     team = serializers.ListField(child=serializers.IntegerField())
 
-    def validate_team(self, team_ids: Sequence[int]) -> Team:
+    def validate_team(self, team_ids: Sequence[int]) -> QuerySet[Team]:
         request = self.context["request"]
         organization = self.context["organization"]
         verified_teams = {team.id for team in Team.objects.get_for_user(organization, request.user)}

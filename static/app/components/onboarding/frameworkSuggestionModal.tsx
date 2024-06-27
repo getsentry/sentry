@@ -38,6 +38,7 @@ export enum SupportedLanguages {
 const topGoFrameworks: PlatformKey[] = [
   'go-echo',
   'go-fasthttp',
+  'go-fiber',
   'go-gin',
   'go-http',
   'go-iris',
@@ -46,13 +47,14 @@ const topGoFrameworks: PlatformKey[] = [
 ];
 
 export const topJavascriptFrameworks: PlatformKey[] = [
-  'javascript-react',
   'javascript-nextjs',
+  'javascript-react',
   'javascript-vue',
   'javascript-angular',
+  'javascript-solid',
+  'javascript-remix',
   'javascript-svelte',
   'javascript-sveltekit',
-  'javascript-remix',
   'javascript-astro',
 ];
 
@@ -66,9 +68,9 @@ const topPythonFrameworks: PlatformKey[] = [
 
 const topNodeFrameworks: PlatformKey[] = [
   'node-express',
+  'node-nestjs',
   'node-awslambda',
   'node-gcpfunctions',
-  'node-serverlesscloud',
   'node-koa',
 ];
 

@@ -1,5 +1,8 @@
 from collections.abc import Mapping
+from datetime import timedelta
 from typing import Any
+
+from django.utils import timezone
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.app import env
@@ -11,6 +14,7 @@ from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.models.integrations.sentry_app import MASKED_VALUE, SentryApp
 from sentry.models.user import User
+from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.services.hybrid_cloud.user.service import user_service
 
@@ -91,13 +95,24 @@ class SentryAppSerializer(Serializer):
                 is_active_superuser(env.request) or is_active_staff(env.request)
             )
             if elevated_user or owner.id in user_org_ids:
-                client_secret = (
-                    obj.application.client_secret if obj.show_auth_info(access) else MASKED_VALUE
+                is_secret_visible = obj.date_added > timezone.now() - timedelta(days=1)
+
+                owner_context = organization_service.get_organization_by_id(
+                    id=owner.id, user_id=user.id
                 )
+
+                client_secret = MASKED_VALUE
+                if elevated_user or (
+                    owner_context
+                    and "org:write" in owner_context.member.scopes
+                    and obj.show_auth_info(owner_context.member)
+                ):
+                    client_secret = obj.application.client_secret
+
                 data.update(
                     {
                         "clientId": obj.application.client_id,
-                        "clientSecret": client_secret,
+                        "clientSecret": client_secret if is_secret_visible else None,
                         "owner": {"id": owner.id, "slug": owner.slug},
                     }
                 )

@@ -214,9 +214,6 @@ def test_gauge(backend, hub):
         "delightful_metrics.enable_capture_envelope": True,
         "delightful_metrics.enable_common_tags": True,
         "delightful_metrics.minimetrics_sample_rate": 1.0,
-        "delightful_metrics.allow_all_incr": True,
-        "delightful_metrics.allow_all_timing": True,
-        "delightful_metrics.allow_all_gauge": True,
         "delightful_metrics.enable_code_locations": True,
     }
 )

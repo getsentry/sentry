@@ -5,7 +5,7 @@ Hi there,
 
     To continue using your custom integration, please fix your webhook: <a href={{webhook_url}}>{{webhook_url}}</a> and re-enable the webhook subscriptions <a href={{integration_link}}>here</a>.
 
-If you need additional assistance, you can reach out to our support team at <a href=https://help.sentry.io/>help.sentry.io</a>.
+If you need additional assistance, you can reach out to our support team via <a href=https://sentry.zendesk.com/hc/en-us>our Help Center</a>.
 
 Happy fixing,
 Sentry

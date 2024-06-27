@@ -1,31 +1,43 @@
 import type {CSSProperties, MouseEvent} from 'react';
-import {Fragment, isValidElement, memo} from 'react';
+import {isValidElement, memo, useCallback} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
-import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {Flex} from 'sentry/components/container/flex';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import Link from 'sentry/components/links/link';
 import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
+import {showPlayerTime} from 'sentry/components/replays/utils';
+import Timeline from 'sentry/components/timeline';
+import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {getShortEventId} from 'sentry/utils/events';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
+import {getReplayDiffOffsetsFromFrame} from 'sentry/utils/replays/getDiffTimestamps';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
-import type {ClickFrame, ErrorFrame, ReplayFrame} from 'sentry/utils/replays/types';
-import {isClickFrame, isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
-import {useLocation} from 'sentry/utils/useLocation';
+import type ReplayReader from 'sentry/utils/replays/replayReader';
+import type {
+  ErrorFrame,
+  FeedbackFrame,
+  HydrationErrorFrame,
+  ReplayFrame,
+} from 'sentry/utils/replays/types';
+import {
+  isBreadcrumbFrame,
+  isErrorFrame,
+  isFeedbackFrame,
+  isHydrationErrorFrame,
+} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
-import TraceGrid from 'sentry/views/replays/detail/perfTable/traceGrid';
-import type {ReplayTraceRow} from 'sentry/views/replays/detail/perfTable/useReplayPerfData';
 import TimestampButton from 'sentry/views/replays/detail/timestampButton';
 
 type MouseCallback = (frame: ReplayFrame, e: React.MouseEvent<HTMLElement>) => void;
@@ -33,10 +45,8 @@ type MouseCallback = (frame: ReplayFrame, e: React.MouseEvent<HTMLElement>) => v
 const FRAMES_WITH_BUTTONS = ['replay.hydrate-error'];
 
 interface Props {
-  extraction: Extraction | undefined;
   frame: ReplayFrame;
   onClick: null | MouseCallback;
-  onDimensionChange: () => void;
   onInspectorExpanded: (
     path: string,
     expandedState: Record<string, boolean>,
@@ -45,9 +55,9 @@ interface Props {
   onMouseEnter: MouseCallback;
   onMouseLeave: MouseCallback;
   startTimestampMs: number;
-  traces: ReplayTraceRow | undefined;
   className?: string;
   expandPaths?: string[];
+  extraction?: Extraction;
   style?: CSSProperties;
 }
 
@@ -57,22 +67,93 @@ function BreadcrumbItem({
   frame,
   expandPaths,
   onClick,
-  onDimensionChange,
   onInspectorExpanded,
   onMouseEnter,
   onMouseLeave,
   startTimestampMs,
   style,
-  traces,
 }: Props) {
   const {color, description, title, icon} = getFrameDetails(frame);
   const {replay} = useReplayContext();
 
   const forceSpan = 'category' in frame && FRAMES_WITH_BUTTONS.includes(frame.category);
 
+  const renderDescription = useCallback(() => {
+    return typeof description === 'string' ||
+      (description !== undefined && isValidElement(description)) ? (
+      <Description title={description} showOnlyOnOverflow isHoverable>
+        {description}
+      </Description>
+    ) : (
+      <InspectorWrapper>
+        <ObjectInspector
+          data={description}
+          expandPaths={expandPaths}
+          onExpand={onInspectorExpanded}
+          theme={{
+            TREENODE_FONT_SIZE: '0.7rem',
+            ARROW_FONT_SIZE: '0.5rem',
+          }}
+        />
+      </InspectorWrapper>
+    );
+  }, [description, expandPaths, onInspectorExpanded]);
+
+  const renderComparisonButton = useCallback(() => {
+    return isBreadcrumbFrame(frame) && isHydrationErrorFrame(frame) ? (
+      <CrumbHydrationButton replay={replay} frame={frame} />
+    ) : null;
+  }, [frame, replay]);
+
+  const renderCodeSnippet = useCallback(() => {
+    return extraction?.html ? (
+      <CodeContainer>
+        <CodeSnippet language="html" hideCopyButton>
+          {beautify.html(extraction?.html, {indent_size: 2})}
+        </CodeSnippet>
+      </CodeContainer>
+    ) : null;
+  }, [extraction?.html]);
+
+  const renderIssueLink = useCallback(() => {
+    return isErrorFrame(frame) || isFeedbackFrame(frame) ? (
+      <CrumbErrorIssue frame={frame} />
+    ) : null;
+  }, [frame]);
+
+  const hasNewTimelineUI = useHasNewTimelineUI();
+  const timeString = new Date(frame.timestampMs).toISOString();
+  const startTimeString = new Date(startTimestampMs).toISOString();
+  if (hasNewTimelineUI) {
+    return (
+      <StyledTimelineItem
+        icon={icon}
+        title={title}
+        colorConfig={{primary: color, secondary: color}}
+        timeString={timeString}
+        renderTimestamp={(_ts, _sts) =>
+          showPlayerTime(frame.timestampMs, startTimestampMs, false)
+        }
+        startTimeString={startTimeString}
+        data-is-error-frame={isErrorFrame(frame)}
+        style={style}
+        className={className}
+        onClick={e => onClick?.(frame, e)}
+        onMouseEnter={e => onMouseEnter(frame, e)}
+        onMouseLeave={e => onMouseLeave(frame, e)}
+      >
+        <ErrorBoundary mini>
+          {renderDescription()}
+          {renderComparisonButton()}
+          {renderCodeSnippet()}
+          {renderIssueLink()}
+        </ErrorBoundary>
+      </StyledTimelineItem>
+    );
+  }
   return (
     <CrumbItem
-      isErrorFrame={isErrorFrame(frame)}
+      data-is-error-frame={isErrorFrame(frame)}
       as={onClick && !forceSpan ? 'button' : 'span'}
       onClick={e => onClick?.(frame, e)}
       onMouseEnter={e => onMouseEnter(frame, e)}
@@ -83,179 +164,93 @@ function BreadcrumbItem({
       <IconWrapper color={color} hasOccurred>
         {icon}
       </IconWrapper>
-      <CrumbDetails>
-        <TitleContainer>
-          {isErrorFrame(frame) ? (
-            <CrumbErrorTitle frame={frame} />
-          ) : (
-            <Title>{title}</Title>
-          )}
-          {onClick ? (
-            <TimestampButton
-              startTimestampMs={startTimestampMs}
-              timestampMs={frame.timestampMs}
-            />
-          ) : null}
-        </TitleContainer>
-
-        {typeof description === 'string' ||
-        (description !== undefined && isValidElement(description)) ? (
-          <Description
-            title={
-              <HTMLTree
-                description={description.toString()}
-                frame={frame as ClickFrame}
-              />
-            }
-            showOnlyOnOverflow
-            isHoverable
-          >
-            <HTMLTree description={description.toString()} frame={frame as ClickFrame} />
-          </Description>
-        ) : (
-          <InspectorWrapper>
-            <ObjectInspector
-              data={description}
-              expandPaths={expandPaths}
-              onExpand={onInspectorExpanded}
-              theme={{
-                TREENODE_FONT_SIZE: '0.7rem',
-                ARROW_FONT_SIZE: '0.5rem',
-              }}
-            />
-          </InspectorWrapper>
-        )}
-
-        {'data' in frame && frame.data && 'mutations' in frame.data ? (
-          <div>
-            <OpenReplayComparisonButton
-              replay={replay}
-              leftTimestamp={frame.offsetMs}
-              rightTimestamp={
-                (frame.data.mutations.next?.timestamp ?? 0) -
-                (replay?.getReplay().started_at.getTime() ?? 0)
-              }
-            />
-          </div>
-        ) : null}
-
-        {extraction?.html ? (
-          <CodeContainer>
-            <CodeSnippet language="html" hideCopyButton>
-              {beautify.html(extraction?.html, {indent_size: 2})}
-            </CodeSnippet>
-          </CodeContainer>
-        ) : null}
-
-        {traces?.flattenedTraces.map((flatTrace, i) => (
-          <TraceGrid
-            key={i}
-            flattenedTrace={flatTrace}
-            onDimensionChange={onDimensionChange}
-          />
-        ))}
-
-        {isErrorFrame(frame) || isFeedbackFrame(frame) ? (
-          <CrumbErrorIssue frame={frame as ErrorFrame} />
-        ) : null}
-      </CrumbDetails>
+      <ErrorBoundary mini>
+        <CrumbDetails>
+          <Flex column>
+            <TitleContainer>
+              {<Title>{title}</Title>}
+              {onClick ? (
+                <TimestampButton
+                  startTimestampMs={startTimestampMs}
+                  timestampMs={frame.timestampMs}
+                />
+              ) : null}
+            </TitleContainer>
+            {renderDescription()}
+          </Flex>
+          {renderComparisonButton()}
+          {renderCodeSnippet()}
+          {renderIssueLink()}
+        </CrumbDetails>
+      </ErrorBoundary>
     </CrumbItem>
   );
 }
 
-function CrumbErrorTitle({frame}: {frame: ErrorFrame}) {
-  const organization = useOrganization();
-  const {eventId} = useReplayGroupContext();
-
-  if (eventId === frame.data.eventId) {
-    return <Title>Error: This Event</Title>;
-  }
+function CrumbHydrationButton({
+  replay,
+  frame,
+}: {
+  frame: HydrationErrorFrame;
+  replay: ReplayReader | null;
+}) {
+  const {leftOffsetMs, rightOffsetMs} = getReplayDiffOffsetsFromFrame(replay, frame);
 
   return (
-    <Title>
-      Error:{' '}
-      <Link
-        to={`/organizations/${organization.slug}/issues/${frame.data.groupId}/events/${frame.data.eventId}/#replay`}
+    <div>
+      <OpenReplayComparisonButton
+        replay={replay}
+        leftOffsetMs={leftOffsetMs}
+        rightOffsetMs={rightOffsetMs}
+        size="xs"
       >
-        {getShortEventId(frame.data.eventId)}
-      </Link>
-    </Title>
+        {t('Open Hydration Diff')}
+      </OpenReplayComparisonButton>
+    </div>
   );
 }
 
-function CrumbErrorIssue({frame}: {frame: ErrorFrame}) {
+function CrumbErrorIssue({frame}: {frame: FeedbackFrame | ErrorFrame}) {
   const organization = useOrganization();
   const project = useProjectFromSlug({organization, projectSlug: frame.data.projectSlug});
   const {groupId} = useReplayGroupContext();
 
-  const projectBadge = project ? (
-    <ProjectBadge project={project} avatarSize={16} disableLink displayName={false} />
-  ) : null;
+  const projectAvatar = project ? <ProjectAvatar project={project} size={16} /> : null;
 
-  if (`${frame.data.groupId}` === groupId) {
+  if (String(frame.data.groupId) === groupId) {
     return (
       <CrumbIssueWrapper>
-        {projectBadge}
+        {projectAvatar}
         {frame.data.groupShortId}
       </CrumbIssueWrapper>
     );
   }
 
-  const url = isFeedbackFrame(frame as ReplayFrame)
-    ? `/organizations/${organization.slug}/feedback/?feedbackSlug=${frame.data.projectSlug}%3A${frame.data.groupId}/`
-    : `/organizations/${organization.slug}/issues/${frame.data.groupId}/`;
-
   return (
     <CrumbIssueWrapper>
-      {projectBadge}
-      <Link to={url}>{frame.data.groupShortId}</Link>
+      {projectAvatar}
+      <Link
+        to={
+          isFeedbackFrame(frame)
+            ? {
+                pathname: `/organizations/${organization.slug}/feedback/`,
+                query: {feedbackSlug: `${frame.data.projectSlug}:${frame.data.groupId}`},
+              }
+            : `/organizations/${organization.slug}/issues/${frame.data.groupId}/`
+        }
+      >
+        {frame.data.groupShortId}
+      </Link>
     </CrumbIssueWrapper>
-  );
-}
-
-function HTMLTree({description, frame}: {description: string; frame: ClickFrame}) {
-  const location = useLocation();
-  const organization = useOrganization();
-
-  const componentName =
-    isClickFrame(frame) && frame.data.node?.attributes['data-sentry-component'];
-  const lastComponentIndex =
-    description.lastIndexOf('>') === -1 ? 0 : description.lastIndexOf('>') + 2;
-
-  return (
-    <Fragment>
-      {componentName ? (
-        <Fragment>
-          <div style={{display: 'inline'}}>
-            {description.substring(0, lastComponentIndex)}
-          </div>
-          <Tooltip title={t('Search by this component')} isHoverable>
-            <Link
-              to={{
-                pathname: normalizeUrl(`/organizations/${organization.slug}/replays/`),
-                query: {
-                  ...location.query,
-                  query: `click.component_name:${componentName}`,
-                },
-              }}
-            >
-              {componentName}
-            </Link>
-          </Tooltip>
-        </Fragment>
-      ) : (
-        description
-      )}
-    </Fragment>
   );
 }
 
 const CrumbIssueWrapper = styled('div')`
   display: flex;
   align-items: center;
+  gap: ${space(0.5)};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
-  margin-top: ${space(0.25)};
 `;
 
 const InspectorWrapper = styled('div')`
@@ -266,6 +261,7 @@ const CrumbDetails = styled('div')`
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  gap: ${space(0.5)};
 `;
 
 const TitleContainer = styled('div')`
@@ -279,7 +275,7 @@ const Title = styled('span')`
   ${p => p.theme.overflowEllipsis};
   text-transform: capitalize;
   font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.gray400};
   line-height: ${p => p.theme.text.lineHeightBody};
 `;
@@ -292,6 +288,31 @@ const Description = styled(Tooltip)`
   color: ${p => p.theme.subText};
 `;
 
+const StyledTimelineItem = styled(Timeline.Item)`
+  width: 100%;
+  position: relative;
+  padding: ${space(0.5)} ${space(0.75)};
+  margin: 0;
+  &:hover {
+    background: ${p => p.theme.translucentSurface200};
+  }
+  cursor: pointer;
+  /* vertical line connecting items */
+  &:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 16.5px;
+    width: 1px;
+    top: -2px;
+    bottom: -9px;
+    background: ${p => p.theme.border};
+    z-index: 0;
+  }
+  &:first-child::before {
+    top: 4px;
+  }
+`;
+
 const CrumbItem = styled(PanelItem)<{isErrorFrame?: boolean}>`
   display: grid;
   grid-template-columns: max-content auto;
@@ -300,16 +321,17 @@ const CrumbItem = styled(PanelItem)<{isErrorFrame?: boolean}>`
   width: 100%;
 
   font-size: ${p => p.theme.fontSizeMedium};
-  background: ${p => (p.isErrorFrame ? `${p.theme.red100}` : `transparent`)};
+  background: transparent;
+  [data-is-error-frame='true'] {
+    background: ${p => p.theme.red100};
+  }
   padding: ${space(1)};
   text-align: left;
   border: none;
   position: relative;
 
-  border-radius: ${p => p.theme.borderRadius};
-
   &:hover {
-    background-color: ${p => p.theme.surface200};
+    background: ${p => p.theme.surface200};
   }
 
   /* Draw a vertical line behind the breadcrumb icon. The line connects each row together, but is truncated for the first and last items */
@@ -319,26 +341,26 @@ const CrumbItem = styled(PanelItem)<{isErrorFrame?: boolean}>`
     left: 19.5px;
     width: 1px;
     background: ${p => p.theme.gray200};
-    height: 100%;
+    top: -1px;
+    bottom: -1px;
   }
 
   &:first-of-type::after {
     top: ${space(1)};
-    bottom: 0;
+    bottom: -1px;
   }
 
   &:last-of-type::after {
-    top: 0;
-    height: ${space(1)};
+    top: -1px;
+    bottom: calc(100% - ${space(1)});
   }
 
   &:only-of-type::after {
-    height: 0;
+    display: none;
   }
 `;
 
 const CodeContainer = styled('div')`
-  margin-top: ${space(1)};
   max-height: 400px;
   max-width: 100%;
   overflow: auto;

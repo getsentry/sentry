@@ -56,6 +56,21 @@ urlpatterns = [
         RegionEndpoint.as_view(),
         name="region-endpoint",
     ),
+    re_path(
+        r"^organizations/(?P<organization_id_or_slug>[^\/]+)/control/$",
+        ControlEndpoint.as_view(),
+        name="control-endpoint-id-or-slug",
+    ),
+    re_path(
+        r"^organizations/(?P<organization_id_or_slug>[^\/]+)/region/$",
+        RegionEndpoint.as_view(),
+        name="region-endpoint-id-or-slug",
+    ),
+    re_path(
+        r"^api/embed/error-page/$",
+        RegionEndpoint.as_view(),
+        name="sentry-error-page-embed",
+    ),
 ] + api_urls.urlpatterns
 
 
@@ -113,8 +128,8 @@ def verify_file_body(file_body, headers):
 
 def provision_middleware():
     middleware = list(settings.MIDDLEWARE)
-    if "sentry.middleware.api_gateway.ApiGatewayMiddleware" not in middleware:
-        middleware = ["sentry.middleware.api_gateway.ApiGatewayMiddleware"] + middleware
+    if "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware" not in middleware:
+        middleware = ["sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware"] + middleware
     return middleware
 
 

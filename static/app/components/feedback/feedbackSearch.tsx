@@ -1,12 +1,12 @@
 import type {CSSProperties} from 'react';
 import {useCallback} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection, TagValue} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {isAggregateField} from 'sentry/utils/discover/fields';
 import {
   FEEDBACK_FIELDS,
@@ -70,7 +70,7 @@ interface Props {
 }
 
 export default function FeedbackSearch({className, style}: Props) {
-  const projectIdStrings = usePageFilters().selection.projects?.map(String);
+  const projectIds = usePageFilters().selection.projects;
   const {pathname, query} = useLocation();
   const organization = useOrganization();
   const tags = useTags();
@@ -89,7 +89,7 @@ export default function FeedbackSearch({className, style}: Props) {
         orgSlug: organization.slug,
         tagKey: tag.key,
         search: searchQuery,
-        projectIds: projectIdStrings,
+        projectIds: projectIds?.map(String),
       }).then(
         tagValues => (tagValues as TagValue[]).map(({value}) => value),
         () => {
@@ -97,13 +97,14 @@ export default function FeedbackSearch({className, style}: Props) {
         }
       );
     },
-    [api, organization.slug, projectIdStrings]
+    [api, organization.slug, projectIds]
   );
 
   return (
     <SearchContainer className={className} style={style}>
       <SmartSearchBar
         hasRecentSearches
+        projectIds={projectIds}
         placeholder={t('Search Feedback')}
         organization={organization}
         onGetTagValues={getTagValues}

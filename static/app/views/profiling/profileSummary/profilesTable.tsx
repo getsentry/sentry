@@ -11,30 +11,60 @@ import {formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+
+const ALL_FIELDS = [
+  'profile.id',
+  'timestamp',
+  'transaction.duration',
+  'release',
+  'environment',
+  'trace',
+  'trace.transaction',
+  'id',
+] as const;
+
+type FieldType = (typeof ALL_FIELDS)[number];
 
 const FIELDS = [
   'profile.id',
   'timestamp',
-  'profile.duration',
+  'transaction.duration',
   'release',
   'environment',
-  'os.name',
-  'os.version',
   'trace',
   'trace.transaction',
 ] as const;
 
-type FieldType = (typeof FIELDS)[number];
-
 export function ProfilesTable() {
   const location = useLocation();
 
+  const organization = useOrganization();
+
+  const useTransactions = organization.features.includes('profiling-using-transactions');
+
+  const queryFields = useMemo(() => {
+    const transactionIdColumn = useTransactions
+      ? ('id' as const)
+      : ('trace.transaction' as const);
+
+    return [
+      'profile.id',
+      'timestamp',
+      'transaction.duration',
+      'release',
+      'environment',
+      'trace',
+      transactionIdColumn,
+    ] as const;
+  }, [useTransactions]);
+
   const sort = useMemo(() => {
-    return formatSort<FieldType>(decodeScalar(location.query.sort), FIELDS, {
+    return formatSort<FieldType>(decodeScalar(location.query.sort), queryFields, {
       key: 'timestamp',
       order: 'desc',
     });
-  }, [location.query.sort]);
+  }, [queryFields, location.query.sort]);
 
   const rawQuery = useMemo(() => {
     return decodeScalar(location.query.query, '');
@@ -58,7 +88,7 @@ export function ProfilesTable() {
 
   const profiles = useProfileEvents<FieldType>({
     cursor: profilesCursor,
-    fields: FIELDS,
+    fields: queryFields,
     query,
     sort,
     limit: 20,
@@ -66,15 +96,33 @@ export function ProfilesTable() {
   });
 
   const eventsTableProps = useMemo(() => {
-    return {columns: FIELDS.slice(), sortableColumns: new Set(FIELDS)};
+    return {columns: FIELDS, sortableColumns: new Set(FIELDS)};
   }, []);
+
+  // Transform the response so that the data is compatible with the renderer
+  // regardless if we're using the transactions or profiles table
+  const data = useMemo(() => {
+    if (!profiles.data) {
+      return null;
+    }
+    const _data = {
+      data: profiles.data.data.map(row => {
+        return {
+          ...row,
+          'trace.transaction': useTransactions ? row.id : row['trace.transaction'],
+        };
+      }),
+      meta: profiles.data.meta,
+    };
+    return _data;
+  }, [profiles.data, useTransactions]);
 
   return (
     <ProfileEvents>
       <ProfileEventsTableContainer>
         <ProfileEventsTable
           sort={sort}
-          data={profiles.status === 'success' ? profiles.data : null}
+          data={profiles.status === 'success' ? data : null}
           error={profiles.status === 'error' ? t('Unable to load profiles') : null}
           isLoading={profiles.status === 'loading'}
           {...eventsTableProps}

@@ -17,7 +17,7 @@ from sentry.models.useremail import UserEmail
 from sentry.services.hybrid_cloud.organization.service import organization_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.base import instrumented_task, retry
 from sentry.types.region import RegionMappingNotFound
@@ -149,9 +149,7 @@ class OrganizationComplianceTask(abc.ABC):
         org_members = OrganizationMember.objects.filter(
             organization_id=org_id, user_id__isnull=False
         )
-        rpc_users = user_service.get_many(
-            filter=dict(user_ids=[member.user_id for member in org_members])
-        )
+        rpc_users = user_service.get_many_by_id(ids=[member.user_id for member in org_members])
         rpc_users_dict = {user.id: user for user in rpc_users}
         for member in org_members:
             user = rpc_users_dict.get(member.user_id, None)

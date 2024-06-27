@@ -3,7 +3,7 @@ import {screen} from 'sentry-test/reactTestingLibrary';
 
 import docs from './ionic';
 
-describe('GettingStartedWithSpring', function () {
+describe('getting started with ionic', function () {
   it('renders docs correctly', function () {
     renderWithOnboardingLayout(docs);
 

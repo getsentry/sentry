@@ -17,7 +17,6 @@ describe('getIssueFieldRenderer', function () {
     context = initializeOrg({
       organization,
       router: {},
-      project: ProjectFixture(),
       projects: [ProjectFixture()],
     });
     organization = context.organization;

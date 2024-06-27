@@ -155,3 +155,12 @@ def test_cache(ns):
         ns.get("node_4")
         ns.get("node_4")
         assert mock_read_row.call_count == 2
+
+
+def test_compression() -> None:
+    ns = BigtableNodeStorage(compression="zstd")
+    assert ns.store.compression == "zstd"
+    ns = BigtableNodeStorage(compression=True)
+    assert ns.store.compression == "zlib"
+    ns = BigtableNodeStorage(compression=False)
+    assert ns.store.compression is None

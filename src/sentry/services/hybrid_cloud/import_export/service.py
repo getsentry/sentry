@@ -9,6 +9,7 @@ from collections.abc import Callable
 from django.db.models.base import Model
 
 from sentry.backup.helpers import ImportFlags
+from sentry.hybridcloud.rpc.service import RpcService, rpc_method
 from sentry.services.hybrid_cloud.import_export.model import (
     RpcExportResult,
     RpcExportScope,
@@ -18,8 +19,7 @@ from sentry.services.hybrid_cloud.import_export.model import (
     RpcImportScope,
     RpcPrimaryKeyMap,
 )
-from sentry.services.hybrid_cloud.rpc import RpcService, rpc_method
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 DEFAULT_IMPORT_FLAGS = RpcImportFlags.into_rpc(ImportFlags())
 
@@ -60,6 +60,7 @@ class ImportExportService(RpcService):
         filter_by: list[RpcFilter],
         pk_map: RpcPrimaryKeyMap,
         json_data: str = "",
+        min_ordinal: int,
     ) -> RpcImportResult:
         """
         Import models of a certain kind from JSON source. Do not call this method directly - use

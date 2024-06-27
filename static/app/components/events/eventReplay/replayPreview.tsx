@@ -4,11 +4,11 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
 import type {LinkButton} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import {REPLAY_LOADING_HEIGHT} from 'sentry/components/events/eventReplay/constants';
 import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticReplayPreview';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Flex} from 'sentry/components/profiling/flex';
 import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
 import {IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -93,7 +93,7 @@ function ReplayPreview({
 
   if (fetching || !replayRecord || !replay) {
     return (
-      <StyledNegativeSpaceContainer testId="replay-loading-placeholder">
+      <StyledNegativeSpaceContainer data-test-id="replay-loading-placeholder">
         <LoadingIndicator />
       </StyledNegativeSpaceContainer>
     );

@@ -28,14 +28,14 @@ def archive_event(project_id: int, replay_id: str) -> str:
     )
 
 
-def viewed_event(project_id: int, replay_id: str, viewed_by_id: int) -> str:
+def viewed_event(project_id: int, replay_id: str, viewed_by_id: int, timestamp: float) -> str:
     """Create a "replay_viewed" message."""
     return _replay_event(
         project_id=project_id,
         replay_id=replay_id,
         event={
             "type": "replay_viewed",
-            "timestamp": time.time(),
+            "timestamp": timestamp,
             "viewed_by_id": viewed_by_id,
         },
     )

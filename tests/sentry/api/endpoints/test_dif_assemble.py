@@ -10,7 +10,7 @@ from sentry.models.files.file import File
 from sentry.models.files.fileblob import FileBlob
 from sentry.models.files.fileblobindex import FileBlobIndex
 from sentry.models.files.fileblobowner import FileBlobOwner
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.assemble import (
     AssembleTask,
     ChunkFileState,

@@ -2,17 +2,14 @@ from __future__ import annotations
 
 import logging
 from datetime import timedelta
-from typing import TYPE_CHECKING
 
+import orjson
 import sentry_sdk
 from django.utils import timezone
 
 from sentry import features
-from sentry.models.environment import Environment
-from sentry.search.events.types import ParamsType
 from sentry.snuba.dataset import Dataset, EntityKey
 from sentry.snuba.entity_subscription import (
-    BaseEntitySubscription,
     get_entity_key_from_query_builder,
     get_entity_key_from_request,
     get_entity_key_from_snuba_query,
@@ -20,12 +17,10 @@ from sentry.snuba.entity_subscription import (
     get_entity_subscription_from_snuba_query,
 )
 from sentry.snuba.models import QuerySubscription, SnubaQuery
+from sentry.snuba.utils import build_query_strings
 from sentry.tasks.base import instrumented_task
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 from sentry.utils.snuba import SNUBA_INFO, SnubaError, _snuba_pool
-
-if TYPE_CHECKING:
-    from sentry.search.events.builder import QueryBuilder
 
 logger = logging.getLogger(__name__)
 
@@ -194,16 +189,6 @@ def delete_subscription_from_snuba(query_subscription_id, **kwargs):
         subscription.update(subscription_id=None)
 
 
-def build_query_builder(
-    entity_subscription: BaseEntitySubscription,
-    query: str,
-    project_ids: list[int],
-    environment: Environment | None,
-    params: ParamsType | None = None,
-) -> QueryBuilder:
-    return entity_subscription.build_query_builder(query, project_ids, environment, params)
-
-
 def _create_in_snuba(subscription: QuerySubscription) -> str:
     with sentry_sdk.start_span(op="snuba.tasks", description="create_in_snuba") as span:
         span.set_tag(
@@ -217,10 +202,9 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
             snuba_query,
             subscription.project.organization_id,
         )
-        # TODO: determine whether concatenating query_extra is proper
-        snql_query = build_query_builder(
-            entity_subscription=entity_subscription,
-            query=f'{snuba_query.query}{f" and {subscription.query_extra}" if subscription.query_extra else ""}',
+        query_string = build_query_strings(subscription, snuba_query).query_string
+        snql_query = entity_subscription.build_query_builder(
+            query=query_string,
             project_ids=[subscription.project_id],
             environment=snuba_query.environment,
             params={
@@ -250,15 +234,18 @@ def _create_snql_in_snuba(subscription, snuba_query, snql_query, entity_subscrip
         )
 
     entity_key = get_entity_key_from_request(snql_query)
+
+    post_body: str | bytes = orjson.dumps(body)
     response = _snuba_pool.urlopen(
         "POST",
         f"/{snuba_query.dataset}/{entity_key.value}/subscriptions",
-        body=json.dumps(body),
+        body=post_body,
     )
     if response.status != 202:
         metrics.incr("snuba.snql.subscription.http.error", tags={"dataset": snuba_query.dataset})
         raise SnubaError("HTTP %s response from Snuba!" % response.status)
-    return json.loads(response.data)["subscription_id"]
+
+    return orjson.loads(response.data)["subscription_id"]
 
 
 def _delete_from_snuba(dataset: Dataset, subscription_id: str, entity_key: EntityKey) -> None:

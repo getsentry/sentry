@@ -1,7 +1,5 @@
 __all__ = (
-    "check_signing_secret",
     "get_channel_id",
-    "get_channel_id_with_timeout",
     "get_slack_data_by_user",
     "get_users",
     "is_valid_role",
@@ -20,13 +18,8 @@ import logging
 
 logger = logging.getLogger("sentry.integrations.slack")
 
-from .auth import check_signing_secret, is_valid_role, set_signing_secret
-from .channel import (
-    get_channel_id,
-    get_channel_id_with_timeout,
-    strip_channel_name,
-    validate_channel_id,
-)
+from .auth import is_valid_role, set_signing_secret
+from .channel import get_channel_id, strip_channel_name, validate_channel_id
 from .notifications import send_incident_alert_notification, send_slack_response
 from .rule_status import RedisRuleStatus
 from .users import get_slack_data_by_user, get_users

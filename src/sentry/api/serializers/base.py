@@ -7,8 +7,6 @@ from typing import Any, TypeVar
 import sentry_sdk
 from django.contrib.auth.models import AnonymousUser
 
-from sentry.utils.json import JSONData
-
 logger = logging.getLogger(__name__)
 
 K = TypeVar("K")
@@ -105,7 +103,7 @@ class Serializer:
 
     def _serialize(
         self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
-    ) -> Mapping[str, JSONData] | None:
+    ) -> Mapping[str, Any] | None:
         try:
             return self.serialize(obj, attrs, user, **kwargs)
         except Exception:
@@ -114,7 +112,7 @@ class Serializer:
 
     def serialize(
         self, obj: Any, attrs: Mapping[Any, Any], user: Any, **kwargs: Any
-    ) -> Mapping[str, JSONData]:
+    ) -> Mapping[str, Any]:
         """
         Convert an arbitrary python object `obj` to an object that only contains primitives.
 

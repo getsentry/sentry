@@ -82,9 +82,7 @@ class ArtifactBundleFilesSerializer(Serializer):
 
     def serialize(self, obj, attrs, user):
         return {
-            "id": base64.urlsafe_b64encode(bytes(attrs["file_path"].encode("utf-8"))).decode(
-                "utf-8"
-            ),
+            "id": base64.urlsafe_b64encode(attrs["file_path"].encode()).decode(),
             # In case the file type string was invalid, we return the sentinel value INVALID_SOURCE_FILE_TYPE.
             "fileType": attrs["file_type"].value
             if attrs["file_type"] is not None

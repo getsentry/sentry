@@ -4,18 +4,13 @@ import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {IconPause, IconPlay, IconRefresh} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
-function ReplayPlayPauseButton(
-  props: BaseButtonProps & {
-    iconSize?: React.ComponentProps<typeof IconPlay>['size'];
-  }
-) {
+function ReplayPlayPauseButton(props: BaseButtonProps) {
   const {isFinished, isPlaying, restart, togglePlayPause} = useReplayContext();
-  const iconSize = props.iconSize ?? 'md';
 
   return isFinished ? (
     <Button
       title={t('Restart Replay')}
-      icon={<IconRefresh size={iconSize} />}
+      icon={<IconRefresh />}
       onClick={restart}
       aria-label={t('Restart Replay')}
       priority="primary"
@@ -24,7 +19,7 @@ function ReplayPlayPauseButton(
   ) : (
     <Button
       title={isPlaying ? t('Pause') : t('Play')}
-      icon={isPlaying ? <IconPause size={iconSize} /> : <IconPlay size={iconSize} />}
+      icon={isPlaying ? <IconPause /> : <IconPlay />}
       onClick={() => togglePlayPause(!isPlaying)}
       aria-label={isPlaying ? t('Pause') : t('Play')}
       priority="primary"

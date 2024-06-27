@@ -11,7 +11,8 @@ from django.db.models.signals import pre_save
 from sentry_relay.exceptions import RelayError
 from sentry_relay.processing import parse_release
 
-from sentry.db.models import ArrayField, BaseQuerySet
+from sentry.db.models import ArrayField
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.utils.numbers import validate_bigint
@@ -76,7 +77,7 @@ class ReleaseQuerySet(BaseQuerySet):
                 )
             )
 
-        if build.isnumeric() and validate_bigint(int(build)):
+        if build.isdecimal() and validate_bigint(int(build)):
             qs = getattr(qs, query_func)(**{f"build_number__{operator}": int(build)})
         else:
             if not build or build.endswith("*"):

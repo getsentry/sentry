@@ -298,20 +298,30 @@ function Content({
   const platformIcon = stackTracePlatformIcon(platform, data.frames ?? []);
 
   return (
-    <Wrapper className={wrapperClassName} data-test-id="stack-trace-content">
+    <Wrapper>
       {!hideIcon && <StacktracePlatformIcon platform={platformIcon} />}
-      <GuideAnchor target="stack_trace">
-        <StyledList data-test-id="frames">
-          {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
-        </StyledList>
-      </GuideAnchor>
+      <StackTraceContentPanel
+        className={wrapperClassName}
+        data-test-id="stack-trace-content"
+      >
+        <GuideAnchor target="stack_trace">
+          <StyledList data-test-id="frames">
+            {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
+          </StyledList>
+        </GuideAnchor>
+      </StackTraceContentPanel>
     </Wrapper>
   );
 }
 
-const Wrapper = styled(Panel)`
+const Wrapper = styled('div')`
+  position: relative;
+`;
+
+export const StackTraceContentPanel = styled(Panel)`
   position: relative;
   border-top-left-radius: 0;
+  overflow: hidden;
 `;
 
 const StyledList = styled('ul')`

@@ -24,8 +24,9 @@ import {TagsTable} from 'sentry/components/tagsTable';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
 import type {Event, EventTag} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type EventView from 'sentry/utils/discover/eventView';
 import {formatTagKey} from 'sentry/utils/discover/fields';
@@ -109,12 +110,6 @@ function EventDetailsContent(props: Props) {
     }
 
     const {organization, location, eventView, isHomepage} = props;
-
-    // metrics
-    trackAnalytics('discover_v2.event_details', {
-      event_type: event.type,
-      organization,
-    });
 
     const transactionName = event.tags.find(tag => tag.key === 'transaction')?.value;
     const transactionSummaryTarget =
@@ -310,6 +305,7 @@ function EventDetailsContent(props: Props) {
                 event={event}
                 location={location}
                 orgSlug={organization.slug}
+                skipLight={false}
               >
                 {results => render(results, metaResults)}
               </QuickTraceQuery>

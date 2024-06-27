@@ -31,6 +31,7 @@ import type {
   TraceFullDetailed,
   TraceMeta,
 } from 'sentry/utils/performance/quickTrace/types';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   TraceDetailBody,
   TraceViewContainer,
@@ -62,7 +63,7 @@ type Props = Pick<RouteComponentProps<{}, {}>, 'location'> & {
   traceEventView: EventView;
   traceSlug: string;
   traceType: TraceType;
-  traces: TraceFullDetailed[];
+  traces: TraceTree.Transaction[];
   filteredEventIds?: Set<string>;
   handleLimitChange?: (newLimit: number) => void;
   orphanErrors?: TraceError[];
@@ -152,11 +153,13 @@ function NewTraceView({
   ...props
 }: Props) {
   const [isTransactionBarScrolledTo, setIsTransactionBarScrolledTo] = useState(false);
-  const sentryTransaction = Sentry.getActiveTransaction();
-  const sentrySpan = sentryTransaction?.startChild({
+
+  const sentrySpan = Sentry.startInactiveSpan({
     op: 'trace.render',
-    description: 'trace-view-content',
+    name: 'trace-view-content',
+    onlyIfParent: true,
   });
+
   const hasOrphanErrors = orphanErrors && orphanErrors.length > 0;
   const onlyOrphanErrors = hasOrphanErrors && (!traces || traces.length === 0);
   useEffect(() => {

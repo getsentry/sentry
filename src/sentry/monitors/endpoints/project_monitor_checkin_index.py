@@ -27,9 +27,9 @@ class ProjectMonitorCheckInIndexEndpoint(ProjectMonitorEndpoint, MonitorCheckInM
     @extend_schema(
         operation_id="Retrieve Check-Ins for a Monitor by Project",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.PROJECT_SLUG,
-            MonitorParams.MONITOR_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.PROJECT_ID_OR_SLUG,
+            MonitorParams.MONITOR_ID_OR_SLUG,
         ],
         responses={
             200: inline_sentry_response_serializer(

@@ -1,6 +1,7 @@
 import hashlib
 import hmac
 
+import orjson
 import responses
 from rest_framework.response import Response
 
@@ -13,11 +14,10 @@ from fixtures.vercel import (
 )
 from sentry import VERSION
 from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from sentry.utils import json
 from sentry.utils.http import absolute_uri
 
 
@@ -111,8 +111,8 @@ class VercelReleasesTest(APITestCase):
 
             assert len(responses.calls) == 2
             release_request = responses.calls[0].request
-            release_body = json.loads(release_request.body)
-            set_refs_body = json.loads(responses.calls[1].request.body)
+            release_body = orjson.loads(release_request.body)
+            set_refs_body = orjson.loads(responses.calls[1].request.body)
             assert release_body == {
                 "projects": [self.project.slug],
                 "version": "7488658dfcf24d9b735e015992b316e2a8340d93",
@@ -231,9 +231,9 @@ class VercelReleasesTest(APITestCase):
     @responses.activate
     def test_set_refs_failed(self):
         def request_callback(request):
-            payload = json.loads(request.body)
+            payload = orjson.loads(request.body)
             status_code = 400 if payload.get("refs") else 200
-            return (status_code, {}, json.dumps({}))
+            return status_code, {}, orjson.dumps({}).decode()
 
         responses.add_callback(
             responses.POST,

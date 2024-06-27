@@ -48,6 +48,7 @@ const notSearchable = [
   'sdk.networkRequestHasHeaders',
   'sdk.networkResponseHasHeaders',
   'sdk.sessionSampleRate',
+  'sdk.shouldRecordCanvas',
   'sdk.useCompression',
   'sdk.useCompressionOption',
 ];

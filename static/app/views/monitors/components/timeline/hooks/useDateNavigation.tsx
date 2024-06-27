@@ -2,7 +2,7 @@ import {useCallback} from 'react';
 import moment from 'moment';
 
 import {updateDateTime} from 'sentry/actionCreators/pageFilters';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import useRouter from 'sentry/utils/useRouter';
 
 import {useMonitorDates} from './useMonitorDates';

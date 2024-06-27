@@ -4,6 +4,11 @@ from snuba_sdk import BooleanCondition, BooleanOp, Column, Condition, Op
 
 from sentry.api.serializers import bulk_fetch_project_latest_releases
 from sentry.models.project import Project
+from sentry.sentry_metrics.querying.data.mapping.base import (
+    Mapper,
+    MapperConfig,
+    get_or_create_mapper,
+)
 from sentry.sentry_metrics.querying.errors import LatestReleaseNotFoundError
 from sentry.sentry_metrics.querying.types import QueryCondition
 from sentry.sentry_metrics.querying.visitors.base import QueryConditionVisitor
@@ -96,3 +101,34 @@ class MappingTransformationVisitor(QueryConditionVisitor[QueryCondition]):
             op=condition.op,
             rhs=condition.rhs,
         )
+
+
+class MapperConditionVisitor(QueryConditionVisitor):
+    def __init__(self, projects: Sequence[Project], mapper_config: MapperConfig):
+        self.projects = projects
+        self.mapper_config = mapper_config
+        self.mappers: list[Mapper] = []
+
+    def _visit_condition(self, condition: Condition) -> Condition:
+        lhs = condition.lhs
+        rhs = condition.rhs
+
+        if isinstance(lhs, Column):
+            mapper = get_or_create_mapper(self.mapper_config, self.mappers, from_key=lhs.name)
+            if mapper:
+                new_lhs = Column(mapper.to_key)
+                if isinstance(rhs, list):
+                    new_rhs = [mapper.forward(self.projects, element) for element in rhs]
+                else:
+                    new_rhs = mapper.forward(self.projects, rhs)
+
+                return Condition(lhs=new_lhs, op=condition.op, rhs=new_rhs)
+
+        return condition
+
+    def _visit_boolean_condition(self, boolean_condition: BooleanCondition) -> BooleanCondition:
+        conditions = []
+        for condition in boolean_condition.conditions:
+            conditions.append(self.visit(condition))
+
+        return BooleanCondition(op=boolean_condition.op, conditions=conditions)

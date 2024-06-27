@@ -80,7 +80,7 @@ Route.createRouteFromReactElement = function (element: RouteElement): PlainRoute
   ];
 
   if (USING_CUSTOMER_DOMAIN) {
-    childRoutes.push({
+    childRoutes.unshift({
       ...createRouteFromReactElement(element),
       path,
       component: withDomainRequired(component ?? NoOp),

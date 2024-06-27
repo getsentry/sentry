@@ -1,5 +1,4 @@
 import logging
-import re
 from concurrent.futures import ThreadPoolExecutor
 
 import sentry_sdk
@@ -15,13 +14,14 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.search.events.constants import METRICS_GRANULARITIES
-from sentry.seer.utils import detect_breakpoints
+from sentry.seer.breakpoints import detect_breakpoints
 from sentry.snuba import metrics_performance
 from sentry.snuba.discover import create_result_key, zerofill
 from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.iterators import chunked
+from sentry.utils.performance_issues.detectors.utils import escape_transaction
 from sentry.utils.snuba import SnubaTSResult
 
 logger = logging.getLogger(__name__)
@@ -65,6 +65,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             ),
         }
     }
+    snuba_methods = ["GET"]
 
     def has_feature(self, organization, request):
         return features.has(
@@ -203,15 +204,17 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             for key, item in results.items():
                 formatted_results[key] = SnubaTSResult(
                     {
-                        "data": zerofill(
-                            item["data"],
-                            pruned_params["start"],
-                            pruned_params["end"],
-                            rollup,
-                            "time",
-                        )
-                        if zerofill_results
-                        else item["data"],
+                        "data": (
+                            zerofill(
+                                item["data"],
+                                pruned_params["start"],
+                                pruned_params["end"],
+                                rollup,
+                                "time",
+                            )
+                            if zerofill_results
+                            else item["data"]
+                        ),
                         "project": item["project_id"],
                         "isMetricsData": True,
                         "order": item["order"],
@@ -381,9 +384,3 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 default_per_page=5,
                 max_per_page=5,
             )
-
-
-def escape_transaction(transaction: str) -> str:
-    transaction = re.sub(r'"', r"\"", transaction)
-    transaction = re.sub(r"\*", r"\*", transaction)
-    return transaction

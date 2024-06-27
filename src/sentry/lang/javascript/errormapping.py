@@ -6,11 +6,11 @@ import re
 import time
 from urllib.parse import parse_qsl
 
+import orjson
 from django.conf import settings
 from django.core.cache import cache
 
 from sentry import http
-from sentry.utils import json
 from sentry.utils.meta import Meta
 from sentry.utils.safe import get_path
 from sentry.utils.strings import count_sprintf_parameters
@@ -24,6 +24,12 @@ HARD_TIMEOUT = 7200
 REACT_MAPPING_URL = (
     "https://raw.githubusercontent.com/facebook/react/master/scripts/error-codes/codes.json"
 )
+
+# Regex for React error messages.
+# * The `(\d+)` group matches the error code
+# * The `(?:\?(\S+))?` group optionally matches a query (non-capturing),
+#   and `(\S+)` matches the query parameters.
+REACT_ERROR_REGEX = r"Minified React error #(\d+); visit https?://[^?]+(?:\?(\S+))?"
 
 error_processors: dict[str, Processor] = {}
 
@@ -44,7 +50,7 @@ class Processor:
         mapping = cache.get(key)
         cached_rv = None
         if mapping is not None:
-            ts, cached_rv = json.loads(mapping)
+            ts, cached_rv = orjson.loads(mapping)
             if not is_expired(ts):
                 return cached_rv
 
@@ -58,7 +64,7 @@ class Processor:
                 # Make sure we only get a 2xx to prevent caching bad data
                 response.raise_for_status()
             data = response.json()
-            cache.set(key, json.dumps([time.time(), data]), HARD_TIMEOUT)
+            cache.set(key, orjson.dumps([time.time(), data]).decode(), HARD_TIMEOUT)
         except Exception:
             if cached_rv is None:
                 raise
@@ -85,7 +91,7 @@ def minified_error(vendor, mapping_url, regex):
 @minified_error(
     vendor="react",
     mapping_url=REACT_MAPPING_URL,
-    regex=r"Minified React error #(\d+); visit https?://[^?]+\?(\S+)",
+    regex=REACT_ERROR_REGEX,
 )
 def process_react_exception(exc, match, mapping):
     error_id, qs = match.groups()

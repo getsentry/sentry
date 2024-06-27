@@ -8,7 +8,6 @@ class RelocationOrganizationImportedEvent(analytics.Event):
         analytics.Attribute("organization_id"),
         analytics.Attribute("relocation_uuid"),
         analytics.Attribute("owner_id"),
-        analytics.Attribute("name"),
         analytics.Attribute("slug"),
     )
 

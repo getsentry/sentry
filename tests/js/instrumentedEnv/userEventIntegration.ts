@@ -1,9 +1,9 @@
-import type {Hub} from '@sentry/types';
+import * as Sentry from '@sentry/react';
 import {fill, isThenable, loadModule} from '@sentry/utils';
 
-export function instrumentUserEvent(getCurrentHub: () => Hub): void {
+export function instrumentUserEvent(): void {
   const pkg = loadModule('@testing-library/user-event') as any;
-  ACTIONS.forEach((action: Action) => _patchAction(pkg.default, action, getCurrentHub));
+  ACTIONS.forEach((action: Action) => _patchAction(pkg.default, action));
 }
 
 type Action = (typeof ACTIONS)[number];
@@ -23,26 +23,25 @@ const ACTIONS = [
   'keyboard',
 ];
 
-function _patchAction(userEvent: any, action: Action, getCurrentHub?: () => Hub): void {
+function _patchAction(userEvent: any, action: Action): void {
   fill(userEvent, action, function (orig: () => void | Promise<unknown>) {
     return function patchedAction(this: unknown, ...args: unknown[]) {
-      const scope = getCurrentHub?.().getScope();
-      const parentSpan = scope?.getSpan();
-      const span = parentSpan?.startChild({
+      const span = Sentry.startInactiveSpan({
         op: 'user event',
-        description: action,
+        name: action,
+        onlyIfParent: true,
       });
 
       const maybePromise = orig.call(this, ...args);
 
       if (isThenable(maybePromise)) {
         return maybePromise.then((res: unknown) => {
-          span?.end();
+          span.end();
           return res;
         });
       }
 
-      span?.end();
+      span.end();
       return maybePromise;
     };
   });

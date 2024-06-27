@@ -5,14 +5,14 @@
 
 import datetime
 import hmac
-from collections.abc import Mapping
+from collections.abc import MutableMapping
 from hashlib import sha256
 from typing import Any, Protocol, TypedDict
 
 from pydantic.fields import Field
 
 from sentry.constants import SentryAppInstallationStatus
-from sentry.services.hybrid_cloud import RpcModel, RpcModelProtocolMeta
+from sentry.hybridcloud.rpc import RpcModel, RpcModelProtocolMeta
 
 
 class RpcApiApplication(RpcModel):
@@ -88,7 +88,12 @@ class RpcSentryAppComponent(RpcModel):
     uuid: str = ""
     sentry_app_id: int = -1
     type: str = ""
-    app_schema: Mapping[str, Any] = Field(default_factory=dict)
+    app_schema: MutableMapping[str, Any] = Field(default_factory=dict)
+
+
+class RpcSentryAppComponentContext(RpcModel):
+    installation: RpcSentryAppInstallation
+    component: RpcSentryAppComponent
 
 
 class RpcAlertRuleActionResult(RpcModel):

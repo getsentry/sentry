@@ -7,6 +7,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import type {Fingerprint} from 'sentry/stores/groupingStore';
 import type {Group, Organization, Project} from 'sentry/types';
+import {useLocation} from 'sentry/utils/useLocation';
 
 import MergedItem from './mergedItem';
 import {MergedToolbar} from './mergedToolbar';
@@ -40,7 +41,7 @@ function MergedList({
     ({latestEvent}) => !!latestEvent
   );
   const hasResults = fingerprintsWithLatestEvent.length > 0;
-
+  const location = useLocation();
   if (!hasResults) {
     return (
       <Panel>
@@ -60,6 +61,7 @@ function MergedList({
           orgId={organization.slug}
           project={project}
           groupId={groupId}
+          location={location}
         />
 
         <PanelBody>

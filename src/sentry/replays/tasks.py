@@ -3,12 +3,14 @@ from __future__ import annotations
 import concurrent.futures as cf
 from typing import Any
 
+from google.cloud.exceptions import NotFound
+
 from sentry.replays.lib.kafka import initialize_replays_publisher
-from sentry.replays.lib.storage import filestore, storage
+from sentry.replays.lib.storage import filestore, make_video_filename, storage, storage_kv
 from sentry.replays.models import ReplayRecordingSegment
 from sentry.replays.usecases.events import archive_event
 from sentry.replays.usecases.reader import fetch_segments_metadata
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.pubsub import KafkaPublisher
@@ -54,15 +56,18 @@ def delete_replay_recording(project_id: int, replay_id: str) -> None:
     # Filestore and direct storage segments are split into two different delete operations.
     direct_storage_segments = []
     filestore_segments = []
+    video_filenames = []
     for segment in segments_from_metadata:
+        video_filenames.append(make_video_filename(segment))
         if segment.file_id:
             filestore_segments.append(segment)
         else:
             direct_storage_segments.append(segment)
 
     # Issue concurrent delete requests when interacting with a remote service provider.
-    if direct_storage_segments:
-        with cf.ThreadPoolExecutor(max_workers=100) as pool:
+    with cf.ThreadPoolExecutor(max_workers=100) as pool:
+        pool.map(_delete_if_exists, video_filenames)
+        if direct_storage_segments:
             pool.map(storage.delete, direct_storage_segments)
 
     # This will only run if "filestore" was used to store the files. This hasn't been the
@@ -81,3 +86,11 @@ def archive_replay(publisher: KafkaPublisher, project_id: int, replay_id: str) -
     # We publish manually here because we sometimes provide a managed Kafka
     # publisher interface which has its own setup and teardown behavior.
     publisher.publish("ingest-replay-events", message)
+
+
+def _delete_if_exists(filename: str) -> None:
+    """Delete the blob if it exists or silence the 404."""
+    try:
+        storage_kv.delete(filename)
+    except NotFound:
+        pass

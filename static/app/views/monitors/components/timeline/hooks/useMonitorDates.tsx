@@ -1,7 +1,7 @@
 import {useRef} from 'react';
 import moment from 'moment';
 
-import {intervalToMilliseconds} from 'sentry/utils/dates';
+import {intervalToMilliseconds} from 'sentry/utils/duration/intervalToMilliseconds';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
 /**

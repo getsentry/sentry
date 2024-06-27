@@ -18,7 +18,7 @@ import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {IconOpen, IconSettings} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import getRouteStringFromRoutes from 'sentry/utils/getRouteStringFromRoutes';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -55,6 +55,18 @@ export interface ProjectPageFilterProps
    */
   footerMessage?: React.ReactNode;
   /**
+   * This overrides the selected projects that is DISPLAYED by
+   * the project select.
+   *
+   * Use this when you want to display a disabled project selector
+   * with a fixed set of projects. For example, if you always want
+   * it to show `All Projects`.
+   *
+   * It does NOT override the projects in the store, so hooks like
+   * `usePageFilters` will not reflect this override.
+   */
+  projectOverride?: number[];
+  /**
    * Reset these URL params when we fire actions (custom routing only)
    */
   resetParamsOnChange?: string[];
@@ -76,6 +88,7 @@ export function ProjectPageFilter({
   menuTitle,
   menuWidth,
   trigger,
+  projectOverride,
   resetParamsOnChange,
   footerMessage,
   ...selectProps
@@ -167,13 +180,13 @@ export function ProjectPageFilter({
   );
 
   const value = useMemo<number[]>(
-    () => mapURLValueToNormalValue(pageFilterValue),
-    [mapURLValueToNormalValue, pageFilterValue]
+    () => mapURLValueToNormalValue(projectOverride ?? pageFilterValue),
+    [mapURLValueToNormalValue, pageFilterValue, projectOverride]
   );
 
   const defaultValue = useMemo<number[]>(
-    () => mapURLValueToNormalValue([]),
-    [mapURLValueToNormalValue]
+    () => mapURLValueToNormalValue(projectOverride ?? []),
+    [mapURLValueToNormalValue, projectOverride]
   );
 
   const handleChange = useCallback(

@@ -7,7 +7,7 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmember import OrganizationMember
 from sentry.scim.endpoints.utils import SCIMFilterError, parse_filter_conditions
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SCIMAzureTestCase, SCIMTestCase
 from sentry.testutils.silo import assume_test_silo_mode, no_silo_test
 

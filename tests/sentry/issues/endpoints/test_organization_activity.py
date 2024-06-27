@@ -10,15 +10,15 @@ pytestmark = [requires_snuba]
 class OrganizationActivityTest(APITestCase):
     endpoint = "sentry-api-0-organization-activity"
 
-    def setUp(self):
+    def setUp(self) -> None:
         super().setUp()
         self.login_as(self.user)
 
-    def test_empty(self):
+    def test_empty(self) -> None:
         response = self.get_success_response(self.organization.slug)
         assert response.data == []
 
-    def test_simple(self):
+    def test_simple(self) -> None:
         group = self.group
         org = group.organization
 
@@ -33,7 +33,7 @@ class OrganizationActivityTest(APITestCase):
         response = self.get_success_response(org.slug)
         assert [r["id"] for r in response.data] == [str(activity.id)]
 
-    def test_paginate(self):
+    def test_paginate(self) -> None:
         group = self.group
         org = group.organization
         project_2 = self.create_project()

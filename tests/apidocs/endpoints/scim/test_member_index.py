@@ -12,7 +12,7 @@ class SCIMMemberIndexDocs(APIDocsTestCase, SCIMTestCase):
 
         self.url = reverse(
             "sentry-api-0-organization-scim-member-index",
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
     def test_get(self):

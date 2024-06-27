@@ -1,24 +1,24 @@
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 export function hasMetricsExperimentalFeature(organization: Organization) {
-  return organization.features.includes('ddm-experimental');
-}
-
-export function hasMetricsUI(organization: Organization) {
-  return organization.features.includes('ddm-ui');
-}
-
-export function hasDashboardImportFeature(organization: Organization) {
-  return organization.features.includes('ddm-dashboard-import');
-}
-
-export function hasMetricsSidebarItem(organization: Organization) {
-  return !organization.features.includes('ddm-sidebar-item-hidden');
+  return organization.features.includes('custom-metrics-experimental');
 }
 
 export function hasCustomMetrics(organization: Organization) {
-  return hasMetricsUI(organization) && hasMetricsSidebarItem(organization);
+  return organization.features.includes('custom-metrics');
+}
+
+export function hasMetricAlertFeature(organization: Organization) {
+  return organization.features.includes('incidents');
+}
+
+export function hasCustomMetricsExtractionRules(organization: Organization) {
+  return organization.features.includes('custom-metrics-extraction-rule');
+}
+
+export function hasMetricsExtrapolationFeature(organization: Organization) {
+  return organization.features.includes('metrics-extrapolation');
 }
 
 /**

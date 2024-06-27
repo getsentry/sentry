@@ -1,3 +1,5 @@
+from typing import Any
+
 import pytest
 
 from sentry.grouping.api import get_default_grouping_config_dict
@@ -8,7 +10,7 @@ from tests.sentry.grouping import with_fingerprint_input
 GROUPING_CONFIG = get_default_grouping_config_dict()
 
 
-def test_basic_parsing(insta_snapshot):
+def test_basic_parsing(insta_snapshot: object) -> None:
     rules = FingerprintingRules.from_config_string(
         """
 # This is a config
@@ -68,7 +70,7 @@ logger:sentry.*                                 -> logger-{{ logger }} title="Me
     )
 
 
-def test_rule_export():
+def test_rule_export() -> None:
     rules = FingerprintingRules.from_config_string(
         """
 logger:sentry.*                                 -> logger, {{ logger }}, title="Message from {{ logger }}"
@@ -81,12 +83,12 @@ logger:sentry.*                                 -> logger, {{ logger }}, title="
     }
 
 
-def test_parsing_errors():
+def test_parsing_errors() -> None:
     with pytest.raises(InvalidFingerprintingConfig):
         FingerprintingRules.from_config_string("invalid.message:foo -> bar")
 
 
-def test_automatic_argument_splitting():
+def test_automatic_argument_splitting() -> None:
     rules = FingerprintingRules.from_config_string(
         """
 logger:test -> logger-{{ logger }}
@@ -122,7 +124,7 @@ logger:test2 -> logger-, {{ logger }}, -, {{ level }}
     }
 
 
-def test_discover_field_parsing(insta_snapshot):
+def test_discover_field_parsing(insta_snapshot: object) -> None:
     rules = FingerprintingRules.from_config_string(
         """
 # This is a config
@@ -162,10 +164,10 @@ release:foo                                     -> release-foo
 
 @with_fingerprint_input("input")
 @django_db_all  # because of `options` usage
-def test_event_hash_variant(insta_snapshot, input):
+def test_event_hash_variant(insta_snapshot: Any, input: Any) -> None:
     config, evt = input.create_event()
 
-    def dump_variant(v):
+    def dump_variant(v: Any) -> dict[str, Any]:
         rv = v.as_dict()
 
         for key in "hash", "description", "config":

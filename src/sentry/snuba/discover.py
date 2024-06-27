@@ -32,7 +32,7 @@ from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.math import nice_int
 from sentry.utils.snuba import (
     SnubaTSResult,
-    bulk_snql_query,
+    bulk_snuba_queries,
     get_array_column_alias,
     get_array_column_field,
     get_measurement_name,
@@ -174,6 +174,170 @@ def transform_tips(tips):
     }
 
 
+def _query(
+    selected_columns,
+    query,
+    params,
+    snuba_params=None,
+    equations=None,
+    orderby=None,
+    offset=None,
+    limit=50,
+    referrer=None,
+    auto_fields=False,
+    auto_aggregations=False,
+    include_equation_fields=False,
+    allow_metric_aggregates=False,
+    use_aggregate_conditions=False,
+    conditions=None,
+    functions_acl=None,
+    transform_alias_to_input_format=False,
+    sample=None,
+    has_metrics=False,
+    use_metrics_layer=False,
+    skip_tag_resolution=False,
+    extra_columns=None,
+    on_demand_metrics_enabled=False,
+    on_demand_metrics_type=None,
+    dataset=Dataset.Discover,
+) -> EventsResponse:
+    if not selected_columns:
+        raise InvalidSearchQuery("No columns selected")
+
+    assert dataset in [Dataset.Discover, Dataset.Transactions]
+
+    builder = QueryBuilder(
+        dataset,
+        params,
+        snuba_params=snuba_params,
+        query=query,
+        selected_columns=selected_columns,
+        equations=equations,
+        orderby=orderby,
+        limit=limit,
+        offset=offset,
+        sample_rate=sample,
+        config=QueryBuilderConfig(
+            auto_fields=auto_fields,
+            auto_aggregations=auto_aggregations,
+            use_aggregate_conditions=use_aggregate_conditions,
+            functions_acl=functions_acl,
+            equation_config={"auto_add": include_equation_fields},
+            has_metrics=has_metrics,
+            transform_alias_to_input_format=transform_alias_to_input_format,
+            skip_tag_resolution=skip_tag_resolution,
+        ),
+    )
+    if conditions is not None:
+        builder.add_conditions(conditions)
+    if extra_columns is not None:
+        builder.columns.extend(extra_columns)
+
+    result = builder.process_results(builder.run_query(referrer))
+    result["meta"]["tips"] = transform_tips(builder.tips)
+    return result
+
+
+def _timeseries_query(
+    selected_columns: Sequence[str],
+    query: str,
+    params: ParamsType,
+    rollup: int,
+    referrer: str | None = None,
+    zerofill_results: bool = True,
+    comparison_delta: timedelta | None = None,
+    functions_acl: list[str] | None = None,
+    allow_metric_aggregates=False,
+    has_metrics=False,
+    use_metrics_layer=False,
+    on_demand_metrics_enabled=False,
+    on_demand_metrics_type=None,
+    dataset=Dataset.Discover,
+):
+    assert dataset in [Dataset.Discover, Dataset.Transactions]
+    with sentry_sdk.start_span(op="discover.discover", description="timeseries.filter_transform"):
+        equations, columns = categorize_columns(selected_columns)
+        base_builder = TimeseriesQueryBuilder(
+            dataset,
+            params,
+            rollup,
+            query=query,
+            selected_columns=columns,
+            equations=equations,
+            config=QueryBuilderConfig(
+                functions_acl=functions_acl,
+                has_metrics=has_metrics,
+            ),
+        )
+        query_list = [base_builder]
+        if comparison_delta:
+            if len(base_builder.aggregates) != 1:
+                raise InvalidSearchQuery("Only one column can be selected for comparison queries")
+            comp_query_params = deepcopy(params)
+            comp_query_params["start"] -= comparison_delta
+            comp_query_params["end"] -= comparison_delta
+            comparison_builder = TimeseriesQueryBuilder(
+                dataset,
+                comp_query_params,
+                rollup,
+                query=query,
+                selected_columns=columns,
+                equations=equations,
+            )
+            query_list.append(comparison_builder)
+
+        query_results = bulk_snuba_queries(
+            [query.get_snql_query() for query in query_list], referrer
+        )
+
+    with sentry_sdk.start_span(op="discover.discover", description="timeseries.transform_results"):
+        results = []
+        for snql_query, result in zip(query_list, query_results):
+            results.append(
+                {
+                    "data": (
+                        zerofill(
+                            result["data"],
+                            snql_query.params.start,
+                            snql_query.params.end,
+                            rollup,
+                            "time",
+                        )
+                        if zerofill_results
+                        else result["data"]
+                    ),
+                    "meta": result["meta"],
+                }
+            )
+
+    if len(results) == 2 and comparison_delta:
+        col_name = base_builder.aggregates[0].alias
+        # If we have two sets of results then we're doing a comparison queries. Divide the primary
+        # results by the comparison results.
+        for result, cmp_result in zip(results[0]["data"], results[1]["data"]):
+            cmp_result_val = cmp_result.get(col_name, 0)
+            result["comparisonCount"] = cmp_result_val
+
+    result = results[0]
+
+    return SnubaTSResult(
+        {
+            "data": result["data"],
+            "meta": {
+                "fields": {
+                    value["name"]: get_json_meta_type(
+                        value["name"], value.get("type"), base_builder
+                    )
+                    for value in result["meta"]
+                }
+            },
+        },
+        params["start"],
+        params["end"],
+        rollup,
+    )
+
+
 def query(
     selected_columns,
     query,
@@ -231,39 +395,33 @@ def query(
                                 requested function format.
     sample (float) The sample rate to run the query with
     """
-    if not selected_columns:
-        raise InvalidSearchQuery("No columns selected")
-
-    builder = QueryBuilder(
-        Dataset.Discover,
+    return _query(
+        selected_columns,
+        query,
         params,
         snuba_params=snuba_params,
-        query=query,
-        selected_columns=selected_columns,
         equations=equations,
         orderby=orderby,
-        limit=limit,
         offset=offset,
-        sample_rate=sample,
-        config=QueryBuilderConfig(
-            auto_fields=auto_fields,
-            auto_aggregations=auto_aggregations,
-            use_aggregate_conditions=use_aggregate_conditions,
-            functions_acl=functions_acl,
-            equation_config={"auto_add": include_equation_fields},
-            has_metrics=has_metrics,
-            transform_alias_to_input_format=transform_alias_to_input_format,
-            skip_tag_resolution=skip_tag_resolution,
-        ),
+        limit=limit,
+        referrer=referrer,
+        auto_fields=auto_fields,
+        auto_aggregations=auto_aggregations,
+        include_equation_fields=include_equation_fields,
+        allow_metric_aggregates=allow_metric_aggregates,
+        use_aggregate_conditions=use_aggregate_conditions,
+        conditions=conditions,
+        functions_acl=functions_acl,
+        transform_alias_to_input_format=transform_alias_to_input_format,
+        sample=sample,
+        has_metrics=has_metrics,
+        use_metrics_layer=use_metrics_layer,
+        skip_tag_resolution=skip_tag_resolution,
+        extra_columns=extra_columns,
+        on_demand_metrics_enabled=on_demand_metrics_enabled,
+        on_demand_metrics_type=on_demand_metrics_type,
+        dataset=Dataset.Discover,
     )
-    if conditions is not None:
-        builder.add_conditions(conditions)
-    if extra_columns is not None:
-        builder.columns.extend(extra_columns)
-
-    result = builder.process_results(builder.run_query(referrer))
-    result["meta"]["tips"] = transform_tips(builder.tips)
-    return result
 
 
 def timeseries_query(
@@ -304,84 +462,21 @@ def timeseries_query(
     time bucket. Requires that we only pass
     allow_metric_aggregates (bool) Ignored here, only used in metric enhanced performance
     """
-    with sentry_sdk.start_span(op="discover.discover", description="timeseries.filter_transform"):
-        equations, columns = categorize_columns(selected_columns)
-        base_builder = TimeseriesQueryBuilder(
-            Dataset.Discover,
-            params,
-            rollup,
-            query=query,
-            selected_columns=columns,
-            equations=equations,
-            config=QueryBuilderConfig(
-                functions_acl=functions_acl,
-                has_metrics=has_metrics,
-            ),
-        )
-        query_list = [base_builder]
-        if comparison_delta:
-            if len(base_builder.aggregates) != 1:
-                raise InvalidSearchQuery("Only one column can be selected for comparison queries")
-            comp_query_params = deepcopy(params)
-            comp_query_params["start"] -= comparison_delta
-            comp_query_params["end"] -= comparison_delta
-            comparison_builder = TimeseriesQueryBuilder(
-                Dataset.Discover,
-                comp_query_params,
-                rollup,
-                query=query,
-                selected_columns=columns,
-                equations=equations,
-            )
-            query_list.append(comparison_builder)
-
-        query_results = bulk_snql_query([query.get_snql_query() for query in query_list], referrer)
-
-    with sentry_sdk.start_span(op="discover.discover", description="timeseries.transform_results"):
-        results = []
-        for snql_query, result in zip(query_list, query_results):
-            results.append(
-                {
-                    "data": (
-                        zerofill(
-                            result["data"],
-                            snql_query.params.start,
-                            snql_query.params.end,
-                            rollup,
-                            "time",
-                        )
-                        if zerofill_results
-                        else result["data"]
-                    ),
-                    "meta": result["meta"],
-                }
-            )
-
-    if len(results) == 2 and comparison_delta:
-        col_name = base_builder.aggregates[0].alias
-        # If we have two sets of results then we're doing a comparison queries. Divide the primary
-        # results by the comparison results.
-        for result, cmp_result in zip(results[0]["data"], results[1]["data"]):
-            cmp_result_val = cmp_result.get(col_name, 0)
-            result["comparisonCount"] = cmp_result_val
-
-    result = results[0]
-
-    return SnubaTSResult(
-        {
-            "data": result["data"],
-            "meta": {
-                "fields": {
-                    value["name"]: get_json_meta_type(
-                        value["name"], value.get("type"), base_builder
-                    )
-                    for value in result["meta"]
-                }
-            },
-        },
-        params["start"],
-        params["end"],
+    return _timeseries_query(
+        selected_columns,
+        query,
+        params,
         rollup,
+        referrer,
+        zerofill_results=zerofill_results,
+        allow_metric_aggregates=allow_metric_aggregates,
+        comparison_delta=comparison_delta,
+        functions_acl=functions_acl,
+        has_metrics=has_metrics,
+        use_metrics_layer=use_metrics_layer,
+        on_demand_metrics_enabled=on_demand_metrics_enabled,
+        on_demand_metrics_type=on_demand_metrics_type,
+        dataset=Dataset.Discover,
     )
 
 
@@ -411,7 +506,7 @@ def create_result_key(result_row, fields, issues) -> str:
     return result
 
 
-def top_events_timeseries(
+def _top_events_timeseries(
     timeseries_columns,
     selected_columns,
     user_query,
@@ -429,32 +524,12 @@ def top_events_timeseries(
     functions_acl=None,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type=None,
+    dataset=Dataset.Discover,
 ):
-    """
-    High-level API for doing arbitrary user timeseries queries for a limited number of top events
-
-    Returns a dictionary of SnubaTSResult objects that have been zerofilled in
-    case of gaps. Each value of the dictionary should match the result of a timeseries query
-
-    timeseries_columns (Sequence[str]) List of public aliases to fetch for the timeseries query,
-                    usually matches the y-axis of the graph
-    selected_columns (Sequence[str]) List of public aliases to fetch for the events query,
-                    this is to determine what the top events are
-    user_query (str) Filter query string to create conditions from. needs to be user_query
-                    to not conflict with the function query
-    params (Dict[str, str]) Filtering parameters with start, end, project_id, environment,
-    orderby (Sequence[str]) The fields to order results by.
-    rollup (int) The bucket width in seconds
-    limit (int) The number of events to get timeseries for
-    organization (Organization) Used to map group ids to short ids
-    referrer (str|None) A referrer string to help locate the origin of this query.
-    top_events (dict|None) A dictionary with a 'data' key containing a list of dictionaries that
-                    represent the top events matching the query. Useful when you have found
-                    the top events earlier and want to save a query.
-    """
+    assert dataset in [Dataset.Discover, Dataset.Transactions]
     if top_events is None:
         with sentry_sdk.start_span(op="discover.discover", description="top_events.fetch_events"):
-            top_events = query(
+            top_events = _query(
                 selected_columns,
                 query=user_query,
                 params=params,
@@ -466,10 +541,11 @@ def top_events_timeseries(
                 use_aggregate_conditions=True,
                 include_equation_fields=True,
                 skip_tag_resolution=True,
+                dataset=dataset,
             )
 
     top_events_builder = TopEventsQueryBuilder(
-        Dataset.Discover,
+        dataset,
         params,
         rollup,
         top_events["data"],
@@ -485,7 +561,7 @@ def top_events_timeseries(
     )
     if len(top_events["data"]) == limit and include_other:
         other_events_builder = TopEventsQueryBuilder(
-            Dataset.Discover,
+            dataset,
             params,
             rollup,
             top_events["data"],
@@ -495,7 +571,7 @@ def top_events_timeseries(
             timeseries_columns=timeseries_columns,
             equations=equations,
         )
-        result, other_result = bulk_snql_query(
+        result, other_result = bulk_snuba_queries(
             [top_events_builder.get_snql_query(), other_events_builder.get_snql_query()],
             referrer=referrer,
         )
@@ -568,6 +644,69 @@ def top_events_timeseries(
             )
 
     return results
+
+
+def top_events_timeseries(
+    timeseries_columns,
+    selected_columns,
+    user_query,
+    params,
+    orderby,
+    rollup,
+    limit,
+    organization,
+    equations=None,
+    referrer=None,
+    top_events=None,
+    allow_empty=True,
+    zerofill_results=True,
+    include_other=False,
+    functions_acl=None,
+    on_demand_metrics_enabled: bool = False,
+    on_demand_metrics_type=None,
+):
+    """
+    High-level API for doing arbitrary user timeseries queries for a limited number of top events
+
+    Returns a dictionary of SnubaTSResult objects that have been zerofilled in
+    case of gaps. Each value of the dictionary should match the result of a timeseries query
+
+    timeseries_columns (Sequence[str]) List of public aliases to fetch for the timeseries query,
+                    usually matches the y-axis of the graph
+    selected_columns (Sequence[str]) List of public aliases to fetch for the events query,
+                    this is to determine what the top events are
+    user_query (str) Filter query string to create conditions from. needs to be user_query
+                    to not conflict with the function query
+    params (Dict[str, str]) Filtering parameters with start, end, project_id, environment,
+    orderby (Sequence[str]) The fields to order results by.
+    rollup (int) The bucket width in seconds
+    limit (int) The number of events to get timeseries for
+    organization (Organization) Used to map group ids to short ids
+    referrer (str|None) A referrer string to help locate the origin of this query.
+    top_events (dict|None) A dictionary with a 'data' key containing a list of dictionaries that
+                    represent the top events matching the query. Useful when you have found
+                    the top events earlier and want to save a query.
+    """
+    return _top_events_timeseries(
+        timeseries_columns,
+        selected_columns,
+        user_query,
+        params,
+        orderby,
+        rollup,
+        limit,
+        organization,
+        equations=equations,
+        referrer=referrer,
+        top_events=top_events,
+        allow_empty=allow_empty,
+        zerofill_results=zerofill_results,
+        include_other=include_other,
+        functions_acl=functions_acl,
+        on_demand_metrics_enabled=on_demand_metrics_enabled,
+        on_demand_metrics_type=on_demand_metrics_type,
+        dataset=Dataset.Discover,
+    )
 
 
 def get_id(result):

@@ -22,13 +22,14 @@ import {IconAdd, IconUser} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project, TeamWithProjects} from 'sentry/types';
-import {sortProjects} from 'sentry/utils';
+import type {Organization} from 'sentry/types/organization';
+import type {Project, TeamWithProjects} from 'sentry/types/project';
 import {
   onRenderCallback,
   Profiler,
   setGroupedEntityTag,
 } from 'sentry/utils/performanceForSentry';
+import {sortProjects} from 'sentry/utils/project/sortProjects';
 import useOrganization from 'sentry/utils/useOrganization';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';

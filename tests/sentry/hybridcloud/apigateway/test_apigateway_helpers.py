@@ -11,7 +11,7 @@ from sentry.utils import json
 @no_silo_test(regions=[ApiGatewayTestCase.REGION])
 class VerifyRequestBodyTest(ApiGatewayTestCase):
     @responses.activate
-    def test_verify_request_body(self):
+    def test_verify_request_body(self) -> None:
         body = {"ab": "cd"}
         headers = {"header": "nope", "content-type": "application/json"}
         responses.add_callback(

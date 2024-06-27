@@ -38,7 +38,7 @@ const numericStyle = (
         ? css`
             width: 24px;
             height: 24px;
-            font-weight: 500;
+            font-weight: ${theme.fontWeightNormal};
             font-size: ${theme.fontSizeSmall};
             background-color: ${theme.yellow300};
             color: ${theme.black};
@@ -47,7 +47,7 @@ const numericStyle = (
             top: 3px;
             width: 18px;
             height: 18px;
-            font-weight: 600;
+            font-weight: ${theme.fontWeightBold};
             font-size: 10px;
             border: 1px solid ${theme.gray500};
           `}

@@ -3,7 +3,7 @@ import os
 import re
 from collections import defaultdict
 from collections.abc import Iterable, Sequence
-from datetime import timezone
+from datetime import timedelta, timezone
 from typing import Any
 
 from dateutil.parser import parse as parse_datetime
@@ -33,6 +33,7 @@ from sentry.search.events.constants import (
 from sentry.search.events.fields import FIELD_ALIASES
 from sentry.search.events.filter import _flip_field_sort
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.referrer import Referrer
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT, TagKeyStatus, TagStorage
 from sentry.tagstore.exceptions import (
     GroupTagKeyNotFound,
@@ -428,8 +429,8 @@ class SnubaTagStorage(TagStorage):
         start,
         end,
         status=TagKeyStatus.ACTIVE,
-        use_cache=False,
-        include_transactions=False,
+        use_cache: bool = False,
+        include_transactions: bool = False,
         tenant_ids=None,
     ):
         max_unsampled_projects = _max_unsampled_projects
@@ -439,7 +440,9 @@ class SnubaTagStorage(TagStorage):
         # the sampling that turbo enables so that we get more accurate results.
         # We only want sampling when we have a large number of projects, so
         # that we don't cause performance issues for Snuba.
-        if len(projects) <= max_unsampled_projects:
+        # We also see issues with long timeranges in large projects,
+        # So only disable sampling if the timerange is short enough.
+        if len(projects) <= max_unsampled_projects and end - start <= timedelta(days=14):
             optimize_kwargs["sample"] = 1
         return self.__get_tag_keys_for_projects(
             projects,
@@ -861,7 +864,7 @@ class SnubaTagStorage(TagStorage):
         end=None,
         dataset=Dataset.Events,
         extra_aggregations=None,
-        referrer="tagstore.__get_groups_user_counts",
+        referrer=Referrer.TAGSTORE_GET_GROUPS_USER_COUNTS.value,
         tenant_ids=None,
     ):
         filters = {"project_id": project_ids, "group_id": group_ids}
@@ -888,7 +891,14 @@ class SnubaTagStorage(TagStorage):
         return defaultdict(int, {k: v for k, v in result.items() if v})
 
     def get_groups_user_counts(
-        self, project_ids, group_ids, environment_ids, start=None, end=None, tenant_ids=None
+        self,
+        project_ids,
+        group_ids,
+        environment_ids,
+        start=None,
+        end=None,
+        tenant_ids=None,
+        referrer="tagstore.get_groups_user_counts",
     ):
         return self.__get_groups_user_counts(
             project_ids,
@@ -898,7 +908,7 @@ class SnubaTagStorage(TagStorage):
             end,
             Dataset.Events,
             [],
-            "tagstore.get_groups_user_counts",
+            referrer,
             tenant_ids=tenant_ids,
         )
 
@@ -1171,9 +1181,9 @@ class SnubaTagStorage(TagStorage):
         end=None,
         query=None,
         order_by="-last_seen",
-        include_transactions=False,
-        include_sessions=False,
-        include_replays=False,
+        include_transactions: bool = False,
+        include_sessions: bool = False,
+        include_replays: bool = False,
         tenant_ids=None,
     ):
         from sentry.api.paginator import SequencePaginator
@@ -1408,8 +1418,8 @@ class SnubaTagStorage(TagStorage):
         key,
         callbacks=(),
         orderby="-first_seen",
-        limit=1000,
-        offset=0,
+        limit: int = 1000,
+        offset: int = 0,
         tenant_ids=None,
     ):
         filters = {

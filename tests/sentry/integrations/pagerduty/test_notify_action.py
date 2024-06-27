@@ -1,17 +1,17 @@
 from unittest.mock import patch
 
+import orjson
 import responses
 
 from sentry.integrations.pagerduty.actions.notification import PagerDutyNotifyServiceAction
 from sentry.integrations.pagerduty.utils import add_service
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -68,9 +68,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         notification_uuid = "123e4567-e89b-12d3-a456-426614174000"
 
-        results = list(
-            rule.after(event=event, state=self.get_state(), notification_uuid=notification_uuid)
-        )
+        results = list(rule.after(event=event, notification_uuid=notification_uuid))
         assert len(results) == 1
 
         responses.add(
@@ -83,7 +81,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         # Trigger rule callback
         results[0].callback(event, futures=[])
-        data = json.loads(responses.calls[0].request.body)
+        data = orjson.loads(responses.calls[0].request.body)
 
         assert data["event_action"] == "trigger"
         assert data["payload"]["summary"] == event.message
@@ -117,7 +115,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
     def test_applies_correctly_performance_issue(self):
         event = self.create_performance_issue()
         rule = self.get_rule(data={"account": self.integration.id, "service": self.service["id"]})
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event))
         assert len(results) == 1
 
         responses.add(
@@ -130,7 +128,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         # Trigger rule callback
         results[0].callback(event, futures=[])
-        data = json.loads(responses.calls[0].request.body)
+        data = orjson.loads(responses.calls[0].request.body)
 
         perf_issue_title = "N+1 Query"
 
@@ -152,7 +150,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
         group_event.occurrence = occurrence
 
         rule = self.get_rule(data={"account": self.integration.id, "service": self.service["id"]})
-        results = list(rule.after(event=group_event, state=self.get_state()))
+        results = list(rule.after(event=group_event))
         assert len(results) == 1
 
         responses.add(
@@ -165,7 +163,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         # Trigger rule callback
         results[0].callback(group_event, futures=[])
-        data = json.loads(responses.calls[0].request.body)
+        data = orjson.loads(responses.calls[0].request.body)
 
         assert data["event_action"] == "trigger"
         assert data["payload"]["summary"] == group_event.occurrence.issue_title
@@ -280,7 +278,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         rule = self.get_rule(data={"account": integration.id, "service": service["id"]})
 
-        results = list(rule.after(event=event, state=self.get_state()))
+        results = list(rule.after(event=event))
         assert len(results) == 1
 
         responses.add(
@@ -293,7 +291,7 @@ class PagerDutyNotifyActionTest(RuleTestCase, PerformanceIssueTestCase):
 
         # Trigger rule callback
         results[0].callback(event, futures=[])
-        data = json.loads(responses.calls[0].request.body)
+        data = orjson.loads(responses.calls[0].request.body)
 
         assert data["event_action"] == "trigger"
 

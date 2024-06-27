@@ -18,14 +18,14 @@ from django.db import models, router
 from sentry import options
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    BaseManager,
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
+from sentry.db.models.manager.base import BaseManager
 from sentry.models.distribution import Distribution
 from sentry.models.files.file import File
 from sentry.models.files.utils import clear_cached_files
@@ -43,7 +43,7 @@ ARTIFACT_INDEX_FILENAME = "artifact-index.json"
 ARTIFACT_INDEX_TYPE = "release.artifact-index"
 
 
-class PublicReleaseFileManager(models.Manager):
+class PublicReleaseFileManager(models.Manager["ReleaseFile"]):
     """Manager for all release files that are not internal.
 
     Internal release files include:
@@ -59,7 +59,7 @@ class PublicReleaseFileManager(models.Manager):
         return super().get_queryset().select_related("file").filter(file__type="release.file")
 
 
-@region_silo_only_model
+@region_silo_model
 class ReleaseFile(Model):
     r"""
     A ReleaseFile is an association between a Release and a File.

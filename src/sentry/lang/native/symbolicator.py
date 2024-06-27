@@ -9,6 +9,7 @@ from dataclasses import dataclass
 from enum import Enum
 from urllib.parse import urljoin
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from requests.exceptions import RequestException
@@ -22,7 +23,7 @@ from sentry.lang.native.sources import (
 )
 from sentry.models.project import Project
 from sentry.net.http import Session
-from sentry.utils import json, metrics
+from sentry.utils import metrics
 
 MAX_ATTEMPTS = 3
 
@@ -59,8 +60,10 @@ class SymbolicatorTaskKind:
 class SymbolicatorPools(Enum):
     default = "default"
     js = "js"
+    jvm = "jvm"
     lpq = "lpq"
     lpq_js = "lpq_js"
+    lpq_jvm = "lpq_jvm"
 
 
 class Symbolicator:
@@ -73,14 +76,17 @@ class Symbolicator:
     ):
         URLS = settings.SYMBOLICATOR_POOL_URLS
         pool = SymbolicatorPools.default.value
-        # TODO: Add a pool for JVM
         if task_kind.is_low_priority:
             if task_kind.platform == SymbolicatorPlatform.js:
                 pool = SymbolicatorPools.lpq_js.value
+            elif task_kind.platform == SymbolicatorPlatform.jvm:
+                pool = SymbolicatorPools.lpq_jvm.value
             else:
                 pool = SymbolicatorPools.lpq.value
         elif task_kind.platform == SymbolicatorPlatform.js:
             pool = SymbolicatorPools.js.value
+        elif task_kind.platform == SymbolicatorPlatform.jvm:
+            pool = SymbolicatorPools.jvm.value
 
         base_url = (
             URLS.get(pool)
@@ -160,8 +166,8 @@ class Symbolicator:
         (sources, process_response) = sources_for_symbolication(self.project)
         scraping_config = get_scraping_config(self.project)
         data = {
-            "sources": json.dumps(sources),
-            "scraping": json.dumps(scraping_config),
+            "sources": orjson.dumps(sources).decode(),
+            "scraping": orjson.dumps(scraping_config).decode(),
             "options": '{"dif_candidates": true}',
         }
 
@@ -177,8 +183,8 @@ class Symbolicator:
         (sources, process_response) = sources_for_symbolication(self.project)
         scraping_config = get_scraping_config(self.project)
         data = {
-            "sources": json.dumps(sources),
-            "scraping": json.dumps(scraping_config),
+            "sources": orjson.dumps(sources).decode(),
+            "scraping": orjson.dumps(scraping_config).decode(),
             "options": '{"dif_candidates": true}',
         }
 

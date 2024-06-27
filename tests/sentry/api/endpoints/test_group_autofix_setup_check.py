@@ -1,6 +1,6 @@
 from unittest.mock import patch
 
-from sentry.constants import ObjectStatus
+from sentry.api.helpers.autofix import AutofixCodebaseIndexingStatus
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
@@ -32,7 +32,23 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
         )
         self.organization.update_option("sentry:gen_ai_consent", True)
 
-    def test_successful_setup(self):
+    @patch(
+        "sentry.api.endpoints.group_autofix_setup_check.get_repos_and_access",
+        return_value=[
+            {
+                "provider": "github",
+                "owner": "getsentry",
+                "name": "seer",
+                "external_id": "123",
+                "ok": True,
+            }
+        ],
+    )
+    @patch(
+        "sentry.api.endpoints.group_autofix_setup_check.get_project_codebase_indexing_status",
+        return_value=AutofixCodebaseIndexingStatus.UP_TO_DATE,
+    )
+    def test_successful_setup(self, mock_update_codebase_index, mock_get_repos_and_access):
         """
         Everything is set up correctly, should respond with OKs.
         """
@@ -43,10 +59,6 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 200
         assert response.data == {
-            "subprocessorConsent": {
-                "ok": True,
-                "reason": None,
-            },
             "genAIConsent": {
                 "ok": True,
                 "reason": None,
@@ -54,6 +66,21 @@ class GroupAIAutofixEndpointSuccessTest(APITestCase, SnubaTestCase):
             "integration": {
                 "ok": True,
                 "reason": None,
+            },
+            "githubWriteIntegration": {
+                "ok": True,
+                "repos": [
+                    {
+                        "provider": "github",
+                        "owner": "getsentry",
+                        "name": "seer",
+                        "external_id": "123",
+                        "ok": True,
+                    }
+                ],
+            },
+            "codebaseIndexing": {
+                "ok": True,
             },
         }
 
@@ -74,23 +101,6 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
             "reason": None,
         }
 
-    @patch(
-        "sentry.api.endpoints.group_autofix_setup_check.get_openai_policy",
-        return_value="subprocessor",
-    )
-    def test_needs_subprocessor_consent(self, mock):
-        group = self.create_group()
-        self.login_as(user=self.user)
-        url = f"/api/0/issues/{group.id}/autofix/setup/"
-
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200
-        assert response.data["subprocessorConsent"] == {
-            "ok": False,
-            "reason": None,
-        }
-
     def test_no_code_mappings(self):
         RepositoryProjectPathConfig.objects.filter(
             organization_integration_id=self.organization_integration.id
@@ -107,21 +117,6 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
             "reason": "integration_no_code_mappings",
         }
 
-    def test_disabled_integration(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.organization_integration.update(status=ObjectStatus.DISABLED)
-
-        group = self.create_group()
-        self.login_as(user=self.user)
-        url = f"/api/0/issues/{group.id}/autofix/setup/"
-        response = self.client.get(url, format="json")
-
-        assert response.status_code == 200
-        assert response.data["integration"] == {
-            "ok": False,
-            "reason": "integration_inactive",
-        }
-
     def test_missing_integration(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.organization_integration.delete()
@@ -135,4 +130,81 @@ class GroupAIAutofixEndpointFailureTest(APITestCase, SnubaTestCase):
         assert response.data["integration"] == {
             "ok": False,
             "reason": "integration_missing",
+        }
+
+    @patch(
+        "sentry.api.endpoints.group_autofix_setup_check.get_repos_and_access",
+        return_value=[
+            {
+                "provider": "github",
+                "owner": "getsentry",
+                "name": "seer",
+                "external_id": "123",
+                "ok": False,
+            },
+            {
+                "provider": "github",
+                "owner": "getsentry",
+                "name": "sentry",
+                "external_id": "234",
+                "ok": True,
+            },
+        ],
+    )
+    def test_repo_write_access_not_ready(self, mock_get_repos_and_access):
+        group = self.create_group()
+        self.login_as(user=self.user)
+        url = f"/api/0/issues/{group.id}/autofix/setup/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200
+        assert response.data["githubWriteIntegration"] == {
+            "ok": False,
+            "repos": [
+                {
+                    "provider": "github",
+                    "owner": "getsentry",
+                    "name": "seer",
+                    "external_id": "123",
+                    "ok": False,
+                },
+                {
+                    "provider": "github",
+                    "owner": "getsentry",
+                    "name": "sentry",
+                    "external_id": "234",
+                    "ok": True,
+                },
+            ],
+        }
+
+    @patch(
+        "sentry.api.endpoints.group_autofix_setup_check.get_repos_and_access",
+        return_value=[],
+    )
+    def test_repo_write_access_no_repos(self, mock_get_repos_and_access):
+        group = self.create_group()
+        self.login_as(user=self.user)
+        url = f"/api/0/issues/{group.id}/autofix/setup/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200
+        assert response.data["githubWriteIntegration"] == {
+            "ok": False,
+            "repos": [],
+        }
+
+    @patch(
+        "sentry.api.endpoints.group_autofix_setup_check.get_project_codebase_indexing_status",
+        return_value=AutofixCodebaseIndexingStatus.NOT_INDEXED,
+    )
+    def test_codebase_indexing_not_done(self, mock_get_project_codebase_indexing_status):
+        group = self.create_group()
+        self.login_as(user=self.user)
+        url = f"/api/0/issues/{group.id}/autofix/setup/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200
+        assert response.data["codebaseIndexing"] == {
+            "ok": False,
         }

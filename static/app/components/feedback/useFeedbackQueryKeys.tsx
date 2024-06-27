@@ -4,7 +4,7 @@ import invariant from 'invariant';
 
 import getFeedbackItemQueryKey from 'sentry/components/feedback/getFeedbackItemQueryKey';
 import useFeedbackListQueryKey from 'sentry/components/feedback/useFeedbackListQueryKey';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 
 interface Props {
   children: ReactNode;

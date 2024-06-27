@@ -6,15 +6,15 @@ import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import SentryAppAvatar from 'sentry/components/avatar/sentryAppAvatar';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
-import type {
-  AvatarProject,
-  AvatarSentryApp,
-  DocIntegration,
-  OrganizationSummary,
-  Team,
-} from 'sentry/types';
+import type {Actor} from 'sentry/types/core';
+import type {AvatarSentryApp, DocIntegration} from 'sentry/types/integrations';
+import type {OrganizationSummary, Team} from 'sentry/types/organization';
+import type {AvatarProject} from 'sentry/types/project';
+
+import ActorAvatar from './actorAvatar';
 
 type Props = {
+  actor?: Actor;
   docIntegration?: DocIntegration;
   /**
    * True if the Avatar is full color, rather than B&W (Used for SentryAppAvatar)
@@ -33,6 +33,7 @@ type Props = {
 const Avatar = forwardRef(function Avatar(
   {
     hasTooltip = false,
+    actor,
     user,
     team,
     project,
@@ -46,6 +47,10 @@ const Avatar = forwardRef(function Avatar(
   ref: React.Ref<HTMLSpanElement>
 ) {
   const commonProps = {hasTooltip, forwardedRef: ref, ...props};
+
+  if (actor) {
+    return <ActorAvatar actor={actor} {...commonProps} />;
+  }
 
   if (user) {
     return <UserAvatar user={user} {...commonProps} />;

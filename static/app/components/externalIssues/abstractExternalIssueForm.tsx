@@ -168,7 +168,7 @@ export default class AbstractExternalIssueForm<
    * searching in an async select field without selecting one of the returned choices will
    * result in a value saved to the form, and no associated label; appearing empty.
    * @param field The field being examined
-   * @param result The result from it's asynchronous query
+   * @param result The result from its asynchronous query
    * @returns The result with a tooltip attached to the current option
    */
   ensureCurrentOption = (

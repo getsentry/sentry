@@ -1,11 +1,18 @@
 from functools import wraps
+from random import random
 
 from sentry import features
-from sentry.dynamic_sampling.tasks.common import TimeoutException
-from sentry.dynamic_sampling.tasks.logging import log_task_execution, log_task_timeout
 from sentry.dynamic_sampling.tasks.task_context import TaskContext
 from sentry.models.organization import Organization
 from sentry.utils import metrics
+
+
+def sample_function(function, _sample_rate: float = 1.0, **kwargs):
+    """
+    Calls the supplied function with a uniform probability of `_sample_rate`.
+    """
+    if _sample_rate >= 1.0 or 0.0 <= random() <= _sample_rate:
+        function(**kwargs)
 
 
 def has_dynamic_sampling(organization: Organization | None) -> bool:
@@ -32,14 +39,7 @@ def dynamic_sampling_task_with_context(max_task_execution: int):
             # We will count how much it takes to run the function.
             with metrics.timer(task_name, sample_rate=1.0):
                 context = TaskContext(task_name, max_task_execution)
-
-                try:
-                    func(context=context)
-                except TimeoutException:
-                    log_task_timeout(context)
-                    raise
-                else:
-                    log_task_execution(context)
+                func(context=context)
 
         return _wrapper
 

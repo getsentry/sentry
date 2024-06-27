@@ -4,8 +4,8 @@ from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Any
 from unittest.mock import patch
-from urllib.parse import parse_qs
 
+import orjson
 import responses
 from rest_framework import status
 
@@ -15,17 +15,16 @@ from sentry.integrations.slack.message_builder.notifications.rule_save_edit impo
 )
 from sentry.integrations.slack.utils.channel import strip_channel_name
 from sentry.issues.grouptype import GroupCategory
-from sentry.models.actor import Actor, get_actor_for_user
 from sentry.models.environment import Environment
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.utils import json
+from sentry.types.actor import Actor
 
 
 def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
@@ -37,10 +36,16 @@ def assert_rule_from_payload(rule: Rule, payload: Mapping[str, Any]) -> None:
 
     owner_id = payload.get("owner")
     if owner_id:
-        with assume_test_silo_mode(SiloMode.REGION):
-            assert Actor.objects.get(id=rule.owner_id)
+        actor = Actor.from_identifier(owner_id)
+        if actor.is_user:
+            assert rule.owner_user_id == actor.id
+            assert rule.owner_team_id is None
+        if actor.is_team:
+            assert rule.owner_team_id == actor.id
+            assert rule.owner_user_id is None
     else:
-        assert rule.owner is None
+        assert rule.owner_team_id is None
+        assert rule.owner_user_id is None
 
     environment = payload.get("environment")
     if environment:
@@ -170,6 +175,65 @@ class ProjectRuleDetailsTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["conditions"][0]["id"] == conditions[0]["id"]
         assert len(response.data["filters"]) == 1
         assert response.data["filters"][0]["id"] == conditions[1]["id"]
+
+    def test_with_assigned_to_team_filter(self):
+        conditions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
+            {
+                "targetType": "Team",
+                "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
+                "targetIdentifier": self.team.id,
+            },
+        ]
+        actions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
+        ]
+        data = {
+            "conditions": conditions,
+            "actions": actions,
+            "filter_match": "all",
+            "action_match": "all",
+            "frequency": 30,
+        }
+        self.rule.update(data=data)
+
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
+        )
+        assert response.data["id"] == str(self.rule.id)
+        assert (
+            response.data["filters"][0]["name"]
+            == f"The issue is assigned to team #{self.team.slug}"
+        )
+
+    def test_with_assigned_to_user_filter(self):
+        conditions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.conditions.every_event.EveryEventCondition"},
+            {
+                "targetType": "Member",
+                "id": "sentry.rules.filters.assigned_to.AssignedToFilter",
+                "targetIdentifier": self.user.id,
+            },
+        ]
+        actions: list[dict[str, Any]] = [
+            {"id": "sentry.rules.actions.notify_event.NotifyEventAction"}
+        ]
+        data = {
+            "conditions": conditions,
+            "actions": actions,
+            "filter_match": "all",
+            "action_match": "all",
+            "frequency": 30,
+        }
+        self.rule.update(data=data)
+
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200
+        )
+        assert response.data["id"] == str(self.rule.id)
+        assert (
+            response.data["filters"][0]["name"] == f"The issue is assigned to {self.user.username}"
+        )
 
     @responses.activate
     def test_neglected_rule(self):
@@ -534,6 +598,41 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         assert response.data["id"] == str(self.rule.id)
         assert_rule_from_payload(self.rule, payload)
 
+    def test_update_owner_type(self):
+        team = self.create_team(organization=self.organization)
+        actions = [{"id": "sentry.rules.actions.notify_event.NotifyEventAction"}]
+        payload = {
+            "name": "hello world 2",
+            "owner": f"team:{team.id}",
+            "actionMatch": "all",
+            "actions": actions,
+            "conditions": self.first_seen_condition,
+        }
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
+        )
+        assert response.data["id"] == str(self.rule.id)
+        assert response.data["owner"] == f"team:{team.id}"
+        rule = Rule.objects.get(id=response.data["id"])
+        assert rule.owner_team_id == team.id
+        assert rule.owner_user_id is None
+
+        payload = {
+            "name": "hello world 2",
+            "owner": f"user:{self.user.id}",
+            "actionMatch": "all",
+            "actions": actions,
+            "conditions": self.first_seen_condition,
+        }
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
+        )
+        assert response.data["id"] == str(self.rule.id)
+        assert response.data["owner"] == f"user:{self.user.id}"
+        rule = Rule.objects.get(id=response.data["id"])
+        assert rule.owner_team_id is None
+        assert rule.owner_user_id == self.user.id
+
     def test_update_name(self):
         conditions = [
             {
@@ -607,7 +706,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             {
                 "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
                 "interval": "1h",
-                "value": "100",
+                "value": "100.0",
                 "comparisonType": "count",
             }
         )
@@ -768,7 +867,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             {
                 "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
                 "interval": "1h",
-                "value": "100",
+                "value": "100.0",
                 "comparisonType": "count",
             }
         )
@@ -976,14 +1075,14 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             url="https://slack.com/api/conversations.list",
             status=200,
             content_type="application/json",
-            body=json.dumps(channels),
+            body=orjson.dumps(channels),
         )
         responses.add(
             method=responses.GET,
             url="https://slack.com/api/conversations.info",
             status=200,
             content_type="application/json",
-            body=json.dumps({"ok": channels["ok"], "channel": channels["channels"][1]}),
+            body=orjson.dumps({"ok": channels["ok"], "channel": channels["channels"][1]}),
         )
 
         payload = {
@@ -1002,9 +1101,16 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
 
     @responses.activate
     @with_feature("organizations:rule-create-edit-confirm-notification")
-    @with_feature({"organizations:slack-block-kit": False})
-    def test_slack_confirmation_notification_contents(self):
-        # TODO: make this a block kit test
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
+    @patch(
+        "slack_sdk.web.client.WebClient._perform_urllib_http_request",
+        return_value={
+            "body": orjson.dumps({"ok": True}).decode(),
+            "headers": {},
+            "status": 200,
+        },
+    )
+    def test_slack_confirmation_notification_contents(self, mock_api_call, mock_post):
         conditions = [
             {"id": "sentry.rules.conditions.first_seen_event.FirstSeenEventCondition"},
         ]
@@ -1042,30 +1148,23 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             url="https://slack.com/api/conversations.list",
             status=200,
             content_type="application/json",
-            body=json.dumps(channels),
+            body=orjson.dumps(channels),
         )
         responses.add(
             method=responses.GET,
             url="https://slack.com/api/conversations.info",
             status=200,
             content_type="application/json",
-            body=json.dumps({"ok": channels["ok"], "channel": channels["channels"][1]}),
+            body=orjson.dumps({"ok": channels["ok"], "channel": channels["channels"][1]}),
         )
         blocks = SlackRuleSaveEditMessageBuilder(rule=self.rule, new=False).build()
         payload = {
             "text": blocks.get("text"),
-            "blocks": json.dumps(blocks.get("blocks")),
+            "blocks": orjson.dumps(blocks.get("blocks")).decode(),
             "channel": "new_channel_id",
             "unfurl_links": False,
             "unfurl_media": False,
         }
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.postMessage",
-            status=200,
-            content_type="application/json",
-            body=json.dumps(payload),
-        )
         staging_env = self.create_environment(
             self.project, name="staging", organization=self.organization
         )
@@ -1078,7 +1177,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             "frequency": 180,
             "filters": filters,
             "environment": staging_env.name,
-            "owner": get_actor_for_user(self.user).get_actor_identifier(),
+            "owner": f"user:{self.user.id}",
         }
         response = self.get_success_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
@@ -1086,23 +1185,23 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         rule_id = response.data["id"]
         rule_label = response.data["name"]
         assert response.data["actions"][0]["channel_id"] == "new_channel_id"
-        data = parse_qs(responses.calls[1].request.body)
-        message = f"Alert rule <http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> in the *{self.project.slug}* project was updated."
-        assert data["text"][0] == message
-        rendered_blocks = json.loads(data["blocks"][0])
-        assert rendered_blocks[0]["text"]["text"] == message
-        changes = "*Changes*\n"
+        sent_blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
+        message = "*Alert rule updated*\n\n"
+        message += f"<http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> in the <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|*{self.project.slug}*> project was recently updated."
+        assert sent_blocks[0]["text"]["text"] == message
+
+        changes = "Changes\n"
         changes += "• Added condition 'The issue's category is equal to Performance'\n"
-        changes += "• Changed action from *Send a notification to the Awesome Team Slack workspace to #old_channel_name (optionally, an ID: old_channel_id) and show tags [] in notification* to *Send a notification to the Awesome Team Slack workspace to new_channel_name (optionally, an ID: new_channel_id) and show tags [] in notification*\n"
-        changes += "• Changed frequency from *5 minutes* to *3 hours*\n"
-        changes += f"• Added *{staging_env.name}* environment\n"
-        changes += "• Changed rule name from *my rule* to *new rule*\n"
-        changes += "• Changed trigger from *None* to *any*\n"
-        changes += "• Changed filter from *None* to *any*\n"
-        changes += f"• Changed owner from *Unassigned* to *{self.user.email}*\n"
-        assert rendered_blocks[1]["text"]["text"] == changes
+        changes += "• Changed action from 'Send a notification to the Awesome Team Slack workspace to #old_channel_name' to 'Send a notification to the Awesome Team Slack workspace to #new_channel_name'\n"
+        changes += "• Changed frequency from '5 minutes' to '3 hours'\n"
+        changes += f"• Added '{staging_env.name}' environment\n"
+        changes += "• Changed rule name from 'my rule' to 'new rule'\n"
+        changes += "• Changed trigger from 'None' to 'any'\n"
+        changes += "• Changed filter from 'None' to 'any'\n"
+        changes += f"• Changed owner from 'Unassigned' to '{self.user.email}'\n"
+        assert sent_blocks[1]["text"]["text"] == changes
         assert (
-            rendered_blocks[2]["elements"][0]["text"]
+            sent_blocks[2]["elements"][0]["text"]
             == "<http://testserver/settings/account/notifications/alerts/|*Notification Settings*>"
         )
 
@@ -1131,14 +1230,14 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             url="https://slack.com/api/conversations.list",
             status=200,
             content_type="application/json",
-            body=json.dumps(channels),
+            body=orjson.dumps(channels),
         )
         responses.add(
             method=responses.GET,
             url="https://slack.com/api/conversations.info",
             status=200,
             content_type="application/json",
-            body=json.dumps({"ok": channels["ok"], "channel": channels["channels"][0]}),
+            body=orjson.dumps({"ok": channels["ok"], "channel": channels["channels"][0]}),
         )
 
         actions[0]["channel"] = "#new_channel_name"
@@ -1162,7 +1261,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             url="https://slack.com/api/conversations.info",
             status=200,
             content_type="application/json",
-            body=json.dumps(
+            body=orjson.dumps(
                 {"ok": "true", "channel": {"name": "team-team-team", "id": channel_id}}
             ),
         )
@@ -1173,7 +1272,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             "actions": [
                 {
                     "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
-                    "name": "Send a notification to the funinthesun Slack workspace to #team-team-team and show tags [] in notification",
+                    "name": "Send a notification to the funinthesun Slack workspace to #team-team-team",
                     "workspace": str(self.slack_integration.id),
                     "channel": "#team-team-team",
                     "channel_id": channel_id,
@@ -1233,7 +1332,7 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             "filterMatch": "any",
             "conditions": [{"id": "sentry.rules.conditions.tagged_event.TaggedEventCondition"}],
             "actions": [],
-            "owner": get_actor_for_user(new_user).get_actor_identifier(),
+            "owner": f"user:{new_user.id}",
         }
         response = self.get_error_response(
             self.organization.slug, self.project.slug, self.rule.id, status_code=400, **payload

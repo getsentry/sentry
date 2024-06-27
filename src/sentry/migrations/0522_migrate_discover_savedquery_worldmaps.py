@@ -4,13 +4,13 @@ from django.db import migrations
 from django.db.backends.base.schema import BaseDatabaseSchemaEditor
 from django.db.migrations.state import StateApps
 
-from sentry.discover.models import DiscoverSavedQuery
 from sentry.new_migrations.migrations import CheckedMigration
 
 
 def migrate_savedquery_worldmap_display_to_totalPeriod(
     apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
 ) -> None:
+    DiscoverSavedQuery = apps.get_model("sentry", "DiscoverSavedQuery")
     savedQueries = DiscoverSavedQuery.objects.filter(query__contains={"display": "worldmap"})
 
     for savedQuery in savedQueries:

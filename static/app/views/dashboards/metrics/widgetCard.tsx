@@ -10,7 +10,10 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import {parseMRI} from 'sentry/utils/metrics/mri';
+import {MetricExpressionType} from 'sentry/utils/metrics/types';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import {MetricBigNumberContainer} from 'sentry/views/dashboards/metrics/bigNumber';
 import {MetricChartContainer} from 'sentry/views/dashboards/metrics/chart';
@@ -26,6 +29,7 @@ import {WidgetCardPanel, WidgetTitleRow} from 'sentry/views/dashboards/widgetCar
 import {DashboardsMEPContext} from 'sentry/views/dashboards/widgetCard/dashboardsMEPContext';
 import {Toolbar} from 'sentry/views/dashboards/widgetCard/toolbar';
 import WidgetCardContextMenu from 'sentry/views/dashboards/widgetCard/widgetCardContextMenu';
+import {useMetricsIntervalOptions} from 'sentry/views/metrics/utils/useMetricsIntervalParam';
 import {getWidgetTitle} from 'sentry/views/metrics/widget';
 
 type Props = {
@@ -45,6 +49,8 @@ type Props = {
   showContextMenu?: boolean;
 };
 
+const EMPTY_FN = () => {};
+
 export function MetricWidgetCard({
   organization,
   selection,
@@ -62,8 +68,25 @@ export function MetricWidgetCard({
     () => expressionsToApiQueries(getMetricExpressions(widget, dashboardFilters)),
     [widget, dashboardFilters]
   );
+  const hasSetMetric = useMemo(
+    () =>
+      getMetricExpressions(widget, dashboardFilters).some(
+        expression =>
+          expression.type === MetricExpressionType.QUERY &&
+          parseMRI(expression.mri)!.type === 's'
+      ),
+    [widget, dashboardFilters]
+  );
 
   const widgetMQL = useMemo(() => getWidgetTitle(metricQueries), [metricQueries]);
+
+  const {interval: validatedInterval} = useMetricsIntervalOptions({
+    // TODO: Figure out why this can be undefined
+    interval: widget.interval ?? '',
+    hasSetMetric,
+    datetime: selection.datetime,
+    onIntervalChange: EMPTY_FN,
+  });
 
   const {
     data: timeseriesData,
@@ -71,7 +94,7 @@ export function MetricWidgetCard({
     isError,
     error,
   } = useMetricsQuery(metricQueries, selection, {
-    intervalLadder: widget.displayType === DisplayType.BAR ? 'bar' : 'dashboard',
+    interval: validatedInterval,
   });
 
   const vizualizationComponent = useMemo(() => {
@@ -86,11 +109,7 @@ export function MetricWidgetCard({
     }
     if (widget.displayType === DisplayType.BIG_NUMBER) {
       return (
-        <MetricBigNumberContainer
-          timeseriesData={timeseriesData}
-          isLoading={isLoading}
-          metricQueries={metricQueries}
-        />
+        <MetricBigNumberContainer timeseriesData={timeseriesData} isLoading={isLoading} />
       );
     }
 
@@ -101,6 +120,7 @@ export function MetricWidgetCard({
         metricQueries={metricQueries}
         displayType={toMetricDisplayType(widget.displayType)}
         chartHeight={!showContextMenu ? 200 : undefined}
+        showLegend
       />
     );
   }, [widget.displayType, metricQueries, timeseriesData, isLoading, showContextMenu]);
@@ -202,7 +222,7 @@ const WidgetTitle = styled(HeaderTitle)`
   padding-top: ${space(2)};
   padding-right: ${space(1)};
   ${p => p.theme.overflowEllipsis};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const ErrorWrapper = styled('div')`

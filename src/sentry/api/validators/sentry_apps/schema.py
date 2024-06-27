@@ -1,10 +1,9 @@
 import logging
 
+import orjson
 from jsonschema import Draft7Validator
 from jsonschema.exceptions import ValidationError as SchemaValidationError
 from jsonschema.exceptions import best_match
-
-from sentry.utils import json
 
 logger = logging.getLogger(__name__)
 
@@ -277,7 +276,7 @@ def validate_ui_element_schema(instance):
             "Unexpected error validating schema: %s",
             e,
             exc_info=True,
-            extra={"schema": json.dumps(instance)},
+            extra={"schema": orjson.dumps(instance).decode()},
         )
         # pre-validators might have unexpected errors if the format is not what they expect in the check
         # if that happens, we should eat the error and let the main validator find the schema error

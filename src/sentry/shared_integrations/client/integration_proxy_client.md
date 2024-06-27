@@ -8,14 +8,14 @@ Outbound integration requests can come from either silo type, region or control.
 
 ## How it Works
 
-The proxying is managed by the [`IntegrationProxyClient`](src/sentry/shared_integrations/client/proxy.py). It inherits from the `ApiClient` to act as a drop in replacement, except that it requires an `org_integration_id` to `__init__`, and `def authorize_request()` must be implemented. Before any request made with the client, it checks which silo is creating the request:
+The proxying is managed by the [`IntegrationProxyClient`](/src/sentry/shared_integrations/client/proxy.py). It inherits from the `ApiClient` to act as a drop in replacement, except that it requires an `org_integration_id` to `__init__`, and `def authorize_request()` must be implemented. Before any request made with the client, it checks which silo is creating the request:
 
 - If its in Monolith/Control mode, the client adds authentication data via `self.authorize_request` and proceeds as usual.
-- If its in Region mode, the client does NOT add authentication data for the integration. Instead, it adds some headers ([PROXY_OI_HEADER and PROXY_SIGNATURE_HEADER](src/sentry/silo/util.py)) and sends the request to the control silo at a specific endpoint:
+- If its in Region mode, the client does NOT add authentication data for the integration. Instead, it adds some headers ([PROXY_OI_HEADER and PROXY_SIGNATURE_HEADER](/src/sentry/silo/util.py)) and sends the request to the control silo at a specific endpoint:
   ```
   {SENTRY_CONTROL_ADDRESS}/api/0/internal/integration-proxy # PROXY_BASE_PATH
   ```
-  The [integration proxy endpoint](src/sentry/api/endpoints/internal/integration_proxy.py) parses the headers to verify the request is coming from a valid Region silo, and then replays the request with the proper authentication data (from `self.authorize_request`). The raw response is sent back to the originating silo to handle itself!
+  The [integration proxy endpoint](/src/sentry/api/endpoints/internal/integration_proxy.py) parses the headers to verify the request is coming from a valid Region silo, and then replays the request with the proper authentication data (from `self.authorize_request`). The raw response is sent back to the originating silo to handle itself!
 
 ## Implementing the IntegrationProxyClient
 
@@ -35,7 +35,7 @@ def get_client(self):
     return ExampleApiClient(org_integration_id=self.org_integration.id)
 ```
 
-The helper method [`infer_org_integration`](src/sentry/shared_integrations/client/proxy.py) may help if you only have `integration_id` context.
+The helper method [`infer_org_integration`](/src/sentry/shared_integrations/client/proxy.py) may help if you only have `integration_id` context.
 
 ```python
 class ExampleApiClient(IntegrationProxyClient):

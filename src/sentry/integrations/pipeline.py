@@ -26,7 +26,7 @@ from sentry.web.helpers import render_to_response
 
 logger = logging.getLogger(__name__)
 
-from . import default_manager
+from sentry.integrations.manager import default_manager
 
 
 def ensure_integration(key, data):
@@ -238,7 +238,7 @@ class IntegrationPipeline(Pipeline):
 
     def _dialog_response(self, data, success):
         document_origin = "document.origin"
-        if features.has("organizations:customer-domains", self.organization):
+        if features.has("system:multi-region"):
             document_origin = f'"{generate_organization_url(self.organization.slug)}"'
         context = {
             "payload": {"success": success, "data": data},

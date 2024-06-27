@@ -1,6 +1,5 @@
 import {Component, Fragment} from 'react';
 import type {WithRouterProps} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
@@ -22,7 +21,8 @@ import StreamGroup, {
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import {space} from 'sentry/styles/space';
-import type {Group} from 'sentry/types';
+import type {Group} from 'sentry/types/group';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import withApi from 'sentry/utils/withApi';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
@@ -51,10 +51,13 @@ export type GroupListColumn =
 
 type Props = WithRouterProps & {
   api: Client;
-  endpointPath: string;
   orgSlug: string;
-  query: string;
+  queryParams: Record<string, number | string | string[] | undefined | null>;
   customStatsPeriod?: TimePeriodType;
+  /**
+   * Defaults to `/organizations/${orgSlug}/issues/`
+   */
+  endpointPath?: string;
   onFetchSuccess?: (
     groupListState: State,
     onCursor: (
@@ -64,8 +67,11 @@ type Props = WithRouterProps & {
       pageDiff: number
     ) => void
   ) => void;
+  /**
+   * Use `query` within `queryParams` for passing the parameter to the endpoint
+   */
+  query?: string;
   queryFilterDescription?: string;
-  queryParams?: Record<string, number | string | string[] | undefined | null>;
   renderEmptyMessage?: () => React.ReactNode;
   renderErrorMessage?: (props: {detail: string}, retry: () => void) => React.ReactNode;
   // where the group list is rendered
@@ -142,7 +148,9 @@ class GroupList extends Component<Props, State> {
 
     const endpoint = this.getGroupListEndpoint();
 
-    const parsedQuery = parseSearch((queryParams ?? this.getQueryParams()).query);
+    const parsedQuery = parseSearch(
+      (queryParams ?? this.getQueryParams()).query as string
+    );
     const hasLogicBoolean = parsedQuery
       ? treeResultLocator<boolean>({
           tree: parsedQuery,

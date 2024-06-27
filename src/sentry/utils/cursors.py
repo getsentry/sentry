@@ -3,8 +3,6 @@ from __future__ import annotations
 from collections.abc import Callable, Iterator, Sequence
 from typing import Any, Protocol, TypeVar, Union
 
-from sentry.utils.json import JSONData
-
 T = TypeVar("T")
 CursorValue = Union[float, int, str]
 
@@ -14,7 +12,7 @@ class KeyCallable(Protocol):
         ...
 
 
-OnResultCallable = Callable[[Sequence[T]], JSONData]
+OnResultCallable = Callable[[Sequence[T]], Any]
 
 
 class Cursor:
@@ -251,7 +249,7 @@ def build_cursor(
     hits: int | None = None,
     max_hits: int | None = None,
     on_results: OnResultCallable[T] | None = None,
-) -> CursorResult[T | JSONData]:
+) -> CursorResult[T | Any]:
     if cursor is None:
         cursor = Cursor(0, 0, 0)
 

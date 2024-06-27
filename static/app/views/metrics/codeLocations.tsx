@@ -8,13 +8,14 @@ import ContextLine from 'sentry/components/events/interfaces/frame/contextLine';
 import DefaultTitle from 'sentry/components/events/interfaces/frame/defaultTitle';
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import type {SelectionRange} from 'sentry/components/metrics/chart/types';
 import {IconChevron, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Frame, MRI} from 'sentry/types';
+import type {Frame} from 'sentry/types/event';
+import type {MRI} from 'sentry/types/metrics';
 import type {MetricCodeLocationFrame} from 'sentry/utils/metrics/types';
 import {useMetricCodeLocations} from 'sentry/utils/metrics/useMetricsCodeLocations';
-import type {SelectionRange} from 'sentry/views/metrics/chart/types';
 
 interface CodeLocationsProps extends SelectionRange {
   mri?: MRI;
@@ -118,6 +119,9 @@ function CodeLocation({codeLocation, isFirst, isLast}: CodeLocationProps) {
                 size="zero"
                 iconSize="xs"
                 borderless
+                onClick={e => {
+                  e.stopPropagation();
+                }}
               />
               <ToggleCodeLocationContextButton
                 disabled={!hasContext}
@@ -213,7 +217,6 @@ const SourceContextWrapper = styled('div')<{isLast?: boolean}>`
   word-wrap: break-word;
   font-family: ${p => p.theme.text.familyMono};
   font-size: ${p => p.theme.fontSizeSmall};
-  /* TODO(ddm): find out how it is done on the issues page */
   line-height: 24px;
   min-height: ${space(3)};
   white-space: pre;

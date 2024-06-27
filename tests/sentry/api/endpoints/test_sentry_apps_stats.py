@@ -1,8 +1,9 @@
+import orjson
+
 from sentry.api.serializers.base import serialize
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
-from sentry.utils import json
 
 
 @control_silo_test
@@ -33,7 +34,7 @@ class SentryAppsStatsTest(APITestCase):
             "name": self.app_two.name,
             "installs": 1,
             "avatars": [],
-        } in json.loads(response.content)
+        } in orjson.loads(response.content)
         assert {
             "id": self.app_one.id,
             "uuid": self.app_one.uuid,
@@ -41,7 +42,7 @@ class SentryAppsStatsTest(APITestCase):
             "name": self.app_one.name,
             "installs": 1,
             "avatars": [serialize(self.app_one_avatar)],
-        } in json.loads(response.content)
+        } in orjson.loads(response.content)
 
     def test_superuser_has_access(self):
         self.login_as(user=self.superuser, superuser=True)

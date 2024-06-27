@@ -3,7 +3,7 @@ import type {ReactNode} from 'react';
 import Access from 'sentry/components/acl/access';
 import {Alert} from 'sentry/components/alert';
 import {t} from 'sentry/locale';
-import type {Scope} from 'sentry/types';
+import type {Scope} from 'sentry/types/core';
 
 type Props = React.ComponentPropsWithoutRef<typeof Alert> & {
   access?: Scope[];

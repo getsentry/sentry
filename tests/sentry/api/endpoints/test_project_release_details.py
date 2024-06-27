@@ -36,8 +36,8 @@ class ReleaseDetailsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-details",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -62,8 +62,8 @@ class UpdateReleaseDetailsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-details",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -88,8 +88,8 @@ class UpdateReleaseDetailsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-details",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -119,8 +119,8 @@ class UpdateReleaseDetailsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-details",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -149,8 +149,8 @@ class UpdateReleaseDetailsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-details",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -187,8 +187,8 @@ class UpdateReleaseDetailsTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-details",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -224,8 +224,8 @@ class ReleaseDeleteTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-details",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )
@@ -248,8 +248,8 @@ class ReleaseDeleteTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-release-details",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "version": release.version,
             },
         )

@@ -4,7 +4,7 @@ import {UserFixture} from 'sentry-fixture/user';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {GroupActivityType} from 'sentry/types';
+import {GroupActivityType} from 'sentry/types/group';
 
 import ResolutionBox from './resolutionBox';
 
@@ -110,6 +110,27 @@ describe('ResolutionBox', function () {
     );
     expect(container).toHaveTextContent(
       'This issue has been marked as resolved by f7f395din'
+    );
+  });
+
+  it('handles inUpcomingRelease', function () {
+    const {container} = render(
+      <ResolutionBox
+        statusDetails={{
+          inUpcomingRelease: true,
+          actor: {
+            id: '111',
+            name: 'David Cramer',
+            username: 'dcramer',
+            ip_address: '127.0.0.1',
+            email: 'david@sentry.io',
+          },
+        }}
+        projectId="1"
+      />
+    );
+    expect(container).toHaveTextContent(
+      'David Cramer marked this issue as resolved in the upcoming release.'
     );
   });
 });

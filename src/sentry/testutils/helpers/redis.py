@@ -1,10 +1,19 @@
 from collections.abc import Generator
 from contextlib import contextmanager
 from typing import Any
+from unittest.mock import patch
 
 from django.test.utils import override_settings
 
+from sentry.buffer.redis import RedisBuffer
 from sentry.testutils.helpers import override_options
+
+
+@contextmanager
+def mock_redis_buffer():
+    buffer = RedisBuffer()
+    with patch("sentry.buffer.backend", new=buffer):
+        yield buffer
 
 
 @contextmanager
@@ -12,6 +21,7 @@ def use_redis_cluster(
     cluster_id: str = "cluster",
     high_watermark: int = 100,
     with_settings: dict[str, Any] | None = None,
+    with_options: dict[str, Any] | None = None,
 ) -> Generator[None, None, None]:
     # Cluster id needs to be different than "default" to distinguish redis instance with redis cluster.
 
@@ -31,6 +41,9 @@ def use_redis_cluster(
             }
         },
     }
+
+    if with_options:
+        options.update(with_options)
 
     settings = dict(with_settings or {})
     settings["SENTRY_PROCESSING_SERVICES"] = {"redis": {"redis": cluster_id}}

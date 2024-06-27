@@ -521,7 +521,6 @@ function WidgetViewerModal(props: Props) {
             }),
             onResizeColumn,
           }}
-          location={location}
         />
         {(links?.previous?.results || links?.next?.results) && (
           <Pagination
@@ -586,7 +585,6 @@ function WidgetViewerModal(props: Props) {
             }),
             onResizeColumn,
           }}
-          location={location}
         />
         {(links?.previous?.results || links?.next?.results) && (
           <Pagination
@@ -663,7 +661,6 @@ function WidgetViewerModal(props: Props) {
             }),
             onResizeColumn,
           }}
-          location={location}
         />
         {!tableWidget.queries[0].orderby.match(/^-?release$/) &&
           (links?.previous?.results || links?.next?.results) && (

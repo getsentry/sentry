@@ -1,7 +1,8 @@
-import type {LocationDescriptorObject, Query} from 'history';
+import type {Location, LocationDescriptorObject} from 'history';
 
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
 import type {Organization, OrganizationSummary} from 'sentry/types';
+import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {
   EventLite,
   TraceError,
@@ -15,19 +16,31 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
 import type {TraceInfo} from './types';
 
-export function getTraceDetailsUrl(
-  organization: OrganizationSummary,
-  traceSlug: string,
+export function getTraceDetailsUrl({
+  organization,
+  traceSlug,
   dateSelection,
-  query: Query,
-  timestamp?: string | number,
-  eventId?: string,
-  spanId?: string
-): LocationDescriptorObject {
+  timestamp,
+  spanId,
+  eventId,
+  demo,
+  location,
+  source,
+}: {
+  dateSelection;
+  location: Location;
+  organization: Pick<OrganizationSummary, 'slug' | 'features'>;
+  traceSlug: string;
+  demo?: string;
+  eventId?: string;
+  source?: string;
+  spanId?: string;
+  timestamp?: string | number;
+}): LocationDescriptorObject {
   const {start, end, statsPeriod} = dateSelection;
 
   const queryParams = {
-    ...query,
+    ...location.query,
     statsPeriod,
     [PAGE_URL_PARAM.PAGE_START]: start,
     [PAGE_URL_PARAM.PAGE_END]: end,
@@ -43,8 +56,10 @@ export function getTraceDetailsUrl(
       ),
       query: {
         ...queryParams,
-        timestamp,
+        timestamp: getTimeStampFromTableDateField(timestamp),
         eventId,
+        demo,
+        source,
       },
     };
   }

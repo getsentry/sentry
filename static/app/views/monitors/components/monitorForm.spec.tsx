@@ -19,10 +19,11 @@ jest.mock('sentry/utils/useTeams');
 jest.mock('sentry/utils/useMembers');
 
 describe('MonitorForm', function () {
-  const organization = OrganizationFixture({features: ['issue-platform']});
+  const organization = OrganizationFixture();
+
   const member = MemberFixture({user: UserFixture({name: 'John Smith'})});
   const team = TeamFixture({slug: 'test-team'});
-  const {project, routerContext} = initializeOrg({organization});
+  const {project, router} = initializeOrg({organization});
 
   beforeEach(() => {
     jest.mocked(useProjects).mockReturnValue({
@@ -63,7 +64,7 @@ describe('MonitorForm', function () {
         apiEndpoint={`/organizations/${organization.slug}/monitors/`}
         onSubmitSuccess={jest.fn()}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     const schedule = screen.getByRole('textbox', {name: 'Crontab Schedule'});
@@ -85,7 +86,7 @@ describe('MonitorForm', function () {
         onSubmitSuccess={mockHandleSubmitSuccess}
         submitLabel="Add Monitor"
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     await userEvent.type(screen.getByRole('textbox', {name: 'Name'}), 'My Monitor');
@@ -115,6 +116,9 @@ describe('MonitorForm', function () {
       screen.getByRole('spinbutton', {name: 'Recovery Tolerance'}),
       '2'
     );
+
+    const ownerSelect = screen.getByRole('textbox', {name: 'Owner'});
+    await selectEvent.select(ownerSelect, 'John Smith');
 
     const notifySelect = screen.getByRole('textbox', {name: 'Notify'});
 
@@ -156,6 +160,7 @@ describe('MonitorForm', function () {
         data: {
           name: 'My Monitor',
           project: 'project-slug',
+          owner: `user:${member.user?.id}`,
           type: 'cron_job',
           config,
           alertRule,
@@ -183,7 +188,7 @@ describe('MonitorForm', function () {
         onSubmitSuccess={jest.fn()}
         submitLabel="Edit Monitor"
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     // Name and slug
@@ -218,6 +223,12 @@ describe('MonitorForm', function () {
     // Tolerances
     expect(screen.getByRole('spinbutton', {name: 'Failure Tolerance'})).toHaveValue(2);
     expect(screen.getByRole('spinbutton', {name: 'Recovery Tolerance'})).toHaveValue(2);
+
+    // Ownership
+    await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Owner'}));
+    const ownerOption = screen.getByRole('menuitemradio', {name: member.user?.name});
+    expect(ownerOption).toBeChecked();
+    await userEvent.keyboard('{Escape}');
 
     // Alert rule configuration
     await selectEvent.openMenu(screen.getByRole('textbox', {name: 'Notify'}));
@@ -268,6 +279,7 @@ describe('MonitorForm', function () {
           name: monitor.name,
           slug: monitor.slug,
           project: monitor.project.slug,
+          owner: `user:${member.user?.id}`,
           type: 'cron_job',
           config,
           alertRule,

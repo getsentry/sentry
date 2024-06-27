@@ -1,6 +1,8 @@
 import {Fragment, useEffect, useRef} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
+import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import CrashReportSection from 'sentry/components/feedback/feedbackItem/crashReportSection';
 import FeedbackActivitySection from 'sentry/components/feedback/feedbackItem/feedbackActivitySection';
@@ -15,7 +17,7 @@ import TextCopyInput from 'sentry/components/textCopyInput';
 import {IconChat, IconFire, IconLink, IconTag} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -27,8 +29,11 @@ interface Props {
 
 export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const organization = useOrganization();
-  const url = eventData?.tags.find(tag => tag.key === 'url');
+  const url =
+    eventData?.contexts.feedback?.url ??
+    eventData?.tags.find(tag => tag.key === 'url')?.value;
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
+  const theme = useTheme();
 
   const overflowRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -40,6 +45,11 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
     }, 100);
   }, [feedbackItem.id, overflowRef]);
 
+  const URL_NOT_FOUND = t('URL not found');
+  const displayUrl =
+    eventData?.contexts.feedback || eventData?.tags ? url ?? URL_NOT_FOUND : '';
+  const urlIsLink = displayUrl.length && displayUrl !== URL_NOT_FOUND;
+
   return (
     <Fragment>
       <FeedbackItemHeader eventData={eventData} feedbackItem={feedbackItem} />
@@ -50,8 +60,18 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
 
         {!crashReportId || (crashReportId && url) ? (
           <Section icon={<IconLink size="xs" />} title={t('URL')}>
-            <TextCopyInput size="sm">
-              {eventData?.tags ? (url ? url.value : t('URL not found')) : ''}
+            <TextCopyInput
+              style={urlIsLink ? {color: theme.blue400} : undefined}
+              onClick={
+                urlIsLink
+                  ? e => {
+                      e.preventDefault();
+                      openNavigateToExternalLinkModal({linkText: displayUrl});
+                    }
+                  : () => {}
+              }
+            >
+              {displayUrl}
             </TextCopyInput>
           </Section>
         ) : null}
@@ -101,10 +121,10 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
 
 // 0 padding-bottom because <ActivitySection> has space(2) built-in.
 const OverflowPanelItem = styled(PanelItem)`
-  overflow: scroll;
+  overflow: auto;
 
   flex-direction: column;
   flex-grow: 1;
   gap: ${space(2)};
-  padding: ${space(2)} ${space(3)} 0 ${space(3)};
+  padding: ${space(2)} ${space(2)} 0 ${space(2)};
 `;

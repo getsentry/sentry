@@ -5,6 +5,8 @@ import colorFn from 'color';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import type {Series} from 'sentry/components/metrics/chart/types';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconFilter, IconLightning, IconReleases} from 'sentry/icons';
@@ -14,10 +16,13 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DEFAULT_SORT_STATE} from 'sentry/utils/metrics/constants';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
-import type {FocusedMetricsSeries, SortState} from 'sentry/utils/metrics/types';
+import {
+  type FocusedMetricsSeries,
+  MetricSeriesFilterUpdateType,
+  type SortState,
+} from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {Series} from 'sentry/views/metrics/chart/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 export const SummaryTable = memo(function SummaryTable({
@@ -33,7 +38,11 @@ export const SummaryTable = memo(function SummaryTable({
   onSortChange: (sortState: SortState) => void;
   series: Series[];
   onColorDotClick?: (series: FocusedMetricsSeries) => void;
-  onRowFilter?: (index: number, series: FocusedMetricsSeries) => void;
+  onRowFilter?: (
+    index: number,
+    series: FocusedMetricsSeries,
+    updateType: MetricSeriesFilterUpdateType
+  ) => void;
   onRowHover?: (seriesName: string) => void;
   sort?: SortState;
 }) {
@@ -82,14 +91,18 @@ export const SummaryTable = memo(function SummaryTable({
   );
 
   const handleRowFilter = useCallback(
-    (index: number | undefined, row: FocusedMetricsSeries) => {
+    (
+      index: number | undefined,
+      row: FocusedMetricsSeries,
+      updateType: MetricSeriesFilterUpdateType
+    ) => {
       if (index === undefined) {
         return;
       }
       trackAnalytics('ddm.widget.add_row_filter', {
         organization,
       });
-      onRowFilter?.(index, row);
+      onRowFilter?.(index, row, updateType);
     },
     [onRowFilter, organization]
   );
@@ -131,7 +144,7 @@ export const SummaryTable = memo(function SummaryTable({
     .map(s => {
       return {
         ...s,
-        ...getValues(s.data),
+        ...getValues(s),
       };
     })
     // Filter series with no data
@@ -173,7 +186,9 @@ export const SummaryTable = memo(function SummaryTable({
         {t('Sum')}
       </SortableHeaderCell>
       <SortableHeaderCell onClick={changeSort} sortState={sort} name="total" right>
-        {t('Total')}
+        <Tooltip title={t('Selected aggregation over the whole time period')}>
+          {t('Value')}
+        </Tooltip>
       </SortableHeaderCell>
       {hasActions && <HeaderCell disabled right />}
       <HeaderCell disabled />
@@ -251,7 +266,6 @@ export const SummaryTable = memo(function SummaryTable({
                       <TextOverflow>{seriesName}</TextOverflow>
                     </Tooltip>
                   </TextOverflowCell>
-                  {/* TODO(ddm): Add a tooltip with the full value, don't add on click in case users want to copy the value */}
                   <NumberCell>{formatMetricUsingUnit(avg, unit)}</NumberCell>
                   <NumberCell>{formatMetricUsingUnit(min, unit)}</NumberCell>
                   <NumberCell>{formatMetricUsingUnit(max, unit)}</NumberCell>
@@ -285,23 +299,58 @@ export const SummaryTable = memo(function SummaryTable({
                           </div>
                         )}
 
-                        <Tooltip title={t('Add to Filter')} disabled={isEquationSeries}>
-                          <Button
-                            disabled={isEquationSeries}
-                            onClick={event => {
-                              event.stopPropagation();
-
-                              handleRowFilter(queryIndex, {
-                                id,
-                                groupBy,
-                              });
-                            }}
-                            size="zero"
-                            borderless
-                          >
-                            <IconFilter size="sm" />
-                          </Button>
-                        </Tooltip>
+                        {/* do not show add/exclude filter if there's no groupby or if this is an equation */}
+                        {Object.keys(groupBy ?? {}).length > 0 && !isEquationSeries && (
+                          <DropdownMenu
+                            items={[
+                              {
+                                key: 'add-to-filter',
+                                label: t('Add to filter'),
+                                size: 'sm',
+                                onAction: () => {
+                                  handleRowFilter(
+                                    queryIndex,
+                                    {
+                                      id,
+                                      groupBy,
+                                    },
+                                    MetricSeriesFilterUpdateType.ADD
+                                  );
+                                },
+                              },
+                              {
+                                key: 'exclude-from-filter',
+                                label: t('Exclude from filter'),
+                                size: 'sm',
+                                onAction: () => {
+                                  handleRowFilter(
+                                    queryIndex,
+                                    {
+                                      id,
+                                      groupBy,
+                                    },
+                                    MetricSeriesFilterUpdateType.EXCLUDE
+                                  );
+                                },
+                              },
+                            ]}
+                            trigger={triggerProps => (
+                              <Button
+                                {...triggerProps}
+                                aria-label={t('Quick Context Action Menu')}
+                                data-test-id="quick-context-action-trigger"
+                                borderless
+                                size="zero"
+                                onClick={e => {
+                                  e.stopPropagation();
+                                  e.preventDefault();
+                                  triggerProps.onClick?.(e);
+                                }}
+                                icon={<IconFilter size="sm" />}
+                              />
+                            )}
+                          />
+                        )}
                       </ButtonBar>
                     </CenterCell>
                   )}
@@ -389,11 +438,12 @@ function SortableHeaderCell({
   );
 }
 
-function getValues(seriesData: Series['data']) {
-  if (!seriesData) {
+function getValues(series: Series) {
+  const {data, total, aggregate} = series;
+  if (!data) {
     return {min: null, max: null, avg: null, sum: null};
   }
-  const res = seriesData.reduce(
+  const res = data.reduce(
     (acc, {value}) => {
       if (value === null) {
         return acc;
@@ -409,7 +459,18 @@ function getValues(seriesData: Series['data']) {
     {min: Infinity, max: -Infinity, sum: 0, definedDatapoints: 0}
   );
 
-  return {min: res.min, max: res.max, sum: res.sum, avg: res.sum / res.definedDatapoints};
+  const values = {
+    min: res.min,
+    max: res.max,
+    sum: res.sum,
+    avg: res.sum / res.definedDatapoints,
+  };
+
+  if (aggregate in values) {
+    values[aggregate] = total;
+  }
+
+  return values;
 }
 
 const SummaryTableWrapper = styled(`div`)<{hasActions: boolean}>`
@@ -442,7 +503,7 @@ const HeaderCell = styled('div')<{disabled?: boolean; right?: boolean}>`
   gap: ${space(0.5)};
   padding: ${space(0.25)} ${space(0.75)};
   line-height: ${p => p.theme.text.lineHeightBody};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-family: ${p => p.theme.text.family};
   color: ${p => p.theme.subText};
   user-select: none;

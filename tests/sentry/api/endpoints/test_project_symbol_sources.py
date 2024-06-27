@@ -1,6 +1,7 @@
+import orjson
+
 from sentry.lang.native.sources import redact_source_secrets
 from sentry.testutils.cases import APITestCase
-from sentry.utils import json
 
 
 class ProjectSymbolSourcesTest(APITestCase):
@@ -19,7 +20,7 @@ class ProjectSymbolSourcesTest(APITestCase):
             "password": "beepbeep",
         }
         project = self.project  # force creation
-        project.update_option("sentry:symbol_sources", json.dumps([config]))
+        project.update_option("sentry:symbol_sources", orjson.dumps([config]).decode())
         self.login_as(user=self.user)
 
         expected = redact_source_secrets([config])
@@ -45,7 +46,7 @@ class ProjectSymbolSourcesTest(APITestCase):
             "password": "beepbeep",
         }
         project = self.project  # force creation
-        project.update_option("sentry:symbol_sources", json.dumps([config]))
+        project.update_option("sentry:symbol_sources", orjson.dumps([config]).decode())
         self.login_as(user=self.user)
 
         self.get_error_response(
@@ -71,7 +72,7 @@ class ProjectSymbolSourcesDeleteTest(APITestCase):
         }
 
         project = self.project  # force creation
-        project.update_option("sentry:symbol_sources", json.dumps([config]))
+        project.update_option("sentry:symbol_sources", orjson.dumps([config]).decode())
         self.login_as(user=self.user)
 
         self.get_success_response(
@@ -94,7 +95,7 @@ class ProjectSymbolSourcesDeleteTest(APITestCase):
         }
 
         project = self.project  # force creation
-        project.update_option("sentry:symbol_sources", json.dumps([config]))
+        project.update_option("sentry:symbol_sources", orjson.dumps([config]).decode())
         self.login_as(user=self.user)
 
         self.get_error_response(project.organization.slug, project.slug, status=404)
@@ -152,7 +153,7 @@ class ProjectSymbolSourcesPostTest(APITestCase):
         }
 
         project = self.project  # force creation
-        project.update_option("sentry:symbol_sources", json.dumps([config]))
+        project.update_option("sentry:symbol_sources", orjson.dumps([config]).decode())
         self.login_as(user=self.user)
 
         self.get_error_response(project.organization.slug, project.slug, raw_data=config)
@@ -224,7 +225,7 @@ class ProjectSymbolSourcesPutTest(APITestCase):
         ]
 
         project = self.project  # force creation
-        project.update_option("sentry:symbol_sources", json.dumps(config))
+        project.update_option("sentry:symbol_sources", orjson.dumps(config).decode())
         self.login_as(user=self.user)
 
         update_config = {
@@ -269,7 +270,9 @@ class ProjectSymbolSourcesPutTest(APITestCase):
         del response.data["id"]
         assert response.data == redact_source_secrets([update_config])[0]
 
-        source_ids = {src["id"] for src in json.loads(project.get_option("sentry:symbol_sources"))}
+        source_ids = {
+            src["id"] for src in orjson.loads(project.get_option("sentry:symbol_sources"))
+        }
 
         assert "hank" in source_ids
         assert "beep" not in source_ids
@@ -301,7 +304,7 @@ class ProjectSymbolSourcesPutTest(APITestCase):
         ]
 
         project = self.project  # force creation
-        project.update_option("sentry:symbol_sources", json.dumps(config))
+        project.update_option("sentry:symbol_sources", orjson.dumps(config).decode())
         self.login_as(user=self.user)
 
         update_config = {

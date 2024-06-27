@@ -2,7 +2,7 @@
 
 import {t} from 'sentry/locale';
 import type {DataCategoryInfo, OrgRole, PermissionResource, Scope} from 'sentry/types';
-import {DataCategoryExact} from 'sentry/types';
+import {DataCategoryExact} from 'sentry/types/core';
 
 /**
  * Common constants here
@@ -222,8 +222,7 @@ export const MAX_PICKABLE_DAYS = 90;
 
 export const DEFAULT_STATS_PERIOD = '14d';
 
-export const DEFAULT_QUERY = 'is:unresolved';
-export const NEW_DEFAULT_QUERY = 'is:unresolved issue.priority:[high, medium]';
+export const DEFAULT_QUERY = 'is:unresolved issue.priority:[high, medium]';
 
 export const DEFAULT_USE_UTC = true;
 
@@ -310,6 +309,14 @@ export const DATA_CATEGORY_INFO = {
     titleName: t('Monitor Check-Ins'),
     uid: 10,
   },
+  [DataCategoryExact.SPAN]: {
+    name: DataCategoryExact.SPAN,
+    apiName: 'span_indexed',
+    plural: 'spans',
+    displayName: 'spans',
+    titleName: t('Spans'),
+    uid: 12,
+  },
   [DataCategoryExact.MONITOR_SEAT]: {
     name: DataCategoryExact.MONITOR_SEAT,
     apiName: 'monitorSeat',
@@ -317,6 +324,22 @@ export const DATA_CATEGORY_INFO = {
     displayName: 'cron monitors',
     titleName: t('Cron Monitors'),
     uid: 13,
+  },
+  [DataCategoryExact.PROFILE_DURATION]: {
+    name: DataCategoryExact.PROFILE_DURATION,
+    apiName: 'profile_duration',
+    plural: 'profileDuration',
+    displayName: 'profile hours',
+    titleName: t('Profile Hours'),
+    uid: 17,
+  },
+  [DataCategoryExact.METRIC_SECOND]: {
+    name: DataCategoryExact.METRIC_SECOND,
+    apiName: 'metricSecond',
+    plural: 'metricSeconds',
+    displayName: 'metric hours',
+    titleName: t('Metrics Hours'),
+    uid: 19,
   },
 } as const satisfies Record<DataCategoryExact, DataCategoryInfo>;
 

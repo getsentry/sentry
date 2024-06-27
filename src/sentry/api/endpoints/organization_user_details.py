@@ -12,7 +12,7 @@ from sentry.services.hybrid_cloud.user.service import user_service
 @region_silo_endpoint
 class OrganizationUserDetailsEndpoint(OrganizationEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (MemberPermission,)
 

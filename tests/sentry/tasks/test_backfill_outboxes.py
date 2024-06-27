@@ -12,7 +12,7 @@ from sentry.models.authproviderreplica import AuthProviderReplica
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.outbox import ControlOutbox, RegionOutbox, outbox_context
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.backfill_outboxes import (
     backfill_outboxes_for,
     get_backfill_key,

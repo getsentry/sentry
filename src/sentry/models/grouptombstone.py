@@ -10,13 +10,13 @@ from sentry.db.models import (
     FlexibleForeignKey,
     GzippedDictField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
 )
 
 TOMBSTONE_FIELDS_FROM_GROUP = ("project_id", "level", "message", "culprit", "data")
 
 
-@region_silo_only_model
+@region_silo_model
 class GroupTombstone(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

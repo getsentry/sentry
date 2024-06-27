@@ -4,27 +4,24 @@ from collections.abc import Mapping, Sequence
 from copy import deepcopy
 from typing import Any
 from unittest.mock import patch
-from urllib.parse import parse_qs
 from uuid import uuid4
 
+import orjson
 import responses
 from django.test import override_settings
 from rest_framework import status
 
 from sentry.constants import ObjectStatus
-from sentry.integrations.slack.message_builder.notifications.rule_save_edit import (
-    SlackRuleSaveEditMessageBuilder,
-)
-from sentry.models.actor import get_actor_for_user, get_actor_id_for_user
+from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.environment import Environment
 from sentry.models.rule import Rule, RuleActivity, RuleActivityType
 from sentry.models.user import User
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.integrations.slack.find_channel_id_for_rule import find_channel_id_for_rule
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import install_slack, with_feature
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.utils import json
+from sentry.types.actor import Actor
 
 
 class ProjectRuleBaseTestCase(APITestCase):
@@ -107,7 +104,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         frequency: int | None = 30,
         **kwargs: Any,
     ):
-        owner = get_actor_for_user(self.user).get_actor_identifier()
+        owner = f"user:{self.user.id}"
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.user = User.objects.get(id=self.user.id)  # reload user after setting actor
         query_args = {}
@@ -140,7 +137,8 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
 
         rule = Rule.objects.get(id=response.data["id"])
         assert rule.label == name
-        assert rule.owner == get_actor_for_user(self.user)
+        assert rule.owner_user_id == self.user.id
+        assert rule.owner_team_id is None
         assert rule.data["action_match"] == action_match
         assert rule.data["filter_match"] == filter_match
 
@@ -358,7 +356,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             url="https://slack.com/api/conversations.info",
             status=200,
             content_type="application/json",
-            body=json.dumps(
+            body=orjson.dumps(
                 {"ok": "true", "channel": {"name": "team-team-team", "id": self.channel_id}}
             ),
         )
@@ -379,32 +377,26 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
 
     @responses.activate
     @with_feature("organizations:rule-create-edit-confirm-notification")
-    def test_slack_confirmation_notification_contents(self):
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
+    @patch(
+        "slack_sdk.web.client.WebClient._perform_urllib_http_request",
+        return_value={
+            "body": orjson.dumps({"ok": True}).decode(),
+            "headers": {},
+            "status": 200,
+        },
+    )
+    def test_slack_confirmation_notification_contents(self, mock_api_call, mock_post):
         responses.add(
             method=responses.GET,
             url="https://slack.com/api/conversations.info",
             status=200,
             content_type="application/json",
-            body=json.dumps(
+            body=orjson.dumps(
                 {"ok": "true", "channel": {"name": "team-team-team", "id": self.channel_id}}
             ),
         )
 
-        blocks = SlackRuleSaveEditMessageBuilder(rule=self.rule, new=True).build()
-        payload = {
-            "text": blocks.get("text"),
-            "blocks": json.dumps(blocks.get("blocks")),
-            "channel": self.channel_id,
-            "unfurl_links": False,
-            "unfurl_media": False,
-        }
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.postMessage",
-            status=200,
-            content_type="application/json",
-            body=json.dumps(payload),
-        )
         response = self.get_success_response(
             self.organization.slug,
             self.project.slug,
@@ -420,13 +412,12 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         rule_id = response.data["id"]
         rule_label = response.data["name"]
         assert response.data["actions"][0]["channel_id"] == self.channel_id
-        data = parse_qs(responses.calls[1].request.body)
-        message = f"Alert rule <http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> was created in the *{self.project.slug}* project and will send notifications here."
-        assert data["text"][0] == message
-        rendered_blocks = json.loads(data["blocks"][0])
-        assert rendered_blocks[0]["text"]["text"] == message
+        sent_blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
+        message = "*Alert rule created*\n\n"
+        message += f"<http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> was created in the <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|*{self.project.slug}*> project and will send notifications to this channel."
+        assert sent_blocks[0]["text"]["text"] == message
         assert (
-            rendered_blocks[1]["elements"][0]["text"]
+            sent_blocks[1]["elements"][0]["text"]
             == "<http://testserver/settings/account/notifications/alerts/|*Notification Settings*>"
         )
 
@@ -476,7 +467,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             {
                 "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
                 "interval": "1h",
-                "value": 100,
+                "value": 100.0,
                 "comparisonType": "count",
             }
         ]
@@ -532,7 +523,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             self.organization.slug,
             self.project.slug,
             name="test",
-            owner=other_team.actor.get_actor_identifier(),
+            owner=f"team:{other_team.id}",
             actionMatch="any",
             filterMatch="any",
             actions=[],
@@ -541,11 +532,31 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         )
         assert str(response.data["owner"][0]) == "Team is not a member of this organization"
 
+    def test_team_owner(self):
+        team = self.create_team(organization=self.organization)
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="test",
+            owner=f"team:{team.id}",
+            actionMatch="any",
+            filterMatch="any",
+            frequency=5,
+            actions=self.notify_event_action,
+            conditions=self.first_seen_condition,
+        )
+        assert response.status_code == 200
+        assert response.data["owner"] == f"team:{team.id}"
+
+        rule = Rule.objects.get(id=response.data["id"])
+        assert rule.owner_team_id == team.id
+        assert rule.owner_user_id is None
+
     def test_frequency_percent_validation(self):
         condition = {
             "id": "sentry.rules.conditions.event_frequency.EventFrequencyPercentCondition",
             "interval": "1h",
-            "value": 101,
+            "value": 101.0,
             "comparisonType": "count",
         }
         response = self.get_error_response(
@@ -691,7 +702,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
 
     @patch(
         "sentry.integrations.slack.actions.notification.get_channel_id",
-        return_value=("#", None, True),
+        return_value=SlackChannelIdData("#", None, True),
     )
     @patch.object(find_channel_id_for_rule, "apply_async")
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
@@ -739,7 +750,6 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
         payload["actions"][0].pop("name")
         kwargs = {
             "name": payload["name"],
-            "owner": get_actor_id_for_user(self.user),
             "environment": payload.get("environment"),
             "action_match": payload["actionMatch"],
             "filter_match": payload.get("filterMatch"),
@@ -747,6 +757,7 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             "actions": payload.get("actions", []),
             "frequency": payload.get("frequency"),
             "user_id": self.user.id,
+            "owner": Actor.from_id(user_id=self.user.id),
             "uuid": "abc123",
         }
         call_args = mock_find_channel_id_for_alert_rule.call_args[1]["kwargs"]
@@ -982,3 +993,30 @@ class CreateProjectRuleTest(ProjectRuleBaseTestCase):
             status_code=status.HTTP_400_BAD_REQUEST,
         )
         assert resp.data["name"][0] == "Ensure this field has no more than 256 characters."
+
+    def test_rule_with_empty_comparison_interval(self):
+        """
+        Test that the serializer cleans up any empty strings passed in the data
+        """
+        conditions = [
+            {
+                "comparisonInterval": "",
+                "comparisonType": "count",
+                "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+                "interval": "1h",
+                "value": 5,
+            },
+        ]
+        response = self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            name="hellboy",
+            frequency=1440,
+            owner=self.user.get_actor_identifier(),
+            actionMatch="any",
+            filterMatch="all",
+            actions=self.notify_issue_owners_action,
+            conditions=conditions,
+        )
+        clean_rule = Rule.objects.get(id=response.data.get("id"))
+        assert not clean_rule.data.get("comparisonInterval")

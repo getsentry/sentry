@@ -8,12 +8,13 @@ from django.test import override_settings
 
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.models.authenticator import Authenticator
+from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.slug.patterns import ORG_SLUG_PATTERN
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -274,6 +275,23 @@ class OrganizationsCreateTest(OrganizationIndexTest, HybridCloudTestMixin):
             organization_id=response.data["id"], user_id=self.user.id
         )
         self.assert_org_member_mapping(org_member=org_member)
+
+    def test_data_consent(self):
+        data = {"name": "hello world original", "agreeTerms": True}
+        response = self.get_success_response(**data)
+
+        organization_id = response.data["id"]
+        org = Organization.objects.get(id=organization_id)
+        assert org.name == data["name"]
+        assert not OrganizationOption.objects.get_value(org, "sentry:aggregated_data_consent")
+
+        data = {"name": "hello world", "agreeTerms": True, "aggregatedDataConsent": True}
+        response = self.get_success_response(**data)
+
+        organization_id = response.data["id"]
+        org = Organization.objects.get(id=organization_id)
+        assert org.name == data["name"]
+        assert OrganizationOption.objects.get_value(org, "sentry:aggregated_data_consent") is True
 
 
 @region_silo_test(regions=create_test_regions("de", "us"))

@@ -1,6 +1,7 @@
 from time import time
 from typing import Any
 
+import orjson
 import responses
 from requests.exceptions import ConnectionError
 
@@ -8,10 +9,9 @@ from fixtures.bitbucket_server import EXAMPLE_PRIVATE_KEY
 from sentry.integrations.bitbucket_server.webhook import PROVIDER_NAME
 from sentry.models.identity import Identity
 from sentry.models.repository import Repository
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.utils import json
 from sentry_plugins.bitbucket.testutils import REFS_CHANGED_EXAMPLE
 
 PROVIDER = "bitbucket_server"
@@ -162,7 +162,7 @@ class RefsChangedWebhookTest(WebhookTestBase):
         self.get_error_response(
             self.organization.id,
             self.integration.id,
-            raw_data=json.dumps(payload),
+            raw_data=orjson.dumps(payload),
             extra_headers=dict(HTTP_X_EVENT_KEY="repo:refs_changed"),
             status_code=400,
         )
@@ -204,7 +204,7 @@ class RefsChangedWebhookTest(WebhookTestBase):
         self.get_error_response(
             self.organization.id,
             self.integration.id,
-            raw_data=json.dumps(payload),
+            raw_data=orjson.dumps(payload),
             extra_headers=dict(HTTP_X_EVENT_KEY="repo:refs_changed"),
             status_code=409,
         )

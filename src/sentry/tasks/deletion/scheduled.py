@@ -15,7 +15,7 @@ from sentry.models.scheduledeletion import (
     ScheduledDeletion,
 )
 from sentry.signals import pending_delete
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils.env import in_test_environment
 

@@ -9,7 +9,7 @@ from sentry.models.groupemailthread import GroupEmailThread
 from sentry.models.options.user_option import UserOption
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils import json

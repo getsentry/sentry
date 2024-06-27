@@ -1,12 +1,4 @@
-import {
-  useCallback,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import {useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
@@ -15,7 +7,7 @@ import {Item, Section} from '@react-stately/collections';
 import {type ComboBoxStateOptions, useComboBoxState} from '@react-stately/combobox';
 import omit from 'lodash/omit';
 
-import {SelectFilterContext} from 'sentry/components/compactSelect/list';
+import type {SelectOption} from 'sentry/components/compactSelect';
 import {ListBox} from 'sentry/components/compactSelect/listBox';
 import {
   getDisabledOptions,
@@ -23,7 +15,9 @@ import {
   getHiddenOptions,
   getItemsWithKeys,
 } from 'sentry/components/compactSelect/utils';
+import {GrowingInput} from 'sentry/components/growingInput';
 import Input from 'sentry/components/input';
+import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay, PositionWrapper} from 'sentry/components/overlay';
 import {t} from 'sentry/locale';
@@ -32,8 +26,6 @@ import mergeRefs from 'sentry/utils/mergeRefs';
 import type {FormSize} from 'sentry/utils/theme';
 import useOverlay from 'sentry/utils/useOverlay';
 
-import {SelectContext} from '../compactSelect/control';
-
 import type {
   ComboBoxOption,
   ComboBoxOptionOrSection,
@@ -41,11 +33,20 @@ import type {
 } from './types';
 
 interface ComboBoxProps<Value extends string>
-  extends ComboBoxStateOptions<ComboBoxOptionOrSection<Value>> {
+  extends Omit<
+    ComboBoxStateOptions<ComboBoxOptionOrSection<Value>>,
+    'allowsCustomValue'
+  > {
   'aria-label': string;
   className?: string;
   disabled?: boolean;
+  growingInput?: boolean;
+  hasSearch?: boolean;
+  hiddenOptions?: Set<string>;
   isLoading?: boolean;
+  loadingMessage?: string;
+  menuSize?: FormSize;
+  menuWidth?: string;
   size?: FormSize;
   sizeLimit?: number;
   sizeLimitMessage?: string;
@@ -53,76 +54,82 @@ interface ComboBoxProps<Value extends string>
 
 function ComboBox<Value extends string>({
   size = 'md',
+  menuSize,
   className,
   placeholder,
   disabled,
   isLoading,
+  loadingMessage,
   sizeLimitMessage,
   menuTrigger = 'focus',
+  growingInput = false,
+  onOpenChange,
+  menuWidth,
+  hiddenOptions,
+  hasSearch,
   ...props
 }: ComboBoxProps<Value>) {
   const theme = useTheme();
   const listBoxRef = useRef<HTMLUListElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const popoverRef = useRef<HTMLDivElement>(null);
-  const sizingRef = useRef<HTMLDivElement>(null);
 
   const state = useComboBoxState({
     // Mapping our disabled prop to react-aria's isDisabled
     isDisabled: disabled,
+    allowsCustomValue: false,
+    onOpenChange: (isOpen, ...otherArgs) => {
+      onOpenChange?.(isOpen, ...otherArgs);
+      if (isOpen) {
+        // Ensure the selected element is being focused
+        state.selectionManager.setFocusedKey(state.selectedKey);
+      }
+    },
     ...props,
   });
+
   const {inputProps, listBoxProps} = useComboBox(
-    {listBoxRef, inputRef, popoverRef, isDisabled: disabled, ...props},
+    {
+      listBoxRef,
+      inputRef,
+      popoverRef,
+      shouldFocusWrap: true,
+      isDisabled: disabled,
+      ...props,
+    },
     state
   );
 
-  // Sync input width with sizing div
-  // TODO: think of making this configurable with a prop
-  // TODO: extract into separate component
-  useLayoutEffect(() => {
-    if (sizingRef.current && inputRef.current) {
-      const computedStyles = window.getComputedStyle(inputRef.current);
-
-      const newTotalInputSize =
-        sizingRef.current.offsetWidth +
-        parseInt(computedStyles.paddingLeft, 10) +
-        parseInt(computedStyles.paddingRight, 10) +
-        parseInt(computedStyles.borderWidth, 10) * 2;
-
-      inputRef.current.style.width = `${newTotalInputSize}px`;
-    }
-  }, [state.inputValue]);
-
   // Make popover width constant while it is open
   useEffect(() => {
-    if (listBoxRef.current && state.isOpen) {
-      const listBoxElement = listBoxRef.current;
-      listBoxElement.style.width = `${listBoxElement.offsetWidth + 4}px`;
+    if (!menuWidth && popoverRef.current && state.isOpen) {
+      const popoverElement = popoverRef.current;
+      popoverElement.style.width = `${popoverElement.offsetWidth + 4}px`;
       return () => {
-        listBoxElement.style.width = 'max-content';
+        popoverElement.style.width = 'max-content';
       };
     }
     return () => {};
-  }, [state.isOpen]);
+  }, [menuWidth, state.isOpen]);
 
-  const selectContext = useContext(SelectContext);
+  useEffect(() => {
+    const popoverElement = popoverRef.current;
+    // Reset scroll state on opening the popover
+    if (popoverElement) {
+      popoverElement.scrollTop = 0;
+    }
+  }, [state.isOpen]);
 
   const {overlayProps, triggerProps} = useOverlay({
     type: 'listbox',
     isOpen: state.isOpen,
     position: 'bottom-start',
     offset: [0, 8],
-    isDismissable: true,
-    isKeyboardDismissDisabled: true,
-    onInteractOutside: () => {
-      state.close();
-      inputRef.current?.blur();
-    },
-    shouldCloseOnBlur: true,
+    // Open state is managed by useComboBoxState & useComboBox
+    isDismissable: false,
   });
 
-  // The menu opens after selecting an item but the input stais focused
+  // The menu opens after selecting an item but the input stays focused
   // This ensures the user can open the menu again by clicking on the input
   const handleInputClick = useCallback(() => {
     if (!state.isOpen && menuTrigger === 'focus') {
@@ -130,55 +137,73 @@ function ComboBox<Value extends string>({
     }
   }, [state, menuTrigger]);
 
+  const handleInputMouseUp = useCallback((event: React.MouseEvent<HTMLInputElement>) => {
+    // Prevents the input from being selected when clicking on the trigger
+    event.preventDefault();
+  }, []);
+
+  const handleInputFocus = useCallback(
+    (event: React.FocusEvent<HTMLInputElement>) => {
+      const onFocusProp = inputProps.onFocus;
+      onFocusProp?.(event);
+      if (menuTrigger === 'focus') {
+        state.open();
+      }
+      // Need to setTimeout otherwise Chrome might reset the selection on padding click
+      setTimeout(() => {
+        event.target.select();
+      }, 0);
+    },
+    [inputProps.onFocus, menuTrigger, state]
+  );
+
+  const InputComponent = growingInput ? StyledGrowingInput : StyledInput;
+
   return (
-    <SelectContext.Provider
-      value={{
-        ...selectContext,
-        overlayIsOpen: state.isOpen,
-      }}
-    >
-      <ControlWrapper className={className}>
-        <StyledInput
-          {...inputProps}
-          onClick={handleInputClick}
-          placeholder={placeholder}
-          ref={mergeRefs([inputRef, triggerProps.ref])}
-          size={size}
-        />
-        <SizingDiv aria-hidden ref={sizingRef} size={size}>
-          {state.inputValue}
-        </SizingDiv>
-        <StyledPositionWrapper
-          {...overlayProps}
-          zIndex={theme.zIndex?.tooltip}
-          visible={state.isOpen}
-        >
-          <StyledOverlay ref={popoverRef}>
-            {isLoading && (
-              <MenuHeader size={size}>
-                <MenuTitle>{t('Loading...')}</MenuTitle>
-                <MenuHeaderTrailingItems>
-                  {isLoading && <StyledLoadingIndicator size={12} mini />}
-                </MenuHeaderTrailingItems>
-              </MenuHeader>
-            )}
-            {/* Listbox adds a separator if it is not the first item
+    <ControlWrapper className={className}>
+      {!state.isFocused && <InteractionStateLayer />}
+      <InputComponent
+        {...inputProps}
+        onClick={handleInputClick}
+        placeholder={placeholder}
+        onMouseUp={handleInputMouseUp}
+        onFocus={handleInputFocus}
+        ref={mergeRefs([inputRef, triggerProps.ref])}
+        size={size}
+      />
+      <StyledPositionWrapper
+        {...overlayProps}
+        zIndex={theme.zIndex?.tooltip}
+        visible={state.isOpen}
+      >
+        <StyledOverlay ref={popoverRef} width={menuWidth}>
+          {isLoading && (
+            <MenuHeader size={menuSize ?? size}>
+              <MenuTitle>{loadingMessage ?? t('Loading...')}</MenuTitle>
+              <MenuHeaderTrailingItems>
+                {isLoading && <StyledLoadingIndicator size={12} mini />}
+              </MenuHeaderTrailingItems>
+            </MenuHeader>
+          )}
+          {/* Listbox adds a separator if it is not the first item
             To avoid this, we wrap it into a div */}
-            <div>
-              <ListBox
-                {...listBoxProps}
-                ref={listBoxRef}
-                listState={state}
-                keyDownHandler={() => true}
-                size={size}
-                sizeLimitMessage={sizeLimitMessage}
-              />
-              <EmptyMessage>No items found</EmptyMessage>
-            </div>
-          </StyledOverlay>
-        </StyledPositionWrapper>
-      </ControlWrapper>
-    </SelectContext.Provider>
+          <div>
+            <ListBox
+              {...listBoxProps}
+              overlayIsOpen={state.isOpen}
+              hiddenOptions={hiddenOptions}
+              hasSearch={hasSearch}
+              ref={listBoxRef}
+              listState={state}
+              keyDownHandler={() => true}
+              size={menuSize ?? size}
+              sizeLimitMessage={sizeLimitMessage}
+            />
+            <EmptyMessage>No items found</EmptyMessage>
+          </div>
+        </StyledOverlay>
+      </StyledPositionWrapper>
+    </ControlWrapper>
   );
 }
 
@@ -192,10 +217,17 @@ function ControlledComboBox<Value extends string>({
   options,
   sizeLimit,
   value,
+  onOpenChange,
+  onInputChange,
+  filterOption,
   ...props
-}: Omit<ComboBoxProps<Value>, 'items' | 'defaultItems' | 'children'> & {
+}: Omit<
+  ComboBoxProps<Value>,
+  'items' | 'defaultItems' | 'children' | 'hasSearch' | 'hiddenOptions'
+> & {
   options: ComboBoxOptionOrSection<Value>[];
   defaultValue?: Value;
+  filterOption?: (option: ComboBoxOption<Value>, inputValue: string) => boolean;
   onChange?: (value: ComboBoxOption<Value>) => void;
   value?: Value;
 }) {
@@ -225,8 +257,16 @@ function ControlledComboBox<Value extends string>({
   }, [options]);
 
   const hiddenOptions = useMemo(
-    () => getHiddenOptions(items, isFiltering ? inputValue : '', sizeLimit),
-    [items, isFiltering, inputValue, sizeLimit]
+    () =>
+      getHiddenOptions(
+        items,
+        isFiltering ? inputValue : '',
+        sizeLimit,
+        isFiltering
+          ? (filterOption as (opt: SelectOption<Value>, search: string) => boolean)
+          : undefined
+      ),
+    [items, isFiltering, inputValue, sizeLimit, filterOption]
   );
 
   const disabledKeys = useMemo(
@@ -234,8 +274,16 @@ function ControlledComboBox<Value extends string>({
     [hiddenOptions, items]
   );
 
+  const valueRef = useRef(value);
+  valueRef.current = value;
+
   const handleChange = useCallback(
     (key: string | number) => {
+      // Prevent calling onChange on closing the menu without selecting a different value
+      if (getEscapedKey(valueRef.current) === key) {
+        return;
+      }
+
       if (props.onSelectionChange) {
         props.onSelectionChange(key);
       }
@@ -255,85 +303,92 @@ function ControlledComboBox<Value extends string>({
     [items, props]
   );
 
-  const handleInputChange = useCallback((newInputValue: string) => {
-    setIsFiltering(true);
-    setInputValue(newInputValue);
-  }, []);
+  const handleInputChange = useCallback(
+    (newInputValue: string) => {
+      setIsFiltering(true);
+      setInputValue(newInputValue);
+      onInputChange?.(newInputValue);
+    },
+    [onInputChange]
+  );
 
-  const handleOpenChange = useCallback((isOpen: boolean) => {
-    // Disable filtering right after the dropdown is opened
-    if (isOpen) {
-      setIsFiltering(false);
-    }
-  }, []);
+  const handleOpenChange = useCallback(
+    (isOpen: boolean) => {
+      // Disable filtering right after the dropdown is opened
+      if (isOpen) {
+        setIsFiltering(false);
+      }
+      if (!isOpen) {
+        // Reset input value to the selected value
+        setInputValue(
+          options
+            .flatMap(item => ('options' in item ? item.options : [item]))
+            .find(option => option.value === value)?.label ?? ''
+        );
+      }
+      onOpenChange?.(isOpen);
+    },
+    [onOpenChange, options, value]
+  );
 
   return (
-    // TODO: remove usage of SelectContext in ListBox
-    <SelectContext.Provider
-      value={{
-        search: isFiltering ? inputValue : '',
-        // Will be set by the inner ComboBox
-        overlayIsOpen: false,
-        // Not used in ComboBox
-        registerListState: () => {},
-        saveSelectedOptions: () => {},
-      }}
+    <ComboBox
+      disabledKeys={disabledKeys}
+      inputValue={inputValue}
+      onInputChange={handleInputChange}
+      selectedKey={value && getEscapedKey(value)}
+      defaultSelectedKey={props.defaultValue && getEscapedKey(props.defaultValue)}
+      onSelectionChange={handleChange}
+      items={items}
+      onOpenChange={handleOpenChange}
+      hasSearch={isFiltering ? !!inputValue : false}
+      hiddenOptions={hiddenOptions}
+      {...props}
     >
-      <SelectFilterContext.Provider value={hiddenOptions}>
-        <ComboBox
-          disabledKeys={disabledKeys}
-          inputValue={inputValue}
-          onInputChange={handleInputChange}
-          selectedKey={value && getEscapedKey(value)}
-          defaultSelectedKey={props.defaultValue && getEscapedKey(props.defaultValue)}
-          onSelectionChange={handleChange}
-          items={items}
-          onOpenChange={handleOpenChange}
-          {...props}
-        >
-          {items.map(item => {
-            if ('options' in item) {
-              return (
-                <Section key={item.key} title={item.label}>
-                  {item.options.map(option => (
-                    <Item {...option} key={option.key} textValue={option.label}>
-                      {item.label}
-                    </Item>
-                  ))}
-                </Section>
-              );
-            }
-            return (
-              <Item {...item} key={item.key} textValue={item.label}>
-                {item.label}
-              </Item>
-            );
-          })}
-        </ComboBox>
-      </SelectFilterContext.Provider>
-    </SelectContext.Provider>
+      {items.map(item => {
+        if ('options' in item) {
+          return (
+            <Section key={item.key} title={item.label}>
+              {item.options.map(option => (
+                <Item {...option} key={option.key} textValue={option.label}>
+                  {item.label}
+                </Item>
+              ))}
+            </Section>
+          );
+        }
+        return (
+          <Item {...item} key={item.key} textValue={item.label}>
+            {item.label}
+          </Item>
+        );
+      })}
+    </ComboBox>
   );
 }
 
 const ControlWrapper = styled('div')`
   position: relative;
   width: max-content;
+  height: max-content;
   min-width: 150px;
   max-width: 100%;
+  cursor: pointer;
 `;
 
 const StyledInput = styled(Input)`
   max-width: inherit;
   min-width: inherit;
+  &:not(:focus) {
+    cursor: pointer;
+  }
 `;
-
-const SizingDiv = styled('div')<{size?: FormSize}>`
-  opacity: 0;
-  pointer-events: none;
-  z-index: -1;
-  position: absolute;
-  white-space: pre;
-  font-size: ${p => p.theme.form[p.size ?? 'md'].fontSize};
+const StyledGrowingInput = styled(GrowingInput)`
+  max-width: inherit;
+  min-width: inherit;
+  &:not(:focus) {
+    cursor: pointer;
+  }
 `;
 
 const StyledPositionWrapper = styled(PositionWrapper, {
@@ -343,16 +398,17 @@ const StyledPositionWrapper = styled(PositionWrapper, {
   display: ${p => (p.visible ? 'block' : 'none')};
 `;
 
-const StyledOverlay = styled(Overlay)`
+const StyledOverlay = styled(Overlay)<{width?: string}>`
   /* Should be a flex container so that when maxHeight is set (to avoid page overflow),
   ListBoxWrap/GridListWrap will also shrink to fit */
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  max-height: 32rem;
   position: absolute;
+  max-height: 32rem;
   min-width: 100%;
   overflow-y: auto;
+  width: ${p => p.width ?? 'auto'};
 `;
 
 export const EmptyMessage = styled('p')`
@@ -397,7 +453,7 @@ const MenuHeaderTrailingItems = styled('div')`
 
 const MenuTitle = styled('span')`
   font-size: inherit; /* Inherit font size from MenuHeader */
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   white-space: nowrap;
   margin-right: ${space(2)};
 `;

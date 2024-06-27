@@ -5,6 +5,7 @@ from datetime import datetime
 from functools import reduce
 from typing import Any, Union
 
+import orjson
 from sentry_relay.consts import SPAN_STATUS_NAME_TO_CODE
 from sentry_relay.processing import parse_release as parse_release_relay
 
@@ -523,7 +524,7 @@ def parse_semver(version, operator) -> SemverFilter:
         raise InvalidSearchQuery("Invalid operation 'IN' for semantic version filter.")
 
     version = version if "@" in version else f"{SEMVER_FAKE_PACKAGE}@{version}"
-    parsed = parse_release_relay(version)
+    parsed = parse_release_relay(version, json_loads=orjson.loads)
     parsed_version = parsed.get("version_parsed")
     if parsed_version:
         # Convert `pre` to always be a string

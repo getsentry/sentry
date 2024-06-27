@@ -8,12 +8,12 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models.base import control_silo_only_model, sane_repr
+from sentry.db.models.base import control_silo_model, sane_repr
 from sentry.db.models.fields import BoundedBigIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel
+from sentry.hybridcloud.rpc import REGION_NAME_LENGTH
 from sentry.models.outbox import OutboxCategory
-from sentry.services.hybrid_cloud import REGION_NAME_LENGTH
 
 
 class OrganizationSlugReservationType(IntEnum):
@@ -26,7 +26,7 @@ class OrganizationSlugReservationType(IntEnum):
         return [(i.value, i.value) for i in cls]
 
 
-@control_silo_only_model
+@control_silo_model
 class OrganizationSlugReservation(ReplicatedControlModel):
     __relocation_scope__ = RelocationScope.Excluded
     category = OutboxCategory.ORGANIZATION_SLUG_RESERVATION_UPDATE

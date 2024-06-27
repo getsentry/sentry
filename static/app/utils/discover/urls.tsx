@@ -1,14 +1,14 @@
 import type {Location, LocationDescriptorObject} from 'history';
 
-import type {Organization, OrganizationSummary} from 'sentry/types';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import {getTimeStampFromTableDateField} from '../dates';
 import {getTransactionDetailsUrl} from '../performance/urls';
+import {normalizeUrl} from '../withDomainRequired';
 
-import type {TableDataRow} from './discoverQuery';
 import type {EventData} from './eventView';
-import type EventView from './eventView';
+import EventView from './eventView';
 
 /**
  * Create a slug that can be used with discover details views
@@ -31,7 +31,7 @@ export function eventDetailsRoute({
   eventSlug: string;
   orgSlug: string;
 }): string {
-  return `/organizations/${orgSlug}/discover/${eventSlug}/`;
+  return normalizeUrl(`/organizations/${orgSlug}/discover/${eventSlug}/`);
 }
 
 /**
@@ -41,44 +41,58 @@ export function eventDetailsRoute({
  * TODO Abdullah Khan: Add link to new trace view doc explaining why we route to the traceview.
  */
 export function generateLinkToEventInTraceView({
-  dataRow,
   organization,
-  eventView,
   isHomepage,
   location,
   spanId,
-  eventSlug,
+  projectSlug,
+  timestamp,
+  traceSlug,
+  eventId,
+  transactionName,
+  eventView,
+  demo,
+  source,
   type = 'performance',
 }: {
-  dataRow: TableDataRow;
-  eventSlug: string;
-  eventView: EventView;
+  eventId: string;
   location: Location;
-  organization: Organization;
+  organization: Pick<Organization, 'slug' | 'features'>;
+  projectSlug: string;
+  timestamp: string | number;
+  traceSlug: string;
+  demo?: string;
+  eventView?: EventView;
   isHomepage?: boolean;
+  source?: string;
   spanId?: string;
+  transactionName?: string;
   type?: 'performance' | 'discover';
 }) {
-  const dateSelection = eventView.normalizeDateSelection(location);
-  const timestamp = getTimeStampFromTableDateField(dataRow.timestamp);
+  const _eventView = eventView ?? EventView.fromLocation(location);
+  const dateSelection = _eventView.normalizeDateSelection(location);
+  const normalizedTimestamp = getTimeStampFromTableDateField(timestamp);
+  const eventSlug = generateEventSlug({id: eventId, project: projectSlug});
 
   if (organization.features.includes('trace-view-v1')) {
-    return getTraceDetailsUrl(
+    return getTraceDetailsUrl({
       organization,
-      String(dataRow.trace),
+      traceSlug,
       dateSelection,
-      {},
-      timestamp,
-      dataRow.id,
-      spanId
-    );
+      timestamp: normalizedTimestamp,
+      eventId,
+      spanId,
+      demo,
+      location,
+      source,
+    });
   }
 
   if (type === 'performance') {
     return getTransactionDetailsUrl(
       organization.slug,
       eventSlug,
-      undefined,
+      transactionName,
       location.query,
       spanId
     );
@@ -89,7 +103,7 @@ export function generateLinkToEventInTraceView({
       orgSlug: organization.slug,
       eventSlug,
     }),
-    query: {...eventView.generateQueryStringObject(), homepage: isHomepage},
+    query: {..._eventView.generateQueryStringObject(), homepage: isHomepage},
   };
 
   if (spanId) {

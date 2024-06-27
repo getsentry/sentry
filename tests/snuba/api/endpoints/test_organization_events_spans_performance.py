@@ -28,7 +28,7 @@ class OrganizationEventsSpansEndpointTestBase(APITestCase, SnubaTestCase):
 
         self.url = reverse(
             self.URL,
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
         self.min_ago = before_now(minutes=1).replace(microsecond=0)
@@ -418,7 +418,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
 
         url = reverse(
             self.URL,
-            kwargs={"organization_slug": org.slug},
+            kwargs={"organization_id_or_slug": org.slug},
         )
 
         with self.feature(self.FEATURES):
@@ -1150,7 +1150,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
 
         url = reverse(
             self.URL,
-            kwargs={"organization_slug": org.slug},
+            kwargs={"organization_id_or_slug": org.slug},
         )
 
         with self.feature(self.FEATURES):

@@ -2,10 +2,11 @@ import {Component, createRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {Button} from 'sentry/components/button';
 import Well from 'sentry/components/well';
 import {AVATAR_URL_MAP} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import type {AvatarUser} from 'sentry/types';
+import type {AvatarUser} from 'sentry/types/user';
 
 const ALLOWED_MIMETYPES = 'image/gif,image/jpeg,image/png';
 
@@ -419,7 +420,11 @@ class AvatarUploader extends Component<Props, State> {
         {src && <HiddenCanvas ref={this.canvas} />}
         {this.renderImageCrop()}
         <div className="form-group">
-          {src && <a onClick={this.uploadClick}>{t('Change Photo')}</a>}
+          {src && (
+            <Button priority="link" onClick={this.uploadClick}>
+              {t('Change Photo')}
+            </Button>
+          )}
           <UploadInput
             ref={this.file}
             type="file"

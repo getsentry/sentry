@@ -1,16 +1,16 @@
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import {useIsMountedRef} from './useIsMountedRef';
 
 describe('useIsMounted', () => {
   it('should return a ref', () => {
-    const {result} = reactHooks.renderHook(() => useIsMountedRef());
+    const {result} = renderHook(() => useIsMountedRef());
 
     expect(result.current).toBeInstanceOf(Object);
   });
 
   it('should return false within first render', () => {
-    const {result} = reactHooks.renderHook(() => {
+    const {result} = renderHook(() => {
       const isMountedRef = useIsMountedRef();
       return isMountedRef.current;
     });
@@ -19,13 +19,13 @@ describe('useIsMounted', () => {
   });
 
   it('should return true after mount', () => {
-    const {result} = reactHooks.renderHook(() => useIsMountedRef());
+    const {result} = renderHook(() => useIsMountedRef());
 
     expect(result.current.current).toBe(true);
   });
 
   it('should return same function on each render', () => {
-    const {result, rerender} = reactHooks.renderHook(() => useIsMountedRef());
+    const {result, rerender} = renderHook(() => useIsMountedRef());
 
     const fn1 = result.current;
     rerender();
@@ -38,7 +38,7 @@ describe('useIsMounted', () => {
   });
 
   it('should return false after component unmount', () => {
-    const {result, unmount} = reactHooks.renderHook(() => useIsMountedRef());
+    const {result, unmount} = renderHook(() => useIsMountedRef());
 
     expect(result.current.current).toBe(true);
 

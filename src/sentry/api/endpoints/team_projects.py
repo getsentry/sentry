@@ -87,8 +87,8 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
     @extend_schema(
         operation_id="List a Team's Projects",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.TEAM_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.TEAM_ID_OR_SLUG,
             CursorQueryParam,
         ],
         request=None,
@@ -142,8 +142,8 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         tags=["Projects"],
         operation_id="Create a New Project",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.TEAM_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.TEAM_ID_OR_SLUG,
         ],
         request=ProjectPostSerializer,
         responses={

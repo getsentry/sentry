@@ -203,6 +203,9 @@ class Selector(Field):
             if query.title:
                 columns.append(Column("click_title"))
                 values.append(query.title)
+            if query.component_name:
+                columns.append(Column("click_component_name"))
+                values.append(query.component_name)
 
             if columns and values:
                 conditions.append(Condition(union_find(columns, values), operator, 1))

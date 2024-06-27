@@ -4,7 +4,7 @@ from sentry_relay.processing import is_codeowners_path_match
 MAX_RAW_LENGTH = 3_000_000
 
 
-def codeowners_match(value, pat):
+def codeowners_match(value: str | None, pat: str) -> bool:
     """A beefed up version of fnmatch.fnmatch"""
     return is_codeowners_path_match(
         value if value is not None else "",

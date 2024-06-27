@@ -1,13 +1,13 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import type {RouteComponentProps} from 'react-router';
 
 import Alert from 'sentry/components/alert';
+import {Flex} from 'sentry/components/container/flex';
 import DetailedError from 'sentry/components/errors/detailedError';
 import NotFound from 'sentry/components/errors/notFound';
 import * as Layout from 'sentry/components/layouts/thirds';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {Flex} from 'sentry/components/profiling/flex';
 import {LocalStorageReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
 import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import {IconDelete} from 'sentry/icons';
@@ -17,6 +17,7 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import type {TimeOffsetLocationQueryParams} from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useInitialTimeOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useLogReplayDataLoaded from 'sentry/utils/replays/hooks/useLogReplayDataLoaded';
+import useMarkReplayViewed from 'sentry/utils/replays/hooks/useMarkReplayViewed';
 import useReplayPageview from 'sentry/utils/replays/hooks/useReplayPageview';
 import useReplayReader from 'sentry/utils/replays/hooks/useReplayReader';
 import useRouteAnalyticsEventNames from 'sentry/utils/routeAnalytics/useRouteAnalyticsEventNames';
@@ -71,12 +72,42 @@ function ReplayDetails({params: {replaySlug}}: Props) {
 
   useLogReplayDataLoaded({fetchError, fetching, projectSlug, replay});
 
+  const {mutate: markAsViewed} = useMarkReplayViewed();
+  useEffect(() => {
+    if (
+      !fetchError &&
+      replayRecord &&
+      !replayRecord.has_viewed &&
+      projectSlug &&
+      !fetching &&
+      replayId
+    ) {
+      markAsViewed({projectSlug, replayId});
+    }
+  }, [
+    fetchError,
+    fetching,
+    markAsViewed,
+    organization,
+    projectSlug,
+    replayId,
+    replayRecord,
+  ]);
+
   const initialTimeOffsetMs = useInitialTimeOffsetMs({
     orgSlug,
     projectSlug,
     replayId,
     replayStartTimestampMs: replayRecord?.started_at?.getTime(),
   });
+
+  const rrwebFrames = replay?.getRRWebFrames();
+  // The replay data takes a while to load in, which causes `isVideoReplay`
+  // to return an early `false`, which used to cause UI jumping.
+  // One way to check whether it's finished loading is by checking the length
+  // of the rrweb frames, which should always be > 2 for any given replay.
+  // By default, the 2 frames are replay.start and replay.end
+  const isLoading = !rrwebFrames || (rrwebFrames && rrwebFrames.length <= 2);
 
   if (replayRecord?.is_archived) {
     return (
@@ -166,8 +197,13 @@ function ReplayDetails({params: {replaySlug}}: Props) {
           replayRecord={replayRecord}
           projectSlug={projectSlug}
           replayErrors={replayErrors}
+          isLoading={isLoading}
         >
-          <ReplaysLayout isVideoReplay={isVideoReplay} />
+          <ReplaysLayout
+            isVideoReplay={isVideoReplay}
+            replayRecord={replayRecord}
+            isLoading={isLoading}
+          />
         </Page>
       </ReplayTransactionContext>
     </ReplayContextProvider>

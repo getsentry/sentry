@@ -12,18 +12,17 @@ import {
 } from 'sentry/components/charts/utils';
 import {parseStatsPeriod} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types';
-import {parsePeriodToHours} from 'sentry/utils/dates';
+import type {PageFilters} from 'sentry/types/core';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {useUpdateQuery} from 'sentry/utils/metrics';
 import {parseMRI} from 'sentry/utils/metrics/mri';
-import {isMetricsEquationWidget} from 'sentry/utils/metrics/types';
+import {isMetricsQueryWidget} from 'sentry/utils/metrics/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 
 const ALL_INTERVAL_OPTIONS = [
-  {value: '10s', label: t('10 seconds')},
   {value: '1m', label: t('1 minute')},
   {value: '5m', label: t('5 minutes')},
   {value: '15m', label: t('15 minutes')},
@@ -57,20 +56,19 @@ const maximumInterval = new GranularityLadder([
 
 export function getIntervalOptionsForStatsPeriod(
   datetime: PageFilters['datetime'],
-  isCustomMetricsOnly: boolean
+  maxInterval?: string
 ) {
   const diffInMinutes = getDiffInMinutes(datetime);
-  const diffInHours = diffInMinutes / 60;
+  const maxIntervalInHours = maxInterval && parsePeriodToHours(maxInterval);
 
-  const minimumOption =
-    // BE returns empty timeseries if we request less than 1 minute granularity
-    // for other data sets than custom metrics
-    isCustomMetricsOnly && diffInHours <= 1
-      ? '10s'
-      : minimumInterval.getInterval(diffInMinutes);
+  const minimumOption = minimumInterval.getInterval(diffInMinutes);
   const minimumOptionInHours = parsePeriodToHours(minimumOption);
 
-  const maximumOption = maximumInterval.getInterval(diffInMinutes);
+  const defaultMaximumOption = maximumInterval.getInterval(diffInMinutes);
+  const maximumOption =
+    maxIntervalInHours && maxIntervalInHours > parsePeriodToHours(defaultMaximumOption)
+      ? maxInterval
+      : defaultMaximumOption;
   const maximumOptionInHours = parsePeriodToHours(maximumOption);
 
   return ALL_INTERVAL_OPTIONS.filter(option => {
@@ -81,29 +79,30 @@ export function getIntervalOptionsForStatsPeriod(
 
 export function validateInterval(
   interval: string,
-  options: {label: string; value: string}[]
+  options: {label: string; value: string; disabled?: boolean}[]
 ) {
   const isPeriod = !!parseStatsPeriod(interval);
-  const currentIntervalValues = options.map(option => option.value);
+  const enabledOptions = options.filter(option => !option.disabled);
+  const currentIntervalValues = enabledOptions.map(option => option.value);
   return isPeriod && currentIntervalValues.includes(interval)
     ? interval
     : // Take the 2nd most granular option if available
-      options[1]?.value ?? options[0].value;
+      enabledOptions[1]?.value ?? enabledOptions[0].value;
 }
 
 export function useMetricsIntervalParam() {
   const {datetime} = usePageFilters().selection;
   const {interval} = useLocationQuery({fields: {interval: decodeScalar}});
+  const {widgets} = useMetricsContext();
   const updateQuery = useUpdateQuery();
 
-  const {widgets} = useMetricsContext();
-
-  const isCustomMetricsOnly = useMemo(() => {
-    return widgets.every(
-      widget =>
-        isMetricsEquationWidget(widget) || parseMRI(widget.mri)?.useCase === 'custom'
-    );
-  }, [widgets]);
+  const hasSetMetric = useMemo(
+    () =>
+      widgets.some(
+        widget => isMetricsQueryWidget(widget) && parseMRI(widget.mri)!.type === 's'
+      ),
+    [widgets]
+  );
 
   const handleIntervalChange = useCallback(
     (newInterval: string) => {
@@ -114,8 +113,8 @@ export function useMetricsIntervalParam() {
 
   const metricsIntervalOptions = useMetricsIntervalOptions({
     interval,
+    hasSetMetric,
     datetime,
-    isCustomMetricsOnly,
     onIntervalChange: handleIntervalChange,
   });
 
@@ -130,21 +129,37 @@ export function useMetricsIntervalParam() {
 
 export interface MetricsIntervalParamProps {
   datetime: PageFilters['datetime'];
+  hasSetMetric: boolean;
   interval: string;
   onIntervalChange: (interval: string) => void;
-  isCustomMetricsOnly?: boolean;
 }
 
 export function useMetricsIntervalOptions({
   interval,
+  hasSetMetric,
   datetime,
   onIntervalChange,
-  isCustomMetricsOnly = false,
 }: MetricsIntervalParamProps) {
-  const currentIntervalOptions = useMemo(
-    () => getIntervalOptionsForStatsPeriod(datetime, isCustomMetricsOnly),
-    [datetime, isCustomMetricsOnly]
-  );
+  const currentIntervalOptions = useMemo(() => {
+    const minInterval = hasSetMetric ? '1h' : undefined;
+    const options = getIntervalOptionsForStatsPeriod(datetime, minInterval);
+    if (!hasSetMetric) {
+      return options;
+    }
+
+    // Disable all intervals that are smaller than one hour for set metrics
+    return options.map(option => {
+      return parsePeriodToHours(option.value) < 1
+        ? {
+            ...option,
+            disabled: true,
+            tooltip: t(
+              'Intervals smaller than 1 hour are not available for set metrics.'
+            ),
+          }
+        : option;
+    });
+  }, [datetime, hasSetMetric]);
 
   const setInterval = useCallback(
     (newInterval: string) => {

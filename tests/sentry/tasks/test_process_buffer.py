@@ -29,11 +29,7 @@ class ProcessPendingTest(TestCase):
         # this effectively just says "does the code run"
         process_pending()
         assert len(mock_process_pending.mock_calls) == 1
-        mock_process_pending.assert_any_call(partition=None)
-
-        process_pending(partition=1)
-        assert len(mock_process_pending.mock_calls) == 2
-        mock_process_pending.assert_any_call(partition=1)
+        mock_process_pending.assert_any_call()
 
 
 class ProcessPendingBatchTest(TestCase):
@@ -41,16 +37,12 @@ class ProcessPendingBatchTest(TestCase):
     def test_process_pending_batch(self, mock_process_pending_batch):
         process_pending_batch()
         assert len(mock_process_pending_batch.mock_calls) == 1
-        mock_process_pending_batch.assert_any_call(partition=None)
-
-        process_pending_batch(partition=1)
-        assert len(mock_process_pending_batch.mock_calls) == 2
-        mock_process_pending_batch.assert_any_call(partition=1)
+        mock_process_pending_batch.assert_any_call()
 
     @mock.patch("sentry.buffer.backend.process_batch")
     def test_process_pending_batch_locked_out(self, mock_process_pending_batch):
         with self.assertLogs("sentry.tasks.process_buffer", level="WARNING") as logger:
-            lock = get_process_lock("process_pending_batch", None)
+            lock = get_process_lock("process_pending_batch")
             with lock.acquire():
                 process_pending_batch()
                 self.assertEqual(len(logger.output), 1)

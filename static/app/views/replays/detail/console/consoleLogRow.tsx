@@ -1,5 +1,5 @@
 import type {CSSProperties} from 'react';
-import {memo, useCallback} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import classNames from 'classnames';
 
@@ -25,7 +25,7 @@ interface Props extends ReturnType<typeof useCrumbHandlers> {
   onDimensionChange?: OnDimensionChange;
 }
 
-function UnmemoizedConsoleLogRow({
+export default function ConsoleLogRow({
   currentHoverTime,
   currentTime,
   expandPaths,
@@ -99,10 +99,6 @@ const ConsoleLog = styled('div')<{
       ? p.theme.alert[String(p.level)].backgroundLight
       : 'inherit'};
 
-  /* Overridden in TabItemContainer, depending on *CurrentTime and *HoverTime classes */
-  border-top: 1px solid transparent;
-  border-bottom: 1px solid transparent;
-
   color: ${p => p.theme.gray400};
 
   /*
@@ -151,6 +147,3 @@ const Message = styled('div')`
   white-space: pre-wrap;
   word-break: break-word;
 `;
-
-const ConsoleLogRow = memo(UnmemoizedConsoleLogRow);
-export default ConsoleLogRow;

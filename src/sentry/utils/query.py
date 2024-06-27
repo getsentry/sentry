@@ -90,6 +90,7 @@ class RangeQuerySetWrapper:
         order_by="pk",
         callbacks=(),
         result_value_getter=None,
+        override_unique_safety_check=False,
     ):
         # Support for slicing
         if queryset.query.low_mark == 0 and not (
@@ -113,6 +114,16 @@ class RangeQuerySetWrapper:
         self.order_by = order_by
         self.callbacks = callbacks
         self.result_value_getter = result_value_getter
+
+        order_by_col = queryset.model._meta.get_field(order_by if order_by != "pk" else "id")
+        if not override_unique_safety_check and not order_by_col.unique:
+            # TODO: Ideally we could fix this bug and support ordering by a non unique col
+            raise InvalidQuerySetError(
+                "Order by column must be unique, otherwise this wrapper can get "
+                "stuck in an infinite loop. If you're sure your data is unique, "
+                "you can disable this by passing "
+                "`override_unique_safety_check=True`"
+            )
 
     def __iter__(self):
         if self.min_value is not None:
@@ -215,16 +226,15 @@ class WithProgressBar:
         self.caption = str(caption or "Progress")
 
     def __iter__(self):
-        widgets = [
-            f"{self.caption}: ",
-            progressbar.Percentage(),
-            " ",
-            progressbar.Bar(),
-            " ",
-            progressbar.ETA(),
-        ]
         pbar = progressbar.ProgressBar(
-            widgets=widgets,
+            widgets=[
+                f"{self.caption}: ",
+                progressbar.Percentage(),
+                " ",
+                progressbar.Bar(),
+                " ",
+                progressbar.ETA(),
+            ],
             max_value=self.count,
             # The default update interval is every 0.1s,
             # which for large migrations would easily logspam GoCD.

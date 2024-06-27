@@ -6,7 +6,8 @@ import ButtonBar from 'sentry/components/buttonBar';
 import NumberField from 'sentry/components/forms/fields/numberField';
 import SelectField from 'sentry/components/forms/fields/selectField';
 import {t} from 'sentry/locale';
-import type {IgnoredStatusDetails, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {IgnoredStatusDetails} from 'sentry/types/group';
 
 type CountNames = 'ignoreCount' | 'ignoreUserCount';
 type WindowNames = 'ignoreWindow' | 'ignoreUserWindow';
@@ -65,7 +66,7 @@ class CustomIgnoreCountModal extends Component<Props, State> {
             label={countLabel}
             name="count"
             value={count}
-            onChange={val => this.handleChange('count' as 'count', Number(val))}
+            onChange={val => this.handleChange('count' as const, Number(val))}
             required
             placeholder={t('e.g. 100')}
           />

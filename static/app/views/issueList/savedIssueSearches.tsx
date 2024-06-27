@@ -317,7 +317,7 @@ const StyledItemButton = styled(Button)`
   width: 100%;
   text-align: left;
   height: auto;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   line-height: ${p => p.theme.text.lineHeightBody};
 
   padding: ${space(1)} ${space(2)};
@@ -328,6 +328,7 @@ const StyledItemButton = styled(Button)`
 `;
 
 const OverflowMenu = styled(DropdownMenu)`
+  display: block;
   position: absolute;
   top: 12px;
   right: ${space(1)};
@@ -391,7 +392,7 @@ const SavedSearchItemQuery = styled('div')`
 
 const ShowAllButton = styled(Button)`
   color: ${p => p.theme.linkColor};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   padding: ${space(0.5)} ${space(2)};
 
   &:hover {

@@ -1,4 +1,4 @@
-import {useContext, useRef, useState} from 'react';
+import {useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
 
@@ -13,7 +13,6 @@ import {space} from 'sentry/styles/space';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';
 import StepHeading from 'sentry/views/relocation/components/stepHeading';
-import {RelocationOnboardingContext} from 'sentry/views/relocation/relocationOnboardingContext';
 
 import type {StepProps} from './types';
 
@@ -37,14 +36,13 @@ const THROTTLED_RELOCATION_ERROR_MSG = t(
 );
 const SESSION_EXPIRED_ERROR_MSG = t('Your session has expired.');
 
-export function UploadBackup({onComplete}: StepProps) {
+export function UploadBackup({relocationState, onComplete}: StepProps) {
   const api = useApi({
     api: new Client({headers: {Accept: 'application/json; charset=utf-8'}}),
   });
   const [file, setFile] = useState<File>();
   const [dragCounter, setDragCounter] = useState(0);
   const inputFileRef = useRef<HTMLInputElement>(null);
-  const relocationOnboardingContext = useContext(RelocationOnboardingContext);
   const user = ConfigStore.get('user');
 
   const handleDragEnter = event => {
@@ -79,7 +77,7 @@ export function UploadBackup({onComplete}: StepProps) {
   };
 
   const handleStartRelocation = async () => {
-    const {orgSlugs, regionUrl, promoCode} = relocationOnboardingContext.data;
+    const {orgSlugs, regionUrl, promoCode} = relocationState;
     if (!orgSlugs || !regionUrl || !file) {
       addErrorMessage(DEFAULT_ERROR_MSG);
       return;
@@ -132,7 +130,7 @@ export function UploadBackup({onComplete}: StepProps) {
       >
         <p>
           {t(
-            'Nearly done! The file is being uploaded to sentry for the relocation process. You can close this tab if you like. We will email  when complete.'
+            "Nearly done! Just upload your tarball here, and we'll send you an email when everything is ready to go!"
           )}
         </p>
         {file ? (
@@ -157,7 +155,7 @@ export function UploadBackup({onComplete}: StepProps) {
             onDragLeave={handleDragLeave}
             onDrop={handleDrop}
             centered
-            aria-label="dropzone"
+            aria-label={t('dropzone')}
             draggedOver={dragCounter > 0}
           >
             <StyledUploadIcon className="upload-icon" size="xl" />
@@ -167,7 +165,7 @@ export function UploadBackup({onComplete}: StepProps) {
               <UploadInput
                 name="file"
                 type="file"
-                aria-label="file-upload"
+                aria-label={t('file-upload')}
                 accept=".tar"
                 ref={inputFileRef}
                 onChange={e => handleFileChange(e)}

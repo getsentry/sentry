@@ -23,6 +23,7 @@ class BitbucketClient(AuthApiClient):
             self.auth.tokens["oauth_token"],
             self.auth.tokens["oauth_token_secret"],
             signature_type="auth_header",
+            decoding=None,
         )
         return kwargs
 

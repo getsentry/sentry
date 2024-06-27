@@ -17,7 +17,7 @@ class ActionableItemsEndpointTestCase(APITestCase):
         self.login_as(self.user)
         return super().setUp()
 
-    def test_missing_event(self):
+    def test_missing_event(self) -> None:
         resp = self.get_error_response(
             self.organization.slug,
             self.project.slug,
@@ -26,7 +26,7 @@ class ActionableItemsEndpointTestCase(APITestCase):
         )
         assert resp.data["detail"] == "Event not found"
 
-    def test_orders_event_errors_by_priority(self):
+    def test_orders_event_errors_by_priority(self) -> None:
         event = self.store_event(
             data={
                 "event_id": "a" * 32,

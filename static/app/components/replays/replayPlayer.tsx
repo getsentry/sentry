@@ -123,10 +123,12 @@ function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
   // Update the scale of the view whenever dimensions have changed.
   useEffect(() => {
     if (viewEl.current) {
+      // We use 1.5 here because we want to scale up mobile replays
+      // (or other replays that have height > width)
       const scale = Math.min(
         windowDimensions.width / videoDimensions.width,
         windowDimensions.height / videoDimensions.height,
-        1
+        1.5
       );
       if (scale) {
         viewEl.current.style['transform-origin'] = 'top left';
@@ -148,7 +150,7 @@ function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
         <div ref={viewEl} className={className} />
         {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
         {isBuffering || isVideoBuffering ? <PositionedBuffering /> : null}
-        {isPreview || isVideoReplay ? null : <PlayerDOMAlert />}
+        {isPreview || isVideoReplay || isFetching ? null : <PlayerDOMAlert />}
         {isFetching ? <PositionedLoadingIndicator /> : null}
       </StyledNegativeSpaceContainer>
     </Fragment>
@@ -280,6 +282,20 @@ const SentryPlayerRoot = styled(PlayerRoot)`
       opacity: 0.5;
       width: 10px;
       height: 10px;
+    }
+  }
+
+  /* Correctly positions the canvas for video replays and shows the purple "mousetails" */
+  &.video-replayer {
+    .replayer-wrapper {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+    }
+    .replayer-wrapper > iframe {
+      opacity: 0;
     }
   }
 `;

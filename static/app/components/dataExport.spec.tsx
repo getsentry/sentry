@@ -1,11 +1,10 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import WrappedDataExport, {ExportQueryType} from 'sentry/components/dataExport';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 
 jest.mock('sentry/actionCreators/indicator');
 
@@ -23,9 +22,7 @@ const mockPayload = {
 };
 
 const mockContext = (organization: Organization) => {
-  const routerContext = RouterContextFixture([{organization}]);
-
-  return {context: routerContext, organization};
+  return {organization};
 };
 
 describe('DataExport', function () {

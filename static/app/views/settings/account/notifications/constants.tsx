@@ -90,8 +90,9 @@ export const CONFIRMATION_MESSAGE = (
   </div>
 );
 
-export const NOTIFICATION_FEATURE_MAP: Partial<Record<NotificationSettingsType, string>> =
-  {
-    quota: 'slack-overage-notifications',
-    spikeProtection: 'spike-projections',
-  };
+export const NOTIFICATION_FEATURE_MAP: Partial<
+  Record<NotificationSettingsType, string | Array<string>>
+> = {
+  quota: ['spend-visibility-notifications', 'user-spend-notifications-settings'],
+  spikeProtection: 'spike-projections',
+};

@@ -27,9 +27,9 @@ class ExternalTeamEndpoint(TeamEndpoint, ExternalActorEndpointMixin):
         Create an External Team
         `````````````
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team belongs to.
-        :pparam string team_slug: the slug of the team to get.
+        :pparam string team_id_or_slug: the team_id_or_slug of the team to get.
         :param required string provider: enum("github", "gitlab")
         :param required string external_name: the associated Github/Gitlab team name.
         :param optional string integration_id: the id of the integration if it exists.

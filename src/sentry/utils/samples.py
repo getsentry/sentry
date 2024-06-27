@@ -12,7 +12,6 @@ from sentry.event_manager import EventManager, set_tag
 from sentry.interfaces.user import User as UserInterface
 from sentry.spans.grouping.utils import hash_values
 from sentry.utils import json
-from sentry.utils.canonical import CanonicalKeyDict
 
 logger = logging.getLogger(__name__)
 epoch = datetime.fromtimestamp(0)
@@ -177,7 +176,6 @@ def load_data(
     if data is None:
         return
 
-    data = CanonicalKeyDict(data)
     if platform in ("csp", "hkpk", "expectct", "expectstaple"):
         return data
 
@@ -265,9 +263,9 @@ def load_data(
         data["event_id"] = event_id
 
     data["platform"] = platform
-    # XXX: Message is a legacy alias for logentry. Do not overwrite if set.
-    if "message" not in data:
-        data["message"] = f"This is an example {sample_name or platform} exception"
+    data.setdefault(
+        "logentry", {"formatted": f"This is an example {sample_name or platform} exception"}
+    )
     data.setdefault(
         "user",
         generate_user(ip_address="127.0.0.1", username="sentry", id=1, email="sentry@example.com"),

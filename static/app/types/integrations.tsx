@@ -383,7 +383,7 @@ type ConfigData = {
   installationType?: string;
 };
 
-export interface OrganizationIntegration extends CommonIntegration {
+export interface OrganizationIntegration extends Integration {
   configData: ConfigData | null;
   configOrganization: Field[];
   externalId: string;
@@ -590,17 +590,4 @@ export type ServerlessFunction = {
   outOfDate: boolean;
   runtime: string;
   version: number;
-};
-
-export type SentryFunction = {
-  author: string;
-  code: string;
-  name: string;
-  slug: string;
-  env_variables?: Array<{
-    name: string;
-    value: string;
-  }>;
-  events?: string[];
-  overview?: string;
 };

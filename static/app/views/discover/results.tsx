@@ -1,6 +1,5 @@
 import {Component, Fragment} from 'react';
 import type {InjectedRouter} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
@@ -36,6 +35,7 @@ import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters, SavedQuery} from 'sentry/types';
 import {defined, generateQueryWithTag} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
 import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/customMeasurementsProvider';
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
@@ -43,6 +43,7 @@ import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/field
 import {
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
+  type SavedQueryDatasets,
 } from 'sentry/utils/discover/types';
 import localStorage from 'sentry/utils/localStorage';
 import marked from 'sentry/utils/marked';
@@ -52,10 +53,11 @@ import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {DATASET_PARAM} from 'sentry/views/discover/savedQuery/datasetSelector';
 
 import {addRoutePerformanceContext} from '../performance/utils';
 
-import {DEFAULT_EVENT_VIEW} from './data';
+import {DEFAULT_EVENT_VIEW, DEFAULT_EVENT_VIEW_MAP} from './data';
 import ResultsChart from './resultsChart';
 import ResultsHeader from './resultsHeader';
 import {SampleDataAlert} from './sampleDataAlert';
@@ -300,7 +302,17 @@ export class Results extends Component<Props, State> {
     // If the view is not valid, redirect to a known valid state.
     const {location, organization, selection, isHomepage, savedQuery} = this.props;
 
-    const query = isHomepage && savedQuery ? omit(savedQuery, 'id') : DEFAULT_EVENT_VIEW;
+    const hasDatasetSelector = organization.features.includes(
+      'performance-discover-dataset-selector'
+    );
+    const value = (decodeScalar(location.query[DATASET_PARAM]) ??
+      savedQuery?.queryDataset ??
+      'error-events') as SavedQueryDatasets;
+    const defaultEventView = hasDatasetSelector
+      ? DEFAULT_EVENT_VIEW_MAP[value]
+      : DEFAULT_EVENT_VIEW;
+
+    const query = isHomepage && savedQuery ? omit(savedQuery, 'id') : defaultEventView;
     const nextEventView = EventView.fromNewQueryWithLocation(query, location);
     if (nextEventView.project.length === 0 && selection.projects) {
       nextEventView.project = selection.projects;

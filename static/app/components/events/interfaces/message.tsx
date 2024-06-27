@@ -3,9 +3,9 @@ import {renderLinksInText} from 'sentry/components/events/interfaces/crashConten
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {t} from 'sentry/locale';
-import type {Event} from 'sentry/types';
-import {EntryType} from 'sentry/types';
-import {objectIsEmpty} from 'sentry/utils';
+import type {Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
 
 type Props = {
   data: {
@@ -16,7 +16,7 @@ type Props = {
 };
 
 function renderParams(params: Props['data']['params'], meta: any) {
-  if (!params || objectIsEmpty(params)) {
+  if (!params || isEmptyObject(params)) {
     return null;
   }
 

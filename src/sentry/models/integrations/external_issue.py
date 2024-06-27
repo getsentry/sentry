@@ -7,15 +7,9 @@ from django.db.models import QuerySet
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import (
-    BaseManager,
-    FlexibleForeignKey,
-    JSONField,
-    Model,
-    region_silo_only_model,
-    sane_repr,
-)
+from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
 from sentry.eventstore.models import Event
 
 if TYPE_CHECKING:
@@ -68,7 +62,7 @@ class ExternalIssueManager(BaseManager["ExternalIssue"]):
         return self.get_linked_issues(event, integration).exists()
 
 
-@region_silo_only_model
+@region_silo_model
 class ExternalIssue(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

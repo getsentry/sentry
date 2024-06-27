@@ -66,9 +66,9 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="List Spike Protection Notifications",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             OrganizationParams.PROJECT,
-            OrganizationParams.PROJECT_SLUG,
+            OrganizationParams.PROJECT_ID_OR_SLUG,
             NotificationParams.TRIGGER_TYPE,
         ],
         responses={
@@ -119,7 +119,7 @@ class NotificationActionsIndexEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="Create a Spike Protection Notification Action",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
         ],
         request=NotificationActionSerializer,
         responses={

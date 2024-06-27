@@ -1,4 +1,6 @@
-import type {EventMetadata, Group} from 'sentry/types';
+import type {EventMetadata} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import type {User} from 'sentry/types/user';
 
 export enum DiffFileType {
   ADDED = 'A',
@@ -12,42 +14,133 @@ export enum DiffLineType {
   CONTEXT = ' ',
 }
 
-export type AutofixResult = {
-  description: string;
+export enum AutofixStepType {
+  DEFAULT = 'default',
+  ROOT_CAUSE_ANALYSIS = 'root_cause_analysis',
+  CHANGES = 'changes',
+  USER_RESPONSE = 'user_response',
+}
+
+export enum AutofixCodebaseIndexingStatus {
+  UP_TO_DATE = 'up_to_date',
+  INDEXING = 'indexing',
+  NOT_INDEXED = 'not_indexed',
+  OUT_OF_DATE = 'out_of_date',
+  ERRORED = 'errored',
+}
+
+export type AutofixPullRequestDetails = {
   pr_number: number;
   pr_url: string;
-  repo_name: string;
-  title: string;
-  diff?: FilePatch[];
+};
+
+export type AutofixOptions = {
+  iterative_feedback?: boolean;
 };
 
 export type AutofixData = {
   created_at: string;
-  status: 'PROCESSING' | 'COMPLETED' | 'NOFIX' | 'ERROR';
-
+  run_id: string;
+  status:
+    | 'PENDING'
+    | 'PROCESSING'
+    | 'COMPLETED'
+    | 'NOFIX'
+    | 'ERROR'
+    | 'NEED_MORE_INFORMATION';
+  actor_ids?: number[];
   codebase_indexing?: {
     status: 'COMPLETED';
   };
   completed_at?: string | null;
   error_message?: string;
-  fix?: AutofixResult;
+  options?: AutofixOptions;
   steps?: AutofixStep[];
+  users?: Record<number, User>;
 };
 
 export type AutofixProgressItem = {
-  data: any;
   message: string;
   timestamp: string;
   type: 'INFO' | 'WARNING' | 'ERROR' | 'NEED_MORE_INFORMATION' | 'USER_RESPONSE';
+  data?: any;
 };
 
-export type AutofixStep = {
+export type AutofixStep =
+  | AutofixDefaultStep
+  | AutofixRootCauseStep
+  | AutofixChangesStep
+  | AutofixUserResponseStep;
+
+interface BaseStep {
   id: string;
   index: number;
+  progress: AutofixProgressItem[];
   status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'ERROR' | 'CANCELLED';
   title: string;
+  type: AutofixStepType;
   completedMessage?: string;
-  progress?: Array<AutofixProgressItem | AutofixStep>;
+}
+
+export interface AutofixDefaultStep extends BaseStep {
+  type: AutofixStepType.DEFAULT;
+}
+
+export type AutofixRootCauseSelection =
+  | {
+      cause_id: string;
+      fix_id: string;
+    }
+  | {custom_root_cause: string}
+  | null;
+
+export interface AutofixRootCauseStep extends BaseStep {
+  causes: AutofixRootCauseData[];
+  selection: AutofixRootCauseSelection;
+  type: AutofixStepType.ROOT_CAUSE_ANALYSIS;
+}
+
+export type AutofixCodebaseChange = {
+  description: string;
+  diff: FilePatch[];
+  repo_id: number;
+  repo_name: string;
+  title: string;
+  diff_str?: string;
+  pull_request?: AutofixPullRequestDetails;
+};
+
+export interface AutofixChangesStep extends BaseStep {
+  changes: AutofixCodebaseChange[];
+  type: AutofixStepType.CHANGES;
+}
+
+export interface AutofixUserResponseStep extends BaseStep {
+  text: string;
+  type: AutofixStepType.USER_RESPONSE;
+  user_id: number;
+}
+
+export type AutofixRootCauseSuggestedFixSnippet = {
+  file_path: string;
+  snippet: string;
+};
+
+export type AutofixRootCauseSuggestedFix = {
+  description: string;
+  elegance: number;
+  id: string;
+  title: string;
+  snippet?: AutofixRootCauseSuggestedFixSnippet;
+};
+
+export type AutofixRootCauseData = {
+  actionability: number;
+  description: string;
+  id: string;
+  likelihood: number;
+  suggested_fixes: AutofixRootCauseSuggestedFix[];
+  title: string;
 };
 
 export type EventMetadataWithAutofix = EventMetadata & {
@@ -84,3 +177,9 @@ export type DiffLine = {
   target_line_no: number | null;
   value: string;
 };
+
+export interface AutofixRepoDefinition {
+  name: string;
+  owner: string;
+  provider: string;
+}

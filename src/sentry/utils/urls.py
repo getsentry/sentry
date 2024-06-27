@@ -1,11 +1,11 @@
 import re
-from collections.abc import MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
 from urllib.parse import parse_qs, parse_qsl, urlencode, urljoin, urlparse, urlsplit, urlunparse
 
 _scheme_re = re.compile(r"^([a-zA-Z0-9-+]+://)(.*)$")
 
 
-def non_standard_url_join(base, to_join):
+def non_standard_url_join(base: str, to_join: str | None) -> str:
     """A version of url join that can deal with unknown protocols."""
     # joins to an absolute url are willing by default
     if not to_join:
@@ -31,7 +31,7 @@ def non_standard_url_join(base, to_join):
     return rv
 
 
-def add_params_to_url(url, params):
+def add_params_to_url(url: str, params: Mapping[str, str]) -> str:
     url_parts = urlparse(url)
     query = dict(parse_qsl(url_parts.query))
     query.update(params)

@@ -14,7 +14,8 @@ import {IconAdd, IconDelete} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useRouter from 'sentry/utils/useRouter';
 
@@ -56,8 +57,11 @@ function NotificationSettingsByEntity({
 
   const orgId =
     router.location?.query?.organizationId ?? orgFromSubdomain ?? organizations[0]?.id;
-  const orgSlug =
-    organizations.find(({id}) => id === orgId)?.slug || organizations[0]?.slug;
+  let organization = organizations.find(({id}) => id === orgId);
+  if (!organization) {
+    organization = organizations[0];
+  }
+  const orgSlug = organization.slug;
 
   // loads all the projects for an org
   const {
@@ -70,6 +74,7 @@ function NotificationSettingsByEntity({
     [
       `/organizations/${orgSlug}/projects/`,
       {
+        host: organization.links.regionUrl,
         query: {
           all_projects: '1',
           collapse: ['latestDeploys', 'unusedFeatures'],

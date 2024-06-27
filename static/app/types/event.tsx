@@ -638,8 +638,12 @@ export interface ProfileContext {
   [ProfileContextKey.PROFILE_ID]?: string;
 }
 
+export enum ReplayContextKey {
+  REPLAY_ID = 'replay_id',
+}
+
 export interface ReplayContext {
-  replay_id: string;
+  [ReplayContextKey.REPLAY_ID]: string;
   type: string;
 }
 export interface BrowserContext {
@@ -652,7 +656,7 @@ export interface ResponseContext {
   type: 'response';
 }
 
-type EventContexts = {
+export type EventContexts = {
   'Memory Info'?: MemoryInfoContext;
   'ThreadPool Info'?: ThreadPoolInfoContext;
   browser?: BrowserContext;

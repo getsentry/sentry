@@ -1,9 +1,11 @@
-from datetime import timedelta
-from unittest import mock
+from __future__ import annotations
+
+from typing import Literal
 from unittest.mock import patch
 
 import pytest
 
+from sentry.models.project import Project
 from sentry.sentry_metrics.use_case_id_registry import (
     UseCaseID,
     UseCaseIDAPIAccess,
@@ -75,7 +77,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
 
         assert isinstance(response.data, list)
 
-    @patch("sentry.api.endpoints.organization_metrics.get_metrics_meta")
+    @patch("sentry.api.endpoints.organization_metrics_details.get_metrics_meta")
     def test_metrics_details_with_public_use_case(self, get_metrics_meta):
         get_metrics_meta.return_value = []
 
@@ -84,7 +86,9 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             self.organization.slug, project=[self.project.id], useCase=UseCaseID.SESSIONS.value
         )
         get_metrics_meta.assert_called_once_with(
-            projects=[self.project], use_case_ids=[UseCaseID.SESSIONS], start=mock.ANY, end=mock.ANY
+            organization=self.organization,
+            projects=[self.project],
+            use_case_ids=[UseCaseID.SESSIONS],
         )
 
         get_metrics_meta.reset_mock()
@@ -98,10 +102,12 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             self.organization.slug, project=[self.project.id], useCase=UseCaseID.SESSIONS.value
         )
         get_metrics_meta.assert_called_once_with(
-            projects=[self.project], use_case_ids=[UseCaseID.SESSIONS], start=mock.ANY, end=mock.ANY
+            organization=self.organization,
+            projects=[self.project],
+            use_case_ids=[UseCaseID.SESSIONS],
         )
 
-    @patch("sentry.api.endpoints.organization_metrics.get_metrics_meta")
+    @patch("sentry.api.endpoints.organization_metrics_details.get_metrics_meta")
     def test_metrics_details_with_private_use_case(self, get_metrics_meta):
         get_metrics_meta.return_value = []
 
@@ -110,10 +116,9 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             self.organization.slug, project=[self.project.id], useCase=UseCaseID.METRIC_STATS.value
         )
         get_metrics_meta.assert_called_once_with(
+            organization=self.organization,
             projects=[self.project],
             use_case_ids=[UseCaseID.METRIC_STATS],
-            start=mock.ANY,
-            end=mock.ANY,
         )
 
         get_metrics_meta.reset_mock()
@@ -131,7 +136,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         )
         get_metrics_meta.assert_not_called()
 
-    @patch("sentry.api.endpoints.organization_metrics.get_metrics_meta")
+    @patch("sentry.api.endpoints.organization_metrics_details.get_metrics_meta")
     def test_metrics_details_default_use_cases(self, get_metrics_meta):
         get_metrics_meta.return_value = []
 
@@ -146,7 +151,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         self.login_as(user=self.user, superuser=True)
         self.get_success_response(self.organization.slug, project=[self.project.id])
         get_metrics_meta.assert_called_once_with(
-            projects=[self.project], use_case_ids=all_use_case_ids, start=mock.ANY, end=mock.ANY
+            organization=self.organization, projects=[self.project], use_case_ids=all_use_case_ids
         )
 
         get_metrics_meta.reset_mock()
@@ -155,7 +160,9 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         self.login_as(user=self.user, staff=True)
         self.get_success_response(self.organization.slug, project=[self.project.id])
         get_metrics_meta.assert_called_once_with(
-            projects=[self.project], use_case_ids=public_use_case_ids, start=mock.ANY, end=mock.ANY
+            organization=self.organization,
+            projects=[self.project],
+            use_case_ids=public_use_case_ids,
         )
 
         get_metrics_meta.reset_mock()
@@ -168,7 +175,9 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         self.login_as(user=normal_user)
         self.get_success_response(self.organization.slug, project=[self.project.id])
         get_metrics_meta.assert_called_once_with(
-            projects=[self.project], use_case_ids=public_use_case_ids, start=mock.ANY, end=mock.ANY
+            organization=self.organization,
+            projects=[self.project],
+            use_case_ids=public_use_case_ids,
         )
 
     def test_metrics_details_for_custom_metrics(self):
@@ -178,17 +187,18 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         block_metric("s:custom/user@none", [project_1])
         block_tags_of_metric("d:custom/page_load@millisecond", {"release"}, [project_2])
 
-        metrics = (
+        metrics: tuple[tuple[str, Literal["set", "counter", "distribution"], Project], ...] = (
             ("s:custom/user@none", "set", project_1),
             ("s:custom/user@none", "set", project_2),
             ("c:custom/clicks@none", "counter", project_1),
             ("d:custom/page_load@millisecond", "distribution", project_2),
+            ("g:custom/page_load@millisecond", "distribution", project_2),
         )
         for mri, entity, project in metrics:
             self.store_metric(
                 project.organization.id,
                 project.id,
-                entity,  # type: ignore[arg-type]
+                entity,
                 mri,
                 {"transaction": "/hello"},
                 int(self.now.timestamp()),
@@ -199,7 +209,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         response = self.get_success_response(
             self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
         )
-        assert len(response.data) == 3
+        assert len(response.data) == 4
 
         data = sorted(response.data, key=lambda d: d["mri"])
         assert data[0]["mri"] == "c:custom/clicks@none"
@@ -210,35 +220,136 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         assert data[1]["blockingStatus"] == [
             {"isBlocked": False, "blockedTags": ["release"], "projectId": project_2.id}
         ]
-        assert data[2]["mri"] == "s:custom/user@none"
-        assert sorted(data[2]["projectIds"]) == sorted([project_1.id, project_2.id])
-        assert data[2]["blockingStatus"] == [
+        assert data[3]["mri"] == "s:custom/user@none"
+        assert sorted(data[3]["projectIds"]) == sorted([project_1.id, project_2.id])
+        assert data[3]["blockingStatus"] == [
             {"isBlocked": True, "blockedTags": [], "projectId": project_1.id}
         ]
+        assert sorted(data[1]["operations"]) == [
+            "avg",
+            "count",
+            "histogram",
+            "max",
+            "max_timestamp",
+            "min",
+            "min_timestamp",
+            "sum",
+        ]
 
-    def test_metrics_details_with_date_range(self):
-        metrics = (
-            ("c:custom/clicks_1@none", 0),
-            ("c:custom/clicks_2@none", 1),
-            ("c:custom/clicks_3@none", 7),
+        assert sorted(data[2]["operations"]) == [
+            "avg",
+            "count",
+            "max",
+            "min",
+            "sum",
+        ]
+
+        # test default deactivated percentiles
+        response = self.get_success_response(
+            self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
         )
-        for mri, days in metrics:
+        data = sorted(response.data, key=lambda d: d["mri"])
+        assert sorted(data[1]["operations"]) == [
+            "avg",
+            "count",
+            "histogram",
+            "max",
+            "max_timestamp",
+            "min",
+            "min_timestamp",
+            "sum",
+        ]
+
+        # test activated percentiles
+        self.organization.update_option("sentry:metrics_activate_percentiles", True)
+        response = self.get_success_response(
+            self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
+        )
+        data = sorted(response.data, key=lambda d: d["mri"])
+        assert sorted(data[1]["operations"]) == [
+            "avg",
+            "count",
+            "histogram",
+            "max",
+            "max_timestamp",
+            "min",
+            "min_timestamp",
+            "p50",
+            "p75",
+            "p90",
+            "p95",
+            "p99",
+            "sum",
+        ]
+
+        # test default deactivated gauges
+        response = self.get_success_response(
+            self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
+        )
+        data = sorted(response.data, key=lambda d: d["mri"])
+        assert sorted(data[2]["operations"]) == [
+            "avg",
+            "count",
+            "max",
+            "min",
+            "sum",
+        ]
+
+        # test activated gauges
+        self.organization.update_option("sentry:metrics_activate_last_for_gauges", True)
+        response = self.get_success_response(
+            self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
+        )
+        data = sorted(response.data, key=lambda d: d["mri"])
+
+        assert sorted(data[2]["operations"]) == [
+            "avg",
+            "count",
+            "last",
+            "max",
+            "min",
+            "sum",
+        ]
+
+    def test_metrics_details_when_organization_has_no_projects(self):
+        organization_without_projects = self.create_organization()
+        self.create_member(user=self.user, organization=organization_without_projects)
+        response = self.get_response(organization_without_projects.slug)
+        assert response.status_code == 404
+        assert response.data["detail"] == "You must supply at least one project to see its metrics"
+
+    def test_blocking_metrics_dont_duplicate_with_multiple_use_cases(self):
+        project_1 = self.create_project()
+
+        block_metric("s:custom/user@none", [project_1])
+
+        metrics: tuple[tuple[str, Literal["set", "counter", "distribution"], Project], ...] = (
+            ("s:custom/user@none", "set", project_1),
+            ("c:custom/clicks@none", "counter", project_1),
+        )
+        for mri, entity, project in metrics:
             self.store_metric(
-                self.project.organization.id,
-                self.project.id,
-                "counter",
+                project.organization.id,
+                project.id,
+                entity,
                 mri,
                 {"transaction": "/hello"},
-                int((self.now - timedelta(days=days)).timestamp()),
+                int(self.now.timestamp()),
                 10,
                 UseCaseID.CUSTOM,
             )
 
-        for stats_period, expected_count in (("1d", 1), ("2d", 2), ("2w", 3)):
-            response = self.get_success_response(
-                self.organization.slug,
-                project=self.project.id,
-                useCase="custom",
-                statsPeriod=stats_period,
-            )
-            assert len(response.data) == expected_count
+        response = self.get_success_response(
+            self.organization.slug, project=[project_1.id], useCase=["transactions", "custom"]
+        )
+        assert len(response.data) == 2
+
+        data = sorted(response.data, key=lambda d: d["mri"])
+        assert data[0]["mri"] == "c:custom/clicks@none"
+        assert data[0]["projectIds"] == [project_1.id]
+        assert data[0]["blockingStatus"] == []
+        assert data[1]["mri"] == "s:custom/user@none"
+        assert sorted(data[1]["projectIds"]) == sorted([project_1.id])
+        assert data[1]["blockingStatus"] == [
+            {"isBlocked": True, "blockedTags": [], "projectId": project_1.id}
+        ]

@@ -36,9 +36,14 @@ from sentry.constants import (
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
+    EXTRAPOLATE_METRICS_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
+    ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
     LEGACY_RATE_LIMIT_OPTIONS,
+    METRIC_ALERTS_THREAD_DEFAULT,
+    METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
+    METRICS_ACTIVATE_PERCENTILES_DEFAULT,
     PROJECT_RATE_LIMIT_DEFAULT,
     REQUIRE_SCRUB_DATA_DEFAULT,
     REQUIRE_SCRUB_DEFAULTS_DEFAULT,
@@ -48,6 +53,7 @@ from sentry.constants import (
     SENSITIVE_FIELDS_DEFAULT,
 )
 from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
+from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
     STORE_CRASH_REPORTS_DEFAULT,
@@ -59,7 +65,6 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.useremail import UserEmail
-from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
 from sentry.services.hybrid_cloud.auth import auth_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.organization.model import (
@@ -176,6 +181,31 @@ ORG_OPTIONS = (
     ),
     ("aggregatedDataConsent", "sentry:aggregated_data_consent", bool, DATA_CONSENT_DEFAULT),
     ("genAIConsent", "sentry:gen_ai_consent", bool, DATA_CONSENT_DEFAULT),
+    (
+        "issueAlertsThreadFlag",
+        "sentry:issue_alerts_thread_flag",
+        bool,
+        ISSUE_ALERTS_THREAD_DEFAULT,
+    ),
+    (
+        "metricAlertsThreadFlag",
+        "sentry:metric_alerts_thread_flag",
+        bool,
+        METRIC_ALERTS_THREAD_DEFAULT,
+    ),
+    (
+        "metricsActivatePercentiles",
+        "sentry:metrics_activate_percentiles",
+        bool,
+        METRICS_ACTIVATE_PERCENTILES_DEFAULT,
+    ),
+    (
+        "metricsActivateLastForGauges",
+        "sentry:metrics_activate_last_for_gauges",
+        bool,
+        METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
+    ),
+    ("extrapolateMetrics", "sentry:extrapolate_metrics", bool, EXTRAPOLATE_METRICS_DEFAULT),
 )
 
 DELETION_STATUSES = frozenset(
@@ -222,6 +252,10 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     githubOpenPRBot = serializers.BooleanField(required=False)
     githubNudgeInvite = serializers.BooleanField(required=False)
     githubPRBot = serializers.BooleanField(required=False)
+    issueAlertsThreadFlag = serializers.BooleanField(required=False)
+    metricAlertsThreadFlag = serializers.BooleanField(required=False)
+    metricsActivatePercentiles = serializers.BooleanField(required=False)
+    metricsActivateLastForGauges = serializers.BooleanField(required=False)
     aggregatedDataConsent = serializers.BooleanField(required=False)
     genAIConsent = serializers.BooleanField(required=False)
     require2FA = serializers.BooleanField(required=False)
@@ -230,6 +264,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
+    extrapolateMetrics = serializers.BooleanField(required=False)
 
     @cached_property
     def _has_legacy_rate_limits(self):
@@ -555,11 +590,15 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         Return details on an individual organization including various details
         such as membership access, features, and teams.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team should be created for.
         :param string detailed: Specify '0' to retrieve details without projects and teams.
+        :qparam string include_feature_flags: whether or not to include feature flags in the response
         :auth: required
         """
+        # This param will be used to determine if we should include feature flags in the response
+        include_feature_flags = request.GET.get("include_feature_flags", "0") != "0"
+
         serializer = org_serializers.OrganizationSerializer
 
         if request.access.has_scope("org:read") or is_active_staff(request):
@@ -569,7 +608,13 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
             if is_detailed:
                 serializer = org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams
 
-        context = serialize(organization, request.user, serializer(), access=request.access)
+        context = serialize(
+            organization,
+            request.user,
+            serializer(),
+            access=request.access,
+            include_feature_flags=include_feature_flags,
+        )
 
         return self.respond(context)
 
@@ -581,14 +626,18 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         Update various attributes and configurable settings for the given
         organization.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team should be created for.
         :param string name: an optional new name for the organization.
         :param string slug: an optional new slug for the organization.  Needs
                             to be available and unique.
+        :qparam string include_feature_flags: whether or not to include feature flags in the response
         :auth: required
         """
         from sentry import features
+
+        # This param will be used to determine if we should include feature flags in the response
+        include_feature_flags = request.GET.get("include_feature_flags", "0") != "0"
 
         # We don't need to check for staff here b/c the _admin portal uses another endpoint to update orgs
         if request.access.has_scope("org:admin"):
@@ -656,6 +705,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
                 request.user,
                 org_serializers.DetailedOrganizationSerializerWithProjectsAndTeams(),
                 access=request.access,
+                include_feature_flags=include_feature_flags,
             )
 
             return self.respond(context)
@@ -714,7 +764,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         However once deletion has begun the state of an organization changes and
         will be hidden from most public views.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team should be created for.
         :auth: required, user-context-needed
         """

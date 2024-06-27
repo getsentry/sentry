@@ -38,13 +38,13 @@ class OrganizationSearchEditPermission(OrganizationSearchPermission):
 class OrganizationSearchDetailsEndpoint(OrganizationEndpoint):
     owner = ApiOwner.UNOWNED
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationSearchEditPermission,)
 
-    def convert_args(self, request: Request, organization_slug, search_id, *args, **kwargs):
-        (args, kwargs) = super().convert_args(request, organization_slug, *args, **kwargs)
+    def convert_args(self, request: Request, organization_id_or_slug, search_id, *args, **kwargs):
+        (args, kwargs) = super().convert_args(request, organization_id_or_slug, *args, **kwargs)
 
         # Only allow users to delete their own personal searches OR
         # organization level searches

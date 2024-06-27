@@ -8,7 +8,6 @@ from datetime import datetime
 from functools import reduce
 from typing import Any, Literal, NamedTuple, Union
 
-import sentry_sdk
 from django.utils.functional import cached_property
 from parsimonious.exceptions import IncompleteParseError
 from parsimonious.grammar import Grammar
@@ -150,7 +149,7 @@ quoted_value           = '"' ('\\"' / ~r'[^"]')* '"'
 in_value               = (&in_value_termination in_value_char)+
 text_in_value          = quoted_value / in_value
 search_value           = quoted_value / value
-numeric_value          = "-"? numeric ~r"[kmb]"? &(end_value / comma / closed_bracket)
+numeric_value          = "-"? numeric numeric_unit? &(end_value / comma / closed_bracket)
 boolean_value          = ~r"(true|1|false|0)"i &end_value
 text_in_list           = open_bracket text_in_value (spaces comma spaces !comma text_in_value?)* closed_bracket &end_value
 numeric_in_list        = open_bracket numeric_value (spaces comma spaces !comma numeric_value?)* closed_bracket &end_value
@@ -166,11 +165,17 @@ time_format = ~r"T\d{2}:\d{2}:\d{2}" ("." ms_format)?
 ms_format   = ~r"\d{1,6}"
 tz_format   = ~r"[+-]\d{2}:\d{2}"
 
+
 iso_8601_date_format = date_format time_format? ("Z" / tz_format)? &end_value
 rel_date_format      = ~r"[+-][0-9]+[wdhm]" &end_value
 duration_format      = numeric ("ms"/"s"/"min"/"m"/"hr"/"h"/"day"/"d"/"wk"/"w") &end_value
-size_format          = numeric ("bit"/"nb"/"bytes"/"kb"/"mb"/"gb"/"tb"/"pb"/"eb"/"zb"/"yb"/"kib"/"mib"/"gib"/"tib"/"pib"/"eib"/"zib"/"yib") &end_value
+size_format          = numeric (size_unit) &end_value
 percentage_format    = numeric "%"
+
+numeric_unit        = ~r"[kmb]"i
+size_unit            = bits / bytes
+bits                 = ~r"bit|kib|mib|gib|tib|pib|eib|zib|yib"i
+bytes                = ~r"bytes|nb|kb|mb|gb|tb|pb|eb|zb|yb"i
 
 # NOTE: the order in which these operators are listed matters because for
 # example, if < comes before <= it will match that even if the operator is <=
@@ -508,7 +513,6 @@ class SearchConfig:
 class SearchVisitor(NodeVisitor):
     unwrapped_exceptions = (InvalidSearchQuery,)
 
-    @sentry_sdk.tracing.trace
     def __init__(self, config=None, params=None, builder=None):
         super().__init__()
 
@@ -1172,7 +1176,6 @@ QueryOp = Literal["AND", "OR"]
 QueryToken = Union[SearchFilter, QueryOp, ParenExpression]
 
 
-@sentry_sdk.tracing.trace
 def parse_search_query(
     query, config=None, params=None, builder=None, config_overrides=None
 ) -> list[

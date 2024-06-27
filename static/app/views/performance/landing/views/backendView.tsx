@@ -1,4 +1,4 @@
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import type {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
   canUseMetricsData,
@@ -69,8 +69,13 @@ export function BackendView(props: BasePerformanceViewProps) {
       doubleChartRowCharts.push(PerformanceWidgetSetting.MOST_CHANGED);
     }
 
-    if (props.organization.features.includes('performance-database-view')) {
+    if (props.organization.features.includes('insights-initial-modules')) {
+      doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_CONSUMING_DOMAINS);
       doubleChartRowCharts.unshift(PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES);
+
+      doubleChartRowCharts.unshift(
+        PerformanceWidgetSetting.HIGHEST_CACHE_MISS_RATE_TRANSACTIONS
+      );
     }
   } else {
     doubleChartRowCharts.push(

@@ -42,6 +42,15 @@ describe('DiffModal', function () {
         Header={c => <span>{c.children}</span>}
         CloseButton={({children}) => <div>{children}</div>}
         closeModal={() => {}}
+        location={{
+          pathname: '',
+          query: {cursor: '0:1:1', statsPeriod: '14d'},
+          search: '',
+          hash: '',
+          state: null,
+          action: 'PUSH',
+          key: 'default',
+        }}
       />
     );
   });

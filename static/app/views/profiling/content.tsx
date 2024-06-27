@@ -1,5 +1,4 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -31,7 +30,7 @@ import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
 import {formatError, formatSort} from 'sentry/utils/profiling/hooks/utils';
@@ -65,7 +64,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
     'profiling-using-transactions'
   );
 
-  const fields = profilingUsingTransactions ? ALL_FIELDS : BASE_FIELDS;
+  const fields = ALL_FIELDS;
 
   const sort = formatSort<FieldType>(decodeScalar(location.query.sort), fields, {
     key: 'count()',
@@ -138,22 +137,6 @@ function ProfilingContent({location}: ProfilingContentProps) {
     );
   }, [selection.projects, projects]);
 
-  const eventView = useMemo(() => {
-    const _eventView = EventView.fromNewQueryWithLocation(
-      {
-        id: undefined,
-        version: 2,
-        name: t('Profiling'),
-        fields: [],
-        query,
-        projects: selection.projects,
-      },
-      location
-    );
-    _eventView.additionalConditions.setFilterValues('has', ['profile.id']);
-    return _eventView;
-  }, [location, query, selection.projects]);
-
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
       <PageFiltersContainer
@@ -194,9 +177,9 @@ function ProfilingContent({location}: ProfilingContentProps) {
                 </PageFilterBar>
                 {profilingUsingTransactions ? (
                   <SearchBar
-                    searchSource="profile_summary"
+                    searchSource="profile_landing"
                     organization={organization}
-                    projectIds={eventView.project}
+                    projectIds={selection.projects}
                     query={query}
                     onSearch={handleSearch}
                     maxQueryLength={MAX_QUERY_LENGTH}
@@ -205,6 +188,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   <SmartSearchBar
                     organization={organization}
                     hasRecentSearches
+                    projectIds={projects.map(p => parseInt(p.id, 10))}
                     searchSource="profile_landing"
                     supportedTags={profileFilters}
                     query={query}
@@ -214,40 +198,43 @@ function ProfilingContent({location}: ProfilingContentProps) {
                 )}
               </ActionBar>
               {shouldShowProfilingOnboardingPanel ? (
-                // If user is on m2, show default
-                <ProfilingOnboardingPanel
-                  content={
-                    <ProfilingAM1OrMMXUpgrade
-                      organization={organization}
-                      fallback={
-                        <Fragment>
-                          <h3>{t('Function level insights')}</h3>
-                          <p>
-                            {t(
-                              'Discover slow-to-execute or resource intensive functions within your application'
-                            )}
-                          </p>
-                        </Fragment>
-                      }
-                    />
-                  }
-                >
-                  <ProfilingUpgradeButton
-                    organization={organization}
-                    priority="primary"
-                    onClick={onSetupProfilingClick}
-                    fallback={
-                      <Button onClick={onSetupProfilingClick} priority="primary">
-                        {t('Set Up Profiling')}
-                      </Button>
+                <Fragment>
+                  <ProfilingOnboardingPanel
+                    content={
+                      // If user is on m2, show default
+                      <ProfilingAM1OrMMXUpgrade
+                        organization={organization}
+                        fallback={
+                          <Fragment>
+                            <h3>{t('Function level insights')}</h3>
+                            <p>
+                              {t(
+                                'Discover slow-to-execute or resource intensive functions within your application'
+                              )}
+                            </p>
+                          </Fragment>
+                        }
+                      />
                     }
                   >
-                    {t('Set Up Profiling')}
-                  </ProfilingUpgradeButton>
-                  <Button href="https://docs.sentry.io/product/profiling/" external>
-                    {t('Read Docs')}
-                  </Button>
-                </ProfilingOnboardingPanel>
+                    <ProfilingUpgradeButton
+                      data-test-id="profiling-upgrade"
+                      organization={organization}
+                      priority="primary"
+                      onClick={onSetupProfilingClick}
+                      fallback={
+                        <Button onClick={onSetupProfilingClick} priority="primary">
+                          {t('Set Up Profiling')}
+                        </Button>
+                      }
+                    >
+                      {t('Set Up Profiling')}
+                    </ProfilingUpgradeButton>
+                    <Button href="https://docs.sentry.io/product/profiling/" external>
+                      {t('Read Docs')}
+                    </Button>
+                  </ProfilingOnboardingPanel>
+                </Fragment>
               ) : (
                 <Fragment>
                   {organization.features.includes(
@@ -317,7 +304,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
   );
 }
 
-const BASE_FIELDS = [
+const ALL_FIELDS = [
   'transaction',
   'project.id',
   'last_seen()',
@@ -327,9 +314,6 @@ const BASE_FIELDS = [
   'p99()',
   'count()',
 ] as const;
-
-// user misery is only available with the profiling-using-transactions feature
-const ALL_FIELDS = [...BASE_FIELDS, 'user_misery()'] as const;
 
 type FieldType = (typeof ALL_FIELDS)[number];
 

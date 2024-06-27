@@ -10,8 +10,9 @@ from sentry.services.hybrid_cloud.organization_mapping import (
     RpcOrganizationMapping,
     RpcOrganizationMappingUpdate,
 )
+from sentry.services.hybrid_cloud.organization_mapping.model import CustomerId
 from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
-from sentry.silo import unguarded_write
+from sentry.silo.safety import unguarded_write
 
 
 class OrganizationMappingConsistencyException(Exception):
@@ -86,19 +87,19 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
 
     def _upsert_organization_slug_reservation_for_monolith(
         self, organization_id: int, mapping_update: RpcOrganizationMappingUpdate
-    ):
-        org_slug_reservation_qs = OrganizationSlugReservation.objects.filter(
+    ) -> None:
+        org_slug_reservation = OrganizationSlugReservation.objects.filter(
             organization_id=organization_id
-        )
-        if not org_slug_reservation_qs.exists():
+        ).first()
+        if org_slug_reservation is None:
             OrganizationSlugReservation(
                 region_name=mapping_update.region_name,
                 slug=mapping_update.slug,
                 organization_id=organization_id,
                 user_id=-1,
             ).save(unsafe_write=True)
-        elif org_slug_reservation_qs.first().slug != mapping_update.slug:
-            org_slug_reservation_qs.first().update(slug=mapping_update.slug, unsafe_write=True)
+        elif org_slug_reservation.slug != mapping_update.slug:
+            org_slug_reservation.update(slug=mapping_update.slug, unsafe_write=True)
 
     def upsert(self, organization_id: int, update: RpcOrganizationMappingUpdate) -> None:
         update_dict: dict[str, Any] = dict(
@@ -115,8 +116,8 @@ class DatabaseBackedOrganizationMappingService(OrganizationMappingService):
             require_email_verification=update.require_email_verification,
             codecov_access=update.codecov_access,
         )
-        if update.customer_id is not None:
-            update_dict["customer_id"] = update.customer_id[0]
+        if isinstance(update.customer_id, CustomerId):
+            update_dict["customer_id"] = update.customer_id.value
 
         with unguarded_write(using=router.db_for_write(OrganizationMapping)):
             mapping_is_valid = self._check_organization_mapping_integrity(

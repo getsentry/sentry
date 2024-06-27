@@ -1,26 +1,21 @@
 import {Fragment, useEffect} from 'react';
-import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
-import ClippedBox from 'sentry/components/clippedBox';
 import EventTagCustomBanner from 'sentry/components/events/eventTags/eventTagCustomBanner';
 import EventTagsTree from 'sentry/components/events/eventTags/eventTagsTree';
-import {TagFilter, useHasNewTagsUI} from 'sentry/components/events/eventTags/util';
-import Pills from 'sentry/components/pills';
+import {TagFilter} from 'sentry/components/events/eventTags/util';
+import type {Project} from 'sentry/types';
 import type {Event, EventTag} from 'sentry/types/event';
-import {defined, generateQueryWithTag} from 'sentry/utils';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
-import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {AnnotatedText} from '../meta/annotatedText';
 
-import EventTagsPill from './eventTagsPill';
-
 type Props = {
   event: Event;
-  projectSlug: string;
+  projectSlug: Project['slug'];
   filteredTags?: EventTag[];
   tagFilter?: TagFilter;
 };
@@ -33,11 +28,8 @@ export function EventTags({
   projectSlug,
   tagFilter = TagFilter.ALL,
 }: Props) {
-  const location = useLocation();
   const organization = useOrganization();
-  const hasNewTagsUI = useHasNewTagsUI();
   const meta = event._meta?.tags;
-  const projectId = event.projectID;
 
   const tagsSource = defined(filteredTags) ? filteredTags : event.tags;
 
@@ -92,9 +84,9 @@ export function EventTags({
 
   useEffect(() => {
     const mechanism = filteredTags?.find(tag => tag.key === 'mechanism')?.value;
-    const transaction = Sentry.getActiveTransaction();
-    if (mechanism && transaction) {
-      transaction.tags.hasMechanism = mechanism;
+    const span = Sentry.getActiveSpan();
+    if (mechanism && span) {
+      Sentry.getRootSpan(span).setAttribute('hasMechanism', mechanism);
     }
   }, [filteredTags]);
 
@@ -106,39 +98,12 @@ export function EventTags({
     return null;
   }
 
-  const hasCustomTagsBanner =
-    hasNewTagsUI && tagFilter === TagFilter.CUSTOM && tags.length === 0;
+  const hasCustomTagsBanner = tagFilter === TagFilter.CUSTOM && tags.length === 0;
 
   return (
     <Fragment>
-      {hasNewTagsUI ? (
-        <EventTagsTree event={event} tags={tags} meta={meta} projectSlug={projectSlug} />
-      ) : (
-        <StyledClippedBox clipHeight={150}>
-          <Pills>
-            {tags.map((tag, index) => (
-              <EventTagsPill
-                key={!defined(tag.key) ? `tag-pill-${index}` : tag.key}
-                tag={tag}
-                projectSlug={projectSlug}
-                projectId={projectId}
-                organization={organization}
-                query={generateQueryWithTag(
-                  {...location.query, referrer: 'event-tags'},
-                  tag
-                )}
-                streamPath={`/organizations/${organization.slug}/issues/`}
-                meta={meta?.[index]}
-              />
-            ))}
-          </Pills>
-        </StyledClippedBox>
-      )}
+      <EventTagsTree event={event} meta={meta} projectSlug={projectSlug} tags={tags} />
       {hasCustomTagsBanner && <EventTagCustomBanner />}
     </Fragment>
   );
 }
-
-const StyledClippedBox = styled(ClippedBox)`
-  padding: 0;
-`;

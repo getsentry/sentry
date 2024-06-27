@@ -14,6 +14,9 @@ class Allow(Enum):
     """Keeps the event data if it is of type str, int, float, bool."""
     SIMPLE_TYPE = auto()
 
+    """Keeps the event data if it is a mapping with string keys and string values."""
+    MAP_WITH_STRINGS = auto()
+
     """
     Doesn't keep the event data no matter the type. This can be used to explicitly
     specify that data should be removed with an explanation.
@@ -55,12 +58,16 @@ EVENT_DATA_ALLOWLIST = {
                     "package": Allow.SIMPLE_TYPE,
                     "platform": Allow.SIMPLE_TYPE,
                     "lineno": Allow.SIMPLE_TYPE,
-                }
+                },
+                "registers": Allow.MAP_WITH_STRINGS.with_explanation(
+                    "Registers contain memory addresses, which isn't PII."
+                ),
             },
             "value": Allow.NEVER.with_explanation("The exception value could contain PII."),
             "type": Allow.SIMPLE_TYPE,
             "mechanism": {
                 "handled": Allow.SIMPLE_TYPE,
+                "synthetic": Allow.SIMPLE_TYPE,
                 "type": Allow.SIMPLE_TYPE,
                 "meta": {
                     "signal": {
@@ -73,6 +80,10 @@ EVENT_DATA_ALLOWLIST = {
                         "exception": Allow.SIMPLE_TYPE,
                         "code": Allow.SIMPLE_TYPE,
                         "subcode": Allow.SIMPLE_TYPE,
+                        "name": Allow.SIMPLE_TYPE,
+                    },
+                    "errno": {
+                        "number": Allow.SIMPLE_TYPE,
                         "name": Allow.SIMPLE_TYPE,
                     },
                 },
@@ -142,6 +153,16 @@ def _strip_event_data_with_allowlist(
 
             if allowed is Allow.SIMPLE_TYPE and isinstance(data_value, (str, int, float, bool)):
                 stripped_data[data_key] = data_value
+            elif allowed is Allow.MAP_WITH_STRINGS and isinstance(data_value, Mapping):
+                map_with_hex_values = {}
+                for key, value in data_value.items():
+                    if isinstance(key, str) and isinstance(value, str):
+                        map_with_hex_values[key] = value
+
+                if len(map_with_hex_values) > 0:
+                    stripped_data[data_key] = map_with_hex_values
+
+                continue
             else:
                 continue
 

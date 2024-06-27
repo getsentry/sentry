@@ -9,8 +9,9 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {EventsStats, MultiSeriesEventsStats, PageFilters} from 'sentry/types';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
 import {defined, escape} from 'sentry/utils';
-import {getFormattedDate, parsePeriodToHours} from 'sentry/utils/dates';
+import {getFormattedDate} from 'sentry/utils/dates';
 import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import oxfordizeArray from 'sentry/utils/oxfordizeArray';
 import {decodeList} from 'sentry/utils/queryString';
 

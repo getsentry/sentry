@@ -5,7 +5,7 @@
 
 from typing import Any, TypedDict
 
-from sentry.services.hybrid_cloud import RpcModel
+from sentry.hybridcloud.rpc import RpcModel
 from social_auth.utils import get_backend, tokens
 
 

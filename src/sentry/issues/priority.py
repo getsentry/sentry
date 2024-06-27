@@ -4,9 +4,7 @@ import logging
 from enum import Enum
 from typing import TYPE_CHECKING
 
-from sentry import features
 from sentry.models.activity import Activity
-from sentry.models.actor import get_actor_id_for_user
 from sentry.models.grouphistory import GroupHistoryStatus, record_group_history
 from sentry.models.project import Project
 from sentry.models.user import User
@@ -70,7 +68,7 @@ def update_priority(
         project=project,
         new_priority=priority.to_str(),
         previous_priority=previous_priority.to_str() if previous_priority else None,
-        user_id=get_actor_id_for_user(actor) if actor else None,
+        user_id=actor.id if actor else None,
         reason=reason.value if reason else None,
         sender=sender,
     )
@@ -94,9 +92,6 @@ def get_initial_priority(group: Group) -> PriorityLevel | None:
 
 
 def get_priority_for_ongoing_group(group: Group) -> PriorityLevel | None:
-    if not features.has("projects:issue-priority", group.project, actor=None):
-        return None
-
     # Fall back to the initial priority
     new_priority = get_initial_priority(group)
     if not new_priority:
@@ -113,10 +108,7 @@ def auto_update_priority(group: Group, reason: PriorityChangeReason) -> None:
     """
     Update the priority of a group due to state changes.
     """
-    if (
-        not features.has("projects:issue-priority", group.project, actor=None)
-        or group.priority_locked_at is not None
-    ):
+    if group.priority_locked_at is not None:
         return None
 
     new_priority = None

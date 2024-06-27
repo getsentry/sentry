@@ -1,5 +1,5 @@
 import {getStacktracePlatform} from 'sentry/components/events/interfaces/utils';
-import type {ExceptionType, ExceptionValue} from 'sentry/types';
+import type {ExceptionType, ExceptionValue} from 'sentry/types/event';
 
 import {ExceptionContent} from './exception';
 import {StackTraceContent} from './stackTrace';

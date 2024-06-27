@@ -709,6 +709,10 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "count_infos:<3",
                 "viewed_by_id:1",
                 "!viewed_by_id:2",
+                "viewed_by_id:[1,2]",
+                "seen_by_id:1",
+                "!seen_by_id:2",
+                "seen_by_id:[1,2]",
             ]
 
             for query in queries:
@@ -758,6 +762,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "!activity:8",
                 "activity:<2",
                 "viewed_by_id:2",
+                "seen_by_id:2",
             ]
             for query in null_queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
@@ -768,8 +773,24 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
     def test_get_replays_user_filters_invalid_operator(self):
         self.create_project(teams=[self.team])
 
+        queries = [
+            "transaction.duration:>0",
+            "viewed_by_me:<true",
+            "seen_by_me:>false",
+            "!viewed_by_me:false",
+            "!seen_by_me:true",
+        ]
+
         with self.feature(REPLAYS_FEATURES):
-            response = self.client.get(self.url + "?field=id&query=transaction.duration:>0")
+            for query in queries:
+                response = self.client.get(self.url + f"?field=id&query={query}")
+                assert response.status_code == 400
+
+    def test_get_replays_user_filters_invalid_value(self):
+        self.create_project(teams=[self.team])
+
+        with self.feature(REPLAYS_FEATURES):
+            response = self.client.get(self.url + "?field=id&query=viewed_by_me:potato")
             assert response.status_code == 400
 
     def test_get_replays_user_sorts(self):
@@ -1042,6 +1063,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                     "info_ids": None,
                     "count_warnings": None,
                     "count_infos": None,
+                    "has_viewed": None,
                 }
             ]
 
@@ -1150,12 +1172,14 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "click.selector:div[role=button]",
                 "click.selector:div#myid.class1.class2",
                 "dead.selector:div#myid",
+                "dead.selector:div#myid.class1.class2[role=button][aria-label='AriaLabel'][data-sentry-component=SignUpForm]",
                 "rage.selector:div#myid",
+                "rage.selector:div#myid.class1.class2[role=button][aria-label='AriaLabel'][data-sentry-component=SignUpForm]",
                 # Assert selectors with special characters in them can be queried.
                 "click.selector:div.class%5C:hover",
                 # Single quotes around attribute value.
                 "click.selector:div[role='button']",
-                "click.selector:div#myid.class1.class2[role=button][aria-label='AriaLabel']",
+                "click.selector:div#myid.class1.class2[role=button][aria-label='AriaLabel'][data-sentry-component='SignUpForm']",
             ]
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")
@@ -1384,7 +1408,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             # Invalid field-names error regardless of ordering.
             with mock.patch(
-                "sentry.replays.endpoints.organization_replay_index.query_replays_collection_raw",
+                "sentry.replays.endpoints.organization_replay_index.query_replays_collection_paginated",
                 side_effect=QueryMemoryLimitExceeded("mocked error"),
             ):
                 response = self.client.get(self.url)
@@ -1716,6 +1740,27 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 assert response.status_code == 200
                 response_data = response.json()
                 assert len(response_data["data"]) == 1, query
+
+    def test_query_invalid_ipv4_addresses(self):
+        project = self.create_project(teams=[self.team])
+
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=5)
+
+        self.store_replays(mock_replay(seq1_timestamp, project.id, replay1_id))
+        self.store_replays(mock_replay(seq2_timestamp, project.id, replay1_id))
+
+        with self.feature(REPLAYS_FEATURES):
+            queries = [
+                "user.ip:127.256.0.1",
+                "!user.ip_address:192.168.z34.1",
+                "user.ip_address:bacontest",
+                "user.ip_address:[127.0.0.,192.168.0.1]",
+            ]
+            for query in queries:
+                response = self.client.get(self.url + f"?field=id&query={query}")
+                assert response.status_code == 400
 
     def test_query_branches_computed_activity_conditions(self):
         project = self.create_project(teams=[self.team])

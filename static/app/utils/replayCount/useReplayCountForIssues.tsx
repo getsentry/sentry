@@ -1,6 +1,6 @@
 import {useMemo} from 'react';
 
-import {IssueCategory} from 'sentry/types';
+import {IssueCategory} from 'sentry/types/group';
 import useReplayCount from 'sentry/utils/replayCount/useReplayCount';
 import useOrganization from 'sentry/utils/useOrganization';
 

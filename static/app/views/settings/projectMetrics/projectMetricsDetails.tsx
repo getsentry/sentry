@@ -16,7 +16,7 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {
-  MetricsOperation,
+  MetricsAggregate,
   MetricType,
   MRI,
   Organization,
@@ -30,15 +30,15 @@ import {useBlockMetric} from 'sentry/utils/metrics/useBlockMetric';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import routeTitleGen from 'sentry/utils/routeTitle';
+import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {CodeLocations} from 'sentry/views/metrics/codeLocations';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 import {BlockButton} from 'sentry/views/settings/projectMetrics/blockButton';
-import {TextAlignRight} from 'sentry/views/starfish/components/textAlign';
 
 import {useProjectMetric} from '../../../utils/metrics/useMetricsMeta';
 
-function getSettingsOperationForType(type: MetricType): MetricsOperation {
+function getSettingsOperationForType(type: MetricType): MetricsAggregate {
   switch (type) {
     case 'c':
       return 'sum';
@@ -71,7 +71,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
 
   const isBlockedMetric = blockingStatus?.isBlocked ?? false;
   const blockMetricMutation = useBlockMetric(project);
-  const {hasAccess} = useAccess({access: ['project:write']});
+  const {hasAccess} = useAccess({access: ['project:write'], project});
 
   const {type, name, unit} = parseMRI(mri) ?? {};
   const operation = getSettingsOperationForType(type ?? 'c');
@@ -135,7 +135,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
               disabled={blockMetricMutation.isLoading}
               isBlocked={isBlockedMetric}
               onConfirm={handleMetricBlockToggle}
-              aria-label={t('Block Metric')}
+              blockTarget="metric"
             />
             <LinkButton
               to={getMetricsUrl(organization.slug, {
@@ -235,14 +235,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
                   disabled={blockMetricMutation.isLoading || isBlockedMetric}
                   isBlocked={isBlockedTag}
                   onConfirm={() => handleMetricTagBlockToggle(key)}
-                  aria-label={t('Block tag')}
-                  message={
-                    isBlockedTag
-                      ? t('Are you sure you want to unblock this tag?')
-                      : t(
-                          'Are you sure you want to block this tag? It will no longer be ingested, and will not be available for use in Metrics, Alerts, or Dashboards.'
-                        )
-                  }
+                  blockTarget="tag"
                 />
               </TextAlignRight>
             </Fragment>

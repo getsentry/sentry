@@ -1,13 +1,8 @@
-import {
-  isAutogroupedNode,
-  isSpanNode,
-  isTraceErrorNode,
-  isTransactionNode,
-} from 'sentry/views/performance/newTraceDetails/guards';
 import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
+import type {TraceSearchResult} from 'sentry/views/performance/newTraceDetails/traceSearch/traceSearchEvaluator';
 import {traceReducerExhaustiveActionCheck} from 'sentry/views/performance/newTraceDetails/traceState';
 
 export type TraceSearchAction =
@@ -30,7 +25,7 @@ export type TraceSearchAction =
         resultIndex: number | undefined;
         resultIteratorIndex: number | undefined;
       } | null;
-      results: ReadonlyArray<TraceResult>;
+      results: ReadonlyArray<TraceSearchResult>;
       resultsLookup: Map<TraceTreeNode<TraceTree.NodeValue>, number>;
       type: 'set results';
       resultIndex?: number;
@@ -44,7 +39,7 @@ export type TraceSearchState = {
   resultIndex: number | null;
   // Index in the results array
   resultIteratorIndex: number | null;
-  results: ReadonlyArray<TraceResult> | null;
+  results: ReadonlyArray<TraceSearchResult> | null;
   resultsLookup: Map<TraceTreeNode<TraceTree.NodeValue>, number>;
   status: [ts: number, 'loading' | 'success' | 'error'] | undefined;
 };
@@ -192,117 +187,4 @@ export function traceSearchReducer(
       return state;
     }
   }
-}
-
-type TraceResult = {
-  index: number;
-  value: TraceTreeNode<TraceTree.NodeValue>;
-};
-
-export function searchInTraceTree(
-  tree: TraceTree,
-  query: string,
-  previousNode: TraceTreeNode<TraceTree.NodeValue> | null,
-  cb: (
-    results: [
-      ReadonlyArray<TraceResult>,
-      Map<TraceTreeNode<TraceTree.NodeValue>, number>,
-      {resultIndex: number | undefined; resultIteratorIndex: number | undefined} | null,
-    ]
-  ) => void
-): {id: number | null} {
-  const raf: {id: number | null} = {id: 0};
-  let previousNodeSearchResult: {
-    resultIndex: number | undefined;
-    resultIteratorIndex: number | undefined;
-  } | null = null;
-  const results: Array<TraceResult> = [];
-  const resultLookup = new Map();
-
-  let i = 0;
-  let matchCount = 0;
-  const count = tree.list.length;
-
-  function search() {
-    const ts = performance.now();
-    while (i < count && performance.now() - ts < 12) {
-      const node = tree.list[i];
-
-      if (searchInTraceSubset(query, node)) {
-        results.push({index: i, value: node});
-        resultLookup.set(node, matchCount);
-
-        if (previousNode === node) {
-          previousNodeSearchResult = {
-            resultIndex: i,
-            resultIteratorIndex: matchCount,
-          };
-        }
-
-        matchCount++;
-      }
-      i++;
-    }
-
-    if (i < count) {
-      raf.id = requestAnimationFrame(search);
-    }
-
-    if (i === count) {
-      cb([results, resultLookup, previousNodeSearchResult]);
-      raf.id = null;
-    }
-  }
-
-  raf.id = requestAnimationFrame(search);
-  return raf;
-}
-
-function searchInTraceSubset(
-  query: string,
-  node: TraceTreeNode<TraceTree.NodeValue>
-): boolean {
-  if (isSpanNode(node)) {
-    if (node.value.op?.includes(query)) {
-      return true;
-    }
-    if (node.value.description?.includes(query)) {
-      return true;
-    }
-    if (node.value.span_id && node.value.span_id === query) {
-      return true;
-    }
-  }
-
-  if (isTransactionNode(node)) {
-    if (node.value['transaction.op']?.includes(query)) {
-      return true;
-    }
-    if (node.value.transaction?.includes(query)) {
-      return true;
-    }
-    if (node.value.event_id && node.value.event_id === query) {
-      return true;
-    }
-  }
-
-  if (isAutogroupedNode(node)) {
-    if (node.value.op?.includes(query)) {
-      return true;
-    }
-    if (node.value.description?.includes(query)) {
-      return true;
-    }
-  }
-
-  if (isTraceErrorNode(node)) {
-    if (node.value.level === query) {
-      return true;
-    }
-    if (node.value.title?.includes(query)) {
-      return true;
-    }
-  }
-
-  return false;
 }

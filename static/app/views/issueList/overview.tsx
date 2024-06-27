@@ -1,8 +1,6 @@
 import {Component} from 'react';
 import type {RouteComponentProps} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {withProfiler} from '@sentry/react';
 import * as Sentry from '@sentry/react';
 import type {Location} from 'history';
 import Cookies from 'js-cookie';
@@ -27,7 +25,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import QueryCount from 'sentry/components/queryCount';
 import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
-import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD, NEW_DEFAULT_QUERY} from 'sentry/constants';
+import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
@@ -45,9 +43,10 @@ import type {
 import {GroupStatus, IssueCategory} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import CursorPoller from 'sentry/utils/cursorPoller';
 import {getUtcDateString} from 'sentry/utils/dates';
-import getCurrentSentryReactTransaction from 'sentry/utils/getCurrentSentryReactTransaction';
+import getCurrentSentryReactRootSpan from 'sentry/utils/getCurrentSentryReactRootSpan';
 import parseApiError from 'sentry/utils/parseApiError';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {
@@ -105,7 +104,7 @@ type Props = {
   selectedSearchId: string;
   selection: PageFilters;
   tags: TagCollection;
-} & RouteComponentProps<{searchId?: string}, {}> &
+} & RouteComponentProps<{}, {searchId?: string}> &
   WithRouteAnalyticsProps;
 
 type State = {
@@ -333,9 +332,7 @@ class IssueListOverview extends Component<Props, State> {
       return decodeScalar(query, '');
     }
 
-    return this.props.organization.features.includes('issue-priority-ui')
-      ? NEW_DEFAULT_QUERY
-      : DEFAULT_QUERY;
+    return DEFAULT_QUERY;
   }
 
   getSortFromSavedSearchOrLocation({
@@ -508,21 +505,21 @@ class IssueListOverview extends Component<Props, State> {
 
         // End navigation transaction to prevent additional page requests from impacting page metrics.
         // Other transactions include stacktrace preview request
-        const currentTransaction = Sentry.getActiveTransaction();
-        if (currentTransaction?.op === 'navigation') {
-          currentTransaction.end();
+        const currentSpan = Sentry.getActiveSpan();
+        const rootSpan = currentSpan ? Sentry.getRootSpan(currentSpan) : undefined;
+        if (rootSpan && Sentry.spanToJSON(rootSpan).op === 'navigation') {
+          rootSpan.end();
         }
       },
     });
   };
 
   fetchCounts = (currentQueryCount: number, fetchAllCounts: boolean) => {
-    const {organization} = this.props;
     const {queryCounts: _queryCounts} = this.state;
     let queryCounts: QueryCounts = {..._queryCounts};
 
     const endpointParams = this.getEndpointParams();
-    const tabQueriesWithCounts = getTabsWithCounts(organization);
+    const tabQueriesWithCounts = getTabsWithCounts();
     const currentTabQuery = tabQueriesWithCounts.includes(endpointParams.query as Query)
       ? endpointParams.query
       : null;
@@ -586,30 +583,18 @@ class IssueListOverview extends Component<Props, State> {
     const {organization} = this.props;
     const query = this.getQuery();
 
-    if (!this.state.realtimeActive) {
-      if (!this.actionTaken && !this.undo) {
-        GroupStore.loadInitialData([]);
+    if (this.state.realtimeActive || (!this.actionTaken && !this.undo)) {
+      GroupStore.loadInitialData([]);
 
-        this.setState({
-          issuesLoading: true,
-          queryCount: 0,
-          error: null,
-        });
-      }
-    } else {
-      if (!isForReviewQuery(query)) {
-        GroupStore.loadInitialData([]);
-
-        this.setState({
-          issuesLoading: true,
-          queryCount: 0,
-          error: null,
-        });
-      }
+      this.setState({
+        issuesLoading: true,
+        queryCount: 0,
+        error: null,
+      });
     }
 
-    const transaction = getCurrentSentryReactTransaction();
-    transaction?.setTag('query.sort', this.getSort());
+    const span = getCurrentSentryReactRootSpan();
+    span?.setAttribute('query.sort', this.getSort());
 
     this.setState({
       error: null,
@@ -640,7 +625,7 @@ class IssueListOverview extends Component<Props, State> {
     if (
       this.props.organization.features.includes('issue-stream-performance') &&
       this.props.savedSearchLoading &&
-      !this.props.location.query.query
+      !defined(this.props.location.query.query)
     ) {
       delete requestParams.query;
     }
@@ -831,13 +816,11 @@ class IssueListOverview extends Component<Props, State> {
     const {organization, location} = this.props;
     const page = location.query.page;
     const endpointParams = this.getEndpointParams();
-    const tabQueriesWithCounts = getTabsWithCounts(organization);
+    const tabQueriesWithCounts = getTabsWithCounts();
     const currentTabQuery = tabQueriesWithCounts.includes(endpointParams.query as Query)
       ? endpointParams.query
       : null;
-    const tab = getTabs(organization).find(
-      ([tabQuery]) => currentTabQuery === tabQuery
-    )?.[1];
+    const tab = getTabs().find(([tabQuery]) => currentTabQuery === tabQuery)?.[1];
 
     const numPerfIssues = groups.filter(
       group => GroupStore.get(group)?.issueCategory === IssueCategory.PERFORMANCE
@@ -972,13 +955,7 @@ class IssueListOverview extends Component<Props, State> {
   };
 
   displayReprocessingTab() {
-    const {organization} = this.props;
-    const {queryCounts} = this.state;
-
-    return (
-      organization.features.includes('reprocessing-v2') &&
-      !!queryCounts?.[Query.REPROCESSING]?.count
-    );
+    return !!this.state.queryCounts?.[Query.REPROCESSING]?.count;
   }
 
   displayReprocessingLayout(showReprocessingTab: boolean, query: string) {
@@ -1261,20 +1238,22 @@ class IssueListOverview extends Component<Props, State> {
             <IssueListFilters query={query} onSearch={this.onSearch} />
 
             <Panel>
-              <IssueListActions
-                selection={selection}
-                query={query}
-                queryCount={modifiedQueryCount}
-                onSelectStatsPeriod={this.onSelectStatsPeriod}
-                onActionTaken={this.onActionTaken}
-                onDelete={this.onDelete}
-                statsPeriod={this.getGroupStatsPeriod()}
-                groupIds={groupIds}
-                allResultsVisible={this.allResultsVisible()}
-                displayReprocessingActions={displayReprocessingActions}
-                sort={this.getSort()}
-                onSortChange={this.onSortChange}
-              />
+              {groupIds.length !== 0 && (
+                <IssueListActions
+                  selection={selection}
+                  query={query}
+                  queryCount={modifiedQueryCount}
+                  onSelectStatsPeriod={this.onSelectStatsPeriod}
+                  onActionTaken={this.onActionTaken}
+                  onDelete={this.onDelete}
+                  statsPeriod={this.getGroupStatsPeriod()}
+                  groupIds={groupIds}
+                  allResultsVisible={this.allResultsVisible()}
+                  displayReprocessingActions={displayReprocessingActions}
+                  sort={this.getSort()}
+                  onSortChange={this.onSortChange}
+                />
+              )}
               <PanelBody>
                 <ProcessingIssueList
                   organization={organization}
@@ -1337,7 +1316,9 @@ class IssueListOverview extends Component<Props, State> {
 export default withRouteAnalytics(
   withApi(
     withPageFilters(
-      withSavedSearches(withOrganization(withIssueTags(withProfiler(IssueListOverview))))
+      withSavedSearches(
+        withOrganization(withIssueTags(Sentry.withProfiler(IssueListOverview)))
+      )
     )
   )
 );

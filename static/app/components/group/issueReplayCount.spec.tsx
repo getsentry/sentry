@@ -22,7 +22,7 @@ function mockCount(count: undefined | number) {
 describe('IssueReplayCount', function () {
   const groupId = '3363325111';
   const group = GroupFixture({id: groupId});
-  const {organization, routerContext} = initializeOrg();
+  const {organization, router} = initializeOrg();
 
   it('does not render when a group has undefined count', async function () {
     const mockGetReplayCountForIssue = mockCount(undefined);
@@ -52,7 +52,7 @@ describe('IssueReplayCount', function () {
     const mockGetReplayCountForIssue = mockCount(2);
 
     const {container} = render(<IssueReplayCount group={group} />, {
-      context: routerContext,
+      router,
     });
 
     await waitFor(() => {

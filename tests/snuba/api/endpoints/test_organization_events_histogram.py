@@ -72,7 +72,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-organization-events-histogram",
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
         with self.feature(features):
             return self.client.get(url, query, format="json")
@@ -83,6 +83,7 @@ class OrganizationEventsHistogramEndpointTest(APITestCase, SnubaTestCase):
         assert response.status_code == 200, response.content
         assert response.data == {}
 
+    @pytest.mark.querybuilder
     def test_good_params(self):
         for array_column in ARRAY_COLUMNS:
             alias = get_array_column_alias(array_column)
@@ -1068,7 +1069,7 @@ class OrganizationEventsMetricsEnhancedPerformanceHistogramEndpointTest(
         self.login_as(user=self.user)
         url = reverse(
             "sentry-api-0-organization-events-histogram",
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
         with self.feature(features):
             return self.client.get(url, query, format="json")

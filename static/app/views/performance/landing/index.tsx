@@ -1,12 +1,12 @@
 import type {FC} from 'react';
 import {Fragment, useEffect, useRef} from 'react';
 import type {InjectedRouter} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -20,6 +20,7 @@ import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters, Project} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
@@ -169,7 +170,7 @@ export function PerformanceLanding(props: Props) {
             </Layout.HeaderContent>
             <Layout.HeaderActions>
               {!showOnboarding && (
-                <ButtonBar gap={3}>
+                <ButtonBar gap={1}>
                   <Button
                     size="sm"
                     priority="primary"
@@ -178,6 +179,7 @@ export function PerformanceLanding(props: Props) {
                   >
                     {t('View Trends')}
                   </Button>
+                  <FeedbackWidgetButton />
                 </ButtonBar>
               )}
             </Layout.HeaderActions>

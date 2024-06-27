@@ -18,7 +18,7 @@ import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
 import {space} from 'sentry/styles/space';
 import type {OnboardingSelectedSDK, Organization, Project} from 'sentry/types';
-import {OnboardingProjectStatus} from 'sentry/types';
+import {OnboardingProjectStatus} from 'sentry/types/onboarding';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import testableTransition from 'sentry/utils/testableTransition';
 import useApi from 'sentry/utils/useApi';

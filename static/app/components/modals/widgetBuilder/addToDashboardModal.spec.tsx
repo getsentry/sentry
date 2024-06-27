@@ -11,6 +11,10 @@ import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboards/types'
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
+jest.mock('sentry/components/lazyRender', () => ({
+  LazyRender: ({children}: {children: React.ReactNode}) => children,
+}));
+
 const mockWidgetAsQueryParams = {
   defaultTableColumns: ['field1', 'field2'],
   defaultTitle: 'Default title',

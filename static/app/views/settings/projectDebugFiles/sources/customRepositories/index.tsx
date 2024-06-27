@@ -11,7 +11,6 @@ import Feature from 'sentry/components/acl/feature';
 import DropdownAutoComplete from 'sentry/components/dropdownAutoComplete';
 import DropdownButton from 'sentry/components/dropdownButton';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import MenuItem from 'sentry/components/menuItem';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
@@ -20,9 +19,10 @@ import AppStoreConnectContext from 'sentry/components/projects/appStoreConnectCo
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import type {Organization, Project} from 'sentry/types';
 import type {CustomRepo} from 'sentry/types/debugFiles';
 import {CustomRepoType} from 'sentry/types/debugFiles';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 
@@ -34,7 +34,6 @@ const SECTION_TITLE = t('Custom Repositories');
 type Props = {
   api: Client;
   customRepositories: CustomRepo[];
-  isLoading: boolean;
   location: Location;
   organization: Organization;
   project: Project;
@@ -48,7 +47,6 @@ function CustomRepositories({
   project,
   router,
   location,
-  isLoading,
 }: Props) {
   const appStoreConnectContext = useContext(AppStoreConnectContext);
 
@@ -213,7 +211,7 @@ function CustomRepositories({
       {({hasFeature}) => (
         <Access access={['project:write']} project={project}>
           {({hasAccess}) => {
-            const addRepositoryButtonDisabled = !hasAccess || isLoading;
+            const addRepositoryButtonDisabled = !hasAccess;
             return (
               <Panel>
                 <PanelHeader hasButtons>
@@ -257,9 +255,7 @@ function CustomRepositories({
                   </Tooltip>
                 </PanelHeader>
                 <PanelBody>
-                  {isLoading ? (
-                    <LoadingIndicator />
-                  ) : !repositories.length ? (
+                  {!repositories.length ? (
                     <EmptyStateWarning>
                       <p>{t('No custom repositories configured')}</p>
                     </EmptyStateWarning>
@@ -302,7 +298,7 @@ export default CustomRepositories;
 const DropDownLabel = styled(MenuItem)`
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   text-transform: none;
   span {
     padding: 0;

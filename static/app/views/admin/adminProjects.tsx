@@ -3,7 +3,7 @@ import moment from 'moment';
 
 import ResultGrid from 'sentry/components/resultGrid';
 import {t} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 
 type Row = {
   dateCreated: string;

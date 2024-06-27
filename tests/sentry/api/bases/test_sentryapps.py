@@ -14,7 +14,7 @@ from sentry.api.bases.sentryapps import (
     add_integration_platform_metric_tag,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
 
 
@@ -51,7 +51,7 @@ class SentryAppPermissionTest(TestCase):
         request.method = "POST"
         assert self.permission.has_object_permission(request, None, self.sentry_app)
 
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_has_permission_read_only(self):
         request = self.make_request(user=self.superuser, method="GET", is_superuser=True)
@@ -63,7 +63,7 @@ class SentryAppPermissionTest(TestCase):
         with pytest.raises(Http404):
             self.permission.has_object_permission(request, None, self.sentry_app)
 
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_has_permission_write(self):
         self.add_user_permission(self.superuser, "superuser.write")
@@ -152,7 +152,7 @@ class SentryAppInstallationPermissionTest(TestCase):
         request.method = "POST"
         assert self.permission.has_object_permission(request, None, self.installation)
 
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_has_permission_read_only(self):
         request = self.make_request(user=self.superuser, method="GET", is_superuser=True)
@@ -163,7 +163,7 @@ class SentryAppInstallationPermissionTest(TestCase):
         with pytest.raises(Http404):
             self.permission.has_object_permission(request, None, self.installation)
 
-    @with_feature("auth:enterprise-superuser-read-write")
+    @override_options({"superuser.read-write.ga-rollout": True})
     @override_settings(SENTRY_SELF_HOSTED=False)
     def test_superuser_has_permission_write(self):
         self.add_user_permission(self.superuser, "superuser.write")

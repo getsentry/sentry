@@ -1,6 +1,4 @@
 import * as Sentry from '@sentry/react';
-import type {incrementalSnapshotEvent} from '@sentry-internal/rrweb';
-import {IncrementalSource} from '@sentry-internal/rrweb';
 import memoize from 'lodash/memoize';
 import {type Duration, duration} from 'moment';
 
@@ -25,6 +23,7 @@ import type {
   ClipWindow,
   ErrorFrame,
   fullSnapshotEvent,
+  incrementalSnapshotEvent,
   MemoryFrame,
   OptionFrame,
   RecordingFrame,
@@ -36,10 +35,11 @@ import type {
 import {
   BreadcrumbCategories,
   EventType,
+  IncrementalSource,
   isDeadClick,
   isDeadRageClick,
-  isLCPFrame,
   isPaintFrame,
+  isWebVitalFrame,
 } from 'sentry/utils/replays/types';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
@@ -69,6 +69,11 @@ interface ReplayReaderParams {
    * If provided, the replay will be clipped to this window.
    */
   clipWindow?: ClipWindow;
+
+  /**
+   * The org's feature flags
+   */
+  featureFlags?: string[];
 }
 
 type RequiredNotNull<T> = {
@@ -103,14 +108,56 @@ function removeDuplicateClicks(frames: BreadcrumbFrame[]) {
   return uniqueClickFrames.concat(otherFrames).concat(slowClickFrames);
 }
 
+// If a `navigation` crumb and `navigation.*` span happen within this timeframe,
+// we'll consider them duplicates.
+const DUPLICATE_NAV_THRESHOLD_MS = 2;
+
+/**
+ * Return a list of BreadcrumbFrames, where any navigation crumb is removed if
+ * there is a matching navigation.* span to replace it.
+ *
+ * SpanFrame is preferred because they render with more specific titles.
+ */
+function removeDuplicateNavCrumbs(
+  crumbFrames: BreadcrumbFrame[],
+  spanFrames: SpanFrame[]
+) {
+  const navCrumbs = crumbFrames.filter(crumb => crumb.category === 'navigation');
+  const otherBreadcrumbFrames = crumbFrames.filter(
+    crumb => crumb.category !== 'navigation'
+  );
+
+  const navSpans = spanFrames.filter(span => span.op.startsWith('navigation.'));
+
+  const uniqueNavCrumbs = navCrumbs.filter(
+    crumb =>
+      !navSpans.some(
+        span => Math.abs(crumb.offsetMs - span.offsetMs) <= DUPLICATE_NAV_THRESHOLD_MS
+      )
+  );
+  return otherBreadcrumbFrames.concat(uniqueNavCrumbs);
+}
+
 export default class ReplayReader {
-  static factory({attachments, errors, replayRecord, clipWindow}: ReplayReaderParams) {
+  static factory({
+    attachments,
+    errors,
+    replayRecord,
+    clipWindow,
+    featureFlags,
+  }: ReplayReaderParams) {
     if (!attachments || !replayRecord || !errors) {
       return null;
     }
 
     try {
-      return new ReplayReader({attachments, errors, replayRecord, clipWindow});
+      return new ReplayReader({
+        attachments,
+        errors,
+        replayRecord,
+        featureFlags,
+        clipWindow,
+      });
     } catch (err) {
       Sentry.captureException(err);
 
@@ -121,6 +168,7 @@ export default class ReplayReader {
       return new ReplayReader({
         attachments: [],
         errors: [],
+        featureFlags,
         replayRecord,
         clipWindow,
       });
@@ -130,6 +178,7 @@ export default class ReplayReader {
   private constructor({
     attachments,
     errors,
+    featureFlags,
     replayRecord,
     clipWindow,
   }: RequiredNotNull<ReplayReaderParams>) {
@@ -175,6 +224,7 @@ export default class ReplayReader {
 
     // Hydrate the data we were given
     this._replayRecord = replayRecord;
+    this._featureFlags = featureFlags;
     // Errors don't need to be sorted here, they will be merged with breadcrumbs
     // and spans in the getter and then sorted together.
     const {errorFrames, feedbackFrames} = hydrateErrors(replayRecord, errors);
@@ -214,6 +264,7 @@ export default class ReplayReader {
   private _cacheKey: string;
   private _duration: Duration = duration(0);
   private _errors: ErrorFrame[] = [];
+  private _featureFlags: string[] | undefined = [];
   private _optionFrame: undefined | OptionFrame;
   private _replayRecord: ReplayRecord;
   private _sortedBreadcrumbFrames: BreadcrumbFrame[] = [];
@@ -374,6 +425,8 @@ export default class ReplayReader {
 
   getRRWebFrames = () => this._sortedRRWebEvents;
 
+  getBreadcrumbFrames = () => this._sortedBreadcrumbFrames;
+
   getRRWebMutations = () =>
     this._sortedRRWebEvents.filter(
       event =>
@@ -396,6 +449,14 @@ export default class ReplayReader {
     [
       ...this._sortedBreadcrumbFrames.filter(frame => frame.category === 'replay.init'),
       ...this._sortedSpanFrames.filter(frame => frame.op.startsWith('navigation.')),
+    ].sort(sortFrames)
+  );
+
+  getMobileNavigationFrames = memoize(() =>
+    [
+      ...this._sortedBreadcrumbFrames.filter(frame =>
+        ['replay.init', 'navigation'].includes(frame.category)
+      ),
     ].sort(sortFrames)
   );
 
@@ -431,12 +492,18 @@ export default class ReplayReader {
     this._trimFramesToClipWindow(
       [
         ...this.getPerfFrames(),
+        ...this.getWebVitalFrames(),
         ...this._sortedBreadcrumbFrames.filter(frame =>
           [
             'replay.hydrate-error',
             'replay.init',
             'replay.mutations',
             'feedback',
+            'device.battery',
+            'device.connectivity',
+            'device.orientation',
+            'app.foreground',
+            'app.background',
           ].includes(frame.category)
         ),
         ...this._errors,
@@ -446,22 +513,29 @@ export default class ReplayReader {
     )
   );
 
-  getPerfFrames = memoize(() =>
-    [
-      ...removeDuplicateClicks(
-        this._sortedBreadcrumbFrames.filter(
-          frame =>
-            ['navigation', 'ui.click'].includes(frame.category) ||
-            (frame.category === 'ui.slowClickDetected' &&
-              (isDeadClick(frame as SlowClickFrame) ||
-                isDeadRageClick(frame as SlowClickFrame)))
-        )
-      ),
-      ...this._sortedSpanFrames.filter(frame => frame.op.startsWith('navigation.')),
-    ].sort(sortFrames)
-  );
+  getPerfFrames = memoize(() => {
+    const crumbs = removeDuplicateClicks(
+      this._sortedBreadcrumbFrames.filter(
+        frame =>
+          ['navigation', 'ui.click', 'ui.tap'].includes(frame.category) ||
+          (frame.category === 'ui.slowClickDetected' &&
+            (isDeadClick(frame as SlowClickFrame) ||
+              isDeadRageClick(frame as SlowClickFrame)))
+      )
+    );
+    const spans = this._sortedSpanFrames.filter(frame =>
+      frame.op.startsWith('navigation.')
+    );
+    const uniqueCrumbs = removeDuplicateNavCrumbs(crumbs, spans);
+    return [...uniqueCrumbs, ...spans].sort(sortFrames);
+  });
 
-  getLPCFrames = memoize(() => this._sortedSpanFrames.filter(isLCPFrame));
+  getWebVitalFrames = memoize(() => {
+    if (this._featureFlags?.includes('session-replay-web-vitals')) {
+      return this._sortedSpanFrames.filter(isWebVitalFrame);
+    }
+    return [];
+  });
 
   getVideoEvents = () => this._videoEvents;
 

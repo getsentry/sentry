@@ -1,6 +1,5 @@
 import {Fragment, PureComponent} from 'react';
 import type {WithRouterProps} from 'react-router';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
 import type {LineSeriesOption} from 'echarts';
@@ -40,9 +39,11 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {DateString, Organization, Project} from 'sentry/types';
 import type {ReactEchartsRef, Series} from 'sentry/types/echarts';
+import toArray from 'sentry/utils/array/toArray';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {getDuration} from 'sentry/utils/formatters';
+import getDuration from 'sentry/utils/duration/getDuration';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
 import {formatMRIField} from 'sentry/utils/metrics/mri';
@@ -50,7 +51,6 @@ import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/feat
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import {capitalize} from 'sentry/utils/string/capitalize';
 import theme from 'sentry/utils/theme';
-import toArray from 'sentry/utils/toArray';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
@@ -146,16 +146,8 @@ function getRuleChangeSeries(
   ];
 }
 
-function shouldUseErrorsDataset(
-  organization: Organization,
-  dataset: Dataset,
-  query: string
-): boolean {
-  return (
-    dataset === Dataset.ERRORS &&
-    /\bis:unresolved\b/.test(query) &&
-    organization.features.includes('metric-alert-ignore-archived')
-  );
+function shouldUseErrorsDataset(dataset: Dataset, query: string): boolean {
+  return dataset === Dataset.ERRORS && /\bis:unresolved\b/.test(query);
 }
 
 class MetricChart extends PureComponent<Props, State> {
@@ -181,7 +173,7 @@ class MetricChart extends PureComponent<Props, State> {
     const {rule, organization, project, timePeriod, query} = this.props;
 
     let dataset: DiscoverDatasets | undefined = undefined;
-    if (shouldUseErrorsDataset(organization, rule.dataset, query)) {
+    if (shouldUseErrorsDataset(rule.dataset, query)) {
       dataset = DiscoverDatasets.ERRORS;
     }
 
@@ -555,7 +547,7 @@ class MetricChart extends PureComponent<Props, State> {
       ...getForceMetricsLayerQueryExtras(organization, dataset),
     };
 
-    if (shouldUseErrorsDataset(organization, dataset, query)) {
+    if (shouldUseErrorsDataset(dataset, query)) {
       queryExtras.dataset = 'errors';
     }
 

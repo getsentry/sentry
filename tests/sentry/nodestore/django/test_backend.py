@@ -53,13 +53,13 @@ class TestDjangoNodeStorage:
         )
 
     def test_delete(self):
-        node = Node.objects.create(id="d2502ebbd7df41ceba8d3275595cac33", data=b'{"foo": "bar"}')
+        node = Node.objects.create(id="d2502ebbd7df41ceba8d3275595cac33", data='{"foo": "bar"}')
 
         self.ns.delete(node.id)
         assert not Node.objects.filter(id=node.id).exists()
 
     def test_delete_multi(self):
-        node = Node.objects.create(id="d2502ebbd7df41ceba8d3275595cac33", data=b'{"foo": "bar"}')
+        node = Node.objects.create(id="d2502ebbd7df41ceba8d3275595cac33", data='{"foo": "bar"}')
 
         self.ns.delete_multi([node.id])
         assert not Node.objects.filter(id=node.id).exists()
@@ -69,11 +69,11 @@ class TestDjangoNodeStorage:
         cutoff = now - timedelta(days=1)
 
         node = Node.objects.create(
-            id="d2502ebbd7df41ceba8d3275595cac33", timestamp=now, data=b'{"foo": "bar"}'
+            id="d2502ebbd7df41ceba8d3275595cac33", timestamp=now, data='{"foo": "bar"}'
         )
 
         node2 = Node.objects.create(
-            id="d2502ebbd7df41ceba8d3275595cac34", timestamp=cutoff, data=b'{"foo": "bar"}'
+            id="d2502ebbd7df41ceba8d3275595cac34", timestamp=cutoff, data='{"foo": "bar"}'
         )
 
         self.ns.cleanup(cutoff)

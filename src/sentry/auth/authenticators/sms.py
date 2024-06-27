@@ -4,10 +4,11 @@ import logging
 from hashlib import md5
 from typing import TYPE_CHECKING
 
+from django.http.request import HttpRequest
+from django.utils.functional import classproperty
 from django.utils.translation import gettext_lazy as _
 
 from sentry.ratelimits import backend as ratelimiter
-from sentry.utils.decorators import classproperty
 from sentry.utils.otp import TOTP
 from sentry.utils.sms import phone_number_as_e164, send_sms, sms_available
 
@@ -50,7 +51,7 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
         config["phone_number"] = None
         return config
 
-    def make_otp(self):
+    def make_otp(self) -> TOTP:
         return TOTP(self.config["secret"], digits=6, interval=self.code_ttl, default_window=1)
 
     @property
@@ -61,7 +62,7 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
     def phone_number(self, value):
         self.config["phone_number"] = value
 
-    def activate(self, request):
+    def activate(self, request: HttpRequest) -> ActivationMessageResult:
         phone_number = self.config["phone_number"]
         if len(phone_number) == 10:
             mask = "(***) ***-**%s" % (phone_number[-2:])
@@ -84,7 +85,7 @@ class SmsInterface(OtpMixin, AuthenticatorInterface):
             type="error",
         )
 
-    def send_text(self, for_enrollment=False, request=None):
+    def send_text(self, *, request: HttpRequest, for_enrollment: bool = False) -> bool:
         ctx = {"code": self.make_otp().generate_otp()}
 
         if for_enrollment:

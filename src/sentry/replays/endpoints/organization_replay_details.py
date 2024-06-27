@@ -36,7 +36,7 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="Retrieve a Replay Instance",
-        parameters=[GlobalParams.ORG_SLUG, ReplayParams.REPLAY_ID, ReplayValidator],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, ReplayParams.REPLAY_ID, ReplayValidator],
         responses={
             200: inline_sentry_response_serializer("GetReplay", ReplayDetailsResponse),
             400: RESPONSE_BAD_REQUEST,
@@ -67,8 +67,11 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
         except ValueError:
             return Response(status=404)
 
+        projects = self.get_projects(request, organization, include_all_accessible=True)
+        project_ids = [project.id for project in projects]
+
         snuba_response = query_replay_instance(
-            project_id=filter_params["project_id"],
+            project_id=project_ids,
             replay_id=replay_id,
             start=filter_params["start"],
             end=filter_params["end"],

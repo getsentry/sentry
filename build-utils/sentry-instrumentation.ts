@@ -139,8 +139,12 @@ class SentryInstrumentation {
           startTime,
         });
 
-    span
-      ?.startChild({
+    if (!span) {
+      return;
+    }
+
+    this.Sentry.withActiveSpan(span, () => {
+      this.Sentry?.startInactiveSpan({
         op: 'build',
         name: 'webpack build',
         attributes: {
@@ -152,11 +156,11 @@ class SentryInstrumentation {
             : 'N/A',
           loadavg: os.loadavg(),
         },
-        startTimestamp: startTime,
-      })
-      .end(endTime);
+        startTime,
+      }).end(endTime);
+    });
 
-    span?.end();
+    span.end();
   }
 
   apply(compiler: webpack.Compiler) {

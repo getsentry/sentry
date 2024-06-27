@@ -14,7 +14,7 @@ from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
-from sentry.utils.snuba import SnubaTSResult, bulk_snql_query
+from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
 
 logger = logging.getLogger(__name__)
 
@@ -197,7 +197,7 @@ def top_events_timeseries(
             timeseries_columns=timeseries_columns,
             equations=equations,
         )
-        result, other_result = bulk_snql_query(
+        result, other_result = bulk_snuba_queries(
             [top_events_builder.get_snql_query(), other_events_builder.get_snql_query()],
             referrer=referrer,
         )
@@ -211,9 +211,11 @@ def top_events_timeseries(
     ):
         return SnubaTSResult(
             {
-                "data": discover.zerofill([], params["start"], params["end"], rollup, "time")
-                if zerofill_results
-                else [],
+                "data": (
+                    discover.zerofill([], params["start"], params["end"], rollup, "time")
+                    if zerofill_results
+                    else []
+                ),
             },
             params["start"],
             params["end"],
@@ -249,11 +251,13 @@ def top_events_timeseries(
         for key, item in results.items():
             results[key] = SnubaTSResult(
                 {
-                    "data": discover.zerofill(
-                        item["data"], params["start"], params["end"], rollup, "time"
-                    )
-                    if zerofill_results
-                    else item["data"],
+                    "data": (
+                        discover.zerofill(
+                            item["data"], params["start"], params["end"], rollup, "time"
+                        )
+                        if zerofill_results
+                        else item["data"]
+                    ),
                     "order": item["order"],
                 },
                 params["start"],

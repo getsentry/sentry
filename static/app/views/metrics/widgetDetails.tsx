@@ -1,31 +1,35 @@
 import {Fragment, useCallback, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
+import Feature from 'sentry/components/acl/feature';
+import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Button} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {
   type Field,
   MetricSamplesTable,
   SearchableMetricSamplesTable,
 } from 'sentry/components/metrics/metricSamplesTable';
+import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MRI} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {MRI} from 'sentry/types/metrics';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMetric} from 'sentry/utils/metrics';
-import type {
-  FocusedMetricsSeries,
-  MetricsQueryWidget,
-  MetricsWidget,
-} from 'sentry/utils/metrics/types';
-import {MetricExpressionType} from 'sentry/utils/metrics/types';
+import type {FocusedMetricsSeries, MetricsWidget} from 'sentry/utils/metrics/types';
+import {isMetricsEquationWidget} from 'sentry/utils/metrics/types';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {CodeLocations} from 'sentry/views/metrics/codeLocations';
 import type {FocusAreaProps} from 'sentry/views/metrics/context';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {extendQueryWithGroupBys} from 'sentry/views/metrics/utils';
+import {generateTracesRouteWithQuery} from 'sentry/views/traces/utils';
 
 enum Tab {
   SAMPLES = 'samples',
@@ -39,6 +43,7 @@ export function WidgetDetails() {
     focusArea,
     setHighlightedSampleId,
     setMetricsSamples,
+    hasPerformanceMetrics,
   } = useMetricsContext();
 
   const selectedWidget = widgets[selectedWidgetIndex] as MetricsWidget | undefined;
@@ -50,12 +55,11 @@ export function WidgetDetails() {
     [setHighlightedSampleId]
   );
 
-  // TODO(aknaus): better fallback
-  if (selectedWidget?.type === MetricExpressionType.EQUATION) {
-    <MetricDetails onRowHover={handleSampleRowHover} focusArea={focusArea} />;
+  if (!selectedWidget || isMetricsEquationWidget(selectedWidget)) {
+    return <MetricDetails onRowHover={handleSampleRowHover} focusArea={focusArea} />;
   }
 
-  const {mri, op, query, focusedSeries} = selectedWidget as MetricsQueryWidget;
+  const {mri, op, query, focusedSeries} = selectedWidget;
 
   return (
     <MetricDetails
@@ -66,6 +70,7 @@ export function WidgetDetails() {
       onRowHover={handleSampleRowHover}
       setMetricsSamples={setMetricsSamples}
       focusArea={focusArea}
+      hasPerformanceMetrics={hasPerformanceMetrics}
     />
   );
 }
@@ -73,6 +78,7 @@ export function WidgetDetails() {
 interface MetricDetailsProps {
   focusArea?: FocusAreaProps;
   focusedSeries?: FocusedMetricsSeries[];
+  hasPerformanceMetrics?: boolean;
   mri?: MRI;
   onRowHover?: (sampleId?: string) => void;
   op?: string;
@@ -90,7 +96,9 @@ export function MetricDetails({
   onRowHover,
   focusArea,
   setMetricsSamples,
+  hasPerformanceMetrics,
 }: MetricDetailsProps) {
+  const {selection} = usePageFilters();
   const organization = useOrganization();
 
   const [selectedTab, setSelectedTab] = useState(Tab.SAMPLES);
@@ -123,47 +131,94 @@ export function MetricDetails({
     [organization]
   );
 
+  const selectionRange = focusArea?.selection?.range;
+  const selectionDatetime =
+    defined(selectionRange) && defined(selectionRange) && defined(selectionRange)
+      ? ({
+          start: selectionRange.start,
+          end: selectionRange.end,
+        } as PageFilters['datetime'])
+      : undefined;
+
+  const tracesTarget = generateTracesRouteWithQuery({
+    orgSlug: organization.slug,
+    metric:
+      op && mri
+        ? {
+            max: selectionRange?.max,
+            min: selectionRange?.min,
+            op: op,
+            query: queryWithFocusedSeries,
+            mri,
+          }
+        : undefined,
+    query: {
+      project: selection.projects as unknown as string[],
+      environment: selection.environments,
+      ...normalizeDateTimeParams(selectionDatetime ?? selection.datetime),
+    },
+  });
+
   return (
     <TrayWrapper>
       <Tabs value={selectedTab} onChange={handleTabChange}>
-        <TabList>
-          <TabList.Item key={Tab.SAMPLES}>{t('Sampled Events')}</TabList.Item>
-          <TabList.Item
-            textValue={t('Code Location')}
-            key={Tab.CODE_LOCATIONS}
-            disabled={isCodeLocationsDisabled}
-          >
-            <Tooltip
-              title={t(
-                'This metric is automatically collected by Sentry. It is not bound to a specific line of your code.'
-              )}
-              disabled={!isCodeLocationsDisabled}
+        <TabsAndAction>
+          <TabList>
+            <TabList.Item textValue={t('Span Samples')} key={Tab.SAMPLES}>
+              <GuideAnchor target="metrics_table" position="top">
+                {t('Span Samples')}
+              </GuideAnchor>
+            </TabList.Item>
+            <TabList.Item
+              textValue={t('Code Location')}
+              key={Tab.CODE_LOCATIONS}
+              disabled={isCodeLocationsDisabled}
             >
-              <span style={{pointerEvents: 'all'}}>{t('Code Location')}</span>
-            </Tooltip>
-          </TabList.Item>
-        </TabList>
+              <Tooltip
+                title={t(
+                  'This metric is automatically collected by Sentry. It is not bound to a specific line of your code.'
+                )}
+                disabled={!isCodeLocationsDisabled}
+              >
+                <span style={{pointerEvents: 'all'}}>{t('Code Location')}</span>
+              </Tooltip>
+            </TabList.Item>
+          </TabList>
+          <Feature
+            features={[
+              'performance-trace-explorer-with-metrics',
+              'performance-trace-explorer',
+            ]}
+            requireAll
+          >
+            <OpenInTracesButton to={tracesTarget} size="sm">
+              {t('Open in Traces')}
+            </OpenInTracesButton>
+          </Feature>
+        </TabsAndAction>
         <ContentWrapper>
           <TabPanels>
             <TabPanels.Item key={Tab.SAMPLES}>
               <MetricSampleTableWrapper organization={organization}>
                 {organization.features.includes('metrics-samples-list-search') ? (
                   <SearchableMetricSamplesTable
-                    focusArea={focusArea?.selection?.range}
+                    focusArea={selectionRange}
                     mri={mri}
                     onRowHover={onRowHover}
                     op={op}
                     query={queryWithFocusedSeries}
                     setMetricsSamples={setMetricsSamples}
+                    hasPerformance={hasPerformanceMetrics}
                   />
                 ) : (
                   <MetricSamplesTable
-                    focusArea={focusArea?.selection?.range}
+                    focusArea={selectionRange}
                     mri={mri}
                     onRowHover={onRowHover}
                     op={op}
                     query={queryWithFocusedSeries}
                     setMetricsSamples={setMetricsSamples}
+                    hasPerformance={hasPerformanceMetrics}
                   />
                 )}
               </MetricSampleTableWrapper>
@@ -192,4 +247,15 @@ const TrayWrapper = styled('div')`
 const ContentWrapper = styled('div')`
   position: relative;
   padding-top: ${space(2)};
+`;
+
+const OpenInTracesButton = styled(Button)`
+  margin-top: ${space(0.75)};
+`;
+
+const TabsAndAction = styled('div')`
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: ${space(4)};
+  align-items: center;
 `;

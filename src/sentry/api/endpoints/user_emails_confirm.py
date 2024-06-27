@@ -41,8 +41,8 @@ class UserEmailsConfirmEndpoint(UserEndpoint):
     }
     rate_limits = {
         "POST": {
-            RateLimitCategory.USER: RateLimit(10, 60),
-            RateLimitCategory.ORGANIZATION: RateLimit(10, 60),
+            RateLimitCategory.USER: RateLimit(limit=10, window=60),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=10, window=60),
         }
     }
 

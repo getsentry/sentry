@@ -73,7 +73,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
         the request still goes through"""
         request = self.factory.get("/")
         with freeze_time("2000-01-01"):
-            default_rate_limit_mock.return_value = RateLimit(0, 100)
+            default_rate_limit_mock.return_value = RateLimit(limit=0, window=100)
             self.middleware.process_view(request, self._test_endpoint, [], {})
 
     def test_process_response_fails_open(self):
@@ -92,13 +92,13 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
     def test_positive_rate_limit_check(self, default_rate_limit_mock):
         request = self.factory.get("/")
         with freeze_time("2000-01-01"):
-            default_rate_limit_mock.return_value = RateLimit(0, 100)
+            default_rate_limit_mock.return_value = RateLimit(limit=0, window=100)
             self.middleware.process_view(request, self._test_endpoint, [], {})
             assert request.will_be_rate_limited
 
         with freeze_time("2000-01-02"):
             # 10th request in a 10 request window should get rate limited
-            default_rate_limit_mock.return_value = RateLimit(10, 100)
+            default_rate_limit_mock.return_value = RateLimit(limit=10, window=100)
             for _ in range(10):
                 self.middleware.process_view(request, self._test_endpoint, [], {})
                 assert not request.will_be_rate_limited
@@ -114,7 +114,7 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
             freeze_time("2000-01-01"),
             patch.object(RatelimitMiddlewareTest.TestEndpoint, "enforce_rate_limit", True),
         ):
-            default_rate_limit_mock.return_value = RateLimit(0, 100)
+            default_rate_limit_mock.return_value = RateLimit(limit=0, window=100)
             response = self.middleware.process_view(request, self._test_endpoint, [], {})
             assert request.will_be_rate_limited
             assert response
@@ -126,12 +126,12 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
     @patch("sentry.middleware.ratelimit.get_rate_limit_value")
     def test_negative_rate_limit_check(self, default_rate_limit_mock):
         request = self.factory.get("/")
-        default_rate_limit_mock.return_value = RateLimit(10, 100)
+        default_rate_limit_mock.return_value = RateLimit(limit=10, window=100)
         self.middleware.process_view(request, self._test_endpoint, [], {})
         assert not request.will_be_rate_limited
 
         # Requests outside the current window should not be rate limited
-        default_rate_limit_mock.return_value = RateLimit(1, 1)
+        default_rate_limit_mock.return_value = RateLimit(limit=1, window=1)
         with freeze_time("2000-01-01") as frozen_time:
             self.middleware.process_view(request, self._test_endpoint, [], {})
             assert not request.will_be_rate_limited
@@ -144,11 +144,11 @@ class RatelimitMiddlewareTest(TestCase, BaseTestCase):
     def test_self_hosted_rate_limit_check(self, default_rate_limit_mock):
         """Check that for self hosted installs we don't rate limit"""
         request = self.factory.get("/")
-        default_rate_limit_mock.return_value = RateLimit(10, 100)
+        default_rate_limit_mock.return_value = RateLimit(limit=10, window=100)
         self.middleware.process_view(request, self._test_endpoint, [], {})
         assert not request.will_be_rate_limited
 
-        default_rate_limit_mock.return_value = RateLimit(1, 1)
+        default_rate_limit_mock.return_value = RateLimit(limit=1, window=1)
         with freeze_time("2000-01-01") as frozen_time:
             self.middleware.process_view(request, self._test_endpoint, [], {})
             assert not request.will_be_rate_limited
@@ -214,8 +214,8 @@ class TestGetRateLimitValue(TestCase):
 
         class TestEndpoint(Endpoint):
             rate_limits = {
-                "GET": {RateLimitCategory.IP: RateLimit(100, 5)},
-                "POST": {RateLimitCategory.USER: RateLimit(20, 4)},
+                "GET": {RateLimitCategory.IP: RateLimit(limit=100, window=5)},
+                "POST": {RateLimitCategory.USER: RateLimit(limit=20, window=4)},
             }
 
         view = TestEndpoint.as_view()
@@ -241,7 +241,7 @@ class RateLimitHeaderTestEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
     enforce_rate_limit = True
-    rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(2, 100)}}
+    rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(limit=2, window=100)}}
 
     def inject_call(self):
         return
@@ -255,7 +255,7 @@ class RaceConditionEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
     enforce_rate_limit = False
-    rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(40, 100)}}
+    rate_limits = {"GET": {RateLimitCategory.IP: RateLimit(limit=40, window=100)}}
 
     def get(self, request):
         return Response({"ok": True})
@@ -291,9 +291,9 @@ class CallableRateLimitConfigEndpoint(Endpoint):
     def rate_limits(request):
         return {
             "GET": {
-                RateLimitCategory.IP: RateLimit(20, 1),
-                RateLimitCategory.USER: RateLimit(20, 1),
-                RateLimitCategory.ORGANIZATION: RateLimit(20, 1),
+                RateLimitCategory.IP: RateLimit(limit=20, window=1),
+                RateLimitCategory.USER: RateLimit(limit=20, window=1),
+                RateLimitCategory.ORGANIZATION: RateLimit(limit=20, window=1),
             },
         }
 

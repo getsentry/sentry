@@ -6,7 +6,8 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {t} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
 import TagStore from 'sentry/stores/tagStore';
-import type {PageFilters, Tag, TagValue} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Tag, TagValue} from 'sentry/types/group';
 
 const MAX_TAGS = 1000;
 
@@ -142,6 +143,48 @@ export function fetchTagValues({
 
   if (sort) {
     query.sort = sort;
+  }
+
+  return api.requestPromise(url, {
+    method: 'GET',
+    query,
+  });
+}
+
+export function fetchSpanFieldValues({
+  api,
+  orgSlug,
+  fieldKey,
+  endpointParams,
+  projectIds,
+  search,
+}: {
+  api: Client;
+  fieldKey: string;
+  orgSlug: string;
+  endpointParams?: Query;
+  projectIds?: string[];
+  search?: string;
+}): Promise<TagValue[]> {
+  const url = `/organizations/${orgSlug}/spans/fields/${fieldKey}/values/`;
+
+  const query: Query = {};
+  if (search) {
+    query.query = search;
+  }
+  if (projectIds) {
+    query.project = projectIds;
+  }
+  if (endpointParams) {
+    if (endpointParams.start) {
+      query.start = endpointParams.start;
+    }
+    if (endpointParams.end) {
+      query.end = endpointParams.end;
+    }
+    if (endpointParams.statsPeriod) {
+      query.statsPeriod = endpointParams.statsPeriod;
+    }
   }
 
   return api.requestPromise(url, {

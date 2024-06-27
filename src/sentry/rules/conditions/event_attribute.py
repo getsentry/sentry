@@ -39,6 +39,8 @@ ATTR_CHOICES = {
     "stacktrace.package": Columns.STACK_PACKAGE,
     "unreal.crashtype": Columns.UNREAL_CRASH_TYPE,
     "app.in_foreground": Columns.APP_IN_FOREGROUND,
+    "os.distribution.name": Columns.OS_DISTRIBUTION_NAME,
+    "os.distribution.version": Columns.OS_DISTRIBUTION_VERSION,
 }
 
 
@@ -112,14 +114,16 @@ class EventAttributeCondition(EventCondition):
                 return value
             return [value]
 
-        elif len(path) != 2:
-            return []
+        elif len(path) < 2:
+            return []  # all attribute paths below have at least 2 elements
 
         elif path[0] == "exception":
             if path[1] not in ("type", "value"):
                 return []
 
-            return [getattr(e, path[1]) for e in event.interfaces["exception"].values]
+            return [
+                getattr(e, path[1]) for e in event.interfaces["exception"].values if e is not None
+            ]
 
         elif path[0] == "error":
             # TODO: add support for error.main_thread
@@ -209,6 +213,23 @@ class EventAttributeCondition(EventCondition):
                     response = {}
                 return [response.get(path[1])]
 
+        elif len(path) < 3:
+            return []  # all attribute paths below have at least 3 elements
+
+        elif path[0] == "os":
+            if path[1] in ("distribution"):
+                if path[2] in ("name", "version"):
+                    contexts = event.data["contexts"]
+                    os_context = contexts.get("os")
+                    if os_context is None:
+                        os_context = {}
+
+                    distribution = os_context.get(path[1])
+                    if distribution is None:
+                        distribution = {}
+
+                    return [distribution.get(path[2])]
+                return []
             return []
 
         return []

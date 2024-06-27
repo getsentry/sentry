@@ -71,7 +71,7 @@ export const GroupingValue = styled('code')<{valueType: string}>`
   ${({valueType}) =>
     (valueType === 'function' || valueType === 'symbol') &&
     `
-    font-weight: bold;
+    font-weight: ${p => p.theme.fontWeightBold};
     color: ${p => p.theme.textColor};
   `}
 `;

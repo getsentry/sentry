@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import TypedDict
+from uuid import uuid4
 
 
 class StatusChangeMessageData(TypedDict):
@@ -10,6 +11,7 @@ class StatusChangeMessageData(TypedDict):
     project_id: int
     new_status: int
     new_substatus: int | None
+    id: str
 
 
 @dataclass(frozen=True)
@@ -18,6 +20,7 @@ class StatusChangeMessage:
     project_id: int
     new_status: int
     new_substatus: int | None
+    id: str = field(default_factory=lambda: uuid4().hex)
 
     def to_dict(
         self,
@@ -27,4 +30,5 @@ class StatusChangeMessage:
             "project_id": self.project_id,
             "new_status": self.new_status,
             "new_substatus": self.new_substatus,
+            "id": self.id,
         }

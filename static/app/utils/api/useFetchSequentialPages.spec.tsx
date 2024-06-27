@@ -1,7 +1,7 @@
 import type {ReactNode} from 'react';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import useFetchSequentialPages from 'sentry/utils/api/useFetchSequentialPages';
 import type {QueryClient} from 'sentry/utils/queryClient';
@@ -23,7 +23,7 @@ describe('useFetchSequentialPages', () => {
   it('should not call the queryFn when enabled is false', () => {
     const getQueryKey = queryKeyFactory();
 
-    const {result} = reactHooks.renderHook(useFetchSequentialPages, {
+    const {result} = renderHook(useFetchSequentialPages, {
       wrapper: makeWrapper(makeTestQueryClient()),
       initialProps: {
         enabled: false,
@@ -44,7 +44,7 @@ describe('useFetchSequentialPages', () => {
     });
     const getQueryKey = queryKeyFactory();
 
-    const {result, rerender, waitFor} = reactHooks.renderHook(useFetchSequentialPages, {
+    const {result, rerender} = renderHook(useFetchSequentialPages, {
       wrapper: makeWrapper(makeTestQueryClient()),
       initialProps: {
         enabled: false,
@@ -71,7 +71,7 @@ describe('useFetchSequentialPages', () => {
     });
     const getQueryKey = queryKeyFactory();
 
-    const {result, waitFor} = reactHooks.renderHook(useFetchSequentialPages, {
+    const {result} = renderHook(useFetchSequentialPages, {
       wrapper: makeWrapper(makeTestQueryClient()),
       initialProps: {
         enabled: true,
@@ -93,7 +93,7 @@ describe('useFetchSequentialPages', () => {
     });
     const getQueryKey = queryKeyFactory();
 
-    const {result, waitFor} = reactHooks.renderHook(useFetchSequentialPages, {
+    const {result} = renderHook(useFetchSequentialPages, {
       wrapper: makeWrapper(makeTestQueryClient()),
       initialProps: {
         enabled: true,
@@ -122,7 +122,7 @@ describe('useFetchSequentialPages', () => {
     });
     const getQueryKey = queryKeyFactory();
 
-    const {result, waitFor} = reactHooks.renderHook(useFetchSequentialPages, {
+    const {result} = renderHook(useFetchSequentialPages, {
       wrapper: makeWrapper(makeTestQueryClient()),
       initialProps: {
         enabled: true,
@@ -151,7 +151,7 @@ describe('useFetchSequentialPages', () => {
     });
     const getQueryKey = queryKeyFactory();
 
-    const {result, waitFor} = reactHooks.renderHook(useFetchSequentialPages, {
+    const {result} = renderHook(useFetchSequentialPages, {
       wrapper: makeWrapper(makeTestQueryClient()),
       initialProps: {
         enabled: true,
@@ -177,7 +177,7 @@ describe('useFetchSequentialPages', () => {
     });
     const getQueryKey = queryKeyFactory();
 
-    const {result, waitFor} = reactHooks.renderHook(useFetchSequentialPages, {
+    const {result} = renderHook(useFetchSequentialPages, {
       wrapper: makeWrapper(makeTestQueryClient()),
       initialProps: {
         enabled: true,
@@ -212,7 +212,7 @@ describe('useFetchSequentialPages', () => {
     });
     const getQueryKey = queryKeyFactory();
 
-    const {result, waitFor} = reactHooks.renderHook(useFetchSequentialPages, {
+    const {result} = renderHook(useFetchSequentialPages, {
       wrapper: makeWrapper(makeTestQueryClient()),
       initialProps: {
         enabled: true,

@@ -17,7 +17,7 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
 )
 from sentry.utils import json
 from sentry.utils.hashlib import sha1_text
@@ -59,7 +59,7 @@ class ArtifactBundleIndexingState(Enum):
         return [(key.value, key.name) for key in cls]
 
 
-@region_silo_only_model
+@region_silo_model
 class ArtifactBundle(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -134,7 +134,7 @@ def delete_file_for_artifact_bundle(instance, **kwargs):
 post_delete.connect(delete_file_for_artifact_bundle, sender=ArtifactBundle)
 
 
-@region_silo_only_model
+@region_silo_model
 class ArtifactBundleIndex(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -150,7 +150,7 @@ class ArtifactBundleIndex(Model):
         indexes = (models.Index(fields=("url", "artifact_bundle")),)
 
 
-@region_silo_only_model
+@region_silo_model
 class ReleaseArtifactBundle(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -175,7 +175,7 @@ class ReleaseArtifactBundle(Model):
         )
 
 
-@region_silo_only_model
+@region_silo_model
 class DebugIdArtifactBundle(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -192,7 +192,7 @@ class DebugIdArtifactBundle(Model):
         indexes = (models.Index(fields=("debug_id", "artifact_bundle")),)
 
 
-@region_silo_only_model
+@region_silo_model
 class ProjectArtifactBundle(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

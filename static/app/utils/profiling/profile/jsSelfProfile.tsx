@@ -1,4 +1,4 @@
-import {lastOfArray} from 'sentry/utils';
+import {lastOfArray} from 'sentry/utils/array/lastOfArray';
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 import {Frame} from 'sentry/utils/profiling/frame';
 

@@ -4,19 +4,26 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 
-import AssigneeSelector from 'sentry/components/assigneeSelector';
+import {assignToActor, clearAssignment} from 'sentry/actionCreators/group';
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
+import {AssigneeBadge} from 'sentry/components/assigneeBadge';
+import AssigneeSelectorDropdown, {
+  type AssignableEntity,
+} from 'sentry/components/assigneeSelectorDropdown';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Button} from 'sentry/components/button';
+import GroupStatusChart from 'sentry/components/charts/groupStatusChart';
 import Checkbox from 'sentry/components/checkbox';
 import Count from 'sentry/components/count';
 import EventOrGroupExtraDetails from 'sentry/components/eventOrGroupExtraDetails';
 import EventOrGroupHeader from 'sentry/components/eventOrGroupHeader';
+import {getBadgeProperties} from 'sentry/components/group/inboxBadges/statusBadge';
 import type {GroupListColumn} from 'sentry/components/issues/groupList';
 import Link from 'sentry/components/links/link';
 import PanelItem from 'sentry/components/panels/panelItem';
 import Placeholder from 'sentry/components/placeholder';
 import ProgressBar from 'sentry/components/progressBar';
 import {joinQuery, parseSearch, Token} from 'sentry/components/searchSyntax/parser';
-import GroupChart from 'sentry/components/stream/groupChart';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -27,21 +34,23 @@ import GroupStore from 'sentry/stores/groupStore';
 import SelectedGroupStore from 'sentry/stores/selectedGroupStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
+import type {TimeseriesValue} from 'sentry/types/core';
 import type {
   Group,
   GroupReprocessing,
   InboxDetails,
-  NewQuery,
-  Organization,
   PriorityLevel,
-  User,
-} from 'sentry/types';
-import {IssueCategory} from 'sentry/types';
+} from 'sentry/types/group';
+import {IssueCategory} from 'sentry/types/group';
+import type {NewQuery, Organization} from 'sentry/types/organization';
+import type {User} from 'sentry/types/user';
 import {defined, percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventView from 'sentry/utils/discover/eventView';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
+import {useMutation} from 'sentry/utils/queryClient';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import withOrganization from 'sentry/utils/withOrganization';
 import type {TimePeriodType} from 'sentry/views/alerts/rules/metric/details/constants';
@@ -76,6 +85,42 @@ type Props = {
   withColumns?: GroupListColumn[];
 };
 
+function GroupCheckbox({
+  group,
+  displayReprocessingLayout,
+}: {
+  group: Group;
+  displayReprocessingLayout?: boolean;
+}) {
+  const {records: selectedGroupMap} = useLegacyStore(SelectedGroupStore);
+  const isSelected = selectedGroupMap.get(group.id) ?? false;
+
+  const onChange = useCallback(
+    (evt: React.ChangeEvent<HTMLInputElement>) => {
+      const mouseEvent = evt.nativeEvent as MouseEvent;
+
+      if (mouseEvent.shiftKey) {
+        SelectedGroupStore.shiftToggleItems(group.id);
+      } else {
+        SelectedGroupStore.toggleSelect(group.id);
+      }
+    },
+    [group.id]
+  );
+
+  return (
+    <GroupCheckBoxWrapper>
+      <Checkbox
+        id={group.id}
+        aria-label={t('Select Issue')}
+        checked={isSelected}
+        disabled={!!displayReprocessingLayout}
+        onChange={onChange}
+      />
+    </GroupCheckBoxWrapper>
+  );
+}
+
 function BaseGroupRow({
   id,
   organization,
@@ -98,27 +143,17 @@ function BaseGroupRow({
   onPriorityChange,
 }: Props) {
   const groups = useLegacyStore(GroupStore);
-  const group = groups.find(item => item.id === id) as Group;
-  const issueTypeConfig = getConfigForIssueType(group, group.project);
-
-  const selectedGroups = useLegacyStore(SelectedGroupStore);
-  const isSelected = selectedGroups[id];
-
+  const group = useMemo(
+    () => groups.find(item => item.id === id) as Group | undefined,
+    [groups, id]
+  );
+  const originalInboxState = useRef(group?.inbox as InboxDetails | null);
   const {selection} = usePageFilters();
-
-  const originalInboxState = useRef(group.inbox as InboxDetails | null);
 
   const referrer = source ? `${source}-issue-stream` : 'issue-stream';
 
-  const reviewed =
-    // Original state had an inbox reason
-    originalInboxState.current?.reason !== undefined &&
-    // Updated state has been removed from inbox
-    !group.inbox &&
-    // Only apply reviewed on the "for review" tab
-    isForReviewQuery(query);
-
   const {period, start, end} = selection.datetime || {};
+
   const summary =
     customStatsPeriod?.label.toLowerCase() ??
     (!!start && !!end
@@ -126,34 +161,58 @@ function BaseGroupRow({
       : getRelativeSummary(period || DEFAULT_STATS_PERIOD).toLowerCase());
 
   const sharedAnalytics = useMemo(() => {
-    const tab = getTabs(organization).find(([tabQuery]) => tabQuery === query)?.[1];
-    const owners = group.owners ?? [];
+    const tab = getTabs().find(([tabQuery]) => tabQuery === query)?.[1];
+    const owners = group?.owners ?? [];
     return {
       organization,
-      group_id: group.id,
+      group_id: group?.id ?? '',
       tab: tab?.analyticsName || 'other',
       was_shown_suggestion: owners.length > 0,
     };
-  }, [organization, group.id, group.owners, query]);
+  }, [organization, group, query]);
 
-  const trackAssign: React.ComponentProps<typeof AssigneeSelector>['onAssign'] =
-    useCallback(
-      (type, _assignee, suggestedAssignee) => {
-        if (query !== undefined) {
-          trackAnalytics('issues_stream.issue_assigned', {
-            ...sharedAnalytics,
-            did_assign_suggestion: !!suggestedAssignee,
-            assigned_suggestion_reason: suggestedAssignee?.suggestedReason,
-            assigned_type: type,
-          });
-        }
-      },
-      [query, sharedAnalytics]
-    );
+  const {mutate: handleAssigneeChange, isLoading: assigneeLoading} = useMutation<
+    AssignableEntity | null,
+    RequestError,
+    AssignableEntity | null
+  >({
+    mutationFn: async (
+      newAssignee: AssignableEntity | null
+    ): Promise<AssignableEntity | null> => {
+      if (newAssignee) {
+        await assignToActor({
+          id: group!.id,
+          orgSlug: organization.slug,
+          actor: {id: newAssignee.id, type: newAssignee.type},
+          assignedBy: 'assignee_selector',
+        });
+        return Promise.resolve(newAssignee);
+      }
+
+      await clearAssignment(group!.id, organization.slug, 'assignee_selector');
+      return Promise.resolve(null);
+    },
+    onSuccess: (newAssignee: AssignableEntity | null) => {
+      if (query !== undefined && newAssignee) {
+        trackAnalytics('issues_stream.issue_assigned', {
+          ...sharedAnalytics,
+          did_assign_suggestion: !!newAssignee.suggestedAssignee,
+          assigned_suggestion_reason: newAssignee.suggestedAssignee?.suggestedReason,
+          assigned_type: newAssignee.type,
+        });
+      }
+    },
+    onError: () => {
+      addErrorMessage('Failed to update assignee');
+    },
+  });
 
   const wrapperToggle = useCallback(
     (evt: React.MouseEvent<HTMLDivElement>) => {
       const targetElement = evt.target as Partial<HTMLElement>;
+      if (!group) {
+        return;
+      }
 
       // Ignore clicks on links
       if (targetElement?.tagName?.toLowerCase() === 'a') {
@@ -180,21 +239,30 @@ function BaseGroupRow({
         SelectedGroupStore.toggleSelect(group.id);
       }
     },
-    [group.id]
+    [group]
   );
 
-  const checkboxToggle = useCallback(
-    (evt: React.ChangeEvent<HTMLInputElement>) => {
-      const mouseEvent = evt.nativeEvent as MouseEvent;
+  const groupStats = useMemo<ReadonlyArray<TimeseriesValue>>(() => {
+    if (!group) {
+      return [];
+    }
 
-      if (mouseEvent.shiftKey) {
-        SelectedGroupStore.shiftToggleItems(group.id);
-      } else {
-        SelectedGroupStore.toggleSelect(group.id);
-      }
-    },
-    [group.id]
-  );
+    return group.filtered
+      ? group.filtered.stats?.[statsPeriod]
+      : group.stats?.[statsPeriod];
+  }, [group, statsPeriod]);
+
+  const groupSecondaryStats = useMemo<ReadonlyArray<TimeseriesValue>>(() => {
+    if (!group) {
+      return [];
+    }
+
+    return group.filtered ? group.stats?.[statsPeriod] : [];
+  }, [group, statsPeriod]);
+
+  if (!group) {
+    return null;
+  }
 
   const getDiscoverUrl = (isFiltered?: boolean): LocationDescriptor => {
     // when there is no discover feature open events page
@@ -287,6 +355,15 @@ function BaseGroupRow({
     );
   };
 
+  const issueTypeConfig = getConfigForIssueType(group, group.project);
+  const reviewed =
+    // Original state had an inbox reason
+    originalInboxState.current?.reason !== undefined &&
+    // Updated state has been removed from inbox
+    !group!.inbox &&
+    // Only apply reviewed on the "for review" tab
+    isForReviewQuery(query);
+
   // Use data.filtered to decide on which value to use
   // In case of the query has filters but we avoid showing both sets of filtered/unfiltered stats
   // we use useFilteredStats param passed to Group for deciding
@@ -310,7 +387,7 @@ function BaseGroupRow({
   };
 
   const groupCount = !defined(primaryCount) ? (
-    <Placeholder height="18px" />
+    <Placeholder height="18px" width="40px" />
   ) : (
     <GuideAnchor target="dynamic_counts" disabled={!hasGuideAnchor}>
       <Tooltip
@@ -351,7 +428,7 @@ function BaseGroupRow({
   );
 
   const groupUsersCount = !defined(primaryUserCount) ? (
-    <Placeholder height="18px" />
+    <Placeholder height="18px" width="40px" />
   ) : (
     <Tooltip
       isHoverable
@@ -415,15 +492,10 @@ function BaseGroupRow({
       useTintRow={useTintRow ?? true}
     >
       {canSelect && (
-        <GroupCheckBoxWrapper>
-          <Checkbox
-            id={group.id}
-            aria-label={t('Select Issue')}
-            checked={isSelected}
-            disabled={!!displayReprocessingLayout}
-            onChange={checkboxToggle}
-          />
-        </GroupCheckBoxWrapper>
+        <GroupCheckbox
+          group={group}
+          displayReprocessingLayout={displayReprocessingLayout}
+        />
       )}
       <GroupSummary canSelect={canSelect}>
         <EventOrGroupHeader
@@ -439,10 +511,13 @@ function BaseGroupRow({
 
       {withChart && !displayReprocessingLayout && issueTypeConfig.stats.enabled && (
         <ChartWrapper narrowGroups={narrowGroups}>
-          <GroupChart
-            statsPeriod={statsPeriod!}
-            data={group}
+          <GroupStatusChart
+            hideZeros
+            loading={!defined(groupStats)}
+            stats={groupStats}
+            secondaryStats={groupSecondaryStats}
             showSecondaryPoints={showSecondaryPoints}
+            groupStatus={getBadgeProperties(group.status, group.substatus)?.status}
             showMarkLine
           />
         </ChartWrapper>
@@ -452,13 +527,12 @@ function BaseGroupRow({
       ) : (
         <Fragment>
           {withColumns.includes('event') && issueTypeConfig.stats.enabled && (
-            <EventCountsWrapper>{groupCount}</EventCountsWrapper>
+            <EventCountsWrapper leftMargin={space(0)}>{groupCount}</EventCountsWrapper>
           )}
           {withColumns.includes('users') && issueTypeConfig.stats.enabled && (
             <EventCountsWrapper>{groupUsersCount}</EventCountsWrapper>
           )}
-          {organization.features.includes('issue-priority-ui') &&
-          withColumns.includes('priority') ? (
+          {withColumns.includes('priority') ? (
             <PriorityWrapper narrowGroups={narrowGroups}>
               {group.priority ? (
                 <GroupPriority group={group} onChange={onPriorityChange} />
@@ -467,10 +541,34 @@ function BaseGroupRow({
           ) : null}
           {withColumns.includes('assignee') && (
             <AssigneeWrapper narrowGroups={narrowGroups}>
-              <AssigneeSelector
-                id={group.id}
+              <AssigneeSelectorDropdown
+                group={group}
+                loading={assigneeLoading}
                 memberList={memberList}
-                onAssign={trackAssign}
+                onAssign={(assignedActor: AssignableEntity | null) =>
+                  handleAssigneeChange(assignedActor)
+                }
+                onClear={() => handleAssigneeChange(null)}
+                trigger={(props, isOpen) => (
+                  <StyledDropdownButton
+                    {...props}
+                    borderless
+                    aria-label={t('Modify issue assignee')}
+                    size="zero"
+                  >
+                    <AssigneeBadge
+                      assignedTo={group.assignedTo ?? undefined}
+                      assignmentReason={
+                        group.owners?.find(owner => {
+                          const [_ownershipType, ownerId] = owner.owner.split(':');
+                          return ownerId === group.assignedTo?.id;
+                        })?.type
+                      }
+                      loading={assigneeLoading}
+                      chevronDirection={isOpen ? 'up' : 'down'}
+                    />
+                  </StyledDropdownButton>
+                )}
               />
             </AssigneeWrapper>
           )}
@@ -484,6 +582,15 @@ function BaseGroupRow({
 const StreamGroup = withOrganization(BaseGroupRow);
 
 export default StreamGroup;
+
+const StyledDropdownButton = styled(Button)`
+  font-weight: ${p => p.theme.fontWeightNormal};
+  border: none;
+  padding: 0;
+  height: unset;
+  border-radius: 10px;
+  box-shadow: none;
+`;
 
 // Position for wrapper is relative for overlay actions
 const Wrapper = styled(PanelItem)<{
@@ -603,12 +710,13 @@ const ChartWrapper = styled('div')<{narrowGroups: boolean}>`
   }
 `;
 
-const EventCountsWrapper = styled('div')`
+const EventCountsWrapper = styled('div')<{leftMargin?: string}>`
   display: flex;
   justify-content: flex-end;
   align-self: center;
   width: 60px;
   margin: 0 ${space(2)};
+  margin-left: ${p => p.leftMargin ?? space(2)};
 
   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
     width: 80px;

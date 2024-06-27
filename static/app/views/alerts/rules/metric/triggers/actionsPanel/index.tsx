@@ -14,9 +14,9 @@ import {IconAdd, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, Project, SelectValue} from 'sentry/types';
+import removeAtArrayIndex from 'sentry/utils/array/removeAtArrayIndex';
+import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
 import {uniqueId} from 'sentry/utils/guid';
-import {removeAtArrayIndex} from 'sentry/utils/removeAtArrayIndex';
-import {replaceAtArrayIndex} from 'sentry/utils/replaceAtArrayIndex';
 import withOrganization from 'sentry/utils/withOrganization';
 import SentryAppRuleModal from 'sentry/views/alerts/rules/issue/sentryAppRuleModal';
 import ActionSpecificTargetSelector from 'sentry/views/alerts/rules/metric/triggers/actionsPanel/actionSpecificTargetSelector';
@@ -50,7 +50,7 @@ type Props = {
 };
 
 /**
- * When a new action is added, all of it's settings should be set to their default values.
+ * When a new action is added, all of its settings should be set to their default values.
  * @param actionConfig
  * @param dateCreated kept to maintain order of unsaved actions
  */

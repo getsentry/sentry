@@ -39,7 +39,7 @@ class QueryExpressionVisitor(ABC, Generic[TVisited]):
         return formula.set_parameters(parameters)
 
     def _visit_timeseries(self, timeseries: Timeseries) -> TVisited:
-        raise timeseries
+        return timeseries
 
     def _visit_int(self, int_number: float) -> TVisited:
         return int_number  # type: ignore[return-value]

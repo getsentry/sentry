@@ -3,14 +3,14 @@ import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Role} from 'sentry/components/acl/role';
-import {Button} from 'sentry/components/button';
+import Tag from 'sentry/components/badge/tag';
+import {LinkButton} from 'sentry/components/button';
 import FileSize from 'sentry/components/fileSize';
 import Link from 'sentry/components/links/link';
 import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
-import {Tag} from 'sentry/components/tag';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconClock, IconDownload} from 'sentry/icons';
@@ -86,7 +86,7 @@ function ArtifactsTableRow({
                 disabled={hasRole}
                 isHoverable
               >
-                <Button
+                <LinkButton
                   size="sm"
                   icon={<IconDownload size="sm" />}
                   disabled={!hasRole}

@@ -9,6 +9,7 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 from urllib.parse import quote as urlquote
 
+import orjson
 import sentry_sdk
 from django.conf import settings
 from django.http import HttpResponse
@@ -32,9 +33,8 @@ from sentry.auth import access
 from sentry.auth.staff import has_staff_option
 from sentry.models.environment import Environment
 from sentry.ratelimits.config import DEFAULT_RATE_LIMIT_CONFIG, RateLimitConfig
-from sentry.silo import SiloLimit, SiloMode
+from sentry.silo.base import SiloLimit, SiloMode
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils import json
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.cursors import Cursor
 from sentry.utils.dates import to_datetime
@@ -46,7 +46,6 @@ from sentry.utils.http import (
 )
 from sentry.utils.sdk import capture_exception, merge_context_into_scope
 
-from ..services.hybrid_cloud import rpcmetrics
 from ..utils.pagination_factory import (
     annotate_span_with_pagination_args,
     clamp_pagination_per_page,
@@ -131,6 +130,20 @@ def apply_cors_headers(
     if allowed_methods is None:
         allowed_methods = []
     allow = ", ".join(allowed_methods)
+    if not allow or "*" in allow:
+        with sentry_sdk.push_scope() as scope:
+            scope.set_level("warning")
+            scope.set_context(
+                "cors_headers",
+                {
+                    "url": request.path,
+                    "method": request.method,
+                    "origin": request.META.get("HTTP_ORIGIN", ""),
+                    "allow": allow,
+                },
+            )
+            sentry_sdk.capture_message("api.cors.no_methods")
+
     response["Allow"] = allow
     response["Access-Control-Allow-Methods"] = allow
     response["Access-Control-Allow-Headers"] = (
@@ -138,9 +151,9 @@ def apply_cors_headers(
         "Content-Type, Authentication, Authorization, Content-Encoding, "
         "sentry-trace, baggage, X-CSRFToken"
     )
-    response["Access-Control-Expose-Headers"] = (
-        "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, " "Endpoint, Retry-After, Link"
-    )
+    response[
+        "Access-Control-Expose-Headers"
+    ] = "X-Sentry-Error, X-Sentry-Direct-Hit, X-Hits, X-Max-Hits, Endpoint, Retry-After, Link"
 
     if request.META.get("HTTP_ORIGIN") == "null":
         # if ORIGIN header is explicitly specified as 'null' leave it alone
@@ -212,6 +225,7 @@ class Endpoint(APIView):
         str, dict[RateLimitCategory, RateLimit]
     ] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
+    snuba_methods: list[HTTP_METHOD_NAME] = []
 
     def build_link_header(self, request: Request, path: str, rel: str):
         # TODO(dcramer): it would be nice to expand this to support params to consolidate `build_cursor_link`
@@ -343,8 +357,8 @@ class Endpoint(APIView):
             return
 
         try:
-            request.json_body = json.loads(request.body)
-        except json.JSONDecodeError:
+            request.json_body = orjson.loads(request.body)
+        except orjson.JSONDecodeError:
             return
 
     def initialize_request(self, request: HttpRequest, *args: Any, **kwargs: Any) -> Request:
@@ -435,8 +449,7 @@ class Endpoint(APIView):
                     getattr(part, "__name__", None) or str(part) for part in (type(self), handler)
                 ),
             ) as span:
-                with rpcmetrics.wrap_sdk_span(span):
-                    response = handler(request, *args, **kwargs)
+                response = handler(request, *args, **kwargs)
 
         except Exception as exc:
             response = self.handle_exception(request, exc)
@@ -460,8 +473,14 @@ class Endpoint(APIView):
         # Only enforced in dev environment
         if settings.ENFORCE_PAGINATION:
             if request.method.lower() == "get":
-                # Response can either be Response or HttpResponse, check if it's value is an array
-                if hasattr(self.response, "data") and isinstance(self.response.data, list):
+                status = getattr(self.response, "status_code", 0)
+                # Response can either be Response or HttpResponse, check if
+                # it's value is an array and that it was an OK response
+                if (
+                    200 <= status < 300
+                    and hasattr(self.response, "data")
+                    and isinstance(self.response.data, list)
+                ):
                     # if not paginated and not in  settings.SENTRY_API_PAGINATION_ALLOWLIST, raise error
                     if (
                         handler.__self__.__class__.__name__
@@ -610,11 +629,13 @@ class StatsMixin:
         rollups that may put strain on the system.
         """
         try:
-            resolution = request.GET.get("resolution")
-            if resolution:
-                resolution = self._parse_resolution(resolution)
+            resolution_s = request.GET.get("resolution")
+            if resolution_s:
+                resolution = self._parse_resolution(resolution_s)
                 if restrict_rollups and resolution not in tsdb.backend.get_rollups():
                     raise ValueError
+            else:
+                resolution = None
         except ValueError:
             raise ParseError(detail="Invalid resolution")
 
@@ -649,7 +670,7 @@ class StatsMixin:
             "environment_ids": environment_id and [environment_id],
         }
 
-    def _parse_resolution(self, value):
+    def _parse_resolution(self, value: str) -> int:
         if value.endswith("h"):
             return int(value[:-1]) * ONE_HOUR
         elif value.endswith("d"):

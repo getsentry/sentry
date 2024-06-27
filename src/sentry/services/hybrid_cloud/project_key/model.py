@@ -6,8 +6,8 @@
 from enum import Enum
 from typing import Any
 
+from sentry.hybridcloud.rpc import RpcModel
 from sentry.models.projectkey import ProjectKeyStatus
-from sentry.services.hybrid_cloud import RpcModel
 
 
 class ProjectKeyRole(Enum):
@@ -31,5 +31,5 @@ class RpcProjectKey(RpcModel):
     status: int = ProjectKeyStatus.INACTIVE
 
     @property
-    def is_active(self):
+    def is_active(self) -> bool:
         return self.status == ProjectKeyStatus.ACTIVE

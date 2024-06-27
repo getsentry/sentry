@@ -82,11 +82,16 @@ export const CrashReportWebApiOnboarding: OnboardingConfig = {
 export const getFeedbackConfigOptions = ({
   name,
   email,
+  screenshot,
 }: {
   email?: boolean;
   name?: boolean;
+  screenshot?: boolean;
 } = {}) => {
   const options: string[] = [];
+  if (!screenshot) {
+    options.push('enableScreenshot: false,');
+  }
   if (name) {
     options.push('isNameRequired: true,');
   }

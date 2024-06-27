@@ -16,12 +16,12 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import NotAvailable from 'sentry/components/notAvailable';
 import type {ScoreCardProps} from 'sentry/components/scoreCard';
 import ScoreCard from 'sentry/components/scoreCard';
-import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo, IntervalPeriod, Organization} from 'sentry/types';
 import {Outcome} from 'sentry/types';
-import {parsePeriodToHours} from 'sentry/utils/dates';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 
 import {
   FORMAT_DATETIME_DAILY,
@@ -51,6 +51,7 @@ export interface UsageStatsOrganizationProps extends WithRouterProps {
 
 type UsageStatsOrganizationState = {
   orgStats: UsageSeries | undefined;
+  metricOrgStats?: UsageSeries | undefined;
 } & DeprecatedAsyncComponent['state'];
 
 /**
@@ -138,10 +139,8 @@ class UsageStatsOrganization<
     chartTransform: ChartDataTransform;
     dataError?: Error;
   } {
-    const {orgStats} = this.state;
-
     return {
-      ...this.mapSeriesToChart(orgStats),
+      ...this.mapSeriesToChart(this.state.orgStats),
       ...this.chartDateRange,
       ...this.chartTransform,
     };
@@ -363,12 +362,17 @@ class UsageStatsOrganization<
         [Outcome.INVALID]: 0, // Combined with dropped later
         [Outcome.RATE_LIMITED]: 0, // Combined with dropped later
         [Outcome.CLIENT_DISCARD]: 0, // Not exposed yet
+        [Outcome.CARDINALITY_LIMITED]: 0, // Combined with dropped later
       };
 
       orgStats.groups.forEach(group => {
         const {outcome, category} = group.by;
+
         // HACK: The backend enum are singular, but the frontend enums are plural
-        if (!dataCategory.includes(`${category}`)) {
+        const fullDataCategory = Object.values(DATA_CATEGORY_INFO).find(
+          data => data.plural === dataCategory
+        );
+        if (fullDataCategory?.apiName !== category) {
           return;
         }
 
@@ -386,6 +390,7 @@ class UsageStatsOrganization<
               return;
             case Outcome.DROPPED:
             case Outcome.RATE_LIMITED:
+            case Outcome.CARDINALITY_LIMITED:
             case Outcome.INVALID:
               usageStats[i].dropped.total += stat;
               // TODO: add client discards to dropped?
@@ -399,6 +404,7 @@ class UsageStatsOrganization<
       // Invalid and rate_limited data is combined with dropped
       count[Outcome.DROPPED] += count[Outcome.INVALID];
       count[Outcome.DROPPED] += count[Outcome.RATE_LIMITED];
+      count[Outcome.DROPPED] += count[Outcome.CARDINALITY_LIMITED];
 
       usageStats.forEach(stat => {
         stat.total = stat.accepted + stat.filtered + stat.dropped.total;
@@ -583,7 +589,7 @@ const FooterDate = styled('div')`
   }
 
   > span:last-child {
-    font-weight: 400;
+    font-weight: ${p => p.theme.fontWeightNormal};
     font-size: ${p => p.theme.fontSizeMedium};
   }
 `;

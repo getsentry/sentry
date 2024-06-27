@@ -14,8 +14,8 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-proguard-artifact-releases",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
             },
         )
 
@@ -42,7 +42,7 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         assert response.status_code == 201, response.content
         assert ProguardArtifactRelease.objects.count() == 1
 
-        proguard_artifact_release = ProguardArtifactRelease.objects.first()
+        proguard_artifact_release = ProguardArtifactRelease.objects.get()
         assert proguard_artifact_release.organization_id == project.organization.id
         assert proguard_artifact_release.project_id == project.id
 
@@ -52,8 +52,8 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-proguard-artifact-releases",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
             },
         )
 
@@ -85,8 +85,8 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-proguard-artifact-releases",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
             },
         )
 
@@ -150,8 +150,8 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-proguard-artifact-releases",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
             },
         )
 
@@ -168,8 +168,8 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-proguard-artifact-releases",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
             },
         )
 
@@ -202,8 +202,8 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-proguard-artifact-releases",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
             },
         )
 

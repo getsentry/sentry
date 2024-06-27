@@ -20,18 +20,18 @@ from sentry.db.models import (
     Model,
     OneToOneCascadeDeletes,
     UUIDField,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.manager import BaseManager
+from sentry.db.models.manager.base import BaseManager
 from sentry.models.organization import Organization
 from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger(__name__)
 
 
-@region_silo_only_model
+@region_silo_model
 class IncidentProject(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -44,7 +44,7 @@ class IncidentProject(Model):
         unique_together = (("project", "incident"),)
 
 
-@region_silo_only_model
+@region_silo_model
 class IncidentSeen(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -59,29 +59,36 @@ class IncidentSeen(Model):
 
 
 class IncidentManager(BaseManager["Incident"]):
-    CACHE_KEY = "incidents:active:%s:%s"
+    CACHE_KEY = "incidents:active:%s:%s:%s"
 
     def fetch_for_organization(self, organization, projects):
         return self.filter(organization=organization, projects__in=projects).distinct()
 
     @classmethod
-    def _build_active_incident_cache_key(cls, alert_rule_id, project_id):
-        return cls.CACHE_KEY % (alert_rule_id, project_id)
+    def _build_active_incident_cache_key(cls, alert_rule_id, project_id, subscription_id=None):
+        return cls.CACHE_KEY % (alert_rule_id, project_id, subscription_id)
 
-    def get_active_incident(self, alert_rule, project):
-        cache_key = self._build_active_incident_cache_key(alert_rule.id, project.id)
+    def get_active_incident(self, alert_rule, project, subscription=None):
+        """
+        fetches the latest incident for a given alert rule and project (and subscription) that is not closed
+        """
+        cache_key = self._build_active_incident_cache_key(
+            alert_rule_id=alert_rule.id,
+            project_id=project.id,
+            subscription_id=(subscription.id if subscription else None),
+        )
         incident = cache.get(cache_key)
         if incident is None:
             try:
-                incident = (
-                    Incident.objects.filter(
-                        type=IncidentType.ALERT_TRIGGERED.value,
-                        alert_rule=alert_rule,
-                        projects=project,
-                    )
-                    .exclude(status=IncidentStatus.CLOSED.value)
-                    .order_by("-date_added")[0]
+                incident_query = Incident.objects.filter(
+                    type=IncidentType.ALERT_TRIGGERED.value,
+                    alert_rule=alert_rule,
+                    projects=project,
+                    subscription=subscription,
                 )
+                incident = incident_query.exclude(status=IncidentStatus.CLOSED.value).order_by(
+                    "-date_added"
+                )[0]
             except IndexError:
                 # Set this to False so that we can have a negative cache as well.
                 incident = False
@@ -97,28 +104,26 @@ class IncidentManager(BaseManager["Incident"]):
 
     @classmethod
     def clear_active_incident_cache(cls, instance, **kwargs):
+        # instance is an Incident
         for project in instance.projects.all():
-            cache.delete(cls._build_active_incident_cache_key(instance.alert_rule_id, project.id))
-            assert (
-                cache.get(cls._build_active_incident_cache_key(instance.alert_rule_id, project.id))
-                is None
+            subscription = instance.subscription
+            key = cls._build_active_incident_cache_key(
+                instance.alert_rule_id, project.id, subscription.id if subscription else None
             )
+            cache.delete(key)
+            assert cache.get(key) is None
 
     @classmethod
     def clear_active_incident_project_cache(cls, instance, **kwargs):
-        cache.delete(
-            cls._build_active_incident_cache_key(
-                instance.incident.alert_rule_id, instance.project_id
-            )
+        # instance is an IncidentProject
+        project_id = instance.project_id
+        incident = instance.incident
+        subscription_id = incident.subscription_id if incident.subscription else None
+        key = cls._build_active_incident_cache_key(
+            incident.alert_rule_id, project_id, subscription_id
         )
-        assert (
-            cache.get(
-                cls._build_active_incident_cache_key(
-                    instance.incident.alert_rule_id, instance.project_id
-                )
-            )
-            is None
-        )
+        cache.delete(key)
+        assert cache.get(key) is None
 
     @TimedRetryPolicy.wrap(timeout=5, exceptions=(IntegrityError,))
     def create(self, organization, **kwargs):
@@ -167,8 +172,18 @@ INCIDENT_STATUS = {
 }
 
 
-@region_silo_only_model
+@region_silo_model
 class Incident(Model):
+    """
+    An Incident represents the overarching period during an AlertRule's "unhealthy" state.
+    An AlertRule can have multiple IncidentTriggers during an Incident (ie. Critical -> Warning -> Critical)
+    but if it has been resolved, will end the Incident.
+
+    An AlertRule may have multiple Incidents that correlate with different subscriptions.
+    TODO:
+    - UI should be able to handle multiple active incidents
+    """
+
     __relocation_scope__ = RelocationScope.Organization
 
     objects: ClassVar[IncidentManager] = IncidentManager()
@@ -194,6 +209,12 @@ class Incident(Model):
     date_detected = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
     date_closed = models.DateTimeField(null=True)
+    activation = FlexibleForeignKey(
+        "sentry.AlertRuleActivations", on_delete=models.SET_NULL, null=True
+    )
+    subscription = FlexibleForeignKey(
+        "sentry.QuerySubscription", on_delete=models.SET_NULL, null=True
+    )
 
     class Meta:
         app_label = "sentry"
@@ -226,7 +247,7 @@ class Incident(Model):
         return old_pk
 
 
-@region_silo_only_model
+@region_silo_model
 class PendingIncidentSnapshot(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -239,7 +260,7 @@ class PendingIncidentSnapshot(Model):
         db_table = "sentry_pendingincidentsnapshot"
 
 
-@region_silo_only_model
+@region_silo_model
 class IncidentSnapshot(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -254,7 +275,7 @@ class IncidentSnapshot(Model):
         db_table = "sentry_incidentsnapshot"
 
 
-@region_silo_only_model
+@region_silo_model
 class TimeSeriesSnapshot(Model):
     __relocation_scope__ = RelocationScope.Organization
     __relocation_dependencies__ = {"sentry.Incident"}
@@ -285,8 +306,12 @@ class IncidentActivityType(Enum):
     DETECTED = 4
 
 
-@region_silo_only_model
+@region_silo_model
 class IncidentActivity(Model):
+    """
+    An IncidentActivity is a record of a change that occurred in an Incident. This could be a status change,
+    """
+
     __relocation_scope__ = RelocationScope.Organization
 
     incident = FlexibleForeignKey("sentry.Incident")
@@ -315,8 +340,13 @@ class IncidentActivity(Model):
         return old_pk
 
 
-@region_silo_only_model
+@region_silo_model
 class IncidentSubscription(Model):
+    """
+    IncidentSubscription is a record of a user being subscribed to an incident.
+    Not to be confused with a snuba QuerySubscription
+    """
+
     __relocation_scope__ = RelocationScope.Organization
 
     incident = FlexibleForeignKey("sentry.Incident", db_index=False)
@@ -367,8 +397,13 @@ class IncidentTriggerManager(BaseManager["IncidentTrigger"]):
         assert cache.get(cls._build_cache_key(instance.incident_id)) is None
 
 
-@region_silo_only_model
+@region_silo_model
 class IncidentTrigger(Model):
+    """
+    An instance of an alert rule trigger (eg. each time the rule hits the trigger threshold, we create an incident trigger)
+    NOTE: dissimilar to an AlertRuleTrigger which represents the trigger threshold required to initialize an Incident
+    """
+
     __relocation_scope__ = RelocationScope.Organization
 
     objects: ClassVar[IncidentTriggerManager] = IncidentTriggerManager()

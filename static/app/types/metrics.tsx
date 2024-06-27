@@ -1,6 +1,6 @@
 import type {DateString} from 'sentry/types/core';
 
-export type MetricsOperation =
+export type MetricsAggregate =
   | 'sum'
   | 'count_unique'
   | 'avg'
@@ -13,7 +13,7 @@ export type MetricsOperation =
 
 export type MetricType = 'c' | 'd' | 'g' | 'e' | 's';
 
-export type UseCase = 'custom' | 'transactions' | 'sessions' | 'spans';
+export type UseCase = 'custom' | 'transactions' | 'sessions' | 'spans' | 'metric_stats';
 
 export type MRI = `${MetricType}:${UseCase}${string}@${string}`;
 
@@ -43,7 +43,7 @@ export interface MetricsApiRequestQuery extends MetricsApiRequestMetric {
   statsPeriod?: string;
 }
 
-export type MetricsDataIntervalLadder = 'ddm' | 'bar' | 'dashboard';
+export type MetricsDataIntervalLadder = 'metrics' | 'bar' | 'dashboard';
 
 export type MetricsApiResponse = {
   end: string;
@@ -102,7 +102,7 @@ export type MetricMeta = {
   mri: MRI;
   // name is returned by the API but should not be used, use parseMRI(mri).name instead
   // name: string;
-  operations: MetricsOperation[];
+  operations: MetricsAggregate[];
   projectIds: number[];
   type: MetricType;
   unit: string;

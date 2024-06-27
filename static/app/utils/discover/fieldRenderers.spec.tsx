@@ -1,5 +1,4 @@
 import {ConfigFixture} from 'sentry-fixture/config';
-import {ProjectFixture} from 'sentry-fixture/project';
 import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
@@ -15,9 +14,7 @@ describe('getFieldRenderer', function () {
   let location, context, project, organization, data, user;
 
   beforeEach(function () {
-    context = initializeOrg({
-      project: ProjectFixture(),
-    });
+    context = initializeOrg();
     organization = context.organization;
     project = context.project;
     act(() => ProjectsStore.loadInitialData([project]));
@@ -49,6 +46,8 @@ describe('getFieldRenderer', function () {
       'transaction.duration': 75,
       'timestamp.to_day': '2021-09-05T00:00:00+00:00',
       'issue.id': '123214',
+      'http_response_rate(3)': 0.012,
+      'http_response_rate(5)': 0.000021,
       lifetimeCount: 10000,
       filteredCount: 3000,
       count: 6000,
@@ -103,6 +102,34 @@ describe('getFieldRenderer', function () {
     render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
 
     expect(screen.getByText(data.numeric)).toBeInTheDocument();
+  });
+
+  describe('percentage', function () {
+    it('can render percentage fields', function () {
+      const renderer = getFieldRenderer(
+        'http_response_rate(3)',
+        {
+          'http_response_rate(3)': 'percentage',
+        },
+        false
+      );
+
+      render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
+      expect(screen.getByText('1.2%')).toBeInTheDocument();
+    });
+
+    it('can render very small percentages', function () {
+      const renderer = getFieldRenderer(
+        'http_response_rate(5)',
+        {
+          'http_response_rate(5)': 'percentage',
+        },
+        false
+      );
+
+      render(renderer(data, {location, organization}) as React.ReactElement<any, any>);
+      expect(screen.getByText('<0.01%')).toBeInTheDocument();
+    });
   });
 
   describe('date', function () {
@@ -234,7 +261,7 @@ describe('getFieldRenderer', function () {
     const renderer = getFieldRenderer('release', {release: 'string'});
 
     render(renderer(data, {location, organization}) as React.ReactElement<any, any>, {
-      context: context.routerContext,
+      router: context.router,
     });
 
     expect(screen.queryByRole('link')).toHaveAttribute(
@@ -248,7 +275,7 @@ describe('getFieldRenderer', function () {
     const renderer = getFieldRenderer('issue', {issue: 'string'});
 
     render(renderer(data, {location, organization}) as React.ReactElement<any, any>, {
-      context: context.routerContext,
+      router: context.router,
     });
 
     expect(screen.queryByRole('link')).toHaveAttribute(
@@ -262,7 +289,7 @@ describe('getFieldRenderer', function () {
     const renderer = getFieldRenderer('project', {project: 'string'});
 
     render(renderer(data, {location, organization}) as React.ReactElement<any, any>, {
-      context: context.routerContext,
+      router: context.router,
     });
 
     expect(screen.queryByTestId('letter_avatar-avatar')).not.toBeInTheDocument();
@@ -275,7 +302,7 @@ describe('getFieldRenderer', function () {
     data = {...data, project: parseInt(project.id, 10)};
 
     render(renderer(data, {location, organization}) as React.ReactElement<any, any>, {
-      context: context.routerContext,
+      router: context.router,
     });
 
     expect(screen.queryByTestId('letter_avatar-avatar')).not.toBeInTheDocument();
@@ -288,7 +315,7 @@ describe('getFieldRenderer', function () {
     });
 
     render(renderer(data, {location, organization}) as React.ReactElement<any, any>, {
-      context: context.routerContext,
+      router: context.router,
     });
 
     const star = screen.getByRole('button', {name: 'Toggle star for team'});
@@ -305,7 +332,7 @@ describe('getFieldRenderer', function () {
     delete data.project;
 
     render(renderer(data, {location, organization}) as React.ReactElement<any, any>, {
-      context: context.routerContext,
+      router: context.router,
     });
 
     const star = screen.getByRole('button', {name: 'Toggle star for team'});
@@ -326,7 +353,7 @@ describe('getFieldRenderer', function () {
       });
 
       render(renderer(data, {location, organization}) as React.ReactElement<any, any>, {
-        context: context.routerContext,
+        router: context.router,
       });
 
       expect(getWidths()).toEqual(['13.333%', '40.000%', '20.000%', '26.667%', '0.000%']);
@@ -358,7 +385,7 @@ describe('getFieldRenderer', function () {
             topEvents: undefined,
           }),
         }) as React.ReactElement<any, any>,
-        {context: context.routerContext}
+        {router: context.router}
       );
 
       expect(getWidths()).toEqual(['40.000%', '13.333%', '20.000%', '26.667%', '0.000%']);

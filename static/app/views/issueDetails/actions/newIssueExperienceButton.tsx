@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/button';
 import {IconLab} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import type {User} from 'sentry/types';
+import type {User} from 'sentry/types/user';
 import {useMutation} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import {useUser} from 'sentry/utils/useUser';

@@ -6,6 +6,7 @@ from typing import Any
 from urllib.parse import quote as urlquote
 
 import sentry_sdk
+from django.http import HttpRequest
 from django.utils import timezone
 from rest_framework.exceptions import ParseError, ValidationError
 from rest_framework.request import Request
@@ -21,6 +22,7 @@ from sentry.api.helpers.teams import get_teams
 from sentry.api.serializers.snuba import BaseSnubaSerializer, SnubaTSResultSerializer
 from sentry.api.utils import handle_query_errors
 from sentry.discover.arithmetic import is_equation, strip_equation
+from sentry.discover.models import DiscoverSavedQueryTypes
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.dashboard_widget import DashboardWidgetTypes
 from sentry.models.group import Group
@@ -117,15 +119,23 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                     "organizations:global-views", organization, actor=request.user
                 )
                 fetching_replay_data = request.headers.get("X-Sentry-Replay-Request") == "1"
-
-                if not has_global_views and len(params.projects) > 1 and not fetching_replay_data:
+                if not any(
+                    [
+                        has_global_views,
+                        len(params.projects) <= 1,
+                        fetching_replay_data,
+                        # If a developer can view issues of a project they do not belong to
+                        # via open membership, we will also allow the endpoint to return events for it
+                        organization.flags.allow_joinleave,
+                    ]
+                ):
                     raise ParseError(detail="You cannot view events from multiple projects.")
 
             # Return both for now
             return params, filter_params
 
     def get_snuba_params(
-        self, request: Request, organization: Organization, check_global_views: bool = True
+        self, request: HttpRequest, organization: Organization, check_global_views: bool = True
     ) -> ParamsType:
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params"):
             if (
@@ -251,6 +261,25 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         return new_discover_widget_split
 
+    def save_discover_saved_query_split_decision(self, query, has_errors, has_transactions_data):
+        """This can be removed once the discover dataset has been fully split"""
+        if has_errors and not has_transactions_data:
+            decision = DiscoverSavedQueryTypes.ERROR_EVENTS
+        elif not has_errors and has_transactions_data:
+            decision = DiscoverSavedQueryTypes.TRANSACTION_LIKE
+        else:
+            # In the case that neither or both datasets return data,
+            # we don't split this yet and can make multiple queries to check each time.
+            # This will help newly created widgets or infrequent count
+            # widgets that shouldn't be prematurely assigned a side.
+            decision = DiscoverSavedQueryTypes.DISCOVER
+        sentry_sdk.set_tag("discover.split_decision", decision)
+        if query.dataset != decision:
+            query.dataset = decision
+            query.save()
+
+        return decision
+
     def handle_unit_meta(
         self, meta: dict[str, str]
     ) -> tuple[dict[str, str], dict[str, str | None]]:
@@ -292,6 +321,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
             if standard_meta:
                 isMetricsData = meta.pop("isMetricsData", False)
                 isMetricsExtractedData = meta.pop("isMetricsExtractedData", False)
+                discoverSplitDecision = meta.pop("discoverSplitDecision", None)
                 fields, units = self.handle_unit_meta(fields_meta)
                 meta = {
                     "fields": fields,
@@ -303,6 +333,9 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
                 }
                 if dataset is not None:
                     meta["dataset"] = DATASET_LABELS.get(dataset, "unknown")
+
+                if discoverSplitDecision is not None:
+                    meta["discoverSplitDecision"] = discoverSplitDecision
             else:
                 meta = fields_meta
 

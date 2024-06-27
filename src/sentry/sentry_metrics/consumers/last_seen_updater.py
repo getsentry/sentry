@@ -50,9 +50,9 @@ class LastSeenUpdaterMessageFilter(StreamMessageFilter):
     # and does not contain the DB_READ ('d') character (this should be the vast
     # majority of messages).
     def should_drop(self, message: Message[KafkaPayload]) -> bool:
-        header_value: str | None = next(
+        header_value = next(
             (
-                str(header[1])
+                header[1].decode()
                 for header in message.payload.headers
                 if header[0] == "mapping_sources"
             ),
@@ -63,7 +63,7 @@ class LastSeenUpdaterMessageFilter(StreamMessageFilter):
             self.__metrics.incr("last_seen_updater.header_not_present")
             return False
 
-        return FetchType.DB_READ.value not in str(header_value)
+        return header_value is not None and FetchType.DB_READ.value not in header_value
 
 
 def _update_stale_last_seen(

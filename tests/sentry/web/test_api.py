@@ -106,14 +106,19 @@ class ClientConfigViewTest(TestCase):
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
             data = json.loads(resp.content)
-            assert data["features"] == ["organizations:create", "auth:register"]
+            assert data["features"] == [
+                "organizations:create",
+                "auth:register",
+            ]
 
         with self.options({"auth.allow-registration": False}):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
             data = json.loads(resp.content)
-            assert data["features"] == ["organizations:create"]
+            assert data["features"] == [
+                "organizations:create",
+            ]
 
     def test_org_create_feature(self):
         with self.feature({"organizations:create": True}):
@@ -121,7 +126,9 @@ class ClientConfigViewTest(TestCase):
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
             data = json.loads(resp.content)
-            assert data["features"] == ["organizations:create"]
+            assert data["features"] == [
+                "organizations:create",
+            ]
 
         with self.feature({"organizations:create": False}):
             resp = self.client.get(self.path)
@@ -140,41 +147,28 @@ class ClientConfigViewTest(TestCase):
         assert resp.status_code == 200
         assert resp["Content-Type"] == "application/json"
 
-        with self.feature({"organizations:customer-domains": True}):
+        with self.feature({"system:multi-region": True}):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
             data = json.loads(resp.content)
             assert data["lastOrganization"] == self.organization.slug
-            assert data["features"] == ["organizations:create", "organizations:customer-domains"]
+            assert data["features"] == [
+                "organizations:create",
+                "system:multi-region",
+            ]
 
-        with self.feature({"organizations:customer-domains": False}):
-            resp = self.client.get(self.path)
-            assert resp.status_code == 200
-            assert resp["Content-Type"] == "application/json"
-            data = json.loads(resp.content)
-            assert data["features"] == ["organizations:create"]
-
-            # Customer domain feature is injected if a customer domain is used.
-            resp = self.client.get(self.path, HTTP_HOST="albertos-apples.testserver")
-            assert resp.status_code == 200
-            assert resp["Content-Type"] == "application/json"
-            data = json.loads(resp.content)
-            assert data["features"] == ["organizations:create", "organizations:customer-domains"]
-
-    def test_react_concurrent_feature(self):
-        with override_options({"frontend.react-concurrent-renderer-enabled": True}):
+        with self.feature({"system:multi-region": False}):
             resp = self.client.get(self.path)
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
             data = json.loads(resp.content)
             assert data["features"] == [
                 "organizations:create",
-                "organizations:react-concurrent-renderer-enabled",
             ]
 
-        with override_options({"frontend.react-concurrent-renderer-enabled": False}):
-            resp = self.client.get(self.path)
+            # Customer domain feature is injected if a customer domain is used.
+            resp = self.client.get(self.path, HTTP_HOST="albertos-apples.testserver")
             assert resp.status_code == 200
             assert resp["Content-Type"] == "application/json"
             data = json.loads(resp.content)
@@ -242,8 +236,7 @@ class ClientConfigViewTest(TestCase):
 
         # Induce last active organization
         with (
-            override_settings(SENTRY_USE_CUSTOMER_DOMAINS=True),
-            self.feature({"organizations:customer-domains": [other_org.slug]}),
+            self.feature({"system:multi-region": [other_org.slug]}),
             assume_test_silo_mode(SiloMode.MONOLITH),
         ):
             response = self.client.get(

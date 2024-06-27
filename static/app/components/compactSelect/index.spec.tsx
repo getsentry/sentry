@@ -76,6 +76,9 @@ describe('CompactSelect', function () {
     await waitFor(() => {
       expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
     });
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Option One'})).toHaveFocus();
+    });
 
     // Can be dismissed by pressing Escape
     await userEvent.click(screen.getByRole('button', {name: 'Option One'}));
@@ -89,6 +92,9 @@ describe('CompactSelect', function () {
     await waitFor(() => {
       expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
     });
+    await waitFor(() => {
+      expect(screen.getByRole('button', {name: 'Option One'})).toHaveFocus();
+    });
 
     // When menu A is open, clicking once on menu B's trigger button closes menu A and
     // then opens menu B
@@ -96,7 +102,7 @@ describe('CompactSelect', function () {
     expect(screen.getByRole('option', {name: 'Option One'})).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', {name: 'Option Three'}));
     expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
-    expect(screen.getByRole('option', {name: 'Option Three'})).toBeInTheDocument();
+    expect(await screen.findByRole('option', {name: 'Option Three'})).toBeInTheDocument();
   });
 
   describe('ListBox', function () {
@@ -213,6 +219,47 @@ describe('CompactSelect', function () {
       // only Option Two should be available, Option One should be filtered out
       expect(screen.getByRole('option', {name: 'Option Two'})).toBeInTheDocument();
       expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+    });
+
+    it('can search with sections', async function () {
+      render(
+        <CompactSelect
+          searchable
+          searchPlaceholder="Search here…"
+          options={[
+            {
+              key: 'section-1',
+              label: 'Section 1',
+              showToggleAllButton: true,
+              options: [
+                {value: 'opt_one', label: 'Option One'},
+                {value: 'opt_two', label: 'Option Two'},
+              ],
+            },
+            {
+              key: 'section-2',
+              label: 'Section 2',
+              showToggleAllButton: true,
+              options: [
+                {value: 'opt_three', label: 'Option Three'},
+                {value: 'opt_four', label: 'Option Four'},
+              ],
+            },
+          ]}
+        />
+      );
+
+      // click on the trigger button
+      await userEvent.click(screen.getByRole('button'));
+
+      // type 'Two' into the search box
+      await userEvent.click(screen.getByPlaceholderText('Search here…'));
+      await userEvent.keyboard('Two');
+
+      // only Option Two should be available
+      expect(screen.getByRole('option', {name: 'Option Two'})).toBeInTheDocument();
+      expect(screen.queryByRole('option', {name: 'Option One'})).not.toBeInTheDocument();
+      expect(screen.getAllByRole('option')).toHaveLength(1);
     });
 
     it('can limit the number of options', async function () {

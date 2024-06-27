@@ -50,3 +50,17 @@ class DummyMetricsBackend(MetricsBackend):
         stacklevel: int = 0,
     ) -> None:
         pass
+
+    def event(
+        self,
+        title: str,
+        message: str,
+        alert_type: str | None = None,
+        aggregation_key: str | None = None,
+        source_type_name: str | None = None,
+        priority: str | None = None,
+        instance: str | None = None,
+        tags: Tags | None = None,
+        stacklevel: int = 0,
+    ) -> None:
+        pass

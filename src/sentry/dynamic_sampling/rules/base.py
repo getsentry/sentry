@@ -8,7 +8,6 @@ from sentry import quotas
 from sentry.db.models import Model
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.combine import get_relay_biases_combinator
-from sentry.dynamic_sampling.rules.logging import log_rules
 from sentry.dynamic_sampling.rules.utils import PolymorphicRule, RuleType, get_enabled_user_biases
 from sentry.dynamic_sampling.tasks.helpers.boost_low_volume_projects import (
     get_boost_low_volume_projects_sample_rate,
@@ -45,11 +44,13 @@ def is_recently_added(model: Model) -> bool:
 
 
 def get_guarded_blended_sample_rate(organization: Organization, project: Project) -> float:
-    sample_rate = quotas.backend.get_blended_sample_rate(organization_id=organization.id)
+    sample_rate = quotas.backend.get_blended_sample_rate(
+        organization_id=organization.id, project=project
+    )
 
-    # If the sample rate is None, it means that dynamic sampling rules shouldn't be generated.
+    # get_blended_sample_rate returns None if the organization doesn't have dynamic sampling
     if sample_rate is None:
-        raise Exception("get_blended_sample_rate returns none")
+        return 1.0
 
     # If the sample rate is 100%, we don't want to use any special dynamic sample rate, we will just sample at 100%.
     if sample_rate == 1.0:
@@ -91,8 +92,6 @@ def _get_rules_of_enabled_biases(
                 rules += bias.generate_rules(project, base_sample_rate)
             except Exception:
                 logger.exception("Rule generator %s failed.", rule_type)
-
-    log_rules(project.organization.id, project.id, rules)
 
     return rules
 

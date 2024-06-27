@@ -71,7 +71,6 @@ function AccountNotificationsByProject({projects, field}: ANBPProps) {
         <ProjectBadge
           project={project}
           avatarSize={20}
-          displayName={project.slug}
           avatarProps={{consistentWidth: true}}
           disableLink
         />
@@ -216,6 +215,16 @@ class AccountNotificationFineTuning extends DeprecatedAsyncView<Props, State> {
 
     const isProject = isGroupedByProject(fineTuneType) && organizations.length > 0;
     const field = ACCOUNT_NOTIFICATION_FIELDS[fineTuneType];
+    // TODO(isabella): once GA, remove this
+    if (
+      fineTuneType === 'quota' &&
+      organizations.some(org => org.features?.includes('spend-visibility-notifications'))
+    ) {
+      field.title = t('Spend Notifications');
+      field.description = t(
+        'Control the notifications you receive for organization spend.'
+      );
+    }
     const {title, description} = field;
 
     const [stateKey] = isProject ? this.getEndpoints()[2] : [];

@@ -2,11 +2,10 @@ import re
 from unittest.mock import Mock, patch
 from urllib.parse import parse_qsl
 
+import orjson
 import responses
 
 from sentry.integrations.slack.unfurl import Handler, make_type_coercer
-from sentry.testutils.helpers.features import with_feature
-from sentry.utils import json
 
 from . import LINK_SHARED_EVENT, BaseEventTest, build_test_block
 
@@ -36,12 +35,12 @@ class LinkSharedEventTest(BaseEventTest):
     def test_share_links(self, mock_match_link):
         responses.add(responses.POST, "https://slack.com/api/chat.unfurl", json={"ok": True})
 
-        resp = self.post_webhook(event_data=json.loads(LINK_SHARED_EVENT))
+        resp = self.post_webhook(event_data=orjson.loads(LINK_SHARED_EVENT))
         assert resp.status_code == 200, resp.content
         assert len(mock_match_link.mock_calls) == 3
 
         data = dict(parse_qsl(responses.calls[0].request.body))
-        unfurls = json.loads(data["unfurls"])
+        unfurls = orjson.loads(data["unfurls"])
 
         # We only have two unfurls since one link was duplicated
         assert len(unfurls) == 2
@@ -49,7 +48,6 @@ class LinkSharedEventTest(BaseEventTest):
         assert unfurls["link2"] == "unfurl"
 
     @responses.activate
-    @with_feature("organizations:slack-block-kit")
     @patch(
         "sentry.integrations.slack.webhooks.event.match_link",
         # match_link will be called twice, for each our links. Resolve into
@@ -78,12 +76,12 @@ class LinkSharedEventTest(BaseEventTest):
     def test_share_links_block_kit(self, mock_match_link):
         responses.add(responses.POST, "https://slack.com/api/chat.unfurl", json={"ok": True})
 
-        resp = self.post_webhook(event_data=json.loads(LINK_SHARED_EVENT))
+        resp = self.post_webhook(event_data=orjson.loads(LINK_SHARED_EVENT))
         assert resp.status_code == 200, resp.content
         assert len(mock_match_link.mock_calls) == 3
 
         data = dict(parse_qsl(responses.calls[0].request.body))
-        unfurls = json.loads(data["unfurls"])
+        unfurls = orjson.loads(data["unfurls"])
 
         # We only have two unfurls since one link was duplicated
         assert len(unfurls) == 2

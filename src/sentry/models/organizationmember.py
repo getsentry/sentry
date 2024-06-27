@@ -4,7 +4,7 @@ import datetime
 import logging
 import secrets
 from collections import defaultdict
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Mapping
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
@@ -28,19 +28,19 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.manager import BaseManager
+from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.outboxes import ReplicatedRegionModel
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import UnableToAcceptMemberInvitationException
+from sentry.hybridcloud.rpc import extract_id_from
 from sentry.models.outbox import OutboxCategory, outbox_context
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole
-from sentry.services.hybrid_cloud import extract_id_from
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.organizationmember_mapping import (
     RpcOrganizationMemberMappingUpdate,
@@ -165,11 +165,12 @@ class OrganizationMemberManager(BaseManager["OrganizationMember"]):
             id=id,
         )
 
-    def get_teams_by_user(self, organization: Organization) -> Mapping[int, list[int]]:
-        user_teams: MutableMapping[int, list[int]] = defaultdict(list)
+    def get_teams_by_user(self, organization: Organization) -> dict[int, list[int]]:
         queryset = self.filter(organization_id=organization.id).values_list("user_id", "teams")
+        user_teams: dict[int, list[int]] = defaultdict(list)
         for user_id, team_id in queryset:
-            user_teams[user_id].append(team_id)
+            if user_id is not None:
+                user_teams[user_id].append(team_id)
         return user_teams
 
     def get_members_by_email_and_role(self, email: str, role: str) -> QuerySet:
@@ -183,7 +184,7 @@ class OrganizationMemberManager(BaseManager["OrganizationMember"]):
         return self.filter(role=role, user_id__in=[u.id for u in users_by_email])
 
 
-@region_silo_only_model
+@region_silo_model
 class OrganizationMember(ReplicatedRegionModel):
     """
     Identifies relationships between organizations and users.
@@ -644,6 +645,29 @@ class OrganizationMember(ReplicatedRegionModel):
             mapping=rpc_org_member_update,
         )
 
+    @classmethod
+    def query_for_relocation_export(cls, q: Q, pk_map: PrimaryKeyMap) -> Q:
+        q = super().query_for_relocation_export(q, pk_map)
+
+        # Manually avoid filtering on `inviter_id` when exporting. This ensures that
+        # `OrganizationMember`s that were invited by a user from a different organization are not
+        # filtered out when export in `Organization` scope.
+        new_q = Q()
+        for clause in q.children:
+            if not isinstance(clause, Q):
+                new_q.children.append(clause)
+                continue
+
+            mentioned_inviter = False
+            for subclause in clause.children:
+                if isinstance(subclause, tuple) and "inviter" in subclause[0]:
+                    mentioned_inviter = True
+                    break
+            if not mentioned_inviter:
+                new_q.children.append(clause)
+
+        return new_q
+
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, scope: ImportScope, flags: ImportFlags
     ) -> int | None:
@@ -654,5 +678,11 @@ class OrganizationMember(ReplicatedRegionModel):
             and pk_map.get_pk(NormalizedModelName("sentry.user"), self.inviter_id) is None
         ):
             self.inviter_id = None
+
+        # If there is a token collision, just wipe the token. The user can always make a new one.
+        matching_token = self.__class__.objects.filter(token=self.token).first()
+        if matching_token is not None:
+            self.token = None
+            self.token_expires_at = None
 
         return super().normalize_before_relocation_import(pk_map, scope, flags)

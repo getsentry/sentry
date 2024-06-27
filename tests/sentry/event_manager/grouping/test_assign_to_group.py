@@ -218,7 +218,7 @@ def get_results_from_saving_event(
 
         if existing_group_id:
             event_assigned_to_given_existing_group = (
-                new_event.group_id == existing_group_id if existing_group_id else None
+                (new_event.group_id == existing_group_id) if existing_group_id else None
             )
 
         if secondary_hash_calculated:
@@ -297,7 +297,7 @@ def test_new_group(
             "secondary_grouphash_existed_already": False,
             "primary_grouphash_exists_now": True,
             "secondary_grouphash_exists_now": True,
-            "result_tag_value_for_metrics": "new_group",
+            "result_tag_value_for_metrics": "no_match",
             # Moot since no existing group was passed
             "event_assigned_to_given_existing_group": None,
         }
@@ -309,7 +309,7 @@ def test_new_group(
             "new_group_created": True,
             "primary_grouphash_existed_already": False,
             "primary_grouphash_exists_now": True,
-            "result_tag_value_for_metrics": "new_group",
+            "result_tag_value_for_metrics": "no_match",
             # The rest are moot since no existing group was passed and no secondary hash was
             # calculated.
             "event_assigned_to_given_existing_group": None,
@@ -375,7 +375,7 @@ def test_existing_group_no_new_hash(
             "event_assigned_to_given_existing_group": False,
             "primary_grouphash_existed_already": False,
             "primary_grouphash_exists_now": True,
-            "result_tag_value_for_metrics": "new_group",
+            "result_tag_value_for_metrics": "no_match",
             # The rest are moot since no secondary hash was calculated.
             "hashes_different": None,
             "secondary_hash_found": None,
@@ -412,6 +412,7 @@ def test_existing_group_new_hash_exists(
         existing_event = save_event_with_grouping_config(
             event_data, project, NEWSTYLE_CONFIG, LEGACY_CONFIG, True
         )
+        assert existing_event.group_id is not None
         assert (
             GroupHash.objects.filter(
                 project_id=project.id, group_id=existing_event.group_id
@@ -420,6 +421,7 @@ def test_existing_group_new_hash_exists(
         )
     else:
         existing_event = save_event_with_grouping_config(event_data, project, NEWSTYLE_CONFIG)
+        assert existing_event.group_id is not None
         assert (
             GroupHash.objects.filter(
                 project_id=project.id, group_id=existing_event.group_id

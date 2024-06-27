@@ -5,7 +5,7 @@ import type {DeviceContext, Event} from 'sentry/types/event';
 import {DeviceContextKey} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 
-import {getRelativeTimeFromEventDateCreated} from '../utils';
+import {getRelativeTimeFromEventDateCreated, type KnownDataDetails} from '../utils';
 
 import {formatMemory, formatStorage} from './utils';
 
@@ -18,22 +18,13 @@ export const deviceKnownDataValues = [
   'storage',
 ];
 
-type Output = {
-  subject: string;
-  value?: React.ReactNode;
-};
-
 type Props = {
   data: DeviceContext;
   event: Event;
   type: (typeof deviceKnownDataValues)[number];
 };
 
-export function getDeviceKnownDataDetails({
-  data,
-  event,
-  type,
-}: Props): Output | undefined {
+export function getDeviceKnownDataDetails({data, event, type}: Props): KnownDataDetails {
   switch (type) {
     case DeviceContextKey.NAME:
       return {

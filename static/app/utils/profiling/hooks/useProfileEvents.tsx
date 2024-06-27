@@ -1,6 +1,6 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {t} from 'sentry/locale';
-import type {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
 import {defined} from 'sentry/utils';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -40,7 +40,7 @@ export function useProfileEvents<F extends string>({
   let dataset: 'profiles' | 'discover' = 'profiles';
   if (organization.features.includes('profiling-using-transactions')) {
     dataset = 'discover';
-    query = `has:profile.id ${query ?? ''}`;
+    query = `has:profile.id ${query ? `(${query})` : ''}`;
   }
 
   const path = `/organizations/${organization.slug}/events/`;

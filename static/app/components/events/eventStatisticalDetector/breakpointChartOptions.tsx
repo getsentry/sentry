@@ -1,9 +1,10 @@
 import type {Theme} from '@emotion/react';
 
+import type {FunctionRegressionPercentileData} from 'sentry/chartcuterie/performance';
+import {ChartType} from 'sentry/chartcuterie/types';
 import VisualMap from 'sentry/components/charts/components/visualMap';
 import type {LineChart as EChartsLineChart} from 'sentry/components/charts/lineChart';
-import type {EventsStatsData} from 'sentry/types';
-import type {Series} from 'sentry/types/echarts';
+import type {EventsStatsData} from 'sentry/types/organization';
 import {
   axisLabelFormatter,
   getDurationUnit,
@@ -20,22 +21,41 @@ import {getIntervalLine} from 'sentry/views/performance/utils/getIntervalLine';
 
 export type EventBreakpointChartData = {
   evidenceData: NormalizedTrendsTransaction;
-  percentileData?: EventsStatsData;
-  percentileSeries?: Series[];
+  percentileData: EventsStatsData | FunctionRegressionPercentileData;
 };
 
 function getBreakpointChartOptionsFromData(
-  {percentileData, evidenceData, percentileSeries}: EventBreakpointChartData,
+  {percentileData, evidenceData}: EventBreakpointChartData,
+  chartType: ChartType,
   theme: Theme
 ) {
-  const transformedSeries = percentileData
-    ? transformEventStats(
-        percentileData,
-        generateTrendFunctionAsString(TrendFunctionField.P95, 'transaction.duration')
-      )
-    : percentileSeries
-      ? percentileSeries
-      : [];
+  const trendFunctionName: Partial<{[key in ChartType]: string}> = {
+    [ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION]: 'transaction.duration',
+    [ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION]: 'function.duration',
+  };
+
+  const defaultTransform = stats => stats;
+
+  const transformFunctionStats = (stats: any) => {
+    const rawData = stats?.data?.data?.find(({axis}) => axis === 'p95()');
+    const timestamps = stats?.data?.timestamps;
+    if (!timestamps) {
+      return [];
+    }
+    return timestamps.map((timestamp, i) => [timestamp, [{count: rawData.values[i]}]]);
+  };
+
+  // Mapping from BreakpointType to transformation functions
+  const transformFunction: Partial<{[key in ChartType]: (arg: any) => EventsStatsData}> =
+    {
+      [ChartType.SLACK_PERFORMANCE_ENDPOINT_REGRESSION]: defaultTransform,
+      [ChartType.SLACK_PERFORMANCE_FUNCTION_REGRESSION]: transformFunctionStats,
+    };
+
+  const transformedSeries = transformEventStats(
+    transformFunction[chartType]!(percentileData),
+    generateTrendFunctionAsString(TrendFunctionField.P95, trendFunctionName[chartType]!)
+  );
 
   const intervalSeries = getIntervalLine(
     theme,

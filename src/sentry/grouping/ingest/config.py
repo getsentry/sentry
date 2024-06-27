@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 import time
 from collections.abc import MutableMapping
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 from django.conf import settings
 from django.core.cache import cache
@@ -12,9 +12,6 @@ from sentry import features
 from sentry.locks import locks
 from sentry.models.project import Project
 from sentry.projectoptions.defaults import BETA_GROUPING_CONFIG, DEFAULT_GROUPING_CONFIG
-
-if TYPE_CHECKING:
-    pass
 
 logger = logging.getLogger("sentry.events.grouping")
 

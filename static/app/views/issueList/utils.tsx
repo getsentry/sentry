@@ -1,11 +1,11 @@
 import ExternalLink from 'sentry/components/links/externalLink';
-import {DEFAULT_QUERY, NEW_DEFAULT_QUERY} from 'sentry/constants';
+import {DEFAULT_QUERY} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
-import type {Organization} from 'sentry/types';
 
 export enum Query {
   FOR_REVIEW = 'is:unresolved is:for_review assigned_or_suggested:[me, my_teams, none]',
-  PRIORITIZED = NEW_DEFAULT_QUERY,
+  // biome-ignore lint/style/useLiteralEnumMembers: Disable for maintenance cost.
+  PRIORITIZED = DEFAULT_QUERY,
   UNRESOLVED = 'is:unresolved',
   IGNORED = 'is:ignored',
   NEW = 'is:new',
@@ -45,9 +45,7 @@ type OverviewTab = {
 /**
  * Get a list of currently active tabs
  */
-export function getTabs(organization: Organization) {
-  const hasIssuePriority = organization.features.includes('issue-priority-ui');
-
+export function getTabs() {
   const tabs: Array<[string, OverviewTab]> = [
     [
       Query.PRIORITIZED,
@@ -55,16 +53,7 @@ export function getTabs(organization: Organization) {
         name: t('Prioritized'),
         analyticsName: 'prioritized',
         count: true,
-        enabled: hasIssuePriority,
-      },
-    ],
-    [
-      Query.UNRESOLVED,
-      {
-        name: t('Unresolved'),
-        analyticsName: 'unresolved',
-        count: true,
-        enabled: !hasIssuePriority,
+        enabled: true,
       },
     ],
     [
@@ -123,7 +112,7 @@ export function getTabs(organization: Organization) {
         name: t('Reprocessing'),
         analyticsName: 'reprocessing',
         count: true,
-        enabled: organization.features.includes('reprocessing-v2'),
+        enabled: true,
         tooltipTitle: tct(
           `These [link:reprocessing issues] will take some time to complete.
         Any new issues that are created during reprocessing will be flagged for review.`,
@@ -157,8 +146,8 @@ export function getTabs(organization: Organization) {
 /**
  * @returns queries that should have counts fetched
  */
-export function getTabsWithCounts(organization: Organization) {
-  const tabs = getTabs(organization);
+export function getTabsWithCounts() {
+  const tabs = getTabs();
   return tabs.filter(([_query, tab]) => tab.count).map(([query]) => query);
 }
 
@@ -187,15 +176,8 @@ export enum IssueSortOptions {
 
 export const DEFAULT_ISSUE_STREAM_SORT = IssueSortOptions.DATE;
 
-export function isDefaultIssueStreamSearch(
-  {query, sort}: {query: string; sort: string},
-  {organization}: {organization: Organization}
-) {
-  const defaultQuery = organization.features.includes('issue-priority-ui')
-    ? NEW_DEFAULT_QUERY
-    : DEFAULT_QUERY;
-
-  return query === defaultQuery && sort === DEFAULT_ISSUE_STREAM_SORT;
+export function isDefaultIssueStreamSearch({query, sort}: {query: string; sort: string}) {
+  return query === DEFAULT_QUERY && sort === DEFAULT_ISSUE_STREAM_SORT;
 }
 
 export function getSortLabel(key: string) {

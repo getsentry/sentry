@@ -1,5 +1,3 @@
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
-
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import type {RenderResult} from 'sentry-test/reactTestingLibrary';
 import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
@@ -47,10 +45,9 @@ describe('TransactionsList', function () {
   });
 
   describe('Basic', function () {
-    let generateLink, routerContext;
+    let generateLink;
 
     beforeEach(function () {
-      routerContext = RouterContextFixture([{organization}]);
       initialize();
       eventView = EventView.fromSavedQuery({
         id: '',
@@ -72,10 +69,10 @@ describe('TransactionsList', function () {
         },
       ];
       generateLink = {
-        transaction: (org, row, query) => ({
+        transaction: (org, row) => ({
           pathname: `/${org.slug}`,
           query: {
-            ...query,
+            ...location.query,
             transaction: row.transaction,
             count: row.count,
             'count()': row['count()'],
@@ -163,10 +160,7 @@ describe('TransactionsList', function () {
           selected={options[0]}
           options={options}
           handleDropdownChange={handleDropdownChange}
-        />,
-        {
-          context: routerContext,
-        }
+        />
       );
 
       expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
@@ -203,10 +197,7 @@ describe('TransactionsList', function () {
           selected={options[2]}
           options={options}
           handleDropdownChange={handleDropdownChange}
-        />,
-        {
-          context: routerContext,
-        }
+        />
       );
 
       expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
@@ -263,10 +254,7 @@ describe('TransactionsList', function () {
           selected={options[0]}
           options={options}
           handleDropdownChange={handleDropdownChange}
-        />,
-        {
-          context: routerContext,
-        }
+        />
       );
 
       expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
@@ -286,10 +274,7 @@ describe('TransactionsList', function () {
           options={options}
           handleDropdownChange={handleDropdownChange}
           titles={['foo', 'bar']}
-        />,
-        {
-          context: routerContext,
-        }
+        />
       );
 
       expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
@@ -326,10 +311,7 @@ describe('TransactionsList', function () {
           selected={options[0]}
           options={options}
           handleDropdownChange={handleDropdown}
-        />,
-        {
-          context: routerContext,
-        }
+        />
       );
 
       expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
@@ -371,8 +353,7 @@ describe('TransactionsList', function () {
           options={options}
           handleDropdownChange={handleDropdownChange}
           generateLink={generateLink}
-        />,
-        {context: routerContext}
+        />
       );
 
       expect(await screen.findByTestId('transactions-table')).toBeInTheDocument();
@@ -400,8 +381,7 @@ describe('TransactionsList', function () {
           options={options}
           handleDropdownChange={handleDropdownChange}
           forceLoading
-        />,
-        {context: routerContext}
+        />
       );
 
       expect(await screen.findByTestId('loading-indicator')).toBeInTheDocument();

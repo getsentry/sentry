@@ -1,13 +1,21 @@
+from unittest.mock import patch
+
+import orjson
 import pytest
 import responses
 
+from sentry.integrations.slack.sdk_client import SLACK_DATADOG_METRIC
 from sentry.integrations.slack.utils import get_channel_id
-from sentry.integrations.slack.utils.channel import CHANNEL_PREFIX, MEMBER_PREFIX
+from sentry.integrations.slack.utils.channel import (
+    CHANNEL_PREFIX,
+    MEMBER_PREFIX,
+    SlackChannelIdData,
+)
 from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -19,6 +27,33 @@ class GetChannelIdTest(TestCase):
 
         self.integration = install_slack(self.event.project.organization)
 
+        self.response_json = {
+            "ok": True,
+            "members": [
+                {
+                    "id": "UXXXXXXX1",
+                    "name": "patrick-jane",
+                },
+                {
+                    "id": "UXXXXXXX2",
+                    "name": "theresa-lisbon",
+                },
+                {
+                    "id": "UXXXXXXX3",
+                    "name": "kimball-cho",
+                },
+                {
+                    "id": "UXXXXXXX4",
+                    "name": "grace-van-pelt",
+                },
+                {
+                    "id": "UXXXXXXX4",
+                    "name": "wayne-rigsby",
+                },
+            ],
+            "response_metadata": {"next_cursor": ""},
+        }
+
     def tearDown(self):
         self.resp.__exit__(None, None, None)
 
@@ -29,7 +64,7 @@ class GetChannelIdTest(TestCase):
             url="https://slack.com/api/%s.list" % list_type,
             status=200,
             content_type="application/json",
-            body=json.dumps({"ok": "true", result_name: channels}),
+            body=orjson.dumps({"ok": "true", result_name: channels}),
         )
 
     def add_msg_response(self, channel_id, result_name="channel"):
@@ -43,11 +78,11 @@ class GetChannelIdTest(TestCase):
             url="https://slack.com/api/chat.scheduleMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps(bodydict),
+            body=orjson.dumps(bodydict),
         )
 
     def run_valid_test(self, channel, expected_prefix, expected_id, timed_out):
-        assert (expected_prefix, expected_id, timed_out) == get_channel_id(
+        assert SlackChannelIdData(expected_prefix, expected_id, timed_out) == get_channel_id(
             self.organization, self.integration, channel
         )
 
@@ -58,9 +93,30 @@ class GetChannelIdTest(TestCase):
             url="https://slack.com/api/chat.deleteScheduledMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps({"ok": True}),
+            body=orjson.dumps({"ok": True}),
         )
         self.run_valid_test("#My-Channel", CHANNEL_PREFIX, "m-c", False)
+
+    @with_feature("organizations:slack-sdk-get-channel-id")
+    @patch("sentry.integrations.slack.sdk_client.metrics")
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    def test_valid_channel_selected_sdk(self, mock_api_call, mock_metrics):
+        # Tests chat_scheduleMessage and chat_deleteScheduledMessage
+        mock_api_call.return_value = {
+            "body": orjson.dumps(
+                {"ok": True, "channel": "m-c", "scheduled_message_id": "Q1298393284"}
+            ).decode(),
+            "headers": {},
+            "status": 200,
+        }
+
+        self.run_valid_test("#My-Channel", CHANNEL_PREFIX, "m-c", False)
+
+        mock_metrics.incr.assert_called_with(
+            SLACK_DATADOG_METRIC,
+            sample_rate=1.0,
+            tags={"ok": True, "status": 200},
+        )
 
     def test_valid_private_channel_selected(self):
         self.add_msg_response("m-p-c")
@@ -69,9 +125,30 @@ class GetChannelIdTest(TestCase):
             url="https://slack.com/api/chat.deleteScheduledMessage",
             status=200,
             content_type="application/json",
-            body=json.dumps({"ok": True}),
+            body=orjson.dumps({"ok": True}),
         )
         self.run_valid_test("#my-private-channel", CHANNEL_PREFIX, "m-p-c", False)
+
+    @with_feature("organizations:slack-sdk-get-channel-id")
+    @patch("sentry.integrations.slack.sdk_client.metrics")
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    def test_valid_private_channel_selected_sdk(self, mock_api_call, mock_metrics):
+        # Tests chat_scheduleMessage and chat_deleteScheduledMessage
+        mock_api_call.return_value = {
+            "body": orjson.dumps(
+                {"ok": True, "channel": "m-p-c", "scheduled_message_id": "Q1298393284"}
+            ).decode(),
+            "headers": {},
+            "status": 200,
+        }
+
+        self.run_valid_test("#my-private-channel", CHANNEL_PREFIX, "m-p-c", False)
+
+        mock_metrics.incr.assert_called_with(
+            SLACK_DATADOG_METRIC,
+            sample_rate=1.0,
+            tags={"ok": True, "status": 200},
+        )
 
     def test_valid_member_selected(self):
         self.add_msg_response("channel_not_found")
@@ -115,8 +192,26 @@ class GetChannelIdTest(TestCase):
 
     def test_invalid_channel_selected(self):
         self.add_msg_response("channel_not_found")
-        assert get_channel_id(self.organization, self.integration, "#fake-channel")[1] is None
-        assert get_channel_id(self.organization, self.integration, "@fake-user")[1] is None
+        assert (
+            get_channel_id(self.organization, self.integration, "#fake-channel").channel_id is None
+        )
+        assert get_channel_id(self.organization, self.integration, "@fake-user").channel_id is None
+
+    @with_feature("organizations:slack-sdk-get-channel-id")
+    @patch("sentry.integrations.slack.sdk_client.metrics")
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    def test_invalid_channel_selected_sdk(self, mock_api_call, mock_metrics):
+        # Tests chat_scheduleMessage and chat_deleteScheduledMessage
+        mock_api_call.return_value = {
+            "body": orjson.dumps({"ok": False, "error": "channel_not_found"}).decode(),
+            "headers": {},
+            "status": 200,
+        }
+
+        assert (
+            get_channel_id(self.organization, self.integration, "#fake-channel").channel_id is None
+        )
+        assert get_channel_id(self.organization, self.integration, "@fake-user").channel_id is None
 
     def test_rate_limiting(self):
         """Should handle 429 from Slack when searching for users"""
@@ -126,7 +221,70 @@ class GetChannelIdTest(TestCase):
             url="https://slack.com/api/users.list",
             status=429,
             content_type="application/json",
-            body=json.dumps({"ok": False, "error": "ratelimited"}),
+            body=orjson.dumps({"ok": False, "error": "ratelimited"}),
         )
         with pytest.raises(ApiRateLimitedError):
             get_channel_id(self.organization, self.integration, "@user")
+
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    @with_feature("organizations:slack-sdk-get-channel-id")
+    def test_user_list_pagination_sdk_client(self, mock_api_call):
+        self.response_json["response_metadata"] = {"next_cursor": "dXNlcjpVMEc5V0ZYTlo"}
+        mock_api_call.return_value = {
+            "body": orjson.dumps(self.response_json).decode(),
+            "headers": {},
+            "status": 200,
+        }
+
+        self.run_valid_test("@wayne-rigsby", MEMBER_PREFIX, "UXXXXXXX4", False)
+
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    @with_feature("organizations:slack-sdk-get-channel-id")
+    def test_user_list_multi_pagination_sdk_client(self, mock_api_call):
+        self.response_json["response_metadata"] = {"next_cursor": "dXNlcjpVMEc5V0ZYTlo"}
+        mock_api_call.side_effect = [
+            {
+                "body": orjson.dumps(self.response_json).decode(),
+                "headers": {},
+                "status": 200,
+            },
+            {
+                "body": orjson.dumps(
+                    {
+                        "ok": True,
+                        "members": [
+                            {
+                                "id": "UXXXXXXX5",
+                                "name": "red-john",
+                            },
+                        ],
+                        "response_metadata": {"next_cursor": ""},
+                    }
+                ).decode(),
+                "headers": {},
+                "status": 200,
+            },
+        ]
+
+        self.run_valid_test("@red-john", MEMBER_PREFIX, "UXXXXXXX5", False)
+
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    @with_feature("organizations:slack-sdk-get-channel-id")
+    def test_user_list_pagination_failure_sdk_client(self, mock_api_call):
+        self.response_json["response_metadata"] = {"next_cursor": "dXNlcjpVMEc5V0ZYTlo"}
+        mock_api_call.side_effect = [
+            {
+                "body": orjson.dumps(self.response_json).decode(),
+                "headers": {},
+                "status": 200,
+            },
+            {
+                "body": orjson.dumps({"ok": False}).decode(),
+                "headers": {},
+                "status": 200,
+            },
+        ]
+
+        assert get_channel_id(
+            self.organization, self.integration, "@red-john"
+        ) == SlackChannelIdData(prefix="", channel_id=None, timed_out=False)

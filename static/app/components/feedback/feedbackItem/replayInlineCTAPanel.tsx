@@ -5,15 +5,9 @@ import replaysInlineOnboarding from 'sentry-images/spot/replay-onboarding-backen
 import PageBanner from 'sentry/components/alerts/pageBanner';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
-import HookOrDefault from 'sentry/components/hookOrDefault';
 import {IconBroadcast} from 'sentry/icons/iconBroadcast';
 import {t} from 'sentry/locale';
 import {useReplayOnboardingSidebarPanel} from 'sentry/utils/replays/hooks/useReplayOnboarding';
-
-const OnboardingCTAButton = HookOrDefault({
-  hookName: 'component:replay-onboarding-cta-button',
-  defaultComponent: null,
-});
 
 export default function ReplayInlineCTAPanel() {
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
@@ -22,7 +16,6 @@ export default function ReplayInlineCTAPanel() {
     <PageBanner
       button={
         <ButtonBar gap={1}>
-          <OnboardingCTAButton />
           <Button
             priority="primary"
             analyticsEventName="Clicked Replay Onboarding CTA Button in User Feedback"
@@ -46,5 +39,5 @@ export default function ReplayInlineCTAPanel() {
 
 const PurpleText = styled('span')`
   color: ${p => p.theme.purple300};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;

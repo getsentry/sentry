@@ -1,10 +1,10 @@
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import {RawReplayErrorFixture} from 'sentry-fixture/replay/error';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import {browserHistory} from 'sentry/utils/browserHistory';
 import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {
@@ -83,7 +83,7 @@ describe('useErrorFilters', () => {
         query: {f_e_project: [PROJECT_OPTION.value]},
       } as Location<FilterFields>);
 
-    const {result, rerender} = reactHooks.renderHook(useErrorFilters, {
+    const {result, rerender} = renderHook(useErrorFilters, {
       initialProps: {errorFrames},
     });
 
@@ -119,7 +119,7 @@ describe('useErrorFilters', () => {
       query: {},
     } as Location<FilterFields>);
 
-    const {result, waitFor} = reactHooks.renderHook(useErrorFilters, {
+    const {result} = renderHook(useErrorFilters, {
       initialProps: {errorFrames},
     });
     await waitFor(() => expect(result.current.items).toHaveLength(3));
@@ -139,7 +139,7 @@ describe('useErrorFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(useErrorFilters, {
+    const {result} = renderHook(useErrorFilters, {
       initialProps: {errorFrames},
     });
     expect(result.current.items).toStrictEqual([
@@ -162,7 +162,7 @@ describe('useErrorFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(useErrorFilters, {
+    const {result} = renderHook(useErrorFilters, {
       initialProps: {errorFrames},
     });
     expect(result.current.items).toHaveLength(1);
@@ -172,7 +172,7 @@ describe('useErrorFilters', () => {
     it('should default to having nothing in the list of method types', () => {
       const errorFrames = [];
 
-      const {result} = reactHooks.renderHook(useErrorFilters, {
+      const {result} = renderHook(useErrorFilters, {
         initialProps: {errorFrames},
       });
 
@@ -182,7 +182,7 @@ describe('useErrorFilters', () => {
     it('should return a sorted list of project slugs', () => {
       const errorFrames = [ERROR_2_NEXTJS_TYPEERROR, ERROR_3_JS_UNDEFINED];
 
-      const {result} = reactHooks.renderHook(useErrorFilters, {
+      const {result} = renderHook(useErrorFilters, {
         initialProps: {errorFrames},
       });
 
@@ -195,7 +195,7 @@ describe('useErrorFilters', () => {
     it('should deduplicate BreadcrumbType', () => {
       const errorFrames = [ERROR_1_JS_RANGEERROR, ERROR_3_JS_UNDEFINED];
 
-      const {result} = reactHooks.renderHook(useErrorFilters, {
+      const {result} = renderHook(useErrorFilters, {
         initialProps: {errorFrames},
       });
 

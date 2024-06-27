@@ -11,12 +11,12 @@ import {PAGE_URL_PARAM, URL_PARAM} from 'sentry/constants/pageFilters';
 import {desktop, mobile} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import type {PlatformKey, Release, SemverVerison, VersionInfo} from 'sentry/types';
-import {ReleaseStatus} from 'sentry/types';
+import {ReleaseStatus} from 'sentry/types/release';
 import {defined} from 'sentry/utils';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {IssueSortOptions} from 'sentry/views/issueList/utils';
 
-export const CRASH_FREE_DECIMAL_THRESHOLD = 95;
+export const CRASH_FREE_DECIMAL_THRESHOLD = 90;
 
 export const roundDuration = (seconds: number) => {
   return round(seconds, seconds > 60 ? 0 : 3);

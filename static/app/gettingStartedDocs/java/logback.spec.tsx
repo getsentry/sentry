@@ -4,7 +4,7 @@ import {textWithMarkupMatcher} from 'sentry-test/utils';
 
 import docs, {PackageManager} from './logback';
 
-describe('GettingStartedWithSpring', function () {
+describe('getting started with logback', function () {
   it('renders gradle docs correctly', async function () {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {

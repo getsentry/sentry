@@ -56,7 +56,7 @@
   "/static/app/views/performance/vitalDetail/index.spec.tsx": 6572,
   "/static/app/views/issueDetails/groupEvents.spec.tsx": 9434,
   "/static/app/views/alerts/rules/issue/index.spec.jsx": 13356,
-  "/static/app/components/assigneeSelector.spec.jsx": 2752,
+  "/static/app/components/deprecatedAssigneeSelector.spec.jsx": 2752,
   "/static/app/components/quickTrace/index.spec.tsx": 2283,
   "/static/app/components/events/interfaces/breadcrumbs/breadcrumbs.spec.tsx": 7276,
   "/static/app/views/settings/organizationTeams/teamMembers.spec.jsx": 5285,

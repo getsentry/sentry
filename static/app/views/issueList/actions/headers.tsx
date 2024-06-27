@@ -4,8 +4,7 @@ import styled from '@emotion/styled';
 import ToolbarHeader from 'sentry/components/toolbarHeader';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types';
-import useOrganization from 'sentry/utils/useOrganization';
+import type {PageFilters} from 'sentry/types/core';
 
 type Props = {
   isReprocessingQuery: boolean;
@@ -22,8 +21,6 @@ function Headers({
   isReprocessingQuery,
   isSavedSearchesOpen,
 }: Props) {
-  const organization = useOrganization();
-
   return (
     <Fragment>
       {isReprocessingQuery ? (
@@ -55,11 +52,9 @@ function Headers({
           </GraphHeaderWrapper>
           <EventsOrUsersLabel>{t('Events')}</EventsOrUsersLabel>
           <EventsOrUsersLabel>{t('Users')}</EventsOrUsersLabel>
-          {organization.features.includes('issue-priority-ui') && (
-            <PriorityLabel isSavedSearchesOpen={isSavedSearchesOpen}>
-              <ToolbarHeader>{t('Priority')}</ToolbarHeader>
-            </PriorityLabel>
-          )}
+          <PriorityLabel isSavedSearchesOpen={isSavedSearchesOpen}>
+            <ToolbarHeader>{t('Priority')}</ToolbarHeader>
+          </PriorityLabel>
           <AssigneeLabel isSavedSearchesOpen={isSavedSearchesOpen}>
             <ToolbarHeader>{t('Assignee')}</ToolbarHeader>
           </AssigneeLabel>

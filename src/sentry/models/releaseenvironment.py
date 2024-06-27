@@ -8,14 +8,14 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 
 
-@region_silo_only_model
+@region_silo_model
 class ReleaseEnvironment(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

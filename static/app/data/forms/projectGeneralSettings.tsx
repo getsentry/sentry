@@ -89,7 +89,6 @@ export const fields: Record<string, Field> = {
       },
     }),
   },
-
   subjectPrefix: {
     name: 'subjectPrefix',
     type: 'string',

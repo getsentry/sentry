@@ -9,7 +9,6 @@ from sentry.api.base import Endpoint
 from sentry.api.bases.organization import OrganizationPermission
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.exceptions import ParameterValidationError, ResourceDoesNotExist
-from sentry.api.utils import id_or_slug_path_params_enabled
 from sentry.constants import ObjectStatus
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
@@ -49,28 +48,23 @@ class MonitorEndpoint(Endpoint):
     def convert_args(
         self,
         request: Request,
-        organization_slug: str,
-        monitor_slug: str | int,
+        organization_id_or_slug: int | str,
+        monitor_id_or_slug: str,
         environment: str | None = None,
         checkin_id: str | None = None,
         *args,
         **kwargs,
     ):
         try:
-            if (
-                id_or_slug_path_params_enabled(
-                    self.convert_args.__qualname__, str(organization_slug)
-                )
-                and str(organization_slug).isnumeric()
-            ):
-                organization = Organization.objects.get_from_cache(id=organization_slug)
+            if str(organization_id_or_slug).isdigit():
+                organization = Organization.objects.get_from_cache(id=organization_id_or_slug)
             else:
-                organization = Organization.objects.get_from_cache(slug=organization_slug)
+                organization = Organization.objects.get_from_cache(slug=organization_id_or_slug)
         except Organization.DoesNotExist:
             raise ResourceDoesNotExist
 
         try:
-            monitor = get_monitor_by_org_id_or_slug(organization, monitor_slug)
+            monitor = get_monitor_by_org_id_or_slug(organization, monitor_id_or_slug)
         except Monitor.DoesNotExist:
             raise ResourceDoesNotExist
         project = Project.objects.get_from_cache(id=monitor.project_id)
@@ -120,24 +114,33 @@ class ProjectMonitorEndpoint(ProjectEndpoint):
     def convert_args(
         self,
         request: Request,
-        monitor_slug: str | int,
+        monitor_id_or_slug: str,
         *args,
         **kwargs,
     ):
         args, kwargs = super().convert_args(request, *args, **kwargs)
-        try:
-            if id_or_slug_path_params_enabled(self.convert_args.__qualname__):
-                kwargs["monitor"] = Monitor.objects.get(
-                    project_id=kwargs["project"].id, slug__id_or_slug=monitor_slug
-                )
-            else:
-                kwargs["monitor"] = Monitor.objects.get(
-                    project_id=kwargs["project"].id, slug=monitor_slug
-                )
-        except Monitor.DoesNotExist:
-            raise ResourceDoesNotExist
 
-        return args, kwargs
+        # Try lookup by slug
+        try:
+            kwargs["monitor"] = Monitor.objects.get(
+                project_id=kwargs["project"].id, slug=monitor_id_or_slug
+            )
+            return args, kwargs
+        except Monitor.DoesNotExist:
+            pass
+
+        # Try lookup by GUID if the monitor_id_or_slug looks like a UUID
+        try:
+            UUID(monitor_id_or_slug, version=4)
+            kwargs["monitor"] = Monitor.objects.get(
+                project_id=kwargs["project"].id, guid=monitor_id_or_slug
+            )
+            return args, kwargs
+        except (ValueError, Monitor.DoesNotExist):
+            # ValueError when the provided ID isn't a UUID
+            pass
+
+        raise ResourceDoesNotExist
 
 
 class ProjectMonitorCheckinEndpoint(ProjectMonitorEndpoint):
@@ -195,23 +198,32 @@ class ProjectMonitorEnvironmentEndpoint(ProjectMonitorEndpoint):
         return args, kwargs
 
 
-def get_monitor_by_org_id_or_slug(organization: Organization, monitor_slug: str | int) -> Monitor:
+def get_monitor_by_org_id_or_slug(organization: Organization, monitor_id_or_slug: str) -> Monitor:
     # Since we have changed our unique constraints to be on unique on (project, slug) we can
     # end up with multiple monitors here. Since we have no idea which project the user wants,
     # we just get the oldest monitor and use that.
     # This is a temporary measure until we remove these org level endpoints
-    if id_or_slug_path_params_enabled(
-        ProjectMonitorEnvironmentEndpoint.convert_args.__qualname__, str(organization.slug)
-    ):
-        monitors = list(
-            Monitor.objects.filter(organization_id=organization.id, slug__id_or_slug=monitor_slug)
-        )
-    else:
-        monitors = list(Monitor.objects.filter(organization_id=organization.id, slug=monitor_slug))
-    if not monitors:
-        raise Monitor.DoesNotExist
 
-    return min(monitors, key=lambda m: m.id)
+    # Try lookup by slug
+    monitors = list(
+        Monitor.objects.filter(organization_id=organization.id, slug=monitor_id_or_slug)
+    )
+
+    if monitors:
+        return min(monitors, key=lambda m: m.id)
+
+    # Try lookup by GUID if the monitor_id_or_slug looks like a UUID
+    try:
+        UUID(monitor_id_or_slug, version=4)
+        monitors = list(
+            Monitor.objects.filter(organization_id=organization.id, guid=monitor_id_or_slug)
+        )
+        if monitors:
+            return min(monitors, key=lambda m: m.id)
+    except ValueError:
+        pass
+
+    raise Monitor.DoesNotExist
 
 
 def try_checkin_lookup(monitor: Monitor, checkin_id: str):

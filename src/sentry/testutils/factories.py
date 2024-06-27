@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import contextlib
+import copy
 import io
 import os
 import random
@@ -9,12 +10,14 @@ from base64 import b64encode
 from binascii import hexlify
 from collections.abc import Mapping, Sequence
 from datetime import UTC, datetime
+from enum import Enum
 from hashlib import sha1
 from importlib import import_module
 from typing import Any
 from unittest import mock
 from uuid import uuid4
 
+import orjson
 import petname
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -28,19 +31,21 @@ from django.utils.text import slugify
 from sentry.auth.access import RpcBackedAccess
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.event_manager import EventManager
+from sentry.eventstore.models import Event
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
 from sentry.incidents.logic import (
     create_alert_rule,
-    create_alert_rule_activation,
     create_alert_rule_trigger,
     create_alert_rule_trigger_action,
     query_datasets_to_type,
 )
 from sentry.incidents.models.alert_rule import (
+    AlertRule,
     AlertRuleMonitorType,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
 )
+from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
 from sentry.incidents.models.incident import (
     Incident,
     IncidentActivity,
@@ -51,10 +56,10 @@ from sentry.incidents.models.incident import (
     TriggerStatus,
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
 from sentry.models.activity import Activity
-from sentry.models.actor import Actor
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
@@ -121,7 +126,6 @@ from sentry.models.repository import Repository
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.savedsearch import SavedSearch
-from sentry.models.sentryfunction import SentryFunction
 from sentry.models.servicehook import ServiceHook
 from sentry.models.team import Team
 from sentry.models.user import User
@@ -141,16 +145,23 @@ from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.organization.model import RpcUserOrganizationContext
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import project_created
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.models import QuerySubscription
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
-from sentry.types.integrations import ExternalProviders
 from sentry.types.region import Region, get_local_region, get_region_by_name
-from sentry.utils import json, loremipsum
+from sentry.types.token import AuthTokenType
+from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
+from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from social_auth.models import UserSocialAuth
+
+
+class EventType(Enum):
+    ERROR = "error"
+    DEFAULT = "default"
 
 
 def get_fixture_path(*parts: str) -> str:
@@ -283,7 +294,7 @@ DEFAULT_EVENT_DATA = {
 
 def _patch_artifact_manifest(path, org=None, release=None, project=None, extra_files=None):
     with open(path, "rb") as fp:
-        manifest = json.load(fp)
+        manifest = orjson.loads(fp.read())
     if org:
         manifest["org"] = org
     if release:
@@ -292,7 +303,7 @@ def _patch_artifact_manifest(path, org=None, release=None, project=None, extra_f
         manifest["project"] = project
     for path in extra_files or {}:
         manifest["files"][path] = {"url": path}
-    return json.dumps(manifest)
+    return orjson.dumps(manifest).decode()
 
 
 # TODO(dcramer): consider moving to something more scalable like factoryboy
@@ -423,6 +434,7 @@ class Factories:
         return ApiToken.objects.create(
             user=user,
             scope_list=scope_list,
+            token_type=AuthTokenType.USER,
             **kwargs,
         )
 
@@ -460,7 +472,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_project(organization=None, teams=None, fire_project_created=False, **kwargs):
+    def create_project(
+        organization=None, teams=None, fire_project_created=False, **kwargs
+    ) -> Project:
         if not kwargs.get("name"):
             kwargs["name"] = petname.generate(2, " ", letters=10).title()
         if not kwargs.get("slug"):
@@ -739,7 +753,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_repo(project, name=None, provider=None, integration_id=None, url=None):
+    def create_repo(
+        project, name=None, provider=None, integration_id=None, url=None, external_id=None
+    ):
         repo, _ = Repository.objects.get_or_create(
             organization_id=project.organization_id,
             name=name
@@ -747,6 +763,7 @@ class Factories:
             provider=provider,
             integration_id=integration_id,
             url=url,
+            external_id=external_id,
         )
         return repo
 
@@ -891,9 +908,20 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def store_event(data, project_id, assert_no_errors=True, sent_at=None):
-        # Like `create_event`, but closer to how events are actually
-        # ingested. Prefer to use this method over `create_event`
+    def store_event(
+        data,
+        project_id: int,
+        assert_no_errors: bool = True,
+        event_type: EventType = EventType.DEFAULT,
+        sent_at: datetime | None = None,
+    ) -> Event:
+        """
+        Like `create_event`, but closer to how events are actually
+        ingested. Prefer to use this method over `create_event`
+        """
+        if event_type == EventType.ERROR:
+            data.update({"stacktrace": copy.deepcopy(DEFAULT_EVENT_DATA["stacktrace"])})
+
         manager = EventManager(data, sent_at=sent_at)
         manager.normalize()
         if assert_no_errors:
@@ -1346,7 +1374,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_userreport(project, event_id=None, **kwargs):
+    def create_userreport(
+        project: Project, event_id: str | None = None, **kwargs: Any
+    ) -> UserReport:
         event = Factories.store_event(
             data={
                 "timestamp": datetime.now(UTC).isoformat(),
@@ -1355,6 +1385,7 @@ class Factories:
             },
             project_id=project.id,
         )
+        assert event.group is not None
 
         return UserReport.objects.create(
             group_id=event.group.id,
@@ -1430,6 +1461,8 @@ class Factories:
         date_closed=None,
         seen_by=None,
         alert_rule=None,
+        subscription=None,
+        activation=None,
     ):
         if not title:
             title = petname.generate(2, " ", letters=10).title()
@@ -1448,6 +1481,8 @@ class Factories:
             date_detected=date_detected or timezone.now(),
             date_closed=timezone.now() if date_closed is not None else date_closed,
             type=IncidentType.ALERT_TRIGGERED.value,
+            subscription=subscription,
+            activation=activation,
         )
         for project in projects:
             IncidentProject.objects.create(incident=incident, project=project)
@@ -1489,6 +1524,7 @@ class Factories:
         comparison_delta=None,
         monitor_type=AlertRuleMonitorType.CONTINUOUS,
         activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
+        description=None,
     ):
         if not name:
             name = petname.generate(2, " ", letters=10).title()
@@ -1517,6 +1553,7 @@ class Factories:
             comparison_delta=comparison_delta,
             monitor_type=monitor_type,
             activation_condition=activation_condition,
+            description=description,
         )
 
         if date_added is not None:
@@ -1527,14 +1564,24 @@ class Factories:
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
     def create_alert_rule_activation(
-        alert_rule,
-        query_subscription,
-        **kwargs,
+        alert_rule: AlertRule,
+        query_subscription: QuerySubscription,
+        metric_value: int | None = None,
+        finished_at: datetime | None = None,
+        activation_condition: AlertRuleActivationConditionType = AlertRuleActivationConditionType.RELEASE_CREATION,
     ):
 
-        return create_alert_rule_activation(
-            alert_rule=alert_rule, query_subscription=query_subscription, **kwargs
-        )
+        with transaction.atomic(router.db_for_write(AlertRuleActivations)):
+            activation = AlertRuleActivations.objects.create(
+                alert_rule=alert_rule,
+                finished_at=finished_at,
+                metric_value=metric_value,
+                query_subscription=query_subscription,
+                condition_type=activation_condition.value,
+                activator="testing",
+            )
+
+        return activation
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -1630,6 +1677,7 @@ class Factories:
         integration = Integration.objects.create(external_id=external_id, **integration_params)
         with outbox_runner():
             organization_integration = integration.add_organization(organization)
+            assert organization_integration is not None
         organization_integration.update(**(oi_params or {}))
 
         return integration
@@ -1721,7 +1769,8 @@ class Factories:
         group: Group,
         status: int,
         release: Release | None = None,
-        actor: Actor | None = None,
+        user_id: int | None = None,
+        team_id: int | None = None,
         prev_history: GroupHistory | None = None,
         date_added: datetime | None = None,
     ) -> GroupHistory:
@@ -1737,7 +1786,8 @@ class Factories:
             group=group,
             project=group.project,
             release=release,
-            actor=actor,
+            user_id=user_id,
+            team_id=team_id,
             status=status,
             prev_history=prev_history,
             prev_history_date=prev_history_date,
@@ -1754,17 +1804,6 @@ class Factories:
             type=ActivityType.NOTE.value,
             user_id=user.id,
             data=data,
-        )
-
-    @staticmethod
-    @assume_test_silo_mode(SiloMode.REGION)
-    def create_sentry_function(name, code, **kwargs):
-        return SentryFunction.objects.create(
-            name=name,
-            code=code,
-            slug=slugify(name),
-            external_id=slugify(name) + "-" + uuid4().hex,
-            **kwargs,
         )
 
     @staticmethod
@@ -1856,4 +1895,29 @@ class Factories:
         }
         return WebhookPayload.objects.create(
             mailbox_name=mailbox_name, region_name=region_name, **payload_kwargs
+        )
+
+    @staticmethod
+    def create_uptime_subscription(
+        type: str,
+        subscription_id: str | None,
+        status: UptimeSubscription.Status,
+        url: str,
+        interval_seconds: int,
+        timeout_ms: int,
+    ):
+        return UptimeSubscription.objects.create(
+            type=type,
+            subscription_id=subscription_id,
+            status=status.value,
+            url=url,
+            interval_seconds=interval_seconds,
+            timeout_ms=timeout_ms,
+        )
+
+    @staticmethod
+    def create_project_uptime_subscription(project, uptime_subscription):
+        return ProjectUptimeSubscription.objects.create(
+            uptime_subscription=uptime_subscription,
+            project=project,
         )

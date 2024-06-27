@@ -11,7 +11,7 @@ from sentry.testutils.silo import control_silo_test
 
 @control_silo_test
 class WebhookPayloadTest(TestCase):
-    def test_create_from_request(self):
+    def test_create_from_request(self) -> None:
         factory = RequestFactory()
         request = factory.post(
             "/extensions/github/webhook/",
@@ -34,7 +34,7 @@ class WebhookPayloadTest(TestCase):
         )
         assert hook.request_body == '{"installation": {"id": "github:1"}}'
 
-    def test_schedule_next_attempt_moves_forward(self):
+    def test_schedule_next_attempt_moves_forward(self) -> None:
         hook = self.create_webhook_payload("jira:123", "us")
         start = timezone.now()
         hook.update(schedule_for=start)

@@ -6,11 +6,11 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.cache import never_cache
 
 from sentry import analytics
+from sentry.integrations.types import ExternalProviders
 from sentry.integrations.utils.identities import get_identity_or_404
 from sentry.models.identity import Identity
-from sentry.services.hybrid_cloud.actor import ActorType
 from sentry.services.hybrid_cloud.integration.model import RpcIntegration
-from sentry.types.integrations import ExternalProviders
+from sentry.types.actor import ActorType
 from sentry.utils.http import absolute_uri
 from sentry.utils.signing import sign, unsign
 from sentry.web.frontend.base import BaseView, control_silo_view

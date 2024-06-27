@@ -6,12 +6,12 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     DefaultFieldsModel,
     FlexibleForeignKey,
-    region_silo_only_model,
+    region_silo_model,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 
 
-@region_silo_only_model
+@region_silo_model
 class RepositoryProjectPathConfig(DefaultFieldsModel):
     __relocation_scope__ = RelocationScope.Excluded
 

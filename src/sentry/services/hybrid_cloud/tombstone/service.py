@@ -4,10 +4,10 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 from abc import abstractmethod
 
-from sentry.services.hybrid_cloud.region import ByRegionName
-from sentry.services.hybrid_cloud.rpc import RpcService, regional_rpc_method, rpc_method
+from sentry.hybridcloud.rpc.resolvers import ByRegionName
+from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method, rpc_method
 from sentry.services.hybrid_cloud.tombstone import RpcTombstone
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 
 
 # the tombstone service itself is unaware of model mapping, that is the responsibility of the caller and the outbox

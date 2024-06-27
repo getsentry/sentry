@@ -6,7 +6,6 @@ from collections.abc import Callable, Mapping, Sequence
 from copy import deepcopy
 from typing import Any, Optional, Protocol, TypedDict
 
-from sentry import features
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
 from sentry.issues import grouptype
 from sentry.issues.grouptype import GroupCategory, get_all_group_type_ids, get_group_type_by_type_id
@@ -98,6 +97,29 @@ def group_categories_from(
                 )
 
     return group_categories
+
+
+def group_types_from(
+    search_filters: Sequence[SearchFilter] | None,
+) -> set[int] | None:
+    """
+    Return the set of group type ids to include in the query, or None if all group types should be included.
+    """
+
+    # if no relevant filters, return none to signify we should query all group types
+    if not any(sf.key.name in ("issue.category", "issue.type") for sf in search_filters or ()):
+        return None
+
+    # start by including all group types
+    include_group_types = set(get_all_group_type_ids())
+    for search_filter in search_filters or ():
+        # note that for issue.category, the raw value becomes the full list of group type ids mapped from the category
+        if search_filter.key.name in ("issue.category", "issue.type"):
+            if search_filter.is_negation:
+                include_group_types -= set(search_filter.value.raw_value)
+            else:
+                include_group_types &= set(search_filter.value.raw_value)
+    return include_group_types
 
 
 def _query_params_for_error(
@@ -214,9 +236,7 @@ def _query_params_for_generic(
     categories: Sequence[GroupCategory] | None = None,
 ) -> SnubaQueryParams | None:
     organization = Organization.objects.filter(id=organization_id).first()
-    if organization and features.has(
-        "organizations:issue-platform", organization=organization, actor=actor
-    ):
+    if organization:
         if categories is None:
             logging.error("Category is required in _query_params_for_generic")
             return None
