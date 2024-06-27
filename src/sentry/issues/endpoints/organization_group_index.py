@@ -216,9 +216,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
         Return a list of issues (groups) bound to an organization.  All parameters are
         supplied as query string parameters.
 
-        A default query of ``is:unresolved`` is applied. To return results
-        with other statuses send an new query value (i.e. ``?query=`` for all
-        results).
+        A default query of ``is:unresolved issue.priority:[high,medium]`` is applied.
+        To return results with other statuses send a new query value
+        (i.e. ``?query=`` for all results).
 
         The ``groupStatsPeriod`` parameter can be used to select the timeline
         stats which should be present. Possible values are: '' (disable),
@@ -244,7 +244,7 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                                     Set to `1` to enable.
         :qparam querystring query: an optional Sentry structured search
                                    query.  If not provided an implied
-                                   ``"is:unresolved"`` is assumed.)
+                                   ``"is:unresolved issue.priority:[high,medium]"`` is assumed.)
         :qparam bool savedSearch:  if this is set to False, then we are making the request without
                                    a saved search and will look for the default search from this endpoint.
         :qparam string searchId:   if passed in, this is the selected search

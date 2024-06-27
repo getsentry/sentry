@@ -117,6 +117,7 @@ MetricUnit = Literal[
     "terabyte",
     "petabyte",
     "exabyte",
+    "none",
 ]
 #: The type of metric, which determines the snuba entity to query
 MetricType = Literal[

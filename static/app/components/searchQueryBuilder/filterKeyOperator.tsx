@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {type ReactNode, useMemo} from 'react';
 import styled from '@emotion/styled';
 import {mergeProps} from '@react-aria/utils';
 import type {ListState} from '@react-stately/list';
@@ -76,41 +76,116 @@ function getTermOperatorFromToken(token: TokenResult<Token.FILTER>) {
   return token.operator;
 }
 
+function FilterKeyOperatorLabel({
+  keyLabel,
+  opLabel,
+}: {
+  keyLabel: string;
+  opLabel?: string;
+}) {
+  return (
+    <KeyOpWrapper>
+      <span>{keyLabel}</span>
+      {opLabel ? <OpLabel>{opLabel}</OpLabel> : null}
+    </KeyOpWrapper>
+  );
+}
+
 function getOperatorInfo(token: TokenResult<Token.FILTER>): {
-  label: string;
+  label: ReactNode;
   operator: TermOperator;
   options: SelectOption<TermOperator>[];
 } {
   if (isDateToken(token)) {
+    const keyLabel = token.key.text;
     const operator = getOperatorFromDateToken(token);
+    const opLabel = DATE_OP_LABELS[operator] ?? operator;
+
     return {
       operator,
-      label: DATE_OP_LABELS[operator] ?? operator,
-      options: DATE_OPTIONS.map(
-        (op): SelectOption<TermOperator> => ({
+      label: <FilterKeyOperatorLabel keyLabel={keyLabel} opLabel={opLabel} />,
+      options: DATE_OPTIONS.map((op): SelectOption<TermOperator> => {
+        const optionOpLabel = DATE_OP_LABELS[op] ?? op;
+
+        return {
           value: op,
-          label: DATE_OP_LABELS[op] ?? op,
-        })
-      ),
+          textValue: `${keyLabel} ${optionOpLabel}`,
+          label: <FilterKeyOperatorLabel keyLabel={keyLabel} opLabel={optionOpLabel} />,
+        };
+      }),
     };
   }
 
   const operator = getTermOperatorFromToken(token);
+
+  if (token.filter === FilterType.IS) {
+    return {
+      operator,
+      label: (
+        <FilterKeyOperatorLabel
+          keyLabel={token.key.text}
+          opLabel={operator === TermOperator.NOT_EQUAL ? 'not' : undefined}
+        />
+      ),
+      options: [
+        {
+          value: TermOperator.DEFAULT,
+          label: <FilterKeyOperatorLabel keyLabel={token.key.text} />,
+          textValue: 'is',
+        },
+        {
+          value: TermOperator.NOT_EQUAL,
+          label: <FilterKeyOperatorLabel keyLabel={token.key.text} opLabel="not" />,
+          textValue: 'is not',
+        },
+      ],
+    };
+  }
+
+  if (token.filter === FilterType.HAS) {
+    return {
+      operator,
+      label: (
+        <FilterKeyOperatorLabel
+          keyLabel={operator === TermOperator.NOT_EQUAL ? 'does not have' : 'has'}
+        />
+      ),
+      options: [
+        {
+          value: TermOperator.DEFAULT,
+          label: <FilterKeyOperatorLabel keyLabel="has" />,
+          textValue: 'has',
+        },
+        {
+          value: TermOperator.NOT_EQUAL,
+          label: <FilterKeyOperatorLabel keyLabel="does not have" />,
+          textValue: 'does not have',
+        },
+      ],
+    };
+  }
+
+  const keyLabel = token.key.text;
+  const opLabel = OP_LABELS[operator] ?? operator;
+
   return {
     operator,
-    label: OP_LABELS[operator] ?? operator,
+    label: <FilterKeyOperatorLabel keyLabel={keyLabel} opLabel={opLabel} />,
     options: getValidOpsForFilter(token)
       .filter(op => op !== TermOperator.EQUAL)
-      .map(
-        (op): SelectOption<TermOperator> => ({
+      .map((op): SelectOption<TermOperator> => {
+        const optionOpLabel = OP_LABELS[op] ?? op;
+
+        return {
           value: op,
-          label: OP_LABELS[op] ?? op,
-        })
-      ),
+          label: <FilterKeyOperatorLabel keyLabel={keyLabel} opLabel={optionOpLabel} />,
+          textValue: `${keyLabel} ${optionOpLabel}`,
+        };
+      }),
   };
 }
 
-export function FilterOperator({token, state, item}: FilterOperatorProps) {
+export function FilterKeyOperator({token, state, item}: FilterOperatorProps) {
   const {dispatch} = useSearchQueryBuilder();
   const filterButtonProps = useFilterButtonProps({state, item});
 
@@ -154,15 +229,25 @@ const UnstyledButton = styled('button')`
 `;
 
 const OpButton = styled(UnstyledButton)`
-  padding: 0 ${space(0.5)};
-  color: ${p => p.theme.subText};
+  padding: 0 ${space(0.25)} 0 ${space(0.5)};
   height: 100%;
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
+  border-radius: 3px 0 0 3px;
 
   :focus {
     background-color: ${p => p.theme.translucentGray100};
     border-right: 1px solid ${p => p.theme.innerBorder};
     border-left: 1px solid ${p => p.theme.innerBorder};
   }
+`;
+
+const KeyOpWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.75)};
+`;
+
+const OpLabel = styled('span')`
+  color: ${p => p.theme.subText};
 `;

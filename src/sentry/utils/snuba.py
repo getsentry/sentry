@@ -35,6 +35,7 @@ from sentry.models.releases.release_project import ReleaseProject
 from sentry.net.http import connection_from_url
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.events import Columns
+from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import validate_referrer
 from sentry.utils import json, metrics
 from sentry.utils.dates import outside_retention_with_modified_start
@@ -857,6 +858,9 @@ def raw_snql_query(
     request: Request,
     referrer: str | None = None,
     use_cache: bool = False,
+    query_source: (
+        QuerySource | None
+    ) = None,  # TODO: @athena Make this field required after updated all the callsites
 ) -> Mapping[str, Any]:
     """
     Alias for `bulk_snuba_queries`, kept for backwards compatibility.
@@ -864,13 +868,18 @@ def raw_snql_query(
     # XXX (evanh): This function does none of the extra processing that the
     # other functions do here. It does not add any automatic conditions, format
     # results, nothing. Use at your own risk.
-    return bulk_snuba_queries([request], referrer, use_cache)[0]
+    return bulk_snuba_queries(
+        requests=[request], referrer=referrer, query_source=query_source, use_cache=use_cache
+    )[0]
 
 
 def bulk_snuba_queries(
     requests: list[Request],
     referrer: str | None = None,
     use_cache: bool = False,
+    query_source: (
+        QuerySource | None
+    ) = None,  # TODO: @athena Make this field required after updated all the callsites
 ) -> ResultSet:
     """
     The main entrypoint to running queries in Snuba. This function accepts
@@ -883,9 +892,12 @@ def bulk_snuba_queries(
             request.flags.consistent = OVERRIDE_OPTIONS["consistent"]
 
     for request in requests:
-        if referrer:
+        if referrer or query_source:
             request.tenant_ids = request.tenant_ids or dict()
-            request.tenant_ids["referrer"] = referrer
+            if referrer:
+                request.tenant_ids["referrer"] = referrer
+            if query_source:
+                request.tenant_ids["query_source"] = query_source.value
 
     params = [(request, lambda x: x, lambda x: x) for request in requests]
     return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
@@ -929,6 +941,7 @@ def _apply_cache_and_build_results(
     validate_referrer(referrer)
     if referrer:
         headers["referer"] = referrer
+
     # Store the original position of the query so that we can maintain the order
     query_param_list = list(enumerate(snuba_param_list))
 
@@ -1031,6 +1044,14 @@ def _bulk_snuba_query(
                 logger.exception("snuba.query.invalid-json", extra={"response.data": response.data})
                 raise SnubaError("Failed to parse snuba error response")
             raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
+
+        if "quota_allowance" in body and body["quota_allowance"]:
+            quota_allowance_summary = body["quota_allowance"]["summary"]
+            span.set_tag("threads_used", quota_allowance_summary["threads_used"])
+            for k, v in quota_allowance_summary["throttled_by"].items():
+                span.set_tag(k, v)
+            for k, v in quota_allowance_summary["rejected_by"].items():
+                span.set_tag(k, v)
 
         if response.status != 200:
             _log_request_query(snuba_param_list[index][0])
