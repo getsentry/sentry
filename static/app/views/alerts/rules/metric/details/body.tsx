@@ -207,7 +207,7 @@ export default function MetricDetailsBody({
                     pathname: alertDetailsLink(organization, selectedIncident),
                   }}
                 >
-                  Filtering on alert: #{selectedIncident.identifier}
+                  Remove filter on alert #{selectedIncident.identifier}
                 </Link>
               </Tooltip>
             )}
