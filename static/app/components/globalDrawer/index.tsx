@@ -1,11 +1,13 @@
 import {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import {AnimatePresence} from 'framer-motion';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {DrawerBody, DrawerPanel} from 'sentry/components/globalDrawer/components';
 import type {
   DrawerConfig,
   DrawerContext as TDrawerContext,
 } from 'sentry/components/globalDrawer/types';
+import {t} from 'sentry/locale';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
@@ -66,13 +68,15 @@ export function GlobalDrawer({children}) {
 
   return (
     <DrawerContext.Provider value={{openDrawer, closeDrawer}}>
-      <AnimatePresence>
-        {isDrawerOpen && (
-          <DrawerPanel onClose={handleClose} ref={panelRef}>
-            {renderedChild}
-          </DrawerPanel>
-        )}
-      </AnimatePresence>
+      <ErrorBoundary mini message={t('There was a problem rendering the drawer.')}>
+        <AnimatePresence>
+          {isDrawerOpen && (
+            <DrawerPanel onClose={handleClose} ref={panelRef}>
+              {renderedChild}
+            </DrawerPanel>
+          )}
+        </AnimatePresence>
+      </ErrorBoundary>
       {children}
     </DrawerContext.Provider>
   );
@@ -95,7 +99,6 @@ export function GlobalDrawer({children}) {
  * ```
  * openDrawer(() => <button onClick={closeDrawer}>Close!</button>)
  * ```
- *
  */
 export default function useDrawer() {
   return useContext(DrawerContext);
