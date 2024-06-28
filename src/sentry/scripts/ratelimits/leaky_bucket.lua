@@ -16,7 +16,7 @@
 --   - time to wait in seconds if not allowed
 --
 -- Key is a hash with schema:
--- - current_level: the current water level of the bucket
+-- - current_level: the current water level in the bucket
 -- - last_drip: the last time we allowed a request
 
 
@@ -51,7 +51,7 @@ end
 local elapsed_time = current_time - last_drip
 -- bucket cannot be less than empty + we need to add one to the level to account for the new drop
 local new_level = math.max(0, current_level - elapsed_time * drip_rate) + 1
--- we need space for at least one new drop
+-- check it the current request would overflow the bucket
 local allowed = new_level <= bucket_size
 
 
