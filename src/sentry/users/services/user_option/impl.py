@@ -9,7 +9,7 @@ from sentry.api.serializers.base import Serializer
 from sentry.auth.services.auth import AuthenticationContext
 from sentry.hybridcloud.rpc.filter_query import FilterQueryDatabaseImpl, OpaqueSerializedResponse
 from sentry.models.options.user_option import UserOption
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.users.services.user import RpcUser
 from sentry.users.services.user_option import RpcUserOption, UserOptionFilterArgs, UserOptionService
 
 

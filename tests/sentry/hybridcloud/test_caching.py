@@ -12,13 +12,13 @@ from sentry.hybridcloud.rpc.caching import (
 from sentry.hybridcloud.rpc.caching.impl import CacheBackend, _consume_generator
 from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization.service import organization_service
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, no_silo_test
 from sentry.types.region import get_local_region
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 
 
 @django_db_all(transaction=True)

@@ -29,7 +29,7 @@ from sentry.models.userpermission import UserPermission
 from sentry.models.userrole import UserRoleUser
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.users.services.user import RpcUser
 from sentry.utils.avatar import get_gravatar_url
 
 

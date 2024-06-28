@@ -39,7 +39,7 @@ from sentry.sentry_apps.installations import (
     SentryAppInstallationTokenCreator,
 )
 from sentry.sentry_apps.services.hook import hook_service
-from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.users.services.user.model import RpcUser
 
 Schema = Mapping[str, Any]
 

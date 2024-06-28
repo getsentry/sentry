@@ -19,8 +19,8 @@ from sentry.services.hybrid_cloud.project import (
     RpcProject,
     RpcProjectOptionValue,
 )
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo.base import SiloMode
+from sentry.users.services.user import RpcUser
 
 
 class ProjectService(RpcService):

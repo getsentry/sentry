@@ -16,7 +16,7 @@ from sentry.models.integrations.sentry_app import MASKED_VALUE, SentryApp
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.service import user_service
 
 
 @register(SentryApp)
