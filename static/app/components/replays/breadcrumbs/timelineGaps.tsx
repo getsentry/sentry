@@ -76,8 +76,7 @@ export default function TimelineGaps({durationMs, frames, width}: Props) {
 
 const Gap = styled(Timeline.Col)<{column: number}>`
   grid-column: ${p => p.column};
-  background: ${p => p.theme.red300};
-  text-align: right;
+  background: ${p => p.theme.gray400};
   line-height: 14px;
-  opacity: 50%;
+  opacity: 16%;
 `;
