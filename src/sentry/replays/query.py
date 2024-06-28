@@ -187,8 +187,10 @@ def query_replays_dataset_tagkey_values(
     tag_like: str | None,
     tenant_ids: dict[str, Any] | None,
 ):
-    """Query replay tagkey values. Like our other tag functionality, aggregates do not work here."""
-    """This function is used by the tagstore backend, which expects a `tag_value` key in each result object."""
+    """
+    Query replay tagkey values. Like our other tag functionality, aggregates do not work here.
+    This function is used by the tagstore backend, which expects a `tag_value` key in each result object.
+    """
 
     where = [
         Condition(Column("project_id"), Op.IN, project_ids),
