@@ -7,37 +7,38 @@ from structlog.processors import _json_fallback_handler
 
 from sentry.utils import json, metrics
 
-# These are values that come default from logging.LogRecord.
-# They are defined here:
+# These are values that come default from logging.LogRecord and are disallowed in `extra`
+# resulting in KeyError: "Attempt to overwrite '{key}' in LogRecord"
+# Most are defined here:
 # https://github.com/python/cpython/blob/e6543daf12051e9c660a5c0437683e8d2706a3c7/Lib/logging/__init__.py#L286-L385
-# additionally Formatter injects `message` and `asctime` into the record.
-# https://github.com/python/cpython/blob/e6543daf12051e9c660a5c0437683e8d2706a3c7/Lib/logging/__init__.py#L711-L713
+# additionally Formatter injects `message` and `asctime` into the record and are explicitly forbidden in `extra`
+# https://github.com/python/cpython/blob/e6543daf12051e9c660a5c0437683e8d2706a3c7/Lib/logging/__init__.py#L1630-L1631
 
 throwaways = frozenset(
     (
-        "name",
-        "msg",
         "args",
-        "levelname",
-        "levelno",
-        "pathname",
-        "filename",
-        "module",
+        "asctime",
+        "created",
         "exc_info",
         "exc_text",
-        "stack_info",
-        "lineno",
+        "filename",
         "funcName",
-        "created",
+        "levelname",
+        "levelno",
+        "lineno",
+        "message",
+        "module",
         "msecs",
+        "msg",
+        "name",
+        "pathname",
+        "process",
+        "processName",
         "relativeCreated",
+        "stack_info",
+        "taskName",
         "thread",
         "threadName",
-        "processName",
-        "process",
-        "taskName",
-        "message",
-        "asctime",
     )
 )
 
