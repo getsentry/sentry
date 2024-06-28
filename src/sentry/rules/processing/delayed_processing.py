@@ -52,8 +52,8 @@ class UniqueConditionQuery(NamedTuple):
     environment_id: int
     comparisonInterval: str | None = None
 
-    # def __repr__(self):
-    #     return f"id: {self.cls_id},\ninterval: {self.interval},\nenv id: {self.environment_id},\ncomp interval: {self.comparisonInterval}"
+    def __repr__(self):
+        return f"id: {self.cls_id},\ninterval: {self.interval},\nenv id: {self.environment_id},\ncomp interval: {self.comparisonInterval}"
 
 
 class DataAndGroups(NamedTuple):
