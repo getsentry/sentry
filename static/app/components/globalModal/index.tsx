@@ -182,8 +182,8 @@ function GlobalModal({onClose}: Props) {
   // Close the modal when the browser history changes.
   //
   // XXX: We're using useEffectAfterFirstRender primarily to support tests
-  // which render the GlobalModal after a modaul has already been registered in
-  // the modal store, meaning it would be closed immeidately.
+  // which render the GlobalModal after a modal has already been registered in
+  // the modal store, meaning it would be closed immediately.
   useEffectAfterFirstRender(() => actionCloseModal(), [location.pathname]);
 
   // Default to enabled backdrop

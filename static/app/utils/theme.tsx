@@ -725,6 +725,7 @@ const commonTheme = {
 
     // If you change modal also update shared-components.less
     // as the z-index for bootstrap modals lives there.
+    drawer: 9999,
     modal: 10000,
     toast: 10001,
 
