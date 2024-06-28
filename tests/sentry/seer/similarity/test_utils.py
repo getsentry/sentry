@@ -1,6 +1,7 @@
 import copy
 from collections.abc import Callable
 from typing import Any
+from unittest.mock import patch
 from uuid import uuid1
 
 from sentry.eventstore.models import Event
@@ -439,19 +440,27 @@ class GetStacktraceStringTest(TestCase):
         stacktrace_string = get_stacktrace_string({})
         assert stacktrace_string == ""
 
-    def test_contributing_exception_no_frames(self):
+    @patch("sentry.seer.similarity.utils.metrics")
+    def test_contributing_exception_no_frames(self, mock_metrics):
         data_non_contributing_frame = copy.deepcopy(self.BASE_APP_DATA)
         data_non_contributing_frame["app"]["component"]["values"][0]["values"][0]["values"] = []
         stacktrace_str = get_stacktrace_string(data_non_contributing_frame)
         assert stacktrace_str == "ZeroDivisionError: division by zero"
+        mock_metrics.incr.assert_any_call(
+            "grouping.similarity.no_contributing_stacktrace_frame", sample_rate=1.0
+        )
 
-    def test_contributing_exception_no_contributing_frames(self):
+    @patch("sentry.seer.similarity.utils.metrics")
+    def test_contributing_exception_no_contributing_frames(self, mock_metrics):
         data_no_contributing_frame = copy.deepcopy(self.BASE_APP_DATA)
         data_no_contributing_frame["app"]["component"]["values"][0]["values"][0][
             "values"
         ] = self.create_frames(1, False)
         stacktrace_str = get_stacktrace_string(data_no_contributing_frame)
         assert stacktrace_str == "ZeroDivisionError: division by zero"
+        mock_metrics.incr.assert_any_call(
+            "grouping.similarity.no_contributing_stacktrace_frame", sample_rate=1.0
+        )
 
     def test_no_contributing_exception(self):
         data_no_contributing_frame = copy.deepcopy(self.BASE_APP_DATA)
@@ -588,6 +597,17 @@ class GetStacktraceStringTest(TestCase):
         data_no_exception["app"]["component"]["values"][0]["id"] = "not-exception"
         stacktrace_str = get_stacktrace_string(data_no_exception)
         assert stacktrace_str == ""
+
+    @patch("sentry.seer.similarity.utils.metrics")
+    def test_stacktrace_metric_frontend_referrer(self, mock_metrics):
+        """
+        Test that the metric is not incremented for exceptions with no frames when the referrer
+        is `frontend`
+        """
+        data_non_contributing_frame = copy.deepcopy(self.BASE_APP_DATA)
+        data_non_contributing_frame["app"]["component"]["values"][0]["values"][0]["values"] = []
+        get_stacktrace_string(data_non_contributing_frame, referrer="frontend")
+        mock_metrics.incr.assert_not_called()
 
 
 class EventContentIsSeerEligibleTest(TestCase):

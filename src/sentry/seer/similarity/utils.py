@@ -15,7 +15,7 @@ def _get_value_if_exists(exception_value: dict[str, Any]) -> str:
     return exception_value["values"][0] if exception_value.get("values") else ""
 
 
-def get_stacktrace_string(data: dict[str, Any]) -> str:
+def get_stacktrace_string(data: dict[str, Any], referrer: str = "backend") -> str:
     """Format a stacktrace string from the grouping information."""
     if not (
         get_path(data, "app", "hash") and get_path(data, "app", "component", "values")
@@ -75,7 +75,8 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
         if frame_str:
             stacktrace_str += frame_str
 
-    if not has_contributing_frame:
+    # Increment metric if we send seer a non-empty stacktrace, but there are no frames
+    if stacktrace_str and not has_contributing_frame and referrer == "backend":
         metrics.incr(
             "grouping.similarity.no_contributing_stacktrace_frame",
             # TODO: Consider lowering this (in all the spots this metric is
