@@ -65,7 +65,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
         }
 
         payload = {"channel": slack_request.channel_id, "text": message}
-        if options.get("slack.event-endpoint-sdk"):
+        if options.get("slack.event-endpoint-sdk") and slack_request.integration.id in options.get(
+            "slack.event-endpoint-sdk-integration-ids"
+        ):
             client = SlackSdkClient(integration_id=slack_request.integration.id)
             try:
                 client.chat_postMessage(channel=slack_request.channel_id, text=message)
@@ -117,7 +119,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
             **payload,
         }
 
-        if options.get("slack.event-endpoint-sdk"):
+        if options.get("slack.event-endpoint-sdk") and slack_request.integration.id in options.get(
+            "slack.event-endpoint-sdk-integration-ids"
+        ):
             client = SlackSdkClient(integration_id=slack_request.integration.id)
             try:
                 client.chat_postEphemeral(
@@ -156,7 +160,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
             **payload,
         }
 
-        if options.get("slack.event-endpoint-sdk"):
+        if options.get("slack.event-endpoint-sdk") and slack_request.integration.id in options.get(
+            "slack.event-endpoint-sdk-integration-ids"
+        ):
             client = SlackSdkClient(integration_id=slack_request.integration.id)
             try:
                 client.chat_postMessage(
