@@ -2,6 +2,7 @@ import logging
 from typing import Any
 
 from sentry.eventstore.models import Event
+from sentry.utils import metrics
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
@@ -33,8 +34,7 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
     if exceptions and exceptions[0].get("id") == "chained-exception":
         exceptions = exceptions[0].get("values")
 
-    frame_count = 0
-    stacktrace_str = ""
+    frame_count, stacktrace_str, has_contributing_frame = 0, "", False
     for exception in reversed(exceptions):
         if exception.get("id") not in ["exception", "threads"] or not exception.get("contributes"):
             continue
@@ -52,6 +52,7 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
                     for frame in exception_value["values"]
                     if frame.get("id") == "frame" and frame.get("contributes")
                 ]
+                has_contributing_frame = True if contributing_frames else has_contributing_frame
                 num_frames = len(contributing_frames)
                 if frame_count + num_frames > MAX_FRAME_COUNT:
                     remaining_frame_count = MAX_FRAME_COUNT - frame_count
@@ -73,6 +74,14 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
             stacktrace_str += f"{exc_type}: {exc_value}\n"
         if frame_str:
             stacktrace_str += frame_str
+
+    if not has_contributing_frame:
+        metrics.incr(
+            "grouping.similarity.no_contributing_stacktrace_frame",
+            # TODO: Consider lowering this (in all the spots this metric is
+            # collected) once we roll Seer grouping out more widely
+            sample_rate=1.0,
+        )
 
     return stacktrace_str.strip()
 
