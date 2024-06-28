@@ -220,7 +220,7 @@ class RpcImportRetryTests(TestCase):
             return None
 
         with patch(
-            "sentry.services.hybrid_cloud.import_export.impl.get_existing_import_chunk",
+            "sentry.backup.services.import_export.impl.get_existing_import_chunk",
             MagicMock(side_effect=wrapped_get_existing_import_chunk),
         ) as get_existing_import_chunk_mock:
             import_uuid = str(uuid4().hex)
