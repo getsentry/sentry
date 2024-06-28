@@ -1655,11 +1655,10 @@ class BaseMetricsTestCase(SnubaTestCase):
         # This check is not yet reflected in relay, see https://getsentry.atlassian.net/browse/INGEST-464
         user_is_nil = user is None or user == "00000000-0000-0000-0000-000000000000"
 
-        def push(type, mri: str, tags, value):
+        def push(mri: str, tags, value):
             self.store_metric(
                 org_id,
                 project_id,
-                type,
                 mri,
                 {**tags, **base_tags},
                 int(
@@ -1668,33 +1667,31 @@ class BaseMetricsTestCase(SnubaTestCase):
                     else session["started"].timestamp()
                 ),
                 value,
-                use_case_id=UseCaseID.SESSIONS,
             )
 
         # seq=0 is equivalent to relay's session.init, init=True is transformed
         # to seq=0 in Relay.
         if session["seq"] == 0:  # init
-            push("counter", SessionMRI.RAW_SESSION.value, {"session.status": "init"}, +1)
+            push(SessionMRI.RAW_SESSION.value, {"session.status": "init"}, +1)
 
         status = session["status"]
 
         # Mark the session as errored, which includes fatal sessions.
         if session.get("errors", 0) > 0 or status not in ("ok", "exited"):
-            push("set", SessionMRI.RAW_ERROR.value, {}, session["session_id"])
+            push(SessionMRI.RAW_ERROR.value, {}, session["session_id"])
             if not user_is_nil:
-                push("set", SessionMRI.RAW_USER.value, {"session.status": "errored"}, user)
+                push(SessionMRI.RAW_USER.value, {"session.status": "errored"}, user)
         elif not user_is_nil:
-            push("set", SessionMRI.RAW_USER.value, {}, user)
+            push(SessionMRI.RAW_USER.value, {}, user)
 
         if status in ("abnormal", "crashed"):  # fatal
-            push("counter", SessionMRI.RAW_SESSION.value, {"session.status": status}, +1)
+            push(SessionMRI.RAW_SESSION.value, {"session.status": status}, +1)
             if not user_is_nil:
-                push("set", SessionMRI.RAW_USER.value, {"session.status": status}, user)
+                push(SessionMRI.RAW_USER.value, {"session.status": status}, user)
 
         if status == "exited":
             if session["duration"] is not None:
                 push(
-                    "distribution",
                     SessionMRI.RAW_DURATION.value,
                     {"session.status": status},
                     session["duration"],
