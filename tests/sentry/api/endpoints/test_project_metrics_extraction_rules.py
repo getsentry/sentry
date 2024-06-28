@@ -505,3 +505,59 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]["unit"] == "none"
+
+    @django_db_all
+    @with_feature("organizations:custom-metrics-extraction-rule")
+    def test_put_transaction(self):
+        rule = {
+            "metricsExtractionRules": [
+                {
+                    "spanAttribute": "my_span_attribute",
+                    "aggregates": ["count"],
+                    "unit": "none",
+                    "tags": ["tag1", "tag2", "tag3"],
+                    "conditions": [
+                        {"id": str(uuid.uuid4()), "value": "foo:bar"},
+                        {"id": str(uuid.uuid4()), "value": "baz:faz"},
+                    ],
+                }
+            ]
+        }
+
+        response = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            method="post",
+            **rule,
+        )
+
+        assert response.status_code == 200
+
+        rule = {
+            "metricsExtractionRules": [
+                {
+                    "spanAttribute": "my_span_attribute",
+                    "aggregates": ["count"],
+                    "unit": "none",
+                    "tags": ["tag1", "tag2", "tag3"],
+                }
+            ]
+        }
+
+        response = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            method="put",
+            **rule,
+        )
+
+        assert response.status_code == 400
+
+        response = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            method="get",
+            **rule,
+        )
+        assert response.status_code == 200
+        assert len(response.data[0]["conditions"]) == 2

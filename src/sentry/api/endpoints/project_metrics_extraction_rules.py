@@ -1,4 +1,4 @@
-from django.db import IntegrityError
+from django.db import IntegrityError, router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -121,44 +121,49 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
         if not config_update:
             return Response(status=200)
 
-        configs = []
-        for obj in config_update:
-            config = SpanAttributeExtractionRuleConfig.objects.get(
-                project=project, span_attribute=obj["spanAttribute"]
-            )
-            config.aggregates = obj["aggregates"]
-            config.unit = HARD_CODED_UNITS.get(obj["spanAttribute"], obj["unit"])
-            config.tags = obj["tags"]
-            config.save()
-            config.refresh_from_db()
-            configs.append(config)
-
-            # delete conditions not present in update
-            included_conditions = [x["id"] for x in obj["conditions"]]
-            SpanAttributeExtractionRuleCondition.objects.exclude(
-                id__in=included_conditions
-            ).delete()
-
-            for condition in obj["conditions"]:
-                condition_exists = SpanAttributeExtractionRuleCondition.objects.filter(
-                    id=condition["id"], project=project
-                ).exists()
-
-                # update existing conditions
-                if condition_exists:
-                    SpanAttributeExtractionRuleCondition.objects.filter(
-                        id=condition["id"], project=project
-                    ).update(value=condition["value"])
-
-                # create new conditions
-                else:
-                    condition_obj = SpanAttributeExtractionRuleCondition.objects.create(
-                        created_by_id=request.user.id,
-                        project=project,
-                        value=condition["value"],
-                        config=config,
+        try:
+            with transaction.atomic(router.db_for_write(SpanAttributeExtractionRuleConfig)):
+                configs = []
+                for obj in config_update:
+                    config = SpanAttributeExtractionRuleConfig.objects.get(
+                        project=project, span_attribute=obj["spanAttribute"]
                     )
-                    condition_obj.save()
+                    config.aggregates = obj["aggregates"]
+                    config.unit = HARD_CODED_UNITS.get(obj["spanAttribute"], obj["unit"])
+                    config.tags = obj["tags"]
+                    config.save()
+                    config.refresh_from_db()
+                    configs.append(config)
+
+                    # delete conditions not present in update
+                    included_conditions = [x["id"] for x in obj["conditions"]]
+                    SpanAttributeExtractionRuleCondition.objects.exclude(
+                        id__in=included_conditions
+                    ).delete()
+
+                    for condition in obj["conditions"]:
+                        condition_exists = SpanAttributeExtractionRuleCondition.objects.filter(
+                            id=condition["id"], project=project
+                        ).exists()
+
+                        # update existing conditions
+                        if condition_exists:
+                            SpanAttributeExtractionRuleCondition.objects.filter(
+                                id=condition["id"], project=project
+                            ).update(value=condition["value"])
+
+                        # create new conditions
+                        else:
+                            condition_obj = SpanAttributeExtractionRuleCondition.objects.create(
+                                created_by_id=request.user.id,
+                                project=project,
+                                value=condition["value"],
+                                config=config,
+                            )
+                            condition_obj.save()
+
+        except Exception:
+            return Response(status=400)
 
         persisted_config = serialize(
             configs,

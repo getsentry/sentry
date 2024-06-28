@@ -4,6 +4,7 @@ import logging
 from typing import Any
 
 from django.db import models
+from django.db.models import CASCADE
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
@@ -27,7 +28,9 @@ class SpanAttributeExtractionRuleCondition(Model):
 
     value = models.CharField(max_length=1000, null=True, blank=True)
     config = FlexibleForeignKey(
-        "sentry.SpanAttributeExtractionRuleConfig", related_name="conditions"
+        "sentry.SpanAttributeExtractionRuleConfig",
+        related_name="conditions",
+        on_delete=CASCADE,
     )
 
     class Meta:
