@@ -154,6 +154,10 @@ export function getValidOpsForFilter(
 }
 
 export function escapeTagValue(value: string): string {
+  if (!value) {
+    return '';
+  }
+
   // Wrap in quotes if there is a space
   return value.includes(' ') || value.includes('"')
     ? `"${escapeDoubleQuotes(value)}"`
@@ -166,8 +170,13 @@ export function unescapeTagValue(value: string): string {
 
 export function formatFilterValue(token: TokenResult<Token.FILTER>['value']): string {
   switch (token.type) {
-    case Token.VALUE_TEXT:
-      return unescapeTagValue(token.value);
+    case Token.VALUE_TEXT: {
+      if (!token.value) {
+        return token.text;
+      }
+
+      return token.quoted ? unescapeTagValue(token.value) : token.text;
+    }
     case Token.VALUE_RELATIVE_DATE:
       return t('%s', `${token.value}${token.unit} ago`);
     default:

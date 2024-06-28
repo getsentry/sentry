@@ -2,12 +2,14 @@ from typing import Any
 from unittest import mock
 from unittest.mock import MagicMock
 
+from urllib3.exceptions import MaxRetryError, TimeoutError
 from urllib3.response import HTTPResponse
 
 from sentry.conf.server import SEER_SIMILAR_ISSUES_URL
 from sentry.seer.similarity.similar_issues import (
     SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
     get_similarity_data_from_seer,
+    seer_grouping_connection_pool,
 )
 from sentry.seer.similarity.types import (
     RawSeerSimilarIssueData,
@@ -25,6 +27,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
         self.similar_event = save_new_event({"message": "Dogs are great!"}, self.project)
         self.similar_event_hash = NonNone(self.similar_event.get_primary_hash())
         self.request_params: SimilarIssuesEmbeddingsRequest = {
+            "event_id": "12312012041520130908201311212012",
             "hash": "11212012123120120415201309082013",
             "project_id": self.project.id,
             "stacktrace": "<stringified stacktrace>",
@@ -158,6 +161,37 @@ class GetSimilarityDataFromSeerTest(TestCase):
             sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
             tags={"response_status": 308, "outcome": "error", "error": "Redirect"},
         )
+
+    @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
+    @mock.patch("sentry.seer.similarity.similar_issues.logger")
+    @mock.patch("sentry.seer.similarity.similar_issues.seer_grouping_connection_pool.urlopen")
+    def test_request_error(
+        self, mock_seer_request: MagicMock, mock_logger: MagicMock, mock_metrics_incr: MagicMock
+    ):
+        for request_error, expected_error_tag in [
+            (TimeoutError, "TimeoutError"),
+            (
+                MaxRetryError(seer_grouping_connection_pool, SEER_SIMILAR_ISSUES_URL),
+                "MaxRetryError",
+            ),
+        ]:
+            mock_seer_request.side_effect = request_error
+
+            assert get_similarity_data_from_seer(self.request_params) == []
+            mock_logger.warning.assert_called_with(
+                "get_seer_similar_issues.request_error",
+                extra={
+                    "event_id": "12312012041520130908201311212012",
+                    "hash": "11212012123120120415201309082013",
+                    "project_id": self.project.id,
+                    "message_value": "Charlie didn't bring the ball back",
+                },
+            )
+            mock_metrics_incr.assert_any_call(
+                "seer.similar_issues_request",
+                sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+                tags={"outcome": "error", "error": expected_error_tag},
+            )
 
     @mock.patch("sentry.seer.similarity.similar_issues.metrics.incr")
     @mock.patch("sentry.seer.similarity.similar_issues.logger")

@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 
 from sentry.eventstore.models import Event
-from sentry.incidents.models.alert_rule import AlertRuleMonitorType
+from sentry.incidents.models.alert_rule import AlertRuleMonitorTypeInt
 from sentry.incidents.models.incident import IncidentActivityType
 from sentry.models.activity import Activity
 from sentry.models.grouprelease import GroupRelease
@@ -403,7 +403,7 @@ class Fixtures:
         alert_rule=None,
         query_subscriptions=None,
         project=None,
-        monitor_type=AlertRuleMonitorType.ACTIVATED,
+        monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
         activator=None,
         activation_condition=None,
         *args,
@@ -415,6 +415,7 @@ class Fixtures:
             )
         if not query_subscriptions:
             projects = [project] if project else [self.project]
+            # subscribing an activated alert rule will create an activation
             query_subscriptions = alert_rule.subscribe_projects(
                 projects=projects,
                 monitor_type=monitor_type,
