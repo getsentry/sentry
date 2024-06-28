@@ -242,7 +242,7 @@ export function MetricDetailsSidebar({
           />
           {rule.createdBy && (
             <KeyValueTableRow
-              keyName={t('Created By')}
+              keyName={t('Created by')}
               value={
                 <OverflowTableValue>{rule.createdBy.name ?? '-'}</OverflowTableValue>
               }
