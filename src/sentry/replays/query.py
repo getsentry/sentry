@@ -192,17 +192,7 @@ def query_replays_dataset_tagkey_values(
     This function is used by the tagstore backend, which expects a `tag_value` key in each result object.
     """
 
-    where = [
-        Condition(Column("project_id"), Op.IN, project_ids),
-        Condition(Column("timestamp"), Op.LT, end),
-        Condition(Column("timestamp"), Op.GTE, start),
-        Or(
-            [
-                Condition(Column("is_archived"), Op.EQ, 0),
-                Condition(Column("is_archived"), Op.IS_NULL),
-            ]
-        ),
-    ]
+    where = []
     if environment:
         where.append(Condition(Column("environment"), Op.IN, environment))
 
@@ -236,7 +226,18 @@ def query_replays_dataset_tagkey_values(
                 Function("max", parameters=[Column("timestamp")], alias="last_seen"),
                 aggregated_column,
             ],
-            where=where,
+            where=[
+                *where,
+                Condition(Column("project_id"), Op.IN, project_ids),
+                Condition(Column("timestamp"), Op.LT, end),
+                Condition(Column("timestamp"), Op.GTE, start),
+                Or(
+                    [
+                        Condition(Column("is_archived"), Op.EQ, 0),
+                        Condition(Column("is_archived"), Op.IS_NULL),
+                    ]
+                ),
+            ],
             orderby=[OrderBy(Column("times_seen"), Direction.DESC)],
             groupby=[grouped_column],
             granularity=Granularity(3600),
