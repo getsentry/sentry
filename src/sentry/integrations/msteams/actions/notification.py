@@ -6,8 +6,8 @@ from sentry.integrations.msteams.actions.form import MsTeamsNotifyServiceForm
 from sentry.integrations.msteams.card_builder.issues import MSTeamsIssueMessageBuilder
 from sentry.integrations.msteams.client import MsTeamsClient
 from sentry.integrations.msteams.utils import get_channel_id
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.rules.actions import IntegrationEventAction
-from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.utils import metrics
 
 

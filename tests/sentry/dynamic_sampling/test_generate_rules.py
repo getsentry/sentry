@@ -89,13 +89,12 @@ def test_generate_rules_capture_exception(get_blended_sample_rate, sentry_sdk):
     # since we mock get_blended_sample_rate function
     # no need to create real project in DB
     fake_project = MagicMock()
-    # if blended rate is None that means no dynamic sampling behavior should happen.
-    # Therefore no rules should be set.
-    assert generate_rules(fake_project) == []
+    # if blended rate is None that means dynamic sampling rate should be set to 1.
+    rules = generate_rules(fake_project)
+    assert rules[0]["samplingValue"]["value"] == 1.0
     get_blended_sample_rate.assert_called_with(
         organization_id=fake_project.organization.id, project=fake_project
     )
-    assert sentry_sdk.capture_exception.call_count == 1
     _validate_rules(fake_project)
 
 

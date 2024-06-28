@@ -10,10 +10,10 @@ from rest_framework import status
 from sentry_sdk import configure_scope
 
 from sentry import options
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.stacktrace_link import RepositoryLinkOutcome
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.integration import integration_service
 
 LineCoverage = Sequence[tuple[int, int]]
 CODECOV_REPORT_URL = (
