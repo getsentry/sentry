@@ -152,6 +152,7 @@ function BaseDraggableTabList({
             overflowing={orientation === 'horizontal' && overflowTabs.includes(item.key)}
             dropState={dropState}
             ref={element => (tabItemsRef.current[item.key] = element)}
+            isChanged
           />
         ))}
       </TabListWrap>

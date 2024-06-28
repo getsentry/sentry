@@ -128,7 +128,9 @@ export const DraggableTab = forwardRef(
               <StyledBadge>
                 <QueryCount hideParens count={1001} max={1000} />
               </StyledBadge>
-              {state.selectedKey === item.key && <DraggableTabMenuButton isChanged />}
+              {state.selectedKey === item.key && (
+                <DraggableTabMenuButton isChanged={isChanged} />
+              )}
             </TabContentWrap>
           </Draggable>
         </StyledBaseTab>
