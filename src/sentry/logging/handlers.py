@@ -14,7 +14,7 @@ from sentry.utils import json, metrics
 # additionally Formatter injects `message` and `asctime` into the record and are explicitly forbidden in `extra`
 # https://github.com/python/cpython/blob/e6543daf12051e9c660a5c0437683e8d2706a3c7/Lib/logging/__init__.py#L1630-L1631
 
-throwaways = frozenset(
+disallowed_extras = frozenset(
     (
         "args",
         "asctime",
@@ -41,6 +41,16 @@ throwaways = frozenset(
         "threadName",
     )
 )
+
+# these are values that are explicitely allowed as logging kwargs
+allowed_kwargs = frozenset(
+    "exc_info",
+    "stack_info",
+    "stacklevel",
+    "extra",
+)
+
+disallowed_kwargs = disallowed_extras - allowed_kwargs
 
 
 def _json_encoder(*, skipkeys: bool = False) -> json.JSONEncoder:
@@ -90,8 +100,17 @@ class HumanRenderer:
 
 class StructLogHandler(logging.StreamHandler):
     def get_log_kwargs(self, record, logger):
-        kwargs = {k: v for k, v in vars(record).items() if k not in throwaways and v is not None}
+        kwargs = {
+            k: v for k, v in vars(record).items() if k not in disallowed_kwargs and v is not None
+        }
         kwargs.update({"level": record.levelno, "event": record.msg})
+
+        if kwargs.get("extra"):
+            kwargs["extra"] = {
+                k: v
+                for k, v in kwargs["extra"].items()
+                if k not in disallowed_extras and v is not None
+            }
 
         if record.args:
             # record.args inside of LogRecord.__init__ gets unrolled
