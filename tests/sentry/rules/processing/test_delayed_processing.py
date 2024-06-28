@@ -21,6 +21,7 @@ from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
+from sentry.utils.safe import safe_execute
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
 pytestmark = pytest.mark.sentry_metrics
@@ -185,16 +186,18 @@ class ProcessDelayedAlertConditionsTest(
         buffer.backend.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=self.project.id)
         buffer.backend.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=self.project_two.id)
 
-        # self.push_to_hash(self.project.id, self.rule1.id, self.group1.id, self.event1.event_id)
-        # self.push_to_hash(self.project.id, self.rule2.id, self.group2.id, self.event2.event_id)
-        # self.push_to_hash(self.project_two.id, self.rule3.id, self.group3.id, self.event3.event_id)
-        # self.push_to_hash(self.project_two.id, self.rule4.id, self.group4.id, self.event4.event_id)
+    def _push_base_events(self) -> None:
+        self.push_to_hash(self.project.id, self.rule1.id, self.group1.id, self.event1.event_id)
+        self.push_to_hash(self.project.id, self.rule2.id, self.group2.id, self.event2.event_id)
+        self.push_to_hash(self.project_two.id, self.rule3.id, self.group3.id, self.event3.event_id)
+        self.push_to_hash(self.project_two.id, self.rule4.id, self.group4.id, self.event4.event_id)
 
     def tearDown(self):
         self.mock_redis_buffer.__exit__(None, None, None)
 
     @patch("sentry.rules.processing.delayed_processing.apply_delayed")
     def test_fetches_from_buffer_and_executes(self, mock_apply_delayed):
+        self._push_base_events()
         # To get the correct mapping, we need to return the correct
         # rulegroup_event mapping based on the project_id input
         process_delayed_alert_conditions()
@@ -211,6 +214,7 @@ class ProcessDelayedAlertConditionsTest(
         assert project_ids == []
 
     def test_get_condition_groups(self):
+        self._push_base_events()
         project_three = self.create_project(organization=self.organization)
         env3 = self.create_environment(project=project_three)
         rule_1 = self.create_project_rule(
@@ -235,6 +239,7 @@ class ProcessDelayedAlertConditionsTest(
         Test that rules of various event frequency conditions, projects,
         environments, etc. are properly fired.
         """
+        self._push_base_events()
         project_ids = buffer.backend.get_sorted_set(
             PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
         )
@@ -272,6 +277,7 @@ class ProcessDelayedAlertConditionsTest(
         """
         Test that we fire rules triggered from issue platform events
         """
+        self._push_base_events()
         rule5 = self.create_project_rule(
             project=self.project,
             condition_match=[self.event_frequency_condition2],
@@ -313,6 +319,7 @@ class ProcessDelayedAlertConditionsTest(
         """
         Test that we do not fire a rule that's been snoozed (aka muted)
         """
+        self._push_base_events()
         rule5 = self.create_project_rule(
             project=self.project,
             condition_match=[self.event_frequency_condition2],
@@ -345,6 +352,7 @@ class ProcessDelayedAlertConditionsTest(
         Test that two rules with the same condition and interval but a
         different value are both fired.
         """
+        self._push_base_events()
         rule5 = self.create_project_rule(
             project=self.project,
             condition_match=[self.event_frequency_condition2],
@@ -378,6 +386,7 @@ class ProcessDelayedAlertConditionsTest(
         Test that two rules with the same condition and value but a
         different interval are both fired.
         """
+        self._push_base_events()
         diff_interval_rule = self.create_project_rule(
             project=self.project,
             condition_match=[self.event_frequency_condition3],
@@ -410,6 +419,7 @@ class ProcessDelayedAlertConditionsTest(
         Test that two rules with the same condition, value, and interval
         but different environment are both fired.
         """
+        self._push_base_events()
         environment3 = self.create_environment(project=self.project)
         diff_env_rule = self.create_project_rule(
             project=self.project,
@@ -443,6 +453,7 @@ class ProcessDelayedAlertConditionsTest(
         Test that with two rules in one project where one rule hasn't met
         the trigger threshold, only one is fired
         """
+        self._push_base_events()
         high_event_frequency_condition = {
             "interval": "1d",
             "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
@@ -480,6 +491,7 @@ class ProcessDelayedAlertConditionsTest(
         Test that a rule with multiple conditions and an action match of
         'all' is fired.
         """
+        self._push_base_events()
         two_conditions_match_all_rule = self.create_project_rule(
             project=self.project,
             condition_match=[self.event_frequency_condition, self.user_frequency_condition],
@@ -490,10 +502,16 @@ class ProcessDelayedAlertConditionsTest(
         group5 = event5.group
         assert group5
         event6 = self.create_event(
-            self.project.id, FROZEN_TIME, "group-6", self.environment.name, user=False
+            self.project.id,
+            FROZEN_TIME,
+            "group-6",
+            self.environment.name,
         )
         self.create_event(
-            self.project.id, FROZEN_TIME, "group-5", self.environment.name, user=False
+            self.project.id,
+            FROZEN_TIME,
+            "group-5",
+            self.environment.name,
         )
         group6 = event6.group
         assert group6
@@ -523,6 +541,7 @@ class ProcessDelayedAlertConditionsTest(
         self.assert_buffer_cleared(project_id=self.project.id)
 
     def test_apply_delayed_shared_condition_diff_filter(self):
+        self._push_base_events()
         project_three = self.create_project(organization=self.organization)
         env3 = self.create_environment(project=project_three)
         buffer.backend.push_to_sorted_set(key=PROJECT_ID_BUFFER_LIST_KEY, value=project_three.id)
@@ -615,7 +634,8 @@ class ProcessDelayedAlertConditionsTest(
         assert (percent_comparison_rule.id, group5.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=self.project.id)
 
-    def test_apply_delayed_no_bleed_count_and_comparison_condition(self):
+    @patch("sentry.rules.processing.delayed_processing.safe_execute", side_effect=safe_execute)
+    def test_apply_delayed_no_bleed_count_and_comparison_condition(self, safe_execute_callthrough):
         """
         Test that having both count and percent comparison type conditions do
         not affect each other and the order the different types of conditions
@@ -651,7 +671,6 @@ class ProcessDelayedAlertConditionsTest(
         fires_count_condition = self.create_event_frequency_condition(
             interval="1h",
             value=1,
-            comparison_interval="15m",
         )
         fires_count_rule = self.create_project_rule(
             project=self.project,
@@ -660,8 +679,7 @@ class ProcessDelayedAlertConditionsTest(
         )
         skips_count_condition = self.create_event_frequency_condition(
             interval="1h",
-            value=50,
-            comparison_interval="15m",
+            value=75,
         )
         skips_count_rule = self.create_project_rule(
             project=self.project,
@@ -693,7 +711,7 @@ class ProcessDelayedAlertConditionsTest(
             )
             return project_ids[0][0]
 
-        def assert_results() -> None:
+        def assert_results(iteration: int) -> None:
             rule_fire_histories = RuleFireHistory.objects.filter(
                 rule__in=[fires_percent_rule, fires_count_rule, skips_count_rule],
                 group__in=[group5],
@@ -703,12 +721,15 @@ class ProcessDelayedAlertConditionsTest(
             assert len(rule_fire_histories) == 2
             assert (fires_percent_rule.id, group5.id) in rule_fire_histories
             assert (fires_count_rule.id, group5.id) in rule_fire_histories
-            # Also ensure the count query and first percent query share the same
-            # query, but the second percent query is separate.
             self.assert_buffer_cleared(project_id=self.project.id)
 
+            # Ensure we're only making two queries. The count query and first
+            # percent query of both percent conditions can share one query, and
+            # the second query of both percent conditions share the other query.
+            assert safe_execute_callthrough.call_count == 2 * iteration
+
         # Have the percent condition be processed first. The calculated percent
-        # value is 100, but the skips_count_rule with a threshold of 50 should
+        # value is 100, but the skips_count_rule with a threshold of 75 should
         # not be triggered.
         project_id = _setup_events()
         with patch(
@@ -716,7 +737,7 @@ class ProcessDelayedAlertConditionsTest(
             side_effect=mock_get_condition_group(descending=False),
         ):
             apply_delayed(project_id)
-        assert_results()
+        assert_results(iteration=1)
 
         # Have a count condition be processed first. It's calculated value is 2,
         # but the fires_percent_rule with a 50 threshold should still be triggered.
@@ -726,4 +747,4 @@ class ProcessDelayedAlertConditionsTest(
             side_effect=mock_get_condition_group(descending=True),
         ):
             apply_delayed(project_id)
-        assert_results()
+        assert_results(iteration=2)
