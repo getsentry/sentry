@@ -361,15 +361,54 @@ def message_filter_converter(
 ) -> WhereType | None:
     value = search_filter.value.value
     if search_filter.value.is_wildcard():
-        # XXX: We don't want the '^$' values at the beginning and end of
-        # the regex since we want to find the pattern anywhere in the
-        # message. Strip off here
-        value = search_filter.value.value[1:-1]
-        return Condition(
-            Function("match", [builder.column("message"), f"(?i){value}"]),
-            Op(search_filter.operator),
-            1,
+        kind = (
+            search_filter.value.classify_wildcard()
+            if builder.config.optimize_wildcard_searches
+            else "other"
         )
+        if kind == "prefix":
+            return Condition(
+                Function(
+                    "startsWith",
+                    [
+                        Function("lower", [builder.column("message")]),
+                        search_filter.value.format_wildcard(kind).lower(),
+                    ],
+                ),
+                Op.EQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.NEQ,
+                1,
+            )
+        elif kind == "suffix":
+            return Condition(
+                Function(
+                    "endsWith",
+                    [
+                        Function("lower", [builder.column("message")]),
+                        search_filter.value.format_wildcard(kind).lower(),
+                    ],
+                ),
+                Op.EQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.NEQ,
+                1,
+            )
+        elif kind == "infix":
+            return Condition(
+                Function(
+                    "positionCaseInsensitive",
+                    [builder.column("message"), search_filter.value.format_wildcard(kind)],
+                ),
+                Op.NEQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.EQ,
+                0,
+            )
+        else:
+            # XXX: We don't want the '^$' values at the beginning and end of
+            # the regex since we want to find the pattern anywhere in the
+            # message. Strip off here
+            value = search_filter.value.value[1:-1]
+            return Condition(
+                Function("match", [builder.column("message"), f"(?i){value}"]),
+                Op(search_filter.operator),
+                1,
+            )
     elif value == "":
         operator = Op.EQ if search_filter.operator == "=" else Op.NEQ
         return Condition(Function("equals", [builder.column("message"), value]), operator, 1)
