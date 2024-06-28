@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from sentry.services.hybrid_cloud.identity import RpcIdentity, RpcIdentityProvider
+from sentry.identity.services.identity import RpcIdentity, RpcIdentityProvider
 
 if TYPE_CHECKING:
     from sentry.models.identity import Identity, IdentityProvider
