@@ -12,7 +12,7 @@ from sentry.silo.base import SiloMode
 
 if TYPE_CHECKING:
     from sentry.api.serializers import Serializer
-    from sentry.services.hybrid_cloud.auth import AuthenticationContext
+    from sentry.auth.services.auth import AuthenticationContext
     from sentry.services.hybrid_cloud.user import RpcUser
 
 
