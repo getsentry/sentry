@@ -59,34 +59,11 @@ describe('PerformanceScoreBreakdownChart', function () {
     jest.resetAllMocks();
   });
 
-  it('renders using frontend score calculation', async () => {
-    render(<PerformanceScoreBreakdownChart />, {organization});
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-    expect(eventsStatsMock).toHaveBeenCalledWith(
-      '/organizations/org-slug/events-stats/',
-      expect.objectContaining({
-        method: 'GET',
-        query: expect.objectContaining({
-          yAxis: [
-            'p75(measurements.lcp)',
-            'p75(measurements.fcp)',
-            'p75(measurements.cls)',
-            'p75(measurements.ttfb)',
-            'p75(measurements.fid)',
-            'count()',
-          ],
-        }),
-      })
-    );
-  });
-
-  it('renders using backend scores', async () => {
+  it('renders', async () => {
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
-      query: {
-        useStoredScores: 'true',
-      },
+      query: {},
       hash: '',
       state: undefined,
       action: 'PUSH',
@@ -133,86 +110,11 @@ describe('PerformanceScoreBreakdownChart', function () {
             'weighted_performance_score(measurements.score.lcp)',
             'weighted_performance_score(measurements.score.fcp)',
             'weighted_performance_score(measurements.score.cls)',
-            'weighted_performance_score(measurements.score.fid)',
             'weighted_performance_score(measurements.score.inp)',
             'weighted_performance_score(measurements.score.ttfb)',
             'performance_score(measurements.score.lcp)',
             'performance_score(measurements.score.fcp)',
             'performance_score(measurements.score.cls)',
-            'performance_score(measurements.score.fid)',
-            'performance_score(measurements.score.inp)',
-            'performance_score(measurements.score.ttfb)',
-            'count()',
-          ],
-        }),
-      })
-    );
-  });
-
-  it('renders using backend scores and frontend scores to fill historic data', async () => {
-    jest.mocked(useLocation).mockReturnValue({
-      pathname: '',
-      search: '',
-      query: {useStoredScores: 'true'},
-      hash: '',
-      state: undefined,
-      action: 'PUSH',
-      key: '',
-    });
-    jest.mocked(usePageFilters).mockReturnValue({
-      isReady: true,
-      desyncedFilters: new Set(),
-      pinnedFilters: new Set(),
-      shouldPersist: true,
-      selection: {
-        datetime: {
-          period: null,
-          start: '2021-01-01T00:00:00',
-          end: '2021-01-02T00:00:00',
-          utc: false,
-        },
-        environments: [],
-        projects: [],
-      },
-    });
-    render(<PerformanceScoreBreakdownChart />, {organization});
-    await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
-    expect(eventsMock).toHaveBeenCalledTimes(1);
-    expect(eventsStatsMock).toHaveBeenCalledTimes(2);
-    expect(eventsStatsMock).toHaveBeenNthCalledWith(
-      1,
-      '/organizations/org-slug/events-stats/',
-      expect.objectContaining({
-        method: 'GET',
-        query: expect.objectContaining({
-          yAxis: [
-            'p75(measurements.lcp)',
-            'p75(measurements.fcp)',
-            'p75(measurements.cls)',
-            'p75(measurements.ttfb)',
-            'p75(measurements.fid)',
-            'count()',
-          ],
-        }),
-      })
-    );
-    expect(eventsStatsMock).toHaveBeenNthCalledWith(
-      2,
-      '/organizations/org-slug/events-stats/',
-      expect.objectContaining({
-        method: 'GET',
-        query: expect.objectContaining({
-          yAxis: [
-            'weighted_performance_score(measurements.score.lcp)',
-            'weighted_performance_score(measurements.score.fcp)',
-            'weighted_performance_score(measurements.score.cls)',
-            'weighted_performance_score(measurements.score.fid)',
-            'weighted_performance_score(measurements.score.inp)',
-            'weighted_performance_score(measurements.score.ttfb)',
-            'performance_score(measurements.score.lcp)',
-            'performance_score(measurements.score.fcp)',
-            'performance_score(measurements.score.cls)',
-            'performance_score(measurements.score.fid)',
             'performance_score(measurements.score.inp)',
             'performance_score(measurements.score.ttfb)',
             'count()',
@@ -228,7 +130,6 @@ describe('PerformanceScoreBreakdownChart', function () {
         {
           lcp: [],
           fcp: [],
-          fid: [],
           cls: [],
           ttfb: [],
           inp: [],

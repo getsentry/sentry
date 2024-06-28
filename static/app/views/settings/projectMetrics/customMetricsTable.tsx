@@ -14,12 +14,14 @@ import {space} from 'sentry/styles/space';
 import type {MetricMeta} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
 import {DEFAULT_METRICS_CARDINALITY_LIMIT} from 'sentry/utils/metrics/constants';
+import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI} from 'sentry/utils/metrics/mri';
 import {useBlockMetric} from 'sentry/utils/metrics/useBlockMetric';
 import {useMetricsCardinality} from 'sentry/utils/metrics/useMetricsCardinality';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 import {BlockButton} from 'sentry/views/settings/projectMetrics/blockButton';
 import {useSearchQueryParam} from 'sentry/views/settings/projectMetrics/utils/useSearchQueryParam';
@@ -36,6 +38,7 @@ enum BlockingStatusTab {
 type MetricWithCardinality = MetricMeta & {cardinality: number};
 
 export function CustomMetricsTable({project}: Props) {
+  const organization = useOrganization();
   const [selectedTab, setSelectedTab] = useState(BlockingStatusTab.ACTIVE);
   const [query, setQuery] = useSearchQueryParam('metricsQuery');
 
@@ -80,10 +83,21 @@ export function CustomMetricsTable({project}: Props) {
       unit.includes(query)
   );
 
+  // If we have custom metrics extraction rules,
+  // we only show the custom metrics table if the project has custom metrics
+  if (hasCustomMetricsExtractionRules(organization) && metricsMeta.data.length === 0) {
+    return null;
+  }
+
   return (
     <Fragment>
       <SearchWrapper>
-        <h6>{t('Emitted Metrics')}</h6>
+        <Title>
+          <h6>{t('Emitted Metrics')}</h6>
+          {hasCustomMetricsExtractionRules(organization) && (
+            <Tag type="warning">{t('deprecated')}</Tag>
+          )}
+        </Title>
         <SearchBar
           placeholder={t('Search Metrics')}
           onChange={setQuery}
@@ -221,6 +235,7 @@ const SearchWrapper = styled('div')`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: ${space(1)};
   margin-top: ${space(4)};
   margin-bottom: ${space(0)};
 
@@ -246,5 +261,16 @@ const StyledIconWarning = styled(IconWarning)`
   margin-top: ${space(0.5)};
   &:hover {
     cursor: pointer;
+  }
+`;
+
+const Title = styled('div')`
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: ${space(0.5)};
+  margin-bottom: ${space(3)};
+  & > h6 {
+    margin: 0;
   }
 `;

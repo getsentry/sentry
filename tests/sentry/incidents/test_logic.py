@@ -55,7 +55,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import (
     AlertRule,
-    AlertRuleMonitorType,
+    AlertRuleMonitorTypeInt,
     AlertRuleStatus,
     AlertRuleThresholdType,
     AlertRuleTrigger,
@@ -77,9 +77,9 @@ from sentry.incidents.models.incident import (
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.discord.utils.channel import ChannelType
 from sentry.integrations.pagerduty.utils import add_service
+from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.models.group import GroupStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError, ApiTimeoutError
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -458,8 +458,8 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         # TODO: backfill projects so all monitor_types include 'projects' fk
         for monitor_type in [
             None,
-            AlertRuleMonitorType.CONTINUOUS,
-            AlertRuleMonitorType.ACTIVATED,
+            AlertRuleMonitorTypeInt.CONTINUOUS,
+            AlertRuleMonitorTypeInt.ACTIVATED,
         ]:
             name = "hello"
             query = "level:error"
@@ -519,7 +519,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
         resolve_threshold = 10
         threshold_period = 1
         event_types = [SnubaQueryEventType.EventType.ERROR]
-        kwargs = {"monitor_type": AlertRuleMonitorType.ACTIVATED}
+        kwargs = {"monitor_type": AlertRuleMonitorTypeInt.ACTIVATED}
 
         with pytest.raises(ValidationError):
             create_alert_rule(

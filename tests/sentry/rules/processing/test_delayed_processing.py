@@ -25,7 +25,8 @@ from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequency
 
 pytestmark = pytest.mark.sentry_metrics
 
-FROZEN_TIME = before_now(days=1).replace(hour=1, minute=15, second=00)
+
+FROZEN_TIME = before_now(days=1).replace(hour=1, minute=15, second=0, microsecond=0)
 
 
 @freeze_time(FROZEN_TIME)
@@ -570,7 +571,7 @@ class ProcessDelayedAlertConditionsTest(
         assert (rule_2.id, group2.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=project_three.id)
 
-    def test_apply_delayed_percent_condition_comparison_interval(self):
+    def test_apply_delayed_percent_comparison_condition_interval(self):
         """
         Test that a rule with a percent condition is querying backwards against
         the correct comparison interval, e.g. # events is ... compared to 1 hr ago
@@ -585,6 +586,7 @@ class ProcessDelayedAlertConditionsTest(
             project=self.project,
             condition_match=[percent_condition],
         )
+
         incorrect_interval_time = FROZEN_TIME - timedelta(days=1, minutes=30)
         correct_interval_time = FROZEN_TIME - timedelta(minutes=17)
 

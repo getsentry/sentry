@@ -142,6 +142,8 @@ class OrganizationTracesEndpointBase(OrganizationEventsV2EndpointBase):
 
 @region_silo_endpoint
 class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
+    snuba_methods = ["GET"]
+
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has(
             "organizations:performance-trace-explorer", organization, actor=request.user
@@ -206,6 +208,8 @@ class OrganizationTraceSpansSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationTraceSpansEndpoint(OrganizationTracesEndpointBase):
+    snuba_methods = ["GET"]
+
     def get(self, request: Request, organization: Organization, trace_id: str) -> Response:
         if not features.has(
             "organizations:performance-trace-explorer", organization, actor=request.user
@@ -259,6 +263,8 @@ class OrganizationTracesStatsSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationTracesStatsEndpoint(OrganizationTracesEndpointBase):
+    snuba_methods = ["GET"]
+
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has(
             "organizations:performance-trace-explorer", organization, actor=request.user
@@ -410,12 +416,6 @@ class TracesExecutor:
                 traces_breakdown_projects_results=traces_breakdown_projects_results,
             )
 
-            # Ensure that the order of the data is in the same order as the trace ids.
-            # This guarantees that if the trace ids are sorted, the final result will
-            # be sorted the same way.
-            trace_id_order = {trace_id: i for i, trace_id in enumerate(trace_ids)}
-            data.sort(key=lambda row: trace_id_order[row["trace"]])
-
         return data
 
     def refine_params(self, min_timestamp: datetime, max_timestamp: datetime):
@@ -530,7 +530,7 @@ class TracesExecutor:
         builder, timestamp_column = self.get_traces_matching_span_conditions_query(
             params,
             snuba_params,
-            orderby=[self.sort],
+            sort=self.sort,
         )
 
         executor = OrderedTracesExecutor(
@@ -657,15 +657,24 @@ class TracesExecutor:
         self,
         params: ParamsType,
         snuba_params: SnubaParams,
-        # The orderby is intentionally `None` here as this query is much faster
-        # if we let Clickhouse decide which order to return the results in.
-        # This also means we cannot order by any columns or paginate.
-        orderby: list[str] | None = None,
+        sort: str | None = None,
     ) -> tuple[QueryBuilder, str]:
+        if len(self.user_queries) < 2:
+            timestamp_column = "timestamp"
+        else:
+            timestamp_column = "min(timestamp)"
+
+        if sort == "-timestamp":
+            orderby = [f"-{timestamp_column}"]
+        else:
+            # The orderby is intentionally `None` here as this query is much faster
+            # if we let Clickhouse decide which order to return the results in.
+            # This also means we cannot order by any columns or paginate.
+            orderby = None
+
         if len(self.user_queries) < 2:
             # Optimization: If there is only a condition for a single span,
             # we can take the fast path and query without using aggregates.
-            timestamp_column = "timestamp"
             query = SpansIndexedQueryBuilder(
                 Dataset.SpansIndexed,
                 params=params,
@@ -683,7 +692,6 @@ class TracesExecutor:
             for where in self.user_queries.values():
                 query.where.extend(where)
         else:
-            timestamp_column = "min(timestamp)"
             query = SpansIndexedQueryBuilder(
                 Dataset.SpansIndexed,
                 params=params,
@@ -770,6 +778,12 @@ class TracesExecutor:
         traces_occurrences_results,
         traces_breakdown_projects_results,
     ) -> list[TraceResult]:
+        if self.sort == "-timestamp":
+            traces_metas_results["data"].sort(
+                key=lambda row: row["last_seen()"],
+                reverse=True,
+            )
+
         # mapping of trace id to a tuple of start/finish times
         traces_range = {
             row["trace"]: {

@@ -2142,11 +2142,10 @@ def test_get_span_attribute_metrics(default_project: Project) -> None:
     ]
     default_project.update_option("sentry:metrics_extraction_rules", json.dumps(rules))
 
-    with Feature(ON_DEMAND_METRICS):
-        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
-        assert not config
+    config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
+    assert not config
 
-    with Feature([ON_DEMAND_METRICS, "organizations:custom-metrics-extraction-rule"]):
+    with Feature(["organizations:custom-metrics-extraction-rule"]):
         config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
         assert config
         assert config["metrics"] == [
@@ -2169,7 +2168,10 @@ def test_get_span_attribute_metrics(default_project: Project) -> None:
             },
             {
                 "category": "span",
-                "condition": None,
+                "condition": {
+                    "op": "not",
+                    "inner": {"name": "span.duration", "op": "eq", "value": None},
+                },
                 "field": None,
                 "mri": "c:custom/span.duration@none",
                 "tags": [],

@@ -32,7 +32,7 @@ class OrganizationMetricsCodeLocationsEndpoint(OrganizationEndpoint):
 
         def data_fn(offset: int, limit: int):
             return get_metric_code_locations(
-                metric_mris=[request.GET["metric"]],
+                mris=[request.GET["metric"]],
                 start=start,
                 end=end,
                 organization=organization,

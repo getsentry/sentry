@@ -76,14 +76,13 @@ describe('PageOverview', function () {
             'p75(measurements.fcp)',
             'p75(measurements.cls)',
             'p75(measurements.ttfb)',
-            'p75(measurements.fid)',
             'p75(measurements.inp)',
             'p75(transaction.duration)',
             'count_web_vitals(measurements.lcp, any)',
             'count_web_vitals(measurements.fcp, any)',
             'count_web_vitals(measurements.cls, any)',
-            'count_web_vitals(measurements.fid, any)',
             'count_web_vitals(measurements.ttfb, any)',
+            'count_web_vitals(measurements.inp, any)',
             'count()',
           ],
           query:
@@ -132,7 +131,7 @@ describe('PageOverview', function () {
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
-      query: {useStoredScores: 'true', transaction: '/', type: 'interactions'},
+      query: {transaction: '/', type: 'interactions'},
       hash: '',
       state: undefined,
       action: 'PUSH',
@@ -177,7 +176,6 @@ describe('PageOverview', function () {
       pathname: '',
       search: '',
       query: {
-        useStoredScores: 'true',
         transaction: '/page-with-a-*/',
         type: 'interactions',
       },

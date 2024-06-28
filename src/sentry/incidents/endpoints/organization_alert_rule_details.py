@@ -32,7 +32,7 @@ from sentry.incidents.serializers import AlertRuleSerializer as DrfAlertRuleSeri
 from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creators_for_incidents
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.models.rulesnooze import RuleSnooze
-from sentry.services.hybrid_cloud.app import app_service
+from sentry.sentry_apps.services.app import app_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.tasks.integrations.slack import find_channel_id_for_alert_rule
 

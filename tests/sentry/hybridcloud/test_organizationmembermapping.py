@@ -1,11 +1,11 @@
 from django.db import router, transaction
 
-from sentry.models.organizationmember import InviteStatus, OrganizationMember
-from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.services.hybrid_cloud.organizationmember_mapping import (
+from sentry.hybridcloud.services.organizationmember_mapping import (
     RpcOrganizationMemberMappingUpdate,
     organizationmember_mapping_service,
 )
+from sentry.models.organizationmember import InviteStatus, OrganizationMember
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin

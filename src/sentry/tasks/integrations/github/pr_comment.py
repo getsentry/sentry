@@ -9,6 +9,7 @@ from django.db import connection
 from snuba_sdk import Column, Condition, Direction, Entity, Function, Op, OrderBy, Query
 from snuba_sdk import Request as SnubaRequest
 
+from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group
 from sentry.models.groupowner import GroupOwnerType
 from sentry.models.options.organization_option import OrganizationOption
@@ -16,7 +17,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequestComment
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
