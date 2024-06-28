@@ -1752,15 +1752,15 @@ class BaseMetricsTestCase(SnubaTestCase):
         assert not isinstance(value, list)
 
         parsed = parse_mri(mri)
-        type = parsed.entity
+        metric_type = parsed.entity
         use_case_id = UseCaseID(parsed.namespace)
 
-        if type == "set":
+        if metric_type == "s":
             # Relay uses a different hashing algorithm, but that's ok
             value = [int.from_bytes(hashlib.md5(str(value).encode()).digest()[:4], "big")]
-        elif type == "distribution":
+        elif metric_type == "d":
             value = [value]
-        elif type == "gauge":
+        elif metric_type == "g":
             # In case we pass either an int or float, we will emit a gauge with all the same values.
             if not isinstance(value, dict):
                 value = {
@@ -1777,7 +1777,7 @@ class BaseMetricsTestCase(SnubaTestCase):
             "metric_id": metric_id(mri),
             "timestamp": timestamp,
             "tags": {tag_key(key): tag_value(value) for key, value in tags.items()},
-            "type": {"counter": "c", "set": "s", "distribution": "d", "gauge": "g"}[type],
+            "type": metric_type,
             "value": value,
             "retention_days": 90,
             "use_case_id": use_case_id.value,
