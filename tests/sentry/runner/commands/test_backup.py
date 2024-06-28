@@ -24,9 +24,9 @@ from sentry.backup.crypto import (
 from sentry.backup.dependencies import get_model_name
 from sentry.backup.findings import InstanceID
 from sentry.backup.imports import ImportingError
+from sentry.backup.services.import_export.model import RpcImportError, RpcImportErrorKind
 from sentry.models.email import Email
 from sentry.runner.commands.backup import backup, export, import_
-from sentry.services.hybrid_cloud.import_export.model import RpcImportError, RpcImportErrorKind
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path

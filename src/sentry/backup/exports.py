@@ -18,16 +18,13 @@ from sentry.backup.dependencies import (
 )
 from sentry.backup.helpers import Filter, Printer
 from sentry.backup.scopes import ExportScope
-from sentry.services.hybrid_cloud.import_export.model import (
+from sentry.backup.services.import_export.model import (
     RpcExportError,
     RpcExportScope,
     RpcFilter,
     RpcPrimaryKeyMap,
 )
-from sentry.services.hybrid_cloud.import_export.service import (
-    ImportExportService,
-    import_export_service,
-)
+from sentry.backup.services.import_export.service import ImportExportService, import_export_service
 from sentry.silo.base import SiloMode
 
 __all__ = (

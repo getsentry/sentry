@@ -13,6 +13,7 @@ from sentry import features, tagstore
 from sentry.api.endpoints.group_details import get_group_global_count
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.eventstore.models import GroupEvent
+from sentry.identity.services.identity import RpcIdentity, identity_service
 from sentry.integrations.message_builder import (
     build_attachment_replay_link,
     build_attachment_text,
@@ -55,7 +56,6 @@ from sentry.notifications.utils.participants import (
     dedupe_suggested_assignees,
     get_suspect_commit_users,
 )
-from sentry.services.hybrid_cloud.identity import RpcIdentity, identity_service
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.snuba.referrer import Referrer
 from sentry.types.actor import Actor

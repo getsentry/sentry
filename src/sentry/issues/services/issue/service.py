@@ -8,7 +8,7 @@ from abc import abstractmethod
 
 from sentry.hybridcloud.rpc.resolvers import ByOrganizationId, ByOrganizationSlug, ByRegionName
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
-from sentry.services.hybrid_cloud.issue.model import RpcGroupShareMetadata
+from sentry.issues.services.issue.model import RpcGroupShareMetadata
 from sentry.silo.base import SiloMode
 
 
@@ -31,7 +31,7 @@ class IssueService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from sentry.services.hybrid_cloud.issue.impl import DatabaseBackedIssueService
+        from sentry.issues.services.issue.impl import DatabaseBackedIssueService
 
         return DatabaseBackedIssueService()
 

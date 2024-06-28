@@ -7,8 +7,8 @@ from abc import abstractmethod
 from typing import Any
 
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
-from sentry.services.hybrid_cloud.identity import RpcIdentity, RpcIdentityProvider
-from sentry.services.hybrid_cloud.identity.model import IdentityFilterArgs
+from sentry.identity.services.identity import RpcIdentity, RpcIdentityProvider
+from sentry.identity.services.identity.model import IdentityFilterArgs
 from sentry.silo.base import SiloMode
 
 
@@ -18,7 +18,7 @@ class IdentityService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from sentry.services.hybrid_cloud.identity.impl import DatabaseBackedIdentityService
+        from sentry.identity.services.identity.impl import DatabaseBackedIdentityService
 
         return DatabaseBackedIdentityService()
 

@@ -4,10 +4,10 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 
+from sentry.issues.services.issue.model import RpcGroupShareMetadata
+from sentry.issues.services.issue.service import IssueService
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.services.hybrid_cloud.issue.model import RpcGroupShareMetadata
-from sentry.services.hybrid_cloud.issue.service import IssueService
 
 
 class DatabaseBackedIssueService(IssueService):

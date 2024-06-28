@@ -16,6 +16,7 @@ from sentry import features, http
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.constants import ObjectStatus
 from sentry.identity.pipeline import IdentityProviderPipeline
+from sentry.identity.services.identity.model import RpcIdentity
 from sentry.identity.vsts.provider import get_user_info
 from sentry.integrations.base import (
     FeatureDescription,
@@ -34,7 +35,6 @@ from sentry.models.integrations.integration_external_project import IntegrationE
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.repository import Repository
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
-from sentry.services.hybrid_cloud.identity.model import RpcIdentity
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import (
     ApiError,

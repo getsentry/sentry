@@ -7,18 +7,15 @@ from django.db.models import QuerySet
 
 from sentry.api.serializers.base import Serializer
 from sentry.hybridcloud.rpc.filter_query import FilterQueryDatabaseImpl
-from sentry.models.authidentity import AuthIdentity
-from sentry.models.identity import Identity
-from sentry.services.hybrid_cloud.identity.model import (
+from sentry.identity.services.identity.model import (
     IdentityFilterArgs,
     RpcIdentity,
     RpcIdentityProvider,
 )
-from sentry.services.hybrid_cloud.identity.serial import (
-    serialize_identity,
-    serialize_identity_provider,
-)
-from sentry.services.hybrid_cloud.identity.service import IdentityService
+from sentry.identity.services.identity.serial import serialize_identity, serialize_identity_provider
+from sentry.identity.services.identity.service import IdentityService
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.identity import Identity
 
 
 class DatabaseBackedIdentityService(IdentityService):

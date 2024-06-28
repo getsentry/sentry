@@ -26,15 +26,7 @@ from sentry.backup.dependencies import (
 from sentry.backup.findings import InstanceID
 from sentry.backup.helpers import EXCLUDED_APPS, DatetimeSafeDjangoJSONEncoder, Filter, ImportFlags
 from sentry.backup.scopes import ExportScope
-from sentry.db.models.base import BaseModel
-from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
-from sentry.models.importchunk import ControlImportChunk, RegionImportChunk
-from sentry.models.organizationmember import OrganizationMember
-from sentry.models.outbox import outbox_context
-from sentry.models.user import User
-from sentry.models.userpermission import UserPermission
-from sentry.models.userrole import UserRoleUser
-from sentry.services.hybrid_cloud.import_export.model import (
+from sentry.backup.services.import_export.model import (
     RpcExportError,
     RpcExportErrorKind,
     RpcExportOk,
@@ -49,7 +41,15 @@ from sentry.services.hybrid_cloud.import_export.model import (
     RpcImportScope,
     RpcPrimaryKeyMap,
 )
-from sentry.services.hybrid_cloud.import_export.service import ImportExportService
+from sentry.backup.services.import_export.service import ImportExportService
+from sentry.db.models.base import BaseModel
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.models.importchunk import ControlImportChunk, RegionImportChunk
+from sentry.models.organizationmember import OrganizationMember
+from sentry.models.outbox import outbox_context
+from sentry.models.user import User
+from sentry.models.userpermission import UserPermission
+from sentry.models.userrole import UserRoleUser
 from sentry.silo.base import SiloMode
 
 logger = logging.getLogger(__name__)

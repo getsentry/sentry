@@ -6,6 +6,7 @@ from django.http import HttpRequest, HttpResponse
 from django.utils.decorators import method_decorator
 
 from sentry.api.helpers.teams import is_team_admin
+from sentry.identity.services.identity import identity_service
 from sentry.integrations.mixins import SUCCESS_UNLINKED_TEAM_MESSAGE, SUCCESS_UNLINKED_TEAM_TITLE
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.metrics import (
@@ -17,7 +18,6 @@ from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.integrations.integration import Integration
 from sentry.models.organizationmember import OrganizationMember
-from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.utils import metrics
 from sentry.utils.signing import unsign
 from sentry.web.frontend.base import BaseView, region_silo_view

@@ -11,13 +11,9 @@ from django.db import models
 
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.helpers import ImportFlags
-from sentry.models.importchunk import ControlImportChunk, RegionImportChunk
-from sentry.models.options.option import ControlOption, Option
-from sentry.models.project import Project
-from sentry.models.user import MAX_USERNAME_LENGTH, User
-from sentry.services.hybrid_cloud.import_export import import_export_service
-from sentry.services.hybrid_cloud.import_export.impl import get_existing_import_chunk
-from sentry.services.hybrid_cloud.import_export.model import (
+from sentry.backup.services.import_export import import_export_service
+from sentry.backup.services.import_export.impl import get_existing_import_chunk
+from sentry.backup.services.import_export.model import (
     RpcExportError,
     RpcExportErrorKind,
     RpcExportScope,
@@ -28,6 +24,10 @@ from sentry.services.hybrid_cloud.import_export.model import (
     RpcImportScope,
     RpcPrimaryKeyMap,
 )
+from sentry.models.importchunk import ControlImportChunk, RegionImportChunk
+from sentry.models.options.option import ControlOption, Option
+from sentry.models.project import Project
+from sentry.models.user import MAX_USERNAME_LENGTH, User
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import get_fixture_path
@@ -220,7 +220,7 @@ class RpcImportRetryTests(TestCase):
             return None
 
         with patch(
-            "sentry.services.hybrid_cloud.import_export.impl.get_existing_import_chunk",
+            "sentry.backup.services.import_export.impl.get_existing_import_chunk",
             MagicMock(side_effect=wrapped_get_existing_import_chunk),
         ) as get_existing_import_chunk_mock:
             import_uuid = str(uuid4().hex)

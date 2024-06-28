@@ -25,8 +25,8 @@ from sentry.services.hybrid_cloud.user import RpcUser
 
 if TYPE_CHECKING:
     from sentry.identity.base import Provider
+    from sentry.identity.services.identity import RpcIdentityProvider
     from sentry.models.user import User
-    from sentry.services.hybrid_cloud.identity import RpcIdentityProvider
 
 logger = logging.getLogger(__name__)
 

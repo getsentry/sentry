@@ -1,7 +1,7 @@
 from django.conf import settings
 from rest_framework.request import Request
 
-from sentry.services.hybrid_cloud.issue.service import issue_service
+from sentry.issues.services.issue.service import issue_service
 from sentry.web.frontend.base import control_silo_view
 from sentry.web.frontend.react_page import GenericReactPageView
 
