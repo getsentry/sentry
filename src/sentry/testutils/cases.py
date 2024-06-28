@@ -1857,8 +1857,6 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         mri: str,
         tags: dict[str, str],
         value: int | float | dict[str, int | float],
-        use_case_id: UseCaseID,
-        type: str | None = None,
         org_id: int | None = None,
         project_id: int | None = None,
         days_before_now: int = 0,
