@@ -1,3 +1,4 @@
+from collections import defaultdict
 from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
@@ -9,14 +10,21 @@ from sentry import buffer
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
 from sentry.models.rulefirehistory import RuleFireHistory
-from sentry.rules.conditions.event_frequency import ComparisonType, EventFrequencyConditionData
-from sentry.rules.processing.delayed_processing import (
+from sentry.rules.conditions.event_frequency import (
+    ComparisonType,
+    EventFrequencyCondition,
+    EventFrequencyConditionData,
+)
+from sentry.rules.processing.delayed_processing import (  # build_group_to_groupevent,; bulk_fetch_events,; get_condition_group_results,; get_group_to_groupevent,; get_rules_to_fire,; ; ; parse_rulegroup_to_event_data,
     apply_delayed,
     get_condition_groups,
+    get_rules_to_groups,
+    get_rules_to_slow_conditions,
+    get_slow_conditions,
     process_delayed_alert_conditions,
 )
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
-from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, TestCase
+from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, RuleTestCase, TestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.redis import mock_redis_buffer
@@ -26,6 +34,108 @@ from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequency
 pytestmark = pytest.mark.sentry_metrics
 
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=15, second=0, microsecond=0)
+TEST_RULE_SLOW_CONDITION = {"id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition"}
+TEST_RULE_FAST_CONDITION = {"id": "sentry.rules.conditions.every_event.EveryEventCondition"}
+
+
+class BuildGroupToGroupEventTest(TestCase):
+    def test_build_group_to_groupevent(self):
+        pass
+
+
+class BulkFetchEventsTest(TestCase):
+    def test_bulk_fetch_events(self):
+        pass
+
+
+class GetConditionGroupResultsTest(TestCase):
+    def test_get_condition_group_results(self):
+        pass
+
+
+class GetGroupToGroupEventTest(TestCase):
+    def test_get_group_to_groupevent(self):
+        pass
+
+
+class GetRulesToFireTest(TestCase):
+    def test_get_rules_to_fire(self):
+        pass
+
+
+class GetRulesToGroupsTest(TestCase):
+    def test_empty_input(self):
+        result = get_rules_to_groups({})
+        assert result == defaultdict(set)
+
+    def test_single_rule_group(self):
+        input_data = {"1:100": "event_data"}
+        expected = defaultdict(set, {1: {100}})
+        result = get_rules_to_groups(input_data)
+        assert result == expected
+
+    def test_multiple_rule_groups(self):
+        input_data = {
+            "1:100": "event_data1",
+            "1:101": "event_data2",
+            "2:200": "event_data3",
+            "3:300": "event_data4",
+            "3:301": "event_data5",
+        }
+        expected = defaultdict(set, {1: {100, 101}, 2: {200}, 3: {300, 301}})
+        result = get_rules_to_groups(input_data)
+        assert result == expected
+
+    def test_invalid_input_format(self):
+        input_data = {"invalid_key": "event_data"}
+        with pytest.raises(ValueError):
+            get_rules_to_groups(input_data)
+
+
+class GetRulesToSlowConditionsTest(RuleTestCase):
+    rule_cls = EventFrequencyCondition
+
+    def setUp(self):
+        self.rule = self.get_rule(data={"conditions": [TEST_RULE_SLOW_CONDITION]})
+
+    def test_get_rules_to_slow_conditions(self):
+        results = get_rules_to_slow_conditions([self.rule])
+        assert results == {self.rule: [TEST_RULE_SLOW_CONDITION]}
+
+    def test_get_rules_to_slow_conditions__with_fast_conditions(self):
+        self.rule = self.get_rule(data={"conditions": [TEST_RULE_FAST_CONDITION]})
+        results = get_rules_to_slow_conditions([self.rule])
+        assert results == defaultdict(list)
+
+    def test_get_rules_to_slow_conditions__with_multiple_slow_rules(self):
+        self.rule_two = self.get_rule(data={"conditions": [TEST_RULE_SLOW_CONDITION]})
+        results = get_rules_to_slow_conditions([self.rule, self.rule_two])
+        assert results == {
+            self.rule: [TEST_RULE_SLOW_CONDITION],
+            self.rule_two: [TEST_RULE_SLOW_CONDITION],
+        }
+
+
+class GetSlowConditionsTest(RuleTestCase):
+    rule_cls = EventFrequencyCondition
+
+    def setUp(self):
+        self.rule = self.get_rule(data={"conditions": [TEST_RULE_SLOW_CONDITION]})
+
+    def test_get_slow_conditions(self):
+        results = get_slow_conditions(self.rule)
+        assert results == [TEST_RULE_SLOW_CONDITION]
+
+    def test_get_slow_conditions__only_fast(self):
+        self.rule = self.get_rule(data={"conditions": [TEST_RULE_FAST_CONDITION]})
+
+        results = get_slow_conditions(self.rule)
+        assert results == []
+
+
+class ParseRuleGroupToEventDataTest(TestCase):
+    def test_parse_rulegroup_to_event_data(self):
+        pass
 
 
 @freeze_time(FROZEN_TIME)
