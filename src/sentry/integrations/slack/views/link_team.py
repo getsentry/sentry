@@ -11,6 +11,7 @@ from django.utils.decorators import method_decorator
 from rest_framework.request import Request
 
 from sentry import analytics, features
+from sentry.identity.services.identity import identity_service
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.models.integrations.external_actor import ExternalActor
@@ -19,7 +20,6 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.notifications.services import notifications_service
 from sentry.notifications.types import NotificationSettingEnum
-from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.utils.signing import unsign
 from sentry.web.frontend.base import BaseView, region_silo_view
 from sentry.web.helpers import render_to_response
