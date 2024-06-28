@@ -9,26 +9,35 @@ from sentry.utils import json, metrics
 
 # These are values that come default from logging.LogRecord.
 # They are defined here:
-# https://github.com/python/cpython/blob/2.7/Lib/logging/__init__.py#L237-L310
+# https://github.com/python/cpython/blob/e6543daf12051e9c660a5c0437683e8d2706a3c7/Lib/logging/__init__.py#L286-L385
+# additionally Formatter injects `message` and `asctime` into the record.
+# https://github.com/python/cpython/blob/e6543daf12051e9c660a5c0437683e8d2706a3c7/Lib/logging/__init__.py#L711-L713
+
 throwaways = frozenset(
     (
-        "threadName",
-        "thread",
-        "created",
-        "process",
-        "processName",
-        "args",
-        "module",
-        "filename",
-        "levelno",
-        "exc_text",
+        "name",
         "msg",
+        "args",
+        "levelname",
+        "levelno",
         "pathname",
+        "filename",
+        "module",
+        "exc_info",
+        "exc_text",
+        "stack_info",
         "lineno",
         "funcName",
-        "relativeCreated",
-        "levelname",
+        "created",
         "msecs",
+        "relativeCreated",
+        "thread",
+        "threadName",
+        "processName",
+        "process",
+        "taskName",
+        "message",
+        "asctime",
     )
 )
 
