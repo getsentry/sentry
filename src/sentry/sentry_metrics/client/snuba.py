@@ -58,7 +58,7 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         """
         assert in_test_environment(), "This backend should only be used in testing environments"
         BaseMetricsTestCase.store_metric(
-            name=build_mri(metric_name, "c", use_case_id, unit),
+            mri=build_mri(metric_name, "c", use_case_id, unit),
             tags=tags,
             value=value,
             org_id=org_id,
@@ -86,7 +86,7 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         assert in_test_environment(), "This backend should only be used in testing environments"
         for val in value:
             BaseMetricsTestCase.store_metric(
-                name=build_mri(metric_name, "s", use_case_id, unit),
+                mri=build_mri(metric_name, "s", use_case_id, unit),
                 tags=tags,
                 value=val,
                 org_id=org_id,
@@ -114,7 +114,7 @@ class SnubaMetricsBackend(GenericMetricsBackend):
         assert in_test_environment(), "This backend should only be used in testing environments"
         for val in value:
             BaseMetricsTestCase.store_metric(
-                name=build_mri(metric_name, "d", use_case_id, unit),
+                mri=build_mri(metric_name, "d", use_case_id, unit),
                 tags=tags,
                 value=val,
                 org_id=org_id,
