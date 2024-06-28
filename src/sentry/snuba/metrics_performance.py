@@ -21,6 +21,7 @@ from sentry.search.events.types import EventsResponse, ParamsType, QueryBuilderC
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType
+from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
 
 logger = logging.getLogger(__name__)
@@ -51,6 +52,7 @@ def query(
     on_demand_metrics_type: MetricSpecType | None = None,
     granularity: int | None = None,
     fallback_to_transactions=False,
+    query_source: QuerySource | None = None,
 ):
     with sentry_sdk.start_span(op="mep", description="MetricQueryBuilder"):
         metrics_query = MetricsQueryBuilder(
@@ -78,7 +80,7 @@ def query(
             ),
         )
         metrics_referrer = referrer + ".metrics-enhanced"
-        results = metrics_query.run_query(metrics_referrer)
+        results = metrics_query.run_query(referrer=metrics_referrer, query_source=query_source)
     with sentry_sdk.start_span(op="mep", description="query.transform_results"):
         results = metrics_query.process_results(results)
         results["meta"]["isMetricsData"] = True
@@ -107,8 +109,7 @@ def bulk_timeseries_query(
     groupby: Column | None = None,
     *,
     apply_formatting: Literal[False],
-) -> EventsResponse:
-    ...
+) -> EventsResponse: ...
 
 
 @overload
@@ -128,8 +129,7 @@ def bulk_timeseries_query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     groupby: Column | None = None,
-) -> SnubaTSResult:
-    ...
+) -> SnubaTSResult: ...
 
 
 def bulk_timeseries_query(
@@ -256,6 +256,7 @@ def timeseries_query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     groupby: Column | None = None,
+    query_source: QuerySource | None = None,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -285,7 +286,7 @@ def timeseries_query(
                 ),
             )
             metrics_referrer = referrer + ".metrics-enhanced"
-            result = metrics_query.run_query(metrics_referrer)
+            result = metrics_query.run_query(referrer=metrics_referrer, query_source=query_source)
         with sentry_sdk.start_span(op="mep", description="query.transform_results"):
             result = metrics_query.process_results(result)
             result["data"] = (
@@ -404,6 +405,7 @@ def top_events_timeseries(
     functions_acl=None,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    query_source: QuerySource | None = None,
 ) -> SnubaTSResult | dict[str, Any]:
 
     if len(params) == 0 and snuba_params is not None:
@@ -423,6 +425,7 @@ def top_events_timeseries(
             use_aggregate_conditions=True,
             on_demand_metrics_enabled=on_demand_metrics_enabled,
             on_demand_metrics_type=on_demand_metrics_type,
+            query_source=query_source,
         )
 
     top_events_builder = TopMetricsQueryBuilder(
@@ -459,10 +462,10 @@ def top_events_timeseries(
         )
 
         # TODO: use bulk_snuba_queries
-        other_result = other_events_builder.run_query(referrer)
-        result = top_events_builder.run_query(referrer)
+        other_result = other_events_builder.run_query(referrer=referrer, query_source=query_source)
+        result = top_events_builder.run_query(referrer=referrer, query_source=query_source)
     else:
-        result = top_events_builder.run_query(referrer)
+        result = top_events_builder.run_query(referrer=referrer, query_source=query_source)
         other_result = {"data": []}
     if (
         not allow_empty

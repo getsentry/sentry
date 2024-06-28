@@ -59,6 +59,7 @@ from sentry.search.events.types import (
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricMeta
 from sentry.users.services.user.service import user_service
+from sentry.snuba.query_sources import QuerySource
 from sentry.utils.dates import outside_retention_with_modified_start
 from sentry.utils.env import in_test_environment
 from sentry.utils.snuba import (
@@ -1509,10 +1510,12 @@ class BaseQueryBuilder:
             return None
         return value
 
-    def run_query(self, referrer: str | None, use_cache: bool = False) -> Any:
+    def run_query(
+        self, referrer: str | None, use_cache: bool = False, query_source: QuerySource | None = None
+    ) -> Any:
         if not referrer:
             InvalidSearchQuery("Query missing referrer.")
-        return raw_snql_query(self.get_snql_query(), referrer, use_cache)
+        return raw_snql_query(self.get_snql_query(), referrer, use_cache, query_source)
 
     def process_results(self, results: Any) -> EventsResponse:
         with sentry_sdk.start_span(op="QueryBuilder", description="process_results") as span:
