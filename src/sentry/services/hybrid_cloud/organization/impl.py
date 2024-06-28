@@ -37,7 +37,7 @@ from sentry.models.savedsearch import SavedSearch
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.team import Team, TeamStatus
 from sentry.monitors.models import Monitor
-from sentry.services.hybrid_cloud.app import app_service
+from sentry.sentry_apps.services.app import app_service
 from sentry.services.hybrid_cloud.organization import (
     OrganizationCheckService,
     OrganizationService,

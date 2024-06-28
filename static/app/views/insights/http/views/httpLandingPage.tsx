@@ -147,11 +147,7 @@ export function HTTPLandingPage() {
 
   useSynchronizeCharts([!isThroughputDataLoading && !isDurationDataLoading]);
 
-  useHasDataTrackAnalytics(
-    MutableSearch.fromQueryObject(BASE_FILTERS),
-    Referrer.LANDING_DOMAINS,
-    'insight.page_loads.http'
-  );
+  useHasDataTrackAnalytics(ModuleName.HTTP, 'insight.page_loads.http');
 
   const crumbs = useModuleBreadcrumbs('http');
 

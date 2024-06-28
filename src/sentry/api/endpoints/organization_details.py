@@ -27,6 +27,7 @@ from sentry.api.serializers.models.organization import (
     BaseOrganizationSerializer,
     TrustedRelaySerializer,
 )
+from sentry.auth.services.auth import auth_service
 from sentry.auth.staff import is_active_staff
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
@@ -65,7 +66,6 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.useremail import UserEmail
-from sentry.services.hybrid_cloud.auth import auth_service
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.services.hybrid_cloud.organization.model import (
     RpcOrganization,

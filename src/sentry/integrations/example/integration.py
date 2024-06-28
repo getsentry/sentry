@@ -14,12 +14,12 @@ from sentry.integrations.base import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import IssueSyncMixin, RepositoryMixin, ResolveSyncAction
+from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.mediators.plugins.migrator import Migrator
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
 from sentry.pipeline import PipelineView
-from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service

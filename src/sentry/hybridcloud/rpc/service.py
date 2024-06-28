@@ -382,7 +382,6 @@ class RpcService(abc.ABC):
 
 def list_all_service_method_signatures() -> Iterable[RpcMethodSignature]:
     """List signatures of all RPC methods in the global registry."""
-
     from sentry.services import hybrid_cloud as hybrid_cloud_service_pkg
 
     # Forcibly import all service packages to ensure the global registry is fully populated
@@ -390,6 +389,18 @@ def list_all_service_method_signatures() -> Iterable[RpcMethodSignature]:
         hybrid_cloud_service_pkg.__path__, prefix=f"{hybrid_cloud_service_pkg.__name__}."
     ):
         __import__(name)
+
+    # Several packages contain RPC services in them.
+    # This eventually could end up being sentry.*.services
+    service_packages = (
+        "sentry.auth.services",
+        "sentry.hybridcloud.services",
+        "sentry.integrations.services",
+        "sentry.notifications.services",
+        "sentry.sentry_apps.services",
+    )
+    for package_name in service_packages:
+        __import__(package_name)
 
     for service_obj in _global_service_registry.values():
         yield from service_obj.get_all_signatures()

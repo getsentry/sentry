@@ -10,7 +10,6 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {t} from 'sentry/locale';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
@@ -29,17 +28,14 @@ import {
   MODULE_TITLE,
   RELEASE_LEVEL,
 } from 'sentry/views/insights/llmMonitoring/settings';
+import {ModuleName} from 'sentry/views/insights/types';
 
 export function LLMMonitoringPage() {
   const organization = useOrganization();
 
   const crumbs = useModuleBreadcrumbs('ai');
 
-  useHasDataTrackAnalytics(
-    new MutableSearch('span.category:"ai"'),
-    'api.performance.ai.llm-monitoring-landing',
-    'insight.page_loads.ai'
-  );
+  useHasDataTrackAnalytics(ModuleName.AI, 'insight.page_loads.ai');
 
   return (
     <Layout.Page>
@@ -73,7 +69,7 @@ export function LLMMonitoringPage() {
                 </PageFilterBar>
               </ModuleLayout.Full>
               <ModulesOnboarding
-                moduleQueryFilter={new MutableSearch('span.op:ai.pipeline*')}
+                moduleName={ModuleName.AI}
                 onboardingContent={
                   <OnboardingContent
                     title={t('Get actionable insights about your LLMs')}
@@ -81,7 +77,6 @@ export function LLMMonitoringPage() {
                     link={MODULE_DOC_LINK}
                   />
                 }
-                referrer="api.ai-pipelines.view"
               >
                 <ModuleLayout.Third>
                   <TotalTokensUsedChart />
