@@ -14,47 +14,59 @@ interface Props {
   width: number;
 }
 
+// create gaps in the timeline by finding all columns between a background frame and foreground frame
+// or background frame to end of replay
 export default function TimelineGaps({durationMs, frames, width}: Props) {
   const markerWidth = frames.length < 200 ? 4 : frames.length < 500 ? 6 : 10;
 
   const totalColumns = Math.floor(width / markerWidth);
-  const framesByColStart = getFramesByColumn(
+  const framesByCol = getFramesByColumn(
     durationMs,
-    frames.filter(f => isBackgroundFrame(f)),
+    frames.filter(f => isBackgroundFrame(f) || isForegroundFrame(f)),
     totalColumns
   );
-  const framesByColEnd = getFramesByColumn(
-    durationMs,
-    frames.filter(f => isForegroundFrame(f)),
-    totalColumns
-  );
-  const range = (start, stop) =>
-    Array.from({length: (stop - start) / 1}, (_, i) => start + i);
+
+  // returns all numbers in the range
+  const range = (start, stop) => Array.from({length: stop - start}, (_, i) => start + i);
 
   const gapCol: number[] = [];
-  const startKeys = framesByColStart.keys();
-  const endKeys = framesByColEnd.keys();
-  let start = startKeys.next();
-  let end = endKeys.next();
 
-  while (!start.done) {
-    while (start.value > end.value) {
-      console.log(start.value, end.value);
-      end = endKeys.next();
-      if (end.done) {
-        end.value = totalColumns - 1;
+  const gapFrames = framesByCol.entries();
+  let currFrame = gapFrames.next();
+
+  while (!currFrame.done) {
+    let start = -1;
+    let end = -1;
+
+    // iterate through all frames until we have a start (background frame) and end (foreground frame) of gap or no more frames
+    while ((start === -1 || end === -1) && !currFrame.done) {
+      const [column, colFrame] = currFrame.value;
+      for (const frame of colFrame) {
+        // only considered start of gap if background frame hasn't been found yet
+        if (start === -1 && 'category' in frame && frame.category === 'app.background') {
+          start = column;
+        }
+        // gap only ends if background frame has been found
+        if (start !== -1 && 'category' in frame && frame.category === 'app.foreground') {
+          end = column;
+        }
       }
+      currFrame = gapFrames.next();
     }
-    gapCol.push(...range(start.value, end.value ?? totalColumns));
-    console.log(range(start.value, end.value), start.value, end.value);
-    start = startKeys.next();
-    end = endKeys.next();
+
+    // create gap if we found have start (background frame) and end (foreground frame)
+    if (start !== -1 && end !== -1) {
+      gapCol.push(...range(start + 1, end + 1));
+    }
+    // if we have start but no end, that means we have a gap until end of replay
+    if (start !== -1 && end === -1) {
+      gapCol.push(...range(start + 1, totalColumns + 1));
+    }
   }
 
-  console.log(gapCol, framesByColStart, framesByColEnd);
   return (
     <Timeline.Columns totalColumns={totalColumns} remainder={0}>
-      {Array.from(gapCol).map(column => (
+      {gapCol.map(column => (
         <Gap key={column} column={column} />
       ))}
     </Timeline.Columns>
