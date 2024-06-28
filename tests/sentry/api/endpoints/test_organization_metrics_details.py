@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Literal
 from unittest.mock import patch
 
 import pytest
@@ -187,25 +186,21 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         block_metric("s:custom/user@none", [project_1])
         block_tags_of_metric("d:custom/page_load@millisecond", {"release"}, [project_2])
 
-        metrics: tuple[
-            tuple[str, Literal["set", "counter", "distribution", "gauge"], Project], ...
-        ] = (
-            ("s:custom/user@none", "set", project_1),
-            ("s:custom/user@none", "set", project_2),
-            ("c:custom/clicks@none", "counter", project_1),
-            ("d:custom/page_load@millisecond", "distribution", project_2),
-            ("g:custom/page_load@millisecond", "gauge", project_2),
+        metrics: tuple[tuple[str, Project], ...] = (
+            ("s:custom/user@none", project_1),
+            ("s:custom/user@none", project_2),
+            ("c:custom/clicks@none", project_1),
+            ("d:custom/page_load@millisecond", project_2),
+            ("g:custom/page_load@millisecond", project_2),
         )
-        for mri, entity, project in metrics:
+        for mri, project in metrics:
             self.store_metric(
                 project.organization.id,
                 project.id,
-                entity,
                 mri,
                 {"transaction": "/hello"},
                 int(self.now.timestamp()),
                 10,
-                UseCaseID.CUSTOM,
             )
 
         response = self.get_success_response(
@@ -330,20 +325,18 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
 
         block_metric("s:custom/user@none", [project_1])
 
-        metrics: tuple[tuple[str, Literal["set", "counter", "distribution"], Project], ...] = (
-            ("s:custom/user@none", "set", project_1),
-            ("c:custom/clicks@none", "counter", project_1),
+        metrics: tuple[tuple[str, Project], ...] = (
+            ("s:custom/user@none", project_1),
+            ("c:custom/clicks@none", project_1),
         )
         for mri, entity, project in metrics:
             self.store_metric(
                 project.organization.id,
                 project.id,
-                entity,
                 mri,
                 {"transaction": "/hello"},
                 int(self.now.timestamp()),
                 10,
-                UseCaseID.CUSTOM,
             )
 
         response = self.get_success_response(

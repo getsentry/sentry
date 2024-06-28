@@ -12,7 +12,7 @@ from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
-from typing import Any, Literal, TypedDict, Union
+from typing import Any, TypedDict, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -1709,12 +1709,10 @@ class BaseMetricsTestCase(SnubaTestCase):
         cls,
         org_id: int,
         project_id: int,
-        type: Literal["counter", "set", "distribution", "gauge"],
         mri: str,
         tags: dict[str, str],
         timestamp: int,
         value: Any,
-        use_case_id: UseCaseID,
         aggregation_option: AggregationOption | None = None,
     ) -> None:
 
@@ -1854,24 +1852,6 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         """
         raise NotImplementedError
 
-    def _extract_entity_from_mri(self, mri_string: str) -> str | None:
-        """
-        Extracts the entity name from the MRI given a map of shorthands used to represent that entity in the MRI.
-        """
-        if (parsed_mri := parse_mri(mri_string)) is not None:
-            return self.ENTITY_SHORTHANDS[parsed_mri.entity]
-        else:
-            return None
-
-    def _extract_use_case_id_from_mri(self, mri_string: str) -> UseCaseID:
-        """
-        Extracts the use case id from the MRI.
-        """
-        if (parsed_mri := parse_mri(mri_string)) is not None:
-            return UseCaseID(parsed_mri.namespace)
-        else:
-            raise ValueError("Invalid MRI")
-
     def _store_metric(
         self,
         mri: str,
@@ -1897,7 +1877,6 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         self.store_metric(
             org_id=self.organization.id if org_id is None else org_id,
             project_id=self.project.id if project_id is None else project_id,
-            type=self._extract_entity_from_mri(mri),
             mri=mri,
             tags=tags,
             timestamp=int(
@@ -1914,7 +1893,6 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
                 ).timestamp()
             ),
             value=value,
-            use_case_id=self._extract_use_case_id_from_mri(mri),
             aggregation_option=aggregation_option,
         )
 
@@ -1964,13 +1942,11 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         aggregation_option: AggregationOption | None = None,
     ):
         self._store_metric(
-            type=type,
             mri=name,
             tags=tags,
             value=value,
             org_id=org_id,
             project_id=project_id,
-            use_case_id=UseCaseID.TRANSACTIONS,
             days_before_now=days_before_now,
             hours_before_now=hours_before_now,
             minutes_before_now=minutes_before_now,
@@ -1992,13 +1968,11 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         seconds_before_now: int = 0,
     ):
         self._store_metric(
-            type=type,
             mri=name,
             tags=tags,
             value=value,
             org_id=org_id,
             project_id=project_id,
-            use_case_id=UseCaseID.SESSIONS,
             days_before_now=days_before_now,
             hours_before_now=hours_before_now,
             minutes_before_now=minutes_before_now,
@@ -2020,13 +1994,11 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         aggregation_option: AggregationOption | None = None,
     ):
         self._store_metric(
-            type=type,
             mri=name,
             tags=tags,
             value=value,
             org_id=org_id,
             project_id=project_id,
-            use_case_id=UseCaseID.CUSTOM,
             days_before_now=days_before_now,
             hours_before_now=hours_before_now,
             minutes_before_now=minutes_before_now,
@@ -2194,12 +2166,10 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
             self.store_metric(
                 org_id,
                 project,
-                self.TYPE_MAP[entity],
                 internal_metric,
                 tags,
                 int(metric_timestamp),
                 subvalue,
-                use_case_id=use_case_id,
                 aggregation_option=aggregation_option,
             )
 
@@ -2263,12 +2233,10 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
             self.store_metric(
                 org_id,
                 project,
-                self.TYPE_MAP[entity],
                 internal_metric,
                 tags,
                 int(metric_timestamp),
                 subvalue,
-                use_case_id=use_case_id,
             )
 
     def wait_for_metric_count(
@@ -3151,9 +3119,7 @@ class OrganizationMetricsIntegrationTestCase(MetricsAPIBaseTestCase):
                 "tag1": "value1",
                 "tag2": "value2",
             },
-            type="counter",
             value=1,
-            use_case_id=UseCaseID.SESSIONS,
         )
         self.store_metric(
             org_id=org_id,
@@ -3161,9 +3127,7 @@ class OrganizationMetricsIntegrationTestCase(MetricsAPIBaseTestCase):
             mri="c:sessions/metric1@none",
             timestamp=now,
             tags={"tag3": "value3"},
-            type="counter",
             value=1,
-            use_case_id=UseCaseID.SESSIONS,
         )
         self.store_metric(
             org_id=org_id,
@@ -3175,9 +3139,7 @@ class OrganizationMetricsIntegrationTestCase(MetricsAPIBaseTestCase):
                 "tag1": "value2",
                 "tag2": "value1",
             },
-            type="set",
             value=123,
-            use_case_id=UseCaseID.SESSIONS,
         )
         self.store_metric(
             org_id=org_id,
@@ -3185,9 +3147,7 @@ class OrganizationMetricsIntegrationTestCase(MetricsAPIBaseTestCase):
             mri="c:sessions/metric3@none",
             timestamp=now,
             tags={},
-            type="set",
             value=123,
-            use_case_id=UseCaseID.SESSIONS,
         )
 
 

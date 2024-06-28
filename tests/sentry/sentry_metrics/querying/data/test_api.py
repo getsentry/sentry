@@ -25,7 +25,6 @@ from sentry.sentry_metrics.querying.units import (
     UnitFamily,
     get_unit_family_and_unit,
 )
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.visibility import block_metric, block_tags_of_metric
 from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
@@ -68,7 +67,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             self.store_metric(
                 self.project.organization.id,
                 self.project.id,
-                "distribution",
                 TransactionMRI.DURATION.value,
                 {
                     "transaction": transaction,
@@ -78,7 +76,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 },
                 self.ts(time),
                 value,
-                UseCaseID.TRANSACTIONS,
             )
 
         self.prod_env = self.create_environment(name="prod", project=self.project)
@@ -500,12 +497,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             self.store_metric(
                 self.project.organization.id,
                 self.project.id,
-                "distribution",
                 TransactionMRI.MEASUREMENTS_FCP.value,
                 tags,
                 self.ts(time),
                 value,
-                UseCaseID.TRANSACTIONS,
             )
 
         query_1 = self.mql("sum", TransactionMRI.MEASUREMENTS_FCP.value, group_by="transaction")
@@ -959,12 +954,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             self.store_metric(
                 self.project.organization.id,
                 self.project.id,
-                "set",
                 mri,
                 {},
                 self.ts(self.now()),
                 user,
-                UseCaseID.CUSTOM,
             )
 
         query_1 = self.mql("count_unique", mri)
@@ -997,12 +990,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             self.store_metric(
                 self.project.organization.id,
                 project.id,
-                "distribution",
                 mri,
                 {},
                 self.ts(self.now()),
                 value,
-                UseCaseID.CUSTOM,
             )
 
         query_1 = self.mql("sum", mri)
@@ -1035,12 +1026,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             self.store_metric(
                 self.project.organization.id,
                 project.id,
-                "distribution",
                 mri,
                 {},
                 self.ts(self.now()),
                 value,
-                UseCaseID.CUSTOM,
             )
 
         query_1 = self.mql("sum", mri)
@@ -1073,12 +1062,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             self.store_metric(
                 self.project.organization.id,
                 project.id,
-                "distribution",
                 mri,
                 {},
                 self.ts(self.now()),
                 10.0,
-                UseCaseID.CUSTOM,
             )
 
         query_1 = self.mql("sum", mri_1)
@@ -1116,12 +1103,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             self.store_metric(
                 self.project.organization.id,
                 project.id,
-                "distribution",
                 mri,
                 {"transaction": "/hello"},
                 self.ts(self.now()),
                 value,
-                UseCaseID.CUSTOM,
             )
 
         query_1 = self.mql("sum", mri)
@@ -1375,12 +1360,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             self.store_metric(
                 self.project.organization.id,
                 self.project.id,
-                "distribution",
                 mri,
                 {},
                 self.ts(self.now()),
                 value,
-                UseCaseID.CUSTOM,
             )
 
         for formula, expected_result, expected_unit_family in (
@@ -1434,12 +1417,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             self.store_metric(
                 self.project.organization.id,
                 self.project.id,
-                "distribution",
                 mri,
                 {},
                 self.ts(self.now()),
                 value,
-                UseCaseID.CUSTOM,
             )
 
         query_1 = self.mql("avg", mri_1)
@@ -1477,12 +1458,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             self.store_metric(
                 self.project.organization.id,
                 self.project.id,
-                "distribution",
                 mri,
                 {},
                 self.ts(self.now()),
                 value,
-                UseCaseID.CUSTOM,
             )
 
         query_1 = self.mql("avg", mri_1)
@@ -1520,12 +1499,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             self.store_metric(
                 self.project.organization.id,
                 self.project.id,
-                "distribution",
                 mri,
                 {},
                 self.ts(self.now()),
                 value,
-                UseCaseID.CUSTOM,
             )
 
         query_1 = self.mql("avg", mri_1)
@@ -1563,12 +1540,10 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             self.store_metric(
                 self.project.organization.id,
                 self.project.id,
-                "distribution",
                 mri,
                 {},
                 self.ts(self.now()),
                 value,
-                UseCaseID.CUSTOM,
             )
 
         for formula, expected_result, expected_unit_family, expected_unit in (
@@ -1620,7 +1595,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
             self.store_metric(
                 new_project.organization.id,
                 new_project.id,
-                "distribution",
                 TransactionMRI.DURATION.value,
                 {
                     "transaction": transaction,
@@ -1629,7 +1603,6 @@ class MetricsAPITestCase(TestCase, BaseMetricsTestCase):
                 },
                 self.ts(time),
                 value,
-                UseCaseID.TRANSACTIONS,
             )
         return new_project
 

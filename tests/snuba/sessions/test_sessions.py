@@ -9,7 +9,6 @@ from django.utils import timezone
 
 from sentry.release_health.base import OverviewStat
 from sentry.release_health.metrics import MetricsReleaseHealthBackend
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.sessions import _make_stats
 from sentry.testutils.cases import BaseMetricsTestCase, TestCase
 
@@ -1052,9 +1051,7 @@ class GetProjectReleasesCountTest(TestCase, BaseMetricsTestCase):
                 mri="s:sessions/foobarbaz@none",  # any other metric ID
                 timestamp=int(time.time()),
                 tags={},
-                type="set",
                 value=value,
-                use_case_id=UseCaseID.SESSIONS,
             )
 
         assert (

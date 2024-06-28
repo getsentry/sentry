@@ -63,8 +63,6 @@ class BaseGroupCounts(BaseMetricsTestCase, TestCase):
             last_event = self.store_event(data=data, project_id=proj_id, assert_no_errors=False)
 
             self.store_metric(
-                type="counter",
-                use_case_id=UseCaseID.ESCALATING_ISSUES,
                 org_id=last_event.project.organization_id,
                 project_id=last_event.project.id,
                 mri=build_mri("event_ingested", "c", UseCaseID.ESCALATING_ISSUES, None),
@@ -117,8 +115,6 @@ class HistoricGroupCounts(
             insert_time=timestamp,
         )
         self.store_metric(
-            type="counter",
-            use_case_id=UseCaseID.ESCALATING_ISSUES,
             org_id=profile_error_event.project.organization_id,
             project_id=profile_error_event.project.id,
             mri=build_mri("event_ingested", "c", UseCaseID.ESCALATING_ISSUES, None),
