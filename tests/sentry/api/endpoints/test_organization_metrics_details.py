@@ -329,7 +329,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             ("s:custom/user@none", project_1),
             ("c:custom/clicks@none", project_1),
         )
-        for mri, entity, project in metrics:
+        for mri, project in metrics:
             self.store_metric(
                 project.organization.id,
                 project.id,
