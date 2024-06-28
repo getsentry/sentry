@@ -184,12 +184,23 @@ def query_replays_dataset_tagkey_values(
     end: datetime,
     environment: str | None,
     tag_key: str,
+    tag_like: str | None,
     tenant_ids: dict[str, Any] | None,
 ):
     """Query replay tagkey values. Like our other tag functionality, aggregates do not work here."""
+    """This function is used by the tagstore backend, which expects a `tag_value` key in each result object."""
 
-    where = []
-
+    where = [
+        Condition(Column("project_id"), Op.IN, project_ids),
+        Condition(Column("timestamp"), Op.LT, end),
+        Condition(Column("timestamp"), Op.GTE, start),
+        Or(
+            [
+                Condition(Column("is_archived"), Op.EQ, 0),
+                Condition(Column("is_archived"), Op.IS_NULL),
+            ]
+        ),
+    ]
     if environment:
         where.append(Condition(Column("environment"), Op.IN, environment))
 
@@ -209,6 +220,9 @@ def query_replays_dataset_tagkey_values(
         # using identity to alias the column
         aggregated_column = Function("identity", parameters=[grouped_column], alias="tag_value")
 
+    if tag_like:
+        where.append(Condition(aggregated_column, Op.LIKE, tag_like))
+
     snuba_request = Request(
         dataset="replays",
         app_id="replay-backend-web",
@@ -220,18 +234,7 @@ def query_replays_dataset_tagkey_values(
                 Function("max", parameters=[Column("timestamp")], alias="last_seen"),
                 aggregated_column,
             ],
-            where=[
-                Condition(Column("project_id"), Op.IN, project_ids),
-                Condition(Column("timestamp"), Op.LT, end),
-                Condition(Column("timestamp"), Op.GTE, start),
-                Or(
-                    [
-                        Condition(Column("is_archived"), Op.EQ, 0),
-                        Condition(Column("is_archived"), Op.IS_NULL),
-                    ]
-                ),
-                *where,
-            ],
+            where=where,
             orderby=[OrderBy(Column("times_seen"), Direction.DESC)],
             groupby=[grouped_column],
             granularity=Granularity(3600),
