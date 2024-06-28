@@ -1,11 +1,10 @@
 import type {DateString} from 'sentry/types/core';
 
-export type MetricAggregation =
+export type MetricsAggregate =
   | 'sum'
   | 'count_unique'
   | 'avg'
   | 'count'
-  | 'min'
   | 'max'
   | 'p50'
   | 'p75'
@@ -101,8 +100,9 @@ export type MetricsTagValue = {
 export type MetricMeta = {
   blockingStatus: BlockingStatus[];
   mri: MRI;
-  // name: string; // returned by the API but should not be used, use parseMRI(mri).name instead
-  operations: MetricAggregation[];
+  // name is returned by the API but should not be used, use parseMRI(mri).name instead
+  // name: string;
+  operations: MetricsAggregate[];
   projectIds: number[];
   type: MetricType;
   unit: string;

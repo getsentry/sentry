@@ -15,10 +15,14 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MRI} from 'sentry/types/metrics';
-import type {Organization} from 'sentry/types/organization';
-import type {Project} from 'sentry/types/project';
-import {getDefaultAggregation, getMetricsUrl} from 'sentry/utils/metrics';
+import type {
+  MetricsAggregate,
+  MetricType,
+  MRI,
+  Organization,
+  Project,
+} from 'sentry/types';
+import {getMetricsUrl} from 'sentry/utils/metrics';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI, formatMRIField, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
@@ -33,6 +37,21 @@ import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 import {BlockButton} from 'sentry/views/settings/projectMetrics/blockButton';
 
 import {useProjectMetric} from '../../../utils/metrics/useMetricsMeta';
+
+function getSettingsOperationForType(type: MetricType): MetricsAggregate {
+  switch (type) {
+    case 'c':
+      return 'sum';
+    case 's':
+      return 'count_unique';
+    case 'd':
+      return 'count';
+    case 'g':
+      return 'count';
+    default:
+      return 'sum';
+  }
+}
 
 type Props = {
   organization: Organization;
@@ -55,9 +74,9 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
   const {hasAccess} = useAccess({access: ['project:write'], project});
 
   const {type, name, unit} = parseMRI(mri) ?? {};
-  const aggregation = getDefaultAggregation(mri);
+  const operation = getSettingsOperationForType(type ?? 'c');
   const {data: metricsData, isLoading} = useMetricsQuery(
-    [{mri, aggregation, name: 'query'}],
+    [{mri, op: operation, name: 'query'}],
     {
       datetime: {
         period: '30d',
@@ -71,7 +90,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
     {interval: '1d'}
   );
 
-  const field = MRIToField(mri, aggregation);
+  const field = MRIToField(mri, operation);
   const series = [
     {
       seriesName: formatMRIField(field) ?? 'Metric',
@@ -126,7 +145,7 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
                   {
                     mri,
                     displayType: MetricDisplayType.BAR,
-                    aggregation,
+                    op: operation,
                     query: '',
                     groupBy: undefined,
                   },

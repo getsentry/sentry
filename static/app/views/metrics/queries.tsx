@@ -173,11 +173,11 @@ function Query({
   const metricsQuery = useMemo(
     () => ({
       mri: widget.mri,
-      aggregation: widget.aggregation,
+      op: widget.op,
       groupBy: widget.groupBy,
       query: widget.query,
     }),
-    [widget.groupBy, widget.mri, widget.aggregation, widget.query]
+    [widget.groupBy, widget.mri, widget.op, widget.query]
   );
 
   const handleToggle = useCallback(() => {
@@ -217,7 +217,7 @@ function Query({
         metricsQuery={{
           mri: widget.mri,
           query: widget.query,
-          aggregation: widget.aggregation,
+          op: widget.op,
           groupBy: widget.groupBy,
         }}
       />

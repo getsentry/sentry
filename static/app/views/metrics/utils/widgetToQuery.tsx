@@ -15,7 +15,7 @@ export function widgetToQuery(
     : {
         name: getQuerySymbol(widget.id),
         mri: widget.mri,
-        aggregation: widget.aggregation,
+        op: widget.op,
         groupBy: widget.groupBy,
         query: widget.query,
         isQueryOnly: isQueryOnly || widget.isHidden,

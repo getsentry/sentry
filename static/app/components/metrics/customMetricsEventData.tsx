@@ -22,7 +22,7 @@ import type {
   MRI,
 } from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
-import {getDefaultAggregation, getMetricsUrl} from 'sentry/utils/metrics';
+import {getDefaultAggregate, getMetricsUrl} from 'sentry/utils/metrics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
@@ -93,7 +93,7 @@ export function CustomMetricsEventData({
       metricsSummaryEntries.map((entry, index) => ({
         mri: entry.mri,
         name: index.toString(),
-        aggregation: getDefaultAggregation(entry.mri),
+        op: getDefaultAggregate(entry.mri),
         query: Object.entries(entry.item.tags ?? {})
           .map(([tagKey, tagValue]) => tagToQuery(tagKey, tagValue))
           .join(' '),
@@ -210,7 +210,7 @@ export function CustomMetricsEventData({
               {
                 mri: mri,
                 displayType: MetricDisplayType.LINE,
-                aggregation: getDefaultAggregation(mri),
+                op: getDefaultAggregate(mri),
                 query: Object.entries(summaryItem.tags ?? {})
                   .map(([tagKey, tagValue]) => tagToQuery(tagKey, tagValue))
                   .join(' '),

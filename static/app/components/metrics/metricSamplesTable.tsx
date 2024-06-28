@@ -23,7 +23,7 @@ import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DateString, PageFilters} from 'sentry/types/core';
-import type {MetricAggregation, MRI, ParsedMRI} from 'sentry/types/metrics';
+import type {MRI, ParsedMRI} from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {Container, FieldDateTime, NumberContainer} from 'sentry/utils/discover/styles';
@@ -33,7 +33,7 @@ import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {parseMRI} from 'sentry/utils/metrics/mri';
 import {
   type Field as SelectedField,
-  getSummaryValueForAggregation,
+  getSummaryValueForOp,
   type MetricsSamplesResults,
   type ResultField,
   type Summary,
@@ -68,11 +68,11 @@ const fields: SelectedField[] = [
 export type Field = (typeof fields)[number];
 
 interface MetricsSamplesTableProps {
-  aggregation?: MetricAggregation;
   focusArea?: SelectionRange;
   hasPerformance?: boolean;
   mri?: MRI;
   onRowHover?: (sampleId?: string) => void;
+  op?: string;
   query?: string;
   setMetricsSamples?: React.Dispatch<
     React.SetStateAction<MetricsSamplesResults<Field>['data'] | undefined>
@@ -148,7 +148,7 @@ export function MetricSamplesTable({
   focusArea,
   mri,
   onRowHover,
-  aggregation,
+  op,
   query,
   setMetricsSamples,
   sortKey = 'sort',
@@ -212,7 +212,7 @@ export function MetricSamplesTable({
     max: focusArea?.max,
     min: focusArea?.min,
     mri,
-    aggregation,
+    op,
     query,
     referrer: 'api.organization.metrics-samples',
     enabled,
@@ -288,8 +288,8 @@ export function MetricSamplesTable({
   }, [currentSort, location]);
 
   const _renderBodyCell = useMemo(
-    () => renderBodyCell(aggregation, parsedMRI?.unit),
-    [aggregation, parsedMRI?.unit]
+    () => renderBodyCell(op, parsedMRI?.unit),
+    [op, parsedMRI?.unit]
   );
 
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -409,7 +409,7 @@ function renderHeadCell(
   };
 }
 
-function renderBodyCell(aggregation?: MetricAggregation, unit?: string) {
+function renderBodyCell(op?: string, unit?: string) {
   return function (
     col: GridColumnOrder<ResultField>,
     dataRow: MetricsSamplesResults<SelectedField>['data'][number]
@@ -443,13 +443,7 @@ function renderBodyCell(aggregation?: MetricAggregation, unit?: string) {
     }
 
     if (col.key === 'summary') {
-      return (
-        <SummaryRenderer
-          summary={dataRow.summary}
-          aggregation={aggregation}
-          unit={unit}
-        />
-      );
+      return <SummaryRenderer summary={dataRow.summary} op={op} unit={unit} />;
     }
 
     if (col.key === 'timestamp') {
@@ -644,17 +638,17 @@ function DurationRenderer({duration}: {duration: number}) {
 
 function SummaryRenderer({
   summary,
-  aggregation,
+  op,
   unit,
 }: {
   summary: Summary;
-  aggregation?: MetricAggregation;
+  op?: string;
   unit?: string;
 }) {
-  const value = getSummaryValueForAggregation(summary, aggregation);
+  const value = getSummaryValueForOp(summary, op);
 
   // if the op is `count`, then the unit does not apply
-  unit = aggregation === 'count' ? '' : unit;
+  unit = op === 'count' ? '' : unit;
 
   return (
     <NumberContainer>{formatMetricUsingUnit(value ?? null, unit ?? '')}</NumberContainer>
