@@ -31,8 +31,11 @@ class DatasetTest(SnubaTestCase, TestCase):
         request = json_to_snql(json_body, "search_issues")
         request.validate()
         identity = lambda x: x
-        forked_scope = sentry_sdk.Scope.get_isolation_scope().fork()
-        resp = _snuba_query(((request, identity, identity), forked_scope, {}, "test_api"))
+        isolation_scope = sentry_sdk.Scope.get_isolation_scope().fork()
+        current_scope = sentry_sdk.Scope.get_current_scope().fork()
+        resp = _snuba_query(
+            ((request, identity, identity), isolation_scope, current_scope, {}, "test_api")
+        )
         assert resp[0].status == 200
         stuff = json.loads(resp[0].data)
 
