@@ -1,4 +1,4 @@
-from django.db import IntegrityError, router, transaction
+from django.db import router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -94,15 +94,15 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
             )
         try:
             configs = []
-            for obj in config_update:
-                configs.append(
-                    SpanAttributeExtractionRuleConfig.from_dict(obj, request.user.id, project)
-                )
+            with transaction.atomic(router.db_for_write(SpanAttributeExtractionRuleConfig)):
+                for obj in config_update:
+                    configs.append(
+                        SpanAttributeExtractionRuleConfig.from_dict(obj, request.user.id, project)
+                    )
 
-        except IntegrityError:
+        except Exception:
             return Response(
                 status=400,
-                data={"detail": "Please specify the metric extraction rule to be created."},
             )
 
         persisted_config = serialize(
