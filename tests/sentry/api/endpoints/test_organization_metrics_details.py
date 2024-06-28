@@ -187,12 +187,14 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         block_metric("s:custom/user@none", [project_1])
         block_tags_of_metric("d:custom/page_load@millisecond", {"release"}, [project_2])
 
-        metrics: tuple[tuple[str, Literal["set", "counter", "distribution"], Project], ...] = (
+        metrics: tuple[
+            tuple[str, Literal["set", "counter", "distribution", "gauge"], Project], ...
+        ] = (
             ("s:custom/user@none", "set", project_1),
             ("s:custom/user@none", "set", project_2),
             ("c:custom/clicks@none", "counter", project_1),
             ("d:custom/page_load@millisecond", "distribution", project_2),
-            ("g:custom/page_load@millisecond", "distribution", project_2),
+            ("g:custom/page_load@millisecond", "gauge", project_2),
         )
         for mri, entity, project in metrics:
             self.store_metric(

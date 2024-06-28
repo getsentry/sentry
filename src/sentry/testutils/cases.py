@@ -1710,8 +1710,12 @@ class BaseMetricsTestCase(SnubaTestCase):
         use_case_id: UseCaseID,
         aggregation_option: AggregationOption | None = None,
     ) -> None:
-        mapping_meta = {}
 
+        parsed = parse_mri(mri)
+        metric_type = parsed.entity
+        use_case_id = UseCaseID(parsed.namespace)
+
+        mapping_meta = {}
         def metric_id(key: str):
             assert isinstance(key, str)
             res = indexer.record(
@@ -1751,9 +1755,7 @@ class BaseMetricsTestCase(SnubaTestCase):
 
         assert not isinstance(value, list)
 
-        parsed = parse_mri(mri)
-        metric_type = parsed.entity
-        use_case_id = UseCaseID(parsed.namespace)
+
 
         if metric_type == "s":
             # Relay uses a different hashing algorithm, but that's ok
@@ -1794,9 +1796,9 @@ class BaseMetricsTestCase(SnubaTestCase):
             msg["aggregation_option"] = aggregation_option.value
 
         if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE:
-            entity = f"generic_metrics_{type}s"
+            entity = f"generic_metrics_{self.ENTITY_SHORTHANDS[metric_type]}s"
         else:
-            entity = f"metrics_{type}s"
+            entity = f"metrics_{self.ENTITY_SHORTHANDS[metric_type]}s"
 
         cls.__send_buckets([msg], entity)
 
