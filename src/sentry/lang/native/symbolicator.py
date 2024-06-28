@@ -369,7 +369,7 @@ class SymbolicatorSession:
                             unit="byte",
                         )
                 else:
-                    with sentry_sdk.push_scope():
+                    with sentry_sdk.isolation_scope():
                         sentry_sdk.set_extra("symbolicator_response", response.text)
                         sentry_sdk.capture_message("Symbolicator request failed")
 

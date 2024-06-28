@@ -333,7 +333,7 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
                 different_exceptions.append((symbolicator_exception, python_exception))
 
         if different_frames or different_exceptions:
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.isolation_scope() as scope:
                 scope.set_extra("different_frames", different_frames)
                 scope.set_extra("different_exceptions", different_exceptions)
                 scope.set_extra("event_id", self.data.get("event_id"))
