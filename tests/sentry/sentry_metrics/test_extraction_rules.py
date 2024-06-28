@@ -12,7 +12,7 @@ def _new_id():
 def test_generate_mri():
     rule = MetricsExtractionRule("count_clicks", "c", "none", {"tag_1", "tag_2"}, "", 12378)
     mri = rule.generate_mri()
-    assert mri == "c:custom/internal_12378@none"
+    assert mri == "c:custom/span_attribute_12378@none"
 
 
 def test_type_validation():
@@ -26,9 +26,9 @@ def test_type_validation():
 
     mris = [rule.generate_mri() for rule in rules]
     assert mris == [
-        "c:custom/internal_7423@none",
-        "d:custom/internal_239478@none",
-        "s:custom/internal_278934@none",
+        "c:custom/span_attribute_7423@none",
+        "d:custom/span_attribute_239478@none",
+        "s:custom/span_attribute_278934@none",
     ]
 
     with pytest.raises(ValueError):
