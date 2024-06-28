@@ -24,6 +24,7 @@ from sentry.api.serializers.models.event import get_tags_with_meta
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.eventstore.models import Event
 from sentry.issues.issue_occurrence import IssueOccurrence
+from sentry.middleware import is_frontend_request
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
@@ -33,6 +34,7 @@ from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
 from sentry.utils.iterators import chunked
 from sentry.utils.numbers import base32_encode, format_grouped_length
@@ -193,11 +195,13 @@ class TraceEvent:
         light: bool = False,
         snuba_params: SnubaParams | None = None,
         span_serialized: bool = False,
+        query_source: QuerySource | None = QuerySource.SENTRY_BACKEND,
     ) -> None:
         self.event: SnubaTransaction = event
         self.errors: list[TraceError] = []
         self.children: list[TraceEvent] = []
         self.performance_issues: list[TracePerformanceIssue] = []
+        self.query_source = query_source
 
         # Can be None on the light trace when we don't know the parent
         self.parent_event_id: str | None = parent
@@ -307,7 +311,8 @@ class TraceEvent:
                     )
                     occurrence_ids = occurrence_query.process_results(
                         occurrence_query.run_query(
-                            referrer=Referrer.API_TRACE_VIEW_GET_OCCURRENCE_IDS.value
+                            referrer=Referrer.API_TRACE_VIEW_GET_OCCURRENCE_IDS.value,
+                            query_source=self.query_source,
                         )
                     )["data"]
 
@@ -500,7 +505,7 @@ def child_sort_key(item: TraceEvent) -> list[int | str]:
         ]
 
 
-def count_performance_issues(trace_id: str, params: SnubaParams) -> int:
+def count_performance_issues(trace_id: str, params: SnubaParams, query_source: QuerySource | None = QuerySource.SENTRY_BACKEND) -> int:
     transaction_query = DiscoverQueryBuilder(
         Dataset.IssuePlatform,
         params={},
@@ -511,7 +516,8 @@ def count_performance_issues(trace_id: str, params: SnubaParams) -> int:
     )
     transaction_query.columns.append(Function("count()", alias="total_groups"))
     count = transaction_query.run_query(
-        referrer=Referrer.API_TRACE_VIEW_COUNT_PERFORMANCE_ISSUES.value
+        referrer=Referrer.API_TRACE_VIEW_COUNT_PERFORMANCE_ISSUES.value,
+        query_source=query_source,
     )
     return count["data"][0].get("total_groups", 0)
 
@@ -520,6 +526,7 @@ def count_performance_issues(trace_id: str, params: SnubaParams) -> int:
 def create_transaction_params(
     trace_id: str,
     snuba_params: SnubaParams,
+    query_source: QuerySource | None = QuerySource.SENTRY_BACKEND,
 ) -> SnubaParams:
     """Can't use the transaction params for errors since traces can be errors only"""
     query_metadata = options.get("performance.traces.query_timestamp_projects")
@@ -538,7 +545,9 @@ def create_transaction_params(
             "project.id",
         ],
     )
-    results = metadata_query.run_query(Referrer.API_TRACE_VIEW_GET_TIMESTAMP_PROJECTS.value)
+    results = metadata_query.run_query(
+        Referrer.API_TRACE_VIEW_GET_TIMESTAMP_PROJECTS.value, query_source=query_source
+    )
     results = metadata_query.process_results(results)
     project_id_set = set()
     min_timestamp = None
@@ -583,6 +592,7 @@ def query_trace_data(
     limit: int,
     event_id: str | None,
     use_spans: bool,
+    query_source: QuerySource | None = QuerySource.SENTRY_BACKEND,
 ) -> tuple[Sequence[SnubaTransaction], Sequence[SnubaError]]:
     transaction_columns = [
         "id",
@@ -672,6 +682,7 @@ def query_trace_data(
             occurrence_query.get_snql_query(),
         ],
         referrer=Referrer.API_TRACE_VIEW_GET_EVENTS.value,
+        query_source=query_source,
     )
 
     transformed_results = [
@@ -774,6 +785,7 @@ def augment_transactions_with_spans(
     errors: Sequence[SnubaError],
     trace_id: str,
     params: SnubaParams,
+    query_source: QuerySource | None = QuerySource.SENTRY_BACKEND,
 ) -> Sequence[SnubaTransaction]:
     """Augment the list of transactions with parent, error and problem data"""
     with sentry_sdk.start_span(op="augment.transactions", description="setup"):
@@ -882,6 +894,7 @@ def augment_transactions_with_spans(
         results = bulk_snuba_queries(
             [query.get_snql_query() for query in queries],
             referrer=Referrer.API_TRACE_VIEW_GET_PARENTS.value,
+            query_source=query_source,
         )
         parents_results = results[0]
         for result, query in zip(results, queries):
@@ -892,7 +905,8 @@ def augment_transactions_with_spans(
     else:
         parents_query = build_span_query(trace_id, spans_params, list(query_spans))
         parents_results = parents_query.run_query(
-            referrer=Referrer.API_TRACE_VIEW_GET_PARENTS.value
+            referrer=Referrer.API_TRACE_VIEW_GET_PARENTS.value,
+            query_source=query_source,
         )
         if len(parents_results) == parents_query.limit.limit:
             hit_limit = True
@@ -1054,19 +1068,20 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         if event_id and not is_event_id(event_id):
             return Response({"detail": INVALID_ID_DETAILS.format("Event ID")}, status=400)
 
+        query_source = QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
         with handle_query_errors():
-            transaction_params = create_transaction_params(trace_id, snuba_params)
+            transaction_params = create_transaction_params(trace_id, snuba_params, query_source=query_source)
 
             if use_spans:
                 transactions, errors = query_trace_data(
-                    trace_id, snuba_params, transaction_params, limit, event_id, use_spans
+                    trace_id, snuba_params, transaction_params, limit, event_id, use_spans, query_source=query_source
                 )
                 transactions = augment_transactions_with_spans(
-                    transactions, errors, trace_id, snuba_params
+                    transactions, errors, trace_id, snuba_params, query_source=query_source,
                 )
             else:
                 transactions, errors = query_trace_data(
-                    trace_id, snuba_params, transaction_params, limit, None, False
+                    trace_id, snuba_params, transaction_params, limit, None, False, query_source=query_source
                 )
             self.record_analytics(transactions, trace_id, self.request.user.id, organization.id)
 
@@ -1098,6 +1113,9 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
                 event_id,
                 detailed,
                 use_spans,
+                query_source=(
+                    QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
+                ),
             )
         )
 
@@ -1182,6 +1200,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
         event_id: str | None,
         detailed: bool = False,
         use_spans: bool = False,
+        query_source: QuerySource | None = None,
     ) -> dict[str, list[LightResponse | TraceError]]:
         """Because the light endpoint could potentially have gaps between root and event we return a flattened list"""
         if use_spans:
@@ -1245,13 +1264,14 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                                     0,
                                     True,
                                     snuba_params=snuba_params,
+                                    query_source=query_source,
                                 )
                             )
                             current_generation = 1
                             break
 
             current_event = TraceEvent(
-                snuba_event, root_id, current_generation, True, snuba_params=snuba_params
+                snuba_event, root_id, current_generation, True, snuba_params=snuba_params, query_source=query_source,
             )
             trace_results.append(current_event)
 
@@ -1284,6 +1304,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                                 ),
                                 True,
                                 snuba_params=snuba_params,
+                                query_source=query_source,
                             )
                             for child_event in child_events
                         ]
@@ -1345,6 +1366,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         event_id: str | None,
         detailed: bool = False,
         use_spans: bool = False,
+        query_source: QuerySource | None = None,
     ) -> SerializedTrace:
         """For the full event trace, we return the results as a graph instead of a flattened list
 
@@ -1360,6 +1382,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                 warning_extra,
                 event_id,
                 detailed,
+                query_source=query_source,
             )
             return results
 
@@ -1379,7 +1402,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         if roots:
             results_map[None] = []
         for root in roots:
-            root_event = TraceEvent(root, None, 0, snuba_params=snuba_params)
+            root_event = TraceEvent(root, None, 0, snuba_params=snuba_params, query_source=query_source)
             parent_events[root["id"]] = root_event
             results_map[None].append(root_event)
             to_check.append(root)
@@ -1400,7 +1423,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                         parent_map[parent_span_id] = siblings
 
                     previous_event = parent_events[current_event["id"]] = TraceEvent(
-                        current_event, None, 0, snuba_params=snuba_params
+                        current_event, None, 0, snuba_params=snuba_params, query_source=query_source,
                     )
 
                     # Used to avoid removing the orphan from results entirely if we loop
@@ -1475,6 +1498,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                                 else None
                             ),
                             snuba_params=snuba_params,
+                            query_source=query_source,
                         )
                         # Add this event to its parent's children
                         previous_event.children.append(parent_events[child_event["id"]])
@@ -1547,6 +1571,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         event_id: str | None,
         detailed: bool = False,
     ) -> SerializedTrace:
+        query_source: QuerySource | None = None,
         root_traces: list[TraceEvent] = []
         orphans: list[TraceEvent] = []
         orphan_event_ids: set[str] = set()
@@ -1560,7 +1585,11 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             for transaction in transactions:
                 parent_id = transaction["trace.parent_transaction"]
                 serialized_transaction = TraceEvent(
-                    transaction, parent_id, -1, span_serialized=True
+                    transaction,
+                    parent_id,
+                    -1,
+                    span_serialized=True,
+                    query_source=query_source,
                 )
                 if parent_id is None:
                     if transaction["trace.parent_span"]:
@@ -1637,6 +1666,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
+    snuba_methods = ["GET"]
 
     def get(self, request: Request, organization: Organization, trace_id: str) -> HttpResponse:
         if not self.has_feature(organization, request):
@@ -1651,7 +1681,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
             return Response(status=404)
 
         update_snuba_params_with_timestamp(request, snuba_params)
-
+        query_source = QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
         with handle_query_errors():
             result = discover.query(
                 selected_columns=[
@@ -1664,12 +1694,13 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsV2EndpointBase):
                 query=f"trace:{trace_id}",
                 limit=1,
                 referrer=Referrer.API_TRACE_VIEW_GET_META.value,
+                query_source=query_source,
             )
             if len(result["data"]) == 0:
                 return Response(status=404)
             # Merge the result back into the first query
             result["data"][0]["performance_issues"] = count_performance_issues(
-                trace_id, snuba_params
+                trace_id, snuba_params, query_source=query_source
             )
         return Response(self.serialize(result["data"][0]))
 

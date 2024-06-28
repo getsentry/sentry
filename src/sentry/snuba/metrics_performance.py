@@ -109,6 +109,7 @@ def bulk_timeseries_query(
     groupby: Column | None = None,
     *,
     apply_formatting: Literal[False],
+    query_source: QuerySource | None = None,
 ) -> EventsResponse: ...
 
 
@@ -129,6 +130,7 @@ def bulk_timeseries_query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     groupby: Column | None = None,
+    query_source: QuerySource | None = None,
 ) -> SnubaTSResult: ...
 
 
@@ -150,6 +152,7 @@ def bulk_timeseries_query(
     groupby: Column | None = None,
     *,
     apply_formatting: bool = True,
+    query_source: QuerySource | None = None,
 ) -> SnubaTSResult | EventsResponse:
     """
     High-level API for doing *bulk* arbitrary user timeseries queries against events.
@@ -184,7 +187,9 @@ def bulk_timeseries_query(
                 metrics_queries.append(snql_query[0])
 
             metrics_referrer = referrer + ".metrics-enhanced"
-            bulk_result = bulk_snuba_queries(metrics_queries, metrics_referrer)
+            bulk_result = bulk_snuba_queries(
+                metrics_queries, metrics_referrer, query_source=query_source
+            )
             _result: dict[str, Any] = {"data": []}
             for br in bulk_result:
                 _result["data"] = [*_result["data"], *br["data"]]
