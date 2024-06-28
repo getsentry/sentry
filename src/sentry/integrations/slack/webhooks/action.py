@@ -574,48 +574,6 @@ class SlackActionEndpoint(Endpoint):
 
             return self.respond()
 
-        # Handle status dialog submission
-        if (
-            slack_request.type == "dialog_submission"
-            and "resolve_type" in slack_request.data["submission"]
-        ):
-            logger.info("slack.action.dialog_submission", extra={"data": slack_request.data})
-
-            # Masquerade a status action
-            action = MessageAction(
-                name="status",
-                value=slack_request.data["submission"]["resolve_type"],
-            )
-
-            try:
-                self.on_status(request, identity_user, group, action)
-            except client.ApiError as error:
-                return self.api_error(
-                    slack_request, group, identity_user, error, "dialog_submission"
-                )
-
-            attachment = SlackIssuesMessageBuilder(
-                group,
-                identity=identity,
-                actions=[action],
-                tags=original_tags_from_request,
-                rules=[rule] if rule else None,
-            ).build()
-            body = self.construct_reply(
-                attachment, is_message=slack_request.callback_data["is_message"]
-            )
-
-            # use the original response_url to update the link attachment
-            slack_client = SlackClient(integration_id=slack_request.integration.id)
-            try:
-                slack_client.post(
-                    slack_request.callback_data["orig_response_url"], data=body, json=True
-                )
-            except ApiError as e:
-                logger.error("slack.action.response-error", extra={"error": str(e)})
-
-            return self.respond()
-
         # Usually we'll want to respond with the updated attachment including
         # the list of actions taken. However, when opening a dialog we do not
         # have anything to update the message with and will use the
