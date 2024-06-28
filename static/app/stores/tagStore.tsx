@@ -224,9 +224,22 @@ const storeConfig: TagStoreDefinition = {
       };
     }, {});
 
+    const semverFields = Object.values(SEMVER_TAGS).reduce<TagCollection>((acc, tag) => {
+      return {
+        ...acc,
+        [tag.key]: {
+          predefined: false,
+          ...tag,
+          kind: org.features.includes('issue-stream-search-query-builder')
+            ? FieldKind.EVENT_FIELD
+            : FieldKind.FIELD,
+        },
+      };
+    }, {});
+
     const issueTags = {
       ...getBuiltInTags(org),
-      ...SEMVER_TAGS,
+      ...semverFields,
       ...eventTags,
       ...this.getIssueAttributes(org),
     };
