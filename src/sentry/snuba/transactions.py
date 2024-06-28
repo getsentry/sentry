@@ -8,7 +8,10 @@ from sentry.models.organization import Organization
 from sentry.search.events.types import EventsResponse, ParamsType, SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
+<<<<<<< HEAD
 from sentry.snuba.metrics.extraction import MetricSpecType
+=======
+>>>>>>> d3154bf626f (feat(apis): Pass query source to snuba - phase 2)
 from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import SnubaTSResult
 
@@ -132,10 +135,17 @@ def top_events_timeseries(
     include_other: bool = False,
     functions_acl: list[str] | None = None,
     on_demand_metrics_enabled: bool = False,
+<<<<<<< HEAD
     on_demand_metrics_type: MetricSpecType | None = None,
     query_source: QuerySource | None = None,
 ) -> dict[str, SnubaTSResult] | SnubaTSResult:
     return discover.top_events_timeseries(
+=======
+    on_demand_metrics_type=None,
+    query_source: QuerySource | None = None,
+):
+    return discover._top_events_timeseries(
+>>>>>>> d3154bf626f (feat(apis): Pass query source to snuba - phase 2)
         timeseries_columns,
         selected_columns,
         user_query,
