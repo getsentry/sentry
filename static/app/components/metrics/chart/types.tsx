@@ -1,12 +1,12 @@
 import type {MarkLineComponentOption, SeriesOption} from 'echarts';
 
 import type {BaseChartProps} from 'sentry/components/charts/baseChart';
-import type {MetricsAggregate} from 'sentry/types';
 import type {DateString} from 'sentry/types/core';
+import type {MetricAggregation} from 'sentry/types/metrics';
 import type {MetricDisplayType} from 'sentry/utils/metrics/types';
 
 export type Series = {
-  aggregate: MetricsAggregate;
+  aggregate: MetricAggregation;
   color: string;
   data: {name: number; value: number}[];
   id: string;

@@ -1,6 +1,6 @@
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import type {DateString, PageFilters} from 'sentry/types/core';
-import type {MRI} from 'sentry/types/metrics';
+import type {MetricAggregation, MRI} from 'sentry/types/metrics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -43,13 +43,13 @@ export type ResultField = keyof ResultFieldTypes;
 interface UseMetricSamplesOptions<F extends Field> {
   fields: F[];
   referrer: string;
+  aggregation?: MetricAggregation;
   datetime?: PageFilters['datetime'];
   enabled?: boolean;
   limit?: number;
   max?: number;
   min?: number;
   mri?: MRI;
-  op?: string;
   query?: string;
   sort?: string;
 }
@@ -67,7 +67,7 @@ export function useMetricsSamples<F extends Field>({
   max,
   min,
   mri,
-  op,
+  aggregation,
   referrer,
   query,
   sort,
@@ -86,7 +86,7 @@ export function useMetricsSamples<F extends Field>({
       max,
       min,
       mri,
-      operation: op,
+      operation: aggregation,
       query,
       referrer,
       per_page: limit,
@@ -102,8 +102,11 @@ export function useMetricsSamples<F extends Field>({
   });
 }
 
-export function getSummaryValueForOp(summary: Summary, op?: string) {
-  switch (op) {
+export function getSummaryValueForAggregation(
+  summary: Summary,
+  aggregation?: MetricAggregation
+) {
+  switch (aggregation) {
     case 'count':
       return summary.count;
     case 'min':

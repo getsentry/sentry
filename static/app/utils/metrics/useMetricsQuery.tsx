@@ -7,6 +7,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import type {
+  MetricAggregation,
   MetricsDataIntervalLadder,
   MetricsQueryApiResponse,
   MRI,
@@ -33,9 +34,9 @@ export function createMqlQuery({
 }
 
 export interface MetricsQueryApiRequestQuery {
+  aggregation: MetricAggregation;
   mri: MRI;
   name: string;
-  op: string;
   alias?: string;
   groupBy?: string[];
   isQueryOnly?: boolean;
@@ -117,7 +118,7 @@ export function getMetricsQueryApiRequestPayload(
 
     const {
       mri,
-      op,
+      aggregation,
       groupBy,
       limit,
       orderBy,
@@ -131,7 +132,7 @@ export function getMetricsQueryApiRequestPayload(
     requestQueries.push({
       name,
       mql: createMqlQuery({
-        field: MRIToField(mri, op),
+        field: MRIToField(mri, aggregation),
         query: queryParam,
         groupBy,
       }),
