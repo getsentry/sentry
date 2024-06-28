@@ -53,7 +53,7 @@ class UniqueConditionQuery(NamedTuple):
     comparisonInterval: str | None = None
 
     # def __repr__(self):
-    #     return f"id: {self.cls_id},\ninterval: {self.interval},\nenv id: {self.environment_id}\ncomp interval: {self.comparisonInterval}"
+    #     return f"id: {self.cls_id},\ninterval: {self.interval},\nenv id: {self.environment_id},\ncomp interval: {self.comparisonInterval}"
 
 
 class DataAndGroups(NamedTuple):
@@ -413,6 +413,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
         "delayed_processing.rulegroupeventdata",
         extra={"rulegroupdata": rulegroup_to_event_data, "project_id": project_id},
     )
+
     # STEP 2: Map each rule to the groups that must be checked for that rule.
     rules_to_groups = get_rules_to_groups(rulegroup_to_event_data)
 
