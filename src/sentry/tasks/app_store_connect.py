@@ -203,7 +203,7 @@ def inner_refresh_all_builds() -> None:
     options = ProjectOption.objects.filter(key=appconnect.SYMBOL_SOURCES_PROP_NAME)
     count = 0
     for option in options:
-        with sdk.push_scope() as scope:
+        with sdk.isolation_scope() as scope:
             scope.set_tag("project", option.project_id)
             try:
                 if not option.value:

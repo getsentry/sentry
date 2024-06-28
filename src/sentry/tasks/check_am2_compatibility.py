@@ -603,7 +603,7 @@ class CheckAM2Compatibility:
                 ondemand_supported_widgets[dashboard_id].append((widget_id, fields, conditions))
 
             if supports_metrics is None:
-                with sentry_sdk.push_scope() as scope:
+                with sentry_sdk.isolation_scope() as scope:
                     scope.set_tag("org_id", organization.id)
                     scope.set_extra("widget_id", widget_id)
                     scope.set_extra("fields", fields)
@@ -623,7 +623,7 @@ class CheckAM2Compatibility:
                 aggregate, query
             ) or cls.is_metrics_data(organization.id, all_projects, query)
             if supports_metrics is None:
-                with sentry_sdk.push_scope() as scope:
+                with sentry_sdk.isolation_scope() as scope:
                     scope.set_tag("org_id", organization.id)
                     scope.set_extra("alert_id", alert_id)
                     scope.set_extra("aggregate", aggregate)
@@ -639,7 +639,7 @@ class CheckAM2Compatibility:
 
         outdated_sdks_per_project = cls.get_sdks_version_used(organization.id, all_projects)
         if outdated_sdks_per_project is None:
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.isolation_scope() as scope:
                 scope.set_tag("org_id", organization.id)
 
                 sentry_sdk.capture_message("Can't figure out outdated SDKs.")
