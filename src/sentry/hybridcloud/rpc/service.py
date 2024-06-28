@@ -3,6 +3,7 @@ from __future__ import annotations
 import abc
 import hashlib
 import hmac
+import importlib
 import inspect
 import logging
 import pkgutil
@@ -382,28 +383,25 @@ class RpcService(abc.ABC):
 
 def list_all_service_method_signatures() -> Iterable[RpcMethodSignature]:
     """List signatures of all RPC methods in the global registry."""
-    from sentry.services import hybrid_cloud as hybrid_cloud_service_pkg
-
-    # Forcibly import all service packages to ensure the global registry is fully populated
-    for _, name, _ in pkgutil.walk_packages(
-        hybrid_cloud_service_pkg.__path__, prefix=f"{hybrid_cloud_service_pkg.__name__}."
-    ):
-        __import__(name)
 
     # Several packages contain RPC services in them.
     # This eventually could end up being sentry.*.services
     service_packages = (
+        "sentry.services.hybrid_cloud",
         "sentry.auth.services",
         "sentry.audit_log.services",
         "sentry.backup.services",
-        "sentry.identity.service",
+        "sentry.hybridcloud.services",
+        "sentry.identity.services",
         "sentry.integrations.services",
-        "sentry.issues.service",
+        "sentry.issues.services",
         "sentry.notifications.services",
         "sentry.sentry_apps.services",
     )
     for package_name in service_packages:
-        __import__(package_name)
+        package = importlib.import_module(package_name)
+        for _, name, _ in pkgutil.walk_packages(package.__path__, prefix=f"{package_name}."):
+            __import__(name)
 
     for service_obj in _global_service_registry.values():
         yield from service_obj.get_all_signatures()

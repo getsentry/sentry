@@ -6,7 +6,7 @@ from abc import abstractmethod
 
 from sentry.hybridcloud.rpc.resolvers import ByRegionName
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method, rpc_method
-from sentry.services.hybrid_cloud.tombstone import RpcTombstone
+from sentry.hybridcloud.services.tombstone import RpcTombstone
 from sentry.silo.base import SiloMode
 
 
