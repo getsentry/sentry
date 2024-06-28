@@ -1,4 +1,12 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {
+  Fragment,
+  memo,
+  useCallback,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -11,6 +19,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {TagCollection} from 'sentry/types/group';
 import type {MetricsAggregate, MetricsExtractionCondition} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
@@ -142,7 +151,6 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
     const {spanAttribute, tags} = props.initialData;
     return [...new Set(spanAttribute ? [...tags, spanAttribute] : tags)];
   });
-  const organization = useOrganization();
   const tags = useSpanFieldSupportedTags({projects: [parseInt(project.id, 10)]});
 
   // TODO(aknaus): Make this nicer
@@ -186,6 +194,8 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
     },
     [onSubmit]
   );
+
+  const projectIds = useMemo(() => [parseInt(project.id, 10)], [project.id]);
 
   return (
     <Form onSubmit={onSubmit && handleSubmit} {...props}>
@@ -260,63 +270,13 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                 initialData ||
                 []) as MetricsExtractionCondition[];
 
-              const handleChange = (queryString: string, index: number) => {
-                onChange(
-                  conditions.toSpliced(index, 1, {
-                    ...conditions[index],
-                    query: queryString,
-                  }),
-                  {}
-                );
-              };
-
               return (
-                <Fragment>
-                  <ConditionsWrapper hasDelete={value.length > 1}>
-                    {conditions.map((condition, index) => (
-                      <Fragment key={condition.id}>
-                        <SearchWrapper hasPrefix={index !== 0}>
-                          {index !== 0 && <ConditionLetter>{t('or')}</ConditionLetter>}
-                          <SearchBar
-                            {...SPAN_SEARCH_CONFIG}
-                            searchSource="metrics-extraction"
-                            query={condition.query}
-                            onSearch={(queryString: string) =>
-                              handleChange(queryString, index)
-                            }
-                            placeholder={t('Search for span attributes')}
-                            organization={organization}
-                            metricAlert={false}
-                            supportedTags={supportedTags}
-                            dataset={DiscoverDatasets.SPANS_INDEXED}
-                            projectIds={[parseInt(project.id, 10)]}
-                            hasRecentSearches={false}
-                            onBlur={(queryString: string) =>
-                              handleChange(queryString, index)
-                            }
-                            savedSearchType={undefined}
-                            useFormWrapper={false}
-                          />
-                        </SearchWrapper>
-                        {value.length > 1 && (
-                          <Button
-                            aria-label={t('Remove Query')}
-                            onClick={() => onChange(conditions.toSpliced(index, 1), {})}
-                            icon={<IconClose />}
-                          />
-                        )}
-                      </Fragment>
-                    ))}
-                  </ConditionsWrapper>
-                  <ConditionsButtonBar>
-                    <Button
-                      onClick={() => onChange([...conditions, createCondition()], {})}
-                      icon={<IconAdd />}
-                    >
-                      {t('Add Query')}
-                    </Button>
-                  </ConditionsButtonBar>
-                </Fragment>
+                <Conditions
+                  conditions={conditions}
+                  projectIds={projectIds}
+                  supportedTags={supportedTags}
+                  onChange={onChange}
+                />
               );
             }}
           </FormField>
@@ -325,6 +285,130 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
     </Form>
   );
 }
+
+interface ConditionsProps {
+  conditions: MetricsExtractionCondition[];
+  onChange: (conditions: MetricsExtractionCondition[], meta: Record<string, any>) => void;
+  projectIds: number[];
+  supportedTags: TagCollection;
+}
+
+function useStableCallback<T extends (...args: any[]) => any>(
+  handler: T
+): (...args: Parameters<T>) => ReturnType<T> {
+  const handlerRef = useRef(handler);
+  // Just setting the ref during render is not concurrent mode safe
+  // as non-commited low-prio render could set it to the wrong value
+  useLayoutEffect(() => {
+    handlerRef.current = handler;
+  }, [handler]);
+  return useCallback((...args: Parameters<T>) => handlerRef.current(...args), []);
+}
+
+function Conditions({conditions, projectIds, supportedTags, onChange}: ConditionsProps) {
+  // Using useStableCallback to prevent callback references changing on value changes
+  const handleChange = useStableCallback((index: number, queryString: string) => {
+    onChange(
+      conditions.toSpliced(index, 1, {
+        ...conditions[index],
+        query: queryString,
+      }),
+      {}
+    );
+  });
+
+  const handleDelete = useStableCallback((index: number) => {
+    onChange(conditions.toSpliced(index, 1), {});
+  });
+
+  const handleCreate = useStableCallback(() => {
+    onChange([...conditions, createCondition()], {});
+  });
+
+  return (
+    <Fragment>
+      <ConditionsWrapper hasDelete={conditions.length > 1}>
+        {conditions.map((condition, index) => (
+          <ConditionItem
+            key={condition.id}
+            condition={condition}
+            index={index}
+            onDelete={conditions.length > 1 ? handleDelete : undefined}
+            onChange={handleChange}
+            supportedTags={supportedTags}
+            projectIds={projectIds}
+          />
+        ))}
+      </ConditionsWrapper>
+      <ConditionsButtonBar>
+        <Button onClick={handleCreate} icon={<IconAdd />}>
+          {t('Add Query')}
+        </Button>
+      </ConditionsButtonBar>
+    </Fragment>
+  );
+}
+
+interface ConditionItemProps {
+  condition: MetricsExtractionCondition;
+  index: number;
+  onChange: (index: number, query: string) => void;
+  projectIds: number[];
+  supportedTags: TagCollection;
+  onDelete?: (index: number) => void;
+}
+
+const ConditionItem = memo(function ConditionItem({
+  condition,
+  index,
+  onDelete,
+  onChange,
+  supportedTags,
+  projectIds,
+}: ConditionItemProps) {
+  const organization = useOrganization();
+  const handleChange = useCallback(
+    (queryString: string) => {
+      onChange(index, queryString);
+    },
+    [index, onChange]
+  );
+
+  const handleDelete = useCallback(() => {
+    onDelete?.(index);
+  }, [index, onDelete]);
+
+  return (
+    <Fragment key={condition.id}>
+      <SearchWrapper hasPrefix={index !== 0}>
+        {index !== 0 && <ConditionLetter>{t('or')}</ConditionLetter>}
+        <SearchBar
+          {...SPAN_SEARCH_CONFIG}
+          searchSource="metrics-extraction"
+          query={condition.query}
+          onSearch={(queryString: string) => handleChange(queryString)}
+          placeholder={t('Search for span attributes')}
+          organization={organization}
+          metricAlert={false}
+          supportedTags={supportedTags}
+          dataset={DiscoverDatasets.SPANS_INDEXED}
+          projectIds={projectIds}
+          hasRecentSearches={false}
+          onBlur={(queryString: string) => handleChange(queryString)}
+          savedSearchType={undefined}
+          useFormWrapper={false}
+        />
+      </SearchWrapper>
+      {onDelete ? (
+        <Button
+          aria-label={t('Remove Query')}
+          onClick={handleDelete}
+          icon={<IconClose />}
+        />
+      ) : null}
+    </Fragment>
+  );
+});
 
 const ConditionsWrapper = styled('div')<{hasDelete: boolean}>`
   display: grid;
