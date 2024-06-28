@@ -1,7 +1,6 @@
 import styled from '@emotion/styled';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
-import {BreadcrumbSort} from 'sentry/components/events/interfaces/breadcrumbs';
 import type {ColorConfig} from 'sentry/components/timeline';
 import {
   IconCursorArrow,
@@ -45,10 +44,8 @@ const Color = styled('span')<{colorConfig: ColorConfig}>`
  * As of writing this, it just grabs a few, but in the future it may collapse,
  * or manipulate them in some way for a better summary.
  */
-export function getSummaryBreadcrumbs(sort: BreadcrumbSort, crumbs: RawCrumb[]) {
-  return sort === BreadcrumbSort.NEWEST
-    ? crumbs.slice(0, BREADCRUMB_SUMMARY_COUNT)
-    : crumbs.slice(crumbs.length - BREADCRUMB_SUMMARY_COUNT, crumbs.length);
+export function getSummaryBreadcrumbs(crumbs: RawCrumb[]) {
+  return [...crumbs].reverse().slice(0, BREADCRUMB_SUMMARY_COUNT);
 }
 
 export function applyBreadcrumbSearch(search: string, crumbs: RawCrumb[]): RawCrumb[] {

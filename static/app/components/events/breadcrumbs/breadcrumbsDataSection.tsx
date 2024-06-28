@@ -4,7 +4,10 @@ import styled from '@emotion/styled';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {BreadcrumbsDrawerContent} from 'sentry/components/events/breadcrumbs/breadcrumbsDrawer';
+import {
+  BreadcrumbControlOptions,
+  BreadcrumbsDrawerContent,
+} from 'sentry/components/events/breadcrumbs/breadcrumbsDrawerContent';
 import BreadcrumbsTimeline from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
 import {
   BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
@@ -12,20 +15,9 @@ import {
   getSummaryBreadcrumbs,
 } from 'sentry/components/events/breadcrumbs/utils';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import {
-  BREADCRUMB_SORT_LOCALSTORAGE_KEY,
-  BreadcrumbSort,
-} from 'sentry/components/events/interfaces/breadcrumbs';
 import {getVirtualCrumb} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import useDrawer from 'sentry/components/globalDrawer';
-import {
-  IconClock,
-  IconEllipsis,
-  IconFilter,
-  IconPanel,
-  IconSearch,
-  IconSort,
-} from 'sentry/icons';
+import {IconClock, IconEllipsis, IconFilter, IconSearch, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
@@ -46,10 +38,6 @@ export default function BreadcrumbsDataSection({
   project,
 }: BreadcrumbsDataSectionProps) {
   // Use the local storage preferences, but allow the drawer to do updates
-  const [sort] = useLocalStorageState<BreadcrumbSort>(
-    BREADCRUMB_SORT_LOCALSTORAGE_KEY,
-    BreadcrumbSort.NEWEST
-  );
   const [timeDisplay, setTimeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
     BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
     BreadcrumbTimeDisplay.RELATIVE
@@ -70,26 +58,30 @@ export default function BreadcrumbsDataSection({
   // The virtual crumb is a representation of this event, displayed alongside
   // the rest of the breadcrumbs for more additional context.
   const virtualCrumb = useMemo(() => getVirtualCrumb(event), [event]);
-  let virtualCrumbIndex: number | undefined;
   if (virtualCrumb) {
-    virtualCrumbIndex = allCrumbs.length;
     allCrumbs = [...breadcrumbs, virtualCrumb];
   }
 
-  const onViewAllBreadcrumbs = useCallback(() => {
-    openDrawer(({Body}) => (
-      <Body>
-        <BreadcrumbsDrawerContent
-          virtualCrumbIndex={virtualCrumbIndex}
-          allBreadcrumbs={allCrumbs}
-          meta={meta}
-          group={group}
-          event={event}
-          project={project}
-        />
-      </Body>
-    ));
-  }, [virtualCrumbIndex, allCrumbs, meta, group, event, project, openDrawer]);
+  const onViewAllBreadcrumbs = useCallback(
+    (focusControl?: BreadcrumbControlOptions) => {
+      openDrawer(
+        ({Body}) => (
+          <Body>
+            <BreadcrumbsDrawerContent
+              allBreadcrumbs={allCrumbs}
+              meta={meta}
+              group={group}
+              event={event}
+              project={project}
+              focusControl={focusControl}
+            />
+          </Body>
+        ),
+        {ariaLabel: 'breadcrumbs drawer'}
+      );
+    },
+    [allCrumbs, meta, group, event, project, openDrawer]
+  );
 
   if (!breadcrumbEntryIndex) {
     return null;
@@ -99,7 +91,8 @@ export default function BreadcrumbsDataSection({
     return null;
   }
 
-  const summaryCrumbs = getSummaryBreadcrumbs(sort, allCrumbs);
+  const summaryCrumbs = getSummaryBreadcrumbs(allCrumbs);
+  const isFullLength = summaryCrumbs.length === allCrumbs.length;
 
   const startTimeString =
     timeDisplay === BreadcrumbTimeDisplay.RELATIVE
@@ -112,16 +105,19 @@ export default function BreadcrumbsDataSection({
         aria-label={t('Search Breadcrumbs')}
         icon={<IconSearch size="xs" />}
         size="xs"
+        onClick={() => onViewAllBreadcrumbs(BreadcrumbControlOptions.SEARCH)}
       />
       <Button
         aria-label={t('Filter Breadcrumbs')}
         icon={<IconFilter size="xs" />}
         size="xs"
+        onClick={() => onViewAllBreadcrumbs(BreadcrumbControlOptions.FILTER)}
       />
       <Button
         aria-label={t('Sort Breadcrumbs')}
         icon={<IconSort size="xs" />}
         size="xs"
+        onClick={() => onViewAllBreadcrumbs(BreadcrumbControlOptions.SORT)}
       />
       <Button
         aria-label={t('Change Breadcrumb Time Format')}
@@ -135,14 +131,6 @@ export default function BreadcrumbsDataSection({
         }
         size="xs"
       />
-      <Button
-        aria-label={t('View All Breadcrumbs')}
-        icon={<IconPanel direction="right" size="xs" />}
-        size="xs"
-        onClick={onViewAllBreadcrumbs}
-      >
-        {t('View All')}
-      </Button>
     </ButtonBar>
   );
 
@@ -158,25 +146,28 @@ export default function BreadcrumbsDataSection({
         {allCrumbs.length ? (
           <BreadcrumbsTimeline
             breadcrumbs={summaryCrumbs}
-            virtualCrumbIndex={virtualCrumbIndex}
+            virtualCrumbIndex={virtualCrumb ? 0 : undefined}
             meta={meta}
             startTimeString={startTimeString}
           />
         ) : (
           <EmptyBreadcrumbsMessage>{t('No breadcrumbs found. ')}</EmptyBreadcrumbsMessage>
         )}
-        <ViewAllContainer>
-          <VerticalEllipsis />
-          <div>
-            <ViewAllButton
-              size="sm"
-              onClick={onViewAllBreadcrumbs}
-              aria-label={t('View All Breadcrumbs')}
-            >
-              {t('View All')}
-            </ViewAllButton>
-          </div>
-        </ViewAllContainer>
+        {!isFullLength && (
+          <ViewAllContainer>
+            <VerticalEllipsis />
+
+            <div>
+              <ViewAllButton
+                size="sm"
+                onClick={() => onViewAllBreadcrumbs()}
+                aria-label={t('View All Breadcrumbs')}
+              >
+                {t('View All')}
+              </ViewAllButton>
+            </div>
+          </ViewAllContainer>
+        )}
       </ErrorBoundary>
     </EventDataSection>
   );
