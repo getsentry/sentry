@@ -1071,6 +1071,7 @@ def _bulk_snuba_query(
                 ):
                     logger.warning("Query is throttled", extra={"response.data": response.data})
                     sentry_sdk.capture_message("Query is throttled", level="warning")
+                    metrics.incr("snuba.client.query.throttle", tags={"referrer": query_referrer})
 
             if response.status != 200:
                 _log_request_query(snuba_param_list[index][0])
