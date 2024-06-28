@@ -26,7 +26,6 @@ from sentry.notifications.services import notifications_service
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
-from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.utils import metrics
 from sentry.utils.signing import unsign
 from sentry.web.frontend.base import BaseView, region_silo_view
