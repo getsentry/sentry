@@ -11,6 +11,7 @@ from typing import Any
 
 from django.dispatch import receiver
 
+from sentry.audit_log.services.log import AuditLogEvent, UserIpEvent, log_rpc_service
 from sentry.auth.services.auth import auth_service
 from sentry.auth.services.orgauthtoken import orgauthtoken_rpc_service
 from sentry.models.authproviderreplica import AuthProviderReplica
@@ -18,7 +19,6 @@ from sentry.models.organization import Organization
 from sentry.models.outbox import OutboxCategory, process_region_outbox
 from sentry.models.project import Project
 from sentry.receivers.outbox import maybe_process_tombstone
-from sentry.services.hybrid_cloud.log import AuditLogEvent, UserIpEvent, log_rpc_service
 from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.services.hybrid_cloud.organization_mapping.model import CustomerId
 from sentry.services.hybrid_cloud.organization_mapping.serial import (
