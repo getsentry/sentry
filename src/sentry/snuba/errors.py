@@ -47,6 +47,7 @@ def query(
     skip_tag_resolution=False,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    query_source: QuerySource | None = None,
 ) -> EventsResponse:
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
@@ -76,7 +77,9 @@ def query(
     )
     if conditions is not None:
         builder.add_conditions(conditions)
-    result = builder.process_results(builder.run_query(referrer))
+    result = builder.process_results(
+        builder.run_query(referrer=referrer, query_source=query_source)
+    )
     result["meta"]["tips"] = transform_tips(builder.tips)
     return result
 

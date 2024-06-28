@@ -21,10 +21,12 @@ from sentry.apidocs.parameters import GlobalParams, OrganizationParams, Visibili
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.exceptions import InvalidParams
+from sentry.middleware import is_frontend_request
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
 from sentry.snuba.metrics.extraction import MetricSpecType
+from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import get_dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
@@ -338,6 +340,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         elif referrer not in ALLOWED_EVENTS_REFERRERS:
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
+        query_source = QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
+
         def _data_fn(scopedDataset, offset, limit, query) -> dict[str, Any]:
             return scopedDataset.query(
                 selected_columns=self.get_field_list(organization, request),
@@ -359,6 +363,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
+                query_source=query_source,
             )
 
         @sentry_sdk.tracing.trace

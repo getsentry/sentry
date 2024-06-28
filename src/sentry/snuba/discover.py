@@ -368,6 +368,7 @@ def query(
     extra_columns=None,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type=None,
+    query_source: QuerySource | None = None,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -426,6 +427,7 @@ def query(
         on_demand_metrics_enabled=on_demand_metrics_enabled,
         on_demand_metrics_type=on_demand_metrics_type,
         dataset=Dataset.Discover,
+        query_source=query_source,
     )
 
 

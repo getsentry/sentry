@@ -36,6 +36,7 @@ def query(
     extra_columns=None,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type=None,
+    query_source: QuerySource | None = None,
 ) -> discover.EventsResponse:
     return discover._query(
         selected_columns,
@@ -63,6 +64,7 @@ def query(
         on_demand_metrics_enabled=on_demand_metrics_enabled,
         on_demand_metrics_type=on_demand_metrics_type,
         dataset=Dataset.Transactions,
+        query_source=query_source,
     )
 
 
