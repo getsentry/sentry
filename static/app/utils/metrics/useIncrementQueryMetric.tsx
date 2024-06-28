@@ -7,8 +7,8 @@ import {parseMRI} from 'sentry/utils/metrics/mri';
 
 interface Options {
   mri: MRI;
+  aggregation?: string;
   groupBy?: string[];
-  op?: string;
   query?: string;
 }
 
@@ -18,19 +18,19 @@ export const useIncrementQueryMetric = (options: Options) => {
       const mergedValues = {
         mri: options.mri,
         groupBy: options.groupBy,
-        op: options.op,
+        aggregation: options.aggregation,
         query: options.query,
         ...values,
       };
       Sentry.metrics.increment(metricName, 1, {
         tags: {
           type: getReadableMetricType(parseMRI(mergedValues.mri)?.type),
-          operation: mergedValues.op,
+          operation: mergedValues.aggregation,
           isGrouped: !!mergedValues.groupBy?.length,
           isFiltered: !!mergedValues.query,
         },
       });
     },
-    [options.mri, options.groupBy, options.op, options.query]
+    [options.mri, options.groupBy, options.aggregation, options.query]
   );
 };

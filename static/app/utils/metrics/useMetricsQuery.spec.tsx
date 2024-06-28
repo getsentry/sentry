@@ -1,4 +1,5 @@
 import type {PageFilters} from 'sentry/types/core';
+import type {MetricAggregation} from 'sentry/types/metrics';
 import {
   createMqlQuery,
   getMetricsQueryApiRequestPayload,
@@ -46,7 +47,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
       query: 'error',
       groupBy: ['project'],
       mri: 'c:custom/sessions@none' as const,
-      op: 'avg',
+      aggregation: 'avg' as MetricAggregation,
       name: 'query_1',
     };
     const filters = {
@@ -80,7 +81,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
   it('should return the correct query object with default values (period)', () => {
     const metric = {
       mri: 'c:custom/sessions@none' as const,
-      op: 'avg',
+      aggregation: 'avg' as MetricAggregation,
       query: 'error',
       groupBy: ['project'],
       name: 'query_1',
@@ -115,7 +116,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
   it('should return the correct query object with overridden values', () => {
     const metric = {
       mri: 'c:custom/sessions@none' as const,
-      op: 'avg',
+      aggregation: 'avg' as MetricAggregation,
       query: 'error',
       groupBy: ['project'],
       name: 'query_1',
@@ -154,7 +155,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
   it('should not add a default orderBy if one is already present', () => {
     const metric = {
       mri: 'c:custom/sessions@none' as const,
-      op: 'avg',
+      aggregation: 'avg' as MetricAggregation,
       query: 'error',
       groupBy: ['project'],
       orderBy: 'asc' as const,
@@ -191,7 +192,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
   it('should not add a default orderBy if there are no groups', () => {
     const metric = {
       mri: 'c:custom/sessions@none' as const,
-      op: 'avg',
+      aggregation: 'avg' as MetricAggregation,
       query: 'error',
       groupBy: [],
       name: 'query_1',
@@ -227,7 +228,7 @@ describe('getMetricsQueryApiRequestPayload', () => {
   it('should not add intervalLadder override into the request', () => {
     const metric = {
       mri: 'c:custom/test@seconds' as const,
-      op: 'sum',
+      aggregation: 'sum' as MetricAggregation,
       query: 'error',
       groupBy: [],
       name: 'query_1',

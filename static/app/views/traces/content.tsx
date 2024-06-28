@@ -29,7 +29,7 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
-import type {MRI} from 'sentry/types/metrics';
+import type {MetricAggregation, MRI} from 'sentry/types/metrics';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -207,7 +207,11 @@ export function Content() {
           {tct('The metric query [metricQuery] is filtering the results below.', {
             metricQuery: (
               <strong>
-                {getFormattedMQL({mri: mri as MRI, op: metricsOp, query: metricsQuery})}
+                {getFormattedMQL({
+                  mri: mri as MRI,
+                  aggregation: metricsOp as MetricAggregation,
+                  query: metricsQuery,
+                })}
               </strong>
             ),
           })}

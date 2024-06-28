@@ -16,7 +16,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
-import type {MRI} from 'sentry/types/metrics';
+import type {MetricAggregation, MRI} from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMetric} from 'sentry/utils/metrics';
@@ -59,12 +59,12 @@ export function WidgetDetails() {
     return <MetricDetails onRowHover={handleSampleRowHover} focusArea={focusArea} />;
   }
 
-  const {mri, op, query, focusedSeries} = selectedWidget;
+  const {mri, aggregation, query, focusedSeries} = selectedWidget;
 
   return (
     <MetricDetails
       mri={mri}
-      op={op}
+      aggregation={aggregation}
       query={query}
       focusedSeries={focusedSeries}
       onRowHover={handleSampleRowHover}
@@ -76,12 +76,12 @@ export function WidgetDetails() {
 }
 
 interface MetricDetailsProps {
+  aggregation?: MetricAggregation;
   focusArea?: FocusAreaProps;
   focusedSeries?: FocusedMetricsSeries[];
   hasPerformanceMetrics?: boolean;
   mri?: MRI;
   onRowHover?: (sampleId?: string) => void;
-  op?: string;
   query?: string;
   setMetricsSamples?: React.Dispatch<
     React.SetStateAction<MetricsSamplesResults<Field>['data'] | undefined>
@@ -90,7 +90,7 @@ interface MetricDetailsProps {
 
 export function MetricDetails({
   mri,
-  op,
+  aggregation,
   query,
   focusedSeries,
   onRowHover,
@@ -143,11 +143,11 @@ export function MetricDetails({
   const tracesTarget = generateTracesRouteWithQuery({
     orgSlug: organization.slug,
     metric:
-      op && mri
+      aggregation && mri
         ? {
             max: selectionRange?.max,
             min: selectionRange?.min,
-            op: op,
+            op: aggregation,
             query: queryWithFocusedSeries,
             mri,
           }
@@ -205,7 +205,7 @@ export function MetricDetails({
                     focusArea={selectionRange}
                     mri={mri}
                     onRowHover={onRowHover}
-                    op={op}
+                    aggregation={aggregation}
                     query={queryWithFocusedSeries}
                     setMetricsSamples={setMetricsSamples}
                     hasPerformance={hasPerformanceMetrics}
@@ -215,7 +215,7 @@ export function MetricDetails({
                     focusArea={selectionRange}
                     mri={mri}
                     onRowHover={onRowHover}
-                    op={op}
+                    aggregation={aggregation}
                     query={queryWithFocusedSeries}
                     setMetricsSamples={setMetricsSamples}
                     hasPerformance={hasPerformanceMetrics}

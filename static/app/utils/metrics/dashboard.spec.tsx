@@ -1,4 +1,4 @@
-import type {MRI} from 'sentry/types/metrics';
+import type {MetricAggregation, MRI} from 'sentry/types/metrics';
 import {
   convertToDashboardWidget,
   getWidgetQuery,
@@ -16,7 +16,7 @@ describe('convertToDashboardWidget', () => {
             groupBy: ['project'],
             query: 'event.type:transaction',
             mri: 'c:custom/login@second',
-            op: 'p95',
+            aggregation: 'p95',
             id: 1,
           },
         ],
@@ -48,7 +48,7 @@ describe('convertToDashboardWidget', () => {
             groupBy: [],
             query: '',
             mri: 'd:transactions/measurements.duration@second',
-            op: 'p95',
+            aggregation: 'p95',
           },
         ],
         MetricDisplayType.BAR
@@ -80,7 +80,7 @@ describe('convertToDashboardWidget', () => {
             groupBy: [],
             query: '',
             mri: 'd:transactions/measurements.duration@second',
-            op: 'p95',
+            aggregation: 'p95',
             isHidden: true,
           },
           {
@@ -129,11 +129,10 @@ describe('getWidgetQuery', () => {
   };
 
   it('should return the correct widget query object', () => {
-    // Arrange
     const metricsQuery = {
       ...metricsQueryBase,
       mri: 'd:custom/sentry.events.symbolicator.query_task@second' as MRI,
-      op: 'sum',
+      aggregation: 'sum' as MetricAggregation,
       query: 'status = "success"',
       title: 'Example Widget',
     };

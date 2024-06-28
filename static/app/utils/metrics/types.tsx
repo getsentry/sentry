@@ -1,5 +1,5 @@
 import type {DateString} from 'sentry/types/core';
-import type {MRI} from 'sentry/types/metrics';
+import type {MetricAggregation, MRI} from 'sentry/types/metrics';
 
 export enum MetricDisplayType {
   LINE = 'line',
@@ -27,8 +27,8 @@ export interface FocusedMetricsSeries {
 }
 
 export interface MetricsQuery {
+  aggregation: MetricAggregation;
   mri: MRI;
-  op: string;
   groupBy?: string[];
   query?: string;
 }
