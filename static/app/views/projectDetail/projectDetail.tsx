@@ -12,7 +12,6 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import CreateAlertButton from 'sentry/components/createAlertButton';
 import FloatingFeedbackWidget from 'sentry/components/feedback/widget/floatingFeedbackWidget';
-import GlobalAppStoreConnectUpdateAlert from 'sentry/components/globalAppStoreConnectUpdateAlert';
 import GlobalEventProcessingAlert from 'sentry/components/globalEventProcessingAlert';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -27,7 +26,6 @@ import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters, Project} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import routeTitleGen from 'sentry/utils/routeTitle';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withPageFilters from 'sentry/utils/withPageFilters';
 import withProjects from 'sentry/utils/withProjects';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
@@ -77,26 +75,6 @@ class ProjectDetail extends DeprecatedAsyncView<Props, State> {
 
     return projects.find(p => p.slug === params.projectId);
   }
-
-  handleProjectChange = (selectedProjects: number[]) => {
-    const {projects, router, location, organization} = this.props;
-
-    const newlySelectedProject = projects.find(p => p.id === String(selectedProjects[0]));
-
-    // if we change project in global header, we need to sync the project slug in the URL
-    if (newlySelectedProject?.id) {
-      router.replace(
-        normalizeUrl({
-          pathname: `/organizations/${organization.slug}/projects/${newlySelectedProject.slug}/`,
-          query: {
-            ...location.query,
-            project: newlySelectedProject.id,
-            environment: undefined,
-          },
-        })
-      );
-    }
-  };
 
   handleSearch = (query: string) => {
     const {router, location} = this.props;
@@ -263,10 +241,6 @@ class ProjectDetail extends DeprecatedAsyncView<Props, State> {
 
             <Layout.Body noRowGap>
               {project && <StyledGlobalEventProcessingAlert projects={[project]} />}
-              <StyledGlobalAppStoreConnectUpdateAlert
-                project={project}
-                organization={organization}
-              />
               <FloatingFeedbackWidget />
               <Layout.Main>
                 <ProjectFiltersWrapper>
@@ -360,15 +334,5 @@ const StyledGlobalEventProcessingAlert = styled(GlobalEventProcessingAlert)`
     margin-bottom: 0;
   }
 `;
-
-const StyledGlobalAppStoreConnectUpdateAlert = styled(GlobalAppStoreConnectUpdateAlert)`
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    margin-bottom: 0;
-  }
-`;
-
-StyledGlobalAppStoreConnectUpdateAlert.defaultProps = {
-  Wrapper: p => <Layout.Main fullWidth {...p} />,
-};
 
 export default withProjects(withPageFilters(ProjectDetail));
