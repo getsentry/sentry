@@ -321,7 +321,7 @@ export class VideoReplayer {
     if (!this._isPlaying && nextIndex !== this._currentIndex) {
       // we can get here if we play/pause into a gap at the end of the video segment
       // to avoid showing flickering states when the user pauses,
-      // (e.g., showing the next frame too eagerly), we want to stay on the last old
+      // (e.g., showing a different frame too eagerly), we want to stay on the last old
       // frame until it's time to show the next frame.
       const currSeg = this.getSegment(nextIndex - 1);
       await this.loadSegment(nextIndex - 1, {
