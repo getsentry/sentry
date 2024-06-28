@@ -138,11 +138,6 @@ class ParseRuleGroupToEventDataTest(TestCase):
         pass
 
 
-class ProcessDelayedAlertConditionsTest(TestCase):
-    def test_process_delayed_alert_conditions(self):
-        pass
-
-
 @freeze_time(FROZEN_TIME)
 class ProcessDelayedAlertConditionsTest(
     TestCase, APITestCase, BaseEventFrequencyPercentTest, PerformanceIssueTestCase
