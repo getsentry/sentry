@@ -1,3 +1,4 @@
+from collections import defaultdict
 from copy import deepcopy
 from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
@@ -14,9 +15,11 @@ from sentry.rules.conditions.event_frequency import (
     EventFrequencyCondition,
     EventFrequencyConditionData,
 )
-from sentry.rules.processing.delayed_processing import (  # build_group_to_groupevent,; bulk_fetch_events,; get_condition_group_results,; get_group_to_groupevent,; get_rules_to_fire,; get_rules_to_groups,; get_rules_to_slow_conditions,; parse_rulegroup_to_event_data,
+from sentry.rules.processing.delayed_processing import (  # build_group_to_groupevent,; bulk_fetch_events,; get_condition_group_results,; get_group_to_groupevent,; get_rules_to_fire,; ; ; parse_rulegroup_to_event_data,
     apply_delayed,
     get_condition_groups,
+    get_rules_to_groups,
+    get_rules_to_slow_conditions,
     get_slow_conditions,
     process_delayed_alert_conditions,
 )
@@ -61,12 +64,56 @@ class GetRulesToFireTest(TestCase):
 
 
 class GetRulesToGroupsTest(TestCase):
-    def test_get_rules_to_groups(self):
-        pass
+    def test_empty_input(self):
+        result = get_rules_to_groups({})
+        assert result == defaultdict(set)
+
+    def test_single_rule_group(self):
+        input_data = {"1:100": "event_data"}
+        expected = defaultdict(set, {1: {100}})
+        result = get_rules_to_groups(input_data)
+        assert result == expected
+
+    def test_multiple_rule_groups(self):
+        input_data = {
+            "1:100": "event_data1",
+            "1:101": "event_data2",
+            "2:200": "event_data3",
+            "3:300": "event_data4",
+            "3:301": "event_data5",
+        }
+        expected = defaultdict(set, {1: {100, 101}, 2: {200}, 3: {300, 301}})
+        result = get_rules_to_groups(input_data)
+        assert result == expected
+
+    def test_invalid_input_format(self):
+        input_data = {"invalid_key": "event_data"}
+        with pytest.raises(ValueError):
+            get_rules_to_groups(input_data)
 
 
-class GetRulesToSlowConditionsTest(TestCase):
-    pass
+class GetRulesToSlowConditionsTest(RuleTestCase):
+    rule_cls = EventFrequencyCondition
+
+    def setUp(self):
+        self.rule = self.get_rule(data={"conditions": [TEST_RULE_SLOW_CONDITION]})
+
+    def test_get_rules_to_slow_conditions(self):
+        results = get_rules_to_slow_conditions([self.rule])
+        assert results == {self.rule: [TEST_RULE_SLOW_CONDITION]}
+
+    def test_get_rules_to_slow_conditions__with_fast_conditions(self):
+        self.rule = self.get_rule(data={"conditions": [TEST_RULE_FAST_CONDITION]})
+        results = get_rules_to_slow_conditions([self.rule])
+        assert results == defaultdict(list)
+
+    def test_get_rules_to_slow_conditions__with_multiple_slow_rules(self):
+        self.rule_two = self.get_rule(data={"conditions": [TEST_RULE_SLOW_CONDITION]})
+        results = get_rules_to_slow_conditions([self.rule, self.rule_two])
+        assert results == {
+            self.rule: [TEST_RULE_SLOW_CONDITION],
+            self.rule_two: [TEST_RULE_SLOW_CONDITION],
+        }
 
 
 class GetSlowConditionsTest(RuleTestCase):
