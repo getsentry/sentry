@@ -39,7 +39,7 @@ const BUILTIN_TAGS_BY_CATEGORY = {
   }, {}),
 };
 
-function getBuiltInTagKeys(organization: Organization) {
+function getBuiltInTags(organization: Organization) {
   if (organization.features.includes('issue-stream-search-query-builder')) {
     return BUILTIN_TAGS_BY_CATEGORY;
   }
@@ -48,7 +48,7 @@ function getBuiltInTagKeys(organization: Organization) {
 }
 
 interface TagStoreDefinition extends StrictStoreDefinition<TagCollection> {
-  getIssueAttributes(): TagCollection;
+  getIssueAttributes(organization: Organization): TagCollection;
   getIssueTags(org: Organization): TagCollection;
   loadTagsSuccess(data: Tag[]): void;
   reset(): void;
@@ -66,7 +66,7 @@ const storeConfig: TagStoreDefinition = {
   /**
    * Gets only predefined issue attributes
    */
-  getIssueAttributes() {
+  getIssueAttributes(organization: Organization) {
     // TODO(mitsuhiko): what do we do with translations here?
     const isSuggestions = [
       'resolved',
@@ -83,9 +83,11 @@ const storeConfig: TagStoreDefinition = {
       return a.toLowerCase().localeCompare(b.toLowerCase());
     });
 
+    const builtinTags = getBuiltInTags(organization);
+
     const tagCollection = {
       [FieldKey.IS]: {
-        ...BUILTIN_TAGS[FieldKey.IS],
+        ...builtinTags[FieldKey.IS],
         key: FieldKey.IS,
         name: 'Status',
         values: isSuggestions,
@@ -93,27 +95,27 @@ const storeConfig: TagStoreDefinition = {
         predefined: true,
       },
       [FieldKey.HAS]: {
-        ...BUILTIN_TAGS[FieldKey.HAS],
+        ...builtinTags[FieldKey.HAS],
         key: FieldKey.HAS,
         name: 'Has Tag',
         values: sortedTagKeys,
         predefined: true,
       },
       [FieldKey.ASSIGNED]: {
-        ...BUILTIN_TAGS[FieldKey.ASSIGNED],
+        ...builtinTags[FieldKey.ASSIGNED],
         key: FieldKey.ASSIGNED,
         name: 'Assigned To',
         values: [],
         predefined: true,
       },
       [FieldKey.BOOKMARKS]: {
-        ...BUILTIN_TAGS[FieldKey.BOOKMARKS],
+        ...builtinTags[FieldKey.BOOKMARKS],
         name: 'Bookmarked By',
         values: [],
         predefined: true,
       },
       [FieldKey.ISSUE_CATEGORY]: {
-        ...BUILTIN_TAGS[FieldKey.ISSUE_CATEGORY],
+        ...builtinTags[FieldKey.ISSUE_CATEGORY],
         name: 'Issue Category',
         values: [
           IssueCategory.ERROR,
@@ -124,7 +126,7 @@ const storeConfig: TagStoreDefinition = {
         predefined: true,
       },
       [FieldKey.ISSUE_TYPE]: {
-        ...BUILTIN_TAGS[FieldKey.ISSUE_TYPE],
+        ...builtinTags[FieldKey.ISSUE_TYPE],
         name: 'Issue Type',
         values: [
           IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
@@ -151,31 +153,31 @@ const storeConfig: TagStoreDefinition = {
         predefined: true,
       },
       [FieldKey.LAST_SEEN]: {
-        ...BUILTIN_TAGS[FieldKey.LAST_SEEN],
+        ...builtinTags[FieldKey.LAST_SEEN],
         name: 'Last Seen',
         values: [],
         predefined: false,
       },
       [FieldKey.FIRST_SEEN]: {
-        ...BUILTIN_TAGS[FieldKey.FIRST_SEEN],
+        ...builtinTags[FieldKey.FIRST_SEEN],
         name: 'First Seen',
         values: [],
         predefined: false,
       },
       [FieldKey.FIRST_RELEASE]: {
-        ...BUILTIN_TAGS[FieldKey.FIRST_RELEASE],
+        ...builtinTags[FieldKey.FIRST_RELEASE],
         name: 'First Release',
         values: ['latest'],
         predefined: true,
       },
       [FieldKey.EVENT_TIMESTAMP]: {
-        ...BUILTIN_TAGS[FieldKey.EVENT_TIMESTAMP],
+        ...builtinTags[FieldKey.EVENT_TIMESTAMP],
         name: 'Event Timestamp',
         values: [],
         predefined: true,
       },
       [FieldKey.TIMES_SEEN]: {
-        ...BUILTIN_TAGS[FieldKey.TIMES_SEEN],
+        ...builtinTags[FieldKey.TIMES_SEEN],
         name: 'Times Seen',
         isInput: true,
         // Below values are required or else SearchBar will attempt to get values
@@ -184,14 +186,14 @@ const storeConfig: TagStoreDefinition = {
         predefined: true,
       },
       [FieldKey.ASSIGNED_OR_SUGGESTED]: {
-        ...BUILTIN_TAGS[FieldKey.ASSIGNED_OR_SUGGESTED],
+        ...builtinTags[FieldKey.ASSIGNED_OR_SUGGESTED],
         name: 'Assigned or Suggested',
         isInput: true,
         values: [],
         predefined: true,
       },
       [FieldKey.ISSUE_PRIORITY]: {
-        ...BUILTIN_TAGS[FieldKey.ISSUE_PRIORITY],
+        ...builtinTags[FieldKey.ISSUE_PRIORITY],
         name: 'Issue Priority',
         values: [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW],
         predefined: true,
@@ -223,10 +225,10 @@ const storeConfig: TagStoreDefinition = {
     }, {});
 
     const issueTags = {
-      ...getBuiltInTagKeys(org),
+      ...getBuiltInTags(org),
       ...SEMVER_TAGS,
       ...eventTags,
-      ...this.getIssueAttributes(),
+      ...this.getIssueAttributes(org),
     };
     if (!org.features.includes('device-classification')) {
       delete issueTags[FieldKey.DEVICE_CLASS];
