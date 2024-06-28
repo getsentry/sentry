@@ -72,9 +72,9 @@ class MetricsExtractionRule:
         """Generate the Metric Resource Identifier (MRI) associated with the extraction rule."""
         use_case_id = string_to_use_case_id(use_case)
         if self.type in ("s", "c"):
-            return f"{self.type}:{use_case_id.value}/internal_{self.id}@none"
+            return f"{self.type}:{use_case_id.value}/span_attribute_{self.id}@none"
         else:
-            return f"{self.type}:{use_case_id.value}/internal_{self.id}@{self.unit}"
+            return f"{self.type}:{use_case_id.value}/span_attribute_{self.id}@{self.unit}"
 
     def __hash__(self):
         return hash(self.generate_mri())

@@ -19,7 +19,7 @@ def test_convert_to_spec():
 
     expected_spec = {
         "category": "span",
-        "mri": "d:custom/internal_1@millisecond",
+        "mri": "d:custom/span_attribute_1@millisecond",
         "field": "span.duration",
         "tags": [
             {"key": "region", "field": "span.data.region"},
@@ -121,7 +121,7 @@ def test_sentry_tags():
         )
         metric_spec = convert_to_metric_spec(rule)
         assert metric_spec["field"] == f"span.sentry_tags.{tag}"
-        assert metric_spec["mri"] == "d:custom/internal_1@none"
+        assert metric_spec["mri"] == "d:custom/span_attribute_1@none"
 
 
 def test_span_data_attribute_with_condition():
@@ -132,7 +132,7 @@ def test_span_data_attribute_with_condition():
     metric_spec = convert_to_metric_spec(rule)
 
     assert metric_spec["field"] == "span.data.foobar"
-    assert metric_spec["mri"] == "d:custom/internal_1@none"
+    assert metric_spec["mri"] == "d:custom/span_attribute_1@none"
     assert metric_spec["tags"] == [{"key": "foobar", "field": "span.data.foobar"}]
     assert metric_spec["condition"] == {"op": "eq", "name": "span.data.foobar", "value": "baz"}
 
@@ -145,7 +145,7 @@ def test_counter():
     metric_spec = convert_to_metric_spec(rule)
 
     assert not metric_spec["field"]
-    assert metric_spec["mri"] == "c:custom/internal_1@none"
+    assert metric_spec["mri"] == "c:custom/span_attribute_1@none"
     assert metric_spec["condition"] == {
         "inner": {"name": "span.data.foobar", "op": "eq", "value": None},
         "op": "not",
@@ -160,7 +160,7 @@ def test_counter_extends_conditions():
     metric_spec = convert_to_metric_spec(rule)
 
     assert not metric_spec["field"]
-    assert metric_spec["mri"] == "c:custom/internal_1@none"
+    assert metric_spec["mri"] == "c:custom/span_attribute_1@none"
     assert metric_spec["condition"] == {
         "op": "and",
         "inner": [

@@ -82,8 +82,8 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
 
             assert conditions[0]["id"] == 1
             assert conditions[1]["id"] == 2
-            assert conditions[0]["mris"] == ["c:custom/internal_1@none"]
-            assert conditions[1]["mris"] == ["c:custom/internal_2@none"]
+            assert conditions[0]["mris"] == ["c:custom/span_attribute_1@none"]
+            assert conditions[1]["mris"] == ["c:custom/span_attribute_2@none"]
 
     @django_db_all
     @with_feature("organizations:custom-metrics-extraction-rule")

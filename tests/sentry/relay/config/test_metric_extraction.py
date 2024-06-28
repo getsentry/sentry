@@ -2155,9 +2155,18 @@ def test_get_span_attribute_metrics(default_project: Project) -> None:
         assert sorted(config["metrics"], key=lambda x: x["mri"]) == [
             {
                 "category": "span",
-                "condition": {"name": "span.data.bar", "op": "eq", "value": "baz"},
+                "condition": {
+                    "inner": [
+                        {"name": "span.data.bar", "op": "eq", "value": "baz"},
+                        {
+                            "inner": {"name": "span.duration", "op": "eq", "value": None},
+                            "op": "not",
+                        },
+                    ],
+                    "op": "and",
+                },
                 "field": None,
-                "mri": "c:custom/internal_1@none",
+                "mri": "c:custom/span_attribute_1@none",
                 "tags": [
                     {"field": "span.data.bar", "key": "bar"},
                     {"field": "span.data.foo", "key": "foo"},
@@ -2165,9 +2174,18 @@ def test_get_span_attribute_metrics(default_project: Project) -> None:
             },
             {
                 "category": "span",
-                "condition": {"name": "span.data.abc", "op": "eq", "value": "xyz"},
+                "condition": {
+                    "inner": [
+                        {"name": "span.data.abc", "op": "eq", "value": "xyz"},
+                        {
+                            "inner": {"name": "span.duration", "op": "eq", "value": None},
+                            "op": "not",
+                        },
+                    ],
+                    "op": "and",
+                },
                 "field": None,
-                "mri": "c:custom/internal_2@none",
+                "mri": "c:custom/span_attribute_2@none",
                 "tags": [
                     {"field": "span.data.abc", "key": "abc"},
                     {"field": "span.data.foo", "key": "foo"},
@@ -2176,20 +2194,18 @@ def test_get_span_attribute_metrics(default_project: Project) -> None:
             {
                 "category": "span",
                 "condition": {
+                    "inner": {"name": "span.data.other_attribute", "op": "eq", "value": None},
                     "op": "not",
-                    "inner": {"name": "span.duration", "op": "eq", "value": None},
                 },
                 "field": None,
-                "mri": "c:custom/internal_3@none",
-                "tags": [
-                    {"field": "span.data.mytag", "key": "mytag"},
-                ],
+                "mri": "c:custom/span_attribute_3@none",
+                "tags": [{"field": "span.data.mytag", "key": "mytag"}],
             },
             {
                 "category": "span",
                 "condition": {"name": "span.data.bar", "op": "eq", "value": "baz"},
                 "field": "span.duration",
-                "mri": "d:custom/internal_1@millisecond",
+                "mri": "d:custom/span_attribute_1@millisecond",
                 "tags": [
                     {"field": "span.data.bar", "key": "bar"},
                     {"field": "span.data.foo", "key": "foo"},
@@ -2199,7 +2215,7 @@ def test_get_span_attribute_metrics(default_project: Project) -> None:
                 "category": "span",
                 "condition": {"name": "span.data.abc", "op": "eq", "value": "xyz"},
                 "field": "span.duration",
-                "mri": "d:custom/internal_2@millisecond",
+                "mri": "d:custom/span_attribute_2@millisecond",
                 "tags": [
                     {"field": "span.data.abc", "key": "abc"},
                     {"field": "span.data.foo", "key": "foo"},

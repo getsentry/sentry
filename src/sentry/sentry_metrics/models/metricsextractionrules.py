@@ -37,7 +37,7 @@ class SpanAttributeExtractionRuleCondition(Model):
         mris = []
         metric_types = MetricsExtractionRule.infer_types(self.config.aggregates)
         for metric_type in metric_types:
-            mris.append(f"{metric_type}:custom/internal_{self.id}@{self.config.unit}")
+            mris.append(f"{metric_type}:custom/span_attribute_{self.id}@{self.config.unit}")
         return mris
 
 
