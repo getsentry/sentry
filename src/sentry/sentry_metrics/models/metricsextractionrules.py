@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 from typing import Any
 
 from django.db import models
@@ -13,8 +12,6 @@ from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignK
 from sentry.models.project import Project
 from sentry.sentry_metrics.configuration import HARD_CODED_UNITS
 from sentry.sentry_metrics.extraction_rules import MetricsExtractionRule
-
-logger = logging.getLogger(__name__)
 
 
 @region_silo_model

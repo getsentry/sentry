@@ -141,23 +141,15 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                     ).delete()
 
                     for condition in obj["conditions"]:
-                        condition_exists = SpanAttributeExtractionRuleCondition.objects.filter(
-                            id=condition["id"], config=config
-                        ).exists()
-
-                        # update existing conditions
-                        if condition_exists:
-                            SpanAttributeExtractionRuleCondition.objects.filter(
-                                id=condition["id"], config=config
-                            ).update(value=condition["value"])
-
-                        # create new conditions
-                        else:
-                            SpanAttributeExtractionRuleCondition.objects.create(
-                                created_by_id=request.user.id,
-                                value=condition["value"],
-                                config=config,
-                            )
+                        condition_id = condition["id"] if "id" in condition else None
+                        SpanAttributeExtractionRuleCondition.objects.update_or_create(
+                            id=condition_id,
+                            config=config,
+                            defaults={
+                                "value": condition["value"],
+                                "created_by_id": request.user.id,
+                            },
+                        )
 
         except Exception:
             return Response(status=400)

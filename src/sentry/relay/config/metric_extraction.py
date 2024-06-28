@@ -826,7 +826,7 @@ def _generate_span_attribute_specs(project: Project) -> list[HashedMetricSpec]:
     ):
         return []
 
-    extraction_configs = SpanAttributeExtractionRuleConfig.objects.filter(project=project).all()
+    extraction_configs = SpanAttributeExtractionRuleConfig.objects.filter(project=project)
     extraction_rules = []
     for extraction_config in extraction_configs:
         extraction_rules.extend(extraction_config.generate_rules())
