@@ -13,7 +13,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MRI} from 'sentry/types/metrics';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {getDefaultAggregate, isAllowedOp} from 'sentry/utils/metrics';
+import {getDefaultAggregation, isAllowedAggregation} from 'sentry/utils/metrics';
 import {parseMRI} from 'sentry/utils/metrics/mri';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
@@ -90,7 +90,7 @@ export const QueryBuilder = memo(function QueryBuilder({
       } else {
         queryChanges = {
           mri: mriValue,
-          op: getDefaultAggregate(mriValue),
+          aggregation: getDefaultAggregation(mriValue),
           groupBy: undefined,
         };
       }
@@ -105,9 +105,9 @@ export const QueryBuilder = memo(function QueryBuilder({
   const handleOpChange = useCallback(
     ({value}) => {
       trackAnalytics('ddm.widget.operation', {organization});
-      incrementQueryMetric('ddm.widget.operation', {op: value});
+      incrementQueryMetric('ddm.widget.operation', {aggregation: value});
       onChange({
-        op: value,
+        aggregation: value,
       });
     },
     [incrementQueryMetric, onChange, organization]
@@ -176,18 +176,20 @@ export const QueryBuilder = memo(function QueryBuilder({
             position="bottom"
             disabled={index !== 0}
           >
-            <OpSelect
+            <AggregationSelect
               size="md"
               triggerProps={{prefix: t('Agg')}}
               options={
-                selectedMeta?.operations.filter(isAllowedOp).map(op => ({
-                  label: op,
-                  value: op,
-                })) ?? []
+                selectedMeta?.operations
+                  .filter(isAllowedAggregation)
+                  .map(aggregation => ({
+                    label: aggregation,
+                    value: aggregation,
+                  })) ?? []
               }
-              triggerLabel={metricsQuery.op}
+              triggerLabel={metricsQuery.aggregation}
               disabled={!selectedMeta}
-              value={metricsQuery.op}
+              value={metricsQuery.aggregation}
               onChange={handleOpChange}
             />
           </GuideAnchor>
@@ -250,7 +252,7 @@ const FlexBlock = styled('div')`
   flex-wrap: wrap;
 `;
 
-const OpSelect = styled(CompactSelect)`
+const AggregationSelect = styled(CompactSelect)`
   /* makes selects from different have the same width which is enough to fit all agg options except "count_unique" */
   min-width: 128px;
   & > button {
