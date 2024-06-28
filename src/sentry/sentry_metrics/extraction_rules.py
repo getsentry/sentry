@@ -3,7 +3,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from sentry.sentry_metrics.configuration import (
-    AGGREGATES_TO_METRICS,
+    AGGREGATE_TO_METRIC_TYPE,
     ALLOWED_TYPES,
     HARD_CODED_UNITS,
 )
@@ -53,7 +53,7 @@ class MetricsExtractionRule:
     def infer_types(self, aggregates: set[str]) -> set[str]:
         types: set[str] = set()
         for aggregate in aggregates:
-            if new_type := AGGREGATES_TO_METRICS.get(aggregate):
+            if new_type := AGGREGATE_TO_METRIC_TYPE.get(aggregate):
                 types.add(new_type)
 
         return types

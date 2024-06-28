@@ -181,14 +181,14 @@ ALLOWED_TYPES = {"c", "d", "s", "g"}
 # and provides a map from the aggregate to the metric type in the form {'count': 'c', 'avg':'g', ...}. This is needed
 # when the UI lets the user select the aggregate, and the backend infers the metric_type from it. It is programmatic
 # and not hard-coded, so that in case of a change, the two mappings are aligned.
-METRICS_AGGREGATES = {
+METRIC_TYPE_TO_AGGREGATE = {
     "c": ["count"],
     "g": ["avg", "min", "max", "sum"],
     "d": ["p50", "p75", "p90", "p95", "p99"],
     "s": ["count_unique"],
 }
-AGGREGATES_TO_METRICS = {
+AGGREGATE_TO_METRIC_TYPE = {
     aggregate: metric_type
-    for metric_type, aggregate_list in METRICS_AGGREGATES.items()
+    for metric_type, aggregate_list in METRIC_TYPE_TO_AGGREGATE.items()
     for aggregate in aggregate_list
 }

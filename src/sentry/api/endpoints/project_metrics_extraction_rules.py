@@ -49,7 +49,7 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                 for obj in config_update:
                     SpanAttributeExtractionRuleConfig.objects.filter(
                         project=project, span_attribute=obj["spanAttribute"]
-                    ).all().delete()
+                    ).delete()
         except Exception as e:
             return Response(status=400, data={"detail": str(e)})
 
@@ -66,6 +66,7 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
         except Exception as e:
             return Response(status=500, data={"detail": str(e)})
 
+        # TODO(metrics): do real pagination using the database
         return self.paginate(
             request,
             queryset=list(configs),
@@ -135,30 +136,28 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
 
                     # delete conditions not present in update
                     included_conditions = [x["id"] for x in obj["conditions"]]
-                    SpanAttributeExtractionRuleCondition.objects.filter(
-                        project=project, config=config
-                    ).exclude(id__in=included_conditions).delete()
+                    SpanAttributeExtractionRuleCondition.objects.filter(config=config).exclude(
+                        id__in=included_conditions
+                    ).delete()
 
                     for condition in obj["conditions"]:
                         condition_exists = SpanAttributeExtractionRuleCondition.objects.filter(
-                            id=condition["id"], project=project
+                            id=condition["id"], config=config
                         ).exists()
 
                         # update existing conditions
                         if condition_exists:
                             SpanAttributeExtractionRuleCondition.objects.filter(
-                                id=condition["id"], project=project
+                                id=condition["id"], config=config
                             ).update(value=condition["value"])
 
                         # create new conditions
                         else:
-                            condition_obj = SpanAttributeExtractionRuleCondition.objects.create(
+                            SpanAttributeExtractionRuleCondition.objects.create(
                                 created_by_id=request.user.id,
-                                project=project,
                                 value=condition["value"],
                                 config=config,
                             )
-                            condition_obj.save()
 
         except Exception:
             return Response(status=400)

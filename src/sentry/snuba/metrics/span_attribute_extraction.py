@@ -79,6 +79,8 @@ class SpanAttributeMetricSpec(TypedDict):
 def convert_to_metric_spec(extraction_rule: MetricsExtractionRule) -> SpanAttributeMetricSpec:
 
     field = _get_field(extraction_rule)
+
+    # TODO(metrics): simplify MetricsExtractionRule in a follwup PR
     parsed_conditions = _parse_conditions([extraction_rule.condition])
 
     return {
