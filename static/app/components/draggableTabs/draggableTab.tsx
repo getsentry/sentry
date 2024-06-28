@@ -15,7 +15,13 @@ import type {DroppableCollectionState} from '@react-stately/dnd';
 import type {TabListState} from '@react-stately/tabs';
 import type {Node, Orientation} from '@react-types/shared';
 
+import Badge from 'sentry/components/badge/badge';
+import {DraggableTabMenuButton} from 'sentry/components/draggableTabs/draggableTabMenuButton';
+import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
+import QueryCount from 'sentry/components/queryCount';
 import {BaseTab} from 'sentry/components/tabs/tab';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 
 interface DraggableTabProps extends AriaTabProps {
   dropState: DroppableCollectionState;
@@ -34,6 +40,31 @@ interface BaseDropIndicatorProps {
   dropState: DroppableCollectionState;
   target: DropIndicatorProps['target'];
 }
+
+const TAB_MENU_OPTIONS: MenuItemProps[] = [
+  {
+    key: 'save-changes',
+    label: t('Save Changes'),
+  },
+  {
+    key: 'discard-changes',
+    label: t('Discard Changes'),
+  },
+  {
+    key: 'rename-tab',
+    label: t('Rename'),
+    showDivider: true,
+  },
+  {
+    key: 'duplicate-tab',
+    label: t('Duplicate'),
+  },
+  {
+    key: 'delete-tab',
+    label: t('Delete'),
+    priority: 'danger',
+  },
+];
 
 function TabDropIndicator(props: BaseDropIndicatorProps) {
   const ref = useRef(null);
@@ -58,7 +89,7 @@ function Draggable({item, children, onTabClick}: DraggableProps) {
     getItems() {
       return [
         {
-          tab: JSON.stringify({key: item.key, value: children}),
+          tab: JSON.stringify({key: item.key}),
         },
       ];
     },
@@ -107,7 +138,7 @@ export const DraggableTab = forwardRef(
           target={{type: 'item', key: item.key, dropPosition: 'before'}}
           dropState={dropState}
         />
-        <BaseTab
+        <StyledBaseTab
           additionalProps={dropProps}
           tabProps={tabProps}
           isSelected={isSelected}
@@ -118,9 +149,29 @@ export const DraggableTab = forwardRef(
           ref={ref}
         >
           <Draggable onTabClick={() => state.setSelectedKey(item.key)} item={item}>
-            {rendered}
+            <TabContentWrap>
+              {rendered}
+              <StyledBadge>
+                <QueryCount hideParens count={1001} max={1000} />
+              </StyledBadge>
+              <DropdownMenu
+                position="bottom-start"
+                triggerProps={{
+                  size: 'zero',
+                  showChevron: false,
+                  borderless: true,
+                  icon: <DraggableTabMenuButton />,
+                  style: {padding: 0},
+                }}
+                items={TAB_MENU_OPTIONS}
+                offset={[-10, 5]}
+              />
+            </TabContentWrap>
           </Draggable>
-        </BaseTab>
+        </StyledBaseTab>
+        {/* {state.selectedKey !== item.key && state.collection.getLastKey() !== item.key && (
+          <TabSeparator />
+        )} */}
         {state.collection.getKeyAfter(item.key) == null && (
           <TabDropIndicator
             target={{type: 'item', key: item.key, dropPosition: 'after'}}
@@ -131,6 +182,32 @@ export const DraggableTab = forwardRef(
     );
   }
 );
+
+const StyledBaseTab = styled(BaseTab)`
+  padding: 2px 12px 2px 12px;
+  gap: 8px;
+  border-radius: 6px 6px 0px 0px;
+  border: 1px solid ${p => p.theme.gray200};
+  opacity: 0px;
+`;
+
+const TabContentWrap = styled('span')`
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  gap: 6px;
+`;
+
+const StyledBadge = styled(Badge)`
+  display: flex;
+  height: 16px;
+  align-items: center;
+  border-radius: 10px;
+  background: transparent;
+  border: 1px solid ${p => p.theme.gray200};
+  color: ${p => p.theme.gray300};
+  margin-left: ${space(0)};
+`;
 
 const TabSeparator = styled('li')`
   height: 80%;
