@@ -44,15 +44,15 @@ from sentry.incidents.models.incident import (
     IncidentTrigger,
     TriggerStatus,
 )
+from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.fields import is_function, resolve_field
-from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
-from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
+from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
 from sentry.shared_integrations.exceptions import (
     ApiTimeoutError,
     DuplicateDisplayNameError,
@@ -1519,7 +1519,7 @@ def get_alert_rule_trigger_action_opsgenie_team(
 
 
 def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id, installations):
-    from sentry.services.hybrid_cloud.app import app_service
+    from sentry.sentry_apps.services.app import app_service
 
     if installations is None:
         # TODO(hybrid-cloud): this rpc invocation is fairly deeply buried within this transaction

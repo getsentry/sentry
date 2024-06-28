@@ -1256,12 +1256,15 @@ class BaseQueryBuilder:
         )
         is_context = isinstance(lhs, Column) and lhs.subscriptable == "contexts"
         if is_tag:
+            subscriptable = lhs.subscriptable
             if operator not in ["IN", "NOT IN"] and not isinstance(value, str):
                 sentry_sdk.set_tag("query.lhs", lhs)
                 sentry_sdk.set_tag("query.rhs", value)
                 sentry_sdk.capture_message("Tag value was not a string", level="error")
                 value = str(value)
             lhs = Function("ifNull", [lhs, ""])
+        else:
+            subscriptable = None
 
         # Handle checks for existence
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
@@ -1287,18 +1290,40 @@ class BaseQueryBuilder:
             is_null_condition = Condition(Function("isNull", [lhs]), Op.EQ, 1)
 
         if search_filter.value.is_wildcard():
-            raw_value = str(search_filter.value.raw_value)
-            new_value = event_search.SearchValue(raw_value[1:-1])
-            if (
-                raw_value.startswith("*")
-                and raw_value.endswith("*")
-                and not new_value.is_wildcard()
-            ):
-                # This is an optimization to avoid using regular expressions
-                # for wild card searches if it can be avoided.
-                # Here, we're just interested if the substring exists.
+            kind = (
+                search_filter.value.classify_wildcard()
+                if self.config.optimize_wildcard_searches
+                else "other"
+            )
+            if kind == "prefix":
                 condition = Condition(
-                    Function("positionCaseInsensitive", [lhs, new_value.value]),
+                    Function(
+                        "startsWith",
+                        [
+                            Function("lower", [lhs]),
+                            search_filter.value.format_wildcard(kind).lower(),
+                        ],
+                    ),
+                    Op.EQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.NEQ,
+                    1,
+                )
+            elif kind == "suffix":
+                condition = Condition(
+                    Function(
+                        "endsWith",
+                        [
+                            Function("lower", [lhs]),
+                            search_filter.value.format_wildcard(kind).lower(),
+                        ],
+                    ),
+                    Op.EQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.NEQ,
+                    1,
+                )
+            elif kind == "infix":
+                condition = Condition(
+                    Function(
+                        "positionCaseInsensitive", [lhs, search_filter.value.format_wildcard(kind)]
+                    ),
                     Op.NEQ if search_filter.operator in constants.EQUALITY_OPERATORS else Op.EQ,
                     0,
                 )
@@ -1307,6 +1332,32 @@ class BaseQueryBuilder:
                     Function("match", [lhs, f"(?i){value}"]),
                     Op(search_filter.operator),
                     1,
+                )
+
+            if (
+                self.config.optimize_wildcard_searches
+                and subscriptable is not None
+                and subscriptable in self.config.subscriptables_with_index
+            ):
+                # Some tables have a bloom filter index on the tags.key
+                # column that can be used
+                condition = And(
+                    conditions=[
+                        condition,
+                        Condition(
+                            Function(
+                                "has",
+                                [
+                                    # Each dataset is responsible for making sure
+                                    # the `{subscriptable}.key` is an available column
+                                    self.resolve_column(f"{subscriptable}.key"),
+                                    name,
+                                ],
+                            ),
+                            Op.EQ,
+                            1,
+                        ),
+                    ]
                 )
         else:
             # pull out the aliased expression if it exists

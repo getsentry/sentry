@@ -27,6 +27,9 @@ from sentry.search.utils import DEVICE_CLASS
 
 
 class SpansIndexedDatasetConfig(DatasetConfig):
+    optimize_wildcard_searches = True
+    subscriptables_with_index = {"tags"}
+
     def __init__(self, builder: BaseQueryBuilder):
         self.builder = builder
         self.total_count: int | None = None

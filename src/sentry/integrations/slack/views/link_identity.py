@@ -8,6 +8,7 @@ from django.utils.decorators import method_decorator
 from rest_framework.request import Request
 
 from sentry import features
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.slack.metrics import (
     SLACK_BOT_COMMAND_LINK_IDENTITY_FAILURE_DATADOG_METRIC,
     SLACK_BOT_COMMAND_LINK_IDENTITY_SUCCESS_DATADOG_METRIC,
@@ -20,7 +21,6 @@ from sentry.integrations.utils import get_identity_or_404
 from sentry.models.identity import Identity
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.notifications.integration_nudge import IntegrationNudgeNotification
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
 from sentry.utils import metrics
 from sentry.utils.signing import unsign
 from sentry.web.frontend.base import BaseView, control_silo_view

@@ -38,6 +38,7 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.PERFORMANCE
+    snuba_methods = ["GET"]
 
     def get(self, request: Request, organization) -> Response:
         if not features.has(
@@ -101,6 +102,7 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.PERFORMANCE
+    snuba_methods = ["GET"]
 
     def get(self, request: Request, organization, key: str) -> Response:
         if not features.has(

@@ -1004,7 +1004,13 @@ def _bulk_snuba_query(
                 _query_thread_pool.map(
                     _snuba_query,
                     [
-                        (params, sentry_sdk.Scope.get_isolation_scope().fork(), headers, parent_api)
+                        (
+                            params,
+                            sentry_sdk.Scope.get_isolation_scope().fork(),
+                            sentry_sdk.Scope.get_current_scope().fork(),
+                            headers,
+                            parent_api,
+                        )
                         for params in snuba_param_list
                     ],
                 )
@@ -1016,71 +1022,77 @@ def _bulk_snuba_query(
                     (
                         snuba_param_list[0],
                         sentry_sdk.Scope.get_isolation_scope().fork(),
+                        sentry_sdk.Scope.get_current_scope().fork(),
                         headers,
                         parent_api,
                     )
                 )
             ]
 
-    results = []
-    for index, item in enumerate(query_results):
-        response, _, reverse = item
-        try:
-            body = json.loads(response.data)
-            if SNUBA_INFO:
-                if "sql" in body:
-                    log_snuba_info(
-                        "{}.sql:\n {}".format(
-                            headers.get("referer", "<unknown>"),
-                            sqlparse.format(body["sql"], reindent_aligned=True),
+        results = []
+        for index, item in enumerate(query_results):
+            response, _, reverse = item
+            try:
+                body = json.loads(response.data)
+                if SNUBA_INFO:
+                    if "sql" in body:
+                        log_snuba_info(
+                            "{}.sql:\n {}".format(
+                                headers.get("referer", "<unknown>"),
+                                sqlparse.format(body["sql"], reindent_aligned=True),
+                            )
                         )
+                    if "error" in body:
+                        log_snuba_info(
+                            "{}.err: {}".format(headers.get("referer", "<unknown>"), body["error"])
+                        )
+            except ValueError:
+                if response.status != 200:
+                    logger.exception(
+                        "snuba.query.invalid-json", extra={"response.data": response.data}
                     )
-                if "error" in body:
-                    log_snuba_info(
-                        "{}.err: {}".format(headers.get("referer", "<unknown>"), body["error"])
-                    )
-        except ValueError:
+                    raise SnubaError("Failed to parse snuba error response")
+                raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
+
+            if "quota_allowance" in body and "summary" in body["quota_allowance"]:
+                quota_allowance_summary = body["quota_allowance"]["summary"]
+                span.set_tag("threads_used", quota_allowance_summary["threads_used"])
+                sentry_sdk.set_tag("threads_used", quota_allowance_summary["threads_used"])
+                for k, v in quota_allowance_summary["throttled_by"].items():
+                    span.set_tag(k, v)
+                    sentry_sdk.set_tag(k, v)
+                for k, v in quota_allowance_summary["rejected_by"].items():
+                    span.set_tag(k, v)
+                    sentry_sdk.set_tag(k, v)
+
             if response.status != 200:
-                logger.exception("snuba.query.invalid-json", extra={"response.data": response.data})
-                raise SnubaError("Failed to parse snuba error response")
-            raise UnexpectedResponseError(f"Could not decode JSON response: {response.data!r}")
-
-        if "quota_allowance" in body and body["quota_allowance"]:
-            quota_allowance_summary = body["quota_allowance"]["summary"]
-            span.set_tag("threads_used", quota_allowance_summary["threads_used"])
-            for k, v in quota_allowance_summary["throttled_by"].items():
-                span.set_tag(k, v)
-            for k, v in quota_allowance_summary["rejected_by"].items():
-                span.set_tag(k, v)
-
-        if response.status != 200:
-            _log_request_query(snuba_param_list[index][0])
-            metrics.incr(
-                "snuba.client.api.error",
-                tags={"status_code": response.status, "referrer": query_referrer},
-            )
-            if body.get("error"):
-                error = body["error"]
-                if response.status == 429:
-                    raise RateLimitExceeded(error["message"])
-                elif error["type"] == "schema":
-                    raise SchemaValidationError(error["message"])
-                elif error["type"] == "invalid_query":
-                    raise UnqualifiedQueryError(error["message"])
-                elif error["type"] == "clickhouse":
-                    raise clickhouse_error_codes_map.get(error["code"], QueryExecutionError)(
-                        error["message"]
-                    )
+                _log_request_query(snuba_param_list[index][0])
+                metrics.incr(
+                    "snuba.client.api.error",
+                    tags={"status_code": response.status, "referrer": query_referrer},
+                )
+                if body.get("error"):
+                    error = body["error"]
+                    if response.status == 429:
+                        raise RateLimitExceeded(error["message"])
+                    elif error["type"] == "schema":
+                        raise SchemaValidationError(error["message"])
+                    elif error["type"] == "invalid_query":
+                        raise UnqualifiedQueryError(error["message"])
+                    elif error["type"] == "clickhouse":
+                        raise clickhouse_error_codes_map.get(error["code"], QueryExecutionError)(
+                            error["message"]
+                        )
+                    else:
+                        raise SnubaError(error["message"])
                 else:
-                    raise SnubaError(error["message"])
-            else:
-                raise SnubaError(f"HTTP {response.status}")
+                    raise SnubaError(f"HTTP {response.status}")
 
-        # Forward and reverse translation maps from model ids to snuba keys, per column
-        body["data"] = [reverse(d) for d in body["data"]]
-        results.append(body)
+            # Forward and reverse translation maps from model ids to snuba keys, per column
+            body["data"] = [reverse(d) for d in body["data"]]
+            results.append(body)
 
-    return results
+        return results
 
 
 def _log_request_query(req: Request) -> None:
@@ -1102,70 +1114,61 @@ def _snuba_query(
     params: tuple[
         RequestQueryBody,
         sentry_sdk.Scope,
+        sentry_sdk.Scope,
         Mapping[str, str],
         str,
     ],
 ) -> RawResult:
     # Eventually we can get rid of this wrapper, but for now it's cleaner to unwrap
     # the params here than in the calling function. (bc of thread .map)
-    query_body, thread_isolation_scope, headers, parent_api = params
-    request, forward, reverse = query_body
-    request.parent_api = parent_api
-    try:
-        referrer = headers.get("referer", "unknown")
-        if SNUBA_INFO:
-            import pprint
+    query_body, thread_isolation_scope, thread_current_scope, headers, parent_api = params
+    with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope):
+        with sentry_sdk.scope.use_scope(thread_current_scope):
+            request, forward, reverse = query_body
+            request.parent_api = parent_api
+            try:
+                referrer = headers.get("referer", "unknown")
+                if SNUBA_INFO:
+                    import pprint
 
-            log_snuba_info(f"{referrer}.body:\n {pprint.pformat(request.to_dict())}")
-            request.flags.debug = True
+                    log_snuba_info(f"{referrer}.body:\n {pprint.pformat(request.to_dict())}")
+                    request.flags.debug = True
 
-        if isinstance(request.query, MetricsQuery):
-            return _raw_mql_query(request, thread_isolation_scope, headers), forward, reverse
+                if isinstance(request.query, MetricsQuery):
+                    return _raw_mql_query(request, headers), forward, reverse
 
-        return _raw_snql_query(request, thread_isolation_scope, headers), forward, reverse
-    except urllib3.exceptions.HTTPError as err:
-        raise SnubaError(err)
+                return _raw_snql_query(request, headers), forward, reverse
+            except urllib3.exceptions.HTTPError as err:
+                raise SnubaError(err)
 
 
-def _raw_mql_query(
-    request: Request, thread_isolation_scope: sentry_sdk.Scope, headers: Mapping[str, str]
-) -> urllib3.response.HTTPResponse:
+def _raw_mql_query(request: Request, headers: Mapping[str, str]) -> urllib3.response.HTTPResponse:
     # Enter hub such that http spans are properly nested
-    with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope), timer("mql_query"):
+    with timer("mql_query"):
         referrer = headers.get("referer", "unknown")
         # TODO: This can be changed back to just `serialize` after we remove SnQL support for MetricsQuery
         serialized_req = request.serialize()
-        with thread_isolation_scope.start_span(
-            op="snuba_mql.validation", description=referrer
-        ) as span:
+        with sentry_sdk.start_span(op="snuba_mql.validation", description=referrer) as span:
             span.set_tag("snuba.referrer", referrer)
             body = serialized_req
 
-        with thread_isolation_scope.start_span(
-            op="snuba_mql.run", description=serialized_req
-        ) as span:
+        with sentry_sdk.start_span(op="snuba_mql.run", description=serialized_req) as span:
             span.set_tag("snuba.referrer", referrer)
             return _snuba_pool.urlopen(
                 "POST", f"/{request.dataset}/mql", body=body, headers=headers
             )
 
 
-def _raw_snql_query(
-    request: Request, thread_isolation_scope: sentry_sdk.Scope, headers: Mapping[str, str]
-) -> urllib3.response.HTTPResponse:
+def _raw_snql_query(request: Request, headers: Mapping[str, str]) -> urllib3.response.HTTPResponse:
     # Enter hub such that http spans are properly nested
-    with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope), timer("snql_query"):
+    with timer("snql_query"):
         referrer = headers.get("referer", "<unknown>")
         serialized_req = request.serialize()
-        with thread_isolation_scope.start_span(
-            op="snuba_snql.validation", description=referrer
-        ) as span:
+        with sentry_sdk.start_span(op="snuba_snql.validation", description=referrer) as span:
             span.set_tag("snuba.referrer", referrer)
             body = serialized_req
 
-        with thread_isolation_scope.start_span(
-            op="snuba_snql.run", description=serialized_req
-        ) as span:
+        with sentry_sdk.start_span(op="snuba_snql.run", description=serialized_req) as span:
             span.set_tag("snuba.referrer", referrer)
             return _snuba_pool.urlopen(
                 "POST", f"/{request.dataset}/snql", body=body, headers=headers

@@ -13,7 +13,7 @@ from sentry.notifications.notifications.organization_request.integration_request
 )
 from sentry.notifications.utils.tasks import async_send_notification
 from sentry.plugins.base import plugins
-from sentry.services.hybrid_cloud.app import app_service
+from sentry.sentry_apps.services.app import app_service
 
 
 def get_provider_name(provider_type: str, provider_slug: str) -> str | None:
