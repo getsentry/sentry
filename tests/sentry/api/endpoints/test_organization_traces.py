@@ -83,7 +83,8 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
         tags = ["", "bar", "bar", "baz", "", "bar", "baz"]
         timestamps = []
 
-        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
+        # move this 3 days into the past to ensure less flakey tests
+        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=3)
 
         trace_id_1 = uuid4().hex
         timestamps.append(now - timedelta(minutes=10))
