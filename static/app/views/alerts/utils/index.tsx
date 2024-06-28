@@ -141,9 +141,9 @@ export function alertAxisFormatter(value: number, seriesName: string, aggregate:
   }
 
   if (isCustomMetricAlert(aggregate)) {
-    const {mri, aggregation} = parseField(aggregate)!;
+    const {mri, op} = parseField(aggregate)!;
     const {unit} = parseMRI(mri)!;
-    return formatMetricUsingFixedUnit(value, unit, aggregation);
+    return formatMetricUsingFixedUnit(value, unit, op);
   }
 
   return axisLabelFormatter(value, aggregateOutputType(seriesName));
@@ -159,9 +159,9 @@ export function alertTooltipValueFormatter(
   }
 
   if (isCustomMetricAlert(aggregate)) {
-    const {mri, aggregation} = parseField(aggregate)!;
+    const {mri, op} = parseField(aggregate)!;
     const {unit} = parseMRI(mri)!;
-    return formatMetricUsingFixedUnit(value, unit, aggregation);
+    return formatMetricUsingFixedUnit(value, unit, op);
   }
 
   return tooltipFormatter(value, aggregateOutputType(seriesName));

@@ -28,11 +28,10 @@ import {IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
-import type {MetricAggregation, MetricsQueryApiResponse} from 'sentry/types/metrics';
+import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
 import {
   areResultsLimited,
-  getDefaultAggregation,
   getDefaultMetricDisplayType,
   getFormattedMQL,
   getMetricsSeriesId,
@@ -117,7 +116,7 @@ export function getWidgetTitle(queries: MetricsQueryApiQueryParams[]) {
     .map(q =>
       isMetricFormula(q)
         ? unescapeMetricsFormula(q.formula)
-        : formatMRIField(MRIToField(q.mri, q.aggregation))
+        : formatMRIField(MRIToField(q.mri, q.op))
     )
     .join(', ');
 }
@@ -183,17 +182,20 @@ export const MetricWidget = memo(
       if (!defined(metricsSamples)) {
         return undefined;
       }
-      if (!firstQuery) {
-        return undefined;
-      }
       return {
         data: metricsSamples,
         onSampleClick,
         unit: parseMRI(firstQuery?.mri)?.unit ?? '',
-        aggregation: firstQuery.aggregation ?? getDefaultAggregation(firstQuery.mri),
+        operation: firstQuery?.op ?? '',
         highlightedId: highlightedSampleId,
       };
-    }, [metricsSamples, firstQuery, onSampleClick, highlightedSampleId]);
+    }, [
+      metricsSamples,
+      firstQuery?.mri,
+      firstQuery?.op,
+      onSampleClick,
+      highlightedSampleId,
+    ]);
 
     const widgetTitle = getWidgetTitle(queries);
 
@@ -228,7 +230,7 @@ export const MetricWidget = memo(
               triggerProps={{prefix: t('Display')}}
               value={
                 displayType ??
-                getDefaultMetricDisplayType(firstQuery?.mri, firstQuery?.aggregation)
+                getDefaultMetricDisplayType(firstQuery?.mri, firstQuery?.op)
               }
               options={metricDisplayTypeOptions}
               onChange={handleDisplayTypeChange}
@@ -305,7 +307,7 @@ interface MetricWidgetBodyProps {
 }
 
 export interface SamplesProps {
-  aggregation: MetricAggregation;
+  operation: string;
   unit: string;
   data?: MetricsSamplesResults<Field>['data'];
   highlightedId?: string;
@@ -381,7 +383,7 @@ const MetricWidgetBody = memo(
     const chartSamples = useMetricChartSamples({
       samples: samples?.data,
       highlightedSampleId: samples?.highlightedId,
-      aggregation: samples?.aggregation,
+      operation: samples?.operation,
       onSampleClick: samples?.onSampleClick,
       timeseries: chartSeries,
       unit: samples?.unit,
@@ -597,7 +599,7 @@ export function getChartTimeseries(
         lastMetaEntry.scaling_factor) ||
       1;
     const isEquationSeries = isMetricFormula(query);
-    const operation = isEquationSeries ? 'count' : query.aggregation;
+    const operation = isEquationSeries ? 'count' : query.op;
     const isMultiQuery = filteredQueries.length > 1;
 
     return group.map(entry => ({

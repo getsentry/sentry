@@ -1,11 +1,5 @@
 import {t} from 'sentry/locale';
-import type {
-  MetricAggregation,
-  MetricType,
-  MRI,
-  ParsedMRI,
-  UseCase,
-} from 'sentry/types/metrics';
+import type {MetricType, MRI, ParsedMRI, UseCase} from 'sentry/types/metrics';
 import {parseFunction} from 'sentry/utils/discover/fields';
 
 export const DEFAULT_MRI: MRI = 'c:custom/sentry_metric@none';
@@ -90,20 +84,18 @@ export function getUseCaseFromMRI(mri?: string): UseCase | undefined {
   return parsed?.useCase;
 }
 
-export function MRIToField(mri: MRI, aggregation: MetricAggregation): string {
-  return `${aggregation}(${mri})`;
+export function MRIToField(mri: MRI, op: string): string {
+  return `${op}(${mri})`;
 }
 
-export function parseField(
-  field: string
-): {aggregation: MetricAggregation; mri: MRI} | null {
+export function parseField(field: string): {mri: MRI; op: string} | null {
   const parsedFunction = parseFunction(field);
   if (!parsedFunction) {
     return null;
   }
   return {
     mri: parsedFunction.arguments[0] as MRI,
-    aggregation: parsedFunction.name as MetricAggregation,
+    op: parsedFunction.name,
   };
 }
 
@@ -129,5 +121,5 @@ export function formatMRIField(aggregate: string) {
     return aggregate;
   }
 
-  return `${parsed.aggregation}(${formatMRI(parsed.mri)})`;
+  return `${parsed.op}(${formatMRI(parsed.mri)})`;
 }

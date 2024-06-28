@@ -14,13 +14,12 @@ import {fitToValueRect} from 'sentry/components/metrics/chart/utils';
 import type {Field} from 'sentry/components/metrics/metricSamplesTable';
 import {t} from 'sentry/locale';
 import type {EChartClickHandler, ReactEchartsRef} from 'sentry/types/echarts';
-import type {MetricAggregation} from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
 import mergeRefs from 'sentry/utils/mergeRefs';
-import {isCumulativeAggregation} from 'sentry/utils/metrics';
+import {isCumulativeOp} from 'sentry/utils/metrics';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {
-  getSummaryValueForAggregation,
+  getSummaryValueForOp,
   type MetricsSamplesResults,
 } from 'sentry/utils/metrics/useMetricsSamples';
 
@@ -61,9 +60,9 @@ type EChartMouseEventParam = Parameters<EChartClickHandler>[0];
 
 interface UseMetricChartSamplesOptions {
   timeseries: Series[];
-  aggregation?: MetricAggregation;
   highlightedSampleId?: string;
   onSampleClick?: (sample: MetricsSamplesResults<Field>['data'][number]) => void;
+  operation?: string;
   samples?: MetricsSamplesResults<Field>['data'];
   unit?: string;
 }
@@ -72,7 +71,7 @@ export function useMetricChartSamples({
   timeseries,
   highlightedSampleId,
   onSampleClick,
-  aggregation,
+  operation,
   samples,
   unit = '',
 }: UseMetricChartSamplesOptions) {
@@ -133,11 +132,11 @@ export function useMetricChartSamples({
       valueFormatter: (_, label?: string) => {
         // We need to access the sample as the charts datapoints are fit to the charts viewport
         const sample = samplesById[label ?? ''];
-        const yValue = getSummaryValueForAggregation(sample.summary, aggregation);
+        const yValue = getSummaryValueForOp(sample.summary, operation);
         return formatMetricUsingUnit(yValue, unit);
       },
     };
-  }, [aggregation, samplesById, unit]);
+  }, [operation, samplesById, unit]);
 
   const handleClick = useCallback<EChartClickHandler>(
     (event: EChartMouseEventParam) => {
@@ -156,12 +155,12 @@ export function useMetricChartSamples({
       const newYAxisIndex = Array.isArray(baseProps.yAxes) ? baseProps.yAxes.length : 1;
       const newXAxisIndex = Array.isArray(baseProps.xAxes) ? baseProps.xAxes.length : 1;
 
-      if (aggregation && !isCumulativeAggregation(aggregation)) {
+      if (!isCumulativeOp(operation)) {
         series = (samples ?? []).map((sample, index) => {
           const isHighlighted = highlightedSampleId === sample.id;
 
           const xValue = moment(sample.timestamp).valueOf();
-          const value = getSummaryValueForAggregation(sample.summary, aggregation);
+          const value = getSummaryValueForOp(sample.summary, operation);
           const yValue = value;
 
           const [xPosition, yPosition] = fitToValueRect(xValue, yValue, valueRect);
@@ -251,7 +250,7 @@ export function useMetricChartSamples({
       formatterOptions,
       handleClick,
       highlightedSampleId,
-      aggregation,
+      operation,
       samples,
       theme.purple400,
       theme.white,

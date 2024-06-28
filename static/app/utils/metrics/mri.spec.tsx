@@ -116,14 +116,14 @@ describe('getUseCaseFromMRI', () => {
 });
 
 describe('parseField', () => {
-  it('should return the correct mri and aggregation from field', () => {
-    const field = 'aggregation(c:test/project)';
+  it('should return the correct mri and op from field', () => {
+    const field = 'op(c:test/project)';
 
     const result = parseField(field);
 
     expect(result).toEqual({
       mri: 'c:test/project',
-      aggregation: 'aggregation',
+      op: 'op',
     });
   });
 
@@ -133,7 +133,7 @@ describe('parseField', () => {
     const result = parseField(field);
 
     expect(result?.mri).toBe('my-metric');
-    expect(result?.aggregation).toBe('sum');
+    expect(result?.op).toBe('sum');
   });
 
   it('should return null mri invalid field', () => {
