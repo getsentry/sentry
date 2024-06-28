@@ -110,12 +110,11 @@ class GroupAutofixEndpoint(GroupEndpoint):
                     else None
                 ),
                 "options": {
-                    # "disable_codebase_indexing": features.has(
-                    #     "organizations:autofix-disable-codebase-indexing",
-                    #     group.organization,
-                    #     actor=user,
-                    # )
-                    "disable_codebase_indexing": True
+                    "disable_codebase_indexing": features.has(
+                        "organizations:autofix-disable-codebase-indexing",
+                        group.organization,
+                        actor=user,
+                    )
                 },
             },
             option=orjson.OPT_NON_STR_KEYS,
