@@ -45,13 +45,11 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
             return Response(status=204)
 
         try:
-            for obj in config_update:
-                configs = SpanAttributeExtractionRuleConfig.objects.filter(
-                    project=project, span_attribute=obj["spanAttribute"]
-                )
-                for config in configs:
-                    config.conditions.all().delete()
-                    config.delete()
+            with transaction.atomic(router.db_for_write(SpanAttributeExtractionRuleConfig)):
+                for obj in config_update:
+                    SpanAttributeExtractionRuleConfig.objects.filter(
+                        project=project, span_attribute=obj["spanAttribute"]
+                    ).all().delete()
         except Exception as e:
             return Response(status=500, data={"detail": str(e)})
 
