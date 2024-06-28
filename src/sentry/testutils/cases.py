@@ -1703,7 +1703,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         org_id: int,
         project_id: int,
         type: Literal["counter", "set", "distribution", "gauge"],
-        name: str,
+        mri: str,
         tags: dict[str, str],
         timestamp: int,
         value: Any,
@@ -1770,7 +1770,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         msg = {
             "org_id": org_id,
             "project_id": project_id,
-            "metric_id": metric_id(name),
+            "metric_id": metric_id(mri),
             "timestamp": timestamp,
             "tags": {tag_key(key): tag_value(value) for key, value in tags.items()},
             "type": {"counter": "c", "set": "s", "distribution": "d", "gauge": "g"}[type],
@@ -1858,7 +1858,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
 
     def _store_metric(
         self,
-        name: str,
+        mri: str,
         tags: dict[str, str],
         value: int | float | dict[str, int | float],
         use_case_id: UseCaseID,
@@ -1881,8 +1881,8 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         self.store_metric(
             org_id=self.organization.id if org_id is None else org_id,
             project_id=self.project.id if project_id is None else project_id,
-            type=self._extract_entity_from_mri(name) if type is None else type,
-            name=name,
+            type=self._extract_entity_from_mri(mri) if type is None else type,
+            mri=mri,
             tags=tags,
             timestamp=int(
                 (
@@ -3129,7 +3129,7 @@ class OrganizationMetricsIntegrationTestCase(MetricsAPIBaseTestCase):
         self.store_metric(
             org_id=org_id,
             project_id=self.project.id,
-            name="metric1",
+            mri="metric1",
             timestamp=now,
             tags={
                 "tag1": "value1",
@@ -3142,7 +3142,7 @@ class OrganizationMetricsIntegrationTestCase(MetricsAPIBaseTestCase):
         self.store_metric(
             org_id=org_id,
             project_id=self.project.id,
-            name="metric1",
+            mri="metric1",
             timestamp=now,
             tags={"tag3": "value3"},
             type="counter",
@@ -3152,7 +3152,7 @@ class OrganizationMetricsIntegrationTestCase(MetricsAPIBaseTestCase):
         self.store_metric(
             org_id=org_id,
             project_id=self.project.id,
-            name="metric2",
+            mri="metric2",
             timestamp=now,
             tags={
                 "tag4": "value3",
@@ -3166,7 +3166,7 @@ class OrganizationMetricsIntegrationTestCase(MetricsAPIBaseTestCase):
         self.store_metric(
             org_id=org_id,
             project_id=self.project.id,
-            name="metric3",
+            mri="metric3",
             timestamp=now,
             tags={},
             type="set",
