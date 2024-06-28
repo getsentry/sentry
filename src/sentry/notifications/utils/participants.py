@@ -34,8 +34,8 @@ from sentry.notifications.types import (
 )
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.types.actor import Actor, ActorType
+from sentry.users.services.user_option import get_option_from_list, user_option_service
 from sentry.utils import json, metrics
 from sentry.utils.committers import AuthorCommitsSerialized, get_serialized_event_file_committers
 

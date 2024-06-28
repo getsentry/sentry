@@ -33,10 +33,10 @@ from sentry.notifications.types import NotificationSettingEnum
 from sentry.notifications.utils.participants import get_notification_recipients
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.services.hybrid_cloud.user_option import RpcUserOption, user_option_service
 from sentry.snuba.metrics import format_mri_field, is_mri_field
 from sentry.snuba.utils import build_query_strings
 from sentry.types.actor import Actor, ActorType
+from sentry.users.services.user_option import RpcUserOption, user_option_service
 from sentry.utils.email import MessageBuilder, get_email_addresses
 
 

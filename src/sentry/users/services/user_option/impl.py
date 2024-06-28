@@ -10,11 +10,7 @@ from sentry.auth.services.auth import AuthenticationContext
 from sentry.hybridcloud.rpc.filter_query import FilterQueryDatabaseImpl, OpaqueSerializedResponse
 from sentry.models.options.user_option import UserOption
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user_option import (
-    RpcUserOption,
-    UserOptionFilterArgs,
-    UserOptionService,
-)
+from sentry.users.services.user_option import RpcUserOption, UserOptionFilterArgs, UserOptionService
 
 
 class DatabaseBackedUserOptionService(UserOptionService):

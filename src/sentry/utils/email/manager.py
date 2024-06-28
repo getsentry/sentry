@@ -6,7 +6,7 @@ from collections.abc import Iterable, Mapping
 from sentry.models.project import Project
 from sentry.services.hybrid_cloud.user.model import UserIdEmailArgs
 from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.services.hybrid_cloud.user_option import RpcUserOption, user_option_service
+from sentry.users.services.user_option import RpcUserOption, user_option_service
 
 from .faker import is_fake_email
 
