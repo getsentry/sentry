@@ -267,19 +267,19 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         Calculate the start and end times for the query.
         Take these example conditions that generate queries:
             '# of issues in 1 day is {}'
-            "# of issues is {}% higher in 1 day compared to 12 hours ago"
+            "# of issues is {}% higher in 1 day compared to 1 hours ago"
 
         "duration" is the period of time we're querying over, in this case 1 day
         for both queries.
         "comparison_offset" only applies for percent comparison queries (the
         second condition) and is the time offset between the two intervals we
-        are calculating a percent increase from. In this case, the offset is 12
+        are calculating a percent increase from. In this case, the offset is 1
         hours with a duration of 24 hrs, so we have two queries:
-            1. [24hrs duration from now]         -> 24 hrs ago to now
-            2. [24hrs duration from 12hrs ago]   -> 36 hrs ago to 12 hrs ago
+            1. [24hrs duration from now]      -> 24 hrs ago to now
+            2. [24hrs duration from 1hr ago]  -> 25 hrs ago to 1 hr ago
         """
         if comparison_offset:
-            end = end - comparison_offset
+            end -= comparison_offset
         start = end - duration
         return (start, end)
 
