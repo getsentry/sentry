@@ -27,7 +27,8 @@ export default function TimelineGaps({durationMs, frames, width}: Props) {
   );
 
   // returns all numbers in the range
-  const range = (start, stop) => Array.from({length: stop - start}, (_, i) => start + i);
+  const range = (start, stop) =>
+    Array.from({length: stop - start}, (_, i) => start + i + 1);
 
   const gapCol: number[] = [];
 
@@ -56,11 +57,11 @@ export default function TimelineGaps({durationMs, frames, width}: Props) {
 
     // create gap if we found have start (background frame) and end (foreground frame)
     if (start !== -1 && end !== -1) {
-      gapCol.push(...range(start + 1, end + 1));
+      gapCol.push(...range(start, end));
     }
     // if we have start but no end, that means we have a gap until end of replay
     if (start !== -1 && end === -1) {
-      gapCol.push(...range(start + 1, totalColumns + 1));
+      gapCol.push(...range(start, totalColumns));
     }
   }
 
@@ -74,7 +75,7 @@ export default function TimelineGaps({durationMs, frames, width}: Props) {
 }
 
 const Gap = styled(Timeline.Col)<{column: number}>`
-  grid-column: ${p => Math.floor(p.column)};
+  grid-column: ${p => p.column};
   background: ${p => p.theme.red300};
   text-align: right;
   line-height: 14px;
