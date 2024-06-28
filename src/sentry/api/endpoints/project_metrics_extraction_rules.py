@@ -18,6 +18,7 @@ from sentry.sentry_metrics.models import (
     SpanAttributeExtractionRuleCondition,
     SpanAttributeExtractionRuleConfig,
 )
+from sentry.tasks.relay import schedule_invalidate_project_config
 
 
 @region_silo_endpoint
@@ -50,6 +51,9 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                     SpanAttributeExtractionRuleConfig.objects.filter(
                         project=project, span_attribute=obj["spanAttribute"]
                     ).delete()
+                schedule_invalidate_project_config(
+                    project_id=project.id, trigger="span_attribute_extraction_configs"
+                )
         except Exception as e:
             return Response(status=400, data={"detail": str(e)})
 
@@ -98,6 +102,9 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                     configs.append(
                         SpanAttributeExtractionRuleConfig.from_dict(obj, request.user.id, project)
                     )
+                schedule_invalidate_project_config(
+                    project_id=project.id, trigger="span_attribute_extraction_configs"
+                )
 
         except Exception:
             return Response(
@@ -150,6 +157,9 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                                 "created_by_id": request.user.id,
                             },
                         )
+                schedule_invalidate_project_config(
+                    project_id=project.id, trigger="span_attribute_extraction_configs"
+                )
 
         except Exception:
             return Response(status=400)
