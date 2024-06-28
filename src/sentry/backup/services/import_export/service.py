@@ -9,8 +9,7 @@ from collections.abc import Callable
 from django.db.models.base import Model
 
 from sentry.backup.helpers import ImportFlags
-from sentry.hybridcloud.rpc.service import RpcService, rpc_method
-from sentry.services.hybrid_cloud.import_export.model import (
+from sentry.backup.services.import_export.model import (
     RpcExportResult,
     RpcExportScope,
     RpcFilter,
@@ -19,6 +18,7 @@ from sentry.services.hybrid_cloud.import_export.model import (
     RpcImportScope,
     RpcPrimaryKeyMap,
 )
+from sentry.hybridcloud.rpc.service import RpcService, rpc_method
 from sentry.silo.base import SiloMode
 
 DEFAULT_IMPORT_FLAGS = RpcImportFlags.into_rpc(ImportFlags())
@@ -45,7 +45,7 @@ class ImportExportService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from sentry.services.hybrid_cloud.import_export.impl import UniversalImportExportService
+        from sentry.backup.services.import_export.impl import UniversalImportExportService
 
         return UniversalImportExportService()
 
