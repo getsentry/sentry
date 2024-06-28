@@ -1,4 +1,4 @@
--- metering implementation of leaky bucket (O(1) complexity)
+-- metering implementation of leaky bucket (O(1) complexity space and time complexity)
 --
 -- Input:
 -- keys:
