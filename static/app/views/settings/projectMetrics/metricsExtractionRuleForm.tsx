@@ -386,7 +386,7 @@ const ConditionItem = memo(function ConditionItem({
           {...SPAN_SEARCH_CONFIG}
           searchSource="metrics-extraction"
           query={condition.query}
-          onSearch={(queryString: string) => handleChange(queryString)}
+          onSearch={handleChange}
           placeholder={t('Search for span attributes')}
           organization={organization}
           metricAlert={false}
@@ -394,7 +394,7 @@ const ConditionItem = memo(function ConditionItem({
           dataset={DiscoverDatasets.SPANS_INDEXED}
           projectIds={projectIds}
           hasRecentSearches={false}
-          onBlur={(queryString: string) => handleChange(queryString)}
+          onBlur={handleChange}
           savedSearchType={undefined}
           useFormWrapper={false}
         />
