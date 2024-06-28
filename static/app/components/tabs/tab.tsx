@@ -54,13 +54,22 @@ interface BaseTabProps {
    * by <DraggableTab> to pass in props used for drag-and-drop functionality.
    */
   additionalProps?: React.HTMLAttributes<HTMLElement>;
+  newVariant?: boolean;
   to?: string;
 }
 
 export const BaseTab = forwardRef(
   (props: BaseTabProps, forwardedRef: React.ForwardedRef<HTMLLIElement>) => {
-    const {to, orientation, overflowing, tabProps, hidden, isSelected, additionalProps} =
-      props;
+    const {
+      to,
+      orientation,
+      overflowing,
+      tabProps,
+      hidden,
+      isSelected,
+      additionalProps,
+      newVariant = false,
+    } = props;
 
     const ref = useObjectRef(forwardedRef);
     const InnerWrap = useCallback(
@@ -81,7 +90,7 @@ export const BaseTab = forwardRef(
       [to, orientation]
     );
 
-    return (
+    return newVariant ? (
       <NewTabWrap
         {...mergeProps(tabProps, additionalProps)}
         hidden={hidden}
@@ -91,6 +100,24 @@ export const BaseTab = forwardRef(
       >
         {props.children}
       </NewTabWrap>
+    ) : (
+      <TabWrap
+        {...mergeProps(tabProps, additionalProps)}
+        hidden={hidden}
+        selected={isSelected}
+        overflowing={overflowing}
+        ref={ref}
+      >
+        <InnerWrap>
+          <StyledInteractionStateLayer
+            orientation={orientation}
+            higherOpacity={isSelected}
+          />
+          <FocusLayer orientation={orientation} />
+          {props.children}
+          <TabSelectionIndicator orientation={orientation} selected={isSelected} />
+        </InnerWrap>
+      </TabWrap>
     );
   }
 );

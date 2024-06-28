@@ -121,6 +121,7 @@ export const DraggableTab = forwardRef(
           orientation={orientation}
           overflowing={overflowing}
           ref={ref}
+          newVariant
         >
           <Draggable onTabClick={() => state.setSelectedKey(item.key)} item={item}>
             <TabContentWrap>
