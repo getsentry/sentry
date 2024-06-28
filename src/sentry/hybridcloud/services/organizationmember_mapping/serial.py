@@ -1,5 +1,5 @@
+from sentry.hybridcloud.services.organizationmember_mapping import RpcOrganizationMemberMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.services.hybrid_cloud.organizationmember_mapping import RpcOrganizationMemberMapping
 
 
 def serialize_org_member_mapping(

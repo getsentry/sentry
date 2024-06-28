@@ -86,7 +86,7 @@ class OrganizationMapping(Model):
 
     @property
     def flags(self) -> RpcOrganizationMappingFlags:
-        from sentry.services.hybrid_cloud.organization_mapping.serial import (
+        from sentry.hybridcloud.services.organization_mapping.serial import (
             serialize_organization_mapping_flags,
         )
 

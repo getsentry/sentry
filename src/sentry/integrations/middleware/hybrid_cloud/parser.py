@@ -14,6 +14,7 @@ from rest_framework import status
 
 from sentry.api.base import ONE_DAY
 from sentry.hybridcloud.models.webhookpayload import WebhookPayload
+from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.integrations.errors import IntegrationMiddlewareException
 from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.integrations import Integration
@@ -21,7 +22,6 @@ from sentry.models.integrations.organization_integration import OrganizationInte
 from sentry.models.outbox import WebhookProviderIdentifier
 from sentry.ratelimits import backend as ratelimiter
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError

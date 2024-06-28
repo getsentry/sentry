@@ -6,17 +6,17 @@
 
 from django.db import IntegrityError, router, transaction
 
-from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.models.outbox import outbox_context
-from sentry.models.user import User
-from sentry.services.hybrid_cloud.organizationmember_mapping import (
+from sentry.hybridcloud.services.organizationmember_mapping import (
     OrganizationMemberMappingService,
     RpcOrganizationMemberMapping,
     RpcOrganizationMemberMappingUpdate,
 )
-from sentry.services.hybrid_cloud.organizationmember_mapping.serial import (
+from sentry.hybridcloud.services.organizationmember_mapping.serial import (
     serialize_org_member_mapping,
 )
+from sentry.models.organizationmembermapping import OrganizationMemberMapping
+from sentry.models.outbox import outbox_context
+from sentry.models.user import User
 from sentry.silo.safety import unguarded_write
 
 

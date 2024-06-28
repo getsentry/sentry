@@ -6,7 +6,7 @@
 from abc import abstractmethod
 
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
-from sentry.services.hybrid_cloud.organizationmember_mapping import (
+from sentry.hybridcloud.services.organizationmember_mapping import (
     RpcOrganizationMemberMapping,
     RpcOrganizationMemberMappingUpdate,
 )
@@ -19,7 +19,7 @@ class OrganizationMemberMappingService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from sentry.services.hybrid_cloud.organizationmember_mapping.impl import (
+        from sentry.hybridcloud.services.organizationmember_mapping.impl import (
             DatabaseBackedOrganizationMemberMappingService,
         )
 
@@ -48,7 +48,7 @@ class OrganizationMemberMappingService(RpcService):
 
 
 def impl_with_db() -> OrganizationMemberMappingService:
-    from sentry.services.hybrid_cloud.organizationmember_mapping.impl import (
+    from sentry.hybridcloud.services.organizationmember_mapping.impl import (
         DatabaseBackedOrganizationMemberMappingService,
     )
 

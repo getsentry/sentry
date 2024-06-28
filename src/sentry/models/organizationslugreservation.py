@@ -73,7 +73,7 @@ class OrganizationSlugReservation(ReplicatedControlModel):
         from sentry.hybridcloud.services.control_organization_provisioning.serial import (
             serialize_slug_reservation,
         )
-        from sentry.services.hybrid_cloud.replica import region_replica_service
+        from sentry.hybridcloud.services.replica import region_replica_service
 
         serialized = serialize_slug_reservation(self)
         region_replica_service.upsert_replicated_org_slug_reservation(
@@ -88,7 +88,7 @@ class OrganizationSlugReservation(ReplicatedControlModel):
         shard_identifier: int,
         payload: Mapping[str, Any] | None,
     ) -> None:
-        from sentry.services.hybrid_cloud.replica import region_replica_service
+        from sentry.hybridcloud.services.replica import region_replica_service
 
         region_replica_service.delete_replicated_org_slug_reservation(
             region_name=region_name,

@@ -249,7 +249,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
         from sentry.auth.services.auth.serial import serialize_api_token
-        from sentry.services.hybrid_cloud.replica import region_replica_service
+        from sentry.hybridcloud.services.replica import region_replica_service
 
         region_replica_service.upsert_replicated_api_token(
             api_token=serialize_api_token(self),

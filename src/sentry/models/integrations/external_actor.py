@@ -9,10 +9,10 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedRegionModel
+from sentry.hybridcloud.services.replica import control_replica_service
 from sentry.integrations.types import ExternalProviders
 from sentry.models.outbox import OutboxCategory
 from sentry.notifications.services import notifications_service
-from sentry.services.hybrid_cloud.replica import control_replica_service
 
 logger = logging.getLogger(__name__)
 

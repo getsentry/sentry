@@ -3,15 +3,15 @@ from typing import Any
 from django.db import router
 from sentry_sdk import capture_exception
 
-from sentry.models.organizationmapping import OrganizationMapping
-from sentry.models.organizationslugreservation import OrganizationSlugReservation
-from sentry.services.hybrid_cloud.organization_mapping import (
+from sentry.hybridcloud.services.organization_mapping import (
     OrganizationMappingService,
     RpcOrganizationMapping,
     RpcOrganizationMappingUpdate,
 )
-from sentry.services.hybrid_cloud.organization_mapping.model import CustomerId
-from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
+from sentry.hybridcloud.services.organization_mapping.model import CustomerId
+from sentry.hybridcloud.services.organization_mapping.serial import serialize_organization_mapping
+from sentry.models.organizationmapping import OrganizationMapping
+from sentry.models.organizationslugreservation import OrganizationSlugReservation
 from sentry.silo.safety import unguarded_write
 
 
