@@ -1,7 +1,8 @@
+import dataclasses
 import math
 import time
 from collections import defaultdict
-from collections.abc import Generator, Mapping, MutableMapping, Sequence
+from collections.abc import Callable, Generator, Mapping, MutableMapping, Sequence
 from contextlib import contextmanager
 from dataclasses import replace
 from datetime import datetime, timedelta
@@ -202,6 +203,13 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
             limit=self.get_per_page(request),
             breakdown_slices=serialized["breakdownSlices"],
             sort=serialized.get("sort") if allow_sorting else None,
+            get_all_projects=lambda: self.get_projects(
+                request,
+                organization,
+                project_ids={-1},
+                project_slugs=None,
+                include_all_accessible=True,
+            ),
         )
 
         return self.paginate(
@@ -368,6 +376,7 @@ class TracesExecutor:
         limit: int,
         breakdown_slices: int,
         sort: str | None,
+        get_all_projects: Callable[[], list[Project]],
     ):
         self.params = params
         self.snuba_params = snuba_params
@@ -380,21 +389,31 @@ class TracesExecutor:
         self.limit = limit
         self.breakdown_slices = breakdown_slices
         self.sort = sort
+        self.get_all_projects = get_all_projects
 
         if self.sort is not None:
             sentry_sdk.set_tag("sort_key", self.sort)
+
+    def params_with_all_projects(self) -> tuple[ParamsType, SnubaParams]:
+        all_projects_snuba_params = dataclasses.replace(
+            self.snuba_params, projects=self.get_all_projects()
+        )
+
+        all_projects_params = dict(self.params)
+        all_projects_params["projects"] = all_projects_snuba_params.projects
+        all_projects_params["projects_objects"] = all_projects_snuba_params.projects
+        all_projects_params["projects_id"] = all_projects_snuba_params.project_ids
+
+        return cast(ParamsType, all_projects_params), all_projects_snuba_params
 
     def execute(self, offset: int, limit: int):
         return {"data": self._execute()}
 
     def _execute(self):
-        selected_projects_params = self.params
-        selected_projects_snuba_params = self.snuba_params
-
         with handle_span_query_errors():
             min_timestamp, max_timestamp, trace_ids = self.get_traces_matching_conditions(
-                selected_projects_params,
-                selected_projects_snuba_params,
+                self.params,
+                self.snuba_params,
             )
 
         self.refine_params(min_timestamp, max_timestamp)
@@ -403,9 +422,11 @@ class TracesExecutor:
             return []
 
         with handle_span_query_errors():
+            params, snuba_params = self.params_with_all_projects()
+
             all_queries = self.get_all_queries(
-                self.params,
-                self.snuba_params,
+                params,
+                snuba_params,
                 trace_ids,
             )
 

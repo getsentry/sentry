@@ -601,7 +601,8 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 ["organizations:performance-trace-explorer"],
             ]:
                 query = {
-                    "project": [],
+                    # only query for project_2 but expect traces to start from project_1
+                    "project": [project_2.id],
                     "field": ["id", "parent_span", "span.duration"],
                     "query": q,
                     "suggestedQuery": "foo:baz span.duration:>0s",
