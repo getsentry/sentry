@@ -59,7 +59,6 @@ import {
 import type {TraceDataRow} from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
-import {useIncrementalTraces} from './traceApi/useIncrementalTraces';
 import {useTrace} from './traceApi/useTrace';
 import {type TraceMetaQueryResults, useTraceMeta} from './traceApi/useTraceMeta';
 import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
@@ -77,6 +76,7 @@ import type {TraceReducer, TraceReducerState} from './traceState';
 import {TraceType} from './traceType';
 import {TraceUXChangeAlert} from './traceUXChangeBanner';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
   if (Array.isArray(maybePath)) {
@@ -184,6 +184,16 @@ export function TraceView() {
     []
   );
 
+  const traceDataRows = useMemo(() => {
+    const timestamp = Number(queryParams.timestamp);
+
+    if (isNaN(timestamp)) {
+      throw new Error('Invalid timestamp: NaN');
+    }
+
+    return [{traceSlug, timestamp}];
+  }, [traceSlug, queryParams.timestamp]);
+
   return (
     <SentryDocumentTitle
       title={`${t('Trace Details')} - ${traceSlug}`}
@@ -203,7 +213,7 @@ export function TraceView() {
             />
             <TraceInnerLayout>
               <TraceViewWaterfall
-                traceDataRows={[{traceSlug, timestamp: Number(queryParams.timestamp)}]}
+                traceDataRows={traceDataRows}
                 traceLabel={traceSlug}
                 organization={organization}
                 traceEventView={traceEventView}
@@ -250,6 +260,11 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
   const traceStateEmitter = useTraceStateEmitter();
+  const filters = usePageFilters();
+  const urlParams = useMemo(() => {
+    return qs.parse(location.search);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const forceRerender = useCallback(() => {
     flushSync(rerender);
@@ -320,12 +335,19 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     }
 
     if (traceData) {
-      return TraceTree.FromTrace(traceData, props.replayRecord);
+      return TraceTree.FromTrace(traceData, props.replayRecord, {
+        api,
+        filters,
+        additionalTraceDataRows: props.traceDataRows?.slice(1),
+        organization: props.organization,
+        traceLimit: undefined,
+        urlParams,
+        rerender: forceRerender,
+      });
     }
 
     throw new Error('Invalid trace state');
   }, [props.traceDataRows, traceData, isLoading, error, projects, props.replayRecord]);
-  const {isIncrementallyFetching} = useIncrementalTraces(tree, props.traceDataRows);
 
   // Assign the trace state to a ref so we can access it without re-rendering
   const traceStateRef = useRef<TraceReducerState>(traceState);
@@ -850,7 +872,6 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       </TraceToolbar>
       <TraceGrid layout={traceState.preferences.layout} ref={setTraceGridRef}>
         <Trace
-          isIncrementallyFetching={isLoading || isIncrementallyFetching}
           trace={tree}
           rerender={rerender}
           traceLabel={props.traceLabel}

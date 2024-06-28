@@ -1,7 +1,7 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {waitFor} from 'sentry-test/reactTestingLibrary';
-
+import type {Location} from 'history';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {EntryType, type Event, type EventTransaction} from 'sentry/types/event';
 import type {
@@ -515,6 +515,129 @@ describe('TreeNode', () => {
 
       assertAutogroupedNode(autogroupedNode);
       expect(autogroupedNode.autogroupedSegments).toEqual(ts);
+    });
+  });
+
+  describe('incremental fetch', () => {
+    it('fetches additional traces incrementally', async () => {
+      const traceDataRows = [{traceSlug: 'slug2', timestamp: 2}];
+
+      // Mock the API calls
+      MockApiClient.addMockResponse({
+        method: 'GET',
+        url: '/organizations/org-slug/events-trace/slug2/?limit=10000&timestamp=2&useSpans=1',
+        body: {
+          transactions: [
+            makeTransaction({
+              transaction: 'txn 3',
+              start_timestamp: 0,
+              children: [makeTransaction({start_timestamp: 1, transaction: 'txn 4'})],
+            }),
+          ],
+          orphan_errors: [],
+        },
+      });
+
+      const tree: TraceTree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              transaction: 'txn 1',
+              start_timestamp: 0,
+              children: [makeTransaction({start_timestamp: 1, transaction: 'txn 2'})],
+            }),
+          ],
+        }),
+        null,
+        {
+          api: new MockApiClient(),
+          organization: OrganizationFixture(),
+          urlParams: {} as Location['query'],
+          traceLimit: undefined,
+          additionalTraceDataRows: traceDataRows,
+          filters: {},
+          rerender: () => {},
+        }
+      );
+
+      expect(tree.list.length).toBe(3);
+
+      await waitFor(() => expect(tree.isIncremetallyFetching).toBe(false));
+
+      expect(tree.list.length).toBe(5);
+    });
+
+    it('does not infinitely fetch on error', async () => {
+      const traceDataRows = [
+        {traceSlug: 'slug2', timestamp: 2},
+        {traceSlug: 'slug3', timestamp: 3},
+        {traceSlug: 'slug4', timestamp: 4},
+      ];
+
+      // Mock the API calls
+      MockApiClient.addMockResponse({
+        method: 'GET',
+        url: '/organizations/org-slug/events-trace/slug2/?limit=10000&timestamp=2&useSpans=1',
+        statusCode: 400,
+      });
+
+      MockApiClient.addMockResponse({
+        method: 'GET',
+        url: '/organizations/org-slug/events-trace/slug3/?limit=10000&timestamp=3&useSpans=1',
+        body: {
+          transactions: [
+            makeTransaction({
+              transaction: 'txn 4',
+              start_timestamp: 0,
+              children: [makeTransaction({start_timestamp: 1, transaction: 'txn 5'})],
+            }),
+          ],
+          orphan_errors: [],
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        method: 'GET',
+        url: '/organizations/org-slug/events-trace/slug4/?limit=10000&timestamp=4&useSpans=1',
+        body: {
+          transactions: [
+            makeTransaction({
+              transaction: 'txn 6',
+              start_timestamp: 0,
+              children: [makeTransaction({start_timestamp: 1, transaction: 'txn 7'})],
+            }),
+          ],
+          orphan_errors: [],
+        },
+      });
+
+      const tree: TraceTree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              transaction: 'txn 1',
+              start_timestamp: 0,
+              children: [makeTransaction({start_timestamp: 1, transaction: 'txn 2'})],
+            }),
+          ],
+        }),
+        null,
+        {
+          api: new MockApiClient(),
+          organization: OrganizationFixture(),
+          urlParams: {} as Location['query'],
+          traceLimit: undefined,
+          additionalTraceDataRows: traceDataRows,
+          filters: {},
+          rerender: () => {},
+        }
+      );
+
+      expect(tree.list.length).toBe(3);
+
+      await waitFor(() => expect(tree.isIncremetallyFetching).toBe(false));
+
+      expect(tree.list.length).toBe(7);
     });
   });
 

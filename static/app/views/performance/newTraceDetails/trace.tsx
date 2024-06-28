@@ -141,7 +141,6 @@ function maybeFocusRow(
 interface TraceProps {
   forceRerender: number;
   initializedRef: React.MutableRefObject<boolean>;
-  isIncrementallyFetching: boolean;
   manager: VirtualizedViewManager;
   onRowClick: (
     node: TraceTreeNode<TraceTree.NodeValue>,
@@ -184,7 +183,6 @@ export function Trace({
   rerender,
   initializedRef,
   forceRerender,
-  isIncrementallyFetching,
 }: TraceProps) {
   const theme = useTheme();
   const api = useApi();
@@ -269,13 +267,6 @@ export function Trace({
     initializedRef,
     organization,
   ]);
-
-  // Rerender when we finish incrementally fetching, so that we can stop showing the loading state
-  useEffect(() => {
-    if (!isIncrementallyFetching) {
-      rerender();
-    }
-  }, [isIncrementallyFetching, rerender]);
 
   const onNodeZoomIn = useCallback(
     (
@@ -416,7 +407,7 @@ export function Trace({
           onZoomIn={onNodeZoomIn}
           onRowClick={onRowClick}
           onRowKeyDown={onRowKeyDown}
-          isIncrementallyFetching={isIncrementallyFetching}
+          tree={trace}
         />
       );
     },
@@ -546,7 +537,7 @@ export function Trace({
 
 function RenderRow(props: {
   index: number;
-  isIncrementallyFetching: boolean;
+  tree: TraceTree;
   isSearchResult: boolean;
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
@@ -943,11 +934,11 @@ function RenderRow(props: {
               {props.node.children.length > 0 || props.node.canFetch ? (
                 <ChildrenButton
                   icon={''}
-                  status={props.isIncrementallyFetching ? 'loading' : 'idle'}
+                  status={props.tree.isIncremetallyFetching ? 'loading' : 'idle'}
                   expanded
                   onClick={() => void 0}
                 >
-                  {props.node.children.length > 0 && !props.isIncrementallyFetching
+                  {props.node.children.length > 0 && !props.tree.isIncremetallyFetching
                     ? COUNT_FORMATTER.format(props.node.children.length)
                     : null}
                 </ChildrenButton>
