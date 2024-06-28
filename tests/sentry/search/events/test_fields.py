@@ -2,7 +2,7 @@ import pytest
 from snuba_sdk.column import Column
 from snuba_sdk.function import Function
 
-from sentry.search.events.builder import UnresolvedQuery
+from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.fields import (
     COMBINATORS,
     FUNCTIONS,

@@ -576,7 +576,7 @@ class SearchVisitor(NodeVisitor):
         self.params = params if params is not None else {}
         if builder is None:
             # Avoid circular import
-            from sentry.search.events.builder import UnresolvedQuery
+            from sentry.search.events.builder.discover import UnresolvedQuery
 
             # TODO: read dataset from config
             self.builder = UnresolvedQuery(

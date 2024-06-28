@@ -2,8 +2,8 @@ from typing import Protocol
 
 from snuba_sdk import Column
 
-from sentry.search.events.builder import TimeseriesQueryBuilder
 from sentry.search.events.builder.base import BaseQueryBuilder
+from sentry.search.events.builder.discover import TimeseriesQueryBuilder
 from sentry.search.events.datasets.profiles import ProfilesDatasetConfig
 from sentry.search.events.types import SnubaParams
 

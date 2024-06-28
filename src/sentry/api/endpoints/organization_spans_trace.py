@@ -11,7 +11,7 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors, update_snuba_params_with_timestamp
 from sentry.models.organization import Organization
-from sentry.search.events.builder import SpansIndexedQueryBuilder
+from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
 from sentry.search.events.types import ParamsType
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer

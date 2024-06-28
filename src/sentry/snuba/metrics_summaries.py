@@ -1,4 +1,4 @@
-from sentry.search.events.builder import MetricsSummariesQueryBuilder
+from sentry.search.events.builder.metrics_summaries import MetricsSummariesQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import MetricSpecType

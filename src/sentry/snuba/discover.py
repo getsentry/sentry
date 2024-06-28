@@ -14,12 +14,12 @@ from snuba_sdk import Condition, Function, Op
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.group import Group
-from sentry.search.events.builder import (
+from sentry.search.events.builder.discover import (
+    DiscoverQueryBuilder,
     HistogramQueryBuilder,
     TimeseriesQueryBuilder,
     TopEventsQueryBuilder,
 )
-from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.fields import (
     FIELD_ALIASES,
     get_function_alias,
