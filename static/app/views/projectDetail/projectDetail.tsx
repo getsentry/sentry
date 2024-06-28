@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
@@ -67,7 +67,6 @@ export default function ProjectDetail({router, location, organization}: Props) {
     defined(project?.id) &&
     project.id === location.query.project &&
     project.id === String(selection.projects[0]);
-  const visibleCharts = ['chart1'];
   const hasSessions = project?.hasSessions ?? null;
   const hasOnlyBasicChart = !hasPerformance && !hasDiscover && !hasSessions;
   const title = routeTitleGen(
@@ -75,6 +74,13 @@ export default function ProjectDetail({router, location, organization}: Props) {
     organization.slug,
     false
   );
+
+  const visibleCharts = useMemo(() => {
+    if (hasTransactions || hasSessions) {
+      return ['chart1', 'chart2'];
+    }
+    return ['chart1'];
+  }, [hasTransactions, hasSessions]);
 
   const onRetryProjects = useCallback(() => {
     fetchOrganizationDetails(api, params.orgId, true, false);
@@ -107,20 +113,15 @@ export default function ProjectDetail({router, location, organization}: Props) {
     [api, organization.slug, location.query]
   );
 
-  const syncProjectWithSlug = useCallback(() => {
-    if (projectId && projectId !== location.query.project) {
-      // if someone visits /organizations/sentry/projects/javascript/ (without ?project=XXX) we need to update URL and globalSelection with the right project ID
-      updateProjects([Number(projectId)], router);
-    }
-  }, [location.query.project, router, projectId]);
-
   useEffect(() => {
+    function syncProjectWithSlug() {
+      if (projectId && projectId !== location.query.project) {
+        // if someone visits /organizations/sentry/projects/javascript/ (without ?project=XXX) we need to update URL and globalSelection with the right project ID
+        updateProjects([Number(projectId)], router);
+      }
+    }
     syncProjectWithSlug();
-  }, [syncProjectWithSlug]);
-
-  if (hasTransactions || hasSessions) {
-    visibleCharts.push('chart2');
-  }
+  }, [location.query.project, router, projectId]);
 
   if (!loadingProjects && !project) {
     return (
