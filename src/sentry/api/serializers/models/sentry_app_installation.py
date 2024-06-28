@@ -5,10 +5,10 @@ from typing import Any
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import SentryAppInstallationStatus
+from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.services.hybrid_cloud.user import RpcUser
 
 
