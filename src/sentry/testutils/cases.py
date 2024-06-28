@@ -1751,6 +1751,10 @@ class BaseMetricsTestCase(SnubaTestCase):
 
         assert not isinstance(value, list)
 
+        parsed = parse_mri(mri)
+        type = parsed.entity
+        use_case_id = UseCaseID(parsed.namespace)
+
         if type == "set":
             # Relay uses a different hashing algorithm, but that's ok
             value = [int.from_bytes(hashlib.md5(str(value).encode()).digest()[:4], "big")]
@@ -1856,6 +1860,15 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         else:
             return None
 
+    def _extract_use_case_id_from_mri(self, mri_string: str) -> UseCaseID:
+        """
+        Extracts the use case id from the MRI.
+        """
+        if (parsed_mri := parse_mri(mri_string)) is not None:
+            return UseCaseID(parsed_mri.namespace)
+        else:
+            raise ValueError("Invalid MRI")
+
     def _store_metric(
         self,
         mri: str,
@@ -1881,7 +1894,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         self.store_metric(
             org_id=self.organization.id if org_id is None else org_id,
             project_id=self.project.id if project_id is None else project_id,
-            type=self._extract_entity_from_mri(mri) if type is None else type,
+            type=self._extract_entity_from_mri(mri),
             mri=mri,
             tags=tags,
             timestamp=int(
@@ -1898,7 +1911,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
                 ).timestamp()
             ),
             value=value,
-            use_case_id=use_case_id,
+            use_case_id=self._extract_use_case_id_from_mri(mri),
             aggregation_option=aggregation_option,
         )
 
@@ -1949,7 +1962,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
     ):
         self._store_metric(
             type=type,
-            name=name,
+            mri=name,
             tags=tags,
             value=value,
             org_id=org_id,
@@ -1977,7 +1990,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
     ):
         self._store_metric(
             type=type,
-            name=name,
+            mri=name,
             tags=tags,
             value=value,
             org_id=org_id,
@@ -2005,7 +2018,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
     ):
         self._store_metric(
             type=type,
-            name=name,
+            mri=name,
             tags=tags,
             value=value,
             org_id=org_id,
@@ -3129,7 +3142,7 @@ class OrganizationMetricsIntegrationTestCase(MetricsAPIBaseTestCase):
         self.store_metric(
             org_id=org_id,
             project_id=self.project.id,
-            mri="metric1",
+            mri="c:sessions/metric1@none",
             timestamp=now,
             tags={
                 "tag1": "value1",
@@ -3142,7 +3155,7 @@ class OrganizationMetricsIntegrationTestCase(MetricsAPIBaseTestCase):
         self.store_metric(
             org_id=org_id,
             project_id=self.project.id,
-            mri="metric1",
+            mri="c:sessions/metric1@none",
             timestamp=now,
             tags={"tag3": "value3"},
             type="counter",
@@ -3152,7 +3165,7 @@ class OrganizationMetricsIntegrationTestCase(MetricsAPIBaseTestCase):
         self.store_metric(
             org_id=org_id,
             project_id=self.project.id,
-            mri="metric2",
+            mri="c:sessions/metric2@none",
             timestamp=now,
             tags={
                 "tag4": "value3",
@@ -3166,7 +3179,7 @@ class OrganizationMetricsIntegrationTestCase(MetricsAPIBaseTestCase):
         self.store_metric(
             org_id=org_id,
             project_id=self.project.id,
-            mri="metric3",
+            mri="c:sessions/metric3@none",
             timestamp=now,
             tags={},
             type="set",

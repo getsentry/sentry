@@ -1049,7 +1049,7 @@ class GetProjectReleasesCountTest(TestCase, BaseMetricsTestCase):
             self.store_metric(
                 org_id=org.id,
                 project_id=proj.id,
-                mri="foobarbaz",  # any other metric ID
+                mri="s:sessions/foobarbaz@none",  # any other metric ID
                 timestamp=int(time.time()),
                 tags={},
                 type="set",
