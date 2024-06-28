@@ -1627,6 +1627,13 @@ class BaseSpansTestCase(SnubaTestCase):
 
 
 class BaseMetricsTestCase(SnubaTestCase):
+    ENTITY_SHORTHANDS = {
+        "c": "counter",
+        "s": "set",
+        "d": "distribution",
+        "g": "gauge",
+    }
+
     snuba_endpoint = "/tests/entities/{entity}/insert"
 
     def store_session(self, session):
@@ -1824,12 +1831,7 @@ class BaseMetricsTestCase(SnubaTestCase):
 
 
 class BaseMetricsLayerTestCase(BaseMetricsTestCase):
-    ENTITY_SHORTHANDS = {
-        "c": "counter",
-        "s": "set",
-        "d": "distribution",
-        "g": "gauge",
-    }
+
     # In order to avoid complexity and edge cases while working on tests, all children of this class should use
     # this mocked time, except in case in which a specific time is required. This is suggested because working
     # with time ranges in metrics is very error-prone and requires an in-depth knowledge of the underlying
