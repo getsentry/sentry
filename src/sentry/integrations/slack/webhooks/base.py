@@ -78,6 +78,8 @@ class SlackDMEndpoint(Endpoint, abc.ABC):
             )
 
         if not (slack_request.integration and slack_request.user_id and slack_request.channel_id):
+            logger.error(".link-user.bad_request.error", extra={"slack_request": slack_request})
+            metrics.incr(self._METRIC_FAILURE_KEY + "link_user.bad_request", sample_rate=1.0)
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
 
         associate_url = build_linking_url(
@@ -86,17 +88,20 @@ class SlackDMEndpoint(Endpoint, abc.ABC):
             channel_id=slack_request.channel_id,
             response_url=slack_request.response_url,
         )
+
+        metrics.incr(self._METRICS_SUCCESS_KEY + ".link_user", sample_rate=1.0)
+
         return self.reply(slack_request, LINK_USER_MESSAGE.format(associate_url=associate_url))
 
     def unlink_user(self, slack_request: SlackDMRequest) -> Response:
         if not slack_request.has_identity:
-            logger.error("unlink-user.no-identity.error", extra={"slack_request": slack_request})
+            logger.error(".unlink-user.no-identity.error", extra={"slack_request": slack_request})
             metrics.incr(self._METRIC_FAILURE_KEY + "unlink_user.no_identity", sample_rate=1.0)
 
             return self.reply(slack_request, NOT_LINKED_MESSAGE)
 
         if not (slack_request.integration and slack_request.user_id and slack_request.channel_id):
-            logger.error("unlink-user.bad_request.error", extra={"slack_request": slack_request})
+            logger.error(".unlink-user.bad_request.error", extra={"slack_request": slack_request})
             metrics.incr(self._METRIC_FAILURE_KEY + "unlink_user.bad_request", sample_rate=1.0)
 
             raise SlackRequestError(status=status.HTTP_400_BAD_REQUEST)
@@ -108,7 +113,7 @@ class SlackDMEndpoint(Endpoint, abc.ABC):
             response_url=slack_request.response_url,
         )
 
-        metrics.incr(self._METRICS_SUCCESS_KEY + "unlink_user", sample_rate=1.0)
+        metrics.incr(self._METRICS_SUCCESS_KEY + ".unlink_user", sample_rate=1.0)
 
         return self.reply(slack_request, UNLINK_USER_MESSAGE.format(associate_url=associate_url))
 

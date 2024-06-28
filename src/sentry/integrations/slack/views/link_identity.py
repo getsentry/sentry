@@ -157,7 +157,6 @@ class SlackLinkIdentityView(BaseView):
                 params.organization, request.user, ExternalProviders.SLACK
             ).send()
 
-        _logger.info("link_identity_success", extra={"slack_id": params.slack_id})
         metrics.incr(self._METRICS_SUCCESS_KEY + ".post.link_identity", sample_rate=1.0)
 
         return render_to_response(

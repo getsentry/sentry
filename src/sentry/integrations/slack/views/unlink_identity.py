@@ -134,7 +134,6 @@ class SlackUnlinkIdentityView(BaseView):
         else:
             send_slack_response(params, SUCCESS_UNLINKED_MESSAGE, command="unlink")
 
-        _logger.info("unlink_identity_success", extra={"slack_id": params.slack_id})
         metrics.incr(self._METRICS_SUCCESS_KEY + ".post.unlink_identity", sample_rate=1.0)
 
         return render_to_response(

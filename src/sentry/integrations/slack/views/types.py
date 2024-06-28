@@ -16,10 +16,14 @@ class IdentityParams:
 
 
 @dataclass(frozen=True)
-class TeamIdentityRequest:
-    organization_id: str
+class TeamLinkRequest:
     integration_id: str
     channel_id: str
     channel_name: str
     slack_id: str
-    response_url: str | None = None
+    response_url: str
+
+
+@dataclass(frozen=True)
+class TeamUnlinkRequest(TeamLinkRequest):
+    organization_id: str
