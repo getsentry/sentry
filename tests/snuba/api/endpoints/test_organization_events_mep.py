@@ -2855,13 +2855,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
 
         self.store_transaction_metric(
-            0.00,
-            metric="measurements.score.total",
-            tags={"transaction": "foo_transaction"},
-            timestamp=self.min_ago,
-        )
-
-        self.store_transaction_metric(
             0.80,
             metric="measurements.score.inp",
             tags={"transaction": "foo_transaction"},
