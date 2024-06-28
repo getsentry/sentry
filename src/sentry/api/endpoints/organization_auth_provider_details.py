@@ -8,8 +8,8 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationAuthProviderPermission, OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.auth_provider import AuthProviderSerializer
+from sentry.auth.services.auth.service import auth_service
 from sentry.models.organization import Organization
-from sentry.services.hybrid_cloud.auth.service import auth_service
 
 
 @region_silo_endpoint

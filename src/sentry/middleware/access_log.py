@@ -12,7 +12,7 @@ from rest_framework.authentication import get_authorization_header
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry.services.hybrid_cloud.auth import AuthenticatedToken
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.utils import metrics
 
 from . import is_frontend_request

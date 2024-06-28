@@ -5,6 +5,7 @@
 
 from abc import abstractmethod
 
+from sentry.auth.services.auth import AuthenticationContext
 from sentry.hybridcloud.rpc import OptionValue
 from sentry.hybridcloud.rpc.filter_query import OpaqueSerializedResponse
 from sentry.hybridcloud.rpc.resolvers import (
@@ -13,7 +14,6 @@ from sentry.hybridcloud.rpc.resolvers import (
     ByRegionName,
 )
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
-from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.project import (
     ProjectFilterArgs,
     RpcProject,

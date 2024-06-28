@@ -1,5 +1,5 @@
+from sentry.auth.services.orgauthtoken.model import RpcOrgAuthToken
 from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.services.hybrid_cloud.orgauthtoken.model import RpcOrgAuthToken
 
 
 def serialize_org_auth_token(token: OrgAuthToken) -> RpcOrgAuthToken:

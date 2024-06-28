@@ -1,13 +1,13 @@
 from sentry.adoption import manager as adoption_manager
-from sentry.models.apikey import ApiKey
-from sentry.models.authprovider import AuthProvider
-from sentry.models.featureadoption import FeatureAdoption
-from sentry.services.hybrid_cloud.auth import (
+from sentry.auth.services.auth import (
     RpcAuthProvider,
     RpcAuthProviderFlags,
     RpcOrganizationAuthConfig,
     auth_service,
 )
+from sentry.models.apikey import ApiKey
+from sentry.models.authprovider import AuthProvider
+from sentry.models.featureadoption import FeatureAdoption
 from sentry.signals import receivers_raise_on_send
 from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories

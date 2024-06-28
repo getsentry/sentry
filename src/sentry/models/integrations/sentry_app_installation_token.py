@@ -12,7 +12,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.outbox import ControlOutboxBase
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
+    from sentry.auth.services.auth import AuthenticatedToken
 
 
 class SentryAppInstallationTokenManager(BaseManager["SentryAppInstallationToken"]):

@@ -4,10 +4,10 @@ from django.db.models import F
 
 from sentry import features
 from sentry.api.serializers import Serializer, register
+from sentry.auth.services.auth import RpcAuthProvider
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
-from sentry.services.hybrid_cloud.auth import RpcAuthProvider
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 from sentry.types.organization import OrganizationAbsoluteUrlMixin
 

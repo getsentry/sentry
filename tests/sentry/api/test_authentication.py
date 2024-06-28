@@ -17,6 +17,7 @@ from sentry.api.authentication import (
     RpcSignatureAuthentication,
     UserAuthTokenAuthentication,
 )
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.system import SystemToken, is_system_auth
 from sentry.hybridcloud.models import ApiKeyReplica, ApiTokenReplica, OrgAuthTokenReplica
 from sentry.hybridcloud.rpc.service import (
@@ -28,7 +29,6 @@ from sentry.models.apitoken import ApiToken, is_api_token_auth
 from sentry.models.orgauthtoken import OrgAuthToken, is_org_auth_token_auth
 from sentry.models.projectkey import ProjectKeyStatus
 from sentry.models.relay import Relay
-from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options

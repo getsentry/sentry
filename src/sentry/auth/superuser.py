@@ -28,8 +28,8 @@ from rest_framework.request import Request
 from sentry import options
 from sentry.api.exceptions import SentryAPIException
 from sentry.auth.elevated_mode import ElevatedMode, InactiveReason
+from sentry.auth.services.auth.model import RpcAuthState
 from sentry.auth.system import is_system_auth
-from sentry.services.hybrid_cloud.auth.model import RpcAuthState
 from sentry.utils import metrics
 from sentry.utils.auth import has_completed_sso
 from sentry.utils.settings import is_self_hosted

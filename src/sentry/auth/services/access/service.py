@@ -4,13 +4,13 @@ from datetime import timedelta
 from django.utils import timezone
 
 from sentry.auth import find_providers_requiring_refresh
-from sentry.hybridcloud.rpc import silo_mode_delegation
-from sentry.services.hybrid_cloud.auth import (
+from sentry.auth.services.auth import (
     RpcAuthIdentity,
     RpcAuthProvider,
     RpcAuthState,
     RpcMemberSsoState,
 )
+from sentry.hybridcloud.rpc import silo_mode_delegation
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberSummary
 from sentry.silo.base import SiloMode
 
@@ -126,13 +126,13 @@ class AccessService(abc.ABC):
 
 
 def impl_by_region_resources() -> AccessService:
-    from sentry.services.hybrid_cloud.access.impl import RegionAccessService
+    from sentry.auth.services.access.impl import RegionAccessService
 
     return RegionAccessService()
 
 
 def impl_by_control_resources() -> AccessService:
-    from sentry.services.hybrid_cloud.access.impl import ControlAccessService
+    from sentry.auth.services.access.impl import ControlAccessService
 
     return ControlAccessService()
 
