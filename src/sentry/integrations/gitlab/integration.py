@@ -127,6 +127,9 @@ class GitlabIntegration(
         base_url = self.model.metadata["base_url"]
         repo_name = repo.config["path"]
 
+        filepath = filepath.lstrip("/")
+        filepath = filepath.replace("\\", "/")
+
         # Must format the url ourselves since `check_file` is a head request
         # "https://gitlab.com/gitlab-org/gitlab/blob/master/README.md"
         return f"{base_url}/{repo_name}/blob/{branch}/{filepath}"
