@@ -26,7 +26,7 @@ export default function TimelineGaps({durationMs, frames, width}: Props) {
     totalColumns
   );
 
-  // returns all numbers in the range
+  // returns all numbers in the range, exclusive of start and inclusive of stop
   const range = (start, stop) =>
     Array.from({length: stop - start}, (_, i) => start + i + 1);
 
