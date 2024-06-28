@@ -2,13 +2,13 @@ import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import type {DrawerOptions} from 'sentry/components/globalDrawer/types';
+import type {DrawerOptions} from 'sentry/components/globalDrawer';
 import SlideOverPanel, {type SlideOverPanelProps} from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-export interface DrawerPanelProps {
+interface DrawerPanelProps {
   children: React.ReactNode;
   onClose: DrawerOptions['onClose'];
   ariaLabel?: SlideOverPanelProps['ariaLabel'];
@@ -51,7 +51,7 @@ const CloseButton = styled(Button)`
   }
 `;
 
-export const DrawerHeader = styled('header')`
+const DrawerHeader = styled('header')`
   justify-content: flex-start;
   display: flex;
   padding: ${space(1.5)};
@@ -64,9 +64,16 @@ export const DrawerBody = styled('section')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-export const DrawerContainer = styled('div')`
+const DrawerContainer = styled('div')`
   position: fixed;
   inset: 0;
   z-index: ${p => p.theme.zIndex.drawer};
   pointer-events: none;
 `;
+
+export const DrawerComponents = {
+  DrawerBody,
+  DrawerPanel,
+};
+
+export default DrawerComponents;

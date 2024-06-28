@@ -1,68 +1,118 @@
-import {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from 'react';
 import {AnimatePresence} from 'framer-motion';
 
 import ErrorBoundary from 'sentry/components/errorBoundary';
-import {DrawerBody, DrawerPanel} from 'sentry/components/globalDrawer/components';
-import type {
-  DrawerConfig,
-  DrawerContext as TDrawerContext,
-} from 'sentry/components/globalDrawer/types';
+import DrawerComponents from 'sentry/components/globalDrawer/components';
 import {t} from 'sentry/locale';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
 
-const DrawerContext = createContext<TDrawerContext>({
+export interface DrawerOptions {
+  /**
+   * Accessbility label for the drawer
+   */
+  ariaLabel: string;
+  /**
+   * If true (default), closes the drawer when an escape key is pressed
+   */
+  closeOnEscapeKeypress?: boolean;
+  /**
+   * If true (default), closes the drawer when anywhere else is clicked
+   */
+  closeOnOutsideClick?: boolean;
+  /**
+   * Callback for when the drawer closes
+   */
+  onClose?: () => void;
+  /**
+   * Callback for when the drawer opens
+   */
+  onOpen?: () => void;
+}
+
+interface DrawerRenderProps {
+  /**
+   * Body container for the drawer
+   */
+  Body: typeof DrawerComponents.DrawerBody;
+  /**
+   * Close the drawer
+   */
+  closeDrawer: () => void;
+}
+
+type DrawerRenderer = (renderProps: DrawerRenderProps) => React.ReactNode;
+
+export interface DrawerConfig {
+  options: DrawerOptions;
+  renderer: DrawerRenderer | null;
+}
+
+interface DrawerContextType {
+  closeDrawer: () => void;
+  openDrawer: (
+    renderer: DrawerConfig['renderer'],
+    options: DrawerConfig['options']
+  ) => void;
+}
+
+const DrawerContext = createContext<DrawerContextType>({
   openDrawer: () => {},
   closeDrawer: () => {},
 });
 
 export function GlobalDrawer({children}) {
   const location = useLocation();
-  const [drawerConfig, setDrawerConfig] = useState<DrawerConfig | undefined>();
-  // If no 'drawerConfig' is set, the global drawer is closed.
-  const isDrawerOpen = drawerConfig !== undefined;
-  const openDrawer = useCallback<TDrawerContext['openDrawer']>(
-    (renderer, options = {}) => setDrawerConfig({renderer, options}),
+  const [currentDrawerConfig, overwriteDrawerConfig] = useState<
+    DrawerConfig | undefined
+  >();
+  // If no config is set, the global drawer is closed.
+  const isDrawerOpen = !!currentDrawerConfig;
+  const openDrawer = useCallback<DrawerContextType['openDrawer']>(
+    (renderer, options) => overwriteDrawerConfig({renderer, options}),
     []
   );
-  const closeDrawer = useCallback<TDrawerContext['closeDrawer']>(
-    () => setDrawerConfig(undefined),
+  const closeDrawer = useCallback<DrawerContextType['closeDrawer']>(
+    () => overwriteDrawerConfig(undefined),
     []
   );
 
   const handleClose = useCallback(() => {
-    // Callsite callback when closing the drawer
-    drawerConfig?.options?.onClose?.();
-    // Actually close the drawer component
+    currentDrawerConfig?.options?.onClose?.();
     closeDrawer();
-  }, [drawerConfig, closeDrawer]);
+  }, [currentDrawerConfig, closeDrawer]);
 
   // Close the drawer when the browser history changes.
-  useEffect(() => closeDrawer(), [location?.pathname, closeDrawer]);
+  useLayoutEffect(() => closeDrawer(), [location?.pathname, closeDrawer]);
 
   // Close the drawer when clicking outside the panel and options allow it.
   const panelRef = useRef<HTMLDivElement>(null);
   const handleClickOutside = useCallback(() => {
-    const allowOutsideClick = drawerConfig?.options?.closeOnOutsideClick ?? true;
-    if (isDrawerOpen && allowOutsideClick) {
+    if (currentDrawerConfig?.options?.closeOnOutsideClick ?? true) {
       handleClose();
     }
-  }, [drawerConfig, isDrawerOpen, handleClose]);
+  }, [currentDrawerConfig, handleClose]);
   useOnClickOutside(panelRef, handleClickOutside);
 
   // Close the drawer when escape is pressed and options allow it.
   const handleEscapePress = useCallback(() => {
-    const allowEscapeKeypress = drawerConfig?.options?.closeOnOutsideClick ?? true;
-    if (isDrawerOpen && allowEscapeKeypress) {
+    if (currentDrawerConfig?.options?.closeOnOutsideClick ?? true) {
       handleClose();
     }
-  }, [drawerConfig, isDrawerOpen, handleClose]);
+  }, [currentDrawerConfig, handleClose]);
   useHotkeys([{match: 'Escape', callback: handleEscapePress}], [handleEscapePress]);
 
-  const renderedChild = drawerConfig
-    ? drawerConfig.renderer({
-        Body: DrawerBody,
+  const renderedChild = currentDrawerConfig?.renderer
+    ? currentDrawerConfig.renderer({
+        Body: DrawerComponents.DrawerBody,
         closeDrawer: handleClose,
       })
     : null;
@@ -72,13 +122,13 @@ export function GlobalDrawer({children}) {
       <ErrorBoundary mini message={t('There was a problem rendering the drawer.')}>
         <AnimatePresence>
           {isDrawerOpen && (
-            <DrawerPanel
-              ariaLabel={drawerConfig?.options?.ariaLabel}
+            <DrawerComponents.DrawerPanel
+              ariaLabel={currentDrawerConfig.options.ariaLabel}
               onClose={handleClose}
               ref={panelRef}
             >
               {renderedChild}
-            </DrawerPanel>
+            </DrawerComponents.DrawerPanel>
           )}
         </AnimatePresence>
       </ErrorBoundary>

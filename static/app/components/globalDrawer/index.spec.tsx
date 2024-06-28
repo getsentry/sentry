@@ -5,8 +5,8 @@ import {
   waitForDrawerToHide,
 } from 'sentry-test/reactTestingLibrary';
 
+import type {DrawerConfig} from 'sentry/components/globalDrawer';
 import useDrawer from 'sentry/components/globalDrawer';
-import type {DrawerConfig} from 'sentry/components/globalDrawer/types';
 
 function GlobalDrawerTestComponent({config}: {config: DrawerConfig}) {
   const {openDrawer, closeDrawer} = useDrawer();
@@ -26,12 +26,12 @@ function GlobalDrawerTestComponent({config}: {config: DrawerConfig}) {
 }
 
 describe('GlobalDrawer', function () {
+  const ariaLabel = 'drawer-test-aria-label';
   beforeEach(() => {
     jest.resetAllMocks();
   });
 
   it('useDrawer hook can open and close the Drawer', async function () {
-    const ariaLabel = 'drawer-test-aria-label';
     render(
       <GlobalDrawerTestComponent
         config={{
@@ -70,7 +70,7 @@ describe('GlobalDrawer', function () {
           renderer: ({Body}) => (
             <Body data-test-id="drawer-test-content">onClose button</Body>
           ),
-          options: {onClose: closeSpy},
+          options: {onClose: closeSpy, ariaLabel},
         }}
       />
     );
@@ -80,7 +80,7 @@ describe('GlobalDrawer', function () {
     expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
-    await waitForDrawerToHide();
+    await waitForDrawerToHide(ariaLabel);
 
     expect(closeSpy).toHaveBeenCalled();
     expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
@@ -95,7 +95,7 @@ describe('GlobalDrawer', function () {
           renderer: ({Body}) => (
             <Body data-test-id="drawer-test-content">onClose outside click</Body>
           ),
-          options: {onClose: closeSpy},
+          options: {onClose: closeSpy, ariaLabel},
         }}
       />
     );
@@ -105,37 +105,10 @@ describe('GlobalDrawer', function () {
     expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
 
     await userEvent.click(screen.getByTestId('drawer-test-outside'));
-    await waitForDrawerToHide();
+    await waitForDrawerToHide(ariaLabel);
 
     expect(closeSpy).toHaveBeenCalled();
     expect(screen.queryByTestId('drawer-test-content')).not.toBeInTheDocument();
-  });
-
-  it('calls onClose handler when escape key is pressed', async function () {
-    const closeSpy = jest.fn();
-
-    render(
-      <GlobalDrawerTestComponent
-        config={{
-          renderer: ({Body}) => (
-            <Body data-test-id="drawer-test-content">onClose escape</Body>
-          ),
-          options: {onClose: closeSpy},
-        }}
-      />
-    );
-
-    await userEvent.click(screen.getByTestId('drawer-test-open'));
-
-    const content = screen.getByTestId('drawer-test-content');
-    expect(content).toBeInTheDocument();
-
-    // TODO(Leander): Implement the following test case when `useHotKeys` hook allows for userEvent signals
-    // await userEvent.keyboard('{Escape}');
-    // await waitForDrawerToHide();
-
-    // expect(closeSpy).toHaveBeenCalled();
-    // expect(content).not.toBeInTheDocument();
   });
 
   it('calls onClose handler when closeDrawer prop is called', async function () {
@@ -149,7 +122,7 @@ describe('GlobalDrawer', function () {
               onClose prop
             </button>
           ),
-          options: {onClose: closeSpy},
+          options: {onClose: closeSpy, ariaLabel},
         }}
       />
     );
@@ -160,7 +133,7 @@ describe('GlobalDrawer', function () {
     expect(button).toBeInTheDocument();
 
     await userEvent.click(button);
-    await waitForDrawerToHide();
+    await waitForDrawerToHide(ariaLabel);
 
     expect(closeSpy).toHaveBeenCalled();
     expect(button).not.toBeInTheDocument();
@@ -179,6 +152,7 @@ describe('GlobalDrawer', function () {
             onClose: closeSpy,
             closeOnEscapeKeypress: false,
             closeOnOutsideClick: false,
+            ariaLabel,
           },
         }}
       />
@@ -199,7 +173,7 @@ describe('GlobalDrawer', function () {
     expect(content).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', {name: 'Close Drawer'}));
-    await waitForDrawerToHide();
+    await waitForDrawerToHide(ariaLabel);
 
     expect(closeSpy).toHaveBeenCalled();
     expect(content).not.toBeInTheDocument();
