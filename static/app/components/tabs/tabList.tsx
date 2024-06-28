@@ -26,7 +26,7 @@ import {tabsShouldForwardProp} from './utils';
  * Uses IntersectionObserver API to detect overflowing tabs. Returns an array
  * containing of keys of overflowing tabs.
  */
-function useOverflowTabs({
+export function useOverflowTabs({
   tabListRef,
   tabItemsRef,
   tabItems,
@@ -83,6 +83,32 @@ function useOverflowTabs({
   // Tabs that are hidden will be rendered with display: none so won't intersect,
   // but we don't want to show them in the overflow menu
   return overflowTabs.filter(tabKey => !tabItemKeyToHiddenMap[tabKey]);
+}
+
+export function OverflowMenu({state, overflowMenuItems, disabled}) {
+  return (
+    <TabListOverflowWrap>
+      <CompactSelect
+        options={overflowMenuItems}
+        value={[...state.selectionManager.selectedKeys][0]}
+        onChange={opt => state.setSelectedKey(opt.value)}
+        disabled={disabled}
+        position="bottom-end"
+        size="sm"
+        offset={4}
+        trigger={triggerProps => (
+          <OverflowMenuTrigger
+            {...triggerProps}
+            size="sm"
+            borderless
+            showChevron={false}
+            icon={<IconEllipsis />}
+            aria-label={t('More tabs')}
+          />
+        )}
+      />
+    </TabListOverflowWrap>
+  );
 }
 
 export interface TabListProps
@@ -195,27 +221,11 @@ function BaseTabList({
       </TabListWrap>
 
       {orientation === 'horizontal' && overflowMenuItems.length > 0 && (
-        <TabListOverflowWrap>
-          <CompactSelect
-            options={overflowMenuItems}
-            value={[...state.selectionManager.selectedKeys][0]}
-            onChange={opt => state.setSelectedKey(opt.value)}
-            disabled={disabled}
-            position="bottom-end"
-            size="sm"
-            offset={4}
-            trigger={triggerProps => (
-              <OverflowMenuTrigger
-                {...triggerProps}
-                size="sm"
-                borderless
-                showChevron={false}
-                icon={<IconEllipsis />}
-                aria-label={t('More tabs')}
-              />
-            )}
-          />
-        </TabListOverflowWrap>
+        <OverflowMenu
+          state={state}
+          overflowMenuItems={overflowMenuItems}
+          disabled={disabled}
+        />
       )}
     </TabListOuterWrap>
   );

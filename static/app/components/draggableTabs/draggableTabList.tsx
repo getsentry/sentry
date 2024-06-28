@@ -1,108 +1,47 @@
-import {useContext, useEffect, useMemo, useRef, useState} from 'react';
+import {useContext, useEffect, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
+import {ListDropTargetDelegate, useDroppableCollection} from '@react-aria/dnd';
+import {ListKeyboardDelegate} from '@react-aria/selection';
 import type {AriaTabListOptions} from '@react-aria/tabs';
 import {useTabList} from '@react-aria/tabs';
+import {mergeProps} from '@react-aria/utils';
 import {useCollection} from '@react-stately/collections';
+import {
+  type DroppableCollectionStateOptions,
+  useDroppableCollectionState,
+} from '@react-stately/dnd';
 import {ListCollection} from '@react-stately/list';
 import type {TabListStateOptions} from '@react-stately/tabs';
 import {useTabListState} from '@react-stately/tabs';
-import type {Node, Orientation} from '@react-types/shared';
+import type {
+  DroppableCollectionInsertDropEvent,
+  Node,
+  Orientation,
+  TextDropItem,
+} from '@react-types/shared';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
-import {CompactSelect} from 'sentry/components/compactSelect';
-import DropdownButton from 'sentry/components/dropdownButton';
-import {IconEllipsis} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import type {Tab} from 'sentry/components/draggableTabs';
+import {TabsContext} from 'sentry/components/tabs';
+import {OverflowMenu, useOverflowTabs} from 'sentry/components/tabs/tabList';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 
-import {Tab} from './draggableTab';
-import {TabsContext} from './index';
-import type {TabListItemProps} from './item';
+import {DraggableTab} from './draggableTab';
+import type {DraggableTabListItemProps} from './item';
 import {Item} from './item';
 import {tabsShouldForwardProp} from './utils';
 
-/**
- * Uses IntersectionObserver API to detect overflowing tabs. Returns an array
- * containing of keys of overflowing tabs.
- */
-function useOverflowTabs({
-  tabListRef,
-  tabItemsRef,
-  tabItems,
-}: {
-  tabItems: TabListItemProps[];
-  tabItemsRef: React.RefObject<Record<string | number, HTMLLIElement | null>>;
-  tabListRef: React.RefObject<HTMLUListElement>;
-}) {
-  const [overflowTabs, setOverflowTabs] = useState<Array<string | number>>([]);
-
-  useEffect(() => {
-    const options = {
-      root: tabListRef.current,
-      // Nagative right margin to account for overflow menu's trigger button
-      rootMargin: `0px -42px 1px ${space(1)}`,
-      // Use 0.95 rather than 1 because of a bug in Edge (Windows) where the intersection
-      // ratio may unexpectedly drop to slightly below 1 (0.999…) on page scroll.
-      threshold: 0.95,
-    };
-
-    const callback: IntersectionObserverCallback = entries => {
-      entries.forEach(entry => {
-        const {target} = entry;
-        const {key} = (target as HTMLElement).dataset;
-        if (!key) {
-          return;
-        }
-
-        if (!entry.isIntersecting) {
-          setOverflowTabs(prev => prev.concat([key]));
-          return;
-        }
-
-        setOverflowTabs(prev => prev.filter(k => k !== key));
-      });
-    };
-
-    const observer = new IntersectionObserver(callback, options);
-    Object.values(tabItemsRef.current ?? {}).forEach(
-      element => element && observer.observe(element)
-    );
-
-    return () => observer.disconnect();
-  }, [tabListRef, tabItemsRef]);
-
-  const tabItemKeyToHiddenMap = tabItems.reduce(
-    (acc, next) => ({
-      ...acc,
-      [next.key]: next.hidden,
-    }),
-    {}
-  );
-
-  // Tabs that are hidden will be rendered with display: none so won't intersect,
-  // but we don't want to show them in the overflow menu
-  return overflowTabs.filter(tabKey => !tabItemKeyToHiddenMap[tabKey]);
+interface BaseDraggableTabListProps extends DraggableTabListProps {
+  items: DraggableTabListItemProps[];
 }
 
-export interface TabListProps
-  extends AriaTabListOptions<TabListItemProps>,
-    TabListStateOptions<TabListItemProps> {
-  className?: string;
-  hideBorder?: boolean;
-  outerWrapStyles?: React.CSSProperties;
-}
-
-interface BaseTabListProps extends TabListProps {
-  items: TabListItemProps[];
-}
-
-function BaseTabList({
+function BaseDraggableTabList({
   hideBorder = false,
   className,
   outerWrapStyles,
   ...props
-}: BaseTabListProps) {
+}: BaseDraggableTabListProps) {
   const tabListRef = useRef<HTMLUListElement>(null);
   const {rootProps, setTabListState} = useContext(TabsContext);
   const {
@@ -136,11 +75,33 @@ function BaseTabList({
   };
 
   const state = useTabListState(ariaProps);
+
   const {tabListProps} = useTabList({orientation, ...ariaProps}, state, tabListRef);
   useEffect(() => {
     setTabListState(state);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [state.disabledKeys, state.selectedItem, state.selectedKey, props.children]);
+
+  const dropState = useDroppableCollectionState({
+    ...props,
+    collection: state.collection,
+    selectionManager: state.selectionManager,
+  });
+
+  const {collectionProps} = useDroppableCollection(
+    {
+      ...props,
+      // Provide drop targets for keyboard and pointer-based drag and drop.
+      keyboardDelegate: new ListKeyboardDelegate(
+        state.collection,
+        state.disabledKeys,
+        tabListRef
+      ),
+      dropTargetDelegate: new ListDropTargetDelegate(state.collection, tabListRef),
+    },
+    dropState,
+    tabListRef
+  );
 
   // Detect tabs that overflow from the wrapper and put them in an overflow menu
   const tabItemsRef = useRef<Record<string | number, HTMLLIElement | null>>({});
@@ -176,46 +137,31 @@ function BaseTabList({
   return (
     <TabListOuterWrap style={outerWrapStyles}>
       <TabListWrap
-        {...tabListProps}
+        {...mergeProps(tabListProps, collectionProps)}
         orientation={orientation}
         hideBorder={hideBorder}
         className={className}
         ref={tabListRef}
       >
         {[...state.collection].map(item => (
-          <Tab
+          <DraggableTab
             key={item.key}
             item={item}
             state={state}
             orientation={orientation}
             overflowing={orientation === 'horizontal' && overflowTabs.includes(item.key)}
+            dropState={dropState}
             ref={element => (tabItemsRef.current[item.key] = element)}
           />
         ))}
       </TabListWrap>
 
       {orientation === 'horizontal' && overflowMenuItems.length > 0 && (
-        <TabListOverflowWrap>
-          <CompactSelect
-            options={overflowMenuItems}
-            value={[...state.selectionManager.selectedKeys][0]}
-            onChange={opt => state.setSelectedKey(opt.value)}
-            disabled={disabled}
-            position="bottom-end"
-            size="sm"
-            offset={4}
-            trigger={triggerProps => (
-              <OverflowMenuTrigger
-                {...triggerProps}
-                size="sm"
-                borderless
-                showChevron={false}
-                icon={<IconEllipsis />}
-                aria-label={t('More tabs')}
-              />
-            )}
-          />
-        </TabListOverflowWrap>
+        <OverflowMenu
+          state={state}
+          overflowMenuItems={overflowMenuItems}
+          disabled={disabled}
+        />
       )}
     </TabListOuterWrap>
   );
@@ -223,14 +169,49 @@ function BaseTabList({
 
 const collectionFactory = (nodes: Iterable<Node<any>>) => new ListCollection(nodes);
 
+export interface DraggableTabListProps
+  extends AriaTabListOptions<DraggableTabListItemProps>,
+    TabListStateOptions<DraggableTabListItemProps>,
+    Omit<DroppableCollectionStateOptions, 'collection' | 'selectionManager'> {
+  setTabs: (tabs: Tab[]) => void;
+  tabs: Tab[];
+  className?: string;
+  hideBorder?: boolean;
+  outerWrapStyles?: React.CSSProperties;
+}
+
 /**
  * To be used as a direct child of the <Tabs /> component. See example usage
  * in tabs.stories.js
  */
-export function TabList({items, ...props}: TabListProps) {
-  /**
-   * Initial, unfiltered list of tab items.
-   */
+export function DraggableTabList({
+  items,
+  tabs,
+  setTabs,
+  ...props
+}: DraggableTabListProps) {
+  const onInsert = async (e: DroppableCollectionInsertDropEvent) => {
+    const dropItem = e.items[0] as TextDropItem;
+    const eventTab: {key: string; value: string} = JSON.parse(
+      await dropItem.getText('tab')
+    );
+    const draggedTab = tabs.find(tab => tab.key === eventTab.key);
+    if (!draggedTab || e.target.key === draggedTab.key) {
+      return; // Do nothing if the dragged tab is dropped on itself
+    }
+
+    const updatedTabs = tabs.filter(tab => tab.key !== draggedTab.key);
+    const targetIdx = updatedTabs.findIndex(tab => tab.key === e.target.key);
+    if (targetIdx > -1) {
+      if (e.target.dropPosition === 'before') {
+        updatedTabs.splice(targetIdx, 0, draggedTab);
+      } else if (e.target.dropPosition === 'after') {
+        updatedTabs.splice(targetIdx + 1, 0, draggedTab);
+      }
+      setTabs(updatedTabs);
+    }
+  };
+
   const collection = useCollection({items, ...props}, collectionFactory);
 
   const parsedItems = useMemo(
@@ -248,13 +229,20 @@ export function TabList({items, ...props}: TabListProps) {
   );
 
   return (
-    <BaseTabList items={parsedItems} disabledKeys={disabledKeys} {...props}>
+    <BaseDraggableTabList
+      tabs={tabs}
+      onInsert={onInsert}
+      items={parsedItems}
+      disabledKeys={disabledKeys}
+      setTabs={setTabs}
+      {...props}
+    >
       {item => <Item {...item} />}
-    </BaseTabList>
+    </BaseDraggableTabList>
   );
 }
 
-TabList.Item = Item;
+DraggableTabList.Item = Item;
 
 const TabListOuterWrap = styled('div')`
   position: relative;
@@ -287,14 +275,4 @@ const TabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
         padding-right: ${space(2)};
         ${!p.hideBorder && `border-right: solid 1px ${p.theme.border};`}
       `};
-`;
-
-const TabListOverflowWrap = styled('div')`
-  position: absolute;
-  right: 0;
-  bottom: ${space(0.75)};
-`;
-const OverflowMenuTrigger = styled(DropdownButton)`
-  padding-left: ${space(1)};
-  padding-right: ${space(1)};
 `;
