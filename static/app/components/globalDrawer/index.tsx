@@ -60,11 +60,12 @@ export function GlobalDrawer({children}) {
   }, [drawerConfig, isDrawerOpen, handleClose]);
   useHotkeys([{match: 'Escape', callback: handleEscapePress}], [handleEscapePress]);
 
-  const renderedChild = drawerConfig ?
-    drawerConfig.renderer({
-      Body: DrawerBody,
-      closeDrawer: handleClose,
-    }) : null
+  const renderedChild = drawerConfig
+    ? drawerConfig.renderer({
+        Body: DrawerBody,
+        closeDrawer: handleClose,
+      })
+    : null;
 
   return (
     <DrawerContext.Provider value={{openDrawer, closeDrawer}}>
