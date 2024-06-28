@@ -51,7 +51,7 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                         project=project, span_attribute=obj["spanAttribute"]
                     ).all().delete()
         except Exception as e:
-            return Response(status=500, data={"detail": str(e)})
+            return Response(status=400, data={"detail": str(e)})
 
         return Response(status=204)
 
