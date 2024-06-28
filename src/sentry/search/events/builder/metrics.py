@@ -116,6 +116,7 @@ class MetricsQueryBuilder(QueryBuilder):
         # only used for metrics_layer right now
         self.metrics_layer_functions: list[CurriedFunction] = []
         self.metric_ids: set[int] = set()
+        self.metric_mris: set[str] = set()
         self._indexer_cache: dict[str, int | None] = {}
         self._use_default_tags: bool | None = None
         self._has_nullable: bool = False
