@@ -16,7 +16,7 @@ import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
-import {escapeFilterValue, MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {escapeFilterValue} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -35,7 +35,6 @@ import {
 } from 'sentry/views/insights/queues/components/tables/queuesTable';
 import {Referrer} from 'sentry/views/insights/queues/referrers';
 import {
-  DEFAULT_QUERY_FILTER,
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
   MODULE_TITLE,
@@ -122,9 +121,8 @@ function QueuesLandingPage() {
               </PageFilterBar>
             </ModuleLayout.Full>
             <ModulesOnboarding
-              moduleQueryFilter={new MutableSearch(DEFAULT_QUERY_FILTER)}
+              moduleName={ModuleName.QUEUE}
               onboardingContent={<OnboardingContent {...ONBOARDING_CONTENT} />}
-              referrer={'api.performance.queues.landing-onboarding'}
             >
               <ModuleLayout.Half>
                 <LatencyChart referrer={Referrer.QUEUES_LANDING_CHARTS} />

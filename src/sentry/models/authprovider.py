@@ -64,8 +64,8 @@ class AuthProvider(ReplicatedControlModel):
     default_global_access = models.BooleanField(default=True)
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+        from sentry.auth.services.auth.serial import serialize_auth_provider
         from sentry.hybridcloud.services.replica.service import region_replica_service
-        from sentry.services.hybrid_cloud.auth.serial import serialize_auth_provider
 
         serialized = serialize_auth_provider(self)
         region_replica_service.upsert_replicated_auth_provider(

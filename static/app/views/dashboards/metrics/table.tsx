@@ -6,7 +6,7 @@ import TextOverflow from 'sentry/components/textOverflow';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricsQueryApiResponse} from 'sentry/types';
+import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
 import {isNotQueryOnly, unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {formatMRIField, MRIToField} from 'sentry/utils/metrics/mri';
@@ -210,7 +210,7 @@ export function getTableData(
         query.alias ??
         (isMetricFormula(query)
           ? unescapeMetricsFormula(query.formula)
-          : formatMRIField(MRIToField(query.mri, query.op))),
+          : formatMRIField(MRIToField(query.mri, query.aggregation))),
       type: 'field',
       order: query.orderBy,
     })),

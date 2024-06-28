@@ -6,11 +6,11 @@
 from abc import abstractmethod
 from typing import Any
 
+from sentry.auth.services.auth import AuthenticationContext
 from sentry.hybridcloud.rpc.caching import back_with_silo_cache, back_with_silo_cache_many
 from sentry.hybridcloud.rpc.filter_query import OpaqueSerializedResponse
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
 from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizationMapping
-from sentry.services.hybrid_cloud.auth import AuthenticationContext
 from sentry.services.hybrid_cloud.user import (
     RpcUser,
     UserFilterArgs,

@@ -4,7 +4,7 @@ from unittest import mock
 import pytest
 import sentry_sdk
 from django.test.utils import override_settings
-from sentry_sdk import Hub, push_scope
+from sentry_sdk import push_scope
 
 from sentry import eventstore
 from sentry.eventstore.models import Event
@@ -108,9 +108,10 @@ def test_bind_organization_context(default_organization):
 
     bind_organization_context(default_organization)
 
-    assert Hub.current.scope._tags["organization"] == default_organization.id
-    assert Hub.current.scope._tags["organization.slug"] == default_organization.slug
-    assert Hub.current.scope._contexts["organization"] == {
+    scope = sentry_sdk.Scope.get_isolation_scope()
+    assert scope._tags["organization"] == default_organization.id
+    assert scope._tags["organization.slug"] == default_organization.slug
+    assert scope._contexts["organization"] == {
         "id": default_organization.id,
         "slug": default_organization.slug,
     }
@@ -128,7 +129,9 @@ def test_bind_organization_context_with_callback(default_organization):
 
     with override_settings(SENTRY_ORGANIZATION_CONTEXT_HELPER=add_context):
         bind_organization_context(default_organization)
-        assert Hub.current.scope._tags["organization.test"] == "1"
+
+        scope = sentry_sdk.Scope.get_isolation_scope()
+        assert scope._tags["organization.test"] == "1"
 
 
 @no_silo_test
@@ -142,4 +145,6 @@ def test_bind_organization_context_with_callback_error(default_organization):
 
     with override_settings(SENTRY_ORGANIZATION_CONTEXT_HELPER=add_context):
         bind_organization_context(default_organization)
-        assert Hub.current.scope._tags["organization"] == default_organization.id
+
+        scope = sentry_sdk.Scope.get_isolation_scope()
+        assert scope._tags["organization"] == default_organization.id
