@@ -424,7 +424,7 @@ def check_field_cardinality(
 
     query_columns = [col for col, key in cache_keys.items() if key not in cardinality_map]
 
-    with sentry_sdk.push_scope() as scope:
+    with sentry_sdk.isolation_scope() as scope:
         if widget_query:
             scope.set_tag("widget_query.widget_id", widget_query.id)
             scope.set_tag("widget_query.org_slug", organization.slug)
