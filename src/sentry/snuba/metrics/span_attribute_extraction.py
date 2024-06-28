@@ -2,13 +2,7 @@ from collections.abc import Sequence
 from typing import Literal, NotRequired, TypedDict
 
 from sentry.api import event_search
-from sentry.api.event_search import (
-    ParenExpression,
-    QueryToken,
-    SearchFilter,
-    SearchKey,
-    SearchValue,
-)
+from sentry.api.event_search import ParenExpression, QueryToken, SearchFilter
 from sentry.sentry_metrics.extraction_rules import MetricsExtractionRule
 from sentry.snuba.metrics.extraction import RuleCondition, SearchQueryConverter, TagSpec
 
@@ -142,32 +136,44 @@ def _parse_conditions(conditions: Sequence[str] | None) -> Sequence[QueryToken]:
 def _get_rule_condition(
     extraction_rule: MetricsExtractionRule, parsed_conditions: Sequence[QueryToken]
 ) -> RuleCondition | None:
-    if _is_counter(extraction_rule):
-        parsed_search_query = _append_exists_condition(
-            parsed_conditions, extraction_rule.span_attribute
-        )
-    else:
-        parsed_search_query = parsed_conditions
+    if not parsed_conditions:
+        if not _is_counter(extraction_rule):
+            return None
 
-    if not parsed_search_query:
-        return None
+        return _get_exists_condition(extraction_rule.span_attribute)
 
-    return SearchQueryConverter(
-        parsed_search_query, field_mapper=_map_span_attribute_name
+    condition_dict = SearchQueryConverter(
+        parsed_conditions, field_mapper=_map_span_attribute_name
     ).convert()
+
+    return (
+        _append_exists_condition(condition_dict, extraction_rule.span_attribute)
+        if _is_counter(extraction_rule)
+        else condition_dict
+    )
 
 
 def _append_exists_condition(
-    parsed_conditions: Sequence[QueryToken], span_attribute: str
+    rule_condition: RuleCondition, span_attribute: str
 ) -> Sequence[QueryToken]:
-    exists_search_filter = SearchFilter(
-        key=SearchKey("has"), operator="!=", value=SearchValue(span_attribute)
-    )
+    return {
+        "op": "and",
+        "inner": [
+            rule_condition,
+            _get_exists_condition(span_attribute),
+        ],
+    }
 
-    if not parsed_conditions:
-        return [exists_search_filter]
 
-    return [ParenExpression(children=[*parsed_conditions, exists_search_filter])]
+def _get_exists_condition(span_attribute: str) -> SearchFilter:
+    return {
+        "op": "not",
+        "inner": {
+            "name": _map_span_attribute_name(span_attribute),
+            "op": "eq",
+            "value": None,
+        },
+    }
 
 
 def _map_span_attribute_name(span_attribute: str) -> str:

@@ -154,7 +154,7 @@ def test_counter():
     assert not metric_spec["field"]
     assert metric_spec["mri"] == "c:custom/foobar@none"
     assert metric_spec["condition"] == {
-        "inner": {"name": "span.data.has", "op": "eq", "value": "foobar"},
+        "inner": {"name": "span.data.foobar", "op": "eq", "value": None},
         "op": "not",
     }
 
@@ -172,7 +172,7 @@ def test_counter_extends_conditions():
         "op": "and",
         "inner": [
             {"op": "eq", "name": "span.data.abc", "value": "xyz"},
-            {"inner": {"name": "span.data.has", "op": "eq", "value": "foobar"}, "op": "not"},
+            {"inner": {"name": "span.data.foobar", "op": "eq", "value": None}, "op": "not"},
         ],
     }
 
