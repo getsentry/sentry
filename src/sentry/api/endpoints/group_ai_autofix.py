@@ -109,6 +109,14 @@ class GroupAutofixEndpoint(GroupEndpoint):
                     if not isinstance(user, AnonymousUser)
                     else None
                 ),
+                "options": {
+                    # "disable_codebase_indexing": features.has(
+                    #     "organizations:autofix-disable-codebase-indexing",
+                    #     group.organization,
+                    #     actor=user,
+                    # )
+                    "disable_codebase_indexing": True
+                },
             },
             option=orjson.OPT_NON_STR_KEYS,
         )
