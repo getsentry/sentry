@@ -19,7 +19,7 @@ from sentry.models.integrations.sentry_app_installation import SentryAppInstalla
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.servicehook import ServiceHook, ServiceHookProject
-from sentry.services.hybrid_cloud.app.service import app_service
+from sentry.sentry_apps.services.app.service import app_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode

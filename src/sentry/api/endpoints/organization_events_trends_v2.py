@@ -65,6 +65,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             ),
         }
     }
+    snuba_methods = ["GET"]
 
     def has_feature(self, organization, request):
         return features.has(
@@ -203,15 +204,17 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
             for key, item in results.items():
                 formatted_results[key] = SnubaTSResult(
                     {
-                        "data": zerofill(
-                            item["data"],
-                            pruned_params["start"],
-                            pruned_params["end"],
-                            rollup,
-                            "time",
-                        )
-                        if zerofill_results
-                        else item["data"],
+                        "data": (
+                            zerofill(
+                                item["data"],
+                                pruned_params["start"],
+                                pruned_params["end"],
+                                rollup,
+                                "time",
+                            )
+                            if zerofill_results
+                            else item["data"]
+                        ),
                         "project": item["project_id"],
                         "isMetricsData": True,
                         "order": item["order"],

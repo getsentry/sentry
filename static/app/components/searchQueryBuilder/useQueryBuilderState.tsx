@@ -134,11 +134,12 @@ function modifyFilterOperatorDate(
     case TermOperator.LESS_THAN_EQUAL:
       // If it's a relative date, modify the operator and generate an ISO timestamp
       if (token.filter === FilterType.RELATIVE_DATE) {
-        const generatedIsoDateStr = new Date().toISOString();
+        const generatedIsoDateStr = token.value.parsed?.value ?? new Date().toISOString();
         const newTokenStr = `${token.key.text}:${newOperator}${generatedIsoDateStr}`;
         return replaceQueryToken(query, token, newTokenStr);
       }
-      return modifyFilterOperator(query, token, newOperator);
+      token.operator = newOperator;
+      return replaceQueryToken(query, token, stringifyToken(token));
     default:
       return replaceQueryToken(query, token, newOperator);
   }
@@ -160,9 +161,16 @@ function modifyFilterValueDate(
   }
 
   if (parsedValue.type === Token.VALUE_ISO_8601_DATE) {
+    if (token.value.type === Token.VALUE_RELATIVE_DATE) {
+      if (token.value.sign === '-') {
+        return replaceQueryToken(query, token.value, `>${newValue}`);
+      }
+      return replaceQueryToken(query, token.value, `<${newValue}`);
+    }
     return replaceQueryToken(query, token.value, newValue);
   }
-  return `${token.key.text}:${newValue}`;
+
+  return replaceQueryToken(query, token, `${token.key.text}:${newValue}`);
 }
 
 function replaceQueryToken(

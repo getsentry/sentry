@@ -7,6 +7,7 @@ import userEvent from '@testing-library/user-event'; // eslint-disable-line no-r
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 
+import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
 import {SentryPropTypeValidators} from 'sentry/sentryPropTypeValidators';
 import type {Organization} from 'sentry/types/organization';
@@ -70,7 +71,7 @@ function makeAllTheProviders(providers: ProviderOptions) {
                 }}
               >
                 <OrganizationContext.Provider value={optionalOrganization}>
-                  {children}
+                  <GlobalDrawer>{children}</GlobalDrawer>
                 </OrganizationContext.Provider>
               </RouteContext.Provider>
             </QueryClientProvider>
@@ -126,6 +127,18 @@ function renderGlobalModal(options?: Options) {
 }
 
 /**
+ * Helper that waits for the drawer to be hidden from the DOM. You may need to
+ * wait for the drawer to be removed to avoid any act warnings.
+ */
+function waitForDrawerToHide(ariaLabel: string) {
+  return rtl.waitFor(() => {
+    expect(
+      rtl.screen.queryByRole('complementary', {name: ariaLabel})
+    ).not.toBeInTheDocument();
+  });
+}
+
+/**
  * This cannot be implemented as a Sentry Integration because Jest creates an
  * isolated environment for each test suite. This means that if we were to apply
  * the monkey patching ahead of time, it would be shadowed by Jest.
@@ -136,4 +149,4 @@ instrumentUserEvent();
 export * from '@testing-library/react';
 
 // eslint-disable-next-line import/export
-export {render, renderGlobalModal, userEvent, fireEvent};
+export {render, renderGlobalModal, userEvent, fireEvent, waitForDrawerToHide};

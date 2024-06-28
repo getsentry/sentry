@@ -26,13 +26,13 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.mixins.commit_context import CommitContextMixin
+from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.utils.code_mapping import RepoTree
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.repository import Repository
 from sentry.pipeline import Pipeline, PipelineView
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
-from sentry.services.hybrid_cloud.repository import RpcRepository, repository_service
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo
@@ -147,7 +147,7 @@ def error(
 
 
 def get_document_origin(org) -> str:
-    if org and features.has("organizations:customer-domains", org.organization):
+    if org and features.has("system:multi-region"):
         return f'"{generate_organization_url(org.organization.slug)}"'
     return "document.origin"
 

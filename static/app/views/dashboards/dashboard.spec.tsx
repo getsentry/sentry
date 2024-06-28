@@ -278,28 +278,30 @@ describe('Dashboards > Dashboard', () => {
 
   describe('Edit mode', () => {
     let widgets: Widget[];
-    const mount = (
+    const mount = ({
       dashboard,
-      mockedOrg = initialData.organization,
-      mockedRouter = initialData.router,
-      mockedLocation = initialData.router.location
-    ) => {
+      org = initialData.organization,
+      router = initialData.router,
+      location = initialData.router.location,
+      isPreview = false,
+    }) => {
       const getDashboardComponent = () => (
         <OrganizationContext.Provider value={initialData.organization}>
           <MEPSettingProvider forceTransactions={false}>
             <Dashboard
               paramDashboardId="1"
               dashboard={dashboard}
-              organization={mockedOrg}
+              organization={org}
               isEditingDashboard
               onUpdate={newWidgets => {
                 widgets.splice(0, widgets.length, ...newWidgets);
               }}
               handleUpdateWidgetList={() => undefined}
               handleAddCustomWidget={() => undefined}
-              router={mockedRouter}
-              location={mockedLocation}
+              router={router}
+              location={location}
               widgetLimitReached={false}
+              isPreview={isPreview}
             />
           </MEPSettingProvider>
         </OrganizationContext.Provider>
@@ -315,13 +317,13 @@ describe('Dashboards > Dashboard', () => {
     it('displays the copy widget button in edit mode', async () => {
       const dashboardWithOneWidget = {...mockDashboard, widgets};
 
-      mount(dashboardWithOneWidget);
+      mount({dashboard: dashboardWithOneWidget});
       expect(await screen.findByLabelText('Duplicate Widget')).toBeInTheDocument();
     });
 
     it('duplicates the widget', async () => {
       const dashboardWithOneWidget = {...mockDashboard, widgets};
-      const {rerender} = mount(dashboardWithOneWidget);
+      const {rerender} = mount({dashboard: dashboardWithOneWidget});
 
       await userEvent.click(await screen.findByLabelText('Duplicate Widget'));
       rerender();
@@ -342,12 +344,12 @@ describe('Dashboards > Dashboard', () => {
         widgets: [newWidget],
       };
 
-      mount(
-        dashboardWithOneWidget,
-        testData.organization,
-        testData.router,
-        testData.router.location
-      );
+      mount({
+        dashboard: dashboardWithOneWidget,
+        org: testData.organization,
+        router: testData.router,
+        location: testData.router.location,
+      });
 
       await userEvent.click(await screen.findByLabelText('Edit Widget'));
 
@@ -356,6 +358,28 @@ describe('Dashboards > Dashboard', () => {
           pathname: '/organizations/org-slug/dashboard/1/widget/0/edit/',
         })
       );
+    });
+
+    it('does not show the add widget button if dashboard is in preview mode', async function () {
+      const testData = initializeOrg({
+        organization: {
+          features: ['dashboards-basic', 'dashboards-edit', 'custom-metrics'],
+        },
+      });
+      const dashboardWithOneWidget = {
+        ...mockDashboard,
+        widgets: [newWidget],
+      };
+
+      mount({
+        dashboard: dashboardWithOneWidget,
+        org: testData.organization,
+        isPreview: true,
+      });
+
+      await screen.findByText('Test Discover Widget');
+
+      expect(screen.queryByRole('button', {name: /add widget/i})).not.toBeInTheDocument();
     });
   });
 });

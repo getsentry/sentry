@@ -55,8 +55,9 @@ function ReplayLayout({
   const controller = (
     <ErrorBoundary mini>
       <ReplayController
+        isLoading={isLoading}
         toggleFullscreen={toggleFullscreen}
-        disableSettings={isVideoReplay}
+        disableFastForward={isVideoReplay}
       />
     </ErrorBoundary>
   );

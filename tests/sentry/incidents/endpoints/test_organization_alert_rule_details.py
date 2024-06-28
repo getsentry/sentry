@@ -18,7 +18,7 @@ from sentry.auth.access import OrganizationGlobalAccess
 from sentry.incidents.endpoints.serializers.alert_rule import DetailedAlertRuleSerializer
 from sentry.incidents.models.alert_rule import (
     AlertRule,
-    AlertRuleMonitorType,
+    AlertRuleMonitorTypeInt,
     AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -27,9 +27,10 @@ from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.slack.client import SlackClient
+from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
-from sentry.services.hybrid_cloud.app import app_service
+from sentry.sentry_apps.services.app import app_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
@@ -461,7 +462,7 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
         self.login_as(self.user)
         alert_rule = self.alert_rule
         serialized_alert_rule = self.get_serialized_alert_rule()
-        serialized_alert_rule["monitorType"] = AlertRuleMonitorType.ACTIVATED.value
+        serialized_alert_rule["monitorType"] = AlertRuleMonitorTypeInt.ACTIVATED
         serialized_alert_rule[
             "activationCondition"
         ] = AlertRuleActivationConditionType.RELEASE_CREATION.value
@@ -473,14 +474,14 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
                 self.organization.slug, alert_rule.id, **serialized_alert_rule
             )
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
-        alert_rule.monitorType = AlertRuleMonitorType.ACTIVATED.value
+        alert_rule.monitorType = AlertRuleMonitorTypeInt.ACTIVATED
         alert_rule.activationCondition = AlertRuleActivationConditionType.RELEASE_CREATION.value
         alert_rule.date_modified = resp.data["dateModified"]
         assert resp.data == serialize(alert_rule)
 
         # TODO: determine how to convert activated alert into continuous alert and vice versa (see logic.py)
         # requires creating/disabling activations accordingly
-        # assert resp.data["monitorType"] == AlertRuleMonitorType.ACTIVATED.value
+        # assert resp.data["monitorType"] == AlertRuleMonitorTypeInt.ACTIVATED
         # assert (
         #     resp.data["activationCondition"]
         #     == AlertRuleActivationConditionType.RELEASE_CREATION.value
@@ -856,7 +857,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
 
     @patch(
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
-        return_value=("#", None, True),
+        return_value=SlackChannelIdData("#", None, True),
     )
     @patch.object(find_channel_id_for_alert_rule, "apply_async")
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
@@ -1007,8 +1008,12 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
         assert resp.data == {"uuid": "abc123"}
 
     @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
-        side_effect=[("#", 10, False), ("#", 10, False), ("#", 20, False)],
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout_deprecated",
+        side_effect=[
+            SlackChannelIdData("#", "10", False),
+            SlackChannelIdData("#", "10", False),
+            SlackChannelIdData("#", "20", False),
+        ],
     )
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     def test_async_lookup_outside_transaction(self, mock_uuid4, mock_get_channel_id):

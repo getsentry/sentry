@@ -7,28 +7,22 @@ from django.db.models import QuerySet
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import (
-    BaseManager,
-    FlexibleForeignKey,
-    JSONField,
-    Model,
-    region_silo_model,
-    sane_repr,
-)
+from sentry.db.models import FlexibleForeignKey, JSONField, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
 from sentry.eventstore.models import Event
 
 if TYPE_CHECKING:
     from django.db.models.query import _QuerySet
 
-    from sentry.services.hybrid_cloud.integration import RpcIntegration
+    from sentry.integrations.services.integration import RpcIntegration
 
 
 class ExternalIssueManager(BaseManager["ExternalIssue"]):
     def get_for_integration(
         self, integration: RpcIntegration, external_issue_key: str | None = None
     ) -> QuerySet:
-        from sentry.services.hybrid_cloud.integration import integration_service
+        from sentry.integrations.services.integration import integration_service
 
         org_integrations = integration_service.get_organization_integrations(
             integration_id=integration.id
@@ -93,7 +87,7 @@ class ExternalIssue(Model):
     __repr__ = sane_repr("organization_id", "integration_id", "key")
 
     def get_installation(self) -> Any:
-        from sentry.services.hybrid_cloud.integration import integration_service
+        from sentry.integrations.services.integration import integration_service
 
         integration = integration_service.get_integration(integration_id=self.integration_id)
 

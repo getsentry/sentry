@@ -97,7 +97,6 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert response.data["orgRole"] == "owner"
         assert len(response.data["teams"]) == 0
         assert len(response.data["projects"]) == 0
-        assert "customer-domains" not in response.data["features"]
 
     def test_include_feature_flag_query_param(self):
         response = self.get_success_response(
@@ -126,16 +125,14 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert response.data["orgRole"] == "owner"
         assert len(response.data["teams"]) == 0
         assert len(response.data["projects"]) == 0
-        assert "customer-domains" in response.data["features"]
 
-        with self.feature({"organizations:customer-domains": False}):
+        with self.feature({"system:multi-region": False}):
             HTTP_HOST = f"{self.organization.slug}.testserver"
             response = self.get_success_response(
                 self.organization.slug,
                 extra_headers={"HTTP_HOST": HTTP_HOST},
                 qs_params={"include_feature_flags": 1},
             )
-            assert "customer-domains" in response.data["features"]
 
     def test_org_mismatch_customer_domain(self):
         HTTP_HOST = f"{self.organization.slug}-apples.testserver"
@@ -452,8 +449,9 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "genAIConsent": True,
             "issueAlertsThreadFlag": False,
             "metricAlertsThreadFlag": False,
-            "metricsActivatePercentiles": True,
+            "metricsActivatePercentiles": False,
             "metricsActivateLastForGauges": True,
+            "extrapolateMetrics": True,
         }
 
         # needed to set require2FA
@@ -487,8 +485,9 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:scrape_javascript") is False
         assert options.get("sentry:join_requests") is False
         assert options.get("sentry:events_member_admin") is False
-        assert options.get("sentry:metrics_activate_percentiles") is True
+        assert options.get("sentry:metrics_activate_percentiles") is False
         assert options.get("sentry:metrics_activate_last_for_gauges") is True
+        assert options.get("sentry:extrapolate_metrics") is True
 
         # log created
         with assume_test_silo_mode_of(AuditLogEntry):
@@ -529,6 +528,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "to {}".format(data["metricsActivateLastForGauges"])
             in log.data["metricsActivateLastForGauges"]
         )
+        assert "to {}".format(data["extrapolateMetrics"]) in log.data["extrapolateMetrics"]
 
     @responses.activate
     @patch(

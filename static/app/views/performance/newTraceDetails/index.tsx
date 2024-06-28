@@ -25,6 +25,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
@@ -43,6 +44,12 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import {
+  TraceEventPriority,
+  type TraceEvents,
+  TraceScheduler,
+} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
+import {TraceView as TraceViewModel} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceView';
 import {
   type ViewManagerScrollAnchor,
   VirtualizedViewManager,
@@ -65,7 +72,11 @@ import {useTrace} from './traceApi/useTrace';
 import {type TraceMetaQueryResults, useTraceMeta} from './traceApi/useTraceMeta';
 import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
-import {TraceTree, type TraceTreeNode} from './traceModels/traceTree';
+import {
+  traceNodeAnalyticsName,
+  TraceTree,
+  type TraceTreeNode,
+} from './traceModels/traceTree';
 import {TraceSearchInput} from './traceSearch/traceSearchInput';
 import {
   DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -76,7 +87,6 @@ import {Trace} from './trace';
 import {TraceMetadataHeader} from './traceMetadataHeader';
 import type {TraceReducer, TraceReducerState} from './traceState';
 import {TraceType} from './traceType';
-import {TraceUXChangeAlert} from './traceUXChangeBanner';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 
 function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
@@ -91,7 +101,11 @@ function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
   return null;
 }
 
-function logTraceMetadata(tree: TraceTree, organization: Organization) {
+function logTraceMetadata(
+  tree: TraceTree,
+  projects: Project[],
+  organization: Organization
+) {
   switch (tree.shape) {
     case TraceType.BROKEN_SUBTRACES:
     case TraceType.EMPTY_TRACE:
@@ -100,7 +114,7 @@ function logTraceMetadata(tree: TraceTree, organization: Organization) {
     case TraceType.NO_ROOT:
     case TraceType.ONLY_ERRORS:
     case TraceType.BROWSER_MULTIPLE_ROOTS:
-      traceAnalytics.trackTraceMetadata(tree, organization);
+      traceAnalytics.trackTraceMetadata(tree, projects, organization);
       break;
     default: {
       Sentry.captureMessage('Unknown trace type');
@@ -194,7 +208,6 @@ export function TraceView() {
       >
         <NoProjectMessage organization={organization}>
           <TraceExternalLayout>
-            <TraceUXChangeAlert />
             <TraceMetadataHeader
               organization={organization}
               projectID={rootEvent?.data?.projectID ?? ''}
@@ -254,6 +267,8 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
   const traceStateEmitter = useTraceStateEmitter();
+  const traceScheduler = useMemo(() => new TraceScheduler(), []);
+  const traceView = useMemo(() => new TraceViewModel(), []);
 
   const forceRerender = useCallback(() => {
     flushSync(rerender);
@@ -339,13 +354,61 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
   // Initialize the view manager right after the state reducer
   const viewManager = useMemo(() => {
-    return new VirtualizedViewManager({
-      list: {width: traceState.preferences.list.width},
-      span_list: {width: 1 - traceState.preferences.list.width},
-    });
+    return new VirtualizedViewManager(
+      {
+        list: {width: traceState.preferences.list.width},
+        span_list: {width: 1 - traceState.preferences.list.width},
+      },
+      traceScheduler,
+      traceView
+    );
     // We only care about initial state when we initialize the view manager
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  useLayoutEffect(() => {
+    const onTraceViewChange: TraceEvents['set trace view'] = view => {
+      traceView.setTraceView(view);
+      viewManager.enqueueFOVQueryParamSync(traceView);
+    };
+
+    const onPhysicalSpaceChange: TraceEvents['set container physical space'] =
+      container => {
+        traceView.setTracePhysicalSpace(container, [
+          0,
+          0,
+          container[2] * viewManager.columns.span_list.width,
+          container[3],
+        ]);
+      };
+
+    const onTraceSpaceChange: TraceEvents['initialize trace space'] = view => {
+      traceView.setTraceSpace(view);
+    };
+
+    // These handlers have high priority because they are responsible for
+    // updating the view coordinates. If we update them first, then any components downstream
+    // that rely on the view coordinates will be in sync with the view.
+    traceScheduler.on('set trace view', onTraceViewChange, TraceEventPriority.HIGH);
+    traceScheduler.on('set trace space', onTraceSpaceChange, TraceEventPriority.HIGH);
+    traceScheduler.on(
+      'set container physical space',
+      onPhysicalSpaceChange,
+      TraceEventPriority.HIGH
+    );
+    traceScheduler.on(
+      'initialize trace space',
+      onTraceSpaceChange,
+      TraceEventPriority.HIGH
+    );
+
+    return () => {
+      traceScheduler.off('set trace view', onTraceViewChange);
+      traceScheduler.off('set trace space', onTraceSpaceChange);
+      traceScheduler.off('set container physical space', onPhysicalSpaceChange);
+      traceScheduler.off('initialize trace space', onTraceSpaceChange);
+    };
+  }, [traceScheduler, traceView, viewManager]);
 
   // Initialize the tabs reducer when the tree initializes
   useLayoutEffect(() => {
@@ -524,6 +587,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       trackAnalytics('trace.trace_layout.span_row_click', {
         organization,
         num_children: node.children.length,
+        type: traceNodeAnalyticsName(node),
         project_platform:
           projects.find(p => p.slug === node.metadata.project_slug)?.platform || 'other',
       });
@@ -568,24 +632,10 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
       // Always scroll to the row vertically
       viewManager.scrollToRow(index, anchor);
-      previouslyScrolledToNodeRef.current = node;
-
-      // If the row had not yet been measured, then enqueue a listener for when
-      // the row is rendered and measured. This ensures that horizontal scroll
-      // accurately narrows zooms to the start of the node as the new width will be updated
-      if (!viewManager.row_measurer.cache.has(node)) {
-        viewManager.row_measurer.once('row measure end', () => {
-          if (!viewManager.isOutsideOfViewOnKeyDown(node)) {
-            return;
-          }
-          viewManager.scrollRowIntoViewHorizontally(node, 0, 48, 'measured');
-        });
-      } else {
-        if (!viewManager.isOutsideOfViewOnKeyDown(node)) {
-          return;
-        }
+      if (viewManager.isOutsideOfView(node)) {
         viewManager.scrollRowIntoViewHorizontally(node, 0, 48, 'measured');
       }
+      previouslyScrolledToNodeRef.current = node;
     },
     [viewManager]
   );
@@ -696,23 +746,40 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       }
 
       if (nodeToScrollTo !== null && indexOfNodeToScrollTo !== null) {
-        viewManager.scrollToRow(indexOfNodeToScrollTo, 'center');
+        // At load time, we want to scroll the row into view, but we need to wait for the view
+        // to initialize before we can do that. We listen for the 'initialize virtualized list' and scroll
+        // to the row in the view.
+        traceScheduler.once('initialize virtualized list', () => {
+          function onTargetRowMeasure() {
+            if (!nodeToScrollTo || !viewManager.row_measurer.cache.has(nodeToScrollTo)) {
+              return;
+            }
+            viewManager.row_measurer.off('row measure end', onTargetRowMeasure);
+            if (viewManager.isOutsideOfView(nodeToScrollTo)) {
+              viewManager.scrollRowIntoViewHorizontally(
+                nodeToScrollTo!,
+                0,
+                48,
+                'measured'
+              );
+            }
+          }
+          viewManager.scrollToRow(indexOfNodeToScrollTo, 'center');
+          viewManager.row_measurer.on('row measure end', onTargetRowMeasure);
+          previouslyScrolledToNodeRef.current = nodeToScrollTo;
 
-        // At load time, we want to scroll the row into view, but we need to ensure
-        // that the row had been measured first, else we can exceed the bounds of the container.
-        scrollRowIntoView(nodeToScrollTo, indexOfNodeToScrollTo, 'center');
-
-        setRowAsFocused(
-          nodeToScrollTo,
-          null,
-          traceStateRef.current.search.resultsLookup,
-          indexOfNodeToScrollTo
-        );
-        traceDispatch({
-          type: 'set roving index',
-          node: nodeToScrollTo,
-          index: indexOfNodeToScrollTo,
-          action_source: 'load',
+          setRowAsFocused(
+            nodeToScrollTo,
+            null,
+            traceStateRef.current.search.resultsLookup,
+            indexOfNodeToScrollTo
+          );
+          traceDispatch({
+            type: 'set roving index',
+            node: nodeToScrollTo,
+            index: indexOfNodeToScrollTo,
+            action_source: 'load',
+          });
         });
       }
 
@@ -720,7 +787,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         onTraceSearch(traceStateRef.current.search.query, nodeToScrollTo, 'persist');
       }
     },
-    [setRowAsFocused, traceDispatch, onTraceSearch, scrollRowIntoView, viewManager]
+    [setRowAsFocused, traceDispatch, onTraceSearch, viewManager, traceScheduler]
   );
 
   // Setup the middleware for the trace reducer
@@ -799,11 +866,11 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         payload: list_width,
       });
     }
-    viewManager.on('divider resize end', onDividerResizeEnd);
+    traceScheduler.on('divider resize end', onDividerResizeEnd);
     return () => {
-      viewManager.off('divider resize end', onDividerResizeEnd);
+      traceScheduler.off('divider resize end', onDividerResizeEnd);
     };
-  }, [viewManager, traceDispatch]);
+  }, [traceScheduler, traceDispatch]);
 
   // Sync part of the state with the URL
   const traceQueryStateSync = useMemo(() => {
@@ -822,19 +889,24 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       return;
     }
 
-    logTraceMetadata(tree, props.organization);
-  }, [tree, props.organization]);
+    logTraceMetadata(tree, projects, props.organization);
+  }, [tree, projects, props.organization]);
 
   useLayoutEffect(() => {
     if (!tree.root?.space || tree.type !== 'trace') {
       return undefined;
     }
 
-    viewManager.initializeTraceSpace([tree.root.space[0], 0, tree.root.space[1], 1]);
+    traceScheduler.dispatch('initialize trace space', [
+      tree.root.space[0],
+      0,
+      tree.root.space[1],
+      1,
+    ]);
 
-    // Whenever the timeline changes, update the trace space
+    // Whenever the timeline changes, update the trace space and trigger a redraw
     const onTraceTimelineChange = (s: [number, number]) => {
-      viewManager.updateTraceSpace(s[0], s[1]);
+      traceScheduler.dispatch('set trace space', [s[0], 0, s[1], 1]);
     };
 
     tree.on('trace timeline change', onTraceTimelineChange);
@@ -842,7 +914,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     return () => {
       tree.off('trace timeline change', onTraceTimelineChange);
     };
-  }, [viewManager, tree]);
+  }, [viewManager, traceScheduler, tree]);
 
   return (
     <Fragment>
@@ -866,6 +938,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           onTraceSearch={onTraceSearch}
           previouslyFocusedNodeRef={previouslyFocusedNodeRef}
           manager={viewManager}
+          scheduler={traceScheduler}
           forceRerender={forceRender}
         />
 
@@ -886,6 +959,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           traceGridRef={traceGridRef}
           traces={props.trace}
           manager={viewManager}
+          scheduler={traceScheduler}
           onTabScrollToNode={onTabScrollToNode}
           onScrollToNode={onScrollToNode}
           rootEventResults={props.rootEvent}

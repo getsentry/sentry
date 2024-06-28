@@ -10,6 +10,7 @@ from django.utils import timezone
 
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
+from sentry.integrations.services.integration import integration_service
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
@@ -21,7 +22,6 @@ from sentry.models.pullrequest import (
     PullRequestCommit,
 )
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.commit_context import (
     PR_COMMENT_WINDOW,
@@ -1165,7 +1165,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
         groupowner = GroupOwner.objects.create(
             group_id=self.event.group_id,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
-            user_id="1",
+            user_id=1,
             project_id=self.event.project_id,
             organization_id=self.project.organization_id,
             context={"commitId": self.commit.id},
@@ -1200,7 +1200,7 @@ class TestGHCommentQueuing(IntegrationTestCase, TestCommitContextMixin):
         groupowner = GroupOwner.objects.create(
             group_id=self.event.group_id,
             type=GroupOwnerType.SUSPECT_COMMIT.value,
-            user_id="1",
+            user_id=1,
             project_id=self.event.project_id,
             organization_id=self.project.organization_id,
             context={"commitId": self.commit.id},

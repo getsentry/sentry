@@ -1,8 +1,7 @@
-import {type ReactNode, useCallback, useMemo, useRef, useState} from 'react';
+import {type ReactNode, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {Item, Section} from '@react-stately/collections';
 import type {KeyboardEvent} from '@react-types/shared';
-import orderBy from 'lodash/orderBy';
 
 import Checkbox from 'sentry/components/checkbox';
 import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
@@ -10,9 +9,11 @@ import {getItemsWithKeys} from 'sentry/components/compactSelect/utils';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/combobox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/filterValueParser/date/parser';
+import SpecificDatePicker from 'sentry/components/searchQueryBuilder/specificDatePicker';
 import {
   escapeTagValue,
   formatFilterValue,
+  isDateToken,
   unescapeTagValue,
 } from 'sentry/components/searchQueryBuilder/utils';
 import {
@@ -26,9 +27,11 @@ import {
   type SearchGroup,
   type SearchItem,
 } from 'sentry/components/smartSearchBar/types';
+import {IconArrow} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types';
+import {uniq} from 'sentry/utils/array/uniq';
 import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {type QueryKey, useQuery} from 'sentry/utils/queryClient';
@@ -36,12 +39,13 @@ import {type QueryKey, useQuery} from 'sentry/utils/queryClient';
 type SearchQueryValueBuilderProps = {
   onCommit: () => void;
   token: TokenResult<Token.FILTER>;
+  wrapperRef: React.RefObject<HTMLDivElement>;
 };
 
 type SuggestionItem = {
   value: string;
   description?: ReactNode;
-  label?: string;
+  label?: ReactNode;
 };
 
 type SuggestionSection = {
@@ -95,8 +99,111 @@ const DEFAULT_BOOLEAN_SUGGESTIONS: SuggestionSection[] = [
   },
 ];
 
+function getDefaultAbsoluteDateValue(token: TokenResult<Token.FILTER>) {
+  if (token.value.type === Token.VALUE_ISO_8601_DATE) {
+    return token.value.text;
+  }
+
+  return '';
+}
+
+function getMultiSelectInputValue(token: TokenResult<Token.FILTER>) {
+  if (
+    token.value.type !== Token.VALUE_TEXT_LIST &&
+    token.value.type !== Token.VALUE_NUMBER_LIST
+  ) {
+    const value = token.value.value;
+    return value ? value + ',' : '';
+  }
+
+  const items = token.value.items.map(item => item.value.value);
+
+  if (items.length === 0) {
+    return '';
+  }
+
+  return items.join(',') + ',';
+}
+
+function prepareInputValueForSaving(
+  token: TokenResult<Token.FILTER>,
+  inputValue: string
+) {
+  const values = uniq(
+    inputValue
+      .split(',')
+      .map(v => cleanFilterValue(token.key.text, v.trim()))
+      .filter(v => v.length > 0)
+  );
+
+  return values.length > 1 ? `[${values.join(',')}]` : values[0] ?? '""';
+}
+
+function getSelectedValuesFromText(text: string) {
+  return text
+    .split(',')
+    .map(v => unescapeTagValue(v.trim()))
+    .filter(v => v.length > 0);
+}
+
+function getValueAtCursorPosition(text: string, cursorPosition: number | null) {
+  if (cursorPosition === null) {
+    return '';
+  }
+
+  const items = text.split(',');
+
+  let characterCount = 0;
+  for (const item of items) {
+    characterCount += item.length + 1;
+    if (characterCount > cursorPosition) {
+      return item.trim();
+    }
+  }
+
+  return '';
+}
+/**
+ * Replaces the focused filter value (at cursorPosition) with the new value.
+ *
+ * Example:
+ * replaceValueAtPosition('foo,bar,baz', 5, 'new') => 'foo,new,baz'
+ */
+function replaceValueAtPosition(
+  value: string,
+  cursorPosition: number | null,
+  replacement: string
+) {
+  const items = value.split(',');
+
+  let characterCount = 0;
+  for (let i = 0; i < items.length; i++) {
+    characterCount += items[i].length + 1;
+    if (characterCount > (cursorPosition ?? value.length + 1)) {
+      const newItems = [...items.slice(0, i), replacement, ...items.slice(i + 1)];
+      return newItems.map(item => item.trim()).join(',');
+    }
+  }
+
+  return value;
+}
+
 function getRelativeDateSign(token: TokenResult<Token.FILTER>) {
-  return token.value.type === Token.VALUE_RELATIVE_DATE ? token.value.sign : '-';
+  if (token.value.type === Token.VALUE_ISO_8601_DATE) {
+    switch (token.operator) {
+      case TermOperator.LESS_THAN:
+      case TermOperator.LESS_THAN_EQUAL:
+        return '+';
+      default:
+        return '-';
+    }
+  }
+
+  if (token.value.type === Token.VALUE_RELATIVE_DATE) {
+    return token.value.sign;
+  }
+
+  return '-';
 }
 
 function makeRelativeDateDescription(value: number, unit: string) {
@@ -130,6 +237,15 @@ function makeDefaultDateSuggestions(
         {value: `${sign}7d`, label: makeRelativeDateDescription(7, 'd')},
         {value: `${sign}14d`, label: makeRelativeDateDescription(14, 'd')},
         {value: `${sign}30d`, label: makeRelativeDateDescription(30, 'd')},
+        {
+          value: 'absolute_date',
+          label: (
+            <AbsoluteDateOption>
+              {t('Absolute date')}
+              <IconArrow direction="right" size="xs" />
+            </AbsoluteDateOption>
+          ),
+        },
       ],
     },
   ];
@@ -219,10 +335,10 @@ function getSuggestionDescription(group: SearchGroup | SearchItem) {
 
 function getPredefinedValues({
   key,
-  inputValue,
+  filterValue,
   token,
 }: {
-  inputValue: string;
+  filterValue: string;
   token: TokenResult<Token.FILTER>;
   key?: Tag;
 }): SuggestionSection[] {
@@ -235,14 +351,14 @@ function getPredefinedValues({
   if (!key.values?.length) {
     switch (fieldDef?.valueType) {
       case FieldValueType.NUMBER:
-        return getNumericSuggestions(inputValue);
+        return getNumericSuggestions(filterValue);
       case FieldValueType.DURATION:
-        return getDurationSuggestions(inputValue);
+        return getDurationSuggestions(filterValue);
       case FieldValueType.BOOLEAN:
         return DEFAULT_BOOLEAN_SUGGESTIONS;
       // TODO(malwilley): Better date suggestions
       case FieldValueType.DATE:
-        return getRelativeDateSuggestions(inputValue, token);
+        return getRelativeDateSuggestions(filterValue, token);
       default:
         return [];
     }
@@ -313,24 +429,6 @@ function tokenSupportsMultipleValues(
   }
 }
 
-function getOtherSelectedValues(token: TokenResult<Token.FILTER>): string[] {
-  switch (token.value.type) {
-    case Token.VALUE_TEXT:
-      if (!token.value.value) {
-        return [];
-      }
-      return [unescapeTagValue(token.value.value)];
-    case Token.VALUE_NUMBER:
-      return token.value.text ? [token.value.text] : [];
-    case Token.VALUE_NUMBER_LIST:
-      return token.value.items.map(item => item.value?.text ?? '');
-    case Token.VALUE_TEXT_LIST:
-      return token.value.items.map(item => unescapeTagValue(item.value?.value ?? ''));
-    default:
-      return [];
-  }
-}
-
 function cleanFilterValue(key: string, value: string): string {
   const fieldDef = getFieldDefinition(key);
   if (!fieldDef) {
@@ -356,32 +454,65 @@ function cleanFilterValue(key: string, value: string): string {
       }
       return value;
     default:
-      return escapeTagValue(value);
+      return escapeTagValue(value).trim();
   }
+}
+
+function useSelectionIndex({
+  inputRef,
+  inputValue,
+  canSelectMultipleValues,
+}: {
+  canSelectMultipleValues: boolean;
+  inputRef: React.RefObject<HTMLInputElement>;
+  inputValue: string;
+}) {
+  const [selectionIndex, setSelectionIndex] = useState<number | null>(
+    () => inputValue.length
+  );
+
+  useEffect(() => {
+    if (canSelectMultipleValues) {
+      setSelectionIndex(inputValue.length);
+    }
+  }, [canSelectMultipleValues, inputValue]);
+
+  const updateSelectionIndex = useCallback(() => {
+    if (inputRef.current?.selectionStart !== inputRef.current?.selectionEnd) {
+      setSelectionIndex(null);
+    } else {
+      setSelectionIndex(inputRef.current?.selectionStart ?? null);
+    }
+  }, [inputRef]);
+
+  return {
+    selectionIndex,
+    updateSelectionIndex,
+  };
 }
 
 function useFilterSuggestions({
   token,
-  inputValue,
+  filterValue,
   selectedValues,
 }: {
-  inputValue: string;
+  filterValue: string;
   selectedValues: string[];
   token: TokenResult<Token.FILTER>;
 }) {
   const {getTagValues, keys} = useSearchQueryBuilder();
   const key = keys[token.key.text];
   const predefinedValues = useMemo(
-    () => getPredefinedValues({key, inputValue, token}),
-    [key, inputValue, token]
+    () => getPredefinedValues({key, filterValue, token}),
+    [key, filterValue, token]
   );
   const shouldFetchValues = key && !key.predefined && !predefinedValues.length;
   const canSelectMultipleValues = tokenSupportsMultipleValues(token, keys);
 
   // TODO(malwilley): Display error states
   const {data, isFetching} = useQuery<string[]>({
-    queryKey: ['search-query-builder', token.key, inputValue] as QueryKey,
-    queryFn: () => getTagValues(key, inputValue),
+    queryKey: ['search-query-builder', token.key, filterValue] as QueryKey,
+    queryFn: () => getTagValues(key, filterValue),
     keepPreviousData: true,
     enabled: shouldFetchValues,
   });
@@ -500,28 +631,70 @@ function ItemCheckbox({
 export function SearchQueryBuilderValueCombobox({
   token,
   onCommit,
+  wrapperRef,
 }: SearchQueryValueBuilderProps) {
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const [inputValue, setInputValue] = useState('');
-
   const {keys, dispatch} = useSearchQueryBuilder();
   const canSelectMultipleValues = tokenSupportsMultipleValues(token, keys);
+  const [inputValue, setInputValue] = useState(() => {
+    if (isDateToken(token)) {
+      return token.value.type === Token.VALUE_ISO_8601_DATE ? token.value.text : '';
+    }
+    if (canSelectMultipleValues) {
+      return getMultiSelectInputValue(token);
+    }
+    return '';
+  });
+  const {selectionIndex, updateSelectionIndex} = useSelectionIndex({
+    inputRef,
+    inputValue,
+    canSelectMultipleValues,
+  });
+
+  const [showDatePicker, setShowDatePicker] = useState(() => {
+    if (isDateToken(token)) {
+      return token.value.type === Token.VALUE_ISO_8601_DATE;
+    }
+    return false;
+  });
+
+  const filterValue = canSelectMultipleValues
+    ? getValueAtCursorPosition(inputValue, selectionIndex)
+    : inputValue;
+
   const selectedValues = useMemo(
-    () =>
-      canSelectMultipleValues
-        ? orderBy(getOtherSelectedValues(token), 'value', 'asc')
-        : [],
-    [canSelectMultipleValues, token]
+    () => (canSelectMultipleValues ? getSelectedValuesFromText(inputValue) : []),
+    [canSelectMultipleValues, inputValue]
   );
+
+  useEffect(() => {
+    if (canSelectMultipleValues) {
+      setInputValue(getMultiSelectInputValue(token));
+    }
+  }, [canSelectMultipleValues, token]);
+
+  // On mount, scroll to the end of the input
+  useEffect(() => {
+    if (inputRef.current) {
+      inputRef.current.scrollLeft = inputRef.current.scrollWidth;
+    }
+  }, []);
+
   const {items, suggestionSectionItems, isFetching} = useFilterSuggestions({
     token,
-    inputValue,
+    filterValue,
     selectedValues,
   });
 
-  const handleSelectValue = useCallback(
+  const handleOptionSelected = useCallback(
     (value: string) => {
+      if (isDateToken(token) && value === 'absolute_date') {
+        setShowDatePicker(true);
+        setInputValue('');
+        return;
+      }
+
       const cleanedValue = cleanFilterValue(token.key.text, value);
 
       // TODO(malwilley): Add visual feedback for invalid values
@@ -530,16 +703,33 @@ export function SearchQueryBuilderValueCombobox({
       }
 
       if (canSelectMultipleValues) {
-        dispatch({
-          type: 'TOGGLE_FILTER_VALUE',
-          token: token,
-          value: cleanedValue,
-        });
+        if (selectedValues.includes(value)) {
+          const newValue = prepareInputValueForSaving(
+            token,
+            selectedValues.filter(v => v !== value).join(',')
+          );
+          dispatch({
+            type: 'UPDATE_TOKEN_VALUE',
+            token: token,
+            value: newValue,
+          });
 
-        // If toggling off a value, keep focus inside the value
-        if (!selectedValues.includes(value)) {
-          onCommit();
+          if (newValue && newValue !== '""') {
+            onCommit();
+          }
+
+          return;
         }
+
+        dispatch({
+          type: 'UPDATE_TOKEN_VALUE',
+          token: token,
+          value: prepareInputValueForSaving(
+            token,
+            replaceValueAtPosition(inputValue, selectionIndex, value)
+          ),
+        });
+        onCommit();
       } else {
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
@@ -549,7 +739,31 @@ export function SearchQueryBuilderValueCombobox({
         onCommit();
       }
     },
-    [canSelectMultipleValues, dispatch, onCommit, selectedValues, token]
+    [
+      canSelectMultipleValues,
+      dispatch,
+      inputValue,
+      onCommit,
+      selectedValues,
+      selectionIndex,
+      token,
+    ]
+  );
+
+  const handleInputValueConfirmed = useCallback(
+    (value: string) => {
+      if (canSelectMultipleValues) {
+        dispatch({
+          type: 'UPDATE_TOKEN_VALUE',
+          token,
+          value: prepareInputValueForSaving(token, value),
+        });
+        onCommit();
+      } else {
+        handleOptionSelected(value);
+      }
+    },
+    [canSelectMultipleValues, dispatch, handleOptionSelected, onCommit, token]
   );
 
   const onKeyDown = useCallback(
@@ -574,40 +788,72 @@ export function SearchQueryBuilderValueCombobox({
     [canSelectMultipleValues, dispatch, token]
   );
 
-  // Clicking anywhere in the value editing area should focus the input
-  const onClick: React.MouseEventHandler<HTMLDivElement> = useCallback(e => {
-    if (e.target === e.currentTarget) {
-      e.preventDefault();
-      e.stopPropagation();
-      inputRef.current?.click();
-      inputRef.current?.focus();
-    }
-  }, []);
+  // Ensure that the menu stays open when clicking on the selected items
+  const shouldCloseOnInteractOutside = useCallback(
+    (el: Element) => {
+      if (wrapperRef.current?.contains(el)) {
+        return false;
+      }
+      return true;
+    },
+    [wrapperRef]
+  );
+
+  const customMenu = useMemo(() => {
+    if (!showDatePicker) return undefined;
+
+    return function ({popoverRef, isOpen}) {
+      return (
+        <SpecificDatePicker
+          popoverRef={popoverRef}
+          dateString={inputValue || getDefaultAbsoluteDateValue(token)}
+          handleSelectDateTime={newDateTimeValue => {
+            setInputValue(newDateTimeValue);
+            inputRef.current?.focus();
+          }}
+          handleBack={() => {
+            setShowDatePicker(false);
+            setInputValue('');
+            inputRef.current?.focus();
+          }}
+          handleSave={newDateTimeValue => {
+            dispatch({
+              type: 'UPDATE_TOKEN_VALUE',
+              token: token,
+              value: newDateTimeValue,
+            });
+            onCommit();
+          }}
+          isOpen={isOpen}
+        />
+      );
+    };
+  }, [dispatch, inputValue, onCommit, showDatePicker, token]);
 
   return (
-    <ValueEditing ref={ref} onClick={onClick} data-test-id="filter-value-editing">
-      {selectedValues.map(value => (
-        <SelectedValue key={value}>{value},</SelectedValue>
-      ))}
+    <ValueEditing ref={ref} data-test-id="filter-value-editing">
       <SearchQueryBuilderCombobox
         ref={inputRef}
         items={items}
-        onOptionSelected={handleSelectValue}
-        onCustomValueBlurred={handleSelectValue}
-        onCustomValueCommitted={handleSelectValue}
+        onOptionSelected={handleOptionSelected}
+        onCustomValueBlurred={handleInputValueConfirmed}
+        onCustomValueCommitted={handleInputValueConfirmed}
         onExit={onCommit}
         inputValue={inputValue}
+        filterValue={filterValue}
         placeholder={canSelectMultipleValues ? '' : formatFilterValue(token.value)}
         token={token}
         inputLabel={t('Edit filter value')}
         onInputChange={e => setInputValue(e.target.value)}
         onKeyDown={onKeyDown}
+        onKeyUp={updateSelectionIndex}
+        onClick={updateSelectionIndex}
         autoFocus
         maxOptions={50}
         openOnFocus
         isLoading={isFetching}
-        // Ensure that the menu stays open when clicking on the selected items
-        shouldCloseOnInteractOutside={el => el !== ref.current}
+        customMenu={customMenu}
+        shouldCloseOnInteractOutside={shouldCloseOnInteractOutside}
       >
         {suggestionSectionItems.map(section => (
           <Section key={section.sectionText} title={section.sectionText}>
@@ -627,12 +873,7 @@ const ValueEditing = styled('div')`
   display: flex;
   height: 100%;
   align-items: center;
-  gap: ${space(0.25)};
-`;
-
-const SelectedValue = styled('span')`
-  pointer-events: none;
-  user-select: none;
+  max-width: 400px;
 `;
 
 const TrailingWrap = styled('div')`
@@ -648,4 +889,14 @@ const CheckWrap = styled('div')<{visible: boolean}>`
   align-items: center;
   opacity: ${p => (p.visible ? 1 : 0)};
   padding: ${space(0.25)} 0 ${space(0.25)} ${space(0.25)};
+`;
+
+const AbsoluteDateOption = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+
+  svg {
+    color: ${p => p.theme.gray300};
+  }
 `;

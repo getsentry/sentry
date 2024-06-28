@@ -8,8 +8,8 @@ import sentry_sdk
 from sentry.integrations.opsgenie.actions import OpsgenieNotifyTeamForm
 from sentry.integrations.opsgenie.client import OPSGENIE_DEFAULT_PRIORITY, OpsgeniePriority
 from sentry.integrations.opsgenie.utils import get_team
+from sentry.integrations.services.integration import integration_service
 from sentry.rules.actions import IntegrationEventAction
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.opsgenie")

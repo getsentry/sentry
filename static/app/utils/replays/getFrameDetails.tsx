@@ -3,23 +3,26 @@ import type {ReactNode} from 'react';
 import ExternalLink from 'sentry/components/links/externalLink';
 import CrumbErrorTitle from 'sentry/components/replays/breadcrumbs/errorTitle';
 import SelectorList from 'sentry/components/replays/breadcrumbs/selectorList';
-import {Tooltip} from 'sentry/components/tooltip';
 import {
   IconCursorArrow,
   IconFire,
   IconFix,
+  IconHappy,
   IconInfo,
   IconInput,
   IconKeyDown,
   IconLocation,
   IconMegaphone,
+  IconMeh,
   IconMobile,
+  IconSad,
   IconSort,
   IconTerminal,
   IconUser,
   IconWarning,
 } from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import {explodeSlug} from 'sentry/utils';
 import {TabKey} from 'sentry/utils/replays/hooks/useActiveReplayTab';
 import type {
   BreadcrumbFrame,
@@ -42,6 +45,7 @@ import {
   isDeadRageClick,
   isRageClick,
 } from 'sentry/utils/replays/types';
+import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import type {Color} from 'sentry/utils/theme';
 import stripURLOrigin from 'sentry/utils/url/stripURLOrigin';
 
@@ -274,24 +278,40 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
     title: 'Navigation',
     icon: <IconLocation size="xs" />,
   }),
-  'largest-contentful-paint': (frame: WebVitalFrame) => ({
-    color: 'gray300',
-    description:
-      typeof frame.data.value === 'number' ? (
-        `${Math.round(frame.data.value)}ms`
-      ) : (
-        <Tooltip
-          title={t(
-            'This replay uses a SDK version that is subject to inaccurate LCP values. Please upgrade to the latest version for best results if you have not already done so.'
-          )}
-        >
-          <IconWarning />
-        </Tooltip>
-      ),
-    tabKey: TabKey.NETWORK,
-    title: 'LCP',
-    icon: <IconInfo size="xs" />,
-  }),
+  'web-vital': (frame: WebVitalFrame) => {
+    switch (frame.data.rating) {
+      case 'good':
+        return {
+          color: 'green300',
+          description: tct('Good [value]ms', {
+            value: frame.data.value.toFixed(2),
+          }),
+          tabKey: TabKey.NETWORK,
+          title: toTitleCase(explodeSlug(frame.description)),
+          icon: <IconHappy size="xs" />,
+        };
+      case 'needs-improvement':
+        return {
+          color: 'yellow300',
+          description: tct('Meh [value]ms', {
+            value: frame.data.value.toFixed(2),
+          }),
+          tabKey: TabKey.NETWORK,
+          title: toTitleCase(explodeSlug(frame.description)),
+          icon: <IconMeh size="xs" />,
+        };
+      default:
+        return {
+          color: 'red300',
+          description: tct('Poor [value]ms', {
+            value: frame.data.value.toFixed(2),
+          }),
+          tabKey: TabKey.NETWORK,
+          title: toTitleCase(explodeSlug(frame.description)),
+          icon: <IconSad size="xs" />,
+        };
+    }
+  },
   memory: () => ({
     color: 'gray300',
     description: undefined,

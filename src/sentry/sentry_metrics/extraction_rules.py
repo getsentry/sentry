@@ -14,23 +14,43 @@ class MetricsExtractionRuleValidationError(ValueError):
     pass
 
 
-HARD_CODED_UNITS = {"span.duration": "millisecond"}
+HARD_CODED_UNITS = {"span.duration": {"d": "millisecond"}}
+ALLOWED_TYPES = {"c", "d", "s"}
 
 
-@dataclass(frozen=True)
+@dataclass
 class MetricsExtractionRule:
-    span_attribute: str
-    type: str
-    unit: str
-    tags: set[str]
-    conditions: list[str]
+    def __init__(
+        self, span_attribute: str, type: str, unit: str, tags: set[str], conditions: list[str]
+    ):
+        self.span_attribute = self.validate_span_attribute(span_attribute)
+        self.type = self.validate_type(type)
+        self.unit = HARD_CODED_UNITS.get(span_attribute, {}).get(type, "none")
+        self.tags = tags
+        self.conditions = conditions
+
+    def validate_span_attribute(self, span_attribute: str) -> str:
+        if not isinstance(span_attribute, str):
+            raise ValueError("The span attribute must be of type string.")
+        return span_attribute
+
+    def validate_type(self, type_value: str) -> str:
+        if not isinstance(type_value, str):
+            raise ValueError("The type must be of type string.")
+
+        if type_value not in ALLOWED_TYPES:
+            raise ValueError(
+                "Type can only have the following values: 'c' for counter, 'd' for distribution, or 's' for set."
+            )
+        return type_value
 
     @classmethod
     def from_dict(cls, dictionary: Mapping[str, Any]) -> "MetricsExtractionRule":
+
         return MetricsExtractionRule(
             span_attribute=dictionary["spanAttribute"],
             type=dictionary["type"],
-            unit=HARD_CODED_UNITS.get(dictionary["spanAttribute"], "none"),
+            unit=dictionary["unit"],
             tags=set(dictionary.get("tags") or set()),
             conditions=list(dictionary.get("conditions") or []),
         )
@@ -47,7 +67,7 @@ class MetricsExtractionRule:
     def generate_mri(self, use_case: str = "custom"):
         """Generate the Metric Resource Identifier (MRI) associated with the extraction rule."""
         use_case_id = string_to_use_case_id(use_case)
-        return f"{self.type}:{use_case_id}/{self.span_attribute}@{self.unit}"
+        return f"{self.type}:{use_case_id.value}/{self.span_attribute}@{self.unit}"
 
     def __hash__(self):
         return hash(self.generate_mri())
@@ -107,6 +127,12 @@ def create_metrics_extraction_rules(
     project: Project, state_update: dict[str, MetricsExtractionRule]
 ) -> Sequence[MetricsExtractionRule]:
     state = MetricsExtractionRuleState.load_from_project(project)
+    mris = [rule.generate_mri() for rule in state.get_rules()]
+
+    for key in state_update:
+        if key in mris:
+            raise ValueError(f"Resource already exists: {key}.")
+
     state.rules.update(state_update)
     state.save_to_project(project)
     return state.get_rules()

@@ -7,14 +7,14 @@ import {t} from 'sentry/locale';
 import type {Event} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
+import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 import {
   NumberOfPipelinesChart,
   TotalTokensUsedChart,
-} from 'sentry/views/llmMonitoring/llmMonitoringCharts';
-import * as ModuleLayout from 'sentry/views/performance/moduleLayout';
-import {useModuleURL} from 'sentry/views/performance/utils/useModuleURL';
-import {useSpansIndexed} from 'sentry/views/starfish/queries/useDiscover';
-import {SpanIndexedField, type SpanIndexedResponse} from 'sentry/views/starfish/types';
+} from 'sentry/views/insights/llmMonitoring/components/charts/llmMonitoringCharts';
+import {SpanIndexedField, type SpanIndexedResponse} from 'sentry/views/insights/types';
 
 interface Props {
   event: Event;

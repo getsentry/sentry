@@ -16,6 +16,7 @@ from sentry import VERSION, audit_log, http, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.integrations.sentry_app_installation_for_provider import (
@@ -23,7 +24,6 @@ from sentry.models.integrations.sentry_app_installation_for_provider import (
 )
 from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.models.project import Project
-from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
 from sentry.services.hybrid_cloud.project import project_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.utils.audit import create_audit_entry

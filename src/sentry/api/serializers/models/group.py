@@ -18,8 +18,10 @@ from sentry.api.serializers.models.actor import ActorSerializer
 from sentry.api.serializers.models.plugin import is_plugin_deprecated
 from sentry.api.serializers.models.user import UserSerializerResponse
 from sentry.app import env
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import LOG_LEVELS
+from sentry.integrations.services.integration import integration_service
 from sentry.issues.grouptype import GroupCategory
 from sentry.models.apitoken import is_api_token_auth
 from sentry.models.commit import Commit
@@ -40,13 +42,11 @@ from sentry.models.orgauthtoken import is_org_auth_token_auth
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.helpers import collect_groups_by_project, get_subscription_from_attributes
+from sentry.notifications.services import notifications_service
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.reprocessing2 import get_progress
 from sentry.search.events.constants import RELEASE_STAGE_ALIAS
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
-from sentry.services.hybrid_cloud.auth import AuthenticatedToken
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.dataset import Dataset
@@ -349,10 +349,9 @@ class GroupSerializerBase(Serializer, ABC):
             "issueCategory": obj.issue_category.name.lower(),
         }
 
-        if features.has("projects:issue-priority", obj.project, actor=None):
-            priority_label = PriorityLevel(obj.priority).to_str() if obj.priority else None
-            group_dict["priority"] = priority_label
-            group_dict["priorityLockedAt"] = obj.priority_locked_at
+        priority_label = PriorityLevel(obj.priority).to_str() if obj.priority else None
+        group_dict["priority"] = priority_label
+        group_dict["priorityLockedAt"] = obj.priority_locked_at
 
         # This attribute is currently feature gated
         if "is_unhandled" in attrs:
