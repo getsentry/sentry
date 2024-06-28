@@ -63,9 +63,7 @@ class SnubaMetricsBackend(GenericMetricsBackend):
             value=value,
             org_id=org_id,
             project_id=project_id,
-            type="counter",
             timestamp=int(datetime.now().timestamp()),
-            use_case_id=use_case_id,
         )
 
     def set(
@@ -91,9 +89,7 @@ class SnubaMetricsBackend(GenericMetricsBackend):
                 value=val,
                 org_id=org_id,
                 project_id=project_id,
-                type="set",
                 timestamp=int(datetime.now().timestamp()),
-                use_case_id=use_case_id,
             )
 
     def distribution(
@@ -119,9 +115,7 @@ class SnubaMetricsBackend(GenericMetricsBackend):
                 value=val,
                 org_id=org_id,
                 project_id=project_id,
-                type="distribution",
                 timestamp=int(datetime.now().timestamp()),
-                use_case_id=use_case_id,
             )
 
     def close(self) -> None:
