@@ -17,14 +17,13 @@ import type {Node, Orientation} from '@react-types/shared';
 
 import Badge from 'sentry/components/badge/badge';
 import {DraggableTabMenuButton} from 'sentry/components/draggableTabs/draggableTabMenuButton';
-import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import QueryCount from 'sentry/components/queryCount';
 import {BaseTab} from 'sentry/components/tabs/tab';
-import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
 interface DraggableTabProps extends AriaTabProps {
   dropState: DroppableCollectionState;
+  isChanged: boolean;
   item: Node<any>;
   orientation: Orientation;
   /**
@@ -40,31 +39,6 @@ interface BaseDropIndicatorProps {
   dropState: DroppableCollectionState;
   target: DropIndicatorProps['target'];
 }
-
-const TAB_MENU_OPTIONS: MenuItemProps[] = [
-  {
-    key: 'save-changes',
-    label: t('Save Changes'),
-  },
-  {
-    key: 'discard-changes',
-    label: t('Discard Changes'),
-  },
-  {
-    key: 'rename-tab',
-    label: t('Rename'),
-    showDivider: true,
-  },
-  {
-    key: 'duplicate-tab',
-    label: t('Duplicate'),
-  },
-  {
-    key: 'delete-tab',
-    label: t('Delete'),
-    priority: 'danger',
-  },
-];
 
 function TabDropIndicator(props: BaseDropIndicatorProps) {
   const ref = useRef(null);
@@ -112,7 +86,7 @@ function Draggable({item, children, onTabClick}: DraggableProps) {
  */
 export const DraggableTab = forwardRef(
   (
-    {item, state, orientation, overflowing, dropState}: DraggableTabProps,
+    {item, state, orientation, overflowing, dropState, isChanged}: DraggableTabProps,
     forwardedRef: React.ForwardedRef<HTMLLIElement>
   ) => {
     const ref = useObjectRef(forwardedRef);
@@ -154,24 +128,10 @@ export const DraggableTab = forwardRef(
               <StyledBadge>
                 <QueryCount hideParens count={1001} max={1000} />
               </StyledBadge>
-              <DropdownMenu
-                position="bottom-start"
-                triggerProps={{
-                  size: 'zero',
-                  showChevron: false,
-                  borderless: true,
-                  icon: <DraggableTabMenuButton />,
-                  style: {padding: 0},
-                }}
-                items={TAB_MENU_OPTIONS}
-                offset={[-10, 5]}
-              />
+              {state.selectedKey === item.key && <DraggableTabMenuButton isChanged />}
             </TabContentWrap>
           </Draggable>
         </StyledBaseTab>
-        {/* {state.selectedKey !== item.key && state.collection.getLastKey() !== item.key && (
-          <TabSeparator />
-        )} */}
         {state.collection.getKeyAfter(item.key) == null && (
           <TabDropIndicator
             target={{type: 'item', key: item.key, dropPosition: 'after'}}

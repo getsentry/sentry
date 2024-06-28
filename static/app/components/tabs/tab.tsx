@@ -82,23 +82,15 @@ export const BaseTab = forwardRef(
     );
 
     return (
-      <TabWrap
+      <NewTabWrap
         {...mergeProps(tabProps, additionalProps)}
         hidden={hidden}
         selected={isSelected}
         overflowing={overflowing}
         ref={ref}
       >
-        <InnerWrap>
-          <StyledInteractionStateLayer
-            orientation={orientation}
-            higherOpacity={isSelected}
-          />
-          <FocusLayer orientation={orientation} />
-          {props.children}
-          <TabSelectionIndicator orientation={orientation} selected={isSelected} />
-        </InnerWrap>
-      </TabWrap>
+        {props.children}
+      </NewTabWrap>
     );
   }
 );
@@ -137,6 +129,41 @@ export const Tab = forwardRef(
     );
   }
 );
+
+const NewTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
+  overflowing: boolean;
+  selected: boolean;
+}>`
+  ${p =>
+    p.selected
+      ? `
+        border-radius: 6px 6px 1px 1px;
+        border-top: 1px solid ${p.theme.border};
+        border-left: 1px solid ${p.theme.border};
+        border-right: 1px solid ${p.theme.border};
+        background-color: ${p.theme.white};
+        color: ${p.theme.fontWeightBold};
+        font-weight: 600;
+        `
+      : ``}
+  transform: translateY(1px);
+  padding: 5px 10px;
+
+  opacity: 0px;
+
+  cursor: pointer;
+
+  &:focus {
+    outline: none;
+  }
+
+  ${p =>
+    p.overflowing &&
+    `
+      opacity: 0;
+      pointer-events: none;
+    `}
+`;
 
 const TabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
   overflowing: boolean;

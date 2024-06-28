@@ -258,13 +258,14 @@ const TabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
   margin: 0;
   list-style-type: none;
   flex-shrink: 0;
+  padding-left: 15px;
 
   ${p =>
     p.orientation === 'horizontal'
       ? `
         grid-auto-flow: column;
         justify-content: start;
-        gap: ${space(2)};
+        gap: ${space(0.5)};
         ${!p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
       `
       : `

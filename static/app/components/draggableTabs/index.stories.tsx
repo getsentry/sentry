@@ -6,11 +6,29 @@ import JSXNode from 'sentry/components/stories/jsxNode';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 
+const TabPanelContainer = styled('div')`
+  width: 90%;
+  height: 250px;
+  background-color: white;
+`;
+
 export default storyBook(DraggableTabBar, story => {
   const TABS = [
-    {key: 'one', label: 'Inbox', content: 'This is the Inbox view.'},
-    {key: 'two', label: 'For Review', content: 'This is the For Review view'},
-    {key: 'three', label: 'Regressed', content: 'This is the Regressed view'},
+    {
+      key: 'one',
+      label: 'Inbox',
+      content: <TabPanelContainer>This is the Inbox view</TabPanelContainer>,
+    },
+    {
+      key: 'two',
+      label: 'For Review',
+      content: <TabPanelContainer>This is the For Review view</TabPanelContainer>,
+    },
+    {
+      key: 'three',
+      label: 'Regressed',
+      content: <TabPanelContainer>This is the Regressed view</TabPanelContainer>,
+    },
   ];
 
   story('Default', () => (
