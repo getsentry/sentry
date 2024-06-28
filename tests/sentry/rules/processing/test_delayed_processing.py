@@ -357,8 +357,6 @@ class ProcessDelayedAlertConditionsTest(
             event_id__in=[self.event1.event_id, self.event2.event_id],
             project=self.project,
         ).values_list("rule", "group")
-        assert self.group1
-        assert self.group2
         assert len(rule_fire_histories) == 2
         assert (self.rule1.id, self.group1.id) in rule_fire_histories
         assert (self.rule2.id, self.group2.id) in rule_fire_histories
@@ -372,8 +370,6 @@ class ProcessDelayedAlertConditionsTest(
             project=self.project_two,
         ).values_list("rule", "group")
         assert len(rule_fire_histories) == 2
-        assert self.group3
-        assert self.group4
         assert (self.rule3.id, self.group3.id) in rule_fire_histories
         assert (self.rule4.id, self.group4.id) in rule_fire_histories
 
@@ -399,7 +395,6 @@ class ProcessDelayedAlertConditionsTest(
             )
         group5 = event5.group
         assert group5
-        assert self.group1
         self.push_to_hash(
             self.project.id,
             rule5.id,
@@ -437,8 +432,6 @@ class ProcessDelayedAlertConditionsTest(
         self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
         self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
         group5 = event5.group
-        assert group5
-        assert self.group1
         self.push_to_hash(self.project.id, rule5.id, group5.id, event5.event_id)
 
         project_ids = buffer.backend.get_sorted_set(
@@ -469,8 +462,6 @@ class ProcessDelayedAlertConditionsTest(
         self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
         self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
         group5 = event5.group
-        assert group5
-        assert self.group1
         self.push_to_hash(self.project.id, rule5.id, group5.id, event5.event_id)
 
         project_ids = buffer.backend.get_sorted_set(
@@ -502,8 +493,6 @@ class ProcessDelayedAlertConditionsTest(
         event5 = self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
         self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
         group5 = event5.group
-        assert group5
-        assert self.group1
         self.push_to_hash(self.project.id, diff_interval_rule.id, group5.id, event5.event_id)
 
         project_ids = buffer.backend.get_sorted_set(
@@ -536,8 +525,6 @@ class ProcessDelayedAlertConditionsTest(
         event5 = self.create_event(self.project.id, FROZEN_TIME, "group-5", environment3.name)
         self.create_event(self.project.id, FROZEN_TIME, "group-5", environment3.name)
         group5 = event5.group
-        assert group5
-        assert self.group1
         self.push_to_hash(self.project.id, diff_env_rule.id, group5.id, event5.event_id)
 
         project_ids = buffer.backend.get_sorted_set(
@@ -575,8 +562,6 @@ class ProcessDelayedAlertConditionsTest(
         event5 = self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
         self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
         group5 = event5.group
-        assert group5
-        assert self.group1
         self.push_to_hash(self.project.id, no_fire_rule.id, group5.id, event5.event_id)
 
         project_ids = buffer.backend.get_sorted_set(
@@ -607,8 +592,7 @@ class ProcessDelayedAlertConditionsTest(
         event5 = self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
         self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
         group5 = event5.group
-        assert group5
-        event6 = self.create_event(
+        self.create_event(
             self.project.id,
             FROZEN_TIME,
             "group-6",
@@ -620,10 +604,6 @@ class ProcessDelayedAlertConditionsTest(
             "group-5",
             self.environment.name,
         )
-        group6 = event6.group
-        assert group6
-        assert self.group1
-        assert self.group2
         condition_wont_pass_rule = self.create_project_rule(
             project=self.project,
             condition_match=[self.create_event_frequency_condition(value=100)],
@@ -670,12 +650,10 @@ class ProcessDelayedAlertConditionsTest(
             project_three.id, FROZEN_TIME, "group-5", env3.name, tags=[["foo", "bar"]]
         )
         group1 = event1.group
-        assert group1
 
         event2 = self.create_event(project_three.id, FROZEN_TIME, "group-6", env3.name)
         self.create_event(project_three.id, FROZEN_TIME, "group-6", env3.name)
         group2 = event2.group
-        assert group2
 
         self.push_to_hash(project_three.id, rule_1.id, group1.id, event1.event_id)
         self.push_to_hash(project_three.id, rule_2.id, group2.id, event2.event_id)
@@ -724,7 +702,6 @@ class ProcessDelayedAlertConditionsTest(
         self.create_event(self.project.id, correct_interval_time, "group-5")
 
         group5 = event5.group
-        assert group5
         self.push_to_hash(self.project.id, percent_comparison_rule.id, group5.id, event5.event_id)
 
         project_ids = buffer.backend.get_sorted_set(
@@ -752,7 +729,7 @@ class ProcessDelayedAlertConditionsTest(
         def mock_get_condition_group(descending=False):
             """
             Mocks get_condition_groups to run with the passed in alert_rules in
-            descending order of id by ascending.
+            order of id (ascending by default).
             """
 
             def _callthrough_with_order(*args, **kwargs):
@@ -794,20 +771,18 @@ class ProcessDelayedAlertConditionsTest(
             environment_id=self.environment.id,
         )
 
-        # Create events to trigger the fires count condition
+        # Create events to trigger the fires count condition.
         event5 = self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
         self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
+        group5 = event5.group
 
-        # Create past event to trigger the percent condition
+        # Create a past event to trigger the fires percent condition.
         self.create_event(
             self.project.id,
             FROZEN_TIME - timedelta(hours=1, minutes=10),
             "group-5",
             self.environment.name,
         )
-
-        group5 = event5.group
-        assert group5
 
         def _setup_events() -> int:
             self.push_to_hash(self.project.id, fires_percent_rule.id, group5.id, event5.event_id)
