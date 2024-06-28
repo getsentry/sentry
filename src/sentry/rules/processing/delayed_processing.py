@@ -143,13 +143,12 @@ def get_condition_query_groups(
             for unique_cond in _generate_unique_queries(condition_data, rule.environment_id):
                 # NOTE: If percent and count comparison conditions are sharing
                 # the same UniqueConditionQuery, the condition JSON in
-                # DataAndGroups will be incorrect for one of those condition
-                # types. The JSON will either have or be missing a
-                # comparisonInterval which only applies to percent
-                # conditions, and have the incorrect comparisonType for one of
-                # tht types. This is not a concern because when we instantiate
-                # the exact condition class with the JSON, the class ignores
-                # both fields when calling get_rate_bulk.
+                # DataAndGroups will be incorrect for one of those types.
+                # The JSON will either have or be missing a comparisonInterval
+                # which only applies to percent conditions, and have the incorrect
+                # comparisonType for one type. This is not a concern because
+                # when we instantiate the exact condition class with the JSON,
+                # the class ignores both fields when calling get_rate_bulk.
 
                 # Add to set of group_ids if there are already group_ids
                 # that apply to the unique condition query.
@@ -227,8 +226,6 @@ def _passes_comparison(
         )
         return False
 
-    print(f'{condition_data.get("comparisonType", "count")} QUERY VALUES: ', query_values)
-
     calculated_value = query_values[0]
     # If there's a second query we must have a percent comparison condition.
     if len(query_values) == 2:
@@ -245,11 +242,6 @@ def get_rules_to_fire(
     rules_to_groups: DefaultDict[int, set[int]],
 ) -> DefaultDict[Rule, set[int]]:
     rules_to_fire = defaultdict(set)
-
-    for key, value in condition_group_results.items():
-        print("\n************\nCONDITION GROUP RESULT UNIQUES: ", key)
-        print("\nGROUP TO RESULT DICT: ", value, "\n************\n")
-
     for alert_rule, slow_conditions in rules_to_slow_conditions.items():
         action_match = alert_rule.data.get("action_match", "any")
         for group_id in rules_to_groups[alert_rule.id]:
@@ -443,10 +435,6 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
         "delayed_processing.condition_groups",
         extra={"condition_groups": condition_groups, "project_id": project_id},
     )
-
-    for key, value in condition_groups.items():
-        print("\n************\nCONDITION GROUPS VALUE: \n", key)
-        print("\nDATA AND GROUPS KEY: \n", value, "\n************\n")
 
     # Step 5: Instantiate the condition that we can apply to each unique condition
     # query, and evaluate the relevant group_ids that apply for that query.

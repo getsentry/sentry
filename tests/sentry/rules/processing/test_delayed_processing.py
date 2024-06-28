@@ -1,9 +1,10 @@
 from copy import deepcopy
-from datetime import UTC, datetime, timedelta
+from datetime import datetime, timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
 import pytest
+
 from sentry import buffer
 from sentry.eventstore.models import Event
 from sentry.models.project import Project
@@ -20,7 +21,6 @@ from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.redis import mock_redis_buffer
 from sentry.utils import json
-
 from tests.snuba.rules.conditions.test_event_frequency import BaseEventFrequencyPercentTest
 
 pytestmark = pytest.mark.sentry_metrics
@@ -41,10 +41,7 @@ class ProcessDelayedAlertConditionsTest(
         fingerprint: str,
         environment=None,
         tags: list[list[str]] | None = None,
-        print_event: bool = False,
     ) -> Event:
-        if print_event:
-            print("event timestamp: ", iso_format(timestamp))
         data = {
             "timestamp": iso_format(timestamp),
             "environment": environment,
@@ -594,8 +591,8 @@ class ProcessDelayedAlertConditionsTest(
         event5 = self.create_event(self.project.id, FROZEN_TIME, "group-5")
         self.create_event(self.project.id, FROZEN_TIME, "group-5")
         # Create events for the incorrect interval that will not trigger the rule
-        # self.create_event(self.project.id, incorrect_interval_time,x "group-5")
-        # self.create_event(self.project.id, incorrect_interval_time, "group-5")
+        self.create_event(self.project.id, incorrect_interval_time, "group-5")
+        self.create_event(self.project.id, incorrect_interval_time, "group-5")
         # Create an event for the correct interval that will trigger the rule
         self.create_event(self.project.id, correct_interval_time, "group-5")
 
@@ -616,11 +613,6 @@ class ProcessDelayedAlertConditionsTest(
         assert len(rule_fire_histories) == 1
         assert (percent_comparison_rule.id, group5.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=self.project.id)
-
-        # TIME IS 6/26 @ 1:15 AM -> 00:58 AM
-        # First query
-        #   start:
-        #   end  :
 
     def test_apply_delayed_no_bleed_count_and_comparison_condition(self):
         """
@@ -657,15 +649,9 @@ class ProcessDelayedAlertConditionsTest(
             condition_match=[percent_condition],
             environment_id=self.environment.id,
         )
-        print("NOW EVENT TIME: ", FROZEN_TIME)
-        print("OLD EVENT TIME: ", FROZEN_TIME - timedelta(days=1, minutes=10))
 
-        event5 = self.create_event(
-            self.project.id, FROZEN_TIME, "group-5", self.environment.name, print_event=True
-        )
-        self.create_event(
-            self.project.id, FROZEN_TIME, "group-5", self.environment.name, print_event=True
-        )
+        event5 = self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
+        self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
 
         # Create past event to trigger the percent condition
         event5 = self.create_event(
@@ -673,7 +659,6 @@ class ProcessDelayedAlertConditionsTest(
             FROZEN_TIME - timedelta(days=1, minutes=10),
             "group-5",
             self.environment.name,
-            print_event=True,
         )
 
         group5 = event5.group

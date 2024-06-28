@@ -387,8 +387,6 @@ class SnubaTSDB(BaseTSDB):
         if group_on_time and manual_group_on_time:
             aggregations.append(manual_group_on_time_aggregation(rollup, "time"))
 
-        breakpoint()
-
         if keys:
             start = to_datetime(series[0])
             end = to_datetime(series[-1] + rollup)
@@ -472,7 +470,6 @@ class SnubaTSDB(BaseTSDB):
         self.zerofill(result, groupby, keys_map)
         self.trim(result, groupby, keys)
 
-        breakpoint()
         if group_on_time and manual_group_on_time:
             self.unnest(result, aggregated_as)
             return result
@@ -727,7 +724,6 @@ class SnubaTSDB(BaseTSDB):
             aggregate_function = "sum"
         else:
             aggregate_function = "count()"
-        print("THIS RANGE?", start, end)
 
         result = self.get_data(
             model,
