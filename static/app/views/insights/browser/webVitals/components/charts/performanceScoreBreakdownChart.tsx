@@ -1,30 +1,21 @@
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import moment from 'moment';
 
-import MarkLine from 'sentry/components/charts/components/markLine';
-import {parseStatsPeriod} from 'sentry/components/timeRangeSelector/utils';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {
-  ORDER,
-  ORDER_WITH_INP,
-  ORDER_WITH_INP_WITHOUT_FID,
-} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
-import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/calculatePerformanceScore';
-import type {WebVitalsScoreBreakdown} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsTimeseriesQuery';
-import {useProjectRawWebVitalsTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsTimeseriesQuery';
+import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
-import type {UnweightedWebVitalsScoreBreakdown} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
-import {useProjectWebVitalsTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/useProjectWebVitalsTimeseriesQuery';
+import {
+  type UnweightedWebVitalsScoreBreakdown,
+  useProjectWebVitalsScoresTimeseriesQuery,
+  type WebVitalsScoreBreakdown,
+} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
+import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
-
-export const SCORE_MIGRATION_TIMESTAMP = 1702771200000;
-export const FID_DEPRECATION_DATE = 1710259200000;
 
 type Props = {
   transaction?: string;
@@ -54,30 +45,12 @@ export const formatTimeSeriesResultsToChartData = (
 
 export function PerformanceScoreBreakdownChart({transaction}: Props) {
   const theme = useTheme();
-  const segmentColors = [...theme.charts.getColorPalette(3).slice(0, 5), theme.gray200];
+  const segmentColors = [...theme.charts.getColorPalette(3).slice(0, 5)];
 
   const pageFilters = usePageFilters();
 
-  const {start} = pageFilters.selection.datetime.period
-    ? parseStatsPeriod(pageFilters.selection.datetime.period)
-    : {
-        start: pageFilters.selection.datetime.start,
-      };
-
-  const scoreMigrationTimestampAfterStart = moment(start).isBefore(
-    SCORE_MIGRATION_TIMESTAMP
-  );
-
-  // When using stored/backend scores, we still need to fetch historic data to backfill for data.
-  // We can disable this query if the score migration timestamp is not within the selected period.
-  const {data: preMigrationTimeseriesData, isLoading: isRawScoreTimeseriesDataLoading} =
-    useProjectRawWebVitalsTimeseriesQuery({
-      transaction,
-      enabled: scoreMigrationTimestampAfterStart,
-    });
-
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
-    useProjectWebVitalsTimeseriesQuery({transaction});
+    useProjectWebVitalsScoresTimeseriesQuery({transaction});
   const {data: projectScores, isLoading: isProjectScoresLoading} =
     useProjectWebVitalsScoresQuery({transaction});
 
@@ -87,77 +60,22 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
 
   const period = pageFilters.selection.datetime.period;
   const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
+  const chartSeriesOrder = ORDER;
 
-  const hasFid =
-    timeseriesData?.fid?.find(({value}) => value > 0) !== undefined ||
-    preMigrationTimeseriesData?.fid?.find(({value}) => value > 0) !== undefined;
-
-  const chartSeriesOrder = hasFid ? ORDER_WITH_INP : ORDER_WITH_INP_WITHOUT_FID;
-
-  const preMigrationWeightedTimeseries = formatTimeSeriesResultsToChartData(
-    preMigrationTimeseriesData,
-    segmentColors,
-    true,
-    chartSeriesOrder
-  );
-  let weightedTimeseries = formatTimeSeriesResultsToChartData(
+  const weightedTimeseries = formatTimeSeriesResultsToChartData(
     timeseriesData,
     segmentColors,
     false,
     chartSeriesOrder
   );
 
-  weightedTimeseries = weightedTimeseries.map((series, index) => {
-    const rawSeries = preMigrationWeightedTimeseries[index];
-    const newSeries = {...series};
-    newSeries.data = series.data.map(({name, value}) => {
-      const rawValue = rawSeries.data.find(dataPoint => dataPoint.name === name)?.value;
-      if ((name as number) <= SCORE_MIGRATION_TIMESTAMP && rawValue !== undefined) {
-        return {
-          name,
-          value: rawValue,
-        };
-      }
-      return {name, value};
-    });
-    return newSeries;
-  });
-
-  weightedTimeseries.push({
-    seriesName: t('Mark Line'),
-    data: [],
-    markLine: MarkLine({
-      lineStyle: {
-        color: theme.gray300,
-        type: 'dashed',
-        width: 1,
-        opacity: 0.8,
-      },
-      label: {
-        show: true,
-        formatter: () => t('Score Migration'),
-        position: 'insideMiddleBottom',
-        color: theme.gray300,
-      },
-      data: [{xAxis: SCORE_MIGRATION_TIMESTAMP}],
-    }),
-  });
-
   const storedScores = timeseriesData as WebVitalsScoreBreakdown &
     UnweightedWebVitalsScoreBreakdown;
 
-  const preMigrationUnweightedTimeseries = formatTimeSeriesResultsToChartData(
-    preMigrationTimeseriesData,
-    segmentColors,
-    false,
-    chartSeriesOrder
-  );
-
-  let unweightedTimeseries = formatTimeSeriesResultsToChartData(
+  const unweightedTimeseries = formatTimeSeriesResultsToChartData(
     {
       lcp: storedScores.unweightedLcp,
       fcp: storedScores.unweightedFcp,
-      fid: storedScores.unweightedFid,
       cls: storedScores.unweightedCls,
       ttfb: storedScores.unweightedTtfb,
       inp: storedScores.unweightedInp,
@@ -168,36 +86,17 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
     chartSeriesOrder
   );
 
-  unweightedTimeseries = unweightedTimeseries.map((series, index) => {
-    const rawSeries = preMigrationUnweightedTimeseries[index];
-    const newSeries = {...series};
-    newSeries.data = series.data.map(({name, value}) => {
-      const rawValue = rawSeries.data.find(dataPoint => dataPoint.name === name)?.value;
-      if ((name as number) < SCORE_MIGRATION_TIMESTAMP && rawValue !== undefined) {
-        return {
-          name,
-          value: rawValue,
-        };
-      }
-      return {name, value};
-    });
-    return newSeries;
-  });
-
   const weightsSeries = weightedTimeseries[0].data.map(({name}) => {
     const value =
-      (name as number) <= SCORE_MIGRATION_TIMESTAMP
-        ? PERFORMANCE_SCORE_WEIGHTS
-        : projectScore !== undefined
-          ? {
-              lcp: projectScore.lcpWeight,
-              fcp: projectScore.fcpWeight,
-              fid: projectScore.fidWeight,
-              inp: projectScore.inpWeight,
-              cls: projectScore.clsWeight,
-              ttfb: projectScore.ttfbWeight,
-            }
-          : undefined;
+      projectScore !== undefined
+        ? {
+            lcp: projectScore.lcpWeight,
+            fcp: projectScore.fcpWeight,
+            inp: projectScore.inpWeight,
+            cls: projectScore.clsWeight,
+            ttfb: projectScore.ttfbWeight,
+          }
+        : undefined;
     return {name, value};
   });
 
@@ -209,18 +108,9 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
         stacked
         hideYAxisSplitLine
         height={180}
-        data={
-          isTimeseriesLoading ||
-          (isRawScoreTimeseriesDataLoading && scoreMigrationTimestampAfterStart)
-            ? []
-            : weightedTimeseries
-        }
+        data={isTimeseriesLoading ? [] : weightedTimeseries}
         disableXAxis
-        loading={
-          isTimeseriesLoading ||
-          (isRawScoreTimeseriesDataLoading && scoreMigrationTimestampAfterStart) ||
-          isProjectScoresLoading
-        }
+        loading={isTimeseriesLoading || isProjectScoresLoading}
         type={ChartType.AREA}
         grid={{
           left: 5,
@@ -232,9 +122,6 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
         chartColors={segmentColors}
         tooltipFormatterOptions={{
           nameFormatter: (name, seriesParams: any) => {
-            if (name === 'FID') {
-              return `${name} Score </strong>(${t('Deprecated')})</strong>`;
-            }
             const timestamp = seriesParams?.data[0];
             const weights = weightsSeries.find(
               series => series.name === timestamp

@@ -10,7 +10,7 @@ from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
 
-from sentry import features, onboarding_tasks, options, quotas, roles
+from sentry import features, onboarding_tasks, quotas, roles
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.project import ProjectSerializerResponse
@@ -32,6 +32,7 @@ from sentry.constants import (
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
+    EXTRAPOLATE_METRICS_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
@@ -245,7 +246,6 @@ class OrganizationSerializer(Serializer):
         from sentry import features
         from sentry.features.base import OrganizationFeature
 
-        logging_enabled = options.get("hybridcloud.endpoint_flag_logging")
         # Retrieve all registered organization features
         org_features = [
             feature
@@ -254,14 +254,6 @@ class OrganizationSerializer(Serializer):
         ]
         feature_set = set()
 
-        if logging_enabled:
-            logger.info(
-                "organization_serializer.begin_feature_check",
-                extra={
-                    "org_features": org_features,
-                    "user.id": user.id if not user.is_anonymous else None,
-                },
-            )
         with sentry_sdk.start_span(op="features.check", description="check batch features"):
             # Check features in batch using the entity handler
             batch_features = features.batch_has(org_features, actor=user, organization=obj)
@@ -277,16 +269,6 @@ class OrganizationSerializer(Serializer):
 
                     # This feature_name was found via `batch_has`, don't check again using `has`
                     org_features.remove(feature_name)
-
-        if logging_enabled:
-            logger.info(
-                "organization_serializer.batch_feature_result",
-                extra={
-                    "batch_feature_result": batch_features,
-                    "user.id": user.id if not user.is_anonymous else None,
-                    "remaining_features": org_features,
-                },
-            )
 
         with sentry_sdk.start_span(op="features.check", description="check individual features"):
             # Remaining features should not be checked via the entity handler
@@ -462,6 +444,7 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     metricAlertsThreadFlag: bool
     metricsActivatePercentiles: bool
     metricsActivateLastForGauges: bool
+    extrapolateMetrics: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -602,6 +585,11 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
                 ),
             }
         )
+
+        if features.has("organizations:metrics-extrapolation", obj):
+            context["extrapolateMetrics"] = bool(
+                obj.get_option("sentry:extrapolate_metrics", EXTRAPOLATE_METRICS_DEFAULT)
+            )
 
         trusted_relays_raw = obj.get_option("sentry:trusted-relays") or []
         # serialize trusted relays info into their external form

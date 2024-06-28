@@ -9,7 +9,7 @@ from typing import Any, TypedDict
 
 from pydantic.fields import Field
 
-from sentry.services.hybrid_cloud import DEFAULT_DATE, RpcModel
+from sentry.hybridcloud.rpc import DEFAULT_DATE, RpcModel
 
 
 class RpcAvatar(RpcModel):

@@ -10,7 +10,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 
 from pydantic.fields import Field
 
-from sentry.services.hybrid_cloud import RpcModel
+from sentry.hybridcloud.rpc import RpcModel
 from sentry.services.hybrid_cloud.user import RpcUser
 
 if TYPE_CHECKING:

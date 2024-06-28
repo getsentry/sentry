@@ -28,7 +28,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {PerformanceBadge} from 'sentry/views/insights/browser/webVitals/components/performanceBadge';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
-import {useTransactionWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/useTransactionWebVitalsQuery';
+import {useTransactionWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionWebVitalsScoresQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {RowWithScoreAndOpportunity} from 'sentry/views/insights/browser/webVitals/types';
 import {SORTABLE_FIELDS} from 'sentry/views/insights/browser/webVitals/types';
@@ -74,11 +74,7 @@ export function PagePerformanceTable() {
     [projects, location.query.project]
   );
 
-  let sort = useWebVitalsSort({defaultSort: DEFAULT_SORT});
-  // Need to map fid back to inp for rendering
-  if (sort.field === 'p75(measurements.fid)') {
-    sort = {...sort, field: 'p75(measurements.inp)'};
-  }
+  const sort = useWebVitalsSort({defaultSort: DEFAULT_SORT});
   const {data: projectScoresData, isLoading: isProjectScoresLoading} =
     useProjectWebVitalsScoresQuery();
 
@@ -86,7 +82,7 @@ export function PagePerformanceTable() {
     data,
     pageLinks,
     isLoading: isTransactionWebVitalsQueryLoading,
-  } = useTransactionWebVitalsQuery({
+  } = useTransactionWebVitalsScoresQuery({
     limit: MAX_ROWS,
     transaction: query !== '' ? `*${escapeFilterValue(query)}*` : undefined,
     defaultSort: DEFAULT_SORT,
@@ -245,7 +241,6 @@ export function PagePerformanceTable() {
         'p75(measurements.fcp)',
         'p75(measurements.lcp)',
         'p75(measurements.ttfb)',
-        'p75(measurements.fid)',
         'p75(measurements.inp)',
       ].includes(key)
     ) {

@@ -94,7 +94,10 @@ function ReplayClipPreviewPlayer({
 
   if (fetching || !replayRecord || !replay) {
     return (
-      <StyledNegativeSpaceContainer testId="replay-loading-placeholder" isLarge={isLarge}>
+      <StyledNegativeSpaceContainer
+        data-test-id="replay-loading-placeholder"
+        isLarge={isLarge}
+      >
         <LoadingIndicator />
       </StyledNegativeSpaceContainer>
     );
@@ -146,7 +149,7 @@ const PlayerContainer = styled(FluidHeight)<{isLarge?: boolean}>`
 
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)<{isLarge?: boolean}>`
   height: ${p => (p.isLarge ? REPLAY_LOADING_HEIGHT_LARGE : REPLAY_LOADING_HEIGHT)}px;
-  margin-bottom: ${space(2)};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 export default ReplayClipPreviewPlayer;

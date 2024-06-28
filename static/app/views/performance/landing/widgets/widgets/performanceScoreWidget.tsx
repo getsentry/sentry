@@ -25,25 +25,12 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
   const {data: projectScores, isLoading: isProjectScoresLoading} =
     useProjectWebVitalsScoresQuery();
 
-  const noTransactions = !isLoading && !projectData?.data?.[0]?.['count()'];
-
   const projectScore =
-    isProjectScoresLoading || isLoading || noTransactions
+    isProjectScoresLoading || isLoading
       ? undefined
       : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
   const ringSegmentColors = theme.charts.getColorPalette(3);
   const ringBackgroundColors = ringSegmentColors.map(color => `${color}50`);
-
-  const weights = projectScore
-    ? {
-        lcp: projectScore.lcpWeight,
-        fcp: projectScore.fcpWeight,
-        inp: projectScore.inpWeight,
-        fid: 0,
-        cls: projectScore.clsWeight,
-        ttfb: projectScore.ttfbWeight,
-      }
-    : undefined;
 
   const moduleURL = useModuleURL('vital');
 
@@ -88,7 +75,7 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
         {
           component: () => (
             <Wrapper>
-              {projectScore && !noTransactions ? (
+              {projectScore ? (
                 <PerformanceScoreRingWithTooltips
                   inPerformanceWidget
                   projectScore={projectScore}
@@ -105,7 +92,6 @@ export function PerformanceScoreWidget(props: PerformanceWidgetProps) {
                   ringSegmentColors={ringSegmentColors}
                   radiusPadding={10}
                   labelHeightPadding={0}
-                  weights={weights}
                 />
               ) : isLoading ? (
                 <StyledLoadingIndicator size={40} />

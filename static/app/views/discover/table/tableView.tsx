@@ -36,7 +36,7 @@ import {
   getEquationAliasIndex,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
-import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
+import {type DiscoverDatasets, DisplayModes, TOP_N} from 'sentry/utils/discover/types';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
@@ -80,6 +80,7 @@ export type TableViewProps = {
 
   title: string;
   customMeasurements?: CustomMeasurementCollection;
+  dataset?: DiscoverDatasets;
   isHomepage?: boolean;
   spanOperationBreakdownKeys?: string[];
 };
@@ -496,6 +497,7 @@ function TableView(props: TableViewProps) {
       measurementKeys,
       spanOperationBreakdownKeys,
       customMeasurements,
+      dataset,
     } = props;
 
     openModal(
@@ -508,6 +510,7 @@ function TableView(props: TableViewProps) {
           columns={eventView.getColumns().map(col => col.column)}
           onApply={handleUpdateColumns}
           customMeasurements={customMeasurements}
+          dataset={dataset}
         />
       ),
       {modalCss, closeEvents: 'escape-key'}

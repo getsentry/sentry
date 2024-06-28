@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Sequence
 from datetime import timedelta
 from unittest import mock
@@ -2091,29 +2093,13 @@ def test_widget_modifed_after_on_demand(default_project: Project) -> None:
 def test_get_current_widget_specs(
     default_project: Project, current_version: SpecVersion, expected: set[str]
 ) -> None:
-    for i, spec in enumerate(
-        [
-            {
-                "version": 1,
-                "hashes": ["abcd", "defg"],
-                "state": "enabled:manual",
-            },
-            {
-                "version": 2,
-                "hashes": ["1234", "5678"],
-                "state": "enabled:manual",
-            },
-            {
-                "version": 2,
-                "hashes": ["ab12", "cd78"],
-                "state": "disabled:high-cardinality",
-            },
-            {
-                "version": 2,
-                "hashes": ["1234"],
-                "state": "enabled:manual",
-            },
-        ]
+    for i, (version, hashes, state) in enumerate(
+        (
+            (1, ["abcd", "defg"], "enabled:manual"),
+            (2, ["1234", "5678"], "enabled:manual"),
+            (2, ["ab12", "cd78"], "disabled:high-cardinality"),
+            (2, ["1234"], "enabled:manual"),
+        )
     ):
         widget_query, _, _ = create_widget(
             ["epm()"],
@@ -2124,9 +2110,9 @@ def test_get_current_widget_specs(
         )
         DashboardWidgetQueryOnDemand.objects.create(
             dashboard_widget_query=widget_query,
-            spec_version=spec["version"],
-            spec_hashes=spec["hashes"],
-            extraction_state=spec["state"],
+            spec_version=version,
+            spec_hashes=hashes,
+            extraction_state=state,
         )
     with mock.patch(
         "sentry.snuba.metrics.extraction.OnDemandMetricSpecVersioning.get_query_spec_version",
@@ -2146,15 +2132,20 @@ def test_get_span_attribute_metrics(default_project: Project) -> None:
             "tags": ["foo"],
             "unit": "millisecond",
             "conditions": ["bar:baz", "abc:xyz"],
-        }
+        },
+        {
+            "spanAttribute": "span.duration",
+            "mri": "c:custom/span.duration@none",
+            "type": "c",
+            "unit": "none",
+        },
     ]
     default_project.update_option("sentry:metrics_extraction_rules", json.dumps(rules))
 
-    with Feature(ON_DEMAND_METRICS):
-        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
-        assert not config
+    config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
+    assert not config
 
-    with Feature([ON_DEMAND_METRICS, "organizations:custom-metrics-extraction-rule"]):
+    with Feature(["organizations:custom-metrics-extraction-rule"]):
         config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
         assert config
         assert config["metrics"] == [
@@ -2174,5 +2165,15 @@ def test_get_span_attribute_metrics(default_project: Project) -> None:
                     {"field": "span.data.bar", "key": "bar"},
                     {"field": "span.data.foo", "key": "foo"},
                 ],
-            }
+            },
+            {
+                "category": "span",
+                "condition": {
+                    "op": "not",
+                    "inner": {"name": "span.duration", "op": "eq", "value": None},
+                },
+                "field": None,
+                "mri": "c:custom/span.duration@none",
+                "tags": [],
+            },
         ]

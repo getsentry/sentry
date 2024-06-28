@@ -621,6 +621,7 @@ export function getChartTimeseries(
   return series.map(item => ({
     id: item.id,
     seriesName: item.name,
+    aggregate: item.operation,
     groupBy: item.groupBy,
     unit: item.unit,
     scalingFactor: item.scalingFactor,

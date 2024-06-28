@@ -8,10 +8,14 @@ from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import FIELD_ALIAS_MAPPINGS, OPERATIONS, DerivedMetricException
 from sentry.snuba.metrics.fields.base import DERIVED_OPS, metric_object_factory
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
-from sentry.snuba.metrics.query import MetricConditionField, MetricField, MetricGroupByField
+from sentry.snuba.metrics.query import (
+    DeprecatingMetricsQuery,
+    MetricConditionField,
+    MetricField,
+    MetricGroupByField,
+)
 from sentry.snuba.metrics.query import MetricOrderByField
 from sentry.snuba.metrics.query import MetricOrderByField as MetricOrderBy
-from sentry.snuba.metrics.query import MetricsQuery
 from sentry.snuba.metrics.query_builder import FUNCTION_ALLOWLIST
 
 TEAM_KEY_TRANSACTION_OP = "team_key_transaction"
@@ -423,7 +427,7 @@ def _transform_team_key_transaction_fake_mri(mq_dict):
 def transform_mqb_query_to_metrics_query(
     query: Query,
     is_alerts_query: bool = False,
-) -> MetricsQuery:
+) -> DeprecatingMetricsQuery:
     groupby, include_series, interval = _transform_groupby(query.groupby)
 
     where_mq_dict, where_conditions = _get_mq_dict_params_and_conditions_from(query.where)
@@ -447,4 +451,4 @@ def transform_mqb_query_to_metrics_query(
     # This code is just an edge case specific for the team_key_transaction derived operation.
     mq_dict.update(**_transform_team_key_transaction_fake_mri(mq_dict))
 
-    return MetricsQuery(**mq_dict)
+    return DeprecatingMetricsQuery(**mq_dict)
