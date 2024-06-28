@@ -223,7 +223,7 @@ def query_replays_dataset_tagkey_values(
         aggregated_column = Function("identity", parameters=[grouped_column], alias="tag_value")
 
     if tag_like:
-        where.append(Condition(aggregated_column, Op.LIKE, tag_like))
+        where.append(Condition(grouped_column, Op.LIKE, tag_like))
 
     snuba_request = Request(
         dataset="replays",

@@ -1339,7 +1339,7 @@ class SnubaTagStorage(TagStorage):
                 end=end,
                 environment=filters.get("environment"),
                 tag_key=key,
-                tag_like=query,
+                tag_like=f"%{query}%" if query else None,
                 tenant_ids=tenant_ids,
             )
             results = {
