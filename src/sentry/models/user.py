@@ -482,7 +482,7 @@ class User(Model, AbstractBaseUser):
                 SuperuserUserSerializer,
                 UserSerializer,
             )
-            from sentry.services.hybrid_cloud.lost_password_hash.impl import (
+            from sentry.users.services.lost_password_hash.impl import (
                 DatabaseLostPasswordHashService,
             )
 

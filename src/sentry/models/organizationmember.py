@@ -390,7 +390,7 @@ class OrganizationMember(ReplicatedRegionModel):
         msg.send_async([self.get_email()])
 
     def send_sso_unlink_email(self, disabling_user: RpcUser | str, provider):
-        from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
+        from sentry.users.services.lost_password_hash import lost_password_hash_service
         from sentry.utils.email import MessageBuilder
 
         # Nothing to send if this member isn't associated to a user
