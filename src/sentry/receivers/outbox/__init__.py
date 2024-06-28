@@ -52,7 +52,7 @@ from __future__ import annotations
 from typing import TypeVar
 
 from sentry.db.models import Model
-from sentry.services.hybrid_cloud.tombstone import (
+from sentry.hybridcloud.services.tombstone import (
     RpcTombstone,
     control_tombstone_service,
     region_tombstone_service,
