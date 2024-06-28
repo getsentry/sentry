@@ -6,18 +6,18 @@ from django.http import HttpRequest, HttpResponse
 from django.utils.decorators import method_decorator
 
 from sentry.api.helpers.teams import is_team_admin
+from sentry.identity.services.identity import identity_service
 from sentry.integrations.mixins import SUCCESS_UNLINKED_TEAM_MESSAGE, SUCCESS_UNLINKED_TEAM_TITLE
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.metrics import (
     SLACK_BOT_COMMAND_UNLINK_TEAM_FAILURE_DATADOG_METRIC,
     SLACK_BOT_COMMAND_UNLINK_TEAM_SUCCESS_DATADOG_METRIC,
 )
-from sentry.integrations.slack.views.types import TeamIdentityRequest
+from sentry.integrations.slack.views.types import TeamUnlinkRequest
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.integrations.integration import Integration
 from sentry.models.organizationmember import OrganizationMember
-from sentry.services.hybrid_cloud.identity import identity_service
 from sentry.utils import metrics
 from sentry.utils.signing import unsign
 from sentry.web.frontend.base import BaseView, region_silo_view
@@ -71,7 +71,7 @@ class SlackUnlinkTeamView(BaseView):
 
         try:
             converted = unsign(signed_params)
-            params = TeamIdentityRequest(**converted)
+            unlink_team_request = TeamUnlinkRequest(**converted)
         except (SignatureExpired, BadSignature) as e:
             _logger.warning("dispatch.signature_error", exc_info=e)
             metrics.incr(self._METRICS_FAILURE_KEY, tags={"error": str(e)}, sample_rate=1.0)
@@ -84,10 +84,12 @@ class SlackUnlinkTeamView(BaseView):
             metrics.incr(self._METRICS_FAILURE_KEY, sample_rate=1.0)
             return render_error_page(request, status=400, body_text="HTTP 400: Invalid parameters")
 
-        logger_params = asdict(params)
+        logger_params = asdict(unlink_team_request)
         logger_params["user_id"] = request.user.id
 
-        integration = integration_service.get_integration(integration_id=params.integration_id)
+        integration = integration_service.get_integration(
+            integration_id=unlink_team_request.integration_id
+        )
         if not integration:
             _logger.info("no-integration-found", extra=logger_params)
             metrics.incr(self._METRICS_FAILURE_KEY + ".get_integration", sample_rate=1.0)
@@ -96,7 +98,7 @@ class SlackUnlinkTeamView(BaseView):
             )
 
         om = OrganizationMember.objects.get_for_integration(
-            integration, request.user, organization_id=params.organization_id
+            integration, request.user, organization_id=unlink_team_request.organization_id
         ).first()
         organization = om.organization if om else None
         if organization is None:
@@ -106,8 +108,8 @@ class SlackUnlinkTeamView(BaseView):
                 request, status=404, body_text="HTTP 404: Could not find the organization."
             )
 
-        channel_name = params.channel_name
-        channel_id = params.channel_id
+        channel_name = unlink_team_request.channel_name
+        channel_id = unlink_team_request.channel_id
 
         external_teams = ExternalActor.objects.filter(
             organization_id=organization.id,
@@ -164,7 +166,7 @@ class SlackUnlinkTeamView(BaseView):
         )
 
         if not idp or not identity_service.get_identity(
-            filter={"provider_id": idp.id, "identity_ext_id": params.slack_id}
+            filter={"provider_id": idp.id, "identity_ext_id": unlink_team_request.slack_id}
         ):
             _logger.info("identity-not-found", extra=logger_params)
             metrics.incr(self._METRICS_FAILURE_KEY + ".identity_not_found", sample_rate=1.0)
@@ -176,7 +178,6 @@ class SlackUnlinkTeamView(BaseView):
         for external_team in external_teams:
             external_team.delete()
 
-        _logger.info("unlink-team-success", extra=logger_params)
         metrics.incr(self._METRICS_SUCCESS_KEY + "post.unlink_team", sample_rate=1.0)
 
         return render_to_response(
