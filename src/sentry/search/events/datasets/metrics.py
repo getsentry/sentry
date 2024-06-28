@@ -73,7 +73,7 @@ class MetricsDatasetConfig(DatasetConfig):
         # If its still None its not a custom measurement
         if metric_id is None:
             raise IncompatibleMetricsQuery(f"Metric: {value} could not be resolved")
-        self.builder.metric_ids.add(metric_id)
+        self.builder.update_metrics_used(metric_id)
         return metric_id
 
     def resolve_value(self, value: str) -> int:

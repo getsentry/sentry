@@ -43,6 +43,7 @@ from sentry.search.events.builder.utils import (
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.datasets.metrics import MetricsDatasetConfig
 from sentry.search.events.datasets.metrics_layer import MetricsLayerDatasetConfig
+from sentry.search.events.datasets.metrics_v2 import MetricsDatasetConfigV2
 from sentry.search.events.fields import get_function_alias
 from sentry.search.events.filter import ParsedTerms
 from sentry.search.events.types import (
@@ -78,6 +79,10 @@ from sentry.snuba.metrics.utils import get_num_intervals
 from sentry.utils.snuba import DATASETS, bulk_snuba_queries, raw_snql_query
 
 
+class MixedMetricTypesFound(Exception):
+    pass
+
+
 class MetricsQueryBuilder(QueryBuilder):
     requires_organization_condition = True
     is_alerts_query = False
@@ -103,6 +108,7 @@ class MetricsQueryBuilder(QueryBuilder):
         dataset: Dataset | None = None,
         granularity: int | None = None,
         config: QueryBuilderConfig | None = None,
+        use_metrics_v2: bool | None = None,
         **kwargs: Any,
     ):
         if config is None:
@@ -115,13 +121,13 @@ class MetricsQueryBuilder(QueryBuilder):
         self.percentiles: list[CurriedFunction] = []
         # only used for metrics_layer right now
         self.metrics_layer_functions: list[CurriedFunction] = []
-        self.metric_ids: set[int] = set()
-        self.metric_mris: set[str] = set()
+        self.__metric_ids: set[int | str] = set()
         self._indexer_cache: dict[str, int | None] = {}
         self._use_default_tags: bool | None = None
         self._has_nullable: bool = False
         # always true if this is being called
         config.has_metrics = True
+        self.use_metrics_v2: bool = use_metrics_v2
         assert dataset is None or dataset in [Dataset.PerformanceMetrics, Dataset.Metrics]
 
         if granularity is not None:
@@ -145,6 +151,12 @@ class MetricsQueryBuilder(QueryBuilder):
         sentry_sdk.set_tag("on_demand_metrics.enabled", config.on_demand_metrics_enabled)
         self.organization_id: int = org_id
 
+    def update_metrics_used(self, metrics: int | str) -> None:
+        self.__metric_ids.add(metrics)
+        elem_type = type(next(iter(self.__metric_ids)))
+        if not all(isinstance(elem, elem_type) for elem in self.__metric_ids):
+            raise MixedMetricTypesFound(self.__metric_ids)
+
     def load_config(self) -> DatasetConfig:
         if hasattr(self, "config_class") and self.config_class is not None:
             return super().load_config()
@@ -153,7 +165,10 @@ class MetricsQueryBuilder(QueryBuilder):
             if self.builder_config.use_metrics_layer:
                 return MetricsLayerDatasetConfig(self)
             else:
-                return MetricsDatasetConfig(self)
+                if self.use_metrics_v2:
+                    return MetricsDatasetConfigV2(self)
+                else:
+                    return MetricsDatasetConfig(self)
         else:
             raise NotImplementedError(f"Data Set configuration not found for {self.dataset}.")
 
@@ -444,11 +459,18 @@ class MetricsQueryBuilder(QueryBuilder):
                     # This may fail for some columns like apdex but it will still enter into the field_alias_map
                     pass
 
-        if len(self.metric_ids) > 0 and not self.use_metrics_layer:
-            self.where.append(
-                # Metric id is intentionally sorted, so we create consistent queries here both for testing & caching.
-                Condition(Column("metric_id"), Op.IN, sorted(self.metric_ids))
-            )
+        if len(self.__metric_ids) > 0 and not self.use_metrics_layer:
+            elem_type = type(next(iter(self.__metric_ids)))
+            if elem_type == int:
+                self.where.append(
+                    # Metric id is intentionally sorted, so we create consistent queries here both for testing & caching.
+                    Condition(Column("metric_id"), Op.IN, sorted(self.__metric_ids))
+                )
+            elif elem_type == str:
+                self.where.append(
+                    # Metric mri is intentionally sorted, so we create consistent queries here both for testing & caching.
+                    Condition(Column("metric_mri"), Op.IN, sorted(self.__metric_ids))
+                )
 
     def resolve_column_name(self, col: str) -> str:
         if col.startswith("tags["):
@@ -468,13 +490,17 @@ class MetricsQueryBuilder(QueryBuilder):
 
         if col in DATASETS[self.dataset]:
             return str(DATASETS[self.dataset][col])
-        tag_id = self.resolve_tag_key(col)
-        if tag_id is None:
-            raise InvalidSearchQuery(f"Unknown field: {col}")
-        if self.is_performance:
-            return f"tags_raw[{tag_id}]"
+
+        if self.use_metrics_v2:
+            return f"tags[{col}]"
         else:
-            return f"tags[{tag_id}]"
+            tag_id = self.resolve_tag_key(col)
+            if tag_id is None:
+                raise InvalidSearchQuery(f"Unknown field: {col}")
+            if self.is_performance:
+                return f"tags_raw[{tag_id}]"
+            else:
+                return f"tags[{tag_id}]"
 
     def column(self, name: str) -> Column:
         """Given an unresolved sentry name and return a snql column.
@@ -623,6 +649,7 @@ class MetricsQueryBuilder(QueryBuilder):
         resolve_only: bool,
     ) -> SelectType | None:
         prefix = self._get_metric_prefix(snql_function, arguments.get("column"))
+        # TODO(nikhar): Is this even going to be a thing for metrics_v2
         # If the metric_id is 0 that means this is a function that won't return but we don't want to error the query
         nullable = arguments.get("metric_id") == 0
         if nullable:
@@ -675,8 +702,11 @@ class MetricsQueryBuilder(QueryBuilder):
             return resolved_function
         return None
 
-    def resolve_metric_index(self, value: str) -> int | None:
+    def resolve_metric_index(self, value: str) -> int | str | None:
         """Layer on top of the metric indexer so we'll only hit it at most once per value"""
+        if self.use_metrics_v2:
+            return value
+
         if value not in self._indexer_cache:
             result = indexer.resolve(self.use_case_id, self.organization_id, value)
             self._indexer_cache[value] = result
@@ -685,7 +715,12 @@ class MetricsQueryBuilder(QueryBuilder):
 
     def resolve_tag_value(self, value: str) -> int | str | None:
         # We only use the indexer for alerts queries
-        if self.is_performance or self.use_metrics_layer or self.profile_functions_metrics_builder:
+        if (
+            self.is_performance
+            or self.use_metrics_layer
+            or self.profile_functions_metrics_builder
+            or self.use_metrics_v2
+        ):
             return value
         return self.resolve_metric_index(value)
 
@@ -1557,16 +1592,19 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
         limit: int | None = 10000,
         groupby: Column | list[Column] | None = None,
         config: QueryBuilderConfig | None = None,
+        use_metrics_v2: bool | None = None,
     ):
         self.interval = interval
         config = config if config is not None else QueryBuilderConfig()
         config.auto_fields = False
+        self.use_metrics_v2 = use_metrics_v2
         super().__init__(
             params=params,
             query=query,
             dataset=dataset,
             selected_columns=selected_columns,
             config=config,
+            use_metrics_v2=use_metrics_v2,
         )
 
         self.time_column = self.resolve_time_column(interval)
@@ -1840,11 +1878,13 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
         timeseries_columns: list[str] | None = None,
         limit: int | None = 10000,
         config: QueryBuilderConfig | None = None,
+        use_metrics_v2: bool | None = None,
     ):
         selected_columns = [] if selected_columns is None else selected_columns
         timeseries_columns = [] if timeseries_columns is None else timeseries_columns
         self.timeseries_columns = timeseries_columns
         self.top_events = top_events
+        self.use_metrics_v2 = use_metrics_v2
         super().__init__(
             dataset=dataset,
             params=params,
@@ -1853,6 +1893,7 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
             selected_columns=list(set(selected_columns + timeseries_columns)),
             limit=limit,
             config=config,
+            use_metrics_v2=self.use_metrics_v2,
         )
 
         self.fields: list[str] = selected_columns if selected_columns is not None else []

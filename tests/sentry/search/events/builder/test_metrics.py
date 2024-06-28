@@ -2524,6 +2524,7 @@ class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
                 on_demand_metrics_enabled=True,
                 on_demand_metrics_type=MetricSpecType.SIMPLE_QUERY,
             ),
+            use_metrics_v2=True,
         )
 
         assert query._on_demand_metric_spec_map
