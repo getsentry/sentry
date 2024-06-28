@@ -20,10 +20,12 @@ import type {
   TextDropItem,
 } from '@react-types/shared';
 
+import {Button} from 'sentry/components/button';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import type {Tab} from 'sentry/components/draggableTabs';
 import {TabsContext} from 'sentry/components/tabs';
 import {OverflowMenu, useOverflowTabs} from 'sentry/components/tabs/tabList';
+import {IconAdd} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 
@@ -155,6 +157,10 @@ function BaseDraggableTabList({
             isChanged
           />
         ))}
+        <AddViewButton borderless size="zero">
+          <IconAdd size="xs" style={{margin: '2 4 2 2'}} />
+          Add View
+        </AddViewButton>
       </TabListWrap>
 
       {orientation === 'horizontal' && overflowMenuItems.length > 0 && (
@@ -244,6 +250,12 @@ export function DraggableTabList({
 }
 
 DraggableTabList.Item = Item;
+
+const AddViewButton = styled(Button)`
+  color: ${p => p.theme.gray300};
+  margin: auto;
+  font-weight: normal;
+`;
 
 const TabListOuterWrap = styled('div')`
   position: relative;

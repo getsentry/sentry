@@ -123,7 +123,7 @@ export const DraggableTab = forwardRef(
           ref={ref}
           newVariant
         >
-          <Draggable onTabClick={() => state.setSelectedKey(item.key)} item={item}>
+          <StyledDraggable onTabClick={() => state.setSelectedKey(item.key)} item={item}>
             <TabContentWrap>
               {rendered}
               <StyledBadge>
@@ -133,8 +133,10 @@ export const DraggableTab = forwardRef(
                 <DraggableTabMenuButton isChanged={isChanged} />
               )}
             </TabContentWrap>
-          </Draggable>
+          </StyledDraggable>
         </StyledBaseTab>
+        {state.selectedKey !== item.key &&
+          state.collection.getKeyAfter(item.key) !== state.selectedKey && <TabDivider />}
         {state.collection.getKeyAfter(item.key) == null && (
           <TabDropIndicator
             target={{type: 'item', key: item.key, dropPosition: 'after'}}
@@ -145,6 +147,20 @@ export const DraggableTab = forwardRef(
     );
   }
 );
+const StyledDraggable = styled(Draggable)`
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  gap: 6px;
+`;
+
+const TabDivider = styled('div')`
+  height: 50%;
+  width: 2px;
+  border-radius: 6px;
+  background-color: ${p => p.theme.gray200};
+  margin: auto;
+`;
 
 const StyledBaseTab = styled(BaseTab)`
   padding: 2px 12px 2px 12px;
