@@ -13,11 +13,13 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
+from sentry.middleware import is_frontend_request
 from sentry.search.events.constants import METRICS_GRANULARITIES
 from sentry.seer.breakpoints import detect_breakpoints
 from sentry.snuba import metrics_performance
 from sentry.snuba.discover import create_result_key, zerofill
 from sentry.snuba.metrics_performance import query as metrics_query
+from sentry.snuba.query_sources import QuerySource
 from sentry.snuba.referrer import Referrer
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils.iterators import chunked
@@ -90,6 +92,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
         selected_columns = ["project_id", "transaction"]
 
         query = request.GET.get("query")
+        query_source = QuerySource.FRONTEND if is_frontend_request(request) else QuerySource.API
 
         def get_top_events(user_query, params, event_limit, referrer):
             top_event_columns = selected_columns[:]
@@ -108,6 +111,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 auto_aggregations=True,
                 use_aggregate_conditions=True,
                 granularity=DAY_GRANULARITY_IN_SECONDS,
+                query_source=query_source,
             )
 
         def generate_top_transaction_query(events):
@@ -153,6 +157,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                 referrer=Referrer.API_TRENDS_GET_EVENT_STATS_V2_TIMESERIES.value,
                 groupby=[Column("project_id"), Column("transaction")],
                 apply_formatting=False,
+                query_source=query_source,
             )
 
             # Parse results
