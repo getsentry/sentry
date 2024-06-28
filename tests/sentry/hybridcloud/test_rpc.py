@@ -10,6 +10,7 @@ from django.db import router
 from django.test import override_settings
 
 from sentry import options
+from sentry.auth.services.auth import AuthService
 from sentry.hybridcloud.rpc.service import (
     RpcAuthenticationSetupException,
     RpcDisabledException,
@@ -18,7 +19,6 @@ from sentry.hybridcloud.rpc.service import (
     dispatch_to_local_service,
 )
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.services.hybrid_cloud.auth import AuthService
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
     RpcOrganizationMemberFlags,

@@ -1,5 +1,5 @@
-import type {MRI} from 'sentry/types/metrics';
-import {getDefaultAggregate} from 'sentry/utils/metrics';
+import type {MetricAggregation, MRI} from 'sentry/types/metrics';
+import {getDefaultAggregation} from 'sentry/utils/metrics';
 import {
   DEFAULT_SORT_STATE,
   emptyMetricsQueryWidget,
@@ -130,6 +130,17 @@ function parseQueryType(
     : undefined;
 }
 
+function parseAggregation(
+  widget: Record<string, unknown>
+): MetricAggregation | undefined {
+  const aggregation =
+    parseStringParam(widget, 'aggregation') ?? parseStringParam(widget, 'op');
+  if (!aggregation) {
+    return undefined;
+  }
+  return aggregation as MetricAggregation;
+}
+
 function parseQueryWidget(
   widget: Record<string, unknown>,
   baseWidgetParams: BaseWidgetParams
@@ -142,7 +153,7 @@ function parseQueryWidget(
 
   return {
     mri,
-    op: parseStringParam(widget, 'op') ?? getDefaultAggregate(mri),
+    aggregation: parseAggregation(widget) ?? getDefaultAggregation(mri),
     query: parseStringParam(widget, 'query') ?? '',
     groupBy: parseArrayParam(widget, 'groupBy', entry =>
       typeof entry === 'string' ? entry : undefined
@@ -292,7 +303,7 @@ export function parseMetricWidgetsQueryParam(
     queries.push({
       ...emptyMetricsQueryWidget,
       mri,
-      op: getDefaultAggregate(mri),
+      aggregation: getDefaultAggregation(mri),
     });
   }
 

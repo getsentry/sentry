@@ -1,7 +1,9 @@
 import {useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
+import {AnimatePresence} from 'framer-motion';
 
 import {Button} from 'sentry/components/button';
+import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconPanel} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
@@ -9,7 +11,6 @@ import {space} from 'sentry/styles/space';
 import localStorage from 'sentry/utils/localStorage';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOnClickOutside from 'sentry/utils/useOnClickOutside';
-import SlideOverPanel from 'sentry/views/insights/common/components/slideOverPanel';
 
 type DetailProps = {
   children: React.ReactNode;
@@ -82,45 +83,47 @@ export default function Detail({
   };
 
   return (
-    <SlideOverPanel
-      slidePosition={slidePosition}
-      collapsed={state.collapsed}
-      ref={panelRef}
-      onOpen={onOpen}
-    >
-      <CloseButtonWrapper>
-        <PanelButton
-          priority="link"
-          size="zero"
-          borderless
-          aria-label={t('Dock to the bottom')}
-          disabled={slidePosition === 'bottom'}
-          icon={<IconPanel size="sm" direction="down" />}
-          onClick={() => handleDocking('bottom')}
-        />
-        <PanelButton
-          priority="link"
-          size="zero"
-          borderless
-          aria-label={t('Dock to the right')}
-          disabled={slidePosition === 'right'}
-          icon={<IconPanel size="sm" direction="right" />}
-          onClick={() => handleDocking('right')}
-        />
-        <CloseButton
-          priority="link"
-          size="zero"
-          borderless
-          aria-label={t('Close Details')}
-          icon={<IconClose size="sm" />}
-          onClick={() => {
-            setState({collapsed: true});
-            onClose?.();
-          }}
-        />
-      </CloseButtonWrapper>
-      <DetailWrapper>{children}</DetailWrapper>
-    </SlideOverPanel>
+    <AnimatePresence>
+      <SlideOverPanel
+        slidePosition={slidePosition}
+        collapsed={state.collapsed}
+        ref={panelRef}
+        onOpen={onOpen}
+      >
+        <CloseButtonWrapper>
+          <PanelButton
+            priority="link"
+            size="zero"
+            borderless
+            aria-label={t('Dock to the bottom')}
+            disabled={slidePosition === 'bottom'}
+            icon={<IconPanel size="sm" direction="down" />}
+            onClick={() => handleDocking('bottom')}
+          />
+          <PanelButton
+            priority="link"
+            size="zero"
+            borderless
+            aria-label={t('Dock to the right')}
+            disabled={slidePosition === 'right'}
+            icon={<IconPanel size="sm" direction="right" />}
+            onClick={() => handleDocking('right')}
+          />
+          <CloseButton
+            priority="link"
+            size="zero"
+            borderless
+            aria-label={t('Close Details')}
+            icon={<IconClose size="sm" />}
+            onClick={() => {
+              setState({collapsed: true});
+              onClose?.();
+            }}
+          />
+        </CloseButtonWrapper>
+        <DetailWrapper>{children}</DetailWrapper>
+      </SlideOverPanel>
+    </AnimatePresence>
   );
 }
 

@@ -4,6 +4,8 @@ from typing import Any
 from django.db import router, transaction
 from django.db.models import Q
 
+from sentry.auth.services.auth import RpcApiKey, RpcApiToken, RpcAuthIdentity, RpcAuthProvider
+from sentry.auth.services.orgauthtoken.model import RpcOrgAuthToken
 from sentry.db.models import BaseModel, FlexibleForeignKey
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel, ReplicatedRegionModel
@@ -17,6 +19,7 @@ from sentry.hybridcloud.models import (
 from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
+from sentry.hybridcloud.services.replica.service import ControlReplicaService, RegionReplicaService
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.authidentity import AuthIdentity
@@ -35,15 +38,7 @@ from sentry.models.team import Team
 from sentry.models.teamreplica import TeamReplica
 from sentry.models.user import User
 from sentry.notifications.services import RpcExternalActor
-from sentry.services.hybrid_cloud.auth import (
-    RpcApiKey,
-    RpcApiToken,
-    RpcAuthIdentity,
-    RpcAuthProvider,
-)
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberTeam, RpcTeam
-from sentry.services.hybrid_cloud.orgauthtoken.model import RpcOrgAuthToken
-from sentry.services.hybrid_cloud.replica.service import ControlReplicaService, RegionReplicaService
 
 
 def get_foreign_key_columns(

@@ -25,7 +25,7 @@ class BaseEventTest(APITestCase):
     @pytest.fixture(autouse=True)
     def mock_webhook_send(self):
         with patch(
-            "slack_sdk.WebhookClient.send",
+            "slack_sdk.webhook.WebhookClient.send",
             return_value=WebhookResponse(
                 url="",
                 body='{"ok": True}',

@@ -2168,7 +2168,10 @@ def test_get_span_attribute_metrics(default_project: Project) -> None:
             },
             {
                 "category": "span",
-                "condition": None,
+                "condition": {
+                    "op": "not",
+                    "inner": {"name": "span.duration", "op": "eq", "value": None},
+                },
                 "field": None,
                 "mri": "c:custom/span.duration@none",
                 "tags": [],
