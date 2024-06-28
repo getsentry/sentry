@@ -53,6 +53,7 @@ export interface MenuItemProps extends MenuListItemProps {
    * item's key is passed as an argument.
    */
   onAction?: (key: MenuItemProps['key']) => void;
+  showDivider?: boolean;
   /**
    * Passed as the `menuTitle` prop onto the associated sub-menu (applicable
    * if `children` is defined and `isSubmenu` is true)
@@ -63,6 +64,7 @@ export interface MenuItemProps extends MenuListItemProps {
    * filtering and keyboard select (quick-focusing on options by typing the first letter).
    */
   textValue?: string;
+
   /**
    * Destination if this menu item is a link.
    */
