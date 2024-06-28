@@ -153,9 +153,7 @@ def _get_rule_condition(
     )
 
 
-def _append_exists_condition(
-    rule_condition: RuleCondition, span_attribute: str
-) -> Sequence[QueryToken]:
+def _append_exists_condition(rule_condition: RuleCondition, span_attribute: str) -> RuleCondition:
     return {
         "op": "and",
         "inner": [
@@ -165,7 +163,7 @@ def _append_exists_condition(
     }
 
 
-def _get_exists_condition(span_attribute: str) -> SearchFilter:
+def _get_exists_condition(span_attribute: str) -> RuleCondition:
     return {
         "op": "not",
         "inner": {
