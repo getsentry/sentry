@@ -3,7 +3,7 @@ import {forwardRef, useEffect} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {AnimatePresence, motion} from 'framer-motion';
+import {motion} from 'framer-motion';
 
 import {space} from 'sentry/styles/space';
 
@@ -20,9 +20,10 @@ const COLLAPSED_STYLES = {
   right: {opacity: 0, x: PANEL_WIDTH, y: 0},
 };
 
-type SlideOverPanelProps = {
+export type SlideOverPanelProps = {
   children: React.ReactNode;
   collapsed: boolean;
+  ariaLabel?: string;
   onOpen?: () => void;
   slidePosition?: 'right' | 'bottom';
 };
@@ -30,7 +31,7 @@ type SlideOverPanelProps = {
 export default forwardRef(SlideOverPanel);
 
 function SlideOverPanel(
-  {collapsed, children, onOpen, slidePosition}: SlideOverPanelProps,
+  {ariaLabel, collapsed, children, onOpen, slidePosition}: SlideOverPanelProps,
   ref: ForwardedRef<HTMLDivElement>
 ) {
   useEffect(() => {
@@ -45,25 +46,24 @@ function SlideOverPanel(
     ? COLLAPSED_STYLES[slidePosition]
     : COLLAPSED_STYLES.right;
 
-  return (
-    <AnimatePresence>
-      {!collapsed && (
-        <_SlideOverPanel
-          ref={ref}
-          initial={collapsedStyle}
-          animate={openStyle}
-          exit={collapsedStyle}
-          slidePosition={slidePosition}
-          transition={{
-            type: 'spring',
-            stiffness: 500,
-            damping: 50,
-          }}
-        >
-          {children}
-        </_SlideOverPanel>
-      )}
-    </AnimatePresence>
+  return collapsed ? null : (
+    <_SlideOverPanel
+      ref={ref}
+      initial={collapsedStyle}
+      animate={openStyle}
+      exit={collapsedStyle}
+      slidePosition={slidePosition}
+      transition={{
+        type: 'spring',
+        stiffness: 500,
+        damping: 50,
+      }}
+      role="complementary"
+      aria-hidden={collapsed}
+      aria-label={ariaLabel ?? 'slide out drawer'}
+    >
+      {children}
+    </_SlideOverPanel>
   );
 }
 
@@ -82,6 +82,8 @@ const _SlideOverPanel = styled(motion.div, {
   left: ${space(2)};
 
   overflow: auto;
+  pointer-events: auto;
+  overscroll-behavior: contain;
 
   z-index: ${p => p.theme.zIndex.modal + 1};
 

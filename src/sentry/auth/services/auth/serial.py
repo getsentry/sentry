@@ -1,18 +1,18 @@
 from __future__ import annotations
 
-from sentry.models.apikey import ApiKey
-from sentry.models.apitoken import ApiToken
-from sentry.models.authidentity import AuthIdentity
-from sentry.models.authidentityreplica import AuthIdentityReplica
-from sentry.models.authprovider import AuthProvider
-from sentry.models.authproviderreplica import AuthProviderReplica
-from sentry.services.hybrid_cloud.auth import (
+from sentry.auth.services.auth import (
     RpcApiKey,
     RpcApiToken,
     RpcAuthIdentity,
     RpcAuthProvider,
     RpcAuthProviderFlags,
 )
+from sentry.models.apikey import ApiKey
+from sentry.models.apitoken import ApiToken
+from sentry.models.authidentity import AuthIdentity
+from sentry.models.authidentityreplica import AuthIdentityReplica
+from sentry.models.authprovider import AuthProvider
+from sentry.models.authproviderreplica import AuthProviderReplica
 
 
 def _serialize_auth_provider_flags(ap: AuthProvider) -> RpcAuthProviderFlags:
