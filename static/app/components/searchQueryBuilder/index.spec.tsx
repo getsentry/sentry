@@ -925,6 +925,25 @@ describe('SearchQueryBuilder', function () {
         expect(within(valueButton).getByText('Chrome')).toBeInTheDocument();
       });
 
+      it('collapses many selected options', function () {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[one,two,three,four]"
+          />
+        );
+
+        const valueButton = screen.getByRole('button', {
+          name: 'Edit value for filter: browser.name',
+        });
+        expect(within(valueButton).getByText('one')).toBeInTheDocument();
+        expect(within(valueButton).getByText('two')).toBeInTheDocument();
+        expect(within(valueButton).getByText('three')).toBeInTheDocument();
+        expect(within(valueButton).getByText('+1')).toBeInTheDocument();
+        expect(within(valueButton).queryByText('four')).not.toBeInTheDocument();
+        expect(within(valueButton).getAllByText('or')).toHaveLength(2);
+      });
+
       it('escapes values with spaces and reserved characters', async function () {
         render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
         await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
