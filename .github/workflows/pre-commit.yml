@@ -58,10 +58,6 @@ jobs:
       - name: Install node dependencies
         run: |
           yarn install --frozen-lockfile
-          ls -lah ./node_modules/.bin
-          echo $PATH
-          echo $GITHUB_PATH
-          false
 
       - uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f # v2.1.0
         with:
