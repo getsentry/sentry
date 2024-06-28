@@ -59,7 +59,6 @@ import {
 import {TracesChart} from './tracesChart';
 import {TracesSearchBar} from './tracesSearchBar';
 import {
-  ALL_PROJECTS,
   areQueriesEmpty,
   getSecondaryNameFromSpan,
   getStylingSliceName,
@@ -193,7 +192,7 @@ export function Content() {
           )}
           position="bottom"
         >
-          <ProjectPageFilter disabled projectOverride={ALL_PROJECTS} />
+          <ProjectPageFilter />
         </Tooltip>
         <EnvironmentPageFilter />
         <DatePageFilter defaultPeriod="2h" />
@@ -750,6 +749,7 @@ function useTraceSpans<F extends string>({
 
   const endpointOptions = {
     query: {
+      project: selection.projects,
       environment: selection.environments,
       ...(datetime ?? normalizeDateTimeParams(selection.datetime)),
       field: fields,
