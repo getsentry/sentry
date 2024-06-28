@@ -80,15 +80,18 @@ export default function ProjectDetail({router, location, organization}: Props) {
     fetchOrganizationDetails(api, params.orgId, true, false);
   }, [api, params.orgId]);
 
-  const handleSearch = useCallback(() => {
-    router.replace({
-      pathname: location.pathname,
-      query: {
-        ...location.query,
-        query,
-      },
-    });
-  }, [router, location.query, location.pathname, query]);
+  const handleSearch = useCallback(
+    (searchQuery: string) => {
+      router.replace({
+        pathname: location.pathname,
+        query: {
+          ...location.query,
+          query: searchQuery,
+        },
+      });
+    },
+    [router, location.query, location.pathname]
+  );
 
   const tagValueLoader = useCallback(
     (key: string, search: string) => {
