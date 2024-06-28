@@ -2015,6 +2015,49 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 response_data = response.json()
                 assert len(response_data["data"]) == 0, query
 
+    def test_get_replays_preferred_source(self):
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        self.store_replays(mock_replay(seq1_timestamp, self.project.id, replay1_id, segment_id=0))
+        self.store_replays(mock_replay(seq2_timestamp, self.project.id, replay1_id, segment_id=1))
+
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url, headers={"X-Preferred-Data-Source": "materialized-view"}
+            )
+            assert response.status_code == 200
+            assert response.headers["X-Data-Source"] == "materialized-view"
+
+            response = self.client.get(self.url, headers={"X-Preferred-Data-Source": "scalar"})
+            assert response.status_code == 200
+            assert response.headers["X-Data-Source"] == "scalar-subquery"
+
+            response = self.client.get(self.url, headers={"X-Preferred-Data-Source": "aggregated"})
+            assert response.status_code == 200
+            assert response.headers["X-Data-Source"] == "aggregated-subquery"
+
+    def test_get_replays_default_data_source(self):
+        """Assert default data source is conditional on flag."""
+        features = self.features.copy()
+        replay1_id = uuid.uuid4().hex
+        seq1_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        seq2_timestamp = datetime.datetime.now() - datetime.timedelta(seconds=22)
+        self.store_replays(mock_replay(seq1_timestamp, self.project.id, replay1_id, segment_id=0))
+        self.store_replays(mock_replay(seq2_timestamp, self.project.id, replay1_id, segment_id=1))
+
+        features["organizations:session-replay-materialized-view"] = False
+        with self.feature(features):
+            response = self.client.get(self.url)
+            assert response.status_code == 200
+            assert response.headers["X-Data-Source"] == "scalar-subquery"
+
+        features["organizations:session-replay-materialized-view"] = True
+        with self.feature(features):
+            response = self.client.get(self.url)
+            assert response.status_code == 200
+            assert response.headers["X-Data-Source"] == "materialized-view"
+
 
 class MaterializedViewOrganizationReplayIndexTest(OrganizationReplayIndexTest):
     @property
