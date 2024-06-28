@@ -14,14 +14,7 @@ from rest_framework.request import Request
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
-from sentry_sdk import (
-    Scope,
-    capture_exception,
-    capture_message,
-    configure_scope,
-    isolation_scope,
-    push_scope,
-)
+from sentry_sdk import Scope, capture_exception, capture_message, configure_scope, isolation_scope
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
 from sentry_sdk.transport import make_transport
@@ -729,7 +722,7 @@ __all__ = (
     "mark_scope_as_unsafe",
     "merge_context_into_scope",
     "patch_transport_for_instrumentation",
-    "push_scope",
+    "isolation_scope",
     "set_current_event_project",
     "set_measurement",
     "traces_sampler",
