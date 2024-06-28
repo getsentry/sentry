@@ -275,6 +275,7 @@ class BaseTSDB(Service):
         while timestamp >= start:
             series.append(self.normalize_to_epoch(timestamp, rollup))
             timestamp = timestamp - timedelta(seconds=rollup)
+
         return rollup, series[::-1]
 
     def get_active_series(
