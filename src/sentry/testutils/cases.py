@@ -1716,6 +1716,7 @@ class BaseMetricsTestCase(SnubaTestCase):
         use_case_id = UseCaseID(parsed.namespace)
 
         mapping_meta = {}
+
         def metric_id(key: str):
             assert isinstance(key, str)
             res = indexer.record(
@@ -1754,8 +1755,6 @@ class BaseMetricsTestCase(SnubaTestCase):
             return res
 
         assert not isinstance(value, list)
-
-
 
         if metric_type == "s":
             # Relay uses a different hashing algorithm, but that's ok
