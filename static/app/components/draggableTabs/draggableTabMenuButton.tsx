@@ -6,7 +6,7 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 
-const TAB_MENU_OPTIONS: MenuItemProps[] = [
+const TAB_MENU_OPTIONS_CHANGED: MenuItemProps[] = [
   {
     key: 'save-changes',
     label: t('Save Changes'),
@@ -16,10 +16,12 @@ const TAB_MENU_OPTIONS: MenuItemProps[] = [
     key: 'discard-changes',
     label: t('Discard Changes'),
   },
+];
+
+const TAB_MENU_OPTIONS_DEFAULT: MenuItemProps[] = [
   {
     key: 'rename-tab',
     label: t('Rename'),
-    showDivider: true,
   },
   {
     key: 'duplicate-tab',
@@ -29,6 +31,17 @@ const TAB_MENU_OPTIONS: MenuItemProps[] = [
     key: 'delete-tab',
     label: t('Delete'),
     priority: 'danger',
+  },
+];
+
+const TAB_MENU_OPTIONS: MenuItemProps[] = [
+  {
+    key: 'changed',
+    children: TAB_MENU_OPTIONS_CHANGED,
+  },
+  {
+    key: 'default',
+    children: TAB_MENU_OPTIONS_DEFAULT,
   },
 ];
 
