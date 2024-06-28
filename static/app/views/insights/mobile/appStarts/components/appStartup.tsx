@@ -156,11 +156,7 @@ function AppStartup({additionalFilters, chartHeight}: Props) {
     referrer: 'api.starfish.mobile-startup-bar-chart',
   });
 
-  useHasDataTrackAnalytics(
-    new MutableSearch('span.op:[app.start.cold,app.start.warm]'),
-    'api.performance.mobile.app-startup-landing',
-    'insight.page_loads.app_start'
-  );
+  useHasDataTrackAnalytics(ModuleName.APP_START, 'insight.page_loads.app_start');
 
   if (!defined(primaryRelease) && !isReleasesLoading) {
     return (

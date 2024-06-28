@@ -61,9 +61,9 @@ from sentry.utils.numbers import base32_decode, base32_encode
 from sentry.utils.strings import strip, truncatechars
 
 if TYPE_CHECKING:
+    from sentry.integrations.services.integration import RpcIntegration
     from sentry.models.environment import Environment
     from sentry.models.team import Team
-    from sentry.services.hybrid_cloud.integration import RpcIntegration
     from sentry.services.hybrid_cloud.user import RpcUser
 
 logger = logging.getLogger(__name__)
@@ -391,9 +391,9 @@ class GroupManager(BaseManager["Group"]):
         organizations: Sequence[Organization],
         external_issue_key: str,
     ) -> QuerySet[Group]:
+        from sentry.integrations.services.integration import integration_service
         from sentry.models.grouplink import GroupLink
         from sentry.models.integrations.external_issue import ExternalIssue
-        from sentry.services.hybrid_cloud.integration import integration_service
 
         external_issue_subquery = ExternalIssue.objects.get_for_integration(
             integration, external_issue_key

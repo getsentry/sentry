@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 import pytest
-from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
+from snuba_sdk import AliasedExpression, And, Column, Condition, Function, Op
 
 from sentry.search.events.builder import SpansIndexedQueryBuilder
 from sentry.snuba.dataset import Dataset
@@ -72,6 +72,14 @@ def test_field_alias(params, field, expected):
     assert expected in builder.columns
 
 
+def tags(key, column="tags"):
+    return Function("ifNull", [Column(f"{column}[{key}]"), ""])
+
+
+def has_tag(key, column="tags"):
+    return Condition(Function("has", [Column("tags.key"), key]), Op.EQ, 1)
+
+
 @pytest.mark.parametrize(
     ["condition", "expected"],
     [
@@ -115,6 +123,118 @@ def test_field_alias(params, field, expected):
             "span.status:[invalid_argument,not_found]",
             Condition(Column("span_status"), Op.IN, [3, 5]),
             id="span.status:[invalid_argument,not_found]",
+        ),
+        pytest.param(
+            "foo:*bar*",
+            And(
+                conditions=[
+                    Condition(Function("positionCaseInsensitive", [tags("foo"), "bar"]), Op.NEQ, 0),
+                    has_tag("foo"),
+                ],
+            ),
+            id="foo:*bar*",
+        ),
+        pytest.param(
+            "!foo:*bar*",
+            And(
+                conditions=[
+                    Condition(Function("positionCaseInsensitive", [tags("foo"), "bar"]), Op.EQ, 0),
+                    has_tag("foo"),
+                ],
+            ),
+            id="!foo:*bar*",
+        ),
+        pytest.param(
+            r"foo:Bar*",
+            And(
+                conditions=[
+                    Condition(
+                        Function("startsWith", [Function("lower", [tags("foo")]), "bar"]), Op.EQ, 1
+                    ),
+                    has_tag("foo"),
+                ],
+            ),
+            id=r"foo:Bar*",
+        ),
+        pytest.param(
+            r"!foo:Bar*",
+            And(
+                conditions=[
+                    Condition(
+                        Function("startsWith", [Function("lower", [tags("foo")]), "bar"]), Op.NEQ, 1
+                    ),
+                    has_tag("foo"),
+                ],
+            ),
+            id=r"!foo:Bar*",
+        ),
+        pytest.param(
+            r"foo:*Bar",
+            And(
+                conditions=[
+                    Condition(
+                        Function("endsWith", [Function("lower", [tags("foo")]), "bar"]), Op.EQ, 1
+                    ),
+                    has_tag("foo"),
+                ],
+            ),
+            id=r"foo:*Bar",
+        ),
+        pytest.param(
+            r"!foo:*Bar",
+            And(
+                conditions=[
+                    Condition(
+                        Function("endsWith", [Function("lower", [tags("foo")]), "bar"]), Op.NEQ, 1
+                    ),
+                    has_tag("foo"),
+                ],
+            ),
+            id=r"!foo:*Bar",
+        ),
+        pytest.param(
+            r"foo:*Bar\*",
+            And(
+                conditions=[
+                    Condition(
+                        Function("endsWith", [Function("lower", [tags("foo")]), "bar*"]), Op.EQ, 1
+                    ),
+                    has_tag("foo"),
+                ],
+            ),
+            id=r"foo:*Bar\*",
+        ),
+        pytest.param(
+            r"!foo:*Bar\*",
+            And(
+                conditions=[
+                    Condition(
+                        Function("endsWith", [Function("lower", [tags("foo")]), "bar*"]), Op.NEQ, 1
+                    ),
+                    has_tag("foo"),
+                ],
+            ),
+            id=r"!foo:*Bar\*",
+        ),
+        pytest.param(
+            r"foo:*b*a*r*",
+            And(
+                conditions=[
+                    Condition(Function("match", [tags("foo"), "(?i)^.*b.*a.*r.*$"]), Op.EQ, 1),
+                    has_tag("foo"),
+                ],
+            ),
+            id=r"foo:*b*a*r*",
+        ),
+        pytest.param(
+            r"!foo:*b*a*r*",
+            And(
+                conditions=[
+                    Condition(Function("match", [tags("foo"), "(?i)^.*b.*a.*r.*$"]), Op.NEQ, 1),
+                    has_tag("foo"),
+                ],
+            ),
+            id=r"!foo:*b*a*r*",
         ),
     ],
 )

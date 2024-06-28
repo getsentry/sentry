@@ -288,7 +288,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-trends-issues", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Bypass 30 day date range selection when fetching new trends data
     manager.add("organizations:performance-trends-new-data-date-range-default", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    manager.add("organizations:performance-use-metrics", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:performance-use-metrics", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable showing INP web vital in default views
     manager.add("organizations:performance-vitals-inp", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable profiling
@@ -399,7 +399,9 @@ def register_temporary_features(manager: FeatureManager):
     # Use new Slack SDK Client to respond to link commands
     manager.add("organizations:slack-sdk-link-commands", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # User new Slack SDK Client in SlackEventEndpoint
-    manager.add("organizations:slack-sdk-slack-event-endpoint", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
+    manager.add("organizations:slack-sdk-slack-event-endpoint", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
+    # Use new Slack SDK Client in SlackActionEndpoint
+    manager.add("organizations:slack-sdk-webhook-handling", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Add regression chart as image to slack message
     manager.add("organizations:slack-endpoint-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     manager.add("organizations:slack-function-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)

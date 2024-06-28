@@ -6,7 +6,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getResourceTypeFilter} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
@@ -18,7 +17,6 @@ import {
   IMAGE_FILE_EXTENSIONS,
 } from 'sentry/views/insights/browser/resources/constants';
 import {useResourcePagesQuery} from 'sentry/views/insights/browser/resources/queries/useResourcePagesQuery';
-import {Referrer} from 'sentry/views/insights/browser/resources/referrer';
 import {
   DEFAULT_RESOURCE_TYPES,
   RESOURCE_THROUGHPUT_UNIT,
@@ -58,13 +56,7 @@ function ResourceView() {
 
   const extraQuery = getResourceTypeFilter(undefined, DEFAULT_RESOURCE_TYPES);
 
-  useHasDataTrackAnalytics(
-    MutableSearch.fromQueryObject({
-      'span.op': `[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
-    }),
-    Referrer.RESOURCE_LANDING,
-    'insight.page_loads.assets'
-  );
+  useHasDataTrackAnalytics(ModuleName.RESOURCE, 'insight.page_loads.assets');
 
   return (
     <Fragment>

@@ -1,6 +1,8 @@
 from unittest.mock import patch
 
 import orjson
+import pytest
+from slack_sdk.webhook import WebhookResponse
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import add_identity, install_slack
@@ -19,6 +21,19 @@ class BaseEventTest(APITestCase):
         )
         self.project = self.create_project()
         self.rule = self.create_project_rule(project=self.project)
+
+    @pytest.fixture(autouse=True)
+    def mock_webhook_send(self):
+        with patch(
+            "slack_sdk.WebhookClient.send",
+            return_value=WebhookResponse(
+                url="",
+                body='{"ok": True}',
+                headers={},
+                status_code=200,
+            ),
+        ) as self.mock_post:
+            yield
 
     @patch(
         "sentry.integrations.slack.requests.base.SlackRequest._check_signing_secret",

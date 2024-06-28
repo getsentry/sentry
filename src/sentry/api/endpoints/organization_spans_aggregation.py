@@ -335,6 +335,7 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
+    snuba_methods = ["GET"]
 
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has(

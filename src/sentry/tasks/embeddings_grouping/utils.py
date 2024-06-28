@@ -42,7 +42,6 @@ from sentry.utils.snuba import bulk_snuba_queries
 
 BACKFILL_NAME = "backfill_grouping_records"
 BULK_DELETE_METADATA_CHUNK_SIZE = 100
-SNUBA_QUERY_RATELIMIT = 20
 
 logger = logging.getLogger(__name__)
 
@@ -197,7 +196,10 @@ def get_data_from_snuba(project, groups_to_backfill_with_no_embedding):
     events_entity = Entity("events", alias="events")
 
     snuba_results = []
-    for group_ids_chunk in chunked(groups_to_backfill_with_no_embedding, SNUBA_QUERY_RATELIMIT):
+    for group_ids_chunk in chunked(
+        groups_to_backfill_with_no_embedding,
+        options.get("similarity.backfill_snuba_concurrent_requests"),
+    ):
         snuba_requests = []
         for group_id in group_ids_chunk:
             group = Group.objects.get(id=group_id)
@@ -313,6 +315,7 @@ def get_events_from_nodestore(
 
 
 @sentry_sdk.tracing.trace
+@metrics.wraps(f"{BACKFILL_NAME}.send_group_and_stacktrace_to_seer", sample_rate=1.0)
 def send_group_and_stacktrace_to_seer(
     project, groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row, nodestore_results
 ):
@@ -406,11 +409,13 @@ def make_nodestore_call_multithreaded(project, node_keys):
     def process_chunk(chunk):
         return _make_nodestore_call(project, chunk)
 
-    chunk_size = 5
+    chunk_size = options.get("similarity.backfill_nodestore_chunk_size")
     chunks = [node_keys[i : i + chunk_size] for i in range(0, len(node_keys), chunk_size)]
 
     bulk_data = {}
-    with ThreadPoolExecutor(max_workers=5) as executor:
+    with ThreadPoolExecutor(
+        max_workers=options.get("similarity.backfill_nodestore_threads")
+    ) as executor:
         future_to_chunk = {executor.submit(process_chunk, chunk): chunk for chunk in chunks}
         for future in as_completed(future_to_chunk):
             bulk_data.update(future.result())

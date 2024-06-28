@@ -57,6 +57,7 @@ class OrganizationOnDemandMetricsEstimationStatsEndpoint(OrganizationEventsV2End
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     """Gets the estimated volume of an organization's metric events."""
+    snuba_methods = ["GET"]
 
     def get(self, request: Request, organization: Organization) -> Response:
         measurement = request.GET.get("yAxis")
