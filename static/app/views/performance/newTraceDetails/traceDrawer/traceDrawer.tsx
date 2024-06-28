@@ -430,7 +430,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
                   metaResults={props.metaResults}
                   traceType={props.traceType}
                   tree={props.trace}
-                  node={props.trace.root.children[0]}
+                  node={Object.values(props.trace.root.children)[0]}
                   rootEventResults={props.rootEventResults}
                   traces={props.traces}
                   tagsInfiniteQueryResults={tagsInfiniteQueryResults}
@@ -473,7 +473,7 @@ function TraceDrawerTab(props: TraceDrawerTabProps) {
   const node = props.tab.node;
 
   if (typeof node === 'string') {
-    const root = props.trace.root.children[0];
+    const root = Object.values(props.trace.root.children)[0];
     return (
       <Tab
         data-test-id="trace-drawer-tab"
