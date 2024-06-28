@@ -50,7 +50,7 @@ function CreatePullRequestButton({
           run_id: autofixData?.run_id,
           payload: {
             type: 'create_pr',
-            repo_id: change.repo_id,
+            repo_external_id: change.repo_external_id,
           },
         },
       });
@@ -243,7 +243,7 @@ export function AutofixChanges({
   return (
     <Content>
       {step.changes.map((change, i) => (
-        <Fragment key={change.repo_id}>
+        <Fragment key={change.repo_external_id}>
           {i > 0 && <Separator />}
           <AutofixRepoChange change={change} groupId={groupId} isLastStep={isLastStep} />
         </Fragment>
