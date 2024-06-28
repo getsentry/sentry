@@ -284,7 +284,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
                 client.chat_unfurl(
                     channel=data["channel"],
                     ts=data["message_ts"],
-                    unfurls=orjson.dumps(results).decode(),
+                    unfurls=payload["unfurls"],
                 )
             except SlackApiError:
                 _logger.exception("on_link_shared.unfurl-error", extra=logger_params)
