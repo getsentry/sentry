@@ -449,7 +449,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "genAIConsent": True,
             "issueAlertsThreadFlag": False,
             "metricAlertsThreadFlag": False,
-            "metricsActivatePercentiles": True,
+            "metricsActivatePercentiles": False,
             "metricsActivateLastForGauges": True,
             "extrapolateMetrics": True,
         }
@@ -485,7 +485,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:scrape_javascript") is False
         assert options.get("sentry:join_requests") is False
         assert options.get("sentry:events_member_admin") is False
-        assert options.get("sentry:metrics_activate_percentiles") is True
+        assert options.get("sentry:metrics_activate_percentiles") is False
         assert options.get("sentry:metrics_activate_last_for_gauges") is True
         assert options.get("sentry:extrapolate_metrics") is True
 

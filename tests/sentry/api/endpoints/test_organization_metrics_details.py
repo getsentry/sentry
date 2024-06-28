@@ -233,6 +233,11 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             "max_timestamp",
             "min",
             "min_timestamp",
+            "p50",
+            "p75",
+            "p90",
+            "p95",
+            "p99",
             "sum",
         ]
 
@@ -244,24 +249,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             "sum",
         ]
 
-        # test default deactivated percentiles
-        response = self.get_success_response(
-            self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
-        )
-        data = sorted(response.data, key=lambda d: d["mri"])
-        assert sorted(data[1]["operations"]) == [
-            "avg",
-            "count",
-            "histogram",
-            "max",
-            "max_timestamp",
-            "min",
-            "min_timestamp",
-            "sum",
-        ]
-
-        # test activated percentiles
-        self.organization.update_option("sentry:metrics_activate_percentiles", True)
+        # test default activated percentiles
         response = self.get_success_response(
             self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
         )
@@ -279,6 +267,23 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             "p90",
             "p95",
             "p99",
+            "sum",
+        ]
+
+        # test deactivated percentiles
+        self.organization.update_option("sentry:metrics_activate_percentiles", False)
+        response = self.get_success_response(
+            self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
+        )
+        data = sorted(response.data, key=lambda d: d["mri"])
+        assert sorted(data[1]["operations"]) == [
+            "avg",
+            "count",
+            "histogram",
+            "max",
+            "max_timestamp",
+            "min",
+            "min_timestamp",
             "sum",
         ]
 
