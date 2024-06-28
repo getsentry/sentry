@@ -20,6 +20,7 @@ class DatasetConfig(abc.ABC):
     non_nullable_keys: set[str] = set()
     missing_function_error: ClassVar[type[Exception]] = InvalidSearchQuery
     optimize_wildcard_searches = False
+    subscriptables_with_index: set[str] = set()
 
     def __init__(self, builder: BaseQueryBuilder):
         pass
