@@ -399,8 +399,8 @@ def convert_stacktrace_frame_path_to_source_path(
     if stacktrace_path and stacktrace_path.startswith(code_mapping.stack_root):
         return (
             stacktrace_path.replace(stack_root, code_mapping.source_root, 1)
-            .lstrip("/")
             .replace("\\", "/")
+            .lstrip("/")
         )
 
     # Some platforms only provide the file's name without folder paths, so we
@@ -409,8 +409,8 @@ def convert_stacktrace_frame_path_to_source_path(
     if frame.abs_path and frame.abs_path.startswith(code_mapping.stack_root):
         return (
             frame.abs_path.replace(stack_root, code_mapping.source_root, 1)
-            .lstrip("/")
             .replace("\\", "/")
+            .lstrip("/")
         )
 
     return None
