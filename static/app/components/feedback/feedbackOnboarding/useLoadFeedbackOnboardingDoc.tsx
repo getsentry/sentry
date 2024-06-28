@@ -1,8 +1,4 @@
-import {useEffect, useState} from 'react';
-import * as Sentry from '@sentry/react';
-
-import type {Docs} from 'sentry/components/onboarding/gettingStartedDoc/types';
-import {feedbackOnboardingPlatforms} from 'sentry/data/platformCategories';
+import useLoadGettingStarted from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import type {Organization, PlatformIntegration, ProjectKey} from 'sentry/types';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
@@ -52,14 +48,6 @@ function useLoadFeedbackOnboardingDoc({
   platform: PlatformIntegration;
   projectSlug: string;
 }) {
-  const [module, setModule] = useState<
-    | null
-    | {
-        default: Docs<any>;
-      }
-    | 'none'
-  >(null);
-
   const platformPath = getPlatformPath(platform);
 
   const {
@@ -69,28 +57,11 @@ function useLoadFeedbackOnboardingDoc({
   } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectSlug}/keys/`], {
     staleTime: Infinity,
   });
-
-  useEffect(() => {
-    async function getGettingStartedDoc() {
-      if (!feedbackOnboardingPlatforms.includes(platform.id)) {
-        setModule('none');
-        return;
-      }
-      try {
-        const mod = await import(
-          /* webpackExclude: /.spec/ */
-          `sentry/gettingStartedDocs/${platformPath}`
-        );
-        setModule(mod);
-      } catch (err) {
-        Sentry.captureException(err);
-      }
-    }
-    getGettingStartedDoc();
-    return () => {
-      setModule(null);
-    };
-  }, [platformPath, platform.id]);
+  const module = useLoadGettingStarted({
+    platformId: platform.id,
+    platformPath,
+    productType: 'feedback',
+  });
 
   if (module === 'none') {
     return {
