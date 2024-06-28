@@ -116,6 +116,17 @@ class OrganizationTracesEndpointBase(OrganizationEventsV2EndpointBase):
         """The trace endpoint always wants to get all projects regardless of what's passed into the API.
         This is because a trace can span any number of projects in an organization. So disable the
         check_global_views condition."""
+
+        "We are reverting this decision to allow cross project searches"
+        if features.has(
+            "organizations:performance-trace-explorer-enforce-projects",
+            organization,
+            actor=request.user,
+        ):
+            return super().get_snuba_dataclass(
+                request, organization, check_global_views=check_global_views
+            )
+
         return super().get_snuba_dataclass(request, organization, check_global_views=False)
 
     def get_projects(  # type: ignore[override]
@@ -131,6 +142,21 @@ class OrganizationTracesEndpointBase(OrganizationEventsV2EndpointBase):
         This is because a trace can span any number of projects in an organization. But we still want to
         use the get_projects function to check for any permissions. So we'll just pass project_ids=-1 everytime
         which is what would be sent if we wanted all projects"""
+
+        "We are reverting this decision to allow cross project searches"
+        if features.has(
+            "organizations:performance-trace-explorer-enforce-projects",
+            organization,
+            actor=request.user,
+        ):
+            return super().get_projects(
+                request,
+                organization,
+                project_ids=project_ids,
+                project_slugs=project_slugs,
+                include_all_accessible=include_all_accessible,
+            )
+
         return super().get_projects(
             request,
             organization,
