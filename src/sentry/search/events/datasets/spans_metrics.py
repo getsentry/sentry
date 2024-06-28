@@ -1291,9 +1291,10 @@ class SpansMetricsDatasetConfig(DatasetConfig):
 class SpansMetricsLayerDatasetConfig(DatasetConfig):
     missing_function_error = IncompatibleMetricsQuery
 
-    def __init__(self, builder: builder.SpansMetricsQueryBuilder):
+    def __init__(self, builder: builder.SpansMetricsQueryBuilder, use_metrics_v2: bool = False):
         self.builder = builder
         self.total_span_duration: float | None = None
+        self.use_metrics_v2 = use_metrics_v2
 
     def resolve_mri(self, value: str) -> Column:
         """Given the public facing column name resolve it to the MRI and return a Column"""

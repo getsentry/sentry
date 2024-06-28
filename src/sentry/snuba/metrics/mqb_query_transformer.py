@@ -6,7 +6,7 @@ from snuba_sdk.query import Query
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import FIELD_ALIAS_MAPPINGS, OPERATIONS, DerivedMetricException
-from sentry.snuba.metrics.fields.base import DERIVED_OPS, metric_object_factory
+from sentry.snuba.metrics.fields.base import get_derived_ops, metric_object_factory
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.snuba.metrics.query import (
     DeprecatingMetricsQuery,
@@ -34,7 +34,9 @@ def _get_derived_op_metric_field_from_snuba_function(function: Function):
 
     metric_field_params = {}
     function_params = function.parameters[1:]
-    snql_func_args = inspect.signature(DERIVED_OPS[function.function].snql_func).parameters.keys()
+    snql_func_args = inspect.signature(
+        get_derived_ops()[function.function].snql_func
+    ).parameters.keys()
     for arg in snql_func_args:
         if arg in default_args_for_snql_func:
             continue
@@ -73,7 +75,7 @@ def _transform_select(query_select):
             except InvalidParams as e:
                 raise MQBQueryTransformationException(e)
         elif isinstance(select_field, Function):
-            if select_field.function in DERIVED_OPS:
+            if select_field.function in get_derived_ops():
                 select.append(_get_derived_op_metric_field_from_snuba_function(select_field))
             else:
                 if select_field.function not in OPERATIONS:
@@ -132,8 +134,8 @@ def _transform_groupby(query_groupby):
                 )
         elif isinstance(groupby_field, Function):
             if (
-                groupby_field.function in DERIVED_OPS
-                and DERIVED_OPS[groupby_field.function].can_groupby
+                groupby_field.function in get_derived_ops()
+                and get_derived_ops()[groupby_field.function].can_groupby
             ):
                 mq_groupby.append(
                     MetricGroupByField(
@@ -203,8 +205,8 @@ def _get_mq_dict_params_and_conditions_from(conditions):
             else:
                 converted_conditions.append(condition)
         elif isinstance(condition.lhs, Function):
-            if condition.lhs.function in DERIVED_OPS:
-                if not DERIVED_OPS[condition.lhs.function].can_filter:
+            if condition.lhs.function in get_derived_ops():
+                if not get_derived_ops()[condition.lhs.function].can_filter:
                     raise MQBQueryTransformationException(
                         f"Cannot filter by function {condition.lhs.function}"
                     )
