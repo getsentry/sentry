@@ -226,7 +226,7 @@ def build_test_message(
                 "name": "status",
                 "text": "Archive",
                 "type": "button",
-                "value": "ignored:until_escalating",
+                "value": "archived",
             },
             {
                 "option_groups": [

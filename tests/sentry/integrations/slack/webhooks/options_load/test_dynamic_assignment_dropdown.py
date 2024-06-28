@@ -44,9 +44,9 @@ class DynamicAssignmentDropdownTest(BaseEventTest):
                         },
                         {
                             "type": "button",
-                            "action_id": "ignored:forever",
-                            "text": {"type": "plain_text", "text": "Ignore", "emoji": True},
-                            "value": "ignored:forever",
+                            "action_id": "archive_dialog",
+                            "text": {"type": "plain_text", "text": "Archive", "emoji": True},
+                            "value": "archive_dialog",
                         },
                         {
                             "type": "external_select",
