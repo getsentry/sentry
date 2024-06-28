@@ -25,8 +25,8 @@ class RpcIdentity(RpcModel):
 
     def get_identity(self) -> "Provider":
         from sentry.identity import get
+        from sentry.identity.services.identity import identity_service
         from sentry.models.identity import IdentityProvider
-        from sentry.services.hybrid_cloud.identity import identity_service
 
         identity_provider = identity_service.get_provider(provider_id=self.idp_id)
         if identity_provider is None:
