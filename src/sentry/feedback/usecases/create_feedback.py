@@ -198,7 +198,11 @@ def create_feedback_issue(event, project_id: int, source: FeedbackCreationSource
         except Exception:
             # until we have LLM error types ironed out, just catch all exceptions
             logger.exception("Error checking if message is spam")
-            metrics.incr("feedback.create_feedback_issue.spam_check_failed")
+        metrics.incr(
+            "feedback.create_feedback_issue.spam_detection",
+            tags={"is_spam": is_message_spam},
+            sample_rate=1.0,
+        )
 
     # Note that some of the fields below like title and subtitle
     # are not used by the feedback UI, but are required.
