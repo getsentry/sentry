@@ -422,6 +422,7 @@ def process_occurrence_group(items: list[Mapping[str, Any]]) -> None:
     except Exception:
         logger.exception("Failed to fetch project or organization")
         organization = None
+
     if organization and features.has(
         "organizations:occurence-consumer-prune-status-changes", organization
     ):
