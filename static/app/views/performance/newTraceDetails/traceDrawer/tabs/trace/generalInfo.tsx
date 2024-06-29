@@ -38,17 +38,15 @@ export function GeneralInfo(props: GeneralInfoProps) {
   const params = useParams<{traceSlug?: string}>();
   const {replay} = useReplayContext();
 
-  const traceNode = props.tree.root.children[0];
-
   const uniqueErrorIssues = useMemo(() => {
-    if (!traceNode) {
+    if (!props.node) {
       return [];
     }
 
     const unique: TraceErrorOrIssue[] = [];
     const seenIssues: Set<number> = new Set();
 
-    for (const issue of traceNode.errors) {
+    for (const issue of props.node.errors) {
       if (seenIssues.has(issue.issue_id)) {
         continue;
       }
@@ -57,17 +55,17 @@ export function GeneralInfo(props: GeneralInfoProps) {
     }
 
     return unique;
-  }, [traceNode]);
+  }, [props.node]);
 
   const uniquePerformanceIssues = useMemo(() => {
-    if (!traceNode) {
+    if (!props.node) {
       return [];
     }
 
     const unique: TraceErrorOrIssue[] = [];
     const seenIssues: Set<number> = new Set();
 
-    for (const issue of traceNode.performance_issues) {
+    for (const issue of props.node.performance_issues) {
       if (seenIssues.has(issue.issue_id)) {
         continue;
       }
@@ -76,7 +74,7 @@ export function GeneralInfo(props: GeneralInfoProps) {
     }
 
     return unique;
-  }, [traceNode]);
+  }, [props.node]);
 
   const uniqueIssuesCount = uniqueErrorIssues.length + uniquePerformanceIssues.length;
 
@@ -111,7 +109,7 @@ export function GeneralInfo(props: GeneralInfoProps) {
     );
   }
 
-  if (!(traceNode && isTraceNode(traceNode))) {
+  if (!props.node || !isTraceNode(props.node)) {
     throw new Error('Expected a trace node');
   }
 
@@ -183,8 +181,8 @@ export function GeneralInfo(props: GeneralInfoProps) {
     {
       key: 'start_timestamp',
       subject: t('Start Timestamp'),
-      value: traceNode.space?.[1] ? (
-        <SpanTimeRenderer timestamp={traceNode.space?.[0]} tooltipShowSeconds />
+      value: props.node.space?.[1] ? (
+        <SpanTimeRenderer timestamp={props.node.space?.[0]} tooltipShowSeconds />
       ) : (
         '\u2014'
       ),
@@ -192,8 +190,8 @@ export function GeneralInfo(props: GeneralInfoProps) {
     {
       key: 'total_duration',
       subject: t('Total Duration'),
-      value: traceNode.space?.[1]
-        ? getDuration(traceNode.space[1] / 1000, 2, true)
+      value: props.node.space?.[1]
+        ? getDuration(props.node.space[1] / 1000, 2, true)
         : '\u2014',
     },
     {

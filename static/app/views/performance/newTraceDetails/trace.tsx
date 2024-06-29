@@ -490,7 +490,7 @@ export function Trace({
     scheduler,
   });
 
-  const traceNode = trace.root.children[0];
+  const traceNode = Object.values(trace.root.children)[0];
   const traceStartTimestamp = traceNode?.space?.[0];
 
   return (
@@ -759,6 +759,7 @@ function RenderRow(props: {
   }
 
   if (isTransactionNode(props.node)) {
+    const childrenCount = Object.keys(props.node.children).length;
     return (
       <div
         key={props.index}
@@ -781,7 +782,7 @@ function RenderRow(props: {
           >
             <div className={listColumnClassName}>
               <Connectors node={props.node} manager={props.manager} />
-              {props.node.children.length > 0 || props.node.canFetch ? (
+              {childrenCount || props.node.canFetch ? (
                 <ChildrenButton
                   icon={
                     props.node.canFetch && props.node.fetchStatus === 'idle' ? (
@@ -801,9 +802,7 @@ function RenderRow(props: {
                       : props.onExpand(e, props.node, !props.node.expanded);
                   }}
                 >
-                  {props.node.children.length > 0
-                    ? COUNT_FORMATTER.format(props.node.children.length)
-                    : null}
+                  {childrenCount ? COUNT_FORMATTER.format(childrenCount) : null}
                 </ChildrenButton>
               ) : null}
             </div>
@@ -842,6 +841,7 @@ function RenderRow(props: {
   }
 
   if (isSpanNode(props.node)) {
+    const childrenCount = Object.keys(props.node.children).length;
     return (
       <div
         key={props.index}
@@ -864,7 +864,7 @@ function RenderRow(props: {
           >
             <div className={listColumnClassName}>
               <Connectors node={props.node} manager={props.manager} />
-              {props.node.children.length > 0 || props.node.canFetch ? (
+              {childrenCount || props.node.canFetch ? (
                 <ChildrenButton
                   icon={
                     props.node.canFetch ? (
@@ -884,9 +884,7 @@ function RenderRow(props: {
                       : props.onExpand(e, props.node, !props.node.expanded)
                   }
                 >
-                  {props.node.children.length > 0
-                    ? COUNT_FORMATTER.format(props.node.children.length)
-                    : null}
+                  {childrenCount ? COUNT_FORMATTER.format(childrenCount) : null}
                 </ChildrenButton>
               ) : null}
             </div>
@@ -978,6 +976,7 @@ function RenderRow(props: {
   }
 
   if (isTraceNode(props.node)) {
+    const childrenCount = Object.keys(props.node.children).length;
     return (
       <div
         key={props.index}
@@ -1001,7 +1000,7 @@ function RenderRow(props: {
             {' '}
             <div className="TraceChildrenCountWrapper Root">
               <Connectors node={props.node} manager={props.manager} />
-              {props.node.children.length > 0 || props.node.canFetch ? (
+              {childrenCount || props.node.canFetch ? (
                 <ChildrenButton
                   icon={''}
                   status={'idle'}
@@ -1009,9 +1008,7 @@ function RenderRow(props: {
                   onClick={() => void 0}
                   onDoubleClick={onExpandDoubleClick}
                 >
-                  {props.node.children.length > 0
-                    ? COUNT_FORMATTER.format(props.node.children.length)
-                    : null}
+                  {childrenCount ? COUNT_FORMATTER.format(childrenCount) : null}
                 </ChildrenButton>
               ) : null}
             </div>
@@ -1157,6 +1154,7 @@ function RenderPlaceholderRow(props: {
   style: React.CSSProperties;
   theme: Theme;
 }) {
+  const childrenCount = Object.keys(props.node.children).length;
   return (
     <div
       key={props.index}
@@ -1183,7 +1181,7 @@ function RenderPlaceholderRow(props: {
             className={`TraceChildrenCountWrapper ${isTraceNode(props.node) ? 'Root' : ''}`}
           >
             <Connectors node={props.node} manager={props.manager} />
-            {props.node.children.length > 0 || props.node.canFetch ? (
+            {childrenCount || props.node.canFetch ? (
               <ChildrenButton
                 icon="+"
                 status={props.node.fetchStatus}
@@ -1191,9 +1189,7 @@ function RenderPlaceholderRow(props: {
                 onClick={() => void 0}
                 onDoubleClick={() => void 0}
               >
-                {props.node.children.length > 0
-                  ? COUNT_FORMATTER.format(props.node.children.length)
-                  : null}
+                {childrenCount ? COUNT_FORMATTER.format(childrenCount) : null}
               </ChildrenButton>
             ) : null}
           </div>
@@ -1238,7 +1234,8 @@ function Connectors(props: {
   node: TraceTreeNode<TraceTree.NodeValue>;
 }) {
   const hasChildren =
-    (props.node.expanded || props.node.zoomedIn) && props.node.children.length > 0;
+    (props.node.expanded || props.node.zoomedIn) &&
+    Object.keys(props.node.children).length > 0;
   const showVerticalConnector =
     hasChildren || (props.node.value && isParentAutogroupedNode(props.node));
 
