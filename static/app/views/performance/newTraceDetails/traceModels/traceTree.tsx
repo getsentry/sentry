@@ -233,7 +233,8 @@ function maybeInsertMissingInstrumentationSpan(
   parent: TraceTreeNode<TraceTree.NodeValue>,
   node: TraceTreeNode<TraceTree.Span>
 ) {
-  const previousSpan = parent.spanChildren[parent.spanChildren.length - 1];
+  const children = Object.values(parent.spanChildren);
+  const previousSpan = children[children.length - 1];
   if (!previousSpan || !isSpanNode(previousSpan)) {
     return;
   }
@@ -818,9 +819,8 @@ export class TraceTree {
 
     parent.zoomedIn = true;
 
-    // @todo add this back
-    // TraceTree.AutogroupSiblingSpanNodes(parent);
-    // TraceTree.AutogroupDirectChildrenSpanNodes(parent);
+    TraceTree.AutogroupSiblingSpanNodes(parent);
+    TraceTree.AutogroupDirectChildrenSpanNodes(parent);
 
     return [parent, [min_span_start, min_span_end]];
   }
@@ -853,8 +853,9 @@ export class TraceTree {
       while (
         tail &&
         Object.keys(tail.children).length === 1 &&
-        isSpanNode(tail.children[0]) &&
-        tail.children[0].value.op === head.value.op
+        isSpanNode(Object.values(tail.children)[0]) &&
+        (Object.values(tail.children)[0] as TraceTreeNode<TraceTree.Span>).value.op ===
+          head.value.op
       ) {
         if ((tail?.errors?.size ?? 0) > 0) {
           errors.push(...tail?.errors);
@@ -873,7 +874,8 @@ export class TraceTree {
           end = tail.value.timestamp;
         }
         groupMatchCount++;
-        tail = tail.children[0];
+        // @ts-expect-error assign to null is fine
+        tail = Object.values(tail.children)[0];
       }
 
       // Checking the tail node for errors as it is not included in the grouping
@@ -911,11 +913,20 @@ export class TraceTree {
       );
 
       if (!node.parent) {
-        throw new Error('Parent node is missing, this should be unreachable code');
+        throw new Error('Parent node is missing, this should be unreachable');
       }
 
-      const index = node.parent.children.indexOf(node);
-      node.parent.children[index] = autoGroupedNode;
+      delete node.parent.children[node.key];
+      node.parent.children[autoGroupedNode.key] = autoGroupedNode;
+
+      const sorted = Object.values(node.parent.children).sort(chronologicalSort);
+
+      for (const k in node.parent.children) {
+        delete node.parent.children[k];
+      }
+      for (const c of sorted) {
+        node.parent.children[c.key] = c;
+      }
 
       autoGroupedNode.head.parent = autoGroupedNode;
       autoGroupedNode.groupCount = groupMatchCount + 1;
@@ -962,13 +973,14 @@ export class TraceTree {
       let matchCount = 0;
 
       while (index < Object.keys(node.children).length) {
-        if (!isSpanNode(node.children[index])) {
+        const children = Object.values(node.children);
+        if (!isSpanNode(children[index])) {
           index++;
           matchCount = 0;
           continue;
         }
-        const current = node.children[index] as TraceTreeNode<TraceTree.Span>;
-        const next = node.children[index + 1] as TraceTreeNode<TraceTree.Span>;
+        const current = children[index] as TraceTreeNode<TraceTree.Span>;
+        const next = children[index + 1] as TraceTreeNode<TraceTree.Span>;
 
         if (
           next &&
@@ -1008,7 +1020,7 @@ export class TraceTree {
           let timestamp = Number.MIN_SAFE_INTEGER;
 
           for (let j = start; j < start + matchCount + 1; j++) {
-            const child = node.children[j];
+            const child = children[j];
             if (
               child.value &&
               'timestamp' in child.value &&
@@ -1037,9 +1049,9 @@ export class TraceTree {
               }
             }
 
-            autoGroupedNode.children.push(node.children[j]);
-            autoGroupedNode.children[autoGroupedNode.children.length - 1].parent =
-              autoGroupedNode;
+            const c = children[j];
+            c.parent = autoGroupedNode;
+            autoGroupedNode.children[c.key] = c;
           }
 
           autoGroupedNode.space = [
@@ -1047,7 +1059,18 @@ export class TraceTree {
             (timestamp - start_timestamp) * autoGroupedNode.multiplier,
           ];
 
-          node.children.splice(start, matchCount + 1, autoGroupedNode);
+          for (const c in autoGroupedNode.children) {
+            delete node.children[c];
+          }
+
+          node.children[autoGroupedNode.key] = autoGroupedNode;
+
+          const sorted = Object.values(node.children).sort(chronologicalSort);
+          node.children = {};
+          for (const c of sorted) {
+            node.children[c.key] = c;
+          }
+
           index = start + 1;
           matchCount = 0;
         } else {
@@ -1630,7 +1653,6 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
       return key;
     }
 
-    console.log(this);
     throw new Error('Unknown node type. Each node should have a key');
   }
 
@@ -1843,6 +1865,12 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     return this._children;
   }
 
+  // Helper for tests
+  get __children(): TraceTreeNode<TraceTree.NodeValue>[] {
+    return Object.values(this.children);
+  }
+
+  // @todo remove all this confusing logic with the double tree representation
   set children(children: Record<string, TraceTreeNode>) {
     this._children = children;
   }
@@ -1969,7 +1997,6 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
   }
 
   // Returns the min path required to reach the node from the root.
-  // @TODO: skip nodes that do not require fetching
   get path(): TraceTree.NodePath[] {
     const nodes: TraceTreeNode<TraceTree.NodeValue>[] = [this];
     let current: TraceTreeNode<TraceTree.NodeValue> | null = this.parent;
@@ -2010,17 +2037,17 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     return nodes.map(nodeToId);
   }
 
-  print() {
-    // root nodes are -1 indexed, so we add 1 to the depth so .repeat doesnt throw
+  print(): void {
+    // eslint-disable-next-line no-console
+    console.log(this.toString());
+  }
+
+  toString(): string {
     const offset = this.depth === -1 ? 1 : 0;
     const nodes = [this, ...this.getVisibleChildren()];
-    const print = nodes
-      .map(t => printNode(t, offset))
-      .filter(Boolean)
-      .join('\n');
-
-    // eslint-disable-next-line no-console
-    console.log(print);
+    let print = nodes.map(t => printNode(t, offset)).filter(Boolean);
+    const out = ['\n', ...print].join('\n');
+    return out;
   }
 
   static Find(
@@ -2172,7 +2199,9 @@ export class SiblingAutogroupNode extends TraceTreeNode<TraceTree.SiblingAutogro
       return this._autogroupedSegments;
     }
 
-    this._autogroupedSegments = computeAutogroupedBarSegments(this.children);
+    this._autogroupedSegments = computeAutogroupedBarSegments(
+      Object.values(this.children)
+    );
     return this._autogroupedSegments;
   }
 }
@@ -2239,14 +2268,13 @@ function nodeToId(n: TraceTreeNode<TraceTree.NodeValue>): TraceTree.NodePath {
 // It looks for gaps between spans and creates a segment for each gap. If there are no gaps, it
 // merges the n and n+1 segments.
 export function computeAutogroupedBarSegments(
-  nodes: Record<string, TraceTreeNode<TraceTree.NodeValue>>
+  nodes: TraceTreeNode<TraceTree.NodeValue>[]
 ): [number, number][] {
-  const keys = Object.keys(nodes);
-  if (keys.length === 0) {
+  if (nodes.length === 0) {
     return [];
   }
 
-  if (keys.length === 1) {
+  if (nodes.length === 1) {
     const space = nodes[0].space;
     if (!space) {
       throw new Error(
@@ -2269,7 +2297,7 @@ export function computeAutogroupedBarSegments(
   let end = first.value.timestamp;
   let i = 1;
 
-  while (i < keys.length) {
+  while (i < nodes.length) {
     const next = nodes[i];
 
     if (!isSpanNode(next)) {
