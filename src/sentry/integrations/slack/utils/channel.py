@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from django.core.exceptions import ValidationError
 from slack_sdk.errors import SlackApiError
 
-from sentry import features
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.sdk_client import SlackSdkClient
@@ -16,7 +15,6 @@ from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.shared_integrations.exceptions import (
     ApiError,
-    ApiRateLimitedError,
     DuplicateDisplayNameError,
     IntegrationError,
 )
@@ -85,10 +83,7 @@ def get_channel_id(
     # This means some users are unable to create/update alert rules. To avoid this, we attempt
     # to find the channel id asynchronously if it takes longer than a certain amount of time,
     # which I have set as the SLACK_DEFAULT_TIMEOUT - arbitrarily - to 10 seconds.
-    if features.has("organizations:slack-sdk-get-channel-id", organization):
-        return get_channel_id_with_timeout(integration, channel_name, timeout)
-
-    return get_channel_id_with_timeout_deprecated(integration, channel_name, timeout)
+    return get_channel_id_with_timeout(integration, channel_name, timeout)
 
 
 def validate_channel_id(name: str, integration_id: int | None, input_channel_id: str) -> None:

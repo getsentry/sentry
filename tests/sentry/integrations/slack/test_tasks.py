@@ -4,6 +4,7 @@ from uuid import uuid4
 import orjson
 import pytest
 import responses
+from slack_sdk.web import SlackResponse
 
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTriggerAction
 from sentry.integrations.services.integration.serial import serialize_integration
@@ -18,7 +19,7 @@ from sentry.tasks.integrations.slack import (
     post_message,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import install_slack, with_feature
+from sentry.testutils.helpers import install_slack
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -30,24 +31,35 @@ class SlackTasksTest(TestCase):
         self.uuid = uuid4().hex
 
     @pytest.fixture(autouse=True)
-    def setup_responses(self):
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.scheduleMessage",
-            status=200,
-            content_type="application/json",
-            body=orjson.dumps(
-                {"ok": "true", "channel": "chan-id", "scheduled_message_id": "Q1298393284"}
+    def mock_chat_postEphemeral(self):
+        with patch(
+            "slack_sdk.web.client.WebClient.chat_scheduleMessage",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/chat.scheduleMessage",
+                req_args={},
+                data={"ok": True, "channel": "chan-id", "scheduled_message_id": "Q1298393284"},
+                headers={},
+                status_code=200,
             ),
-        )
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.deleteScheduledMessage",
-            status=200,
-            content_type="application/json",
-            body=orjson.dumps({"ok": True}),
-        )
-        with responses.mock:
+        ) as self.mock_schedule:
+            yield
+
+    @pytest.fixture(autouse=True)
+    def mock_chat_unfurl(self):
+        with patch(
+            "slack_sdk.web.client.WebClient.chat_deleteScheduledMessage",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/chat.deleteScheduledMessage",
+                req_args={},
+                data={"ok": True},
+                headers={},
+                status_code=200,
+            ),
+        ) as self.mock_delete:
             yield
 
     def metric_alert_data(self):
@@ -171,7 +183,7 @@ class SlackTasksTest(TestCase):
     @responses.activate
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout_deprecated",
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=SlackChannelIdData("#", "chan-id", False),
     )
     def test_task_new_alert_rule(self, mock_get_channel_id, mock_set_value):
@@ -202,37 +214,6 @@ class SlackTasksTest(TestCase):
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     @patch(
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
-        return_value=SlackChannelIdData("#", "chan-id", False),
-    )
-    @with_feature("organizations:slack-sdk-get-channel-id")
-    def test_task_new_alert_rule_with_sdk(self, mock_get_channel_id, mock_set_value):
-        alert_rule_data = self.metric_alert_data()
-
-        data = {
-            "data": alert_rule_data,
-            "uuid": self.uuid,
-            "organization_id": self.organization.id,
-            "user_id": self.user.id,
-        }
-
-        with self.tasks():
-            with self.feature(["organizations:incidents"]):
-                find_channel_id_for_alert_rule(**data)
-
-        rule = AlertRule.objects.get(name="New Rule")
-        assert rule.created_by_id == self.user.id
-        mock_set_value.assert_called_with("success", rule.id)
-        mock_get_channel_id.assert_called_with(
-            serialize_integration(self.integration), "my-channel", 180
-        )
-
-        trigger_action = AlertRuleTriggerAction.objects.get(integration_id=self.integration.id)
-        assert trigger_action.target_identifier == "chan-id"
-
-    @responses.activate
-    @patch.object(RedisRuleStatus, "set_value", return_value=None)
-    @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout_deprecated",
         return_value=SlackChannelIdData("#", None, False),
     )
     def test_task_failed_id_lookup(self, mock_get_channel_id, mock_set_value):
@@ -258,32 +239,6 @@ class SlackTasksTest(TestCase):
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     @patch(
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
-        return_value=SlackChannelIdData("#", None, False),
-    )
-    @with_feature("organizations:slack-sdk-get-channel-id")
-    def test_task_failed_id_lookup_with_sdk(self, mock_get_channel_id, mock_set_value):
-        alert_rule_data = self.metric_alert_data()
-
-        data = {
-            "data": alert_rule_data,
-            "uuid": self.uuid,
-            "organization_id": self.organization.id,
-        }
-
-        with self.tasks():
-            with self.feature(["organizations:incidents"]):
-                find_channel_id_for_alert_rule(**data)
-
-        assert not AlertRule.objects.filter(name="New Rule").exists()
-        mock_set_value.assert_called_with("failed")
-        mock_get_channel_id.assert_called_with(
-            serialize_integration(self.integration), "my-channel", 180
-        )
-
-    @responses.activate
-    @patch.object(RedisRuleStatus, "set_value", return_value=None)
-    @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout_deprecated",
         return_value=SlackChannelIdData("#", None, True),
     )
     def test_task_timeout_id_lookup(self, mock_get_channel_id, mock_set_value):
@@ -309,32 +264,6 @@ class SlackTasksTest(TestCase):
     @patch.object(RedisRuleStatus, "set_value", return_value=None)
     @patch(
         "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
-        return_value=SlackChannelIdData("#", None, True),
-    )
-    @with_feature("organizations:slack-sdk-get-channel-id")
-    def test_task_timeout_id_lookup_with_sdk(self, mock_get_channel_id, mock_set_value):
-        alert_rule_data = self.metric_alert_data()
-
-        data = {
-            "data": alert_rule_data,
-            "uuid": self.uuid,
-            "organization_id": self.organization.id,
-        }
-
-        with self.tasks():
-            with self.feature(["organizations:incidents"]):
-                find_channel_id_for_alert_rule(**data)
-
-        assert not AlertRule.objects.filter(name="New Rule").exists()
-        mock_set_value.assert_called_with("failed")
-        mock_get_channel_id.assert_called_with(
-            serialize_integration(self.integration), "my-channel", 180
-        )
-
-    @responses.activate
-    @patch.object(RedisRuleStatus, "set_value", return_value=None)
-    @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout_deprecated",
         return_value=SlackChannelIdData("#", "chan-id", False),
     )
     def test_task_existing_metric_alert(self, mock_get_channel_id, mock_set_value):
@@ -401,7 +330,7 @@ class SlackTasksTest(TestCase):
     @patch("sentry.integrations.slack.sdk_client.metrics")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
     @responses.activate
-    def test_post_message_success_sdk(self, mock_api_call, mock_metrics):
+    def test_post_message_success(self, mock_api_call, mock_metrics):
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": True}).decode(),
             "headers": {},

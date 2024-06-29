@@ -17,6 +17,7 @@ from sentry.incidents.logic import (
     DEFAULT_ALERT_RULE_RESOLUTION,
     DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER,
     ChannelLookupTimeoutError,
+    InvalidTriggerActionError,
     create_alert_rule_trigger,
 )
 from sentry.incidents.models.alert_rule import (
@@ -460,7 +461,11 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             },
         )
 
-    def test_invalid_slack_channel(self):
+    @patch(
+        "sentry.incidents.logic.get_alert_rule_trigger_action_slack_channel_id",
+        side_effect=InvalidTriggerActionError("Invalid slack channel"),
+    )
+    def test_invalid_slack_channel(self, mck):
         # We had an error where an invalid slack channel was spitting out unclear
         # error for the user, and CREATING THE RULE. So the next save (after fixing slack action)
         # says "Name already in use". This test makes sure that is not happening anymore.
@@ -485,7 +490,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             serializer = AlertRuleSerializer(context=self.context, data=base_params)
             assert serializer.is_valid()
 
-            with pytest.raises(ApiError):
+            with pytest.raises(ValidationError):
                 serializer.save()
 
         # Make sure the rule was not created.
@@ -533,7 +538,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         self.run_fail_validation_test({"thresholdType": 50}, {"thresholdType": invalid_values})
 
     @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout_deprecated",
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=SlackChannelIdData("#", None, True),
     )
     def test_channel_timeout(self, mock_get_channel_id):
@@ -562,7 +567,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         )
 
     @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout_deprecated",
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         return_value=SlackChannelIdData("#", None, True),
     )
     def test_invalid_team_with_channel_timeout(self, mock_get_channel_id):
@@ -1045,7 +1050,8 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
             {"integration": ["Integration must be provided for discord"]},
         )
 
-    def test_slack(self):
+    @patch("sentry.integrations.slack.utils.channel.get_channel_id", side_effect=ApiError)
+    def test_slack(self, mock_get_channel_id):
         self.run_fail_validation_test(
             {
                 "type": AlertRuleTriggerAction.get_registered_type(
@@ -1084,7 +1090,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
         )
         serializer = AlertRuleTriggerActionSerializer(context=self.context, data=base_params)
         assert serializer.is_valid()
-        with pytest.raises(ApiError):
+        with pytest.raises(ValidationError):
             serializer.save()
 
     def test_valid_slack_channel_id_sdk(self):
