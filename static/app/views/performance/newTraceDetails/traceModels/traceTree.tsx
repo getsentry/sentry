@@ -2045,7 +2045,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
   toString(): string {
     const offset = this.depth === -1 ? 1 : 0;
     const nodes = [this, ...this.getVisibleChildren()];
-    let print = nodes.map(t => printNode(t, offset)).filter(Boolean);
+    const print = nodes.map(t => printNode(t, offset)).filter(Boolean);
     const out = ['\n', ...print].join('\n');
     return out;
   }
