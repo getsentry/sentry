@@ -12,3 +12,7 @@ class InvalidModelError(ValueError):
 
 class InvalidTemperature(ValueError):
     pass
+
+
+class VertexRequestFailed(RuntimeError):
+    pass

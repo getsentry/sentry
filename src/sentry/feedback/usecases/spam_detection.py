@@ -52,7 +52,6 @@ def is_spam(message: str):
             "trimmed_response": trimmed_response,
         },
     )
-    metrics.incr("spam-detection", tags={"is_spam": is_spam}, sample_rate=1.0)
     return is_spam
 
 
