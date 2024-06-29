@@ -6,7 +6,13 @@ Host: https://o1300299.ingest.us.sentry.io
 
 @cmanallen
 
-## Configuration [/api/<project_id>/configuration/]
+## Configuration [/api/0/remote-config/projects/<project_id>/]
+
+- Parameters
+
+  - environment (optional[string]) - An optionally specified environment target.
+    - Default: "production"
+  - name (optional[string]) - An optionally specified configuration name.
 
 ### Get Configuration [GET]
 
@@ -22,17 +28,82 @@ Retrieve a project's configuration.
 
 **Feature Object**
 
-| Field | Type   | Description                        |
-| ----- | ------ | ---------------------------------- |
-| key   | string | The name used to lookup a feature. |
-| value | any    | A JSON value.                      |
+| Field    | Type           | Description                                                                     |
+| -------- | -------------- | ------------------------------------------------------------------------------- |
+| key      | string         | The name used to lookup a feature.                                              |
+| value    | any            | A JSON value.                                                                   |
+| variants | array[Variant] | Features can have any number of possible variants which alter the return value. |
+
+Features may specify zero or more variants which may alter the evaluation result.
+
+**Variant Object**
+
+| Field   | Type                 | Description                                                                               |
+| ------- | -------------------- | ----------------------------------------------------------------------------------------- |
+| rollout | union[Rollout, null] | An object which contains instructions for rolling out a variant.                          |
+| rules   | array[Rule]          | An array of rules which all must evaluate to true in order to return the variant's value. |
+| value   | any                  | The value of the feature if the variant is successfully evaluated.                        |
+
+When evaluating a set of rules and varaints each rule is a logical `AND` while each variant is a logical `OR`. Failure to evaluate one variant does not prevent another variant from successfully evaluating. Failure to evaluate one rule does invalidate the remaining rules and the evaluation proceedure can eagerly terminate.
+
+Variants are ordered and must be evaluated in the order returned by the service-provider.
+
+**Rollout Object**
+
+| Field      | Type                | Description                                               |
+| ---------- | ------------------- | --------------------------------------------------------- |
+| percentage | number              | The percentage of requests which should evaluate to true. |
+| sticky     | union[Sticky, null] | An object which controls the stickyness of the rollout.   |
+
+The `percentage` field is an arbitrary precision decimal between 0 and 100. `0.0001` is a valid rollout percentage. The `sticky` fields determines if the rollout is deterministic or random. A `null` value indicates a random rollout.
+
+**Sticky Object**
+
+| Field  | Type   | Description                                                 |
+| ------ | ------ | ----------------------------------------------------------- |
+| group  | string | An arbitrary string value identifying the group.            |
+| target | string | The name of a property contained within the context object. |
+
+The cohort a session is bucketed into is determined by the `Sticky` object. The `target` value controls the bucket a session is placed into. The `group` value applies randomization _between features_ such that if a session is successfully opted into feature `A` they will not necesssarily be opted into feature `B` even if those features share the same rollout percentage. Sharing the `group` attribute between feature `A` and `B` allows a session to receive an evaluation result which is deterministic between flags.
+
+**Rule Object**
+
+| Field    | Type                                           | Description                                                             |
+| -------- | ---------------------------------------------- | ----------------------------------------------------------------------- |
+| operator | Operator                                       | A conditional operator that evaluates the value against the target.     |
+| property | string                                         | A context object property name which contains the value of the operand. |
+| value    | union[string, number, bool, null, array[self]] | The value being compared against.                                       |
+
+Rules contain evaluation and extraction instructions. The context object provided must contain the key defined on the `property` attribute. If the SDK can not find the `property` within the context object the evaluation fails and the variant is skipped. The `operator` defines how the context value is compared against the literal provided by the configuration on the `value` attribute. If the value provided in the context object can not be compared against the value provided in the configuration the evaluation fails and the variant is skipped.
+
+The type of the `value` field is controlled by the operator being applied to it. For example, some operators only operate on `number` types. While others operate on arrays.
+
+**Operator Reference**
+
+| Symbol | Value Type                         | Description                                                               |
+| ------ | ---------------------------------- | ------------------------------------------------------------------------- |
+| ==     | union[string, bool, number]        | Assert the two values match.                                              |
+| !=     | union[string, bool, number]        | Assert the two values do not match.                                       |
+| >=     | number                             | Assert the local value is greater than or equal to the remote value.      |
+| >      | number                             | Assert the local value is greater than the remote value.                  |
+| <=     | number                             | Assert the local value is less than or equal to the remote value.         |
+| <      | number                             | Assert the local value is less than the remote value.                     |
+| IN     | array[union[string, bool, number]] | Assert the local value is contained within an array of remote values.     |
+| NOT IN | array[union[string, bool, number]] | Assert the local value is not contained within an array of remote values. |
 
 **Option Object**
 
-| Field              | Type  | Description        |
-| ------------------ | ----- | ------------------ |
-| sample_rate        | float | Error sample rate. |
-| traces_sample_rate | float | Trace sample rate. |
+| Field              | Type                 | Description        |
+| ------------------ | -------------------- | ------------------ |
+| sample_rate        | OptionFeature<float> | Error sample rate. |
+| traces_sample_rate | OptionFeature<float> | Trace sample rate. |
+
+**Option Feature Object**
+
+| Field    | Type           | Description                                                                     |
+| -------- | -------------- | ------------------------------------------------------------------------------- |
+| value    | T              | OptionFeatures are generic over type T. Each field implements its own type.     |
+| variants | array[Variant] | Features can have any number of possible variants which alter the return value. |
 
 **Server ETag Matches**
 
@@ -79,16 +150,73 @@ If the server's ETag does not match the request's a 200 response is returned.
       "features": [
         {
           "key": "hello",
-          "value": "world"
+          "value": "world",
+          "variants": [
+            {
+              "rollout": {
+                "percentage": 50,
+                "sticky": {
+                  "group": "5f927c1c3676abbe5f13d9f8d28ffa625e80bf04",
+                  "target": "user_id"
+                }
+              },
+              "rules": [
+                {
+                  "operator": "==",
+                  "property": "region",
+                  "value": "Europe"
+                },
+                {
+                  "operator": ">=",
+                  "property": "now",
+                  "value": 1717684416.495
+                }
+              ],
+              "value": "computer"
+            }
+          ]
         },
         {
           "key": "has_access",
-          "value": true
+          "value": true,
+          "variants": []
         }
       ],
       "options": {
-        "sample_rate": 1.0,
-        "traces_sample_rate": 0.5
+        "sample_rate": {
+          "value": 0.1,
+          "variants": [
+            {
+              "rollout": null,
+              "rules": [
+                {
+                  "operator": "==",
+                  "property": "device_family",
+                  "value": "iPhone"
+                },
+                {
+                  "operator": "==",
+                  "property": "device_model",
+                  "value": "14"
+                }
+              ],
+              "value": 1.0
+            }
+          ]
+        },
+        "traces_sample_rate": {
+          "value": 0,
+          "variants": [
+            {
+              "rollout": {
+                "percentage": 50,
+                "sticky": null
+              },
+              "rules": [],
+              "value": 1.0
+            }
+          ]
+        }
       },
       "version": 1
     }
