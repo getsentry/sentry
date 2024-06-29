@@ -2637,3 +2637,10 @@ register(
     default=20,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register(
+    "issues.occurrence_consumer.skip_project_ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)

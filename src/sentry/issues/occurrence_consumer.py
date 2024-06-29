@@ -17,7 +17,7 @@ from django.core.cache import cache
 from django.utils import timezone
 from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
-from sentry import features, nodestore
+from sentry import features, nodestore, options
 from sentry.event_manager import GroupInfo
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import get_group_type_by_type_id
@@ -309,6 +309,13 @@ def process_occurrence_message(
             tags=metric_tags,
         )
         txn.set_tag("result", "dropped_feature_disabled")
+        return None
+    if project.id in options.get("issues.occurrence_consumer.skip_project_ids"):
+        metrics.incr(
+            "occurrence_ingest.dropped_project_skipped",
+            sample_rate=1.0,
+            tags=metric_tags,
+        )
         return None
 
     if "event_data" in kwargs and is_buffered_spans:
