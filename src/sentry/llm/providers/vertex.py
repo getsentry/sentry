@@ -56,7 +56,7 @@ class VertexProvider(LlmModelBase):
                 "Request failed with status code and response text.",
                 extra={"status_code": response.status_code, "response_text": response.text},
             )
-            raise VertexRequestFailed(response.status_code, response.text)
+            raise VertexRequestFailed(f"Response {response.status_code}: response.text")
 
         return response.json()["predictions"][0]["content"]
 
