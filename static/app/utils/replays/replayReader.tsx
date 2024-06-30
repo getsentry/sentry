@@ -235,11 +235,7 @@ export default class ReplayReader {
     // Breadcrumbs must be sorted. Crumbs like `slowClick` and `multiClick` will
     // have the same timestamp as the click breadcrumb, but will be emitted a
     // few seconds later.
-    this._sortedBreadcrumbFrames = hydrateBreadcrumbs(
-      replayRecord,
-      breadcrumbFrames,
-      this._sortedRRWebEvents
-    )
+    this._sortedBreadcrumbFrames = hydrateBreadcrumbs(replayRecord, breadcrumbFrames)
       .concat(feedbackFrames)
       .sort(sortFrames);
     // Spans must be sorted so components like the Timeline and Network Chart
@@ -248,7 +244,7 @@ export default class ReplayReader {
     this._optionFrame = optionFrame;
 
     // Insert extra records to satisfy minimum requirements for the UI
-    this._sortedBreadcrumbFrames.push(replayInitBreadcrumb(replayRecord));
+    this._sortedBreadcrumbFrames.unshift(replayInitBreadcrumb(replayRecord));
     this._sortedRRWebEvents.unshift(recordingStartFrame(replayRecord));
     this._sortedRRWebEvents.push(recordingEndFrame(replayRecord));
 
