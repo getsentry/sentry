@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 import pickle
+from typing import Any
 
 from django.db.models import TextField
 
@@ -19,6 +20,10 @@ class GzippedDictField(TextField):
     Slightly different from a JSONField in the sense that the default
     value is a dictionary.
     """
+
+    _pyi_private_set_type = dict[str, Any]
+    _pyi_private_get_type = dict[str, Any]
+    _pyi_lookup_exact_type = dict[str, Any]
 
     def contribute_to_class(self, cls, name):
         """

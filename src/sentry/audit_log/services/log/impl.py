@@ -81,7 +81,7 @@ class OutboxBackedLogService(LogService):
             category=OutboxCategory.AUDIT_LOG_EVENT,
             object_identifier=RegionOutbox.next_object_identifier(),
             payload=event.__dict__,
-        )  # type: ignore[misc]
+        )
         outbox.save()
 
     def record_user_ip(self, *, event: UserIpEvent) -> None:
@@ -91,7 +91,7 @@ class OutboxBackedLogService(LogService):
             category=OutboxCategory.USER_IP_EVENT,
             object_identifier=event.user_id,
             payload=event.__dict__,
-        )  # type: ignore[misc]
+        )
         outbox.save()
 
     def find_last_log(

@@ -25,6 +25,8 @@ LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE
 OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF
 ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 """
+from typing import Any
+
 from django.core.exceptions import ValidationError
 from django.db import models
 from django.db.models.lookups import Contains, Exact, IContains, IExact, In, Lookup
@@ -53,6 +55,10 @@ class JSONField(models.TextField):
     default_error_messages = {"invalid": _("'%s' is not a valid JSON string.")}
     description = "JSON object"
     no_creator_hook = False
+
+    _pyi_private_set_type = dict[str, Any]
+    _pyi_private_get_type = dict[str, Any]
+    _pyi_lookup_exact_type = dict[str, Any]
 
     def __init__(self, *args, **kwargs):
         if not kwargs.get("null", False):
