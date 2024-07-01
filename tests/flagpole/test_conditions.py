@@ -268,12 +268,24 @@ class TestEqualsConditions(TestCase):
 
     def test_with_missing_context_property(self):
         value = "foo"
-        condition = EqualsCondition(property="foo", value=value)
+        condition = EqualsCondition(property="foo", value=value, strict_validation=True)
 
         with pytest.raises(ConditionTypeMismatchException):
             condition.match(context=EvaluationContext({"bar": value}), segment_name="test")
 
-        not_condition = NotEqualsCondition(property="foo", value=value)
+        not_condition = NotEqualsCondition(property="foo", value=value, strict_validation=True)
 
         with pytest.raises(ConditionTypeMismatchException):
             not_condition.match(context=EvaluationContext({"bar": value}), segment_name="test")
+
+        # Test non-strict validation for both conditions
+        condition = EqualsCondition(property="foo", value=value)
+        assert (
+            condition.match(context=EvaluationContext({"bar": value}), segment_name="test") is False
+        )
+
+        not_condition = NotEqualsCondition(property="foo", value=value)
+        assert (
+            not_condition.match(context=EvaluationContext({"bar": value}), segment_name="test")
+            is True
+        )

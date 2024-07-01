@@ -341,7 +341,7 @@ def get_project_config(
         python's StoreView)
     :return: a ProjectConfig object for the given project
     """
-    with sentry_sdk.push_scope() as scope:
+    with sentry_sdk.isolation_scope() as scope:
         scope.set_tag("project", project.id)
         with (
             sentry_sdk.start_transaction(name="get_project_config"),

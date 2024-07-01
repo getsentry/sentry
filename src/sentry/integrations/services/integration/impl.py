@@ -231,7 +231,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if context.organization_integrations:
             install = context.organization_integrations[0]
         if install and install.organization_id != organization_id:
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.isolation_scope() as scope:
                 scope.set_context(
                     "localscope",
                     {
@@ -485,7 +485,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         identity_external_id: str | None = None,
         identity_provider_external_id: str | None = None,
     ) -> RpcIntegrationIdentityContext:
-        from sentry.services.hybrid_cloud.identity.service import identity_service
+        from sentry.identity.services.identity.service import identity_service
         from sentry.services.hybrid_cloud.user.service import user_service
 
         integration = self.get_integration(
