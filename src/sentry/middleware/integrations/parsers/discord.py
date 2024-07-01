@@ -80,7 +80,7 @@ class DiscordRequestParser(BaseRequestParser):
                 external_id=discord_request.guild_id,
             ).first()
 
-        with sentry_sdk.push_scope() as scope:
+        with sentry_sdk.isolation_scope() as scope:
             scope.set_extra("path", self.request.path)
             scope.set_extra("guild_id", str(discord_request.guild_id if discord_request else None))
             sentry_sdk.capture_exception(

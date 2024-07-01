@@ -231,7 +231,7 @@ class DatabaseBackedIntegrationService(IntegrationService):
         if context.organization_integrations:
             install = context.organization_integrations[0]
         if install and install.organization_id != organization_id:
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.isolation_scope() as scope:
                 scope.set_context(
                     "localscope",
                     {
