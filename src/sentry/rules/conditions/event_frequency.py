@@ -260,26 +260,11 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             option_override_cm = options_override({"consistent": False})
         return option_override_cm
 
-    def get_comparison_start_end(
-        self, end: datetime, duration: timedelta, comparison_offset: timedelta | None = None
-    ) -> tuple[datetime, datetime]:
+    def get_query_window(self, end: datetime, duration: timedelta) -> tuple[datetime, datetime]:
         """
         Calculate the start and end times for the query.
-        Take these example conditions that generate queries:
-            '# of issues in 1 day is {}'
-            "# of issues is {}% higher in 1 day compared to 1 hours ago"
-
-        "duration" is the period of time we're querying over, in this case 1 day
-        for both queries.
-        "comparison_offset" only applies for percent comparison queries (the
-        second condition) and is the time offset between the two intervals we
-        are calculating a percent increase from. In this case, the offset is 1
-        hours with a duration of 24 hrs, so we have two queries:
-            1. [24hrs duration from now]      -> 24 hrs ago to now
-            2. [24hrs duration from 1hr ago]  -> 25 hrs ago to 1 hr ago
+        "duration" is the length of the window we're querying over.
         """
-        if comparison_offset:
-            end -= comparison_offset
         start = end - duration
         return (start, end)
 
@@ -292,16 +277,15 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         comparison_type: str,
     ) -> int:
         current_time = timezone.now()
-        start, end = self.get_comparison_start_end(end=current_time, duration=duration)
+        start, end = self.get_query_window(end=current_time, duration=duration)
         with self.disable_consistent_snuba_mode(duration):
             result = self.query(event, start, end, environment_id=environment_id)
             if comparison_type == ComparisonType.PERCENT:
                 # TODO: Figure out if there's a way we can do this less frequently. All queries are
                 # automatically cached for 10s. We could consider trying to cache this and the main
                 # query for 20s to reduce the load.
-                start, end = self.get_comparison_start_end(
-                    end=current_time, duration=duration, comparison_offset=comparison_interval
-                )
+                current_time -= comparison_interval
+                start, end = self.get_query_window(end=current_time, duration=duration)
                 comparison_result = self.query(event, start, end, environment_id=environment_id)
                 result = percent_increase(result, comparison_result)
 
@@ -321,13 +305,13 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
 
         If comparison_interval is not None, we're making the second query in a
         percent comparison condition. For example, if the condition is:
-          - num of issues is {}% higher in 5 minutes compared to 1 hour ago
-        The second query would be querying for num of events from 1 hour ago
-        to 1 hour 5 min ago.
+            - num of issues is {}% higher in 1 hr compared to 5 min ago
+        The second query would be querying for num of events from:
+            -  5 min ago to 1 hr 5 min ago
         """
-        start, end = self.get_comparison_start_end(
-            end=current_time, duration=duration, comparison_offset=comparison_interval
-        )
+        if comparison_interval:
+            current_time -= comparison_interval
+        start, end = self.get_query_window(end=current_time, duration=duration)
 
         with self.disable_consistent_snuba_mode(duration):
             result = self.batch_query(

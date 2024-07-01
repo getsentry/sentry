@@ -50,10 +50,10 @@ class UniqueConditionQuery(NamedTuple):
     cls_id: str
     interval: str
     environment_id: int
-    comparisonInterval: str | None = None
+    comparison_interval: str | None = None
 
     def __repr__(self):
-        return f"id: {self.cls_id},\ninterval: {self.interval},\nenv id: {self.environment_id},\ncomp interval: {self.comparisonInterval}"
+        return f"id: {self.cls_id},\ninterval: {self.interval},\nenv id: {self.environment_id},\ncomp interval: {self.comparison_interval}"
 
 
 class DataAndGroups(NamedTuple):
@@ -120,7 +120,9 @@ def _generate_unique_queries(
         # We will later compare the first query results against the second query to calculate
         # a percentage for percentage comparison conditions.
         comparison_interval = condition_data.get("comparisonInterval", DEFAULT_COMPARISON_INTERVAL)
-        second_comparison_query = unique_queries[0]._replace(comparisonInterval=comparison_interval)
+        first_query_copy = unique_queries[0]._asdict()
+        first_query_copy["comparison_interval"] = comparison_interval
+        second_comparison_query = UniqueConditionQuery(**first_query_copy)
         unique_queries.append(second_comparison_query)
 
     return unique_queries
@@ -140,7 +142,7 @@ def get_condition_query_groups(
         # to the buffer if we've already checked their fast conditions.
         slow_conditions = get_slow_conditions(rule)
         for condition_data in slow_conditions:
-            for unique_cond in _generate_unique_queries(condition_data, rule.environment_id):
+            for condition_query in _generate_unique_queries(condition_data, rule.environment_id):
                 # NOTE: If percent and count comparison conditions are sharing
                 # the same UniqueConditionQuery, the condition JSON in
                 # DataAndGroups will be incorrect for one of those types.
@@ -152,12 +154,12 @@ def get_condition_query_groups(
 
                 # Add to set of group_ids if there are already group_ids
                 # that apply to the unique condition query.
-                if data_and_groups := condition_groups.get(unique_cond):
+                if data_and_groups := condition_groups.get(condition_query):
                     data_and_groups.group_ids.update(rules_to_groups[rule.id])
                 # Otherwise, create the tuple containing the condition data and the
                 # set of group_ids that apply to the unique condition query.
                 else:
-                    condition_groups[unique_cond] = DataAndGroups(
+                    condition_groups[condition_query] = DataAndGroups(
                         condition_data, set(rules_to_groups[rule.id])
                     )
     return condition_groups
@@ -188,8 +190,8 @@ def get_condition_group_results(
         # The comparison interval is only set for the second query of a percent
         # comparison condition.
         comparison_interval = (
-            condition_inst.intervals[unique_condition.comparisonInterval][1]
-            if unique_condition.comparisonInterval
+            condition_inst.intervals[unique_condition.comparison_interval][1]
+            if unique_condition.comparison_interval
             else None
         )
 
@@ -430,7 +432,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     # JSON information needed to instantiate that condition class and the
     # group_ids that must be checked for that condition.
     # We don't query per rule condition because conditions of the same class,
-    # interval, environment, and comparisonInterval can share a single scan.
+    # interval, environment, and comparison_interval can share a single scan.
     condition_groups = get_condition_query_groups(alert_rules, rules_to_groups)
     logger.info(
         "delayed_processing.condition_groups",
