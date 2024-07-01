@@ -71,9 +71,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
         # header. This allows us to quickly test and compare multiple data sources without
         # interacting with a feature flagging system.
         preferred_source = request.headers.get("X-Preferred-Data-Source")
-        if preferred_source in ("scalar", "aggregated", "materialized-view"):
-            preferred_source = cast(PREFERRED_SOURCE, preferred_source)
-        else:
+        if preferred_source not in ("scalar", "aggregated", "materialized-view"):
             # If the feature flag has been enabled we'll default to the materialized-view data
             # source if none was provided. This would be the common path for users using the
             # Javascript web application.
@@ -81,6 +79,8 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
                 preferred_source = "materialized-view"
             else:
                 preferred_source = "scalar"
+
+        preferred_source = cast(PREFERRED_SOURCE, preferred_source)
 
         headers = {}
 
