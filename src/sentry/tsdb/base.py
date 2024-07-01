@@ -276,7 +276,7 @@ class BaseTSDB(Service):
             series.append(self.normalize_to_epoch(timestamp, rollup))
             timestamp = timestamp - timedelta(seconds=rollup)
 
-        return rollup, sorted(series)
+        return rollup, series[::-1]
 
     def get_active_series(
         self,
@@ -355,7 +355,6 @@ class BaseTSDB(Service):
         count: int = 1,
         environment_id: int | None = None,
     ) -> None:
-
         """
         Increment project ID=1 and group ID=5:
 
