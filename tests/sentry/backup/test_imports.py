@@ -32,6 +32,7 @@ from sentry.backup.imports import (
     import_in_user_scope,
 )
 from sentry.backup.scopes import ExportScope, ImportScope, RelocationScope
+from sentry.backup.services.import_export.model import RpcImportErrorKind
 from sentry.models.apitoken import DEFAULT_EXPIRATION, ApiToken, generate_token
 from sentry.models.authenticator import Authenticator
 from sentry.models.email import Email
@@ -65,7 +66,6 @@ from sentry.models.userpermission import UserPermission
 from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.monitors.models import Monitor
 from sentry.receivers import create_default_projects
-from sentry.services.hybrid_cloud.import_export.model import RpcImportErrorKind
 from sentry.silo.base import SiloMode
 from sentry.snuba.models import QuerySubscription, SnubaQuery
 from sentry.testutils.cases import TestCase
