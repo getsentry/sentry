@@ -18,10 +18,10 @@ import sentry
 from sentry import features, options
 from sentry.api.utils import generate_organization_url, generate_region_url
 from sentry.auth import superuser
+from sentry.auth.services.auth import AuthenticatedToken, AuthenticationContext
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.auth import AuthenticatedToken, AuthenticationContext
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
     RpcUserOrganizationContext,

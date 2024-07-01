@@ -76,6 +76,13 @@ def wrapper(method: FunctionType):
             else:
                 logger.info("slack_sdk.missing_error_response", extra={"error": str(e)})
             raise
+        except TimeoutError:
+            metrics.incr(
+                SLACK_DATADOG_METRIC,
+                sample_rate=1.0,
+                tags={"status": "timeout"},
+            )
+            raise
 
         return response
 

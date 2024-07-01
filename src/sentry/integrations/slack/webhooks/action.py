@@ -10,9 +10,9 @@ from django.urls import reverse
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
-from slack_sdk import WebhookClient
 from slack_sdk.errors import SlackApiError
 from slack_sdk.models.views import View
+from slack_sdk.webhook import WebhookClient
 
 from sentry import analytics, features
 from sentry.api import client
@@ -567,6 +567,10 @@ class SlackActionEndpoint(Endpoint):
                     private_metadata = orjson.loads(view.private_metadata)
                     webhook_client = WebhookClient(private_metadata["orig_response_url"])
                     webhook_client.send(blocks=json_blocks)
+                    logger.info(
+                        "slack.webhook.view_submission.success",
+                        extra={"integration_id": slack_request.integration.id},
+                    )
                 except SlackApiError as e:
                     logger.error(
                         "slack.webhook.view_submission.response-error", extra={"error": str(e)}
@@ -666,15 +670,30 @@ class SlackActionEndpoint(Endpoint):
             and "text" in response
         ):
             del response["text"]
-        slack_client = SlackClient(integration_id=slack_request.integration.id)
 
         if not slack_request.data.get("response_url"):
             # XXX: when you click an option in a modal dropdown it submits the request even though "Submit" has not been clicked
             return self.respond()
-        try:
-            slack_client.post(slack_request.data["response_url"], data=response, json=True)
-        except ApiError as e:
-            logger.error("slack.action.response-error", extra={"error": str(e)})
+
+        response_url = slack_request.data["response_url"]
+        if not features.has("organizations:slack-sdk-webhook-handling", group.project.organization):
+            slack_client = SlackClient(integration_id=slack_request.integration.id)
+            try:
+                slack_client.post(response_url, data=response, json=True)
+            except ApiError as e:
+                logger.error("slack.action.response-error", extra={"error": str(e)})
+
+        else:
+            json_blocks = orjson.dumps(response.get("blocks")).decode()
+            webhook_client = WebhookClient(response_url)
+            try:
+                webhook_client.send(blocks=json_blocks)
+                logger.info(
+                    "slack.webhook.update_status.success",
+                    extra={"integration_id": slack_request.integration.id},
+                )
+            except SlackApiError as e:
+                logger.error("slack.webhook.update_status.response-error", extra={"error": str(e)})
 
         return self.respond(response)
 
