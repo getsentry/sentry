@@ -116,6 +116,7 @@ export const DraggableTab = forwardRef(
           additionalProps={dropProps}
           tabProps={tabProps}
           isSelected={isSelected}
+          isTempTab={state.collection.getLastKey() === item.key}
           to={to}
           hidden={hidden}
           orientation={orientation}
@@ -127,7 +128,7 @@ export const DraggableTab = forwardRef(
             <TabContentWrap>
               {rendered}
               <StyledBadge>
-                <QueryCount hideParens count={1001} max={1000} />
+                <QueryCount hideParens count={1} max={1000} />
               </StyledBadge>
               {state.selectedKey === item.key && (
                 <DraggableTabMenuButton isChanged={isChanged} />
@@ -147,19 +148,20 @@ export const DraggableTab = forwardRef(
     );
   }
 );
+
+export const TabDivider = styled('div')`
+  height: 50%;
+  width: 1px;
+  border-radius: 6px;
+  background-color: ${p => p.theme.gray200};
+  margin: auto;
+`;
+
 const StyledDraggable = styled(Draggable)`
   display: flex;
   align-items: center;
   flex-direction: row;
   gap: 6px;
-`;
-
-const TabDivider = styled('div')`
-  height: 50%;
-  width: 2px;
-  border-radius: 6px;
-  background-color: ${p => p.theme.gray200};
-  margin: auto;
 `;
 
 const StyledBaseTab = styled(BaseTab)`
@@ -181,6 +183,7 @@ const StyledBadge = styled(Badge)`
   display: flex;
   height: 16px;
   align-items: center;
+  justify-content: center;
   border-radius: 10px;
   background: transparent;
   border: 1px solid ${p => p.theme.gray200};

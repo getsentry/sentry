@@ -29,7 +29,7 @@ import {IconAdd} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 
-import {DraggableTab} from './draggableTab';
+import {DraggableTab, TabDivider} from './draggableTab';
 import type {DraggableTabListItemProps} from './item';
 import {Item} from './item';
 import {tabsShouldForwardProp} from './utils';
@@ -140,12 +140,13 @@ function BaseDraggableTabList({
     <TabListOuterWrap style={outerWrapStyles}>
       <TabListWrap
         {...mergeProps(tabListProps, collectionProps)}
+        tempViewSelected={state.selectedKey === state.collection.getLastKey()}
         orientation={orientation}
         hideBorder={hideBorder}
         className={className}
         ref={tabListRef}
       >
-        {[...state.collection].map(item => (
+        {[...state.collection].slice(0, -1).map(item => (
           <DraggableTab
             key={item.key}
             item={item}
@@ -161,6 +162,19 @@ function BaseDraggableTabList({
           <IconAdd size="xs" style={{margin: '2 4 2 2'}} />
           Add View
         </AddViewButton>
+        <TabDivider />
+        {[...state.collection].slice(-1).map(item => (
+          <DraggableTab
+            key={item.key}
+            item={item}
+            state={state}
+            orientation={orientation}
+            overflowing={orientation === 'horizontal' && overflowTabs.includes(item.key)}
+            dropState={dropState}
+            ref={element => (tabItemsRef.current[item.key] = element)}
+            isChanged
+          />
+        ))}
       </TabListWrap>
 
       {orientation === 'horizontal' && overflowMenuItems.length > 0 && (
@@ -253,6 +267,7 @@ DraggableTabList.Item = Item;
 
 const AddViewButton = styled(Button)`
   color: ${p => p.theme.gray300};
+  padding-right: ${space(0.5)};
   margin: auto;
   font-weight: normal;
 `;
@@ -264,6 +279,7 @@ const TabListOuterWrap = styled('div')`
 const TabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
   hideBorder: boolean;
   orientation: Orientation;
+  tempViewSelected: boolean;
 }>`
   position: relative;
   display: grid;
@@ -279,7 +295,8 @@ const TabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
         grid-auto-flow: column;
         justify-content: start;
         gap: ${space(0.5)};
-        ${!p.hideBorder && `border-bottom: solid 1px ${p.theme.border};`}
+        ${!p.hideBorder && `border-bottom: ${p.tempViewSelected ? `dashed 1px` : `solid 1px`} ${p.theme.border};`}
+        stroke-dasharray: 4, 3;
       `
       : `
         height: 100%;

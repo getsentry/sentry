@@ -54,6 +54,7 @@ interface BaseTabProps {
    * by <DraggableTab> to pass in props used for drag-and-drop functionality.
    */
   additionalProps?: React.HTMLAttributes<HTMLElement>;
+  isTempTab?: boolean;
   newVariant?: boolean;
   to?: string;
 }
@@ -69,6 +70,7 @@ export const BaseTab = forwardRef(
       isSelected,
       additionalProps,
       newVariant = false,
+      isTempTab = false,
     } = props;
 
     const ref = useObjectRef(forwardedRef);
@@ -96,6 +98,7 @@ export const BaseTab = forwardRef(
         hidden={hidden}
         selected={isSelected}
         overflowing={overflowing}
+        isTempTab={isTempTab}
         ref={ref}
       >
         {props.children}
@@ -158,6 +161,7 @@ export const Tab = forwardRef(
 );
 
 const NewTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
+  isTempTab: boolean;
   overflowing: boolean;
   selected: boolean;
 }>`
@@ -165,14 +169,16 @@ const NewTabWrap = styled('li', {shouldForwardProp: tabsShouldForwardProp})<{
     p.selected
       ? `
         border-radius: 6px 6px 1px 1px;
-        border-top: 1px solid ${p.theme.border};
-        border-left: 1px solid ${p.theme.border};
-        border-right: 1px solid ${p.theme.border};
+        border-top: 1px ${p.isTempTab && p.selected ? `dashed` : `solid`} ${p.theme.border};
+        border-left: 1px ${p.isTempTab && p.selected ? `dashed` : `solid`} ${p.theme.border};
+        border-right: 1px ${p.isTempTab && p.selected ? `dashed` : `solid`} ${p.theme.border};
         background-color: ${p.theme.white};
         color: ${p.theme.fontWeightBold};
         font-weight: 600;
         `
-      : ``}
+      : `
+        border-top: 1px solid transparent;
+      `};
   transform: translateY(1px);
   padding: 5px 10px;
 
