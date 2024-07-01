@@ -405,6 +405,7 @@ def _make_nodestore_call(project, node_keys):
     return bulk_data
 
 
+@sentry_sdk.trace
 def make_nodestore_call_multithreaded(project, node_keys):
     def process_chunk(chunk):
         return _make_nodestore_call(project, chunk)
@@ -444,36 +445,44 @@ def lookup_group_data_stacktrace_bulk(
     else:
         bulk_data = _make_nodestore_call(project, list(node_id_to_group_data.keys()))
 
-    for node_id, data in bulk_data.items():
-        if node_id in node_id_to_group_data:
-            event_id, group_id = (
-                node_id_to_group_data[node_id][0],
-                node_id_to_group_data[node_id][1],
-            )
-            event = Event(event_id=event_id, project_id=project_id, group_id=group_id, data=data)
-            groups_to_event[group_id] = event
+    with sentry_sdk.start_span(op="lookup_event_bulk.loop", description="lookup_event_bulk.loop"):
+        for node_id, data in bulk_data.items():
+            if node_id in node_id_to_group_data:
+                event_id, group_id = (
+                    node_id_to_group_data[node_id][0],
+                    node_id_to_group_data[node_id][1],
+                )
+                event = Event(
+                    event_id=event_id, project_id=project_id, group_id=group_id, data=data
+                )
+                groups_to_event[group_id] = event
 
-    # look up individually any that may have failed during bulk lookup
-    for node_id, (event_id, group_id) in node_id_to_group_data.items():
-        if node_id not in bulk_data:
-            data = _retry_operation(
-                nodestore.backend.get,
-                Event.generate_node_id(project_id, event_id),
-                retries=3,
-                delay=2,
-            )
-            if data is None:
-                extra = {
-                    "organization_id": project.organization.id,
-                    "project_id": project.id,
-                    "group_id": group_id,
-                    "event_id": event_id,
-                }
-                logger.error("tasks.backfill_seer_grouping_records.event_lookup_error", extra=extra)
-                continue
-            event = Event(event_id=event_id, project_id=project_id, group_id=group_id)
-            event.data = data
-            groups_to_event[group_id] = event
+    with sentry_sdk.start_span(
+        op="lookup_event_bulk.individual_lookup", description="lookup_event_bulk.individual_lookup"
+    ):
+        # look up individually any that may have failed during bulk lookup
+        for node_id, (event_id, group_id) in node_id_to_group_data.items():
+            if node_id not in bulk_data:
+                data = _retry_operation(
+                    nodestore.backend.get,
+                    Event.generate_node_id(project_id, event_id),
+                    retries=3,
+                    delay=2,
+                )
+                if data is None:
+                    extra = {
+                        "organization_id": project.organization.id,
+                        "project_id": project.id,
+                        "group_id": group_id,
+                        "event_id": event_id,
+                    }
+                    logger.error(
+                        "tasks.backfill_seer_grouping_records.event_lookup_error", extra=extra
+                    )
+                    continue
+                event = Event(event_id=event_id, project_id=project_id, group_id=group_id)
+                event.data = data
+                groups_to_event[group_id] = event
 
     metrics.gauge(
         f"{BACKFILL_NAME}._lookup_event_bulk.hit_ratio",
