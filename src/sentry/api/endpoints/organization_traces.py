@@ -447,7 +447,7 @@ class TracesExecutor:
                 return self.get_traces_matching_span_conditions_timestamp_order(
                     params, snuba_params
                 )
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.isolation_scope() as scope:
                 scope.set_extra("sort", {"sort": self.sort})
                 sentry_sdk.capture_message("Unsupported sort specified")
 
@@ -1479,12 +1479,12 @@ def quantize_range(span_start, span_end, trace_range):
         end_index = clip(raw_end_index, 0, slices)
 
         if raw_start_index != start_index:
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.isolation_scope() as scope:
                 scope.set_extra("slice start", {"raw": raw_start_index, "clipped": start_index})
                 sentry_sdk.capture_message("Slice start was adjusted", level="warning")
 
         if raw_end_index != end_index:
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.isolation_scope() as scope:
                 scope.set_extra("slice end", {"raw": raw_end_index, "clipped": end_index})
                 sentry_sdk.capture_message("Slice end was adjusted", level="warning")
 
