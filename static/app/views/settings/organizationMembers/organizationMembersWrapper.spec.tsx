@@ -82,6 +82,23 @@ describe('OrganizationMembersWrapper', function () {
     expect(screen.getByRole('button', {name: 'Invite Members'})).toBeDisabled();
   });
 
+  it('cannot invite members if SSO is required', async function () {
+    const org = OrganizationFixture({
+      features: ['invite-members'],
+      access: [],
+      status: {
+        id: 'active',
+        name: 'active',
+      },
+      requiresSso: true,
+    });
+
+    render(<OrganizationMembersWrapper organization={org} {...routerProps} />);
+
+    await userEvent.click(screen.getByRole('button', {name: 'Invite Members'}));
+    expect(openInviteMembersModal).not.toHaveBeenCalled();
+  });
+
   it('can invite without permissions', async function () {
     const org = OrganizationFixture({
       features: ['invite-members'],
