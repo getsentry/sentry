@@ -62,7 +62,7 @@ def resolve_combined_expression(instance: Model, node: CombinedExpression) -> Ba
     return runner
 
 
-def _get_field(model: type[BaseModel], key: str) -> Field[object, object]:
+def _get_field(model: type[Model], key: str) -> Field[object, object]:
     field = model._meta.get_field(key)
     if not isinstance(field, Field):
         raise TypeError(f"expected Field for {key}, got ({field})")
@@ -171,8 +171,8 @@ def update_or_create(
 
 
 def create_or_update(
-    model: type[BaseModel], using: str | None = None, **kwargs: Any
-) -> tuple[int, Literal[False]] | tuple[BaseModel, Literal[True]]:
+    model: type[Model], using: str | None = None, **kwargs: Any
+) -> tuple[int, Literal[False]] | tuple[Model, Literal[True]]:
     """
     Similar to get_or_create, either updates a row or creates it.
 
