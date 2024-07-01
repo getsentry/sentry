@@ -73,7 +73,7 @@ class AutoEnableCodecovTest(TestCase):
         assert mock_get_repositories.call_count == 1
 
         org = Organization.objects.get(id=self.organization.id)
-        assert not org.flags.codecov_access.is_set
+        assert not org.flags.codecov_access
 
     @responses.activate
     def test_disables_codecov(self):
@@ -86,8 +86,7 @@ class AutoEnableCodecovTest(TestCase):
             enable_for_org(self.organization.id)
 
         org = Organization.objects.get(id=self.organization.id)
-        assert not org.flags.codecov_access.is_set
+        assert not org.flags.codecov_access
         with assume_test_silo_mode_of(AuditLogEntry):
-            audit_log = AuditLogEntry.objects.filter(organization_id=org.id)
-            assert len(audit_log) == 1
-            assert audit_log.first().data == {"codecov_access": "to False"}
+            audit_log = AuditLogEntry.objects.get(organization_id=org.id)
+            assert audit_log.data == {"codecov_access": "to False"}

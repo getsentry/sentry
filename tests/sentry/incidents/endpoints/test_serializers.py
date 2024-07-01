@@ -33,11 +33,12 @@ from sentry.incidents.serializers import (
 )
 from sentry.integrations.opsgenie.utils import OPSGENIE_CUSTOM_PRIORITIES
 from sentry.integrations.pagerduty.utils import PAGERDUTY_CUSTOM_PRIORITIES
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.serial import serialize_integration
+from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.environment import Environment
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.app import app_service
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.integration.serial import serialize_integration
+from sentry.sentry_apps.services.app import app_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -235,12 +236,13 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             {"aggregate": "count_unique(123, hello)"},
             {
                 "aggregate": [
-                    "Invalid Metric: count_unique(123, hello): expected at most 1 argument(s)"
+                    "Invalid Metric: count_unique(123, hello): expected at most 1 argument(s) but got 2 argument(s)"
                 ]
             },
         )
         self.run_fail_validation_test(
-            {"aggregate": "max()"}, {"aggregate": ["Invalid Metric: max(): expected 1 argument(s)"]}
+            {"aggregate": "max()"},
+            {"aggregate": ["Invalid Metric: max(): expected 1 argument(s) but got 0 argument(s)"]},
         )
         aggregate = "count_unique(tags[sentry:user])"
         base_params = self.valid_params.copy()
@@ -500,8 +502,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         serializer = AlertRuleSerializer(context=self.context, data=base_params)
         assert serializer.is_valid()
         serializer.save()
-        assert len(list(AlertRule.objects.filter(name="Aun1qu3n4m3"))) == 1
-        alert_rule = AlertRule.objects.filter(name="Aun1qu3n4m3").first()
+        alert_rule = AlertRule.objects.get(name="Aun1qu3n4m3")
         assert alert_rule.snuba_query.aggregate == "count_unique(tags[sentry:user])"
 
     def test_invalid_metric_field(self):
@@ -531,8 +532,8 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         self.run_fail_validation_test({"thresholdType": 50}, {"thresholdType": invalid_values})
 
     @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
-        return_value=("#", None, True),
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout_deprecated",
+        return_value=SlackChannelIdData("#", None, True),
     )
     def test_channel_timeout(self, mock_get_channel_id):
         trigger = {
@@ -560,8 +561,8 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         )
 
     @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
-        return_value=("#", None, True),
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout_deprecated",
+        return_value=SlackChannelIdData("#", None, True),
     )
     def test_invalid_team_with_channel_timeout(self, mock_get_channel_id):
         other_org = self.create_organization()
@@ -738,9 +739,8 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
     def test_error_issue_status(self):
         params = self.valid_params.copy()
         params["query"] = "status:abcd"
-        with self.feature("organizations:metric-alert-ignore-archived"):
-            serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
-            assert not serializer.is_valid()
+        serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
+        assert not serializer.is_valid()
         assert serializer.errors == {
             "nonFieldErrors": [
                 ErrorDetail(
@@ -751,10 +751,9 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
 
         params = self.valid_params.copy()
         params["query"] = "status:unresolved"
-        with self.feature("organizations:metric-alert-ignore-archived"):
-            serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
-            assert serializer.is_valid()
-            alert_rule = serializer.save()
+        serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
+        assert serializer.is_valid()
+        alert_rule = serializer.save()
         assert alert_rule.snuba_query.query == "status:unresolved"
 
 

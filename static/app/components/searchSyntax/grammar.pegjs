@@ -180,7 +180,7 @@ aggregate_rel_date_filter
 
 // has filter for not null type checks
 has_filter
-  = negation:negation? &"has:" key:search_key sep value:(search_key / search_value) &{
+  = negation:negation? &"has:" key:search_key sep value:(search_value/search_key) &{
       return tc.predicateFilter(FilterType.HAS, key)
     } {
       return tc.tokenFilter(FilterType.HAS, key, value, opDefault, !!negation);
@@ -339,8 +339,8 @@ ms_format   = [0-9] [0-9]? [0-9]? [0-9]? [0-9]? [0-9]?
 tz_format   = [+-] num2 ":" num2
 
 iso_8601_date_format
-  = date_format time_format? ("Z" / tz_format)? &end_value {
-      return tc.tokenValueIso8601Date(text());
+  = date:date_format time:time_format? tz:("Z" / tz_format)? &end_value {
+      return tc.tokenValueIso8601Date(text(), date, time, tz);
     }
 
 rel_date_format

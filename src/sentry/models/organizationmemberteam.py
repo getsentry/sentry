@@ -52,10 +52,10 @@ class OrganizationMemberTeam(ReplicatedRegionModel):
         )
 
     def handle_async_replication(self, shard_identifier: int) -> None:
+        from sentry.hybridcloud.services.replica.service import control_replica_service
         from sentry.services.hybrid_cloud.organization.serial import (
             serialize_rpc_organization_member_team,
         )
-        from sentry.services.hybrid_cloud.replica.service import control_replica_service
 
         control_replica_service.upsert_replicated_organization_member_team(
             omt=serialize_rpc_organization_member_team(self)
@@ -65,7 +65,7 @@ class OrganizationMemberTeam(ReplicatedRegionModel):
     def handle_async_deletion(
         cls, identifier: int, shard_identifier: int, payload: Mapping[str, Any] | None
     ) -> None:
-        from sentry.services.hybrid_cloud.replica.service import control_replica_service
+        from sentry.hybridcloud.services.replica.service import control_replica_service
 
         control_replica_service.remove_replicated_organization_member_team(
             organization_id=shard_identifier,

@@ -13,20 +13,20 @@ from sentry import analytics
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     ArrayField,
-    BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
     control_silo_model,
 )
 from sentry.db.models.fields.jsonfield import JSONField
+from sentry.db.models.manager.base import BaseManager
+from sentry.integrations.types import ExternalProviders
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.types.integrations import ExternalProviders
 
 if TYPE_CHECKING:
     from sentry.identity.base import Provider
+    from sentry.identity.services.identity import RpcIdentityProvider
     from sentry.models.user import User
-    from sentry.services.hybrid_cloud.identity import RpcIdentityProvider
 
 logger = logging.getLogger(__name__)
 
@@ -173,7 +173,7 @@ class IdentityManager(BaseManager["Identity"]):
         """
         query = self.filter(user_id=user.id, idp=idp)
         query.update(external_id=external_id, **defaults)
-        identity_model = query.first()
+        identity_model = query.get()
         logger.info(
             "updated-identity",
             extra={

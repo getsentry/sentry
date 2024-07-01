@@ -32,6 +32,7 @@ import {
   usePassiveResizableDrawer,
   type UsePassiveResizableDrawerOptions,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/usePassiveResizeableDrawer';
+import type {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 import type {
   TraceReducerAction,
@@ -42,6 +43,7 @@ import {
   getTraceTabTitle,
   type TraceTabsReducerState,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
+import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
 import {
@@ -60,7 +62,9 @@ type TraceDrawerProps = {
   metaResults: TraceMetaQueryResults;
   onScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   onTabScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
+  replayRecord: ReplayRecord | null;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
+  scheduler: TraceScheduler;
   trace: TraceTree;
   traceEventView: EventView;
   traceGridRef: HTMLElement | null;
@@ -129,8 +133,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
         props.manager.container
       ) {
         const {width, height} = props.manager.container.getBoundingClientRect();
-        props.manager.initializePhysicalSpace(width, height);
-        props.manager.draw();
+        props.scheduler.dispatch('set container physical space', [0, 0, width, height]);
       }
 
       minimized = minimized ?? traceStateRef.current.preferences.drawer.minimized;
@@ -187,7 +190,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
         props.traceGridRef.style.gridTemplateRows = '1fr auto';
       }
     },
-    [props.traceGridRef, props.manager, traceDispatch]
+    [props.traceGridRef, props.manager, props.scheduler, traceDispatch]
   );
 
   const [drawerRef, setDrawerRef] = useState<HTMLDivElement | null>(null);
@@ -439,6 +442,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
                 <TraceProfiles tree={props.trace} onScrollToNode={props.onScrollToNode} />
               ) : (
                 <TraceTreeNodeDetails
+                  replayRecord={props.replayRecord}
                   manager={props.manager}
                   organization={organization}
                   onParentClick={onParentClick}

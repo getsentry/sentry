@@ -29,6 +29,7 @@ from django.utils.encoding import force_str
 from django.utils.text import slugify
 
 from sentry.auth.access import RpcBackedAccess
+from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.event_manager import EventManager
 from sentry.eventstore.models import Event
@@ -41,7 +42,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import (
     AlertRule,
-    AlertRuleMonitorType,
+    AlertRuleMonitorTypeInt,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
 )
@@ -56,6 +57,7 @@ from sentry.incidents.models.incident import (
     TriggerStatus,
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.integrations.types import ExternalProviders
 from sentry.issues.grouptype import get_group_type_by_type_id
 from sentry.mediators.token_exchange.grant_exchanger import GrantExchanger
 from sentry.models.activity import Activity
@@ -137,9 +139,8 @@ from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
 )
-from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
-from sentry.services.hybrid_cloud.auth.model import RpcAuthState, RpcMemberSsoState
-from sentry.services.hybrid_cloud.hook import hook_service
+from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
+from sentry.sentry_apps.services.hook import hook_service
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.services.hybrid_cloud.organization.model import RpcUserOrganizationContext
 from sentry.services.hybrid_cloud.user import RpcUser
@@ -150,9 +151,9 @@ from sentry.snuba.models import QuerySubscription
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
-from sentry.types.integrations import ExternalProviders
 from sentry.types.region import Region, get_local_region, get_region_by_name
 from sentry.types.token import AuthTokenType
+from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
 from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from social_auth.models import UserSocialAuth
@@ -471,7 +472,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_project(organization=None, teams=None, fire_project_created=False, **kwargs):
+    def create_project(
+        organization=None, teams=None, fire_project_created=False, **kwargs
+    ) -> Project:
         if not kwargs.get("name"):
             kwargs["name"] = petname.generate(2, " ", letters=10).title()
         if not kwargs.get("slug"):
@@ -1458,6 +1461,8 @@ class Factories:
         date_closed=None,
         seen_by=None,
         alert_rule=None,
+        subscription=None,
+        activation=None,
     ):
         if not title:
             title = petname.generate(2, " ", letters=10).title()
@@ -1476,6 +1481,8 @@ class Factories:
             date_detected=date_detected or timezone.now(),
             date_closed=timezone.now() if date_closed is not None else date_closed,
             type=IncidentType.ALERT_TRIGGERED.value,
+            subscription=subscription,
+            activation=activation,
         )
         for project in projects:
             IncidentProject.objects.create(incident=incident, project=project)
@@ -1515,8 +1522,9 @@ class Factories:
         user=None,
         event_types=None,
         comparison_delta=None,
-        monitor_type=AlertRuleMonitorType.CONTINUOUS,
+        monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS,
         activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
+        description=None,
     ):
         if not name:
             name = petname.generate(2, " ", letters=10).title()
@@ -1545,6 +1553,7 @@ class Factories:
             comparison_delta=comparison_delta,
             monitor_type=monitor_type,
             activation_condition=activation_condition,
+            description=description,
         )
 
         if date_added is not None:
@@ -1668,6 +1677,7 @@ class Factories:
         integration = Integration.objects.create(external_id=external_id, **integration_params)
         with outbox_runner():
             organization_integration = integration.add_organization(organization)
+            assert organization_integration is not None
         organization_integration.update(**(oi_params or {}))
 
         return integration
@@ -1885,4 +1895,29 @@ class Factories:
         }
         return WebhookPayload.objects.create(
             mailbox_name=mailbox_name, region_name=region_name, **payload_kwargs
+        )
+
+    @staticmethod
+    def create_uptime_subscription(
+        type: str,
+        subscription_id: str | None,
+        status: UptimeSubscription.Status,
+        url: str,
+        interval_seconds: int,
+        timeout_ms: int,
+    ):
+        return UptimeSubscription.objects.create(
+            type=type,
+            subscription_id=subscription_id,
+            status=status.value,
+            url=url,
+            interval_seconds=interval_seconds,
+            timeout_ms=timeout_ms,
+        )
+
+    @staticmethod
+    def create_project_uptime_subscription(project, uptime_subscription):
+        return ProjectUptimeSubscription.objects.create(
+            uptime_subscription=uptime_subscription,
+            project=project,
         )

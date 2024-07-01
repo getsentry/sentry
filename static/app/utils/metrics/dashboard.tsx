@@ -22,6 +22,7 @@ export function convertToDashboardWidget(
   displayType?: MetricDisplayType,
   title = ''
 ): Widget {
+  // TODO: Ged rid of ts-expect-error
   // @ts-expect-error TODO: pass interval
   return {
     title,
@@ -42,7 +43,7 @@ export function toDisplayType(displayType: unknown): DisplayType {
 }
 
 export function getWidgetQuery(metricsQuery: QueryParams): WidgetQuery {
-  const field = MRIToField(metricsQuery.mri, metricsQuery.op);
+  const field = MRIToField(metricsQuery.mri, metricsQuery.aggregation);
   return {
     name: defined(metricsQuery.id) ? `${metricsQuery.id}` : '',
     aggregates: [field],

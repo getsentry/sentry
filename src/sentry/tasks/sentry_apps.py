@@ -19,7 +19,7 @@ from sentry.models.integrations.sentry_app_installation import SentryAppInstalla
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.servicehook import ServiceHook, ServiceHookProject
-from sentry.services.hybrid_cloud.app.service import app_service
+from sentry.sentry_apps.services.app.service import app_service
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
@@ -293,7 +293,7 @@ def build_comment_webhook(installation_id, issue_id, type, user_id, *args, **kwa
 
 def get_webhook_data(installation_id, issue_id, user_id):
     extra = {"installation_id": installation_id, "issue_id": issue_id}
-    install = app_service.get_installation_by_id(id=installation_id)
+    install = app_service.installation_by_id(id=installation_id)
     if not install:
         logger.info("workflow_notification.missing_installation", extra=extra)
         return
@@ -316,7 +316,7 @@ def get_webhook_data(installation_id, issue_id, user_id):
 @instrumented_task("sentry.tasks.send_process_resource_change_webhook", **TASK_OPTIONS)
 @retry_decorator
 def send_resource_change_webhook(installation_id, event, data, *args, **kwargs):
-    installation = app_service.get_installation_by_id(id=installation_id)
+    installation = app_service.installation_by_id(id=installation_id)
     if not installation:
         logger.info(
             "send_process_resource_change_webhook.missing_installation",

@@ -4,6 +4,7 @@ import type {LocationDescriptorObject} from 'history';
 import debounce from 'lodash/debounce';
 
 import {Button, LinkButton} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
 import GridEditable, {
@@ -14,15 +15,15 @@ import SortLink from 'sentry/components/gridEditable/sortLink';
 import {Hovercard} from 'sentry/components/hovercard';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
+import type {SelectionRange} from 'sentry/components/metrics/chart/types';
 import PerformanceDuration from 'sentry/components/performanceDuration';
-import {Flex} from 'sentry/components/profiling/flex';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DateString, PageFilters} from 'sentry/types/core';
-import type {MRI, ParsedMRI} from 'sentry/types/metrics';
+import type {MetricAggregation, MRI, ParsedMRI} from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {Container, FieldDateTime, NumberContainer} from 'sentry/utils/discover/styles';
@@ -32,7 +33,7 @@ import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {parseMRI} from 'sentry/utils/metrics/mri';
 import {
   type Field as SelectedField,
-  getSummaryValueForOp,
+  getSummaryValueForAggregation,
   type MetricsSamplesResults,
   type ResultField,
   type Summary,
@@ -45,7 +46,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import type {SelectionRange} from 'sentry/views/metrics/chart/types';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import ColorBar from 'sentry/views/performance/vitalDetail/colorBar';
@@ -67,10 +68,11 @@ const fields: SelectedField[] = [
 export type Field = (typeof fields)[number];
 
 interface MetricsSamplesTableProps {
+  aggregation?: MetricAggregation;
   focusArea?: SelectionRange;
+  hasPerformance?: boolean;
   mri?: MRI;
   onRowHover?: (sampleId?: string) => void;
-  op?: string;
   query?: string;
   setMetricsSamples?: React.Dispatch<
     React.SetStateAction<MetricsSamplesResults<Field>['data'] | undefined>
@@ -146,10 +148,11 @@ export function MetricSamplesTable({
   focusArea,
   mri,
   onRowHover,
-  op,
+  aggregation,
   query,
   setMetricsSamples,
   sortKey = 'sort',
+  hasPerformance = true,
 }: MetricsSamplesTableProps) {
   const location = useLocation();
 
@@ -209,7 +212,7 @@ export function MetricSamplesTable({
     max: focusArea?.max,
     min: focusArea?.min,
     mri,
-    op,
+    aggregation,
     query,
     referrer: 'api.organization.metrics-samples',
     enabled,
@@ -232,6 +235,21 @@ export function MetricSamplesTable({
   }, [result]);
 
   const emptyMessage = useMemo(() => {
+    if (!hasPerformance) {
+      return (
+        <PerformanceEmptyState withIcon={false}>
+          <p>{t('You need to set up performance monitoring to collect samples.')}</p>
+          <LinkButton
+            priority="primary"
+            external
+            href="https://docs.sentry.io/performance-monitoring/getting-started"
+          >
+            {t('Set Up Now')}
+          </LinkButton>
+        </PerformanceEmptyState>
+      );
+    }
+
     if (!defined(mri)) {
       return (
         <EmptyStateWarning>
@@ -241,7 +259,7 @@ export function MetricSamplesTable({
     }
 
     return null;
-  }, [mri]);
+  }, [mri, hasPerformance]);
 
   const _renderHeadCell = useMemo(() => {
     const generateSortLink = (key: string) => () => {
@@ -270,8 +288,8 @@ export function MetricSamplesTable({
   }, [currentSort, location]);
 
   const _renderBodyCell = useMemo(
-    () => renderBodyCell(op, parsedMRI?.unit),
-    [op, parsedMRI?.unit]
+    () => renderBodyCell(aggregation, parsedMRI?.unit),
+    [aggregation, parsedMRI?.unit]
   );
 
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -323,7 +341,6 @@ export function MetricSamplesTable({
           renderBodyCell: _renderBodyCell,
           renderHeadCell: _renderHeadCell,
         }}
-        location={location}
         emptyMessage={emptyMessage}
         minimumColWidth={60}
       />
@@ -392,7 +409,7 @@ function renderHeadCell(
   };
 }
 
-function renderBodyCell(op?: string, unit?: string) {
+function renderBodyCell(aggregation?: MetricAggregation, unit?: string) {
   return function (
     col: GridColumnOrder<ResultField>,
     dataRow: MetricsSamplesResults<SelectedField>['data'][number]
@@ -426,7 +443,13 @@ function renderBodyCell(op?: string, unit?: string) {
     }
 
     if (col.key === 'summary') {
-      return <SummaryRenderer summary={dataRow.summary} op={op} unit={unit} />;
+      return (
+        <SummaryRenderer
+          summary={dataRow.summary}
+          aggregation={aggregation}
+          unit={unit}
+        />
+      );
     }
 
     if (col.key === 'timestamp') {
@@ -510,6 +533,7 @@ function SpanId({
         organization,
         spanId,
         transactionName: transaction,
+        source: TraceViewSources.METRICS,
       })
     : undefined;
 
@@ -620,17 +644,17 @@ function DurationRenderer({duration}: {duration: number}) {
 
 function SummaryRenderer({
   summary,
-  op,
+  aggregation,
   unit,
 }: {
   summary: Summary;
-  op?: string;
+  aggregation?: MetricAggregation;
   unit?: string;
 }) {
-  const value = getSummaryValueForOp(summary, op);
+  const value = getSummaryValueForAggregation(summary, aggregation);
 
   // if the op is `count`, then the unit does not apply
-  unit = op === 'count' ? '' : unit;
+  unit = aggregation === 'count' ? '' : unit;
 
   return (
     <NumberContainer>{formatMetricUsingUnit(value ?? null, unit ?? '')}</NumberContainer>
@@ -661,21 +685,25 @@ function TraceId({
   timestamp?: DateString;
 }) {
   const organization = useOrganization();
+  const location = useLocation();
   const {selection} = usePageFilters();
   const stringOrNumberTimestamp =
     timestamp instanceof Date ? timestamp.toISOString() : timestamp ?? '';
 
-  const target = getTraceDetailsUrl(
+  const target = getTraceDetailsUrl({
     organization,
-    traceId,
-    {
+    traceSlug: traceId,
+    dateSelection: {
       start: selection.datetime.start,
       end: selection.datetime.end,
       statsPeriod: selection.datetime.period,
     },
-    stringOrNumberTimestamp,
-    eventId
-  );
+    timestamp: stringOrNumberTimestamp,
+    eventId,
+    location,
+    source: TraceViewSources.METRICS,
+  });
+
   return (
     <Container>
       <Link
@@ -767,4 +795,8 @@ const LegendDot = styled('div')<{color: string}>`
 
 const EmptyValueContainer = styled('span')`
   color: ${p => p.theme.gray300};
+`;
+
+const PerformanceEmptyState = styled(EmptyStateWarning)`
+  font-size: ${p => p.theme.fontSizeExtraLarge};
 `;

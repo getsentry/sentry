@@ -14,6 +14,7 @@ import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {Field} from 'sentry/utils/discover/fields';
 import {
+  ERROR_ONLY_FIELDS,
   FIELD_TAGS,
   isAggregateField,
   isEquation,
@@ -21,6 +22,7 @@ import {
   SEMVER_TAGS,
   SPAN_OP_BREAKDOWN_FIELDS,
   TRACING_FIELDS,
+  TRANSACTION_ONLY_FIELDS,
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
@@ -132,6 +134,11 @@ const STATIC_FIELD_TAGS = Object.keys(FIELD_TAGS).reduce((tags, key) => {
 }, {});
 
 const STATIC_FIELD_TAGS_WITHOUT_TRACING = omit(STATIC_FIELD_TAGS, TRACING_FIELDS);
+const STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS = omit(STATIC_FIELD_TAGS, ERROR_ONLY_FIELDS);
+const STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS = omit(
+  STATIC_FIELD_TAGS,
+  TRANSACTION_ONLY_FIELDS
+);
 
 const STATIC_SPAN_TAGS = SPAN_OP_BREAKDOWN_FIELDS.reduce((tags, key) => {
   tags[key] = {name: key, kind: FieldKind.METRICS};
@@ -171,6 +178,7 @@ export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, '
   metricAlert?: boolean;
   omitTags?: string[];
   projectIds?: number[] | Readonly<number[]>;
+  savedSearchType?: SavedSearchType;
   supportedTags?: TagCollection | undefined;
 };
 
@@ -188,6 +196,7 @@ function SearchBar(props: SearchBarProps) {
     maxMenuHeight,
     customMeasurements,
     dataset,
+    savedSearchType = SavedSearchType.EVENT,
   } = props;
 
   const api = useApi();
@@ -274,23 +283,28 @@ function SearchBar(props: SearchBarProps) {
       return supportedTags;
     }
 
-    const combinedTags: TagCollection = orgHasPerformanceView
-      ? Object.assign(
-          {},
-          measurementsWithKind,
-          functionTags,
-          STATIC_SPAN_TAGS,
-          STATIC_FIELD_TAGS
-        )
-      : Object.assign({}, STATIC_FIELD_TAGS_WITHOUT_TRACING);
+    const combinedTags: TagCollection =
+      dataset === DiscoverDatasets.ERRORS
+        ? Object.assign({}, functionTags, STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS)
+        : dataset === DiscoverDatasets.TRANSACTIONS
+          ? Object.assign(
+              {},
+              measurementsWithKind,
+              functionTags,
+              STATIC_SPAN_TAGS,
+              STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS
+            )
+          : orgHasPerformanceView
+            ? Object.assign(
+                {},
+                measurementsWithKind,
+                functionTags,
+                STATIC_SPAN_TAGS,
+                STATIC_FIELD_TAGS
+              )
+            : Object.assign({}, STATIC_FIELD_TAGS_WITHOUT_TRACING);
 
-    Object.assign(
-      combinedTags,
-      tagsWithKind,
-      STATIC_FIELD_TAGS,
-      STATIC_SEMVER_TAGS,
-      supportedTags
-    );
+    Object.assign(combinedTags, tagsWithKind, STATIC_SEMVER_TAGS, supportedTags);
 
     combinedTags.has = getHasTag(combinedTags);
 
@@ -309,7 +323,8 @@ function SearchBar(props: SearchBarProps) {
       {({measurements}) => (
         <SmartSearchBar
           hasRecentSearches
-          savedSearchType={SavedSearchType.EVENT}
+          savedSearchType={savedSearchType}
+          projectIds={projectIds}
           onGetTagValues={getEventFieldValues}
           prepareQuery={query => {
             // Prepare query string (e.g. strip special characters like negation operator)

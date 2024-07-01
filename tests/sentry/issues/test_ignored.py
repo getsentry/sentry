@@ -33,7 +33,7 @@ class HandleIgnoredTest(TestCase):
         )
         assert status_details is not None
         assert not GroupInbox.objects.filter(group=self.group).exists()
-        snooze = GroupSnooze.objects.filter(group=self.group).first()
+        snooze = GroupSnooze.objects.filter(group=self.group).get()
         assert snooze.until == status_details.get("ignoreUntil")
 
     def test_ignored_count(self) -> None:
@@ -42,7 +42,7 @@ class HandleIgnoredTest(TestCase):
         )
         assert status_details is not None
         assert not GroupInbox.objects.filter(group=self.group).exists()
-        snooze = GroupSnooze.objects.filter(group=self.group).first()
+        snooze = GroupSnooze.objects.filter(group=self.group).get()
         assert snooze.count == status_details.get("ignoreCount")
 
     def test_ignored_user_count(self) -> None:
@@ -51,7 +51,7 @@ class HandleIgnoredTest(TestCase):
         )
         assert status_details is not None
         assert not GroupInbox.objects.filter(group=self.group).exists()
-        snooze = GroupSnooze.objects.filter(group=self.group).first()
+        snooze = GroupSnooze.objects.filter(group=self.group).get()
         assert snooze.user_count == status_details.get("ignoreUserCount")
         assert Group.objects.get(id=self.group.id).status == GroupStatus.IGNORED
         assert Group.objects.get(id=self.group.id).substatus == GroupSubStatus.UNTIL_CONDITION_MET

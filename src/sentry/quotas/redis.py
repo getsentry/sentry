@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from collections.abc import Iterable
 from time import time
 
 import rb
@@ -61,7 +64,10 @@ class RedisQuota(Quota):
         return f"{self.namespace}:{local_key}:{int((timestamp - shift) // interval)}"
 
     def get_quotas(
-        self, project: Project, key: ProjectKey | None = None, keys: list[ProjectKey] | None = None
+        self,
+        project: Project,
+        key: ProjectKey | None = None,
+        keys: Iterable[ProjectKey] | None = None,
     ) -> list[QuotaConfig]:
         if key:
             key.project = project

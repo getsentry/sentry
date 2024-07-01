@@ -6,8 +6,9 @@ import zlib
 from datetime import datetime, timezone
 from typing import TypedDict, cast
 
+import sentry_sdk.scope
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
-from sentry_sdk import Hub, set_tag
+from sentry_sdk import Scope, set_tag
 from sentry_sdk.tracing import Span
 
 from sentry.constants import DataCategory
@@ -66,9 +67,11 @@ class RecordingIngestMessage:
 
 
 @metrics.wraps("replays.usecases.ingest.ingest_recording")
-def ingest_recording(message_dict: ReplayRecording, transaction: Span, current_hub: Hub) -> None:
+def ingest_recording(
+    message_dict: ReplayRecording, transaction: Span, isolation_scope: Scope
+) -> None:
     """Ingest non-chunked recording messages."""
-    with current_hub:
+    with sentry_sdk.scope.use_isolation_scope(isolation_scope):
         with transaction.start_child(
             op="replays.usecases.ingest.ingest_recording",
             description="ingest_recording",
@@ -215,6 +218,22 @@ def recording_post_processor(
     replay_event_bytes: bytes | None,
     transaction: Span,
 ) -> None:
+    if len(segment_bytes) >= 4_000_000:
+        logger.info(
+            # Logging to the sentry.replays.slow_click namespace because
+            # it's the only one configured to use BigQuery at the moment.
+            #
+            # NOTE: Needs an ops request if we want to create a new dataset.
+            "sentry.replays.slow_click",
+            extra={
+                "event_type": "oversized_segment",
+                "org_id": message.org_id,
+                "project_id": message.project_id,
+                "replay_id": message.replay_id,
+                "size": len(segment_bytes),
+            },
+        )
+
     try:
         with metrics.timer("replays.usecases.ingest.decompress_and_parse"):
             decompressed_segment = decompress(segment_bytes)

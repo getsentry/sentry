@@ -16,6 +16,7 @@ interface VideoReplayerWithInteractionsOptions {
   onFinished: () => void;
   onLoaded: (event: any) => void;
   root: RootElem;
+  speed: number;
   start: number;
   theme: Theme;
   videoApiPrefix: string;
@@ -28,10 +29,7 @@ interface VideoReplayerWithInteractionsOptions {
  * We need both instances in order to render the video playback alongside gestures.
  */
 export class VideoReplayerWithInteractions {
-  public config: VideoReplayerConfig = {
-    skipInactive: false,
-    speed: 1.0,
-  };
+  public config: VideoReplayerConfig;
   private videoReplayer: VideoReplayer;
   private replayer: Replayer;
 
@@ -47,7 +45,13 @@ export class VideoReplayerWithInteractions {
     clipWindow,
     durationMs,
     theme,
+    speed,
   }: VideoReplayerWithInteractionsOptions) {
+    this.config = {
+      skipInactive: false,
+      speed,
+    };
+
     this.videoReplayer = new VideoReplayer(videoEvents, {
       videoApiPrefix,
       root,
@@ -57,6 +61,7 @@ export class VideoReplayerWithInteractions {
       onBuffer,
       clipWindow,
       durationMs,
+      config: this.config,
     });
 
     root?.classList.add('video-replayer');
@@ -99,8 +104,6 @@ export class VideoReplayerWithInteractions {
       }
     });
 
-    const hasGestures = events?.some(e => e.type === 3);
-
     this.replayer = new Replayer(eventsWithSnapshots, {
       root: root as Element,
       blockClass: 'sentry-block',
@@ -115,11 +118,10 @@ export class VideoReplayerWithInteractions {
       speed: this.config.speed,
     });
 
-    if (!hasGestures) {
-      // If the replay has no gestures, we should hide the mouse
-      // @ts-expect-error private
-      this.replayer.mouse.classList.remove('replayer-mouse');
-    }
+    this.setConfig({
+      skipInactive: false,
+      speed,
+    });
   }
 
   public destroy() {

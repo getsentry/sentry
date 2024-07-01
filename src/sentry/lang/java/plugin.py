@@ -1,3 +1,8 @@
+from __future__ import annotations
+
+from collections.abc import Mapping, Sequence
+from typing import Any
+
 import sentry_sdk
 
 from sentry.lang.java.processing import deobfuscate_exception_value
@@ -12,8 +17,7 @@ from sentry.lang.javascript.utils import get_source_context, trim_line
 from sentry.models.artifactbundle import ArtifactBundleArchive
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.eventerror import EventError
-from sentry.plugins.base.v2 import Plugin2
-from sentry.reprocessing import report_processing_issue
+from sentry.plugins.base.v2 import EventPreprocessor, Plugin2
 from sentry.stacktraces.processing import StacktraceProcessor
 from sentry.utils.safe import get_path
 
@@ -59,14 +63,6 @@ class JavaStacktraceProcessor(StacktraceProcessor):
 
             self.data.setdefault("errors", []).append(
                 {"type": error_type, "mapping_uuid": debug_id}
-            )
-
-            report_processing_issue(
-                self.data,
-                scope="proguard",
-                object="mapping:%s" % debug_id,
-                type=error_type,
-                data={"mapping_uuid": debug_id},
             )
 
         return True
@@ -337,7 +333,7 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
                 different_exceptions.append((symbolicator_exception, python_exception))
 
         if different_frames or different_exceptions:
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.isolation_scope() as scope:
                 scope.set_extra("different_frames", different_frames)
                 scope.set_extra("different_exceptions", different_exceptions)
                 scope.set_extra("event_id", self.data.get("event_id"))
@@ -359,6 +355,8 @@ class JavaPlugin(Plugin2):
         if "java" in platforms:
             return [JavaSourceLookupStacktraceProcessor]
 
-    def get_event_preprocessors(self, data):
+    def get_event_preprocessors(self, data: Mapping[str, Any]) -> Sequence[EventPreprocessor]:
         if has_proguard_file(data):
             return [deobfuscate_exception_value, deobfuscate_view_hierarchy]
+        else:
+            return []

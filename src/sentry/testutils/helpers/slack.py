@@ -3,6 +3,7 @@ from urllib.parse import parse_qs, quote
 import responses
 
 from sentry.integrations.slack.message_builder import SlackBody
+from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.integrations.integration import Integration
@@ -12,7 +13,6 @@ from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.types.integrations import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.utils import json
 
 
@@ -147,11 +147,20 @@ def get_block_kit_preview_url(index=0) -> str:
     return preview_url
 
 
-def setup_slack_with_identities(organization, user):
-    integration = install_slack(organization)
-    idp = IdentityProvider.objects.create(type="slack", external_id="TXXXXXXX1", config={})
+def setup_slack_with_identities(
+    organization: Organization,
+    user: User,
+    identity_provider_external_id="TXXXXXXX1",
+    identity_external_id="UXXXXXXX1",
+):
+    integration = install_slack(
+        organization=organization, workspace_id=identity_provider_external_id
+    )
+    idp = IdentityProvider.objects.create(
+        type="slack", external_id=identity_provider_external_id, config={}
+    )
     Identity.objects.create(
-        external_id="UXXXXXXX1",
+        external_id=identity_external_id,
         idp=idp,
         user=user,
         status=IdentityStatus.VALID,

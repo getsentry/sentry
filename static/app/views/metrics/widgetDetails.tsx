@@ -16,7 +16,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
-import type {MRI} from 'sentry/types/metrics';
+import type {MetricAggregation, MRI} from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMetric} from 'sentry/utils/metrics';
@@ -29,7 +29,7 @@ import {CodeLocations} from 'sentry/views/metrics/codeLocations';
 import type {FocusAreaProps} from 'sentry/views/metrics/context';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {extendQueryWithGroupBys} from 'sentry/views/metrics/utils';
-import {generateTracesRouteWithQuery} from 'sentry/views/performance/traces/utils';
+import {generateTracesRouteWithQuery} from 'sentry/views/traces/utils';
 
 enum Tab {
   SAMPLES = 'samples',
@@ -43,6 +43,7 @@ export function WidgetDetails() {
     focusArea,
     setHighlightedSampleId,
     setMetricsSamples,
+    hasPerformanceMetrics,
   } = useMetricsContext();
 
   const selectedWidget = widgets[selectedWidgetIndex] as MetricsWidget | undefined;
@@ -58,27 +59,29 @@ export function WidgetDetails() {
     return <MetricDetails onRowHover={handleSampleRowHover} focusArea={focusArea} />;
   }
 
-  const {mri, op, query, focusedSeries} = selectedWidget;
+  const {mri, aggregation, query, focusedSeries} = selectedWidget;
 
   return (
     <MetricDetails
       mri={mri}
-      op={op}
+      aggregation={aggregation}
       query={query}
       focusedSeries={focusedSeries}
       onRowHover={handleSampleRowHover}
       setMetricsSamples={setMetricsSamples}
       focusArea={focusArea}
+      hasPerformanceMetrics={hasPerformanceMetrics}
     />
   );
 }
 
 interface MetricDetailsProps {
+  aggregation?: MetricAggregation;
   focusArea?: FocusAreaProps;
   focusedSeries?: FocusedMetricsSeries[];
+  hasPerformanceMetrics?: boolean;
   mri?: MRI;
   onRowHover?: (sampleId?: string) => void;
-  op?: string;
   query?: string;
   setMetricsSamples?: React.Dispatch<
     React.SetStateAction<MetricsSamplesResults<Field>['data'] | undefined>
@@ -87,12 +90,13 @@ interface MetricDetailsProps {
 
 export function MetricDetails({
   mri,
-  op,
+  aggregation,
   query,
   focusedSeries,
   onRowHover,
   focusArea,
   setMetricsSamples,
+  hasPerformanceMetrics,
 }: MetricDetailsProps) {
   const {selection} = usePageFilters();
   const organization = useOrganization();
@@ -139,11 +143,11 @@ export function MetricDetails({
   const tracesTarget = generateTracesRouteWithQuery({
     orgSlug: organization.slug,
     metric:
-      op && mri
+      aggregation && mri
         ? {
             max: selectionRange?.max,
             min: selectionRange?.min,
-            op: op,
+            op: aggregation,
             query: queryWithFocusedSeries,
             mri,
           }
@@ -160,7 +164,7 @@ export function MetricDetails({
       <Tabs value={selectedTab} onChange={handleTabChange}>
         <TabsAndAction>
           <TabList>
-            <TabList.Item key={Tab.SAMPLES}>
+            <TabList.Item textValue={t('Span Samples')} key={Tab.SAMPLES}>
               <GuideAnchor target="metrics_table" position="top">
                 {t('Span Samples')}
               </GuideAnchor>
@@ -201,18 +205,20 @@ export function MetricDetails({
                     focusArea={selectionRange}
                     mri={mri}
                     onRowHover={onRowHover}
-                    op={op}
+                    aggregation={aggregation}
                     query={queryWithFocusedSeries}
                     setMetricsSamples={setMetricsSamples}
+                    hasPerformance={hasPerformanceMetrics}
                   />
                 ) : (
                   <MetricSamplesTable
                     focusArea={selectionRange}
                     mri={mri}
                     onRowHover={onRowHover}
-                    op={op}
+                    aggregation={aggregation}
                     query={queryWithFocusedSeries}
                     setMetricsSamples={setMetricsSamples}
+                    hasPerformance={hasPerformanceMetrics}
                   />
                 )}
               </MetricSampleTableWrapper>

@@ -14,7 +14,7 @@ import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedD
 import useOnboardingDocs from 'sentry/components/onboardingWizard/useOnboardingDocs';
 import {PlatformOptionDropdown} from 'sentry/components/replaysOnboarding/platformOptionDropdown';
 import {ReplayOnboardingLayout} from 'sentry/components/replaysOnboarding/replayOnboardingLayout';
-import useLoadOnboardingDoc from 'sentry/components/replaysOnboarding/useLoadOnboardingDoc';
+import useLoadReplayOnboardingDoc from 'sentry/components/replaysOnboarding/useLoadReplayOnboardingDoc';
 import {
   generateDocKeys,
   isPlatformSupported,
@@ -37,7 +37,8 @@ import platforms, {otherPlatform} from 'sentry/data/platforms';
 import {t, tct} from 'sentry/locale';
 import pulsingIndicatorStyles from 'sentry/styles/pulsingIndicator';
 import {space} from 'sentry/styles/space';
-import type {PlatformKey, Project, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import EventWaiter from 'sentry/utils/eventWaiter';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -242,7 +243,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     dsn,
     cdn,
     isProjKeysLoading,
-  } = useLoadOnboardingDoc({
+  } = useLoadReplayOnboardingDoc({
     platform:
       showJsFrameworkInstructions && setupMode() === 'npm'
         ? replayJsFrameworkOptions.find(p => p.id === jsFramework.value) ??
@@ -253,7 +254,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   });
 
   // New onboarding docs for initial loading of JS Framework options
-  const {docs: jsFrameworkDocs} = useLoadOnboardingDoc({
+  const {docs: jsFrameworkDocs} = useLoadReplayOnboardingDoc({
     platform:
       replayJsFrameworkOptions.find(p => p.id === jsFramework.value) ??
       replayJsFrameworkOptions[0],

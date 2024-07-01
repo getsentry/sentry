@@ -335,9 +335,12 @@ class OrganizationSpansAggregationEndpoint(OrganizationEventsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
+    snuba_methods = ["GET"]
 
     def get(self, request: Request, organization: Organization) -> Response:
-        if not features.has("organizations:spans-first-ui", organization, actor=request.user):
+        if not features.has(
+            "organizations:insights-initial-modules", organization, actor=request.user
+        ):
             return Response(status=404)
 
         try:

@@ -22,6 +22,8 @@ import type {FeedbackEventParameters} from './analytics/feedbackAnalyticsEvents'
 import {feedbackEventMap} from './analytics/feedbackAnalyticsEvents';
 import type {GrowthEventParameters} from './analytics/growthAnalyticsEvents';
 import {growthEventMap} from './analytics/growthAnalyticsEvents';
+import type {InsightEventParameters} from './analytics/insightAnalyticEvents';
+import {insightEventMap} from './analytics/insightAnalyticEvents';
 import type {IntegrationEventParameters} from './analytics/integrations';
 import {integrationEventMap} from './analytics/integrations';
 import type {IssueEventParameters} from './analytics/issueAnalyticsEvents';
@@ -61,6 +63,7 @@ interface EventParameters
     DDMEventParameters,
     DiscoverEventParameters,
     FeedbackEventParameters,
+    InsightEventParameters,
     IssueEventParameters,
     MonitorsEventParameters,
     PerformanceEventParameters,
@@ -88,6 +91,7 @@ const allEventMap: Record<string, string | null> = {
   ...discoverEventMap,
   ...feedbackEventMap,
   ...growthEventMap,
+  ...insightEventMap,
   ...issueEventMap,
   ...monitorsEventMap,
   ...performanceEventMap,

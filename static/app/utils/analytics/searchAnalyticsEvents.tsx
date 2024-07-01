@@ -3,6 +3,7 @@ import type {ShortcutType} from 'sentry/components/smartSearchBar/types';
 type SearchEventBase = {
   query: string;
   search_type: string;
+  is_multi_project?: boolean;
   search_source?: string;
 };
 
@@ -60,11 +61,14 @@ export type SearchEventParameters = {
   'search.saved_search_open_create_modal': OpenEvent;
   'search.saved_search_sidebar_toggle_clicked': {open: boolean};
   'search.search_with_invalid': SearchEventBase;
-  'search.searched': SearchEventBase & {search_source?: string};
+  'search.searched': SearchEventBase;
+  'search.searched_filter': SearchEventBase & {
+    key: string;
+    values: string[];
+  };
   'search.shortcut_used': SearchEventBase & {
     shortcut_method: 'hotkey' | 'click';
     shortcut_type: ShortcutType;
-    search_source?: string;
   };
   'settings_search.open': OpenEvent;
   'settings_search.query': QueryEvent;
@@ -78,6 +82,7 @@ export type SearchEventKey = keyof SearchEventParameters;
 
 export const searchEventMap: Record<SearchEventKey, string | null> = {
   'search.searched': 'Search: Performed search',
+  'search.searched_filter': 'Search: Performed search filter',
   'search.key_autocompleted': 'Search: Key Autocompleted',
   'search.shortcut_used': 'Search: Shortcut Used',
   'search.docs_opened': 'Search: Docs Opened',

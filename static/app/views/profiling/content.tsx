@@ -38,7 +38,6 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {ProfilingUnsupportedAlert} from 'sentry/views/profiling/unsupportedAlert';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
 import {LandingWidgetSelector} from './landing/landingWidgetSelector';
@@ -189,6 +188,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   <SmartSearchBar
                     organization={organization}
                     hasRecentSearches
+                    projectIds={projects.map(p => parseInt(p.id, 10))}
                     searchSource="profile_landing"
                     supportedTags={profileFilters}
                     query={query}
@@ -199,7 +199,6 @@ function ProfilingContent({location}: ProfilingContentProps) {
               </ActionBar>
               {shouldShowProfilingOnboardingPanel ? (
                 <Fragment>
-                  <ProfilingUnsupportedAlert selectedProjects={selection.projects} />
                   <ProfilingOnboardingPanel
                     content={
                       // If user is on m2, show default

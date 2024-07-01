@@ -478,12 +478,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-# Separate the logic for producing feedbacks from generic events, and handle attachments in the same envelope
-register(
-    "feedback.ingest-inline-attachments",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 
 # Extract spans only from a random fraction of transactions.
@@ -848,6 +842,12 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "seer.similarity-backfill-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "seer.severity-killswitch.enabled",
     default=False,
     type=Bool,
@@ -885,20 +885,15 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-
 register(
-    "issues.similarity-embeddings.projects-allowlist",
-    type=Sequence,
-    default=[],
+    "seer.similarity.circuit-breaker-config",
+    type=Dict,
+    # TODO: For now we're using the defaults for everything but `allow_passthrough`. We may want to
+    # revisit that choice in the future.
+    default={"allow_passthrough": True},
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "issues.similarity-embeddings-grouping.projects-allowlist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # seer nearest neighbour endpoint timeout
 register(
@@ -937,6 +932,13 @@ register(
     "embeddings-grouping.seer.backfill-batch-size",
     type=Int,
     default=10,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "embeddings-grouping.seer.delete-record-batch-size",
+    type=Int,
+    default=100,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1244,18 +1246,6 @@ register("api.deprecation.brownout-duration", default="PT1M", flags=FLAG_AUTOMAT
 # Option to disable misbehaving use case IDs
 register("sentry-metrics.indexer.disabled-namespaces", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# A slow rollout option for writing "new" cache keys
-# as the transition from UseCaseKey to UseCaseID occurs
-register(
-    "sentry-metrics.indexer.cache-key-rollout-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
-# A option for double writing old and new cache keys
-# for the same transition
-register(
-    "sentry-metrics.indexer.cache-key-double-write", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
 # An option to tune the percentage of cache keys that gets replenished during indexer resolve
 register(
     "sentry-metrics.indexer.disable-memcache-replenish-rollout",
@@ -1293,25 +1283,9 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Option to control whether or not we raise ValidationErrors in the indexer
-# (Temporary) raising the error would mean we skip the processing or DLQing of these
-# invalid messages
-register(
-    "sentry-metrics.indexer.raise-validation-errors",
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Option to enable orjson for JSON parsing in reconstruct_messages function
 register(
     "sentry-metrics.indexer.reconstruct.enable-orjson", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
-# Option to enable direct storage queries for meta queries in the metrics layer
-register(
-    "sentry-metrics.metrics-layer.use-storage-direct-meta-queries",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 
@@ -1409,11 +1383,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "sentry-metrics.writes-limiter.apply-uca-limiting",
-    default=True,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 # per-organization limits on the number of timeseries that can be observed in
 # each window.
 #
@@ -1428,20 +1397,6 @@ register(
 #
 # Note that changing either window or granularity_seconds of a limit will
 # effectively reset it, as the previous data can't/won't be converted.
-register(
-    "sentry-metrics.cardinality-limiter.limits.performance.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.cardinality-limiter.limits.releasehealth.per-org",
-    default=[
-        {"window_seconds": 3600, "granularity_seconds": 600, "limit": 10000},
-    ],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
 register(
     "sentry-metrics.cardinality-limiter.limits.transactions.per-org",
     default=[
@@ -1485,29 +1440,8 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
-    "sentry-metrics.cardinality-limiter.orgs-rollout-rate",
-    default=1.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.cardinality-limiter-rh.orgs-rollout-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
     "sentry-metrics.10s-granularity",
     default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "sentry-metrics.producer-schema-validation.release-health.rollout-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-register(
-    "sentry-metrics.producer-schema-validation.performance.rollout-rate",
-    default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1527,6 +1461,13 @@ register(
 register(
     "sentry-metrics.synchronized-rebalance-delay",
     default=15,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry-metrics.monitor-queue-time",
+    type=Bool,
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -1789,7 +1730,7 @@ register(
     type=Float,
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)  # hours
+)
 register(
     "performance.traces.trace-explorer-max-trace-ids-per-chunk",
     type=Int,
@@ -1800,6 +1741,30 @@ register(
     "performance.traces.trace-explorer-skip-floating-spans",
     type=Bool,
     default=True,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.traces.trace-explorer-scan-max-block-size-hours",
+    type=Int,
+    default=8,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.traces.trace-explorer-scan-max-batches",
+    type=Int,
+    default=7,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.traces.trace-explorer-scan-max-execution-seconds",
+    type=Int,
+    default=30,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.traces.trace-explorer-scan-max-parallel-queries",
+    type=Int,
+    default=3,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
@@ -1832,12 +1797,16 @@ register(
     default=1000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# Used for enabling flags in ST. Should be removed once Flagpole works in all STs.
 register(
-    "performance.spans-tags-values.search",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
+    "performance.use_metrics.orgs_allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
+# Used for enabling flags in ST. Should be removed once Flagpole works in all STs.
+register("performance.use_metrics.enabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Dynamic Sampling system-wide options
 # Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
@@ -1867,14 +1836,6 @@ register(
 
 # === Hybrid cloud subsystem options ===
 # UI rollout
-register("hybrid_cloud.multi-region-selector", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("hybrid_cloud.region-domain-allow-list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-register("hybrid_cloud.region-user-allow-list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-register(
-    "hybrid_cloud.use_region_specific_upload_url", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
 register(
     "hybrid_cloud.disable_relative_upload_urls", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
@@ -1886,13 +1847,15 @@ register("flagpole_features", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("flagpole.rollout_phase", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("flagpole.flagpole_only_features", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("flagpole.feature_compare_list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-
+register("flagpole.debounce_reporting_seconds", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Retry controls
 register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybridcloud.rpc.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybridcloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
+register("hybridcloud.endpoint_flag_logging", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("hybridcloud.rpc.method_retry_overrides", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("hybridcloud.rpc.method_timeout_overrides", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Webhook processing controls
 register(
     "hybridcloud.webhookpayload.worker_threads",
@@ -2628,27 +2591,49 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enable percentile operations in the metrics/meta endpoint in the Metrics API for the orgs in the list. This is used to
-# also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
+# max number of profile chunks to use for computing
+# the merged profile.
 register(
-    "sentry-metrics.metrics-api.enable-percentile-operations-for-orgs",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+    "profiling.continuous-profiling.chunks-set.size",
+    type=Int,
+    default=50,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enable the "last" operation in the metrics/meta endpoint in the Metrics API for the orgs in the list. This is used to
-# also hide those expensive operations from view in the Metrics UI for everyone except the whitelist.
+# Enable orjson in the occurrence_consumer.process_[message|batch]
 register(
-    "sentry-metrics.metrics-api.enable-gauge-last-for-orgs",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-register(
-    "sentry-metrics.monitor-queue-time",
+    "issues.occurrence_consumer.use_orjson",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Controls the rate of using the sentry api shared secret for communicating to sentry.
+register(
+    "seer.api.use-shared-secret",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "similarity.backfill_nodestore_use_multithread",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "similarity.backfill_nodestore_chunk_size",
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "similarity.backfill_nodestore_threads",
+    default=6,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "similarity.backfill_snuba_concurrent_requests",
+    default=20,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

@@ -6,17 +6,14 @@ from typing import Any
 from unittest.mock import MagicMock, patch
 from uuid import uuid4
 
+import orjson
 from django.db import models
 
 from sentry.backup.dependencies import NormalizedModelName, get_model_name
 from sentry.backup.helpers import ImportFlags
-from sentry.models.importchunk import ControlImportChunk, RegionImportChunk
-from sentry.models.options.option import ControlOption, Option
-from sentry.models.project import Project
-from sentry.models.user import MAX_USERNAME_LENGTH, User
-from sentry.services.hybrid_cloud.import_export import import_export_service
-from sentry.services.hybrid_cloud.import_export.impl import get_existing_import_chunk
-from sentry.services.hybrid_cloud.import_export.model import (
+from sentry.backup.services.import_export import import_export_service
+from sentry.backup.services.import_export.impl import get_existing_import_chunk
+from sentry.backup.services.import_export.model import (
     RpcExportError,
     RpcExportErrorKind,
     RpcExportScope,
@@ -27,11 +24,14 @@ from sentry.services.hybrid_cloud.import_export.model import (
     RpcImportScope,
     RpcPrimaryKeyMap,
 )
+from sentry.models.importchunk import ControlImportChunk, RegionImportChunk
+from sentry.models.options.option import ControlOption, Option
+from sentry.models.project import Project
+from sentry.models.user import MAX_USERNAME_LENGTH, User
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.silo import assume_test_silo_mode, no_silo_test
-from sentry.utils import json
 
 CONTROL_OPTION_MODEL_NAME = get_model_name(ControlOption)
 OPTION_MODEL_NAME = get_model_name(Option)
@@ -220,7 +220,7 @@ class RpcImportRetryTests(TestCase):
             return None
 
         with patch(
-            "sentry.services.hybrid_cloud.import_export.impl.get_existing_import_chunk",
+            "sentry.backup.services.import_export.impl.get_existing_import_chunk",
             MagicMock(side_effect=wrapped_get_existing_import_chunk),
         ) as get_existing_import_chunk_mock:
             import_uuid = str(uuid4().hex)
@@ -312,8 +312,10 @@ class RpcImportErrorTests(TestCase):
 
     @cached_property
     def _json_of_exhaustive_user_with_minimum_privileges(self) -> Any:
-        with open(get_fixture_path("backup", "user-with-minimum-privileges.json")) as backup_file:
-            return json.load(backup_file)
+        with open(
+            get_fixture_path("backup", "user-with-minimum-privileges.json"), "rb"
+        ) as backup_file:
+            return orjson.loads(backup_file.read())
 
     def json_of_exhaustive_user_with_minimum_privileges(self) -> Any:
         return deepcopy(self._json_of_exhaustive_user_with_minimum_privileges)
@@ -410,7 +412,10 @@ class RpcImportErrorTests(TestCase):
             if self.is_user_model(model):
                 model["fields"]["username"] = "a" * (MAX_USERNAME_LENGTH + 1)
 
-        json_data = json.dumps([m for m in models if self.is_user_model(m)])
+        json_data = orjson.dumps(
+            [m for m in models if self.is_user_model(m)],
+            option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS,
+        ).decode()
         result = import_export_service.import_by_model(
             model_name=str(USER_MODEL_NAME),
             scope=RpcImportScope.Global,
@@ -426,7 +431,10 @@ class RpcImportErrorTests(TestCase):
 
     def test_bad_unexpected_model(self):
         models = self.json_of_exhaustive_user_with_minimum_privileges()
-        json_data = json.dumps([m for m in models if self.is_user_model(m)])
+        json_data = orjson.dumps(
+            [m for m in models if self.is_user_model(m)],
+            option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS,
+        ).decode()
         result = import_export_service.import_by_model(
             model_name="sentry.option",
             scope=RpcImportScope.Global,

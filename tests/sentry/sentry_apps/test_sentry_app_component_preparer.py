@@ -2,7 +2,7 @@ from unittest.mock import call, patch
 
 from sentry.models.organization import Organization
 from sentry.sentry_apps.components import SentryAppComponentPreparer
-from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
+from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
@@ -24,7 +24,7 @@ class TestPreparerIssueLink(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             self.project = Organization.objects.get(
                 id=self.install.organization_id
-            ).project_set.first()
+            ).project_set.get()
 
         self.preparer = SentryAppComponentPreparer(
             component=self.component, install=self.install, project_slug=self.project.slug
@@ -111,7 +111,7 @@ class TestPreparerStacktraceLink(TestCase):
         with assume_test_silo_mode(SiloMode.REGION):
             self.project = Organization.objects.get(
                 id=self.install.organization_id
-            ).project_set.first()
+            ).project_set.get()
 
         self.preparer = SentryAppComponentPreparer(
             component=self.component, install=self.install, project_slug=self.project.slug

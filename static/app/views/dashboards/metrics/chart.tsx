@@ -2,13 +2,13 @@ import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import TransitionChart from 'sentry/components/charts/transitionChart';
+import {MetricChart} from 'sentry/components/metrics/chart/chart';
 import {space} from 'sentry/styles/space';
 import type {ReactEchartsRef} from 'sentry/types/echarts';
 import type {MetricsQueryApiResponse} from 'sentry/types/metrics';
 import type {MetricDisplayType} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 import {LoadingScreen} from 'sentry/views/dashboards/widgetCard/widgetCardChartContainer';
-import {MetricChart} from 'sentry/views/metrics/chart/chart';
 import {createChartPalette} from 'sentry/views/metrics/utils/metricsChartPalette';
 import {getChartTimeseries} from 'sentry/views/metrics/widget';
 

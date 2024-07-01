@@ -1,3 +1,4 @@
+import type {Location} from 'history';
 import {EventFixture} from 'sentry-fixture/event';
 
 import {
@@ -45,7 +46,13 @@ describe('trace event context', function () {
 
   it('renders text url as a link', async function () {
     renderGlobalModal();
-    render(<TraceEventContext data={data} event={EventFixture()} />);
+    render(
+      <TraceEventContext
+        data={data}
+        event={EventFixture()}
+        location={{query: {}} as Location}
+      />
+    );
 
     const linkHint = screen.getByRole('link', {name: 'Open link'});
     await userEvent.click(linkHint);
@@ -53,7 +60,9 @@ describe('trace event context', function () {
   });
 
   it('display redacted data', async function () {
-    render(<TraceEventContext data={data} event={event} />);
+    render(
+      <TraceEventContext data={data} event={event} location={{query: {}} as Location} />
+    );
 
     expect(screen.getByText('Operation Name')).toBeInTheDocument(); // subject
     expect(screen.getByText(/redacted/)).toBeInTheDocument(); // value

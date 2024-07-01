@@ -18,9 +18,9 @@ from sentry.api.serializers import DetailedSelfUserSerializer, serialize
 from sentry.api.validators import AuthVerifyValidator
 from sentry.api.validators.auth import MISSING_PASSWORD_OR_U2F_CODE
 from sentry.auth.authenticators.u2f import U2fInterface
+from sentry.auth.services.auth.impl import promote_request_rpc_user
 from sentry.auth.superuser import SUPERUSER_ORG_ID
 from sentry.models.authenticator import Authenticator
-from sentry.services.hybrid_cloud.auth.impl import promote_request_rpc_user
 from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import DISABLE_SSO_CHECK_FOR_LOCAL_DEV, has_completed_sso, initiate_login
@@ -73,7 +73,7 @@ class BaseAuthIndexEndpoint(Endpoint):
         # See if we have a u2f challenge/response
         if "challenge" in validator.validated_data and "response" in validator.validated_data:
             try:
-                interface = Authenticator.objects.get_interface(request.user, "u2f")
+                interface: U2fInterface = Authenticator.objects.get_interface(request.user, "u2f")
                 if not interface.is_enrolled():
                     raise LookupError()
                 challenge = json.loads(validator.validated_data["challenge"])

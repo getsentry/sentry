@@ -15,11 +15,11 @@ from rest_framework.response import Response
 
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.group_stream import StreamGroupSerializer
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
 from sentry.models.group import Group
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.organization import Organization
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.http import absolute_uri
 from sentry.utils.sdk import configure_scope
@@ -142,9 +142,7 @@ class JiraSentryIssueDetailsView(JiraSentryUIBaseView):
                 external_issue = ExternalIssue.objects.get(
                     integration_id=integration.id, key=issue_key
                 )
-                organization = Organization.objects.filter(
-                    id=external_issue.organization_id
-                ).first()
+                organization = Organization.objects.get(id=external_issue.organization_id)
                 if (
                     integration_service.get_organization_integration(
                         organization_id=external_issue.organization_id,

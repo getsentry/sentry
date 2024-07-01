@@ -36,7 +36,7 @@ import {
   getEquationAliasIndex,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
-import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
+import {type DiscoverDatasets, DisplayModes, TOP_N} from 'sentry/utils/discover/types';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
@@ -46,6 +46,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useProjects from 'sentry/utils/useProjects';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 import {generateReplayLink} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -79,6 +80,7 @@ export type TableViewProps = {
 
   title: string;
   customMeasurements?: CustomMeasurementCollection;
+  dataset?: DiscoverDatasets;
   isHomepage?: boolean;
   spanOperationBreakdownKeys?: string[];
 };
@@ -204,6 +206,7 @@ function TableView(props: TableViewProps) {
           location,
           eventView,
           type: 'discover',
+          source: TraceViewSources.DISCOVER,
         });
       } else {
         const project = dataRow.project || dataRow['project.name'];
@@ -332,6 +335,7 @@ function TableView(props: TableViewProps) {
           location,
           eventView,
           type: 'discover',
+          source: TraceViewSources.DISCOVER,
         });
       } else {
         const project = dataRow.project || dataRow['project.name'];
@@ -381,12 +385,14 @@ function TableView(props: TableViewProps) {
       );
       const dateSelection = eventView.normalizeDateSelection(location);
       if (dataRow.trace) {
-        const target = getTraceDetailsUrl(
+        const target = getTraceDetailsUrl({
           organization,
-          String(dataRow.trace),
+          traceSlug: String(dataRow.trace),
           dateSelection,
-          timestamp
-        );
+          timestamp,
+          location,
+          source: TraceViewSources.DISCOVER,
+        });
 
         cell = (
           <Tooltip title={t('View Trace')}>
@@ -491,6 +497,7 @@ function TableView(props: TableViewProps) {
       measurementKeys,
       spanOperationBreakdownKeys,
       customMeasurements,
+      dataset,
     } = props;
 
     openModal(
@@ -503,6 +510,7 @@ function TableView(props: TableViewProps) {
           columns={eventView.getColumns().map(col => col.column)}
           onApply={handleUpdateColumns}
           customMeasurements={customMeasurements}
+          dataset={dataset}
         />
       ),
       {modalCss, closeEvents: 'escape-key'}
@@ -638,7 +646,7 @@ function TableView(props: TableViewProps) {
     );
   }
 
-  const {error, eventView, isLoading, location, tableData} = props;
+  const {error, eventView, isLoading, tableData} = props;
 
   const columnOrder = eventView.getColumns();
   const columnSortBy = eventView.getSorts();
@@ -665,7 +673,6 @@ function TableView(props: TableViewProps) {
         prependColumnWidths,
       }}
       headerButtons={renderHeaderButtons}
-      location={location}
     />
   );
 }

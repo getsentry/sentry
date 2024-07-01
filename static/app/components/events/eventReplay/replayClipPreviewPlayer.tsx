@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 
 import {Alert} from 'sentry/components/alert';
 import type {LinkButton} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
 import {
   REPLAY_LOADING_HEIGHT,
@@ -11,7 +12,6 @@ import {
 import ReplayPreviewPlayer from 'sentry/components/events/eventReplay/replayPreviewPlayer';
 import {StaticReplayPreview} from 'sentry/components/events/eventReplay/staticReplayPreview';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
-import {Flex} from 'sentry/components/profiling/flex';
 import MissingReplayAlert from 'sentry/components/replays/alerts/missingReplayAlert';
 import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
 import {IconDelete} from 'sentry/icons';
@@ -94,7 +94,10 @@ function ReplayClipPreviewPlayer({
 
   if (fetching || !replayRecord || !replay) {
     return (
-      <StyledNegativeSpaceContainer testId="replay-loading-placeholder" isLarge={isLarge}>
+      <StyledNegativeSpaceContainer
+        data-test-id="replay-loading-placeholder"
+        isLarge={isLarge}
+      >
         <LoadingIndicator />
       </StyledNegativeSpaceContainer>
     );
@@ -146,7 +149,7 @@ const PlayerContainer = styled(FluidHeight)<{isLarge?: boolean}>`
 
 const StyledNegativeSpaceContainer = styled(NegativeSpaceContainer)<{isLarge?: boolean}>`
   height: ${p => (p.isLarge ? REPLAY_LOADING_HEIGHT_LARGE : REPLAY_LOADING_HEIGHT)}px;
-  margin-bottom: ${space(2)};
+  border-radius: ${p => p.theme.borderRadius};
 `;
 
 export default ReplayClipPreviewPlayer;

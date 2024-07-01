@@ -1,7 +1,11 @@
+from __future__ import annotations
+
+from typing import Literal
 from unittest.mock import patch
 
 import pytest
 
+from sentry.models.project import Project
 from sentry.sentry_metrics.use_case_id_registry import (
     UseCaseID,
     UseCaseIDAPIAccess,
@@ -183,7 +187,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         block_metric("s:custom/user@none", [project_1])
         block_tags_of_metric("d:custom/page_load@millisecond", {"release"}, [project_2])
 
-        metrics = (
+        metrics: tuple[tuple[str, Literal["set", "counter", "distribution"], Project], ...] = (
             ("s:custom/user@none", "set", project_1),
             ("s:custom/user@none", "set", project_2),
             ("c:custom/clicks@none", "counter", project_1),
@@ -194,7 +198,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             self.store_metric(
                 project.organization.id,
                 project.id,
-                entity,  # type: ignore[arg-type]
+                entity,
                 mri,
                 {"transaction": "/hello"},
                 int(self.now.timestamp()),
@@ -229,6 +233,11 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             "max_timestamp",
             "min",
             "min_timestamp",
+            "p50",
+            "p75",
+            "p90",
+            "p95",
+            "p99",
             "sum",
         ]
 
@@ -240,24 +249,7 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             "sum",
         ]
 
-        # test default deactivated percentiles
-        response = self.get_success_response(
-            self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
-        )
-        data = sorted(response.data, key=lambda d: d["mri"])
-        assert sorted(data[1]["operations"]) == [
-            "avg",
-            "count",
-            "histogram",
-            "max",
-            "max_timestamp",
-            "min",
-            "min_timestamp",
-            "sum",
-        ]
-
-        # test activated percentiles
-        self.organization.update_option("sentry:metrics_activate_percentiles", True)
+        # test default activated percentiles
         response = self.get_success_response(
             self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
         )
@@ -275,6 +267,23 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             "p90",
             "p95",
             "p99",
+            "sum",
+        ]
+
+        # test deactivated percentiles
+        self.organization.update_option("sentry:metrics_activate_percentiles", False)
+        response = self.get_success_response(
+            self.organization.slug, project=[project_1.id, project_2.id], useCase="custom"
+        )
+        data = sorted(response.data, key=lambda d: d["mri"])
+        assert sorted(data[1]["operations"]) == [
+            "avg",
+            "count",
+            "histogram",
+            "max",
+            "max_timestamp",
+            "min",
+            "min_timestamp",
             "sum",
         ]
 
@@ -305,4 +314,47 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             "max",
             "min",
             "sum",
+        ]
+
+    def test_metrics_details_when_organization_has_no_projects(self):
+        organization_without_projects = self.create_organization()
+        self.create_member(user=self.user, organization=organization_without_projects)
+        response = self.get_response(organization_without_projects.slug)
+        assert response.status_code == 404
+        assert response.data["detail"] == "You must supply at least one project to see its metrics"
+
+    def test_blocking_metrics_dont_duplicate_with_multiple_use_cases(self):
+        project_1 = self.create_project()
+
+        block_metric("s:custom/user@none", [project_1])
+
+        metrics: tuple[tuple[str, Literal["set", "counter", "distribution"], Project], ...] = (
+            ("s:custom/user@none", "set", project_1),
+            ("c:custom/clicks@none", "counter", project_1),
+        )
+        for mri, entity, project in metrics:
+            self.store_metric(
+                project.organization.id,
+                project.id,
+                entity,
+                mri,
+                {"transaction": "/hello"},
+                int(self.now.timestamp()),
+                10,
+                UseCaseID.CUSTOM,
+            )
+
+        response = self.get_success_response(
+            self.organization.slug, project=[project_1.id], useCase=["transactions", "custom"]
+        )
+        assert len(response.data) == 2
+
+        data = sorted(response.data, key=lambda d: d["mri"])
+        assert data[0]["mri"] == "c:custom/clicks@none"
+        assert data[0]["projectIds"] == [project_1.id]
+        assert data[0]["blockingStatus"] == []
+        assert data[1]["mri"] == "s:custom/user@none"
+        assert sorted(data[1]["projectIds"]) == sorted([project_1.id])
+        assert data[1]["blockingStatus"] == [
+            {"isBlocked": True, "blockedTags": [], "projectId": project_1.id}
         ]

@@ -1,5 +1,5 @@
 import AvatarList from 'sentry/components/avatar/avatarList';
-import HeaderPlaceholder from 'sentry/components/replays/header/headerPlaceholder';
+import Placeholder from 'sentry/components/placeholder';
 import type {User} from 'sentry/types/user';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -29,7 +29,7 @@ export default function ReplayViewers({projectId, replayId}: Props) {
   });
 
   return isLoading || isError ? (
-    <HeaderPlaceholder width="55px" height="27px" />
+    <Placeholder width="55px" height="27px" />
   ) : (
     <AvatarList avatarSize={25} users={data?.data.viewed_by} />
   );

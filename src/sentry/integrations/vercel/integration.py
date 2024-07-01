@@ -10,13 +10,14 @@ from rest_framework.serializers import ValidationError
 from sentry import options
 from sentry.constants import ObjectStatus
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationMetadata,
     IntegrationProvider,
 )
+from sentry.integrations.services.integration import integration_service
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.integrations.sentry_app_installation_for_provider import (
@@ -25,7 +26,6 @@ from sentry.models.integrations.sentry_app_installation_for_provider import (
 from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.models.user import User
 from sentry.pipeline import NestedPipelineView
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.services.hybrid_cloud.project_key import project_key_service
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError

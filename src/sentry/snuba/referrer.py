@@ -15,6 +15,8 @@ class Referrer(Enum):
     API_ALERTS_ALERT_RULE_CHART_METRICS_ENHANCED = "api.alerts.alert-rule-chart.metrics-enhanced"
     API_ALERTS_ALERT_RULE_CHART = "api.alerts.alert-rule-chart"
     API_ALERTS_CHARTCUTERIE = "api.alerts.chartcuterie"
+    API_ENDPOINT_REGRESSION_ALERT_CHARTCUTERIE = "api.endpoint_regression_alerts.chartcuterie"
+    API_FUNCTION_REGRESSION_ALERT_CHARTCUTERIE = "api.function_regression_alerts.chartcuterie"
     API_AUTH_TOKEN_EVENTS_METRICS_ENHANCED_PRIMARY = (
         "api.auth-token.events.metrics-enhanced.primary"
     )
@@ -390,6 +392,7 @@ class Referrer(Enum):
     API_PROFILING_FUNCTIONS_REGRESSION_TRANSACTION_STATS = (
         "api.profiling.functions.regression.transaction-stats"
     )
+    API_PROFILING_CONTINUOUS_PROFILING_FLAMECHART = "api.profiling.continuous-profiling.flamechart"
     API_PROJECT_EVENTS = "api.project-events"
     API_RELEASES_RELEASE_DETAILS_CHART = "api.releases.release-details-chart"
     API_REPLAY_DETAILS_PAGE = "api.replay.details-page"
@@ -440,8 +443,12 @@ class Referrer(Enum):
     API_STARFISH_MOBILE_STARTUP_TOTALS = "api.starfish.mobile-startup-totals"
     API_TRACE_EXPLORER_METRICS_SPANS_LIST = "api.trace-explorer.metrics-spans-list"
     API_TRACE_EXPLORER_SPANS_LIST = "api.trace-explorer.spans-list"
+    API_TRACE_EXPLORER_SPANS_LIST_SORTED = "api.trace-explorer.spans-list-sorted"
+    API_TRACE_EXPLORER_STATS = "api.trace-explorer.stats"
     API_TRACE_EXPLORER_TRACES_META = "api.trace-explorer.traces-meta"
+    API_TRACE_EXPLORER_TRACE_SPANS_LIST = "api.trace-explorer.trace-spans-list"
     API_SPANS_TAG_KEYS = "api.spans.tags-keys"
+    API_SPANS_TRACE_VIEW = "api.spans.trace-view"
 
     # Performance Mobile UI Module
     API_PERFORMANCE_MOBILE_UI_BAR_CHART = "api.performance.mobile.ui.bar-chart"
@@ -557,6 +564,7 @@ class Referrer(Enum):
     API_TRACE_VIEW_SPAN_DETAIL = "api.trace-view.span-detail"
     API_TRACE_VIEW_COUNT_PERFORMANCE_ISSUES = "api.trace-view.count-performance-issues"
     API_TRACE_VIEW_GET_PARENTS = "api.trace-view.get-parents"
+    API_TRACE_VIEW_GET_OCCURRENCE_IDS = "api.trace-view.get-occurrence-ids"
     API_TRENDS_GET_EVENT_STATS = "api.trends.get-event-stats"
     API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS = "api.trends.get-event-statsv2.top-events"
     API_TRENDS_GET_EVENT_STATS_V2_TOP_EVENTS_PRIMARY = (

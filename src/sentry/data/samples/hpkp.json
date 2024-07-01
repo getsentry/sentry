@@ -1,5 +1,7 @@
 {
-  "logentry": {"formatted": "Public key pinning validation failed for 'example.com'"},
+  "logentry": {
+    "formatted": "Public key pinning validation failed for 'example.com'"
+  },
   "hpkp": {
     "date_time": "2014-04-06T13:00:50Z",
     "hostname": "example.com",

@@ -13,12 +13,13 @@ from sentry.api.helpers.constants import ALERT_RULES_COUNT_HEADER, MAX_QUERY_SUB
 from sentry.api.serializers import serialize
 from sentry.incidents.models.alert_rule import (
     AlertRule,
-    AlertRuleMonitorType,
+    AlertRuleMonitorTypeInt,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
+from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.outbox import outbox_context
@@ -33,6 +34,7 @@ from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -112,8 +114,8 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
 
     def test_filter_by_monitor_type(self):
         self.create_team(organization=self.organization, members=[self.user])
-        alert_rule1 = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
-        alert_rule2 = self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
+        alert_rule1 = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.ACTIVATED)
+        alert_rule2 = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
         self.login_as(self.user)
 
         params = {"monitor_type": 1}
@@ -125,8 +127,8 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
 
     def test_response_headers(self):
         self.create_team(organization=self.organization, members=[self.user])
-        self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
-        self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
+        self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.ACTIVATED)
+        self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
         self.login_as(self.user)
 
         with self.feature("organizations:incidents"):
@@ -139,7 +141,7 @@ class AlertRuleListEndpointTest(AlertRuleIndexBase):
         self.create_team(organization=self.organization, members=[self.user])
         alert_rule = self.create_alert_rule()
         self.create_alert_rule_activation(
-            alert_rule=alert_rule, monitor_type=AlertRuleMonitorType.CONTINUOUS
+            alert_rule=alert_rule, monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS
         )
 
         self.login_as(self.user)
@@ -186,10 +188,29 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
             == list(audit_log_entry)[0].ip_address
         )
 
+    @with_feature("organizations:slack-metric-alert-description")
+    @with_feature("organizations:incidents")
+    def test_with_description(self):
+        data = {
+            **self.alert_rule_dict,
+            "description": "yeehaw",
+        }
+
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **data,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+        assert alert_rule.description == resp.data.get("description")
+
     def test_monitor_type_with_condition(self):
         data = {
             **self.alert_rule_dict,
-            "monitorType": AlertRuleMonitorType.ACTIVATED.value,
+            "monitorType": AlertRuleMonitorTypeInt.ACTIVATED,
             "activationCondition": AlertRuleActivationConditionType.RELEASE_CREATION.value,
         }
         with (
@@ -236,7 +257,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 [
                     "organizations:incidents",
                     "organizations:performance-view",
-                    "organizations:metric-alert-ignore-archived",
                 ]
             ),
         ):
@@ -714,8 +734,12 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 
     @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
-        side_effect=[("#", 10, False), ("#", 10, False), ("#", 20, False)],
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout_deprecated",
+        side_effect=[
+            SlackChannelIdData("#", "10", False),
+            SlackChannelIdData("#", "10", False),
+            SlackChannelIdData("#", "20", False),
+        ],
     )
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")
     def test_async_lookup_outside_transaction(self, mock_uuid4, mock_get_channel_id):
@@ -864,7 +888,7 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 "organizations:performance-view",
                 "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
-                "organizations:use-metrics-layer-in-alerts",
+                "organizations:custom-metrics",
             ]
         ):
             for mri in (
@@ -898,7 +922,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
                 "organizations:custom-metrics",
-                "organizations:use-metrics-layer-in-alerts",
             ]
         ):
             for mri in (
@@ -932,7 +955,6 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
                 "organizations:mep-rollout-flag",
                 "organizations:dynamic-sampling",
                 "organizations:custom-metrics",
-                "organizations:use-metrics-layer-in-alerts",
             ]
         ):
             test_params = {

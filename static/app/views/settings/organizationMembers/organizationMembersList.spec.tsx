@@ -2,7 +2,6 @@ import {AuthProviderFixture} from 'sentry-fixture/authProvider';
 import {MemberFixture} from 'sentry-fixture/member';
 import {MembersFixture} from 'sentry-fixture/members';
 import {OrganizationFixture} from 'sentry-fixture/organization';
-import {RouterContextFixture} from 'sentry-fixture/routerContextFixture';
 import {RouterFixture} from 'sentry-fixture/routerFixture';
 import {TeamFixture} from 'sentry-fixture/team';
 import {UserFixture} from 'sentry-fixture/user';
@@ -328,10 +327,8 @@ describe('OrganizationMembersList', function () {
       body: [],
     });
 
-    const routerContext = RouterContextFixture();
-
     render(<OrganizationMembersList {...defaultProps} />, {
-      context: routerContext,
+      router,
     });
 
     await userEvent.type(screen.getByPlaceholderText('Search Members'), 'member');
@@ -348,7 +345,7 @@ describe('OrganizationMembersList', function () {
 
     await userEvent.keyboard('{enter}');
 
-    expect(routerContext.context.router.push).toHaveBeenCalledTimes(1);
+    expect(router.push).toHaveBeenCalledTimes(1);
   });
 
   it('can filter members', async function () {

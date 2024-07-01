@@ -13,7 +13,7 @@ import {t} from 'sentry/locale';
 import type {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
 import {SessionFieldWithOperation, SessionStatus} from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
-import {getPeriod} from 'sentry/utils/getPeriod';
+import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {
   filterSessionsInTimeWindow,
   getCount,

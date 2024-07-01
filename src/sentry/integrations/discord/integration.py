@@ -9,7 +9,7 @@ from django.utils.translation import gettext_lazy as _
 
 from sentry import options
 from sentry.constants import ObjectStatus
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
     IntegrationInstallation,
@@ -77,7 +77,7 @@ class DiscordIntegration(IntegrationInstallation):
     def uninstall(self) -> None:
         # If this is the only org using this Discord server, we should remove
         # the bot from the server.
-        from sentry.services.hybrid_cloud.integration import integration_service
+        from sentry.integrations.services.integration import integration_service
 
         installations = integration_service.get_organization_integrations(
             integration_id=self.model.id,

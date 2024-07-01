@@ -9,7 +9,7 @@ import {IssueType} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {getFormattedDate} from 'sentry/utils/dates';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   DisplayModes,

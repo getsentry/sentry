@@ -24,7 +24,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleActivity,
     AlertRuleActivityType,
     AlertRuleExcludedProjects,
-    AlertRuleMonitorType,
+    AlertRuleMonitorTypeInt,
     AlertRuleProjects,
     AlertRuleStatus,
     AlertRuleTrigger,
@@ -44,15 +44,15 @@ from sentry.incidents.models.incident import (
     IncidentTrigger,
     TriggerStatus,
 )
+from sentry.integrations.services.integration import RpcIntegration, integration_service
+from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.relay.config.metric_extraction import on_demand_metrics_feature_flags
 from sentry.search.events.builder import QueryBuilder
 from sentry.search.events.fields import is_function, resolve_field
-from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
-from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
+from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
 from sentry.shared_integrations.exceptions import (
     ApiTimeoutError,
     DuplicateDisplayNameError,
@@ -122,6 +122,7 @@ def create_incident(
     user=None,
     alert_rule=None,
     activation=None,
+    subscription=None,
 ):
     if date_detected is None:
         date_detected = date_started
@@ -137,6 +138,7 @@ def create_incident(
             date_detected=date_detected,
             alert_rule=alert_rule,
             activation=activation,
+            subscription=subscription,
         )
         if projects:
             incident_projects = [
@@ -511,8 +513,9 @@ def create_alert_rule(
     user=None,
     event_types=None,
     comparison_delta: int | None = None,
-    monitor_type: AlertRuleMonitorType = AlertRuleMonitorType.CONTINUOUS,
+    monitor_type: AlertRuleMonitorTypeInt = AlertRuleMonitorTypeInt.CONTINUOUS,
     activation_condition: AlertRuleActivationConditionType | None = None,
+    description: str | None = None,
     **kwargs,
 ):
     """
@@ -545,7 +548,7 @@ def create_alert_rule(
 
     :return: The created `AlertRule`
     """
-    if monitor_type == AlertRuleMonitorType.ACTIVATED and not activation_condition:
+    if monitor_type == AlertRuleMonitorTypeInt.ACTIVATED and not activation_condition:
         raise ValidationError("Activation condition required for activated alert rule")
 
     resolution = get_alert_resolution(time_window, organization)
@@ -578,7 +581,8 @@ def create_alert_rule(
             include_all_projects=include_all_projects,
             comparison_delta=comparison_delta,
             owner=owner,
-            monitor_type=monitor_type.value,
+            monitor_type=monitor_type,
+            description=description,
         )
 
         if user:
@@ -603,7 +607,7 @@ def create_alert_rule(
             ]
             AlertRuleExcludedProjects.objects.bulk_create(exclusions)
 
-        if monitor_type == AlertRuleMonitorType.ACTIVATED and activation_condition:
+        if monitor_type == AlertRuleMonitorTypeInt.ACTIVATED and activation_condition:
             # NOTE: if monitor_type is activated, activation_condition is required
             AlertRuleActivationCondition.objects.create(
                 alert_rule=alert_rule, condition_type=activation_condition.value
@@ -690,7 +694,8 @@ def update_alert_rule(
     user=None,
     event_types=None,
     comparison_delta=NOT_SET,
-    monitor_type: AlertRuleMonitorType | None = None,
+    monitor_type: AlertRuleMonitorTypeInt | None = None,
+    description: str | None = None,
     **kwargs,
 ):
     """
@@ -718,12 +723,15 @@ def update_alert_rule(
     :param event_types: List of `EventType` that this alert will be related to
     :param comparison_delta: An optional int representing the time delta to use to determine the
     comparison period. In minutes.
+    :param description: An optional str that will be rendered in the notification
     :return: The updated `AlertRule`
     """
     updated_fields: dict[str, Any] = {"date_modified": django_timezone.now()}
     updated_query_fields = {}
     if name:
         updated_fields["name"] = name
+    if description:
+        updated_fields["description"] = description
     if query is not None:
         updated_query_fields["query"] = query
     if aggregate is not None:
@@ -1392,9 +1400,7 @@ def get_alert_rule_trigger_action_slack_channel_id(
         raise InvalidTriggerActionError("Slack workspace is a required field.")
 
     try:
-        _prefix, channel_id, timed_out = get_channel_id(
-            organization, integration, name, use_async_lookup
-        )
+        channel_data = get_channel_id(organization, integration, name, use_async_lookup)
     except DuplicateDisplayNameError as e:
         domain = integration.metadata["domain_name"]
 
@@ -1403,18 +1409,18 @@ def get_alert_rule_trigger_action_slack_channel_id(
             % (e, domain)
         )
 
-    if timed_out:
+    if channel_data.timed_out:
         raise ChannelLookupTimeoutError(
             "Could not find channel %s. We have timed out trying to look for it." % name
         )
 
-    if channel_id is None:
+    if channel_data.channel_id is None:
         raise InvalidTriggerActionError(
             "Could not find channel %s. Channel may not exist, or Sentry may not "
             "have been granted permission to access it" % name
         )
 
-    return channel_id
+    return channel_data.channel_id
 
 
 def get_alert_rule_trigger_action_discord_channel_id(
@@ -1513,7 +1519,7 @@ def get_alert_rule_trigger_action_opsgenie_team(
 
 
 def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id, installations):
-    from sentry.services.hybrid_cloud.app import app_service
+    from sentry.sentry_apps.services.app import app_service
 
     if installations is None:
         # TODO(hybrid-cloud): this rpc invocation is fairly deeply buried within this transaction

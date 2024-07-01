@@ -163,7 +163,6 @@ def activate_downstream_actions(
         results = safe_execute(
             action_inst.after,
             event=event,
-            _with_transaction=False,
             notification_uuid=notification_uuid,
         )
         if results is None:
@@ -226,13 +225,7 @@ class RuleProcessor:
         if not isinstance(condition_inst, (EventCondition, EventFilter)):
             logger.warning("Unregistered condition %r", condition["id"])
             return None
-        passes: bool = safe_execute(
-            condition_inst.passes,
-            self.event,
-            state,
-            _with_transaction=False,
-        )
-        return passes
+        return safe_execute(condition_inst.passes, self.event, state) or False
 
     def get_state(self) -> EventState:
         return EventState(

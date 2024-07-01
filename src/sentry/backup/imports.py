@@ -26,12 +26,7 @@ from sentry.backup.dependencies import (
 )
 from sentry.backup.helpers import Filter, ImportFlags, Printer
 from sentry.backup.scopes import ImportScope
-from sentry.db.models.paranoia import ParanoidModel
-from sentry.models.importchunk import ControlImportChunkReplica
-from sentry.models.orgauthtoken import OrgAuthToken
-from sentry.models.outbox import OutboxCategory, OutboxFlushError, OutboxScope, RegionOutbox
-from sentry.nodestore.django.models import Node
-from sentry.services.hybrid_cloud.import_export.model import (
+from sentry.backup.services.import_export.model import (
     RpcFilter,
     RpcImportError,
     RpcImportErrorKind,
@@ -39,10 +34,14 @@ from sentry.services.hybrid_cloud.import_export.model import (
     RpcImportScope,
     RpcPrimaryKeyMap,
 )
-from sentry.services.hybrid_cloud.import_export.service import ImportExportService
+from sentry.backup.services.import_export.service import ImportExportService
+from sentry.db.models.paranoia import ParanoidModel
+from sentry.models.importchunk import ControlImportChunkReplica
+from sentry.models.orgauthtoken import OrgAuthToken
+from sentry.models.outbox import OutboxCategory, OutboxFlushError, OutboxScope, RegionOutbox
+from sentry.nodestore.django.models import Node
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
-from sentry.utils import json
 from sentry.utils.env import is_split_db
 
 __all__ = (
@@ -268,7 +267,11 @@ def _import(
                 batch = []
                 last_seen_model_name = model_name
             if len(batch) >= MAX_BATCH_SIZE:
-                yield (last_seen_model_name, json.dumps(batch), num_current_model_instances_yielded)
+                yield (
+                    last_seen_model_name,
+                    orjson.dumps(batch, option=orjson.OPT_UTC_Z | orjson.OPT_NON_STR_KEYS).decode(),
+                    num_current_model_instances_yielded,
+                )
                 num_current_model_instances_yielded += len(batch)
                 batch = []
 

@@ -1,7 +1,7 @@
+import {getEquationSymbol} from 'sentry/components/metrics/equationSymbol';
+import {getQuerySymbol} from 'sentry/components/metrics/querySymbol';
 import {isMetricsEquationWidget, type MetricsWidget} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
-import {getEquationSymbol} from 'sentry/views/metrics/equationSymbol';
-import {getQuerySymbol} from 'sentry/views/metrics/querySymbol';
 
 export function widgetToQuery(
   widget: MetricsWidget,
@@ -15,7 +15,7 @@ export function widgetToQuery(
     : {
         name: getQuerySymbol(widget.id),
         mri: widget.mri,
-        op: widget.op,
+        aggregation: widget.aggregation,
         groupBy: widget.groupBy,
         query: widget.query,
         isQueryOnly: isQueryOnly || widget.isHidden,

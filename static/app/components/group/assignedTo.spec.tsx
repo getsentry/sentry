@@ -246,7 +246,7 @@ describe('Group > AssignedTo', () => {
     await openMenu();
 
     expect(screen.getByText('Suspect commit author')).toBeInTheDocument();
-    expect(screen.getByText('Owner of codeowners:/./app/components')).toBeInTheDocument();
+    expect(screen.getByText('Codeowners:/./app/components')).toBeInTheDocument();
 
     await userEvent.click(screen.getByText('Suspect commit author'));
 

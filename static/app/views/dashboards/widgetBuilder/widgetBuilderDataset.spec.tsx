@@ -59,7 +59,7 @@ function renderTestComponent({
   params?: Partial<WidgetBuilderProps['params']>;
   query?: Record<string, any>;
 } = {}) {
-  const {organization, router, routerContext} = initializeOrg({
+  const {organization, projects, router} = initializeOrg({
     organization: {
       features: orgFeatures ?? defaultOrgFeatures,
     },
@@ -73,7 +73,7 @@ function renderTestComponent({
     },
   });
 
-  ProjectsStore.loadInitialData(organization.projects);
+  ProjectsStore.loadInitialData(projects);
 
   render(
     <WidgetBuilder
@@ -100,7 +100,7 @@ function renderTestComponent({
       }}
     />,
     {
-      context: routerContext,
+      router,
       organization,
     }
   );

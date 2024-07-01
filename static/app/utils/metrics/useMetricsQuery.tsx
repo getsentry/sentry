@@ -1,17 +1,18 @@
 import {useMemo} from 'react';
 
 import type {PageFilters} from 'sentry/types/core';
-import {parsePeriodToHours} from 'sentry/utils/dates';
 import {getDateTimeParams, getMetricsInterval} from 'sentry/utils/metrics';
 import {getUseCaseFromMRI, MRIToField} from 'sentry/utils/metrics/mri';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import type {
+  MetricAggregation,
   MetricsDataIntervalLadder,
   MetricsQueryApiResponse,
   MRI,
 } from '../../types/metrics';
+import {parsePeriodToHours} from '../duration/parsePeriodToHours';
 
 export function createMqlQuery({
   field,
@@ -33,9 +34,9 @@ export function createMqlQuery({
 }
 
 export interface MetricsQueryApiRequestQuery {
+  aggregation: MetricAggregation;
   mri: MRI;
   name: string;
-  op: string;
   alias?: string;
   groupBy?: string[];
   isQueryOnly?: boolean;
@@ -77,8 +78,9 @@ export function getMetricsQueryApiRequestPayload(
   {
     intervalLadder,
     interval: intervalParam,
+    includeSeries = true,
   }: {
-    autoOrder?: boolean;
+    includeSeries?: boolean;
     interval?: string;
     intervalLadder?: MetricsDataIntervalLadder;
   } = {}
@@ -116,7 +118,7 @@ export function getMetricsQueryApiRequestPayload(
 
     const {
       mri,
-      op,
+      aggregation,
       groupBy,
       limit,
       orderBy,
@@ -130,7 +132,7 @@ export function getMetricsQueryApiRequestPayload(
     requestQueries.push({
       name,
       mql: createMqlQuery({
-        field: MRIToField(mri, op),
+        field: MRIToField(mri, aggregation),
         query: queryParam,
         groupBy,
       }),
@@ -151,6 +153,7 @@ export function getMetricsQueryApiRequestPayload(
       project: projects,
       environment: environments,
       interval,
+      includeSeries,
     },
     body: {
       queries: requestQueries,
@@ -162,7 +165,11 @@ export function getMetricsQueryApiRequestPayload(
 export function useMetricsQuery(
   queries: MetricsQueryApiQueryParams[],
   {projects, environments, datetime}: PageFilters,
-  overrides: {interval?: string; intervalLadder?: MetricsDataIntervalLadder} = {},
+  overrides: {
+    includeSeries?: boolean;
+    interval?: string;
+    intervalLadder?: MetricsDataIntervalLadder;
+  } = {},
   enableRefetch = true
 ) {
   const organization = useOrganization();

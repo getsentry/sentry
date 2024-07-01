@@ -38,10 +38,9 @@ from sentry.models.projectteam import ProjectTeam
 from sentry.models.release import Release
 from sentry.models.user import User
 from sentry.models.userreport import UserReport
-from sentry.processing import realtime_metrics
+from sentry.release_health.base import CurrentAndPreviousCrashFreeRate
 from sentry.roles import organization_roles
 from sentry.snuba import discover
-from sentry.tasks.symbolication import should_demote_symbolication
 
 STATUS_LABELS = {
     ObjectStatus.ACTIVE: "active",
@@ -76,6 +75,10 @@ PROJECT_FEATURES_NOT_USED_ON_FRONTEND = {
     "alert-filters",
     "servicehooks",
 }
+
+
+class CrashFreeRatesWithHealthData(CurrentAndPreviousCrashFreeRate):
+    hasHealthData: bool
 
 
 def _get_team_memberships(team_list: Sequence[int], user: User) -> Iterable[OrganizationMemberTeam]:
@@ -255,6 +258,15 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     hasProfiles: bool
     hasReplays: bool
     hasSessions: bool
+    hasInsightsHttp: bool
+    hasInsightsDb: bool
+    hasInsightsAssets: bool
+    hasInsightsAppStart: bool
+    hasInsightsScreenLoad: bool
+    hasInsightsVitals: bool
+    hasInsightsCaches: bool
+    hasInsightsQueues: bool
+    hasInsightsLlmMonitoring: bool
 
 
 class ProjectSerializerResponse(ProjectSerializerBaseResponse):
@@ -416,7 +428,9 @@ class ProjectSerializer(Serializer):
             results[project_id] = serialized
         return results
 
-    def get_session_stats(self, project_ids):
+    def get_session_stats(
+        self, project_ids: Sequence[int]
+    ) -> dict[int, CrashFreeRatesWithHealthData]:
         segments, interval = STATS_PERIOD_CHOICES[self.stats_period]
 
         now = timezone.now()
@@ -437,14 +451,15 @@ class ProjectSerializer(Serializer):
         # not and so we add those ids to this list to check later
         check_has_health_data_ids = []
 
-        for project_id in project_ids:
-            current_crash_free_rate = project_health_data_dict[project_id]["currentCrashFreeRate"]
-            previous_crash_free_rate = project_health_data_dict[project_id]["previousCrashFreeRate"]
+        ret: dict[int, CrashFreeRatesWithHealthData] = {}
+        for project_id, data in project_health_data_dict.items():
+            current = data["currentCrashFreeRate"]
+            previous = data["previousCrashFreeRate"]
 
-            if [current_crash_free_rate, previous_crash_free_rate] != [None, None]:
-                project_health_data_dict[project_id]["hasHealthData"] = True
+            if (current, previous) != (None, None):
+                ret[project_id] = {**data, "hasHealthData": True}
             else:
-                project_health_data_dict[project_id]["hasHealthData"] = False
+                ret[project_id] = {**data, "hasHealthData": False}
                 check_has_health_data_ids.append(project_id)
 
         # For project ids we are not sure if they have health data in the last 90 days we
@@ -455,9 +470,9 @@ class ProjectSerializer(Serializer):
                 check_has_health_data_ids
             )
             for project_id in projects_with_health_data:
-                project_health_data_dict[project_id]["hasHealthData"] = True
+                ret[project_id]["hasHealthData"] = True
 
-        return project_health_data_dict
+        return ret
 
     def get_options(self, projects):
         # no options specified
@@ -502,6 +517,16 @@ class ProjectSerializer(Serializer):
             "hasFeedbacks": bool(obj.flags.has_feedbacks),
             "hasNewFeedbacks": bool(obj.flags.has_new_feedbacks),
             "hasSessions": bool(obj.flags.has_sessions),
+            # whether first span has been sent for each insight module
+            "hasInsightsHttp": bool(obj.flags.has_insights_http),
+            "hasInsightsDb": bool(obj.flags.has_insights_db),
+            "hasInsightsAssets": bool(obj.flags.has_insights_assets),
+            "hasInsightsAppStart": bool(obj.flags.has_insights_app_start),
+            "hasInsightsScreenLoad": bool(obj.flags.has_insights_screen_load),
+            "hasInsightsVitals": bool(obj.flags.has_insights_vitals),
+            "hasInsightsCaches": bool(obj.flags.has_insights_caches),
+            "hasInsightsQueues": bool(obj.flags.has_insights_queues),
+            "hasInsightsLlmMonitoring": bool(obj.flags.has_insights_llm_monitoring),
             "isInternal": obj.is_internal_project(),
             "isPublic": obj.public,
             # Projects don't have avatar uploads, but we need to maintain the payload shape for
@@ -679,17 +704,16 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
         if not self._collapse(LATEST_DEPLOYS_KEY):
             deploys_by_project = self.get_deploys_by_project(item_list)
 
-        with sentry_sdk.start_span(op="project_summary_serializer.get_lpq_projects"):
-            lpq_projects = realtime_metrics.get_lpq_projects()
         for item in item_list:
             attrs[item]["latest_release"] = latest_release_versions.get(item.id)
             attrs[item]["environments"] = environments_by_project.get(item.id, [])
             attrs[item]["has_user_reports"] = item.id in projects_with_user_reports
             if not self._collapse(LATEST_DEPLOYS_KEY):
                 attrs[item]["deploys"] = deploys_by_project.get(item.id)
-            attrs[item]["symbolication_degraded"] = should_demote_symbolication(
-                project_id=item.id, lpq_projects=lpq_projects, emit_metrics=False
-            )
+            # check if the project is in LPQ for any platform
+            # XXX(joshferge): determine if the frontend needs this flag at all
+            # removing redis call as was causing problematic latency issues
+            attrs[item]["symbolication_degraded"] = False
 
         return attrs
 
@@ -722,6 +746,16 @@ class ProjectSummarySerializer(ProjectWithTeamSerializer):
             hasCustomMetrics=bool(obj.flags.has_custom_metrics),
             hasMonitors=bool(obj.flags.has_cron_monitors),
             hasMinifiedStackTrace=bool(obj.flags.has_minified_stack_trace),
+            # whether first span has been sent for each insight module
+            hasInsightsHttp=bool(obj.flags.has_insights_http),
+            hasInsightsDb=bool(obj.flags.has_insights_db),
+            hasInsightsAssets=bool(obj.flags.has_insights_assets),
+            hasInsightsAppStart=bool(obj.flags.has_insights_app_start),
+            hasInsightsScreenLoad=bool(obj.flags.has_insights_screen_load),
+            hasInsightsVitals=bool(obj.flags.has_insights_vitals),
+            hasInsightsCaches=bool(obj.flags.has_insights_caches),
+            hasInsightsQueues=bool(obj.flags.has_insights_queues),
+            hasInsightsLlmMonitoring=bool(obj.flags.has_insights_llm_monitoring),
             platform=obj.platform,
             platforms=attrs["platforms"],
             latestRelease=attrs["latest_release"],
@@ -867,6 +901,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     dynamicSamplingBiases: list[dict[str, str | bool]]
     eventProcessing: dict[str, bool]
     symbolSources: str
+    extrapolateMetrics: bool
 
 
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
@@ -1000,6 +1035,16 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 },
             }
         )
+
+        if features.has("organizations:metrics-extrapolation", obj.organization):
+            data.update(
+                {
+                    "extrapolateMetrics": bool(
+                        attrs["options"].get("sentry:extrapolate_metrics", False)
+                    )
+                }
+            )
+
         custom_symbol_sources_json = attrs["options"].get("sentry:symbol_sources")
         try:
             sources = parse_sources(custom_symbol_sources_json, False)

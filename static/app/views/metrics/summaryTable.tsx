@@ -6,6 +6,7 @@ import colorFn from 'color';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import type {Series} from 'sentry/components/metrics/chart/types';
 import TextOverflow from 'sentry/components/textOverflow';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconFilter, IconLightning, IconReleases} from 'sentry/icons';
@@ -22,7 +23,6 @@ import {
 } from 'sentry/utils/metrics/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {Series} from 'sentry/views/metrics/chart/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 export const SummaryTable = memo(function SummaryTable({
@@ -144,7 +144,7 @@ export const SummaryTable = memo(function SummaryTable({
     .map(s => {
       return {
         ...s,
-        ...getValues(s.data),
+        ...getValues(s),
       };
     })
     // Filter series with no data
@@ -186,7 +186,9 @@ export const SummaryTable = memo(function SummaryTable({
         {t('Sum')}
       </SortableHeaderCell>
       <SortableHeaderCell onClick={changeSort} sortState={sort} name="total" right>
-        {t('Total')}
+        <Tooltip title={t('Selected aggregation over the whole time period')}>
+          {t('Value')}
+        </Tooltip>
       </SortableHeaderCell>
       {hasActions && <HeaderCell disabled right />}
       <HeaderCell disabled />
@@ -436,11 +438,12 @@ function SortableHeaderCell({
   );
 }
 
-function getValues(seriesData: Series['data']) {
-  if (!seriesData) {
+function getValues(series: Series) {
+  const {data, total, aggregate} = series;
+  if (!data) {
     return {min: null, max: null, avg: null, sum: null};
   }
-  const res = seriesData.reduce(
+  const res = data.reduce(
     (acc, {value}) => {
       if (value === null) {
         return acc;
@@ -456,7 +459,18 @@ function getValues(seriesData: Series['data']) {
     {min: Infinity, max: -Infinity, sum: 0, definedDatapoints: 0}
   );
 
-  return {min: res.min, max: res.max, sum: res.sum, avg: res.sum / res.definedDatapoints};
+  const values = {
+    min: res.min,
+    max: res.max,
+    sum: res.sum,
+    avg: res.sum / res.definedDatapoints,
+  };
+
+  if (aggregate in values) {
+    values[aggregate] = total;
+  }
+
+  return values;
 }
 
 const SummaryTableWrapper = styled(`div`)<{hasActions: boolean}>`

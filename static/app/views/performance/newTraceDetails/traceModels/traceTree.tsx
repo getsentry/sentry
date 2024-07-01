@@ -10,7 +10,7 @@ import {MobileVital, WebVital} from 'sentry/utils/fields';
 import type {
   TraceError as TraceErrorType,
   TraceFullDetailed,
-  TracePerformanceIssue,
+  TracePerformanceIssue as TracePerformanceIssueType,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {
@@ -24,8 +24,8 @@ import {
 import type {Vital} from 'sentry/utils/performance/vitals/types';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
+import {getStylingSliceName} from '../../../traces/utils';
 import {isRootTransaction} from '../../traceDetails/utils';
-import {getStylingSliceName} from '../../traces/utils';
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
@@ -124,6 +124,7 @@ export declare namespace TraceTree {
   }
   type Trace = TraceSplitResults<Transaction>;
   type TraceError = TraceErrorType;
+  type TracePerformanceIssue = TracePerformanceIssueType;
   type Profile = {profile_id: string; space: [number, number]};
 
   interface MissingInstrumentationSpan {
@@ -273,6 +274,9 @@ export function makeTraceNodeBarColor(
     return pickBarColor(node.value.op);
   }
   if (isAutogroupedNode(node)) {
+    if (node.errors.size > 0) {
+      return theme.red300;
+    }
     return theme.blue300;
   }
   if (isMissingInstrumentationNode(node)) {
@@ -444,7 +448,7 @@ export class TraceTree {
     return newTree;
   }
 
-  static FromTrace(trace: TraceTree.Trace, replayRecord?: ReplayRecord): TraceTree {
+  static FromTrace(trace: TraceTree.Trace, replayRecord: ReplayRecord | null): TraceTree {
     const tree = new TraceTree();
     let traceStart = Number.POSITIVE_INFINITY;
     let traceEnd = Number.NEGATIVE_INFINITY;
@@ -832,7 +836,7 @@ export class TraceTree {
       let groupMatchCount = 0;
 
       const errors: TraceErrorType[] = [];
-      const performance_issues: TracePerformanceIssue[] = [];
+      const performance_issues: TraceTree.TracePerformanceIssue[] = [];
 
       let start = head.value.start_timestamp;
       let end = head.value.timestamp;
@@ -1521,7 +1525,8 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
   };
 
   errors: Set<TraceErrorType> = new Set<TraceErrorType>();
-  performance_issues: Set<TracePerformanceIssue> = new Set<TracePerformanceIssue>();
+  performance_issues: Set<TraceTree.TracePerformanceIssue> =
+    new Set<TraceTree.TracePerformanceIssue>();
   profiles: TraceTree.Profile[] = [];
 
   multiplier: number;
@@ -2257,7 +2262,7 @@ function getRelatedSpanErrorsFromTransaction(
 function getRelatedPerformanceIssuesFromTransaction(
   span: RawSpanType,
   node?: TraceTreeNode<TraceTree.NodeValue>
-): TracePerformanceIssue[] {
+): TraceTree.TracePerformanceIssue[] {
   if (!node || !node.value || !isTransactionNode(node)) {
     return [];
   }
@@ -2266,7 +2271,7 @@ function getRelatedPerformanceIssuesFromTransaction(
     return [];
   }
 
-  const performanceIssues: TracePerformanceIssue[] = [];
+  const performanceIssues: TraceTree.TracePerformanceIssue[] = [];
 
   for (const perfIssue of node.value.performance_issues) {
     for (const s of perfIssue.span) {
@@ -2424,6 +2429,20 @@ function printNode(t: TraceTreeNode<TraceTree.NodeValue>, offset: number): strin
   return 'unknown node';
 }
 
+export function traceNodeAnalyticsName(node: TraceTreeNode<TraceTree.NodeValue>): string {
+  if (isAutogroupedNode(node)) {
+    return isParentAutogroupedNode(node) ? 'parent autogroup' : 'sibling autogroup';
+  }
+  if (isSpanNode(node)) return 'span';
+  if (isTransactionNode(node)) return 'transaction';
+  if (isMissingInstrumentationNode(node)) return 'missing instrumentation';
+  if (isRootNode(node)) return 'root';
+  if (isTraceNode(node)) return 'trace';
+  if (isNoDataNode(node)) return 'no data';
+  if (isTraceErrorNode(node)) return 'error';
+  return 'unknown';
+}
+
 // Creates an example trace response that we use to render the loading placeholder
 function partialTransaction(
   partial: Partial<TraceTree.Transaction>
@@ -2504,7 +2523,7 @@ export function makeExampleTrace(metadata: TraceTree.Metadata): TraceTree {
     start = end;
   }
 
-  const tree = TraceTree.FromTrace(trace);
+  const tree = TraceTree.FromTrace(trace, null);
 
   return tree;
 }

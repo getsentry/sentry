@@ -7,6 +7,7 @@ import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CreateAlertFromViewButton} from 'sentry/components/createAlertButton';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import IdBadge from 'sentry/components/idBadge';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ReplayCountBadge from 'sentry/components/replays/replayCountBadge';
@@ -78,7 +79,9 @@ function TransactionHeader({
     organization.features.includes('profiling') &&
     isProfilingSupportedOrProjectHasProfiles(project);
 
-  const hasAggregateWaterfall = organization.features.includes('spans-first-ui');
+  const hasAggregateWaterfall = organization.features.includes(
+    'insights-initial-modules'
+  );
 
   const getWebVitals = useCallback(
     (hasMeasurements: boolean) => {
@@ -174,6 +177,7 @@ function TransactionHeader({
               onChangeThreshold={onChangeThreshold}
             />
           </GuideAnchor>
+          <FeedbackWidgetButton />
         </ButtonBar>
       </Layout.HeaderActions>
       <HasMeasurementsQuery

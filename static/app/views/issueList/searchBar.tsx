@@ -1,9 +1,11 @@
 import {useCallback} from 'react';
 import styled from '@emotion/styled';
+import orderBy from 'lodash/orderBy';
 
 // eslint-disable-next-line no-restricted-imports
 import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
+import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
 import type {SearchGroup} from 'sentry/components/smartSearchBar/types';
 import {ItemType} from 'sentry/components/smartSearchBar/types';
@@ -15,7 +17,6 @@ import {SavedSearchType} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {
   DEVICE_CLASS_TAG_VALUES,
-  FieldKey,
   FieldKind,
   getFieldDefinition,
   isDeviceClass,
@@ -25,21 +26,37 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import type {WithIssueTagsProps} from 'sentry/utils/withIssueTags';
 import withIssueTags from 'sentry/utils/withIssueTags';
 
-const getSupportedTags = (supportedTags: TagCollection, org: Organization) => {
-  const include_priority = org.features.includes('issue-priority-ui');
+const getSupportedTags = (supportedTags: TagCollection) => {
   return Object.fromEntries(
-    Object.keys(supportedTags)
-      .map(key => [
-        key,
-        {
-          ...supportedTags[key],
-          kind:
-            getFieldDefinition(key)?.kind ??
-            (supportedTags[key].predefined ? FieldKind.FIELD : FieldKind.TAG),
-        },
-      ])
-      .filter(([key, _]) => (key === FieldKey.ISSUE_PRIORITY ? include_priority : true))
+    Object.keys(supportedTags).map(key => [
+      key,
+      {
+        ...supportedTags[key],
+        kind:
+          getFieldDefinition(key)?.kind ??
+          (supportedTags[key].predefined ? FieldKind.FIELD : FieldKind.TAG),
+      },
+    ])
   );
+};
+
+const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
+  const allTags: Tag[] = orderBy(Object.values(getSupportedTags(tags)), 'key');
+  const eventTags = allTags.filter(tag => tag.kind === FieldKind.TAG);
+  const issueFields = allTags.filter(tag => tag.kind === FieldKind.FIELD);
+
+  return [
+    {
+      value: FieldKind.FIELD,
+      label: t('Issue Fields'),
+      children: issueFields,
+    },
+    {
+      value: FieldKind.TAG,
+      label: t('Event Tags'),
+      children: eventTags,
+    },
+  ];
 };
 
 interface Props extends React.ComponentProps<typeof SmartSearchBar>, WithIssueTagsProps {
@@ -153,7 +170,7 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
         className={props.className}
         initialQuery={props.query ?? ''}
         getTagValues={getTagValues}
-        supportedKeys={getSupportedTags(tags, organization)}
+        filterKeySections={getFilterKeySections(tags)}
         onSearch={props.onSearch}
         onBlur={props.onBlur}
         onChange={value => {
@@ -166,11 +183,12 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
   return (
     <SmartSearchBar
       hasRecentSearches
+      projectIds={pageFilters.projects}
       savedSearchType={SavedSearchType.ISSUE}
       onGetTagValues={getTagValues}
       excludedTags={EXCLUDED_TAGS}
       maxMenuHeight={500}
-      supportedTags={getSupportedTags(tags, organization)}
+      supportedTags={getSupportedTags(tags)}
       defaultSearchGroup={recommendedGroup}
       organization={organization}
       {...props}

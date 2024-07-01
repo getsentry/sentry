@@ -164,7 +164,6 @@ function EventSpanOpBreakdown({event}: {event: Event}) {
       <GridEditable
         isLoading={false}
         data={spanOpDiffs}
-        location={location}
         columnOrder={[
           {key: 'span_op', name: t('Span Operation'), width: 200},
           {key: 'p95', name: t('p95'), width: COL_WIDTH_UNDEFINED},

@@ -10,10 +10,10 @@ from sentry.api.bases.organization import (
 )
 from sentry.api.validators.project_codeowners import validate_codeowners_associations
 from sentry.constants import ObjectStatus
+from sentry.integrations.services.integration import integration_service
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectcodeowners import ProjectCodeOwners
-from sentry.services.hybrid_cloud.integration import integration_service
 
 
 @region_silo_endpoint
@@ -47,6 +47,7 @@ class OrganizationCodeOwnersAssociationsEndpoint(OrganizationEndpoint):
             )
         result = {}
         for pco in project_code_owners:
+            assert pco.raw is not None  # XXX: model field `raw` is nullable? seems wrong?
             associations, errors = validate_codeowners_associations(pco.raw, pco.project)
             result[pco.project.slug] = {"associations": associations, "errors": errors}
         return self.respond(result, status=status.HTTP_200_OK)

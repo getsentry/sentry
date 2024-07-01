@@ -3,24 +3,20 @@ from __future__ import annotations
 import uuid
 from collections.abc import Collection, Mapping
 from itertools import chain
-from typing import TYPE_CHECKING, Any, ClassVar
+from typing import TYPE_CHECKING, Any, ClassVar, overload
 
 from django.db import models
 from django.db.models import OuterRef, QuerySet, Subquery
 from django.utils import timezone
 
+from sentry.auth.services.auth import AuthenticatedToken
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import SentryAppInstallationStatus
-from sentry.db.models import (
-    BoundedPositiveIntegerField,
-    FlexibleForeignKey,
-    ParanoidManager,
-    ParanoidModel,
-    control_silo_model,
-)
+from sentry.db.models import BoundedPositiveIntegerField, FlexibleForeignKey, control_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ReplicatedControlModel
-from sentry.services.hybrid_cloud.auth import AuthenticatedToken
+from sentry.db.models.paranoia import ParanoidManager, ParanoidModel
+from sentry.sentry_apps.services.app.model import RpcSentryAppComponent, RpcSentryAppInstallation
 from sentry.services.hybrid_cloud.project import RpcProject
 from sentry.types.region import find_regions_for_orgs
 
@@ -199,11 +195,17 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
         )
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
+        from sentry.hybridcloud.rpc.caching import region_caching_service
+        from sentry.sentry_apps.services.app.service import get_installation
+
         if self.api_token is not None:
             # ApiTokens replicate the organization_id they are associated with.
             with outbox_context(flush=False):
                 for ob in self.api_token.outboxes_for_update():
                     ob.save()
+        region_caching_service.clear_key(
+            key=get_installation.key_from(self.id), region_name=region_name
+        )
 
     @classmethod
     def handle_async_deletion(
@@ -253,12 +255,32 @@ def prepare_sentry_app_components(
     return prepare_ui_component(installation, component, project_slug, values)
 
 
+@overload
 def prepare_ui_component(
     installation: SentryAppInstallation,
     component: SentryAppComponent,
     project_slug: str | None = None,
     values: list[Mapping[str, Any]] | None = None,
 ) -> SentryAppComponent | None:
+    ...
+
+
+@overload
+def prepare_ui_component(
+    installation: RpcSentryAppInstallation,
+    component: RpcSentryAppComponent,
+    project_slug: str | None = None,
+    values: list[Mapping[str, Any]] | None = None,
+) -> RpcSentryAppComponent | None:
+    ...
+
+
+def prepare_ui_component(
+    installation: SentryAppInstallation | RpcSentryAppInstallation,
+    component: SentryAppComponent | RpcSentryAppComponent,
+    project_slug: str | None = None,
+    values: list[Mapping[str, Any]] | None = None,
+) -> SentryAppComponent | RpcSentryAppComponent | None:
     from sentry.coreapi import APIError
     from sentry.sentry_apps.components import SentryAppComponentPreparer
 

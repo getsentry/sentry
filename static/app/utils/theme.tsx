@@ -725,6 +725,7 @@ const commonTheme = {
 
     // If you change modal also update shared-components.less
     // as the z-index for bootstrap modals lives there.
+    drawer: 9999,
     modal: 10000,
     toast: 10001,
 
@@ -776,7 +777,7 @@ const commonTheme = {
 
     containerWidth: '1440px',
     headerHeight: '61px',
-    sidebarWidth: '220px',
+    sidebarWidth: '236px',
   },
 
   sidebar: {
@@ -786,7 +787,7 @@ const commonTheme = {
     badgeSize: '22px',
     smallBadgeSize: '11px',
     collapsedWidth: '70px',
-    expandedWidth: '220px',
+    expandedWidth: '236px',
     mobileHeight: '54px',
     menuSpacing: '15px',
   },

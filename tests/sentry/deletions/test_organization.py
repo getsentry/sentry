@@ -98,7 +98,6 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         widget_2_data_2 = DashboardWidgetQuery.objects.create(
             widget=widget_2, order=2, name="Outgoing data"
         )
-
         org.update(status=OrganizationStatus.PENDING_DELETION)
 
         self.ScheduledDeletion.schedule(instance=org, days=0)

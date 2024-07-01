@@ -14,7 +14,6 @@ from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
 from sentry.db.models import (
     ArrayField,
-    BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
@@ -23,7 +22,9 @@ from sentry.db.models import (
 )
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.services.hybrid_cloud.app import app_service
+from sentry.db.models.manager.base import BaseManager
+from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.services.app.model import RpcSentryApp
 
 SERVICE_HOOK_EVENTS = [
     "event.alert",
@@ -87,8 +88,11 @@ class ServiceHook(Model):
         return self.application_id and bool(self.sentry_app)
 
     @cached_property
-    def sentry_app(self):
-        return app_service.find_service_hook_sentry_app(api_application_id=self.application_id)
+    def sentry_app(self) -> RpcSentryApp | None:
+        if self.application_id is None:
+            return None
+        else:
+            return app_service.get_by_application_id(application_id=self.application_id)
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)

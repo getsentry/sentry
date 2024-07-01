@@ -2,6 +2,7 @@ import {OrganizationFixture} from 'sentry-fixture/organization';
 import {SourceMapArchiveFixture} from 'sentry-fixture/sourceMapArchive';
 import {SourceMapArtifactFixture} from 'sentry-fixture/sourceMapArtifact';
 import {SourceMapsDebugIDBundlesArtifactsFixture} from 'sentry-fixture/sourceMapsDebugIDBundlesArtifacts';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -86,7 +87,7 @@ describe('ProjectSourceMapsArtifacts', function () {
 
   describe('Release Bundles', function () {
     it('renders default state', async function () {
-      const {organization, routerContext, project, routerProps} = initializeOrg({
+      const {organization, router, project, routerProps} = initializeOrg({
         organization: OrganizationFixture({
           access: ['org:superuser'],
         }),
@@ -100,10 +101,7 @@ describe('ProjectSourceMapsArtifacts', function () {
 
       OrganizationStore.onUpdate(organization, {replace: true});
 
-      ConfigStore.config = {
-        ...ConfigStore.config,
-        user: {...ConfigStore.config.user, isSuperuser: true},
-      };
+      ConfigStore.set('user', UserFixture({isSuperuser: true}));
 
       renderReleaseBundlesMockRequests({
         orgSlug: organization.slug,
@@ -120,7 +118,7 @@ describe('ProjectSourceMapsArtifacts', function () {
             bundleId: 'bea7335dfaebc0ca6e65a057',
           }}
         />,
-        {context: routerContext, organization}
+        {router, organization}
       );
 
       // Title
@@ -148,7 +146,7 @@ describe('ProjectSourceMapsArtifacts', function () {
     });
 
     it('renders empty state', async function () {
-      const {organization, routerProps, project, routerContext} = initializeOrg({
+      const {organization, routerProps, project, router} = initializeOrg({
         router: {
           location: {
             query: {},
@@ -173,7 +171,7 @@ describe('ProjectSourceMapsArtifacts', function () {
             bundleId: 'bea7335dfaebc0ca6e65a057',
           }}
         />,
-        {context: routerContext, organization}
+        {router, organization}
       );
 
       expect(
@@ -184,7 +182,7 @@ describe('ProjectSourceMapsArtifacts', function () {
 
   describe('Artifact Bundles', function () {
     it('renders default state', async function () {
-      const {organization, project, routerProps, routerContext} = initializeOrg({
+      const {organization, project, routerProps, router} = initializeOrg({
         organization: OrganizationFixture({
           access: ['org:superuser', 'project:releases'],
         }),
@@ -201,10 +199,7 @@ describe('ProjectSourceMapsArtifacts', function () {
 
       OrganizationStore.onUpdate(organization, {replace: true});
 
-      ConfigStore.config = {
-        ...ConfigStore.config,
-        user: {...ConfigStore.config.user, isSuperuser: true},
-      };
+      ConfigStore.set('user', UserFixture({isSuperuser: true}));
 
       const mockRequests = renderDebugIdBundlesMockRequests({
         orgSlug: organization.slug,
@@ -221,7 +216,7 @@ describe('ProjectSourceMapsArtifacts', function () {
             bundleId: '7227e105-744e-4066-8c69-3e5e344723fc',
           }}
         />,
-        {context: routerContext, organization}
+        {router, organization}
       );
 
       // Title
@@ -288,7 +283,7 @@ describe('ProjectSourceMapsArtifacts', function () {
     });
 
     it('renders empty state', async function () {
-      const {organization, project, routerProps, routerContext} = initializeOrg({
+      const {organization, project, routerProps, router} = initializeOrg({
         router: {
           location: {
             pathname: `/settings/${initializeOrg().organization.slug}/projects/${
@@ -316,7 +311,7 @@ describe('ProjectSourceMapsArtifacts', function () {
             bundleId: '7227e105-744e-4066-8c69-3e5e344723fc',
           }}
         />,
-        {context: routerContext, organization}
+        {router, organization}
       );
 
       expect(

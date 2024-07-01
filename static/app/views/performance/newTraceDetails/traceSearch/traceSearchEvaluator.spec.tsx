@@ -39,6 +39,43 @@ function makeSpan(overrides: Partial<RawSpanType> = {}): TraceTree.Span {
     ...overrides,
   };
 }
+
+function makeError(overrides: Partial<TraceTree.TraceError> = {}): TraceTree.TraceError {
+  return {
+    issue_id: 1,
+    issue: 'dead issue',
+    event_id: 'event_id',
+    project_slug: 'project',
+    project_id: 1,
+    level: 'fatal',
+    title: 'dead',
+    message: 'dead message',
+    span: '1',
+    ...overrides,
+  };
+}
+
+function makePerformanceIssue(
+  overrides: Partial<TraceTree.TracePerformanceIssue> = {}
+): TraceTree.TracePerformanceIssue {
+  return {
+    event_id: 'event_id',
+    project_slug: 'project',
+    message: 'dead message',
+    title: 'dead',
+    issue_id: 1,
+    level: 'fatal',
+    project_id: 1,
+    culprit: 'culprit',
+    start: 0,
+    end: 1,
+    span: [],
+    suspect_spans: [],
+    type: 0,
+    ...overrides,
+  };
+}
+
 const makeTree = (list: TraceTree.NodeValue[]): TraceTree => {
   return {
     list: list.map(
@@ -141,9 +178,7 @@ describe('TraceSearchEvaluator', () => {
     ]);
 
     const cb = jest.fn();
-    // @TODO check if this makes sense with some users. We might only want to do this only if we have a set of parens.
     search(
-      // (transaction.op:operation OR transaction.op:other) AND transaction:something
       'transaction.op:operation AND transaction:something OR transaction.op:other',
       tree,
       cb
@@ -151,8 +186,11 @@ describe('TraceSearchEvaluator', () => {
     await waitFor(() => {
       expect(cb).toHaveBeenCalled();
     });
-    expect(cb.mock.calls[0][0][1].size).toBe(1);
-    expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+    expect(cb.mock.calls[0][0][1].size).toBe(2);
+    expect(cb.mock.calls[0][0][0]).toEqual([
+      {index: 0, value: tree.list[0]},
+      {index: 1, value: tree.list[1]},
+    ]);
     expect(cb.mock.calls[0][0][2]).toBe(null);
   });
 
@@ -330,6 +368,72 @@ describe('TraceSearchEvaluator', () => {
       expect(cb.mock.calls[0][0][1].size).toBe(1);
       expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
       expect(cb.mock.calls[0][0][2]).toBe(null);
+    });
+  });
+
+  describe('synthetic keys', () => {
+    describe('has:', () => {
+      it.each(['error', 'errors'])('%s (transaction)', async key => {
+        const tree = makeTree([
+          makeTransaction({
+            errors: [makeError()],
+          }),
+          makeTransaction({errors: []}),
+        ]);
+
+        const cb = jest.fn();
+        search(`has:${key}`, tree, cb);
+        await waitFor(() => expect(cb).toHaveBeenCalled());
+        expect(cb.mock.calls[0][0][1].size).toBe(1);
+        expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+        expect(cb.mock.calls[0][0][2]).toBe(null);
+      });
+      it.each(['issue', 'issues'])('%s (error on transaction)', async key => {
+        const tree = makeTree([
+          makeTransaction({
+            errors: [makeError()],
+          }),
+          makeTransaction({errors: []}),
+        ]);
+
+        const cb = jest.fn();
+        search(`has:${key}`, tree, cb);
+        await waitFor(() => expect(cb).toHaveBeenCalled());
+        expect(cb.mock.calls[0][0][1].size).toBe(1);
+        expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+        expect(cb.mock.calls[0][0][2]).toBe(null);
+      });
+
+      it.each(['issue', 'issues'])('%s (performance issue on transaction)', async key => {
+        const tree = makeTree([
+          makeTransaction({
+            performance_issues: [makePerformanceIssue()],
+          }),
+          makeTransaction({errors: []}),
+        ]);
+
+        const cb = jest.fn();
+        search(`has:${key}`, tree, cb);
+        await waitFor(() => expect(cb).toHaveBeenCalled());
+        expect(cb.mock.calls[0][0][1].size).toBe(1);
+        expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+        expect(cb.mock.calls[0][0][2]).toBe(null);
+      });
+      it.each(['profile', 'profiles'])('%s (profile on transaction)', async key => {
+        const tree = makeTree([
+          makeTransaction({
+            profile_id: 'profile',
+          }),
+          makeTransaction({errors: []}),
+        ]);
+
+        const cb = jest.fn();
+        search(`has:${key}`, tree, cb);
+        await waitFor(() => expect(cb).toHaveBeenCalled());
+        expect(cb.mock.calls[0][0][1].size).toBe(1);
+        expect(cb.mock.calls[0][0][0]).toEqual([{index: 0, value: tree.list[0]}]);
+        expect(cb.mock.calls[0][0][2]).toBe(null);
+      });
     });
   });
 });

@@ -2,13 +2,16 @@ import dataclasses
 from collections.abc import Mapping, MutableMapping, Sequence
 from typing import Any
 
+from django.db.models import QuerySet
+
 from sentry.api.serializers import Serializer, register
-from sentry.db.models.manager.base import BaseManager
 from sentry.models.importchunk import BaseImportChunk, ControlImportChunkReplica, RegionImportChunk
 from sentry.models.relocation import Relocation
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
+
+NEEDED_USER_FIELDS = {"email", "id", "username"}
 
 
 @dataclasses.dataclass(frozen=True)
@@ -27,7 +30,7 @@ class RelocationMetadata:
     imported_org_ids: list[int]
 
 
-def get_all_imported_ids_of_model(chunks: BaseManager[BaseImportChunk]) -> list[int]:
+def get_all_imported_ids_of_model(chunks: QuerySet[BaseImportChunk]) -> list[int]:
     all_imported_ids = set()
     for chunk in chunks:
         all_imported_ids |= (
@@ -64,16 +67,33 @@ class RelocationSerializer(Serializer):
             else None
         )
 
+        creator_user = attrs.meta_users.get(obj.creator_id, None)
+        creator = (
+            None
+            if creator_user is None
+            else {
+                "email": creator_user.email,
+                "id": str(creator_user.id),
+                "username": creator_user.username,
+            }
+        )
+        owner_user = attrs.meta_users.get(obj.owner_id, None)
+        owner = (
+            None
+            if owner_user is None
+            else {
+                "email": owner_user.email,
+                "id": str(owner_user.id),
+                "username": owner_user.username,
+            }
+        )
+
         return {
             "dateAdded": obj.date_added,
             "dateUpdated": obj.date_updated,
             "uuid": str(obj.uuid),
-            "creatorEmail": attrs.meta_users[obj.creator_id].email,
-            "creatorId": str(obj.creator_id),
-            "creatorUsername": attrs.meta_users[obj.creator_id].username,
-            "ownerEmail": attrs.meta_users[obj.owner_id].email,
-            "ownerId": str(obj.owner_id),
-            "ownerUsername": attrs.meta_users[obj.owner_id].username,
+            "creator": creator,
+            "owner": owner,
             "status": Relocation.Status(obj.status).name,
             "step": Relocation.Step(obj.step).name,
             "failureReason": obj.failure_reason,

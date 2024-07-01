@@ -10,6 +10,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import OrganizationEndpoint, OrganizationMetricsPermission
 from sentry.api.utils import get_date_range_from_params
+from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.querying.data import (
     MetricsAPIQueryResultsTransformer,
     MQLQuery,
@@ -32,6 +33,7 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
     publish_status = {
         "POST": ApiPublishStatus.EXPERIMENTAL,
     }
+    snuba_methods = ["POST"]
     owner = ApiOwner.TELEMETRY_EXPERIENCE
     permission_classes = (OrganizationMetricsPermission,)
 
@@ -138,11 +140,10 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
         return mql_queries
 
     def _get_query_type_from_request(self, request: Request) -> QueryType:
-        include_series = (request.GET.get("includeSeries") or "true") == "true"
-        if include_series:
-            return QueryType.TOTALS_AND_SERIES
-
-        return QueryType.TOTALS
+        include_series = request.GET.get("includeSeries")
+        if include_series == "false":
+            return QueryType.TOTALS
+        return QueryType.TOTALS_AND_SERIES
 
     def post(self, request: Request, organization) -> Response:
         try:
@@ -176,6 +177,10 @@ class OrganizationMetricsQueryEndpoint(OrganizationEndpoint):
                 query_type=self._get_query_type_from_request(request),
             ).apply_transformer(MetricsAPIQueryResultsTransformer())
         except InvalidMetricsQueryError as e:
+            return Response(status=400, data={"detail": str(e)})
+        except InvalidParams as e:
+            return Response(status=400, data={"detail": str(e)})
+        except AssertionError as e:
             return Response(status=400, data={"detail": str(e)})
         except LatestReleaseNotFoundError as e:
             return Response(status=404, data={"detail": str(e)})

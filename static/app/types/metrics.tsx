@@ -1,10 +1,11 @@
 import type {DateString} from 'sentry/types/core';
 
-export type MetricsAggregate =
+export type MetricAggregation =
   | 'sum'
   | 'count_unique'
   | 'avg'
   | 'count'
+  | 'min'
   | 'max'
   | 'p50'
   | 'p75'
@@ -13,7 +14,7 @@ export type MetricsAggregate =
 
 export type MetricType = 'c' | 'd' | 'g' | 'e' | 's';
 
-export type UseCase = 'custom' | 'transactions' | 'sessions' | 'spans';
+export type UseCase = 'custom' | 'transactions' | 'sessions' | 'spans' | 'metric_stats';
 
 export type MRI = `${MetricType}:${UseCase}${string}@${string}`;
 
@@ -100,9 +101,8 @@ export type MetricsTagValue = {
 export type MetricMeta = {
   blockingStatus: BlockingStatus[];
   mri: MRI;
-  // name is returned by the API but should not be used, use parseMRI(mri).name instead
-  // name: string;
-  operations: MetricsAggregate[];
+  // name: string; // returned by the API but should not be used, use parseMRI(mri).name instead
+  operations: MetricAggregation[];
   projectIds: number[];
   type: MetricType;
   unit: string;

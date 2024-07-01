@@ -72,7 +72,7 @@ class GroupHashInfo:
 
 
 NULL_GROUPING_CONFIG: GroupingConfig = {"id": "", "enhancements": ""}
-NULL_HASHES = CalculatedHashes(hashes=[], hierarchical_hashes=[], tree_labels=[])
+NULL_HASHES = CalculatedHashes([])
 NULL_GROUPHASH_INFO = GroupHashInfo(NULL_GROUPING_CONFIG, NULL_HASHES, [], None)
 
 
@@ -373,13 +373,13 @@ def get_grouping_variants_for_event(
         else:
             rv["custom-fingerprint"] = CustomFingerprintVariant(fingerprint, fingerprint_info)
 
-    # If the fingerprints are unsalted, we can return them right away.
+    # If only the default is referenced, we can use the variants as is
     elif defaults_referenced == 1 and len(fingerprint) == 1:
         rv = {}
         for key, component in components.items():
             rv[key] = ComponentVariant(component, context.config)
 
-    # Otherwise we need to salt each of the components.
+    # Otherwise we need to "salt" our variants with the custom fingerprint value(s)
     else:
         rv = {}
         fingerprint = resolve_fingerprint_values(fingerprint, event.data)

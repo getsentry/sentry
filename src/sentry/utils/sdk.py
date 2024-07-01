@@ -14,7 +14,14 @@ from rest_framework.request import Request
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
-from sentry_sdk import Scope, capture_exception, capture_message, configure_scope, push_scope
+from sentry_sdk import (
+    Scope,
+    capture_exception,
+    capture_message,
+    configure_scope,
+    isolation_scope,
+    push_scope,
+)
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
 from sentry_sdk.transport import make_transport
@@ -76,13 +83,13 @@ SAMPLED_TASKS = {
     "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
     "sentry.monitors.tasks.clock_pulse": 1.0,
     "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 1.0,
+    "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 0.2,
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 0.2,
     "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2,
     "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2,
     "sentry.dynamic_sampling.tasks.custom_rule_notifications": 0.2,
     "sentry.dynamic_sampling.tasks.clean_custom_rule_notifications": 0.2,
-    "sentry.tasks.backfill_seer_grouping_records": 1.0,
+    "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project": 1.0,
 }
 
 if settings.ADDITIONAL_SAMPLED_TASKS:
@@ -223,13 +230,6 @@ def before_send_transaction(event: Event, _: Hint) -> Event | None:
     ):
         return None
 
-    # This code is added only for debugging purposes, as such, it should be removed once the investigation is done.
-    if event.get("transaction") in {
-        "sentry.dynamic_sampling.boost_low_volume_projects_of_org",
-        "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
-    }:
-        logger.info("transaction_logged", extra=event)
-
     # Occasionally the span limit is hit and we drop spans from transactions, this helps find transactions where this occurs.
     num_of_spans = len(event["spans"])
     event["tags"]["spans_over_limit"] = str(num_of_spans >= 1000)
@@ -268,7 +268,6 @@ def patch_transport_for_instrumentation(transport, transport_name):
 class Dsns(NamedTuple):
     sentry4sentry: str | None
     sentry_saas: str | None
-    experimental: str | None
 
 
 def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
@@ -285,7 +284,6 @@ def _get_sdk_options() -> tuple[SdkConfig, Dsns]:
     dsns = Dsns(
         sentry4sentry=sdk_options.pop("dsn", None),
         sentry_saas=sdk_options.pop("relay_dsn", None),
-        experimental=sdk_options.pop("experimental_dsn", None),
     )
 
     return sdk_options, dsns
@@ -315,12 +313,6 @@ def configure_sdk():
         sentry_saas_transport = patch_transport_for_instrumentation(transport, "relay")
     else:
         sentry_saas_transport = None
-
-    if dsns.experimental:
-        transport = make_transport(get_options(dsn=dsns.experimental, **sdk_options))
-        experimental_transport = patch_transport_for_instrumentation(transport, "experimental")
-    else:
-        experimental_transport = None
 
     if settings.SENTRY_PROFILING_ENABLED:
         sdk_options["profiles_sampler"] = profiles_sampler
@@ -389,9 +381,7 @@ def configure_sdk():
 
                 getattr(sentry4sentry_transport, method_name)(*s4s_args, **kwargs)
 
-            if (sentry_saas_transport or experimental_transport) and options.get(
-                "store.use-relay-dsn-sample-rate"
-            ) == 1:
+            if sentry_saas_transport and options.get("store.use-relay-dsn-sample-rate") == 1:
                 # If this is an envelope ensure envelope and its items are distinct references
                 if method_name == "capture_envelope":
                     args_list = list(args)
@@ -410,11 +400,6 @@ def configure_sdk():
                             skip_internal=False,
                             tags={"reason": "unsafe"},
                         )
-
-                if experimental_transport:
-                    if is_current_event_safe():
-                        if in_random_rollout("store.experimental-dsn-double-write.sample-rate"):
-                            getattr(experimental_transport, method_name)(*args, **kwargs)
 
         def record_lost_event(self, *args, **kwargs):
             # pass through client report recording to sentry_saas_transport
@@ -439,8 +424,6 @@ def configure_sdk():
             callback=None,
         ):
             # flush transports in case we received a kill signal
-            if experimental_transport:
-                getattr(experimental_transport, "flush")(timeout, callback)
             if sentry4sentry_transport:
                 getattr(sentry4sentry_transport, "flush")(timeout, callback)
             if sentry_saas_transport:
@@ -741,6 +724,7 @@ __all__ = (
     "get_project_key",
     "get_transaction_name_from_request",
     "is_current_event_safe",
+    "isolation_scope",
     "make_transport",
     "mark_scope_as_unsafe",
     "merge_context_into_scope",

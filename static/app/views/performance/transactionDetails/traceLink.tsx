@@ -9,6 +9,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
 import type {QuickTraceContextChildrenProps} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import type {TraceMeta} from 'sentry/utils/performance/quickTrace/types';
+import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 type TraceLinkProps = {
@@ -20,7 +21,8 @@ type TraceLinkProps = {
 
 export function TraceLink({event, traceMeta, source, quickTrace}: TraceLinkProps) {
   const organization = useOrganization();
-  const traceTarget = generateTraceTarget(event, organization);
+  const location = useLocation();
+  const traceTarget = generateTraceTarget(event, organization, location);
   const traceId = event.contexts?.trace?.trace_id ?? '';
   const handleTraceLink = useCallback(() => {
     trackAnalytics('quick_trace.trace_id.clicked', {

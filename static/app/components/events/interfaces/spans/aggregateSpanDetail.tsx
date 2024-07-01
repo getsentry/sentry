@@ -4,17 +4,20 @@ import type {Location} from 'history';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Project} from 'sentry/types';
 import type {AggregateEventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import getDuration from 'sentry/utils/duration/getDuration';
-import {formatPercentage} from 'sentry/utils/formatters';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import type {
   QuickTraceEvent,
   TraceErrorOrIssue,
 } from 'sentry/utils/performance/quickTrace/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import useProjects from 'sentry/utils/useProjects';
+import {TraceViewSources} from 'sentry/views/performance/newTraceDetails/traceMetadataHeader';
+import Tab from 'sentry/views/performance/transactionSummary/tabs';
 
 import type {AggregateSpanType, ParsedTraceType} from './types';
 
@@ -49,8 +52,15 @@ function renderSpanSamples(
         projectSlug: project.slug,
         eventId: transaction,
         timestamp,
-        location,
+        location: {
+          ...location,
+          query: {
+            ...location.query,
+            tab: Tab.AGGREGATE_WATERFALL,
+          },
+        },
         spanId: span,
+        source: TraceViewSources.PERFORMANCE_TRANSACTION_SUMMARY,
       })}
     >{`${span}${index < aggSpan.samples.length - 1 ? ', ' : ''}`}</Link>
   ));
