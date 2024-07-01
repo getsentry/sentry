@@ -75,6 +75,10 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
       </SentryLink>
     );
 
+  if (!hasOrganization && !hasUser) {
+    return null;
+  }
+
   return (
     <DeprecatedDropdownMenu>
       {({isOpen, getRootProps, getActorProps, getMenuProps}) => (
@@ -88,11 +92,11 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
             {!collapsed && orientation !== 'top' && (
               <OrgAndUserWrapper>
                 <OrgOrUserName>
-                  {hasOrganization ? org.name : user?.name}{' '}
+                  {hasOrganization ? org.name : user.name}{' '}
                   <StyledChevron direction={isOpen ? 'up' : 'down'} />
                 </OrgOrUserName>
                 <UserNameOrEmail>
-                  {hasOrganization ? user?.name : user?.email}
+                  {hasOrganization ? user.name : user.email}
                 </UserNameOrEmail>
               </OrgAndUserWrapper>
             )}
