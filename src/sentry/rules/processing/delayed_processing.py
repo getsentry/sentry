@@ -120,10 +120,9 @@ def _generate_unique_queries(
         # We will later compare the first query results against the second query to calculate
         # a percentage for percentage comparison conditions.
         comparison_interval = condition_data.get("comparisonInterval", DEFAULT_COMPARISON_INTERVAL)
-        first_query_copy = unique_queries[0]._asdict()
-        first_query_copy["comparison_interval"] = comparison_interval
-        second_comparison_query = UniqueConditionQuery(**first_query_copy)
-        unique_queries.append(second_comparison_query)
+        second_query_data = unique_queries[0]._asdict()
+        second_query_data["comparison_interval"] = comparison_interval
+        unique_queries.append(UniqueConditionQuery(**second_query_data))
 
     return unique_queries
 

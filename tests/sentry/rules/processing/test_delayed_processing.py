@@ -1,7 +1,7 @@
 from collections import defaultdict
 from copy import deepcopy
 from datetime import datetime, timedelta
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 from uuid import uuid4
 
 import pytest
@@ -37,6 +37,21 @@ pytestmark = pytest.mark.sentry_metrics
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
 TEST_RULE_SLOW_CONDITION = {"id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition"}
 TEST_RULE_FAST_CONDITION = {"id": "sentry.rules.conditions.every_event.EveryEventCondition"}
+
+
+def mock_get_condition_group(descending=False):
+    """
+    Mocks get_condition_groups to run with the passed in alert_rules in
+    order of id (ascending by default).
+    """
+
+    def _callthrough_with_order(*args, **kwargs):
+        if args:
+            alert_rules = args[0]
+            alert_rules.sort(key=lambda rule: rule.id, reverse=descending)
+        return get_condition_query_groups(*args, **kwargs)
+
+    return _callthrough_with_order
 
 
 class BuildGroupToGroupEventTest(TestCase):
@@ -718,35 +733,14 @@ class ProcessDelayedAlertConditionsTest(
         assert (percent_comparison_rule.id, group5.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=self.project.id)
 
-    @patch("sentry.rules.processing.delayed_processing.safe_execute", side_effect=safe_execute)
-    def test_apply_delayed_no_bleed_count_and_comparison_condition(self, safe_execute_callthrough):
-        """
-        Test that having both count and percent comparison type conditions do
-        not affect each other and the order the different types of conditions
-        are processed does not matter.
-        """
-
-        def mock_get_condition_group(descending=False):
-            """
-            Mocks get_condition_groups to run with the passed in alert_rules in
-            order of id (ascending by default).
-            """
-
-            def _callthrough_with_order(*args, **kwargs):
-                if args:
-                    alert_rules = args[0]
-                    alert_rules.sort(key=lambda rule: rule.id, reverse=descending)
-                return get_condition_query_groups(*args, **kwargs)
-
-            return _callthrough_with_order
-
+    def _setup_percent_comparison_test(self) -> int:
         fires_percent_condition = self.create_event_frequency_condition(
             interval="1h",
             value=50,
             comparison_type=ComparisonType.PERCENT,
             comparison_interval="15m",
         )
-        fires_percent_rule = self.create_project_rule(
+        self.fires_percent_rule = self.create_project_rule(
             project=self.project,
             condition_match=[fires_percent_condition],
             environment_id=self.environment.id,
@@ -756,7 +750,7 @@ class ProcessDelayedAlertConditionsTest(
             interval="1h",
             value=1,
         )
-        fires_count_rule = self.create_project_rule(
+        self.fires_count_rule = self.create_project_rule(
             project=self.project,
             condition_match=[fires_count_condition],
             environment_id=self.environment.id,
@@ -765,16 +759,18 @@ class ProcessDelayedAlertConditionsTest(
             interval="1h",
             value=75,
         )
-        skips_count_rule = self.create_project_rule(
+        self.skips_count_rule = self.create_project_rule(
             project=self.project,
             condition_match=[skips_count_condition],
             environment_id=self.environment.id,
         )
 
         # Create events to trigger the fires count condition.
-        event5 = self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
+        self.event5 = self.create_event(
+            self.project.id, FROZEN_TIME, "group-5", self.environment.name
+        )
         self.create_event(self.project.id, FROZEN_TIME, "group-5", self.environment.name)
-        group5 = event5.group
+        self.group5 = self.event5.group
 
         # Create a past event to trigger the fires percent condition.
         self.create_event(
@@ -784,49 +780,63 @@ class ProcessDelayedAlertConditionsTest(
             self.environment.name,
         )
 
-        def _setup_events() -> int:
-            self.push_to_hash(self.project.id, fires_percent_rule.id, group5.id, event5.event_id)
-            self.push_to_hash(self.project.id, fires_count_rule.id, group5.id, event5.event_id)
-            self.push_to_hash(self.project.id, skips_count_rule.id, group5.id, event5.event_id)
-            project_ids = buffer.backend.get_sorted_set(
-                PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
-            )
-            return project_ids[0][0]
+        for rule in [self.fires_percent_rule, self.fires_count_rule, self.skips_count_rule]:
+            self.push_to_hash(self.project.id, rule.id, self.group5.id, self.event5.event_id)
+        project_ids = buffer.backend.get_sorted_set(
+            PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
+        )
+        return project_ids[0][0]
 
-        def assert_results(iteration: int) -> None:
-            rule_fire_histories = RuleFireHistory.objects.filter(
-                rule__in=[fires_percent_rule, fires_count_rule, skips_count_rule],
-                group__in=[group5],
-                event_id__in=[event5.event_id],
-                project=self.project,
-            ).values_list("rule", "group")
-            assert len(rule_fire_histories) == 2
-            assert (fires_percent_rule.id, group5.id) in rule_fire_histories
-            assert (fires_count_rule.id, group5.id) in rule_fire_histories
-            self.assert_buffer_cleared(project_id=self.project.id)
+    def _assert_count_percent_results(self, safe_execute_callthrough: Mock) -> None:
+        rule_fire_histories = RuleFireHistory.objects.filter(
+            rule__in=[self.fires_percent_rule, self.fires_count_rule, self.skips_count_rule],
+            group__in=[self.group5],
+            event_id__in=[self.event5.event_id],
+            project=self.project,
+        ).values_list("rule", "group")
+        assert len(rule_fire_histories) == 2
+        assert (self.fires_percent_rule.id, self.group5.id) in rule_fire_histories
+        assert (self.fires_count_rule.id, self.group5.id) in rule_fire_histories
+        self.assert_buffer_cleared(project_id=self.project.id)
 
-            # Ensure we're only making two queries. The count query and first
-            # percent query of both percent conditions can share one query, and
-            # the second query of both percent conditions share the other query.
-            assert safe_execute_callthrough.call_count == 2 * iteration
+        # Ensure we're only making two queries. The count query and first
+        # percent query of both percent conditions can share one query, and
+        # the second query of both percent conditions share the other query.
+        assert safe_execute_callthrough.call_count == 2
+
+    @patch("sentry.rules.processing.delayed_processing.safe_execute", side_effect=safe_execute)
+    def test_apply_delayed_process_percent_then_count(self, safe_execute_callthrough):
+        """
+        Test that having both count and percent comparison type conditions do
+        not affect each other and that processing the percent condition first
+        does not matter.
+        """
 
         # Have the percent condition be processed first. The calculated percent
         # value is 100, but the skips_count_rule with a threshold of 75 should
         # not be triggered.
-        project_id = _setup_events()
+        project_id = self._setup_percent_comparison_test()
         with patch(
             "sentry.rules.processing.delayed_processing.get_condition_query_groups",
             side_effect=mock_get_condition_group(descending=False),
         ):
             apply_delayed(project_id)
-        assert_results(iteration=1)
+        self._assert_count_percent_results(safe_execute_callthrough)
+
+    @patch("sentry.rules.processing.delayed_processing.safe_execute", side_effect=safe_execute)
+    def test_apply_delayed_process_count_then_percent(self, safe_execute_callthrough):
+        """
+        Test that having both count and percent comparison type conditions do
+        not affect each other and that processing the count condition first
+        does not matter.
+        """
 
         # Have a count condition be processed first. It's calculated value is 2,
         # but the fires_percent_rule with a 50 threshold should still be triggered.
-        project_id = _setup_events()
+        project_id = self._setup_percent_comparison_test()
         with patch(
             "sentry.rules.processing.delayed_processing.get_condition_query_groups",
             side_effect=mock_get_condition_group(descending=True),
         ):
             apply_delayed(project_id)
-        assert_results(iteration=2)
+        self._assert_count_percent_results(safe_execute_callthrough)
