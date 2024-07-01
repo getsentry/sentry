@@ -30,6 +30,7 @@ from sentry.api.serializers.models.organization import (
     TrustedRelaySerializer,
 )
 from sentry.apidocs.constants import (
+    RESPONSE_BAD_REQUEST,
     RESPONSE_CONFLICT,
     RESPONSE_FORBIDDEN,
     RESPONSE_NOT_FOUND,
@@ -592,6 +593,7 @@ def post_org_pending_deletion(
         "genAIConsent",
         "metricsActivatePercentiles",
         "metricsActivateLastForGauges",
+        "extrapolateMetrics",
     ]
 )
 class OrganizationDetailsPutSerializer(serializers.Serializer):
@@ -803,6 +805,7 @@ Below is an example of a payload for a set of advanced data scrubbing rules for 
     genAIConsent = serializers.BooleanField(required=False)
     metricsActivatePercentiles = serializers.BooleanField(required=False)
     metricsActivateLastForGauges = serializers.BooleanField(required=False)
+    extrapolateMetrics = serializers.BooleanField(required=False)
 
 
 # NOTE: We override the permission class of this endpoint in getsentry with the OrganizationDetailsPermission class
@@ -862,6 +865,7 @@ class OrganizationDetailsEndpoint(OrganizationEndpoint):
         request=OrganizationDetailsPutSerializer,
         responses={
             200: DetailedOrganizationSerializerWithProjectsAndTeams,
+            400: RESPONSE_BAD_REQUEST,
             401: RESPONSE_UNAUTHORIZED,
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
