@@ -368,7 +368,7 @@ def _trim_if_above_limit(
     for version, _specs_for_version in specs_per_version.items():
         specs_for_version = _specs_for_version.values()
         if len(specs_for_version) > max_specs:
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.isolation_scope() as scope:
                 scope.set_tag("project_id", project.id)
                 scope.set_context("specs", {"values": [spec[0] for spec in specs_for_version]})
                 sentry_sdk.capture_exception(
@@ -564,7 +564,7 @@ def _can_widget_query_use_stateful_extraction(
         return False
     elif len(on_demand_entries) > 1:
         # There should only be one on demand entry.
-        with sentry_sdk.push_scope() as scope:
+        with sentry_sdk.isolation_scope() as scope:
             scope.set_tag("widget_query", widget_query.id)
             sentry_sdk.capture_message(
                 f"Wrong number of relations ({len(on_demand_entries)}) for widget_query: {widget_query.id}"
@@ -612,7 +612,7 @@ def _widget_query_stateful_extraction_enabled(widget_query: DashboardWidgetQuery
     ]
 
     if len(on_demand_entries) != 1:
-        with sentry_sdk.push_scope() as scope:
+        with sentry_sdk.isolation_scope() as scope:
             scope.set_extra("on_demand_entries", on_demand_entries)
             scope.set_extra("spec_version", OnDemandMetricSpecVersioning.get_spec_versions())
             sentry_sdk.capture_exception(
@@ -695,7 +695,7 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
         ),
     )
 
-    with sentry_sdk.push_scope() as scope:
+    with sentry_sdk.isolation_scope() as scope:
         metrics.incr("on_demand_metrics.cardinality_check.query")
         scope.set_tag("widget_query.widget_id", widget_query.id)
         scope.set_tag("widget_query.org_id", project.organization_id)
