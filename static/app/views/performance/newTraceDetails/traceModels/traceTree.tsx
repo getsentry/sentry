@@ -1,12 +1,14 @@
 import type {Theme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
+import type {Location} from 'history';
+import qs from 'qs';
+
 import type {Client} from 'sentry/api';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import type {Event, EventTransaction, Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
-import qs from 'qs';
 import type {
   TraceError as TraceErrorType,
   TraceFullDetailed,
@@ -22,8 +24,9 @@ import {
   WEB_VITAL_DETAILS,
 } from 'sentry/utils/performance/vitals/constants';
 import type {Vital} from 'sentry/utils/performance/vitals/types';
+import type {TraceDataRow} from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
-import type {Location} from 'history';
+
 import {getStylingSliceName} from '../../../traces/utils';
 import {isRootTransaction} from '../../traceDetails/utils';
 import {
@@ -39,9 +42,8 @@ import {
   isTransactionNode,
   shouldAddMissingInstrumentationSpan,
 } from '../guards';
-import {TraceType} from '../traceType';
-import type {TraceDataRow} from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import {getTraceQueryParams} from '../traceApi/useTrace';
+import {TraceType} from '../traceType';
 
 /**
  *
@@ -412,13 +414,13 @@ for (const key in {...MOBILE_VITAL_DETAILS, ...WEB_VITAL_DETAILS}) {
 }
 
 type IncrementalTraceFetchOptions = {
-  api: Client;
   additionalTraceDataRows: TraceDataRow[] | undefined;
-  organization: Organization;
-  urlParams: Location['query'];
+  api: Client;
   filters: any;
-  traceLimit: number | undefined;
+  organization: Organization;
   rerender: () => void;
+  traceLimit: number | undefined;
+  urlParams: Location['query'];
 };
 
 function fetchSingleTrace(
@@ -477,7 +479,7 @@ export async function incrementallyFetchTraces(
 
     const updatedData = results.reduce(
       (acc, result) => {
-        //Ignoring the error case for now
+        // Ignoring the error case for now
         if (result.status === 'fulfilled') {
           const {transactions, orphan_errors} = result.value;
           acc.transactions.push(...transactions);

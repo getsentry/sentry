@@ -37,6 +37,7 @@ import {capitalize} from 'sentry/utils/string/capitalize';
 import useApi from 'sentry/utils/useApi';
 import type {DispatchingReducerMiddleware} from 'sentry/utils/useDispatchingReducer';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
@@ -64,8 +65,8 @@ import {type TraceMetaQueryResults, useTraceMeta} from './traceApi/useTraceMeta'
 import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
 import {
-  TraceTree,
   incrementallyFetchTraces,
+  TraceTree,
   type TraceTreeNode,
 } from './traceModels/traceTree';
 import {TraceSearchInput} from './traceSearch/traceSearchInput';
@@ -80,7 +81,6 @@ import type {TraceReducer, TraceReducerState} from './traceState';
 import {TraceType} from './traceType';
 import {TraceUXChangeAlert} from './traceUXChangeBanner';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
-import usePageFilters from 'sentry/utils/usePageFilters';
 
 function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
   if (Array.isArray(maybePath)) {

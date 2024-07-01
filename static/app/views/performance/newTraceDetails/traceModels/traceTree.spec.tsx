@@ -1,6 +1,8 @@
+import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {waitFor} from 'sentry-test/reactTestingLibrary';
+
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {EntryType, type Event, type EventTransaction} from 'sentry/types/event';
 import type {
@@ -8,6 +10,7 @@ import type {
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import * as useOrganization from 'sentry/utils/useOrganization';
+
 import {
   isAutogroupedNode,
   isMissingInstrumentationNode,
@@ -16,14 +19,14 @@ import {
   isTransactionNode,
 } from '../guards';
 import {TraceType} from '../traceType';
-import type {Location} from 'history';
+
 import {
+  incrementallyFetchTraces,
   NoDataNode,
   ParentAutogroupNode,
   SiblingAutogroupNode,
   TraceTree,
   TraceTreeNode,
-  incrementallyFetchTraces,
 } from './traceTree';
 
 const EVENT_REQUEST_URL =
