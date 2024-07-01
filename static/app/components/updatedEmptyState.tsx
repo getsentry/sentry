@@ -123,13 +123,15 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                 <div>
                   <DescriptionWrapper>{installDescription}</DescriptionWrapper>
                   <DescriptionWrapper>{configDescription}</DescriptionWrapper>
-                  {Array.isArray(code) ? (
-                    <TabbedCodeSnippet tabs={code} />
-                  ) : (
-                    <OnboardingCodeSnippet language={language}>
-                      {code ?? ''}
-                    </OnboardingCodeSnippet>
-                  )}
+                  <CodeSnippetWrapper>
+                    {Array.isArray(code) ? (
+                      <TabbedCodeSnippet tabs={code} />
+                    ) : (
+                      <OnboardingCodeSnippet language={language}>
+                        {code ?? ''}
+                      </OnboardingCodeSnippet>
+                    )}
+                  </CodeSnippetWrapper>
                   {verify.length === 0 && (
                     <FirstEventIndicator
                       organization={organization}
@@ -160,18 +162,20 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                   <div>
                     <DescriptionWrapper>{configureDescription}</DescriptionWrapper>
                     {configurations?.map((configuration, index) => (
-                      <CodeSnippetWrapper key={index}>
+                      <div key={index}>
                         <DescriptionWrapper>
                           {configuration.description}
                         </DescriptionWrapper>
-                        {Array.isArray(configuration.code) ? (
-                          <TabbedCodeSnippet tabs={configuration.code} />
-                        ) : (
-                          <OnboardingCodeSnippet language={configuration.language}>
-                            {configuration.code ?? ''}
-                          </OnboardingCodeSnippet>
-                        )}
-                      </CodeSnippetWrapper>
+                        <CodeSnippetWrapper>
+                          {Array.isArray(configuration.code) ? (
+                            <TabbedCodeSnippet tabs={configuration.code} />
+                          ) : (
+                            <OnboardingCodeSnippet language={configuration.language}>
+                              {configuration.code ?? ''}
+                            </OnboardingCodeSnippet>
+                          )}
+                        </CodeSnippetWrapper>
+                      </div>
                     ))}
                   </div>
                   <GuidedSteps.ButtonWrapper>
@@ -189,13 +193,11 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                 title={t('Upload Sourcemaps')}
               >
                 <div>
-                  <div>
-                    <DescriptionWrapper>{sourcemapDescription}</DescriptionWrapper>
-                    {sourceMapConfigurations?.map((configuration, index) => (
-                      <CodeSnippetWrapper key={index}>
-                        <DescriptionWrapper>
-                          {configuration.description}
-                        </DescriptionWrapper>
+                  <DescriptionWrapper>{sourcemapDescription}</DescriptionWrapper>
+                  {sourceMapConfigurations?.map((configuration, index) => (
+                    <div key={index}>
+                      <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
+                      <CodeSnippetWrapper>
                         {Array.isArray(configuration.code) ? (
                           <TabbedCodeSnippet tabs={configuration.code} />
                         ) : (
@@ -204,8 +206,8 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                           </OnboardingCodeSnippet>
                         )}
                       </CodeSnippetWrapper>
-                    ))}
-                  </div>
+                    </div>
+                  ))}
                   <GuidedSteps.ButtonWrapper>
                     <GuidedSteps.BackButton size="md" />
                     <GuidedSteps.NextButton size="md" />
@@ -220,16 +222,18 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                 <div>
                   <DescriptionWrapper>{verifyDescription}</DescriptionWrapper>
                   {verifyConfigutations?.map((configuration, index) => (
-                    <CodeSnippetWrapper key={index}>
+                    <div key={index}>
                       <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
-                      {Array.isArray(configuration.code) ? (
-                        <TabbedCodeSnippet tabs={configuration.code} />
-                      ) : (
-                        <OnboardingCodeSnippet language={configuration.language}>
-                          {configuration.code ?? ''}
-                        </OnboardingCodeSnippet>
-                      )}
-                    </CodeSnippetWrapper>
+                      <CodeSnippetWrapper>
+                        {Array.isArray(configuration.code) ? (
+                          <TabbedCodeSnippet tabs={configuration.code} />
+                        ) : (
+                          <OnboardingCodeSnippet language={configuration.language}>
+                            {configuration.code ?? ''}
+                          </OnboardingCodeSnippet>
+                        )}
+                      </CodeSnippetWrapper>
+                    </div>
                   ))}
                   <FirstEventIndicator
                     organization={organization}
