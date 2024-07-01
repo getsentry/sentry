@@ -374,7 +374,7 @@ def send_group_and_stacktrace_to_seer_multithreaded(
             chunk_response = future.result()
             seer_responses.append(chunk_response)
 
-    aggregated_response = {
+    aggregated_response: dict[str, Any] = {
         "success": True,
         "groups_with_neighbor": {},
     }
