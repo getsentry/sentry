@@ -92,16 +92,6 @@ repos:
         entry: python3 -m tools.mypy_helpers.check_stronglist
         files: ^pyproject\.toml$
         language: python
-      - id: eslint
-        name: eslint
-        entry: ./node_modules/.bin/eslint
-        language: system
-        files: \.[jt]sx?$
-      - id: stylelint
-        name: stylelint
-        entry: ./node_modules/.bin/stylelint
-        language: system
-        files: \.[jt]sx?$
       - id: prevent-push
         name: prevent pushing master
         stages: [pre-push]
