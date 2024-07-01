@@ -40,6 +40,7 @@ class OrganizationMetricsSamplesEndpoint(OrganizationEventsV2EndpointBase):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
+    snuba_methods = ["GET"]
 
     def get(self, request: Request, organization: Organization) -> Response:
         try:
