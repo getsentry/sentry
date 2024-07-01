@@ -193,7 +193,7 @@ class MetricsQueryBuilder(BaseQueryBuilder):
             dashboard_widget_query__widget__dashboard__organization_id=self.organization_id,
         )
         if any(not entry.extraction_enabled() for entry in on_demand_entries):
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.isolation_scope() as scope:
                 scope.set_extra("entries", on_demand_entries)
                 scope.set_extra("hash", query_hash)
                 sentry_sdk.capture_message(
