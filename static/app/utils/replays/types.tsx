@@ -285,10 +285,6 @@ export type HydrationErrorFrame = Overwrite<
   {
     data: {
       description: string;
-      mutations: {
-        next: RecordingFrame | null;
-        prev: RecordingFrame | null;
-      };
       url?: string;
     };
   }
