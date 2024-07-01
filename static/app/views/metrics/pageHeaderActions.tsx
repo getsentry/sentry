@@ -146,7 +146,12 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
         (hasCustomMetricsExtractionRules(organization) ? (
           <Button
             priority="primary"
-            onClick={() => navigateTo(`/settings/projects/:projectId/metrics/`, router)}
+            onClick={() =>
+              navigateTo(
+                `/settings/projects/:projectId/metrics/configure-metric/`,
+                router
+              )
+            }
             size="sm"
           >
             {t('Add New Metric')}
