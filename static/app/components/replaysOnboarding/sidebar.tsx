@@ -205,7 +205,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const npmOnlyFramework =
     currentProject.platform &&
     replayFrontendPlatforms
-      .filter(p => p !== 'javascript')
+      .filter<PlatformKey>(p => p !== 'javascript')
       .includes(currentProject.platform);
 
   const showRadioButtons =
