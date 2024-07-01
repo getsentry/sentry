@@ -905,17 +905,17 @@ register(
 
 # seer embeddings record update endpoint timeout
 register(
-    "embeddings-grouping.seer.embeddings-record-update-timeout",
-    type=Float,
-    default=0.05,
+    "embeddings-grouping.seer.embeddings-bulk-record-update-timeout",
+    type=Int,
+    default=30000,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # seer embeddings record delete endpoint timeout
 register(
     "embeddings-grouping.seer.embeddings-record-delete-timeout",
-    type=Float,
-    default=0.1,
+    type=Int,
+    default=10000,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -935,6 +935,7 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# seer embeddings delete record batch size
 register(
     "embeddings-grouping.seer.delete-record-batch-size",
     type=Int,

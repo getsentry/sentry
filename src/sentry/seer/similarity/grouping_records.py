@@ -4,6 +4,7 @@ from typing import NotRequired, TypedDict
 from django.conf import settings
 from urllib3.exceptions import ReadTimeoutError
 
+from sentry import options
 from sentry.conf.server import (
     SEER_GROUPING_RECORDS_URL,
     SEER_HASH_GROUPING_RECORDS_DELETE_URL,
@@ -15,8 +16,6 @@ from sentry.seer.similarity.types import RawSeerSimilarIssueData
 from sentry.utils import json
 
 logger = logging.getLogger(__name__)
-
-POST_BULK_GROUPING_RECORDS_TIMEOUT = 10000
 
 
 class CreateGroupingRecordData(TypedDict):
@@ -51,6 +50,9 @@ def post_bulk_grouping_records(
     if not grouping_records_request.get("data"):
         return {"success": True}
 
+    post_bulk_grouping_records_timeout = options.get(
+        "embeddings-grouping.seer.embeddings-bulk-record-update-timeout"
+    )
     extra = {
         "group_ids": json.dumps(grouping_records_request["group_id_list"]),
         "project_id": grouping_records_request["data"][0]["project_id"],
@@ -64,10 +66,10 @@ def post_bulk_grouping_records(
             seer_grouping_connection_pool,
             SEER_GROUPING_RECORDS_URL,
             body=json.dumps(grouping_records_request).encode("utf-8"),
-            timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
+            timeout=post_bulk_grouping_records_timeout,
         )
     except ReadTimeoutError:
-        extra.update({"reason": "ReadTimeoutError", "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT})
+        extra.update({"reason": "ReadTimeoutError", "timeout": post_bulk_grouping_records_timeout})
         logger.info("seer.post_bulk_grouping_records.failure", extra=extra)
         return {"success": False}
 
@@ -83,18 +85,21 @@ def post_bulk_grouping_records(
 def delete_project_grouping_records(
     project_id: int,
 ) -> bool:
+    delete_grouping_records_timeout = options.get(
+        "embeddings-grouping.seer.embeddings-record-delete-timeout"
+    )
     try:
         # TODO: Move this over to POST json_api implementation
         response = seer_grouping_connection_pool.urlopen(
             "GET",
             f"{SEER_PROJECT_GROUPING_RECORDS_DELETE_URL}/{project_id}",
             headers={"Content-Type": "application/json;charset=utf-8"},
-            timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
+            timeout=delete_grouping_records_timeout,
         )
     except ReadTimeoutError:
         logger.exception(
             "seer.delete_grouping_records.project.timeout",
-            extra={"reason": "ReadTimeoutError", "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT},
+            extra={"reason": "ReadTimeoutError", "timeout": delete_grouping_records_timeout},
         )
         return False
 
@@ -112,6 +117,9 @@ def delete_project_grouping_records(
 
 
 def delete_grouping_records_by_hash(project_id: int, hashes: list[str]) -> bool:
+    delete_grouping_records_timeout = options.get(
+        "embeddings-grouping.seer.embeddings-record-delete-timeout"
+    )
     extra = {"project_id": project_id, "hashes": hashes}
     try:
         body = {"project_id": project_id, "hash_list": hashes}
@@ -120,10 +128,10 @@ def delete_grouping_records_by_hash(project_id: int, hashes: list[str]) -> bool:
             SEER_HASH_GROUPING_RECORDS_DELETE_URL,
             body=json.dumps(body),
             headers={"Content-Type": "application/json;charset=utf-8"},
-            timeout=POST_BULK_GROUPING_RECORDS_TIMEOUT,
+            timeout=delete_grouping_records_timeout,
         )
     except ReadTimeoutError:
-        extra.update({"reason": "ReadTimeoutError", "timeout": POST_BULK_GROUPING_RECORDS_TIMEOUT})
+        extra.update({"reason": "ReadTimeoutError", "timeout": delete_grouping_records_timeout})
         logger.exception(
             "seer.delete_grouping_records.hashes.timeout",
             extra=extra,
