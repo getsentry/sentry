@@ -325,7 +325,7 @@ def get_build_info(
                     uploaded_date = parse_date(build["attributes"]["uploadedDate"])
 
                     build_bundles = relations.get_multiple_related(build, "buildBundles")
-                    with sentry_sdk.push_scope() as scope:
+                    with sentry_sdk.isolation_scope() as scope:
                         scope.set_context(
                             "App Store Connect Build",
                             {

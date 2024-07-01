@@ -293,7 +293,7 @@ def ensure_non_negative_crash_free_rate_value(
                     try:
                         value = float(value)
                         if value < 0:
-                            with sentry_sdk.push_scope() as scope:
+                            with sentry_sdk.isolation_scope() as scope:
                                 scope.set_tag("organization", organization.id)
                                 scope.set_extra("crash_free_rate_in_series", value)
                                 scope.set_extra("request_query_params", request.query_params)
@@ -310,7 +310,7 @@ def ensure_non_negative_crash_free_rate_value(
                 and totals[CRASH_FREE_RATE_METRIC_KEY] is not None
                 and totals[CRASH_FREE_RATE_METRIC_KEY] < 0
             ):
-                with sentry_sdk.push_scope() as scope:
+                with sentry_sdk.isolation_scope() as scope:
                     scope.set_tag("organization", organization.id)
                     scope.set_extra("crash_free_rate", totals[CRASH_FREE_RATE_METRIC_KEY])
                     scope.set_extra("request_query_params", request.query_params)
