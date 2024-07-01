@@ -15,6 +15,7 @@ import {
   getReplayDiffOffsetsFromFrame,
 } from 'sentry/utils/replays/getDiffTimestamps';
 import hydrateBreadcrumbs from 'sentry/utils/replays/hydrateBreadcrumbs';
+import hydrateFrames from 'sentry/utils/replays/hydrateFrames';
 import ReplayReader from 'sentry/utils/replays/replayReader';
 import {
   IncrementalSource,
@@ -89,9 +90,11 @@ function getMockReplayWithCrumbFrame(
     })
   );
 
+  const {rrwebFrames} = hydrateFrames(attachments);
   const [hydrationErrorFrame] = hydrateBreadcrumbs(
     replayRecord,
-    crumbFrame ? [crumbFrame] : []
+    crumbFrame ? [crumbFrame] : [],
+    rrwebFrames
   );
 
   const replay = ReplayReader.factory({
