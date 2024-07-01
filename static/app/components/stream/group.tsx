@@ -384,6 +384,7 @@ function BaseGroupRow({
     [IssueCategory.PROFILE]: t('Profile Events'),
     [IssueCategory.CRON]: t('Cron Events'),
     [IssueCategory.REPLAY]: t('Replay Events'),
+    [IssueCategory.UPTIME]: t('Uptime Events'),
   };
 
   const groupCount = !defined(primaryCount) ? (

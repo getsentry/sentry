@@ -65,6 +65,7 @@ export enum IssueCategory {
   CRON = 'cron',
   PROFILE = 'profile',
   REPLAY = 'replay',
+  UPTIME = 'uptime',
 }
 
 export enum IssueType {
