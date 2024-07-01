@@ -463,12 +463,15 @@ class ExhaustiveFixtures(Fixtures):
         span_attribute_extraction_rule_config = SpanAttributeExtractionRuleConfig.objects.create(
             project=project,
             span_attribute="my_attribute",
+            created_by_id=owner.id,
             unit="none",
             tags=["tag1", "tag2"],
             aggregates=["count", "sum", "avg", "min", "max", "p50", "p75", "p90", "p95", "p99"],
         )
         SpanAttributeExtractionRuleCondition.objects.create(
-            value="key:value", config=span_attribute_extraction_rule_config
+            created_by_id=owner.id,
+            value="key:value",
+            config=span_attribute_extraction_rule_config,
         )
 
         # Environment*

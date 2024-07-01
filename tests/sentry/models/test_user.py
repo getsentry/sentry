@@ -351,8 +351,8 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         RuleActivity,
         RuleSnooze,
         SavedSearch,
-        SpanAttributeExtractionRuleConfig,
         SpanAttributeExtractionRuleCondition,
+        SpanAttributeExtractionRuleConfig,
     )
     def test_only_source_user_is_member_of_organization(self, expected_models: list[type[Model]]):
         from_user = self.create_exhaustive_user("foo@example.com")
@@ -393,8 +393,8 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         RuleActivity,
         RuleSnooze,
         SavedSearch,
-        SpanAttributeExtractionRuleConfig,
         SpanAttributeExtractionRuleCondition,
+        SpanAttributeExtractionRuleConfig,
     )
     def test_both_users_are_members_of_organization(self, expected_models: list[type[Model]]):
         from_user = self.create_exhaustive_user("foo@example.com")
