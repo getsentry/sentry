@@ -12,6 +12,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconQuestion} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -40,13 +41,24 @@ function getDisabledProducts(organization: Organization): DisabledProducts {
   const hasSessionReplay = organization.features.includes('session-replay');
   const hasPerformance = organization.features.includes('performance-view');
   const hasProfiling = organization.features.includes('profiling-view');
+  const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
-  const reason = t('This feature is not enabled on your Sentry installation.');
+  let reason = t('This feature is not enabled on your Sentry installation.');
   const createClickHandler = (feature: string, featureName: string) => () => {
     openModal(deps => (
       <FeatureDisabledModal {...deps} features={[feature]} featureName={featureName} />
     ));
   };
+
+  if (isSelfHostedErrorsOnly) {
+    reason = t('This feature is disabled for errors only self-hosted');
+    return Object.values(ProductSolution)
+      .filter(product => product !== ProductSolution.ERROR_MONITORING)
+      .reduce((acc, prod) => {
+        acc[prod] = {reason};
+        return acc;
+      }, {});
+  }
 
   if (!hasSessionReplay) {
     disabledProducts[ProductSolution.SESSION_REPLAY] = {

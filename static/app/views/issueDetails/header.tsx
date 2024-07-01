@@ -307,12 +307,10 @@ function GroupHeader({
                   <span>0</span>
                 )}
               </div>
-              {organization.features.includes('issue-priority-ui') && group.priority ? (
-                <PriorityContainer>
-                  <h6 className="nav-header">{t('Priority')}</h6>
-                  <GroupPriority group={group} />
-                </PriorityContainer>
-              ) : null}
+              <PriorityContainer>
+                <h6 className="nav-header">{t('Priority')}</h6>
+                <GroupPriority group={group} />
+              </PriorityContainer>
             </StatsWrapper>
           )}
         </HeaderRow>

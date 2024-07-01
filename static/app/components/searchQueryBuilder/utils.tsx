@@ -4,6 +4,7 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import {
+  FilterType,
   filterTypeConfig,
   interchangeableFilterOperators,
   type ParseResult,
@@ -14,6 +15,7 @@ import {
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
+import {t} from 'sentry/locale';
 import type {Tag, TagCollection} from 'sentry/types';
 import {escapeDoubleQuotes} from 'sentry/utils';
 import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
@@ -80,7 +82,7 @@ export function parseQueryBuilderValue(
  */
 export function makeTokenKey(token: ParseResultToken, allTokens: ParseResult | null) {
   const tokenTypeIndex =
-    allTokens?.filter(t => t.type === token.type).indexOf(token) ?? 0;
+    allTokens?.filter(tk => tk.type === token.type).indexOf(token) ?? 0;
 
   return `${token.type}:${tokenTypeIndex}`;
 }
@@ -152,6 +154,10 @@ export function getValidOpsForFilter(
 }
 
 export function escapeTagValue(value: string): string {
+  if (!value) {
+    return '';
+  }
+
   // Wrap in quotes if there is a space
   return value.includes(' ') || value.includes('"')
     ? `"${escapeDoubleQuotes(value)}"`
@@ -164,8 +170,15 @@ export function unescapeTagValue(value: string): string {
 
 export function formatFilterValue(token: TokenResult<Token.FILTER>['value']): string {
   switch (token.type) {
-    case Token.VALUE_TEXT:
-      return unescapeTagValue(token.value);
+    case Token.VALUE_TEXT: {
+      if (!token.value) {
+        return token.text;
+      }
+
+      return token.quoted ? unescapeTagValue(token.value) : token.text;
+    }
+    case Token.VALUE_RELATIVE_DATE:
+      return t('%s', `${token.value}${token.unit} ago`);
     default:
       return token.text;
   }
@@ -201,4 +214,10 @@ export function useShiftFocusToChild(
   return {
     shiftFocusProps: {onFocus},
   };
+}
+
+export function isDateToken(token: TokenResult<Token.FILTER>) {
+  return [FilterType.DATE, FilterType.RELATIVE_DATE, FilterType.SPECIFIC_DATE].includes(
+    token.filter
+  );
 }

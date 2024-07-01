@@ -15,6 +15,7 @@ from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import history, rules
 from sentry.rules.conditions.event_frequency import (
+    DEFAULT_COMPARISON_INTERVAL,
     BaseEventFrequencyCondition,
     ComparisonType,
     EventFrequencyConditionData,
@@ -48,7 +49,7 @@ class UniqueCondition(NamedTuple):
 
 
 class DataAndGroups(NamedTuple):
-    data: EventFrequencyConditionData | None
+    data: EventFrequencyConditionData
     group_ids: set[int]
 
     def __repr__(self):
@@ -70,7 +71,7 @@ def get_slow_conditions(rule: Rule) -> list[EventFrequencyConditionData]:
 
 def get_rules_to_groups(rulegroup_to_event_data: dict[str, str]) -> DefaultDict[int, set[int]]:
     rules_to_groups: DefaultDict[int, set[int]] = defaultdict(set)
-    for rule_group in rulegroup_to_event_data.keys():
+    for rule_group in rulegroup_to_event_data:
         rule_id, group_id = rule_group.split(":")
         rules_to_groups[int(rule_id)].add(int(group_id))
 
@@ -94,7 +95,8 @@ def get_rules_to_slow_conditions(
 def get_condition_groups(
     alert_rules: list[Rule], rules_to_groups: DefaultDict[int, set[int]]
 ) -> dict[UniqueCondition, DataAndGroups]:
-    """Map unique conditions to the group IDs that need to checked for that
+    """
+    Map unique conditions to the group IDs that need to checked for that
     condition. We also store a pointer to that condition's JSON so we can
     instantiate the class later
     """
@@ -141,7 +143,9 @@ def get_condition_group_results(
             return None
 
         _, duration = condition_inst.intervals[unique_condition.interval]
-        comparison_interval = condition_inst.intervals[unique_condition.interval][1]
+        comparison_interval = condition_inst.intervals[
+            condition_data.get("comparisonInterval", DEFAULT_COMPARISON_INTERVAL)
+        ][1]
         comparison_type = (
             condition_data.get("comparisonType", ComparisonType.COUNT)
             if condition_data
@@ -231,6 +235,7 @@ def build_group_to_groupevent(
     bulk_event_id_to_events: dict[str, Event],
     bulk_occurrence_id_to_occurrence: dict[str, IssueOccurrence],
     group_id_to_group: dict[int, Group],
+    project_id: int,
 ) -> dict[Group, GroupEvent]:
     group_to_groupevent: dict[Group, GroupEvent] = {}
 
@@ -242,13 +247,22 @@ def build_group_to_groupevent(
         if event_id:
             event = bulk_event_id_to_events.get(event_id)
         else:
-            logger.info("delayed_processing.missing_event_id", extra={"rule": rule_group[0]})
+            logger.info(
+                "delayed_processing.missing_event_id",
+                extra={"rule": rule_group[0], "project_id": project_id},
+            )
         group = group_id_to_group.get(int(rule_group[1]))
         if not group or not event:
             if not group:
-                logger.info("delayed_processing.missing_group", extra={"rule": rule_group[0]})
+                logger.info(
+                    "delayed_processing.missing_group",
+                    extra={"rule": rule_group[0], "project_id": project_id},
+                )
             if not event:
-                logger.info("delayed_processing.missing_event", extra={"rule": rule_group[0]})
+                logger.info(
+                    "delayed_processing.missing_event",
+                    extra={"rule": rule_group[0], "project_id": project_id, "group_id": group.id},  # type: ignore[union-attr]
+                )
             continue
 
         group_event = event.for_group(group)
@@ -288,6 +302,7 @@ def get_group_to_groupevent(
         bulk_event_id_to_events,
         bulk_occurrence_id_to_occurrence,
         group_id_to_group,
+        project_id,
     )
     return group_to_groupevent
 
@@ -329,7 +344,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     )
     logger.info(
         "delayed_processing.rulegroupeventdata",
-        extra={"rulegroupdata": rulegroup_to_event_data},
+        extra={"rulegroupdata": rulegroup_to_event_data, "project_id": project_id},
     )
     # STEP 2: Map each rule to the groups that must be checked for that rule.
     rules_to_groups = get_rules_to_groups(rulegroup_to_event_data)
@@ -348,6 +363,10 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     # must be checked for that condition. We don't query per rule condition because
     # condition of the same class, interval, and environment can share a single scan.
     condition_groups = get_condition_groups(alert_rules, rules_to_groups)
+    logger.info(
+        "delayed_processing.condition_groups",
+        extra={"condition_groups": condition_groups, "project_id": project_id},
+    )
 
     # Step 5: Instantiate each unique condition, and evaluate the relevant
     # group_ids that apply for that condition
@@ -365,7 +384,10 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
         log_str = ""
         for rule in rules_to_fire.keys():
             log_str += f"{str(rule.id)}, "
-        logger.info("delayed_processing.rule_to_fire", extra={"rules_to_fire": log_str})
+        logger.info(
+            "delayed_processing.rule_to_fire",
+            extra={"rules_to_fire": log_str, "project_id": project_id},
+        )
 
     # Step 7: Fire the rule's actions
     now = datetime.now(tz=timezone.utc)
@@ -383,7 +405,12 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
                 if status.last_active and status.last_active > freq_offset:
                     logger.info(
                         "delayed_processing.last_active",
-                        extra={"last_active": status.last_active, "freq_offset": freq_offset},
+                        extra={
+                            "last_active": status.last_active,
+                            "freq_offset": freq_offset,
+                            "project_id": project_id,
+                            "group_id": group.id,
+                        },
                     )
                     break
 
@@ -394,7 +421,14 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
                 )
 
                 if not updated:
-                    logger.info("delayed_processing.not_updated", extra={"status_id": status.id})
+                    logger.info(
+                        "delayed_processing.not_updated",
+                        extra={
+                            "status_id": status.id,
+                            "project_id": project_id,
+                            "group_id": group.id,
+                        },
+                    )
                     break
 
                 notification_uuid = str(uuid.uuid4())

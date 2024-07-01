@@ -7,6 +7,8 @@ from django.db.models import F
 from django.utils import timezone as django_timezone
 
 from sentry import analytics, features
+from sentry.constants import InsightModules
+from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.organization import Organization
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
@@ -17,7 +19,6 @@ from sentry.models.project import Project
 from sentry.onboarding_tasks import try_mark_onboarding_complete
 from sentry.plugins.bases.issue import IssueTrackingPlugin
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import (
     alert_rule_created,
@@ -29,6 +30,7 @@ from sentry.signals import (
     first_event_received,
     first_event_with_minified_stack_trace_received,
     first_feedback_received,
+    first_insight_span_received,
     first_new_feedback_received,
     first_profile_received,
     first_replay_received,
@@ -329,6 +331,41 @@ def record_first_custom_metric(project, **kwargs):
         organization_id=project.organization_id,
         project_id=project.id,
         platform=project.platform,
+    )
+
+
+@first_insight_span_received.connect(weak=False)
+def record_first_insight_span(project, module, **kwargs):
+    flag = None
+    if module == InsightModules.HTTP:
+        flag = Project.flags.has_insights_http
+    elif module == InsightModules.DB:
+        flag = Project.flags.has_insights_db
+    elif module == InsightModules.ASSETS:
+        flag = Project.flags.has_insights_assets
+    elif module == InsightModules.APP_START:
+        flag = Project.flags.has_insights_app_start
+    elif module == InsightModules.SCREEN_LOAD:
+        flag = Project.flags.has_insights_screen_load
+    elif module == InsightModules.VITAL:
+        flag = Project.flags.has_insights_vitals
+    elif module == InsightModules.CACHE:
+        flag = Project.flags.has_insights_caches
+    elif module == InsightModules.QUEUE:
+        flag = Project.flags.has_insights_queues
+    elif module == InsightModules.LLM_MONITORING:
+        flag = Project.flags.has_insights_llm_monitoring
+
+    if flag is not None:
+        project.update(flags=F("flags").bitor(flag))
+
+    analytics.record(
+        "first_insight_span.sent",
+        user_id=project.organization.default_owner_id,
+        organization_id=project.organization_id,
+        project_id=project.id,
+        platform=project.platform,
+        module=module,
     )
 
 

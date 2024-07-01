@@ -18,10 +18,10 @@ import sentry
 from sentry import features, options
 from sentry.api.utils import generate_organization_url, generate_region_url
 from sentry.auth import superuser
+from sentry.auth.services.auth import AuthenticatedToken, AuthenticationContext
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.auth import AuthenticatedToken, AuthenticationContext
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
     RpcUserOrganizationContext,
@@ -221,12 +221,8 @@ class _ClientConfig:
             yield "auth:register"
         if features.has("relocation:enabled", actor=self.user):
             yield "relocation:enabled"
-        if features.has("system:multi-region", actor=self.user):
+        if features.has("system:multi-region"):
             yield "system:multi-region"
-        if self.customer_domain or (
-            self.last_org and features.has("organizations:customer-domains", self.last_org)
-        ):
-            yield "organizations:customer-domains"
 
     @property
     def needs_upgrade(self) -> bool:

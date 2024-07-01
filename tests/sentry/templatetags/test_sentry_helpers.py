@@ -111,7 +111,7 @@ def test_org_url_customer_domains(input, output):
     prefix = "{% load sentry_helpers %}"
     org = Organization(id=1, slug="sentry", name="Sentry")
 
-    with Feature("organizations:customer-domains"):
+    with Feature("system:multi-region"):
         result = (
             engines["django"]
             .from_string(prefix + input)

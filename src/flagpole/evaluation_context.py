@@ -73,6 +73,12 @@ class EvaluationContext:
     def size(self) -> int:
         return len(self.__data)
 
+    def to_dict(self) -> EvaluationContextDict:
+        return deepcopy(self.__data)
+
+    def __repr__(self) -> str:
+        return f"<flagpole.evaluation_context.EvaluationContext data={self.__data!r}>"
+
 
 T_CONTEXT_DATA = TypeVar("T_CONTEXT_DATA")
 

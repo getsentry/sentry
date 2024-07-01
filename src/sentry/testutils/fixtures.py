@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 
 from sentry.eventstore.models import Event
-from sentry.incidents.models.alert_rule import AlertRuleMonitorType
+from sentry.incidents.models.alert_rule import AlertRuleMonitorTypeInt
 from sentry.incidents.models.incident import IncidentActivityType
 from sentry.models.activity import Activity
 from sentry.models.grouprelease import GroupRelease
@@ -33,6 +33,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 # all of the memoized fixtures are copypasta due to our inability to use pytest fixtures
 # on a per-class method basis
 from sentry.types.activity import ActivityType
+from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
 
 
 class Fixtures:
@@ -159,7 +160,7 @@ class Fixtures:
             project = self.project
         return Factories.create_environment(project=project, **kwargs)
 
-    def create_project(self, **kwargs):
+    def create_project(self, **kwargs) -> Project:
         if "teams" not in kwargs:
             kwargs["teams"] = [self.team]
         return Factories.create_project(**kwargs)
@@ -175,7 +176,13 @@ class Fixtures:
         return Factories.create_project_key(project=project, *args, **kwargs)
 
     def create_project_rule(
-        self, project=None, action_match=None, condition_match=None, *args, **kwargs
+        self,
+        project=None,
+        action_match=None,
+        condition_match=None,
+        comparison_interval=None,
+        *args,
+        **kwargs,
     ):
         if project is None:
             project = self.project
@@ -396,7 +403,7 @@ class Fixtures:
         alert_rule=None,
         query_subscriptions=None,
         project=None,
-        monitor_type=AlertRuleMonitorType.ACTIVATED,
+        monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
         activator=None,
         activation_condition=None,
         *args,
@@ -408,6 +415,7 @@ class Fixtures:
             )
         if not query_subscriptions:
             projects = [project] if project else [self.project]
+            # subscribing an activated alert rule will create an activation
             query_subscriptions = alert_rule.subscribe_projects(
                 projects=projects,
                 monitor_type=monitor_type,
@@ -603,6 +611,34 @@ class Fixtures:
 
     def create_webhook_payload(self, *args, **kwargs):
         return Factories.create_webhook_payload(*args, **kwargs)
+
+    def create_uptime_subscription(
+        self,
+        type: str = "test",
+        subscription_id: str | None = None,
+        status: UptimeSubscription.Status = UptimeSubscription.Status.ACTIVE,
+        url="http://sentry.io/",
+        interval_seconds=60,
+        timeout_ms=100,
+    ) -> UptimeSubscription:
+        return Factories.create_uptime_subscription(
+            type=type,
+            subscription_id=subscription_id,
+            status=status,
+            url=url,
+            interval_seconds=interval_seconds,
+            timeout_ms=timeout_ms,
+        )
+
+    def create_project_uptime_subscription(
+        self, project: Project | None = None, uptime_subscription: UptimeSubscription | None = None
+    ) -> ProjectUptimeSubscription:
+        if project is None:
+            project = self.project
+
+        if uptime_subscription is None:
+            uptime_subscription = self.create_uptime_subscription()
+        return Factories.create_project_uptime_subscription(project, uptime_subscription)
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):

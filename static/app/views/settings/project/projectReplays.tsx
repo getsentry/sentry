@@ -4,9 +4,11 @@ import Access from 'sentry/components/acl/access';
 import {Button} from 'sentry/components/button';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
+import type {JsonFormObject} from 'sentry/components/forms/types';
+import Link from 'sentry/components/links/link';
+import ReplaySettingsAlert from 'sentry/components/replays/alerts/replaySettingsAlert';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
-import formGroups from 'sentry/data/forms/replay';
-import {t} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
@@ -21,6 +23,46 @@ type Props = RouteComponentProps<RouteParams, {}> & {
 };
 
 function ProjectReplaySettings({organization, project, params: {projectId}}: Props) {
+  const formGroups: JsonFormObject[] = [
+    {
+      title: 'Settings',
+      fields: [
+        {
+          name: 'sentry:replay_rage_click_issues',
+          type: 'boolean',
+
+          // additional data/props that is related to rendering of form field rather than data
+          label: t('Create Rage Click Issues'),
+          help: t('Toggles whether or not to create Session Replay Rage Click Issues'),
+          getData: data => ({options: data}),
+        },
+        {
+          name: 'sentry:replay_hydration_error_issues',
+          type: 'boolean',
+
+          // additional data/props that is related to rendering of form field rather than data
+          label: t('Create Hydration Error Issues'),
+          help() {
+            return tct(
+              'Toggles whether or not to create Session Replay Hydration Error Issues during replay ingest. Using [inboundFilters: inbound filters] to filter out hydration errors does not affect this setting.',
+              {
+                inboundFilters: (
+                  <Link
+                    to={`/settings/projects/${project.slug}/filters/data-filters/#filters-react-hydration-errors_help`}
+                  />
+                ),
+              }
+            );
+          },
+          getData: data => ({options: data}),
+          visible({features}) {
+            return features.has('session-replay-hydration-error-issue-creation');
+          },
+        },
+      ],
+    },
+  ];
+
   return (
     <SentryDocumentTitle title={t('Replays')} projectSlug={project.slug}>
       <SettingsPageHeader
@@ -35,6 +77,8 @@ function ProjectReplaySettings({organization, project, params: {projectId}}: Pro
         }
       />
       <PermissionAlert project={project} />
+      <ReplaySettingsAlert />
+
       <Form
         saveOnBlur
         apiMethod="PUT"
@@ -44,8 +88,8 @@ function ProjectReplaySettings({organization, project, params: {projectId}}: Pro
         <Access access={['project:write']} project={project}>
           {({hasAccess}) => (
             <JsonForm
-              features={new Set(organization.features)}
               disabled={!hasAccess}
+              features={new Set(organization.features)}
               forms={formGroups}
             />
           )}

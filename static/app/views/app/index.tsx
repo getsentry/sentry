@@ -11,6 +11,7 @@ import {openCommandPalette} from 'sentry/actionCreators/modal';
 import {fetchOrganizations} from 'sentry/actionCreators/organizations';
 import {initApiClientErrorHandling} from 'sentry/api';
 import ErrorBoundary from 'sentry/components/errorBoundary';
+import {GlobalDrawer} from 'sentry/components/globalDrawer';
 import GlobalModal from 'sentry/components/globalModal';
 import Hook from 'sentry/components/hook';
 import Indicators from 'sentry/components/indicators';
@@ -27,6 +28,7 @@ import {useColorscheme} from 'sentry/utils/useColorscheme';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useUser} from 'sentry/utils/useUser';
 import type {InstallWizardProps} from 'sentry/views/admin/installWizard';
+import {AsyncSDKIntegrationContextProvider} from 'sentry/views/app/asyncSDKIntegrationProvider';
 import {OrganizationContextProvider} from 'sentry/views/organizationContext';
 
 import SystemAlerts from './systemAlerts';
@@ -232,12 +234,16 @@ function App({children, params}: Props) {
   return (
     <Profiler id="App" onRender={onRenderCallback}>
       <OrganizationContextProvider>
-        <MainContainer tabIndex={-1} ref={mainContainerRef}>
-          <GlobalModal onClose={handleModalClose} />
-          <SystemAlerts className="messages-container" />
-          <Indicators className="indicators-container" />
-          <ErrorBoundary>{renderBody()}</ErrorBoundary>
-        </MainContainer>
+        <AsyncSDKIntegrationContextProvider>
+          <GlobalDrawer>
+            <MainContainer tabIndex={-1} ref={mainContainerRef}>
+              <GlobalModal onClose={handleModalClose} />
+              <SystemAlerts className="messages-container" />
+              <Indicators className="indicators-container" />
+              <ErrorBoundary>{renderBody()}</ErrorBoundary>
+            </MainContainer>
+          </GlobalDrawer>
+        </AsyncSDKIntegrationContextProvider>
       </OrganizationContextProvider>
     </Profiler>
   );

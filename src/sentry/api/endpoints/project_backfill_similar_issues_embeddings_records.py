@@ -32,18 +32,16 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
         # needs to either be a superuser or be in single org mode
 
         last_processed_index = None
-        dry_run = False
         only_delete = False
         if request.data.get("last_processed_index"):
             last_processed_index = int(request.data["last_processed_index"])
-
-        if request.data.get("dry_run"):
-            dry_run = True
 
         if request.data.get("only_delete"):
             only_delete = True
 
         backfill_seer_grouping_records_for_project.delay(
-            project.id, last_processed_index, dry_run, only_delete
+            current_project_id=project.id,
+            last_processed_group_index_input=last_processed_index,
+            only_delete=only_delete,
         )
         return Response(status=204)

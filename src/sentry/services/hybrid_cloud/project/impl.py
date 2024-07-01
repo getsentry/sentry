@@ -3,13 +3,13 @@ from __future__ import annotations
 from django.db import router, transaction
 
 from sentry.api.serializers import ProjectSerializer
+from sentry.auth.services.auth import AuthenticationContext
 from sentry.constants import ObjectStatus
+from sentry.hybridcloud.rpc import OptionValue
+from sentry.hybridcloud.rpc.filter_query import OpaqueSerializedResponse
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
-from sentry.services.hybrid_cloud import OptionValue
-from sentry.services.hybrid_cloud.auth import AuthenticationContext
-from sentry.services.hybrid_cloud.filter_query import OpaqueSerializedResponse
 from sentry.services.hybrid_cloud.project import (
     ProjectFilterArgs,
     ProjectService,

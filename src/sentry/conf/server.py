@@ -136,6 +136,7 @@ SENTRY_METRIC_META_REDIS_CLUSTER = "default"
 SENTRY_ESCALATION_THRESHOLDS_REDIS_CLUSTER = "default"
 SENTRY_SPAN_BUFFER_CLUSTER = "default"
 SENTRY_ASSEMBLE_CLUSTER = "default"
+SENTRY_UPTIME_DETECTOR_CLUSTER = "default"
 
 # Hosts that are allowed to use system token authentication.
 # http://en.wikipedia.org/wiki/Reserved_IP_addresses
@@ -335,7 +336,7 @@ MIDDLEWARE: tuple[str, ...] = (
     "django.middleware.csrf.CsrfViewMiddleware",
     "sentry.middleware.auth.AuthenticationMiddleware",
     "sentry.middleware.integrations.IntegrationControlMiddleware",
-    "sentry.middleware.api_gateway.ApiGatewayMiddleware",
+    "sentry.hybridcloud.apigateway.middleware.ApiGatewayMiddleware",
     "sentry.middleware.customer_domain.CustomerDomainMiddleware",
     "sentry.middleware.sudo.SudoMiddleware",
     "sentry.middleware.superuser.SuperuserMiddleware",
@@ -415,6 +416,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.issues.apps.Config",
     "sentry.feedback",
     "sentry.hybridcloud",
+    "sentry.remote_subscriptions.apps.Config",
 )
 
 # Silence internal hints from Django's system checks
@@ -673,8 +675,11 @@ RPC_SHARED_SECRET: list[str] | None = None
 # Timeout for RPC requests between regions
 RPC_TIMEOUT = 5.0
 
-# Shared secret used to sign cross-region RPC requests with the seer microservice.
+# TODO: Replace both of these secrets with mutual TLS and simplify our rpc channels.
+# Shared secret used to sign cross-region RPC requests from the seer microservice.
 SEER_RPC_SHARED_SECRET: list[str] | None = None
+# Shared secret used to sign cross-region RPC requests to the seer microservice.
+SEER_API_SHARED_SECRET: str = ""
 
 # The protocol, host and port for control silo
 # Usecases include sending requests to the Integration Proxy Endpoint and RPC requests.
@@ -801,6 +806,7 @@ CELERY_IMPORTS = (
     "sentry.middleware.integrations.tasks",
     "sentry.replays.usecases.ingest.issue_creation",
     "sentry.integrations.slack.tasks",
+    "sentry.uptime.detectors.tasks",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -925,6 +931,7 @@ CELERY_QUEUES_REGION = [
     Queue("subscriptions", routing_key="subscriptions"),
     Queue("unmerge", routing_key="unmerge"),
     Queue("update", routing_key="update"),
+    Queue("uptime", routing_key="uptime"),
     Queue("profiles.process", routing_key="profiles.process"),
     Queue("replays.ingest_replay", routing_key="replays.ingest_replay"),
     Queue("replays.delete_replay", routing_key="replays.delete_replay"),
@@ -1231,6 +1238,11 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.on_demand_metrics.schedule_on_demand_check",
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
+    },
+    "uptime-detection-scheduler": {
+        "task": "sentry.uptime.detectors.tasks.schedule_detections",
+        # Run every 1 minute
+        "schedule": crontab(minute="*/1"),
     },
 }
 
@@ -2183,6 +2195,7 @@ SENTRY_USE_ISSUE_OCCURRENCE = False
 SENTRY_USE_GROUP_ATTRIBUTES = True
 
 # This flag activates code paths that are specific for customer domains
+# Deprecated: This setting will be replaced with feature checks for system:multi-region
 SENTRY_USE_CUSTOMER_DOMAINS = False
 
 # This flag activates replay analyzer service in the development environment
@@ -2309,7 +2322,7 @@ SENTRY_DEVSERVICES: dict[str, Callable[[Any, Any], dict[str, Any]]] = {
     "clickhouse": lambda settings, options: (
         {
             "image": (
-                "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:22.8.15.25.altinitystable"
+                "ghcr.io/getsentry/image-mirror-altinity-clickhouse-server:23.3.19.33.altinitystable"
             ),
             "ports": {"9000/tcp": 9000, "9009/tcp": 9009, "8123/tcp": 8123},
             "ulimits": [{"name": "nofile", "soft": 262144, "hard": 262144}],
@@ -2472,7 +2485,7 @@ SENTRY_SELF_HOSTED = True
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.5.1"
+SELF_HOSTED_STABLE_VERSION = "24.6.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2909,6 +2922,8 @@ MIGRATIONS_LOCKFILE_APP_WHITELIST = (
     "social_auth",
     "feedback",
     "hybridcloud",
+    "remote_subscriptions",
+    "uptime",
 )
 # Where to write the lockfile to.
 MIGRATIONS_LOCKFILE_PATH = os.path.join(PROJECT_ROOT, os.path.pardir, os.path.pardir)
@@ -3173,6 +3188,7 @@ ACCESS_LOGS_EXCLUDE_PATHS = ("/api/0/internal/", "/api/0/relays/")
 
 VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True
 DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False
+SUPERUSER_STAFF_EMAIL_SUFFIX: str | None = None
 
 # determines if we enable analytics or not
 ENABLE_ANALYTICS = False
@@ -3181,6 +3197,7 @@ MAX_SLOW_CONDITION_ISSUE_ALERTS = 100
 MAX_MORE_SLOW_CONDITION_ISSUE_ALERTS = 300
 MAX_FAST_CONDITION_ISSUE_ALERTS = 500
 MAX_QUERY_SUBSCRIPTIONS_PER_ORG = 1000
+MAX_MORE_FAST_CONDITION_ISSUE_ALERTS = 1000
 
 MAX_REDIS_SNOWFLAKE_RETRY_COUNTER = 5
 
@@ -3418,13 +3435,17 @@ SEER_MAX_SIMILARITY_DISTANCE = 0.15  # Not yet in use - Seer doesn't obey this r
 SEER_GROUPING_RECORDS_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record"
 )
-SEER_GROUPING_RECORDS_DELETE_URL = (
+SEER_PROJECT_GROUPING_RECORDS_DELETE_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete"
+)
+SEER_HASH_GROUPING_RECORDS_DELETE_URL = (
+    f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete-by-hash"
 )
 
 # TODO: Remove this soon, just a way to configure a project for this before we implement properly
 UPTIME_POC_PROJECT_ID = 1
 
+SIMILARITY_BACKFILL_COHORT_MAP: dict[str, list[int]] = {}
 
 # Devserver configuration overrides.
 ngrok_host = os.environ.get("SENTRY_DEVSERVER_NGROK")

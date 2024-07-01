@@ -1,5 +1,4 @@
 import {EventFixture} from 'sentry-fixture/event';
-import {GroupFixture} from 'sentry-fixture/group';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 import {ProjectFixture} from 'sentry-fixture/project';
 
@@ -21,7 +20,6 @@ describe('HighlightsDataSection', function () {
     contexts: TEST_EVENT_CONTEXTS,
     tags: TEST_EVENT_TAGS,
   });
-  const group = GroupFixture();
   const eventTagMap = TEST_EVENT_TAGS.reduce(
     (tagMap, tag) => ({...tagMap, [tag.key]: tag.value}),
     {}
@@ -35,6 +33,11 @@ describe('HighlightsDataSection', function () {
   const analyticsSpy = jest.spyOn(analytics, 'trackAnalytics');
   const modalSpy = jest.spyOn(modal, 'openModal');
 
+  beforeEach(() => {
+    MockApiClient.clearMockResponses();
+    jest.clearAllMocks();
+  });
+
   it('renders an empty state', async function () {
     MockApiClient.addMockResponse({
       url: `/projects/${organization.slug}/${project.slug}/`,
@@ -43,7 +46,6 @@ describe('HighlightsDataSection', function () {
     render(
       <HighlightsDataSection
         event={event}
-        group={group}
         project={project}
         viewAllRef={{current: null}}
       />,
@@ -54,13 +56,13 @@ describe('HighlightsDataSection', function () {
     expect(await screen.findByText("There's nothing here...")).toBeInTheDocument();
     expect(screen.getByRole('button', {name: 'Add Highlights'})).toBeInTheDocument();
     const viewAllButton = screen.getByRole('button', {name: 'View All'});
-    await viewAllButton.click();
+    await userEvent.click(viewAllButton);
     expect(analyticsSpy).toHaveBeenCalledWith(
       'highlights.issue_details.view_all_clicked',
       expect.anything()
     );
     const editButton = screen.getByRole('button', {name: 'Edit'});
-    await editButton.click();
+    await userEvent.click(editButton);
     expect(analyticsSpy).toHaveBeenCalledWith(
       'highlights.issue_details.edit_clicked',
       expect.anything()
@@ -74,7 +76,7 @@ describe('HighlightsDataSection', function () {
       body: {...project, highlightTags, highlightContext},
     });
 
-    render(<HighlightsDataSection event={event} group={group} project={project} />, {
+    render(<HighlightsDataSection event={event} project={project} />, {
       organization,
     });
     expect(screen.getByText('Event Highlights')).toBeInTheDocument();
@@ -90,7 +92,7 @@ describe('HighlightsDataSection', function () {
         expect(highlightTagDropdown).toBeInTheDocument();
         await userEvent.click(highlightTagDropdown);
         expect(
-          screen.getByLabelText('View issues with this tag value')
+          await screen.findByLabelText('View issues with this tag value')
         ).toBeInTheDocument();
         expect(
           screen.queryByLabelText('Add to event highlights')

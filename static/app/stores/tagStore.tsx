@@ -10,20 +10,45 @@ import {
 } from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
-import {FieldKey, ISSUE_FIELDS} from 'sentry/utils/fields';
+import {
+  FieldKey,
+  FieldKind,
+  ISSUE_EVENT_PROPERTY_FIELDS,
+  ISSUE_FIELDS,
+  ISSUE_PROPERTY_FIELDS,
+} from 'sentry/utils/fields';
 
 import type {StrictStoreDefinition} from './types';
 
 // This list is only used on issues. Events/discover
 // have their own field list that exists elsewhere.
-// contexts.key and contexts.value omitted on purpose.
 const BUILTIN_TAGS = ISSUE_FIELDS.reduce<TagCollection>((acc, tag) => {
   acc[tag] = {key: tag, name: tag};
   return acc;
 }, {});
 
+// For the new query builder, we need to differentiate between issue and event fields
+const BUILTIN_TAGS_BY_CATEGORY = {
+  ...ISSUE_PROPERTY_FIELDS.reduce<TagCollection>((acc, tag) => {
+    acc[tag] = {key: tag, name: tag, predefined: true, kind: FieldKind.ISSUE_FIELD};
+    return acc;
+  }, {}),
+  ...ISSUE_EVENT_PROPERTY_FIELDS.reduce<TagCollection>((acc, tag) => {
+    acc[tag] = {key: tag, name: tag, predefined: false, kind: FieldKind.EVENT_FIELD};
+    return acc;
+  }, {}),
+};
+
+function getBuiltInTags(organization: Organization) {
+  if (organization.features.includes('issue-stream-search-query-builder')) {
+    return BUILTIN_TAGS_BY_CATEGORY;
+  }
+
+  return BUILTIN_TAGS;
+}
+
 interface TagStoreDefinition extends StrictStoreDefinition<TagCollection> {
-  getIssueAttributes(org: Organization): TagCollection;
+  getIssueAttributes(organization: Organization): TagCollection;
   getIssueTags(org: Organization): TagCollection;
   loadTagsSuccess(data: Tag[]): void;
   reset(): void;
@@ -41,7 +66,7 @@ const storeConfig: TagStoreDefinition = {
   /**
    * Gets only predefined issue attributes
    */
-  getIssueAttributes(org: Organization) {
+  getIssueAttributes(organization: Organization) {
     // TODO(mitsuhiko): what do we do with translations here?
     const isSuggestions = [
       'resolved',
@@ -58,8 +83,11 @@ const storeConfig: TagStoreDefinition = {
       return a.toLowerCase().localeCompare(b.toLowerCase());
     });
 
+    const builtinTags = getBuiltInTags(organization);
+
     const tagCollection = {
       [FieldKey.IS]: {
+        ...builtinTags[FieldKey.IS],
         key: FieldKey.IS,
         name: 'Status',
         values: isSuggestions,
@@ -67,25 +95,27 @@ const storeConfig: TagStoreDefinition = {
         predefined: true,
       },
       [FieldKey.HAS]: {
+        ...builtinTags[FieldKey.HAS],
         key: FieldKey.HAS,
         name: 'Has Tag',
         values: sortedTagKeys,
         predefined: true,
       },
       [FieldKey.ASSIGNED]: {
+        ...builtinTags[FieldKey.ASSIGNED],
         key: FieldKey.ASSIGNED,
         name: 'Assigned To',
         values: [],
         predefined: true,
       },
       [FieldKey.BOOKMARKS]: {
-        key: FieldKey.BOOKMARKS,
+        ...builtinTags[FieldKey.BOOKMARKS],
         name: 'Bookmarked By',
         values: [],
         predefined: true,
       },
       [FieldKey.ISSUE_CATEGORY]: {
-        key: FieldKey.ISSUE_CATEGORY,
+        ...builtinTags[FieldKey.ISSUE_CATEGORY],
         name: 'Issue Category',
         values: [
           IssueCategory.ERROR,
@@ -96,7 +126,7 @@ const storeConfig: TagStoreDefinition = {
         predefined: true,
       },
       [FieldKey.ISSUE_TYPE]: {
-        key: FieldKey.ISSUE_TYPE,
+        ...builtinTags[FieldKey.ISSUE_TYPE],
         name: 'Issue Type',
         values: [
           IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
@@ -123,31 +153,31 @@ const storeConfig: TagStoreDefinition = {
         predefined: true,
       },
       [FieldKey.LAST_SEEN]: {
-        key: FieldKey.LAST_SEEN,
+        ...builtinTags[FieldKey.LAST_SEEN],
         name: 'Last Seen',
         values: [],
         predefined: false,
       },
       [FieldKey.FIRST_SEEN]: {
-        key: FieldKey.FIRST_SEEN,
+        ...builtinTags[FieldKey.FIRST_SEEN],
         name: 'First Seen',
         values: [],
         predefined: false,
       },
       [FieldKey.FIRST_RELEASE]: {
-        key: FieldKey.FIRST_RELEASE,
+        ...builtinTags[FieldKey.FIRST_RELEASE],
         name: 'First Release',
         values: ['latest'],
         predefined: true,
       },
       [FieldKey.EVENT_TIMESTAMP]: {
-        key: FieldKey.EVENT_TIMESTAMP,
+        ...builtinTags[FieldKey.EVENT_TIMESTAMP],
         name: 'Event Timestamp',
         values: [],
         predefined: true,
       },
       [FieldKey.TIMES_SEEN]: {
-        key: FieldKey.TIMES_SEEN,
+        ...builtinTags[FieldKey.TIMES_SEEN],
         name: 'Times Seen',
         isInput: true,
         // Below values are required or else SearchBar will attempt to get values
@@ -156,22 +186,19 @@ const storeConfig: TagStoreDefinition = {
         predefined: true,
       },
       [FieldKey.ASSIGNED_OR_SUGGESTED]: {
-        key: FieldKey.ASSIGNED_OR_SUGGESTED,
+        ...builtinTags[FieldKey.ASSIGNED_OR_SUGGESTED],
         name: 'Assigned or Suggested',
         isInput: true,
         values: [],
         predefined: true,
       },
-    };
-
-    if (org.features.includes('issue-priority-ui')) {
-      tagCollection[FieldKey.ISSUE_PRIORITY] = {
-        key: FieldKey.ISSUE_PRIORITY,
+      [FieldKey.ISSUE_PRIORITY]: {
+        ...builtinTags[FieldKey.ISSUE_PRIORITY],
         name: 'Issue Priority',
         values: [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW],
         predefined: true,
-      };
-    }
+      },
+    };
 
     // Ony include fields that that are part of the ISSUE_FIELDS. This is
     // because we may sometimes have fields that are turned off by removing
@@ -187,12 +214,33 @@ const storeConfig: TagStoreDefinition = {
    * Get all tags including builtin issue tags and issue attributes
    */
   getIssueTags(org: Organization) {
+    const eventTags = Object.values(this.state).reduce<TagCollection>((acc, tag) => {
+      return {
+        ...acc,
+        [tag.key]: {
+          ...tag,
+          kind: FieldKind.TAG,
+        },
+      };
+    }, {});
+
+    const semverFields = Object.values(SEMVER_TAGS).reduce<TagCollection>((acc, tag) => {
+      return {
+        ...acc,
+        [tag.key]: {
+          predefined: false,
+          ...tag,
+          kind: org.features.includes('issue-stream-search-query-builder')
+            ? FieldKind.EVENT_FIELD
+            : FieldKind.FIELD,
+        },
+      };
+    }, {});
+
     const issueTags = {
-      ...BUILTIN_TAGS,
-      ...SEMVER_TAGS,
-      // State tags should overwrite built ins.
-      ...this.state,
-      // We want issue attributes to overwrite any built in and state tags
+      ...getBuiltInTags(org),
+      ...semverFields,
+      ...eventTags,
       ...this.getIssueAttributes(org),
     };
     if (!org.features.includes('device-classification')) {

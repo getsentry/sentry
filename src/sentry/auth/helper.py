@@ -26,6 +26,7 @@ from rest_framework.request import Request
 from sentry import audit_log, features
 from sentry.api.invite_helper import ApiInviteHelper, remove_invite_details_from_session
 from sentry.api.utils import generate_organization_url
+from sentry.audit_log.services.log import AuditLogEvent, log_service
 from sentry.auth.email import AmbiguousUserFromEmail, resolve_email_to_user
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.auth.idpmigration import (
@@ -62,7 +63,6 @@ from sentry.utils.urls import add_params_to_url
 from sentry.web.forms.accounts import AuthenticationForm
 from sentry.web.helpers import render_to_response
 
-from ..services.hybrid_cloud.log import AuditLogEvent, log_service
 from . import manager
 
 if TYPE_CHECKING:
@@ -134,7 +134,7 @@ class AuthIdentityHandler:
 
     @staticmethod
     def warn_about_ambiguous_email(email: str, users: Collection[User], chosen_user: User) -> None:
-        with sentry_sdk.push_scope() as scope:
+        with sentry_sdk.isolation_scope() as scope:
             scope.set_level("warning")
             scope.set_tag("email", email)
             scope.set_extra("user_ids", [user.id for user in users])
@@ -211,7 +211,7 @@ class AuthIdentityHandler:
         subdomain = None
         if data:
             subdomain = data.get("subdomain") or None
-        if features.has("organizations:customer-domains", self.organization, actor=user):
+        if features.has("system:multi-region"):
             subdomain = self.organization.slug
 
         try:
