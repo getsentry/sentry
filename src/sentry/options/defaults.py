@@ -937,6 +937,7 @@ register(
 
 register(
     "embeddings-grouping.seer.delete-record-batch-size",
+    type=Int,
     default=100,
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
@@ -1797,6 +1798,16 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# Used for enabling flags in ST. Should be removed once Flagpole works in all STs.
+register(
+    "performance.use_metrics.orgs_allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Used for enabling flags in ST. Should be removed once Flagpole works in all STs.
+register("performance.use_metrics.enabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Dynamic Sampling system-wide options
 # Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
 register("dynamic-sampling:sliding_window.size", default=24, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -1836,7 +1847,7 @@ register("flagpole_features", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("flagpole.rollout_phase", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("flagpole.flagpole_only_features", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("flagpole.feature_compare_list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-
+register("flagpole.debounce_reporting_seconds", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Retry controls
 register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
@@ -2007,6 +2018,8 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register("metric_extraction.max_span_attribute_specs", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 register(
     "delightful_metrics.minimetrics_sample_rate",
@@ -2607,5 +2620,22 @@ register(
 register(
     "similarity.backfill_nodestore_use_multithread",
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "similarity.backfill_nodestore_chunk_size",
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "similarity.backfill_nodestore_threads",
+    default=6,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "similarity.backfill_snuba_concurrent_requests",
+    default=20,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

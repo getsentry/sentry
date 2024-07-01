@@ -8,10 +8,10 @@ import type {Node} from '@react-types/shared';
 import {DateTime} from 'sentry/components/dateTime';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {FilterOperator} from 'sentry/components/searchQueryBuilder/filterOperator';
+import {FilterKeyOperator} from 'sentry/components/searchQueryBuilder/filterKeyOperator';
 import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/useFilterButtonProps';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/useQueryBuilderGridItem';
-import {formatFilterValue, getKeyLabel} from 'sentry/components/searchQueryBuilder/utils';
+import {formatFilterValue} from 'sentry/components/searchQueryBuilder/utils';
 import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/valueCombobox';
 import {
   type ParseResultToken,
@@ -29,28 +29,32 @@ type SearchQueryTokenProps = {
   token: TokenResult<Token.FILTER>;
 };
 
-function FilterKey({token}: {token: TokenResult<Token.FILTER>}) {
-  const {keys} = useSearchQueryBuilder();
-  const key = token.key.text;
-  const tag = keys[key];
-  const label = tag ? getKeyLabel(tag) : key;
-
-  return <KeyLabel>{label}</KeyLabel>;
-}
-
 function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
   switch (token.value.type) {
     case Token.VALUE_TEXT_LIST:
     case Token.VALUE_NUMBER_LIST:
       const items = token.value.items;
+
+      if (items.length === 1 && items[0].value) {
+        return (
+          <FilterValueSingleTruncatedValue>
+            {formatFilterValue(items[0].value)}
+          </FilterValueSingleTruncatedValue>
+        );
+      }
       return (
         <FilterValueList>
-          {items.map((item, index) => (
+          {items.slice(0, 3).map((item, index) => (
             <Fragment key={index}>
-              <span>{formatFilterValue(item.value)}</span>
-              {index !== items.length - 1 ? <FilterValueOr>or</FilterValueOr> : null}
+              <FilterMultiValueTruncated>
+                {formatFilterValue(item.value)}
+              </FilterMultiValueTruncated>
+              {index !== items.length - 1 && index < 2 ? (
+                <FilterValueOr>or</FilterValueOr>
+              ) : null}
             </Fragment>
           ))}
+          {items.length > 3 && <span>+{items.length - 3}</span>}
         </FilterValueList>
       );
     case Token.VALUE_ISO_8601_DATE:
@@ -60,7 +64,11 @@ function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
         <DateTime date={token.value.value} dateOnly={!token.value.time} utc={isUtc} />
       );
     default:
-      return formatFilterValue(token.value);
+      return (
+        <FilterValueSingleTruncatedValue>
+          {formatFilterValue(token.value)}
+        </FilterValueSingleTruncatedValue>
+      );
   }
 }
 
@@ -173,11 +181,8 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
       ref={ref}
       {...modifiedRowProps}
     >
-      <BaseTokenPart>
-        <FilterKey token={token} />
-      </BaseTokenPart>
       <BaseTokenPart {...gridCellProps}>
-        <FilterOperator token={token} state={state} item={item} />
+        <FilterKeyOperator token={token} state={state} item={item} />
       </BaseTokenPart>
       <BaseTokenPart {...gridCellProps}>
         <FilterValue token={token} state={state} item={item} />
@@ -226,21 +231,8 @@ const UnstyledButton = styled('button')`
   }
 `;
 
-const KeyLabel = styled('div')`
-  display: flex;
-  align-items: center;
-  padding: 0 ${space(0.5)} 0 ${space(0.75)};
-  border-radius: 3px 0 0 3px;
-  border-right: 1px solid transparent;
-
-  :focus-within {
-    background-color: ${p => p.theme.translucentGray100};
-    border-right: 1px solid ${p => p.theme.innerBorder};
-  }
-`;
-
 const ValueButton = styled(UnstyledButton)`
-  padding: 0 ${space(0.5)};
+  padding: 0 ${space(0.25)};
   color: ${p => p.theme.purple400};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
@@ -253,7 +245,7 @@ const ValueButton = styled(UnstyledButton)`
 `;
 
 const ValueEditing = styled('div')`
-  padding: 0 ${space(0.5)};
+  padding: 0 ${space(0.25)};
   color: ${p => p.theme.purple400};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
@@ -280,9 +272,23 @@ const DeleteButton = styled(UnstyledButton)`
 const FilterValueList = styled('div')`
   display: flex;
   align-items: center;
+  flex-wrap: nowrap;
   gap: ${space(0.5)};
+  max-width: 400px;
 `;
 
 const FilterValueOr = styled('span')`
   color: ${p => p.theme.subText};
+`;
+
+const FilterMultiValueTruncated = styled('div')`
+  ${p => p.theme.overflowEllipsis};
+  max-width: 110px;
+  width: min-content;
+`;
+
+const FilterValueSingleTruncatedValue = styled('div')`
+  ${p => p.theme.overflowEllipsis};
+  max-width: 400px;
+  width: min-content;
 `;

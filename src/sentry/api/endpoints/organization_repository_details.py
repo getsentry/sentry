@@ -16,10 +16,10 @@ from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc import coerce_id_from
+from sentry.integrations.services.integration import integration_service
 from sentry.models.commit import Commit
 from sentry.models.repository import Repository
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.tasks.repository import repository_cascade_delete_on_hide
 
 

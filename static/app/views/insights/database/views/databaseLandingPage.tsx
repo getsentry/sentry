@@ -136,11 +136,7 @@ export function DatabaseLandingPage() {
     'api.starfish.span-landing-page-metrics-chart'
   );
 
-  useHasDataTrackAnalytics(
-    MutableSearch.fromQueryObject(BASE_FILTERS),
-    'api.performance.database.database-landing',
-    'insight.page_loads.db'
-  );
+  useHasDataTrackAnalytics(ModuleName.DB, 'insight.page_loads.db');
 
   const isCriticalDataLoading =
     isThroughputDataLoading || isDurationDataLoading || queryListResponse.isLoading;

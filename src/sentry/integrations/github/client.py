@@ -17,6 +17,7 @@ from sentry.integrations.github.blame import (
 )
 from sentry.integrations.github.utils import get_jwt, get_next_link
 from sentry.integrations.mixins.commit_context import FileBlameInfo, SourceLineInfo
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.integrations.utils.code_mapping import (
     MAX_CONNECTION_ERRORS,
@@ -26,7 +27,6 @@ from sentry.integrations.utils.code_mapping import (
 )
 from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.integration import RpcIntegration
 from sentry.shared_integrations.client.base import BaseApiResponseX
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError

@@ -34,10 +34,6 @@ filterwarnings = [
   # this warning in protobuf causes a segfault in 3.12+ protocolbuffers/protobuf#15077
   "ignore:Type google\\._upb.*",
 
-  # TODO: we should fix these, but for now there's a lot
-  "ignore:datetime.datetime.utcfromtimestamp\\(\\) is deprecated.*",
-  "ignore:datetime.datetime.utcnow\\(\\) is deprecated.*",
-
   # The following warning filters are for pytest only.
   "ignore:.*sentry.digests.backends.dummy.DummyBackend.*:sentry.utils.warnings.UnsupportedBackend",
 
@@ -47,7 +43,7 @@ filterwarnings = [
 looponfailroots = ["src", "tests"]
 
 [tool.mypy]
-python_version = "3.12"
+python_version = "3.11"
 mypy_path = ["fixtures/stubs-for-mypy"]
 plugins = [
   "pydantic.mypy",
@@ -380,7 +376,6 @@ module = [
     "sentry.scim.endpoints.members",
     "sentry.scim.endpoints.teams",
     "sentry.scim.endpoints.utils",
-    "sentry.search.events.builder.discover",
     "sentry.search.events.builder.errors",
     "sentry.search.events.builder.metrics",
     "sentry.search.events.datasets.discover",
@@ -582,24 +577,10 @@ module = [
     "sentry.relay.config.metric_extraction",
     "sentry.reprocessing2",
     "sentry.runner.*",
-    "sentry.services.hybrid_cloud.access.*",
-    "sentry.services.hybrid_cloud.app.*",
-    "sentry.services.hybrid_cloud.hook.*",
-    "sentry.services.hybrid_cloud.identity.*",
-    "sentry.services.hybrid_cloud.integration.*",
-    "sentry.services.hybrid_cloud.issue.*",
-    "sentry.services.hybrid_cloud.log.*",
     "sentry.services.hybrid_cloud.lost_password_hash.*",
-    "sentry.services.hybrid_cloud.notifications.*",
     "sentry.services.hybrid_cloud.organization_actions.*",
-    "sentry.services.hybrid_cloud.organization_mapping.*",
-    "sentry.services.hybrid_cloud.organizationmember_mapping.*",
-    "sentry.services.hybrid_cloud.orgauthtoken.*",
     "sentry.services.hybrid_cloud.project.*",
     "sentry.services.hybrid_cloud.project_key.*",
-    "sentry.services.hybrid_cloud.replica.*",
-    "sentry.services.hybrid_cloud.repository.*",
-    "sentry.services.hybrid_cloud.tombstone.*",
     "sentry.services.hybrid_cloud.user.*",
     "sentry.services.hybrid_cloud.user_option.*",
     "sentry.snuba.metrics.extraction",
