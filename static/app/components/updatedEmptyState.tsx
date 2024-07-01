@@ -1,4 +1,4 @@
-import {Fragment, useEffect, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
@@ -7,11 +7,9 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {GuidedSteps} from 'sentry/components/guidedSteps/guidedSteps';
 import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/onboardingCodeSnippet';
 import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import type {
-  Docs,
-  DocsParams,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
+import useLoadGettingStarted from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -24,10 +22,6 @@ import FirstEventIndicator from 'sentry/views/onboarding/components/firstEventIn
 
 export default function UpdatedEmptyState({project}: {project?: Project}) {
   const organization = useOrganization();
-
-  const [module, setModule] = useState<null | {
-    default: Docs<any>;
-  }>(null);
 
   const {
     data: projectKeys,
@@ -51,19 +45,10 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
 
   const platformPath = getPlatformPath(currentPlatform);
 
-  useEffect(() => {
-    async function getGettingStartedDoc() {
-      const mod = await import(
-        /* webpackExclude: /.spec/ */
-        `sentry/gettingStartedDocs/${platformPath}`
-      );
-      setModule(mod);
-    }
-    getGettingStartedDoc();
-    return () => {
-      setModule(null);
-    };
-  }, [platformPath]);
+  const module = useLoadGettingStarted({
+    platformId: currentPlatform.id,
+    platformPath,
+  });
 
   if (
     !project ||
@@ -72,7 +57,8 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     !projectKeys ||
     projectKeys.length === 0 ||
     !module ||
-    !currentPlatform
+    !currentPlatform ||
+    module === 'none'
   ) {
     return null;
   }
