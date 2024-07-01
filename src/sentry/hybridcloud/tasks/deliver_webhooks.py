@@ -1,6 +1,7 @@
 import datetime
 import logging
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Never
 
 import orjson
 import sentry_sdk
@@ -71,7 +72,7 @@ class DeliveryFailed(Exception):
     queue="webhook.control",
     silo_mode=SiloMode.CONTROL,
 )
-def schedule_webhook_delivery(**kwargs) -> None:
+def schedule_webhook_delivery(**kwargs: Never) -> None:
     """
     Find mailboxes that contain undelivered webhooks that were scheduled
     to be delivered now or in the past.
@@ -402,7 +403,7 @@ def perform_request(payload: WebhookPayload) -> None:
             "hybridcloud.deliver_webhooks.failure",
             tags={"reason": "host_error", "destination_region": region.name},
         )
-        with sentry_sdk.push_scope() as scope:
+        with sentry_sdk.isolation_scope() as scope:
             scope.set_context(
                 "region",
                 {

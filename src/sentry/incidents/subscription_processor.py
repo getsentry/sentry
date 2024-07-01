@@ -24,7 +24,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import (
     AlertRule,
-    AlertRuleMonitorType,
+    AlertRuleMonitorTypeInt,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerActionMethod,
@@ -219,6 +219,7 @@ class SubscriptionProcessor:
         )
         try:
             project_ids = [self.subscription.project_id]
+            # TODO: determine whether we need to include the subscription query_extra here
             query_builder = entity_subscription.build_query_builder(
                 query=snuba_query.query,
                 project_ids=project_ids,
@@ -503,7 +504,7 @@ class SubscriptionProcessor:
         # Current callback will update the activation metric values & delete querysubscription on finish
         # TODO: register over/under triggers as alert rule callbacks as well
         invoke_alert_subscription_callback(
-            AlertRuleMonitorType(self.alert_rule.monitor_type),
+            AlertRuleMonitorTypeInt(self.alert_rule.monitor_type),
             subscription=self.subscription,
             alert_rule=self.alert_rule,
             value=aggregation_value,
@@ -630,7 +631,7 @@ class SubscriptionProcessor:
             if not self.active_incident:
                 detected_at = self.calculate_event_date_from_update_date(self.last_update)
                 activation: AlertRuleActivations | None = None
-                if self.alert_rule.monitor_type == AlertRuleMonitorType.ACTIVATED.value:
+                if self.alert_rule.monitor_type == AlertRuleMonitorTypeInt.ACTIVATED:
                     activations = list(self.subscription.alertruleactivations_set.all())
                     if len(activations) != 1:
                         logger.error(

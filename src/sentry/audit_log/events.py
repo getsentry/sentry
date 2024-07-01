@@ -1,6 +1,13 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from sentry.audit_log.manager import AuditLogEvent
-from sentry.models.auditlogentry import AuditLogEntry
 from sentry.utils.strings import truncatechars
+
+if TYPE_CHECKING:
+    from sentry.models.auditlogentry import AuditLogEntry
+
 
 # AuditLogEvents with custom render functions
 
@@ -168,12 +175,17 @@ class ProjectPerformanceDetectionSettingsAuditLogEvent(AuditLogEvent):
 def render_project_action(audit_log_entry: AuditLogEntry, action: str):
     # Most logs will just be name of the filter, but legacy browser changes can be bool, str, list, or sets
     filter_name = audit_log_entry.data["state"]
+    slug = audit_log_entry.data.get("slug")
+
+    message = f"{action} project filter {filter_name}"
+
     if filter_name in ("0", "1") or isinstance(filter_name, (bool, list, set)):
         message = f"{action} project filter legacy-browsers"
         if isinstance(filter_name, (list, set)):
             message += ": {}".format(", ".join(sorted(filter_name)))
-        return message
-    return f"{action} project filter {filter_name}"
+    if slug:
+        message += f" for project {slug}"
+    return message
 
 
 class ProjectEnableAuditLogEvent(AuditLogEvent):

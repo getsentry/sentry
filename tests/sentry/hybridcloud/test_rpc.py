@@ -9,14 +9,16 @@ from django.conf import settings
 from django.db import router
 from django.test import override_settings
 
+from sentry import options
+from sentry.auth.services.auth import AuthService
 from sentry.hybridcloud.rpc.service import (
     RpcAuthenticationSetupException,
     RpcDisabledException,
+    _RemoteSiloCall,
     dispatch_remote_call,
     dispatch_to_local_service,
 )
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.services.hybrid_cloud.auth import AuthService
 from sentry.services.hybrid_cloud.organization import (
     OrganizationService,
     RpcOrganizationMemberFlags,
@@ -207,3 +209,102 @@ class DispatchRemoteCallTest(TestCase):
     def test_disable_rpc_method(self) -> None:
         with pytest.raises(RpcDisabledException):
             dispatch_remote_call(None, "organization", "get_organization_by_id", {"id": 0})
+
+    def test_get_method_timeout(self) -> None:
+        override_value = 20.0
+        assert settings.RPC_TIMEOUT is not None
+        assert override_value != settings.RPC_TIMEOUT
+
+        timeout_override_setting: dict[str, Any] = {
+            "organization_service.get_org_by_id": override_value
+        }
+
+        # Test for no value
+        test_class = _RemoteSiloCall(
+            service_name="organization_service",
+            method_name="get_org_by_id",
+            region=None,
+            serial_arguments={},
+        )
+
+        assert test_class.get_method_timeout() == settings.RPC_TIMEOUT
+
+        # Test overridden value
+        with override_options(
+            {
+                "hybridcloud.rpc.method_timeout_overrides": timeout_override_setting,
+            }
+        ):
+            test_class = _RemoteSiloCall(
+                service_name="organization_service",
+                method_name="get_org_by_id",
+                region=None,
+                serial_arguments={},
+            )
+
+            assert test_class.get_method_timeout() == override_value
+
+        # Test for invalid values
+        with override_options({"hybridcloud.rpc.method_timeout_overrides": 10}):
+            assert test_class.get_method_timeout() == settings.RPC_TIMEOUT
+
+        timeout_override_setting = {"organization_service.get_org_by_id": "oops"}
+        with override_options(
+            {"hybridcloud.rpc.method_timeout_overrides": timeout_override_setting}
+        ):
+            assert test_class.get_method_timeout() == settings.RPC_TIMEOUT
+
+        # Test for missing value
+        timeout_override_setting = {"organization_service.some_other_method": 20.0}
+        with override_options(
+            {"hybridcloud.rpc.method_timeout_overrides": timeout_override_setting}
+        ):
+            assert test_class.get_method_timeout() == settings.RPC_TIMEOUT
+
+    def test_get_method_retry_count(self) -> None:
+        override_value = 1
+        default_value = options.get("hybridcloud.rpc.retries")
+        assert default_value is not None
+        assert override_value != default_value
+
+        retry_override_setting: dict[str, Any] = {
+            "organization_service.get_org_by_id": override_value
+        }
+
+        # Test for no value
+        test_class = _RemoteSiloCall(
+            service_name="organization_service",
+            method_name="get_org_by_id",
+            region=None,
+            serial_arguments={},
+        )
+
+        assert test_class.get_method_retry_count() == default_value
+
+        # Test overridden value
+        with override_options(
+            {
+                "hybridcloud.rpc.method_retry_overrides": retry_override_setting,
+            }
+        ):
+            test_class = _RemoteSiloCall(
+                service_name="organization_service",
+                method_name="get_org_by_id",
+                region=None,
+                serial_arguments={},
+            )
+
+            assert test_class.get_method_retry_count() == override_value
+
+        # Test for invalid values
+        with override_options({"hybridcloud.rpc.method_retry_overrides": 10}):
+            assert test_class.get_method_retry_count() == default_value
+
+        retry_override_setting = {"organization_service.get_org_by_id": "oops"}
+        with override_options({"hybridcloud.rpc.method_retry_overrides": retry_override_setting}):
+            assert test_class.get_method_retry_count() == default_value
+
+        # Test for missing value
+        timeout_override_setting = {"organization_service.some_other_method": 20}
+        with override_options({"hybridcloud.rpc.method_retry_overrides": timeout_override_setting}):
+            assert test_class.get_method_retry_count() == default_value

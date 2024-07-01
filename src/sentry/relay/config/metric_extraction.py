@@ -4,7 +4,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, NotRequired, TypedDict, cast
+from typing import Any, Literal, NotRequired, TypedDict, cast
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
@@ -62,10 +62,6 @@ logger = logging.getLogger(__name__)
 
 # Version of the metric extraction config.
 _METRIC_EXTRACTION_VERSION = 4
-
-# Maximum number of custom metrics that can be extracted for alerts and widgets with
-# advanced filter expressions.
-_MAX_ON_DEMAND_ALERTS = 50
 
 # TTL for cardinality check
 _WIDGET_QUERY_CARDINALITY_TTL = 3600 * 24  # 24h
@@ -159,13 +155,6 @@ def on_demand_metrics_feature_flags(organization: Organization) -> set[str]:
         if features.has(feature, organization=organization):
             enabled_features.add(feature)
 
-    if ("organizations:on-demand-metrics-extraction" not in enabled_features) and (
-        "organizations:on-demand-metrics-prefill" in enabled_features
-    ):
-        sentry_sdk.metrics.incr(
-            "on_demand_metrics.prefill_without_extraction", tags={"org": organization.slug}
-        )
-
     return enabled_features
 
 
@@ -212,7 +201,7 @@ def _get_alert_metric_specs(
                     )
                     specs.append(spec)
 
-    max_alert_specs = options.get("on_demand.max_alert_specs") or _MAX_ON_DEMAND_ALERTS
+    max_alert_specs = options.get("on_demand.max_alert_specs")
     (specs, _) = _trim_if_above_limit(specs, max_alert_specs, project, "alerts")
 
     return specs
@@ -361,7 +350,7 @@ def _trim_if_above_limit(
     specs: Sequence[HashedMetricSpec],
     max_specs: int,
     project: Project,
-    widget_type: str,
+    spec_type: Literal["alerts", "widgets", "span_attributes"],
 ) -> tuple[list[HashedMetricSpec], list[HashedMetricSpec]]:
     """Trim specs per version if above max limit, returns the accepted specs and the trimmed specs in a tuple"""
     return_specs = []
@@ -375,12 +364,12 @@ def _trim_if_above_limit(
     for version, _specs_for_version in specs_per_version.items():
         specs_for_version = _specs_for_version.values()
         if len(specs_for_version) > max_specs:
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.isolation_scope() as scope:
                 scope.set_tag("project_id", project.id)
                 scope.set_context("specs", {"values": [spec[0] for spec in specs_for_version]})
                 sentry_sdk.capture_exception(
                     Exception(
-                        f"Spec version {version}: Too many ({len(specs_for_version)}) on demand metric {widget_type} for org {project.organization.slug}"
+                        f"Spec version {version}: Too many ({len(specs_for_version)}) on demand metric {spec_type} for org {project.organization.slug}"
                     )
                 )
 
@@ -571,7 +560,7 @@ def _can_widget_query_use_stateful_extraction(
         return False
     elif len(on_demand_entries) > 1:
         # There should only be one on demand entry.
-        with sentry_sdk.push_scope() as scope:
+        with sentry_sdk.isolation_scope() as scope:
             scope.set_tag("widget_query", widget_query.id)
             sentry_sdk.capture_message(
                 f"Wrong number of relations ({len(on_demand_entries)}) for widget_query: {widget_query.id}"
@@ -619,7 +608,7 @@ def _widget_query_stateful_extraction_enabled(widget_query: DashboardWidgetQuery
     ]
 
     if len(on_demand_entries) != 1:
-        with sentry_sdk.push_scope() as scope:
+        with sentry_sdk.isolation_scope() as scope:
             scope.set_extra("on_demand_entries", on_demand_entries)
             scope.set_extra("spec_version", OnDemandMetricSpecVersioning.get_spec_versions())
             sentry_sdk.capture_exception(
@@ -702,7 +691,7 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
         ),
     )
 
-    with sentry_sdk.push_scope() as scope:
+    with sentry_sdk.isolation_scope() as scope:
         metrics.incr("on_demand_metrics.cardinality_check.query")
         scope.set_tag("widget_query.widget_id", widget_query.id)
         scope.set_tag("widget_query.org_id", project.organization_id)
@@ -735,10 +724,11 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
                 count = processed_results["data"][0][unique_columns[index]]
                 if count > max_cardinality_allowed:
                     cache.set(cache_key, False, timeout=_get_widget_cardinality_query_ttl())
+
                     scope.set_tag("widget_query.column_name", column)
-                    raise HighCardinalityWidgetException(
-                        f"Cardinality exceeded for dashboard_widget_query:{widget_query.id} with count:{count} and column:{column}"
-                    )
+                    scope.set_extra("widget_query.column_count", count)
+                    scope.set_extra("widget_query.id", widget_query.id)
+                    raise HighCardinalityWidgetException()
         except HighCardinalityWidgetException as error:
             metrics.incr(
                 "on_demand_metrics.cardinality_check.query.success", tags={"low_cardinality": False}
@@ -846,6 +836,9 @@ def _generate_span_attribute_specs(project: Project) -> list[HashedMetricSpec]:
             specs.append((spec["mri"], spec, version))
         except ValueError:
             logger.exception("Invalid span attribute metric spec", extra=rule.to_dict())
+
+    max_specs = options.get("metric_extraction.max_span_attribute_specs")
+    (specs, _) = _trim_if_above_limit(specs, max_specs, project, "span_attributes")
 
     return specs
 

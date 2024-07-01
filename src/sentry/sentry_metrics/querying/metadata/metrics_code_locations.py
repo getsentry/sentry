@@ -15,7 +15,7 @@ DAY_IN_SECONDS = 86400
 class CodeLocationQuery:
     organization_id: int
     project_id: int
-    metric_mri: str
+    mri: str
     timestamp: int
 
 
@@ -59,37 +59,34 @@ def _get_day_timestamps(
 
 
 def get_cache_key_for_code_location(
-    organization_id: int, project_id: int, metric_mri: str, timestamp: int
+    organization_id: int, project_id: int, mri: str, timestamp: int
 ) -> str:
     # We opted to use this hash function since it is quite fast and has 1 collision every 50k entries approximately,
     # which for our case is more than enough since we discriminate via organization, project and timestamp, meaning that
     # it's highly unlikely that a project has more than 50k unique metric mris.
-    hashed_mri = fnv1a_32(metric_mri.encode("utf-8"))
+    hashed_mri = fnv1a_32(mri.encode("utf-8"))
     return f"mm:l:{{{organization_id}}}:{project_id}:{hashed_mri}:{timestamp}"
 
 
 class CodeLocationsFetcher:
-    # The size of the batch of keys that are fetched by endpoint.
-    #
+
     # Batching is done via Redis pipeline and the goal is to improve the performance of the system.
     BATCH_SIZE = 25
-    # The maximum number of code locations we want to retrieve per Redis set.
     MAX_SET_SIZE = 10
-    # The maximum number of code locations that we actually return per Redis set.
     MAX_LOCATIONS_SIZE = 5
 
     def __init__(
         self,
         organization: Organization,
         projects: set[Project],
-        metric_mris: set[str],
+        mris: set[str],
         timestamps: set[int],
         offset: int | None,
         limit: int | None,
     ):
         self._organization = organization
         self._projects = projects
-        self._metric_mris = metric_mris
+        self._mris = mris
         self._timestamps = timestamps
         self._offset = offset
         self._limit = limit
@@ -102,7 +99,7 @@ class CodeLocationsFetcher:
 
         index = 0
         for project in self._projects:
-            for metric_mri in self._metric_mris:
+            for mri in self._mris:
                 for timestamp in self._timestamps:
                     # We want to emit the code location query in the interval [offset, offset + limit).
                     if (
@@ -113,7 +110,7 @@ class CodeLocationsFetcher:
                         yield CodeLocationQuery(
                             organization_id=self._organization.id,
                             project_id=project.id,
-                            metric_mri=metric_mri,
+                            mri=mri,
                             timestamp=timestamp,
                         )
                     elif (
@@ -148,7 +145,7 @@ class CodeLocationsFetcher:
             cache_key = get_cache_key_for_code_location(
                 query.organization_id,
                 query.project_id,
-                query.metric_mri,
+                query.mri,
                 query.timestamp,
             )
             pipeline.srandmember(cache_key, self.MAX_SET_SIZE)
@@ -201,7 +198,7 @@ class CodeLocationsFetcher:
 
 
 def get_metric_code_locations(
-    metric_mris: Sequence[str],
+    mris: Sequence[str],
     start: datetime,
     end: datetime,
     organization: Organization,
@@ -212,7 +209,7 @@ def get_metric_code_locations(
     return CodeLocationsFetcher(
         organization=organization,
         projects=set(projects),
-        metric_mris=set(metric_mris),
+        mris=set(mris),
         timestamps=_get_day_timestamps(start, end),
         offset=offset,
         limit=limit,

@@ -10,6 +10,9 @@ from django.urls import reverse
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
+from slack_sdk.errors import SlackApiError
+from slack_sdk.models.views import View
+from slack_sdk.webhook import WebhookClient
 
 from sentry import analytics, features
 from sentry.api import client
@@ -20,6 +23,7 @@ from sentry.api.client import ApiClient
 from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
 from sentry.exceptions import UnableToAcceptMemberInvitationException
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
@@ -33,9 +37,8 @@ from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.rule import Rule
+from sentry.notifications.services import notifications_service
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.notifications import notifications_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import ApiError
 
@@ -396,17 +399,6 @@ class SlackActionEndpoint(Endpoint):
             callback_id["rule"] = slack_request.callback_data.get("rule")
         callback_id = orjson.dumps(callback_id).decode()
 
-        dialog = {
-            "callback_id": callback_id,
-            "title": "Resolve Issue",
-            "submit_label": "Resolve",
-            "elements": [RESOLVE_SELECTOR],
-        }
-
-        payload = {
-            "dialog": orjson.dumps(dialog).decode(),
-            "trigger_id": slack_request.data["trigger_id"],
-        }
         slack_client = SlackClient(integration_id=slack_request.integration.id)
 
         # XXX(CEO): the second you make a selection (without hitting Submit) it sends a slightly different request
@@ -458,7 +450,7 @@ class SlackActionEndpoint(Endpoint):
             headers = {"content-type": "application/json; charset=utf-8"}
             slack_client.post(
                 "/views.open",
-                data=orjson.dumps(payload),
+                data=orjson.dumps(payload).decode(),
                 headers=headers,
             )
         except ApiError as e:
@@ -499,10 +491,7 @@ class SlackActionEndpoint(Endpoint):
         if not group:
             return self.respond(status=403)
 
-        use_block_kit = features.has("organizations:slack-block-kit", group.project.organization)
-        rule = None
-        if use_block_kit:
-            rule = get_rule(slack_request)
+        rule = get_rule(slack_request)
 
         identity = slack_request.get_identity()
         # Determine the acting user by Slack identity.
@@ -519,7 +508,7 @@ class SlackActionEndpoint(Endpoint):
 
         original_tags_from_request = slack_request.get_tags()
 
-        if use_block_kit and slack_request.type == "view_submission":
+        if slack_request.type == "view_submission":
             # TODO: if we use modals for something other than resolve and archive, this will need to be more specific
 
             # Masquerade a status action
@@ -559,14 +548,34 @@ class SlackActionEndpoint(Endpoint):
                 blocks, is_message=slack_request.callback_data["is_message"]
             )
             # use the original response_url to update the link attachment
-            slack_client = SlackClient(integration_id=slack_request.integration.id)
-            try:
-                private_metadata = orjson.loads(
-                    slack_request.data["view"]["private_metadata"],
-                )
-                slack_client.post(private_metadata["orig_response_url"], data=body, json=True)
-            except ApiError as e:
-                logger.error("slack.action.response-error", extra={"error": str(e)})
+            if not features.has(
+                "organizations:slack-sdk-webhook-handling", group.project.organization
+            ):
+                slack_client = SlackClient(integration_id=slack_request.integration.id)
+                try:
+                    private_metadata = orjson.loads(
+                        slack_request.data["view"]["private_metadata"],
+                    )
+                    slack_client.post(private_metadata["orig_response_url"], data=body, json=True)
+                except ApiError as e:
+                    logger.error("slack.action.response-error", extra={"error": str(e)})
+
+            else:
+                json_blocks = orjson.dumps(blocks.get("blocks")).decode()
+                view = View(**slack_request.data["view"])
+                try:
+                    private_metadata = orjson.loads(view.private_metadata)
+                    webhook_client = WebhookClient(private_metadata["orig_response_url"])
+                    webhook_client.send(blocks=json_blocks)
+                    logger.info(
+                        "slack.webhook.view_submission.success",
+                        extra={"integration_id": slack_request.integration.id},
+                    )
+                except SlackApiError as e:
+                    logger.error(
+                        "slack.webhook.view_submission.response-error", extra={"error": str(e)}
+                    )
+
             return self.respond()
 
         # Handle status dialog submission
@@ -574,6 +583,8 @@ class SlackActionEndpoint(Endpoint):
             slack_request.type == "dialog_submission"
             and "resolve_type" in slack_request.data["submission"]
         ):
+            logger.info("slack.action.dialog_submission", extra={"data": slack_request.data})
+
             # Masquerade a status action
             action = MessageAction(
                 name="status",
@@ -583,7 +594,9 @@ class SlackActionEndpoint(Endpoint):
             try:
                 self.on_status(request, identity_user, group, action)
             except client.ApiError as error:
-                return self.api_error(slack_request, group, identity_user, error, "status_dialog")
+                return self.api_error(
+                    slack_request, group, identity_user, error, "dialog_submission"
+                )
 
             attachment = SlackIssuesMessageBuilder(
                 group,
@@ -616,22 +629,19 @@ class SlackActionEndpoint(Endpoint):
         # Handle interaction actions
         for action in action_list:
             try:
-                if action.name == "status" or (
-                    use_block_kit
-                    and action.name
-                    in (
-                        "ignored:forever",
-                        "ignored:until_escalating",
-                        "unresolved:ongoing",
-                    )  # TODO: delete the first two names when block kit is GA
+                if action.name in (
+                    "status",
+                    "unresolved:ongoing",
                 ):
                     self.on_status(request, identity_user, group, action)
-                elif action.name == "assign":
+                elif (
+                    action.name == "assign"
+                ):  # TODO: remove this as it is replaced by the options-load endpoint
                     self.on_assign(request, identity_user, group, action)
                 elif action.name == "resolve_dialog":
                     self.open_resolve_dialog(slack_request, group)
                     defer_attachment_update = True
-                elif action.name == "archive_dialog" and use_block_kit:
+                elif action.name == "archive_dialog":
                     self.open_archive_dialog(slack_request, group)
                     defer_attachment_update = True
             except client.ApiError as error:
@@ -645,44 +655,47 @@ class SlackActionEndpoint(Endpoint):
         # Reload group as it may have been mutated by the action
         group = Group.objects.get(id=group.id)
 
-        if use_block_kit:
-            response = SlackIssuesMessageBuilder(
-                group,
-                identity=identity,
-                actions=action_list,
-                tags=original_tags_from_request,
-                rules=[rule] if rule else None,
-            ).build()
-            # XXX(isabella): for actions on link unfurls, we omit the fallback text from the
-            # response so the unfurling endpoint understands the payload
-            if (
-                slack_request.data.get("container")
-                and slack_request.data["container"].get("is_app_unfurl")
-                and "text" in response
-            ):
-                del response["text"]
-            slack_client = SlackClient(integration_id=slack_request.integration.id)
-
-            if not slack_request.data.get("response_url"):
-                # XXX: when you click an option in a modal dropdown it submits the request even though "Submit" has not been clicked
-                return self.respond()
-            try:
-                slack_client.post(slack_request.data["response_url"], data=response, json=True)
-            except ApiError as e:
-                logger.error("slack.action.response-error", extra={"error": str(e)})
-
-            return self.respond(response)
-
-        attachment = SlackIssuesMessageBuilder(
+        response = SlackIssuesMessageBuilder(
             group,
             identity=identity,
             actions=action_list,
             tags=original_tags_from_request,
             rules=[rule] if rule else None,
         ).build()
-        body = self.construct_reply(attachment, is_message=_is_message(slack_request.data))
+        # XXX(isabella): for actions on link unfurls, we omit the fallback text from the
+        # response so the unfurling endpoint understands the payload
+        if (
+            slack_request.data.get("container")
+            and slack_request.data["container"].get("is_app_unfurl")
+            and "text" in response
+        ):
+            del response["text"]
 
-        return self.respond(body)
+        if not slack_request.data.get("response_url"):
+            # XXX: when you click an option in a modal dropdown it submits the request even though "Submit" has not been clicked
+            return self.respond()
+
+        response_url = slack_request.data["response_url"]
+        if not features.has("organizations:slack-sdk-webhook-handling", group.project.organization):
+            slack_client = SlackClient(integration_id=slack_request.integration.id)
+            try:
+                slack_client.post(response_url, data=response, json=True)
+            except ApiError as e:
+                logger.error("slack.action.response-error", extra={"error": str(e)})
+
+        else:
+            json_blocks = orjson.dumps(response.get("blocks")).decode()
+            webhook_client = WebhookClient(response_url)
+            try:
+                webhook_client.send(blocks=json_blocks)
+                logger.info(
+                    "slack.webhook.update_status.success",
+                    extra={"integration_id": slack_request.integration.id},
+                )
+            except SlackApiError as e:
+                logger.error("slack.webhook.update_status.response-error", extra={"error": str(e)})
+
+        return self.respond(response)
 
     def handle_unfurl(self, slack_request: SlackActionRequest, action: str) -> Response:
         organization_integrations = integration_service.get_organization_integrations(

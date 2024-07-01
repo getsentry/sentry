@@ -32,11 +32,12 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(
     name="sentry.tasks.backfill_seer_grouping_records",
-    queue="default",
+    queue="backfill_seer_grouping_records",
     max_retries=0,
     silo_mode=SiloMode.REGION,
     soft_time_limit=60 * 15,
     time_limit=60 * 15 + 5,
+    acks_late=True,
 )
 def backfill_seer_grouping_records_for_project(
     current_project_id: int,
@@ -245,6 +246,7 @@ def call_next_backfill(
                 last_processed_project_index,
                 only_delete,
             ],
+            headers={"sentry-propagate-traces": False},
         )
     else:
         # TODO: delete project redis key here if needed?
@@ -290,4 +292,5 @@ def call_next_backfill(
                 last_processed_project_index,
                 only_delete,
             ],
+            headers={"sentry-propagate-traces": False},
         )

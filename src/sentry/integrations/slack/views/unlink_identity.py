@@ -7,11 +7,15 @@ from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from rest_framework.request import Request
 
+from sentry import features
 from sentry.integrations.slack.metrics import (
     SLACK_BOT_COMMAND_UNLINK_IDENTITY_FAILURE_DATADOG_METRIC,
     SLACK_BOT_COMMAND_UNLINK_IDENTITY_SUCCESS_DATADOG_METRIC,
 )
-from sentry.integrations.slack.utils.notifications import send_slack_response
+from sentry.integrations.slack.utils.notifications import (
+    respond_to_slack_command,
+    send_slack_response,
+)
 from sentry.integrations.slack.views import build_linking_url as base_build_linking_url
 from sentry.integrations.slack.views import never_cache, render_error_page
 from sentry.integrations.slack.views.types import IdentityParams
@@ -125,9 +129,11 @@ class SlackUnlinkIdentityView(BaseView):
             )
             raise Http404
 
-        send_slack_response(params, SUCCESS_UNLINKED_MESSAGE, command="unlink")
+        if features.has("organizations:slack-sdk-link-commands", params.organization):
+            respond_to_slack_command(params, SUCCESS_UNLINKED_MESSAGE, command="link")
+        else:
+            send_slack_response(params, SUCCESS_UNLINKED_MESSAGE, command="unlink")
 
-        _logger.info("unlink_identity_success", extra={"slack_id": params.slack_id})
         metrics.incr(self._METRICS_SUCCESS_KEY + ".post.unlink_identity", sample_rate=1.0)
 
         return render_to_response(

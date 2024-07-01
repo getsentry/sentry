@@ -87,7 +87,7 @@ def detect_breakpoints(breakpoint_request: BreakpointRequest) -> BreakpointRespo
             sentry_sdk.capture_exception(e)
             return {"data": []}
 
-    with sentry_sdk.push_scope() as scope:
+    with sentry_sdk.isolation_scope() as scope:
         scope.set_context(
             "seer_response",
             {

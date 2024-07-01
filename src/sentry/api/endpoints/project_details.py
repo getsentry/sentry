@@ -49,6 +49,7 @@ from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectredirect import ProjectRedirect
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.notifications.utils import has_alert_integration
+from sentry.tasks.delete_seer_grouping_records import call_seer_delete_project_grouping_records
 
 logger = logging.getLogger(__name__)
 
@@ -124,6 +125,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "performanceIssueSendToPlatform",
         "highlightContext",
         "highlightTags",
+        "extrapolateMetrics",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -209,6 +211,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     performanceIssueCreationRate = serializers.FloatField(required=False, min_value=0, max_value=1)
     performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
     performanceIssueSendToPlatform = serializers.BooleanField(required=False)
+    extrapolateMetrics = serializers.BooleanField(required=False)
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -742,6 +745,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "dynamicSamplingBiases"
                 ]
 
+        if "extrapolateMetrics" in result:
+            if project.update_option("sentry:extrapolate_metrics", result["extrapolateMetrics"]):
+                changed_proj_settings["sentry:extrapolate_metrics"] = result["extrapolateMetrics"]
+
         if has_elevated_scopes:
             options = result.get("options", {})
             if "sentry:origins" in options:
@@ -887,6 +894,11 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     data = serialize(project, request.user, DetailedProjectSerializer())
                     return Response(data)
 
+            if "sentry:extrapolate_metrics" in options:
+                project.update_option(
+                    "sentry:extrapolate_metrics", bool(options["sentry:extrapolate_metrics"])
+                )
+
         self.create_audit_entry(
             request=request,
             organization=project.organization,
@@ -956,6 +968,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 )
 
             project.rename_on_pending_deletion()
+
+            # Tell seer to delete all the project's grouping records
+            if features.has("projects:similarity-embeddings-delete-by-hash", project):
+                call_seer_delete_project_grouping_records.apply_async(args=[project.id])
 
         return Response(status=204)
 

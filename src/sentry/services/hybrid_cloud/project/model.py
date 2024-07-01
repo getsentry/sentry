@@ -9,7 +9,7 @@ from typing import Any, TypedDict
 from pydantic.fields import Field
 
 from sentry.constants import ObjectStatus
-from sentry.services.hybrid_cloud import OptionValue, RpcModel
+from sentry.hybridcloud.rpc import OptionValue, RpcModel
 
 
 def _project_status_visible() -> int:
