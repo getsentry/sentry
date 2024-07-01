@@ -2205,4 +2205,5 @@ def test_get_metric_extraction_config_span_attributes_above_max_limit(
     with Feature("organizations:custom-metrics-extraction-rule"):
         config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
 
+        assert config
         assert len(config["metrics"]) == 1
