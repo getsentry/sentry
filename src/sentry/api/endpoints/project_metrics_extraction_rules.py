@@ -1,3 +1,4 @@
+import sentry_sdk
 from django.db import router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -55,6 +56,7 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                     project_id=project.id, trigger="span_attribute_extraction_configs"
                 )
         except Exception as e:
+            sentry_sdk.capture_exception()
             return Response(status=400, data={"detail": str(e)})
 
         return Response(status=204)
@@ -107,6 +109,7 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                 )
 
         except Exception:
+            sentry_sdk.capture_exception()
             return Response(
                 status=400,
             )
@@ -162,6 +165,7 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                 )
 
         except Exception:
+            sentry_sdk.capture_exception()
             return Response(status=400)
 
         persisted_config = serialize(

@@ -5862,18 +5862,18 @@
       ]
     ]
   },
-    "sentry.spanattributeextractionrulecondition": {
+  "sentry.spanattributeextractionrulecondition": {
     "dangling": false,
     "foreign_keys": {
-      "created_by_id": {
-        "kind": "HybridCloudForeignKey",
-        "model": "sentry.user",
-        "nullable": true
-      },
       "config": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.spanattributeextractionruleconfig",
         "nullable": false
+      },
+      "created_by_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
       }
     },
     "model": "sentry.spanattributeextractionrulecondition",
@@ -5885,14 +5885,14 @@
     "table_name": "sentry_spanattributeextractionrulecondition",
     "uniques": []
   },
-    "sentry.spanattributeextractionruleconfig": {
+  "sentry.spanattributeextractionruleconfig": {
     "dangling": false,
     "foreign_keys": {
       "created_by_id": {
         "kind": "HybridCloudForeignKey",
         "model": "sentry.user",
         "nullable": true
-      }
+      },
       "project": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.project",
@@ -5906,7 +5906,12 @@
       "Region"
     ],
     "table_name": "sentry_spanattributeextractionruleconfig",
-    "uniques": [["project", "span_attribute"]]
+    "uniques": [
+      [
+        "project",
+        "span_attribute"
+      ]
+    ]
   },
   "sentry.stringindexer": {
     "dangling": false,

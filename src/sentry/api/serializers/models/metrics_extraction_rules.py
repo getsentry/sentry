@@ -6,7 +6,7 @@ from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
 
 class MetricsExtractionRuleSerializer(Serializer):
     def __init__(self, *args, **kwargs):
-        Serializer.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def serialize(self, obj, attrs, user):
         return {
@@ -21,7 +21,7 @@ class MetricsExtractionRuleSerializer(Serializer):
 
 class SpanAttributeExtractionRuleConfigSerializer(Serializer):
     def __init__(self, *args, **kwargs):
-        Serializer.__init__(self, *args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def serialize(self, obj, attrs, user):
         return {
