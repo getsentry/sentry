@@ -26,7 +26,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import type {WithIssueTagsProps} from 'sentry/utils/withIssueTags';
 import withIssueTags from 'sentry/utils/withIssueTags';
 
-const getSupportedTags = (supportedTags: TagCollection) => {
+const getSupportedTags = (supportedTags: TagCollection): TagCollection => {
   return Object.fromEntries(
     Object.keys(supportedTags).map(key => [
       key,
@@ -41,15 +41,31 @@ const getSupportedTags = (supportedTags: TagCollection) => {
 };
 
 const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
-  const allTags: Tag[] = orderBy(Object.values(getSupportedTags(tags)), 'key');
-  const eventTags = allTags.filter(tag => tag.kind === FieldKind.TAG);
-  const issueFields = allTags.filter(tag => tag.kind === FieldKind.FIELD);
+  const allTags: Tag[] = Object.values(tags);
+  const eventTags = orderBy(
+    allTags.filter(tag => tag.kind === FieldKind.TAG),
+    ['totalValues', 'key'],
+    ['desc', 'asc']
+  );
+  const issueFields = orderBy(
+    allTags.filter(tag => tag.kind === FieldKind.ISSUE_FIELD),
+    ['key']
+  );
+  const eventFields = orderBy(
+    allTags.filter(tag => tag.kind === FieldKind.EVENT_FIELD),
+    ['key']
+  );
 
   return [
     {
-      value: FieldKind.FIELD,
-      label: t('Issue Fields'),
+      value: FieldKind.ISSUE_FIELD,
+      label: t('Issue Filters'),
       children: issueFields,
+    },
+    {
+      value: FieldKind.EVENT_FIELD,
+      label: t('Event Filters'),
+      children: eventFields,
     },
     {
       value: FieldKind.TAG,
