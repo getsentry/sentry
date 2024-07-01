@@ -39,7 +39,7 @@ from snuba_sdk.expressions import Expression
 from sentry.api.event_search import ParenExpression, SearchFilter, SearchKey, SearchValue
 from sentry.models.organization import Organization
 from sentry.replays.lib.new_query.errors import CouldNotParseValue, OperatorNotSupported
-from sentry.replays.lib.new_query.fields import ColumnField, FieldProtocol
+from sentry.replays.lib.new_query.fields import ColumnField, ExpressionField, FieldProtocol
 from sentry.replays.usecases.query.fields import ComputedField, TagField
 from sentry.utils.snuba import raw_snql_query
 
@@ -92,7 +92,7 @@ def handle_search_filters(
     search_filters: Sequence[SearchFilter | str | ParenExpression],
 ) -> list[Condition]:
     """Convert search filters to snuba conditions."""
-    result: list[Condition] = []
+    result: list[Condition | And] = []
     look_back = None
     for search_filter in search_filters:
         # SearchFilters are transformed into Conditions and appended to the result set.  If they
@@ -135,7 +135,7 @@ def handle_search_filters(
 def attempt_compressed_condition(
     result: list[Expression],
     condition: Condition,
-    condition_type: And | Or,
+    condition_cls: And.__class__ | Or.__class__,
 ):
     """Unnecessary query optimization.
 
@@ -144,10 +144,10 @@ def attempt_compressed_condition(
 
     (block OR block) OR block => (block OR block OR block)
     """
-    if isinstance(result[-1], condition_type):
+    if isinstance(result[-1], condition_cls):
         result[-1].conditions.append(condition)
     else:
-        result.append(condition_type([result.pop(), condition]))
+        result.append(condition_cls([result.pop(), condition]))
 
 
 def search_filter_to_condition(
@@ -155,7 +155,7 @@ def search_filter_to_condition(
     search_filter: SearchFilter,
 ) -> Condition | None:
     field = search_config.get(search_filter.key.name)
-    if isinstance(field, (ColumnField, ComputedField)):
+    if isinstance(field, (ColumnField, ExpressionField, ComputedField)):
         return field.apply(search_filter)
 
     if "*" in search_config:
@@ -184,6 +184,15 @@ class Paginators:
     offset: int
 
 
+@dataclasses.dataclass
+class QueryResponse:
+    results: list[Any]
+    has_more: bool
+    source: str  # Used to add an X-Data-Source header to endpoint responses
+    # This is a non-standard HTTP header so there's no convention, but we use it to tell which subquery was used.
+    # E.g. scalar, aggregate, materialized view
+
+
 def query_using_optimized_search(
     fields: list[str],
     search_filters: Sequence[SearchFilter | str | ParenExpression],
@@ -195,7 +204,7 @@ def query_using_optimized_search(
     period_start: datetime,
     period_stop: datetime,
     request_user_id: int | None = None,
-):
+) -> QueryResponse:
     tenant_id = _make_tenant_id(organization)
 
     # Environments is provided to us outside of the ?query= url parameter. It's stil filtered like
@@ -221,6 +230,7 @@ def query_using_optimized_search(
             period_stop=period_stop,
         )
         referrer = "replays.query.browse_scalar_conditions_subquery"
+        source = "scalar-subquery"
     else:
         query = make_aggregate_search_conditions_query(
             search_filters=search_filters,
@@ -230,6 +240,7 @@ def query_using_optimized_search(
             period_stop=period_stop,
         )
         referrer = "replays.query.browse_aggregated_conditions_subquery"
+        source = "aggregated-subquery"
 
     query = query.set_limit(pagination.limit)
     query = query.set_offset(pagination.offset)
@@ -245,7 +256,11 @@ def query_using_optimized_search(
     # These replay_ids are ordered by the OrderBy expression in the query above.
     replay_ids = [row["replay_id"] for row in subquery_response.get("data", [])]
     if not replay_ids:
-        return [], has_more
+        return QueryResponse(
+            results=[],
+            has_more=has_more,
+            source=source,
+        )
 
     # The final aggregation step.  Here we pass the replay_ids as the only filter.  In this step
     # we select everything and use as much memory as we need to complete the operation.
@@ -265,7 +280,11 @@ def query_using_optimized_search(
         referrer="replays.query.browse_query",
     )["data"]
 
-    return _make_ordered(replay_ids, results), has_more
+    return QueryResponse(
+        results=_make_ordered(replay_ids, results),
+        has_more=has_more,
+        source=source,
+    )
 
 
 def make_scalar_search_conditions_query(
@@ -383,18 +402,19 @@ def execute_query(query: Query, tenant_id: dict[str, int], referrer: str) -> Map
     )
 
 
-def handle_ordering(config: dict[str, Expression], sort: str) -> list[OrderBy]:
+def handle_ordering(sort_config: dict[str, Expression], sort: str) -> list[OrderBy]:
+    # hard to resolve mypy here, but OrderBy will raise an error if the expr is not Column | CurriedFunction | Function
     if sort.startswith("-"):
-        return [OrderBy(_get_sort_column(config, sort[1:]), Direction.DESC)]
+        return [OrderBy(_get_sort_expression(sort_config, sort[1:]), Direction.DESC)]
     else:
-        return [OrderBy(_get_sort_column(config, sort), Direction.ASC)]
+        return [OrderBy(_get_sort_expression(sort_config, sort), Direction.ASC)]
 
 
-def _get_sort_column(config: dict[str, Expression], column_name: str) -> Function:
+def _get_sort_expression(sort_config: dict[str, Expression], sort: str) -> Expression:
     try:
-        return config[column_name]
+        return sort_config[sort]
     except KeyError:
-        raise ParseError(f"The field `{column_name}` is not a sortable field.")
+        raise ParseError(f"The field `{sort}` is not a sortable field.")
 
 
 def _make_tenant_id(organization: Organization | None) -> dict[str, int]:

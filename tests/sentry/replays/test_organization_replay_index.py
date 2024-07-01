@@ -699,7 +699,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "!c:*zz",
                 "urls:example.com",
                 "url:example.com",
-                "activity:3",
+                "activity:8",
                 "activity:>2",
                 "count_warnings:1",
                 "count_warnings:>0",
@@ -759,7 +759,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
                 "release:[a,b]",
                 "c:*zz",
                 "!c:*st",
-                "!activity:3",
+                "!activity:8",
                 "activity:<2",
                 "viewed_by_id:2",
                 "seen_by_id:2",
@@ -1408,7 +1408,7 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
         with self.feature(REPLAYS_FEATURES):
             # Invalid field-names error regardless of ordering.
             with mock.patch(
-                "sentry.replays.endpoints.organization_replay_index.query_replays_collection_paginated",
+                "sentry.replays.endpoints.organization_replay_index.query_replays_collection",
                 side_effect=QueryMemoryLimitExceeded("mocked error"),
             ):
                 response = self.client.get(self.url)
@@ -1774,14 +1774,14 @@ class OrganizationReplayIndexTest(APITestCase, ReplaysSnubaTestCase):
 
         with self.feature(REPLAYS_FEATURES):
             queries = [
-                "activity:2",
-                "!activity:1",
-                "activity:>1",
-                "activity:<3",
-                "activity:>=2",
-                "activity:<=2",
+                "activity:1",
+                "!activity:0",
+                "activity:>0",
+                "activity:<2",
+                "activity:>=1",
+                "activity:<=1",
                 "activity:[1,2]",
-                "!activity:[1,3]",
+                "!activity:[0,2]",
             ]
             for query in queries:
                 response = self.client.get(self.url + f"?field=id&query={query}")

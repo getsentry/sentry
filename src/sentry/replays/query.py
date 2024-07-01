@@ -26,6 +26,7 @@ from sentry.models.organization import Organization
 from sentry.replays.lib.query import all_values_for_tag_key
 from sentry.replays.usecases.query import (
     Paginators,
+    QueryResponse,
     execute_query,
     make_full_aggregation_query,
     query_using_optimized_search,
@@ -39,7 +40,7 @@ MAX_REPLAY_LENGTH_HOURS = 1
 ELIGIBLE_SUBQUERY_SORTS = {"started_at", "browser.name", "os.name"}
 
 
-def query_replays_collection_paginated(
+def query_replays_collection(
     project_ids: list[int],
     start: datetime,
     end: datetime,
@@ -51,7 +52,7 @@ def query_replays_collection_paginated(
     search_filters: Sequence[SearchFilter],
     organization: Organization | None = None,
     actor: Any | None = None,
-):
+) -> QueryResponse:
     """Query aggregated replay collection."""
     paginators = Paginators(limit, offset)
 
