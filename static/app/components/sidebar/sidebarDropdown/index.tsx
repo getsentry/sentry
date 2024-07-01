@@ -75,10 +75,6 @@ export default function SidebarDropdown({orientation, collapsed, hideOrgLinks}: 
       </SentryLink>
     );
 
-  if (!hasOrganization && !hasUser) {
-    return null;
-  }
-
   return (
     <DeprecatedDropdownMenu>
       {({isOpen, getRootProps, getActorProps, getMenuProps}) => (
