@@ -146,7 +146,7 @@ class TeamProjectsCreateTest(APITestCase):
         test_team = self.create_team(organization=test_org)
 
         test_member = self.create_user(is_superuser=False)
-        self.create_member(user=test_member, organization=test_org, role="member", teams=[])
+        self.create_member(user=test_member, organization=test_org, role="admin", teams=[test_team])
         self.login_as(user=test_member)
         response = self.get_error_response(
             test_org.slug,
