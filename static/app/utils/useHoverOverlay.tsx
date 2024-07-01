@@ -10,6 +10,7 @@ import {
 import type {PopperProps} from 'react-popper';
 import {usePopper} from 'react-popper';
 import {useTheme} from '@emotion/react';
+import {useFloating} from '@floating-ui/react';
 
 import domId from 'sentry/utils/domId';
 import type {ColorOrAlias} from 'sentry/utils/theme';
