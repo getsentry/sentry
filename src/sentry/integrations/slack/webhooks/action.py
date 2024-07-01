@@ -566,7 +566,9 @@ class SlackActionEndpoint(Endpoint):
                 try:
                     private_metadata = orjson.loads(view.private_metadata)
                     webhook_client = WebhookClient(private_metadata["orig_response_url"])
-                    webhook_client.send(blocks=json_blocks, delete_original=False)
+                    webhook_client.send(
+                        blocks=json_blocks, delete_original=False, replace_original=True
+                    )
                     logger.info(
                         "slack.webhook.view_submission.success",
                         extra={
@@ -690,7 +692,9 @@ class SlackActionEndpoint(Endpoint):
             json_blocks = orjson.dumps(response.get("blocks")).decode()
             webhook_client = WebhookClient(response_url)
             try:
-                webhook_client.send(blocks=json_blocks, delete_original=False)
+                webhook_client.send(
+                    blocks=json_blocks, delete_original=False, replace_original=True
+                )
                 logger.info(
                     "slack.webhook.update_status.success",
                     extra={"integration_id": slack_request.integration.id, "blocks": json_blocks},
