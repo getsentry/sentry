@@ -10,7 +10,9 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.exceptions import InvalidParams
 from sentry.sentry_metrics.use_case_utils import get_use_case_id
 from sentry.snuba.metrics import DerivedMetricException, QueryDefinition, get_series
+from sentry.snuba.metrics.naming_layer import SessionMetricKey
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
+from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
 
 
@@ -59,6 +61,15 @@ class OrganizationReleaseHealthDataEndpoint(OrganizationEndpoint):
                     use_case_id=get_use_case_id(request),
                     tenant_ids={"organization_id": organization.id},
                 )
+                # due to possible data corruption crash free value can be less than 0 or greater than 1,
+                # which is not valid behavior, so those values have to be capped
+                metrics.ensure_crash_rate_in_bounds(
+                    data, request, organization, SessionMetricKey.CRASH_RATE.value
+                )
+                metrics.ensure_crash_rate_in_bounds(
+                    data, request, organization, SessionMetricKey.CRASH_FREE_RATE.value
+                )
+
                 data["query"] = query.query
             except (
                 InvalidParams,

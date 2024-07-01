@@ -19,6 +19,7 @@ import {TraceViewWaterfall} from 'sentry/views/performance/newTraceDetails';
 import {useReplayTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useReplayTraceMeta';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {loadTraceViewPreferences} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import TraceView, {
   StyledTracePanel,
@@ -31,8 +32,6 @@ import {
   useTransactionData,
 } from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
-
-import {loadTraceViewPreferences} from '../../../performance/newTraceDetails/traceState/tracePreferences';
 
 function TracesNotFound({performanceActive}: {performanceActive: boolean}) {
   // We want to send the 'trace_status' data if the project actively uses and has access to the performance monitoring.
@@ -109,7 +108,6 @@ function Trace({replayRecord}: Props) {
   } = useTransactionData();
 
   const metaResults = useReplayTraceMeta(replayRecord);
-
   const preferences = useMemo(
     () =>
       loadTraceViewPreferences('replay-trace-view-preferences') ||

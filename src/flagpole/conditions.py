@@ -90,7 +90,14 @@ class ConditionBase(BaseModel):
 
         return value in create_case_insensitive_set_from_list(condition_property)
 
-    def _evaluate_equals(self, condition_property: Any, segment_name: str) -> bool:
+    def _evaluate_equals(
+        self, condition_property: Any, segment_name: str, strict_validation: bool = False
+    ) -> bool:
+        # Strict validation enforces that a property exists when used in an
+        # equals condition
+        if condition_property is None and not strict_validation:
+            return False
+
         if not isinstance(condition_property, type(self.value)):
             value_type = get_type_name(self.value)
             property_value = get_type_name(condition_property)
@@ -163,20 +170,26 @@ EqualsOperatorValueTypes = (
 class EqualsCondition(ConditionBase):
     operator: Literal[ConditionOperatorKind.EQUALS] = ConditionOperatorKind.EQUALS
     value: EqualsOperatorValueTypes
+    strict_validation: bool = False
 
     def _operator_match(self, condition_property: Any, segment_name: str):
         return self._evaluate_equals(
-            condition_property=condition_property, segment_name=segment_name
+            condition_property=condition_property,
+            segment_name=segment_name,
+            strict_validation=self.strict_validation,
         )
 
 
 class NotEqualsCondition(ConditionBase):
     operator: Literal[ConditionOperatorKind.NOT_EQUALS] = ConditionOperatorKind.NOT_EQUALS
     value: EqualsOperatorValueTypes
+    strict_validation: bool = False
 
     def _operator_match(self, condition_property: Any, segment_name: str):
         return not self._evaluate_equals(
-            condition_property=condition_property, segment_name=segment_name
+            condition_property=condition_property,
+            segment_name=segment_name,
+            strict_validation=self.strict_validation,
         )
 
 
@@ -204,6 +217,14 @@ class Segment(BaseModel):
             match_condition = condition.match(context, segment_name=self.name)
             if not match_condition:
                 return False
+        return True
+
+    def in_rollout(self, context: EvaluationContext) -> bool:
+        # Rollout = 0 allows segments to match and disable a feature
+        # even if other segments would match
+        if self.rollout == 0:
+            return False
+
         # Apply incremental rollout if available.
         if self.rollout is not None and self.rollout < 100:
             return context.id % 100 <= self.rollout

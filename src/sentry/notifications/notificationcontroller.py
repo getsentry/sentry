@@ -7,6 +7,7 @@ from typing import Union
 from django.db.models import Q
 
 from sentry import features
+from sentry.hybridcloud.services.organization_mapping.serial import serialize_organization_mapping
 from sentry.integrations.types import (
     EXTERNAL_PROVIDERS_REVERSE_VALUES,
     PERSONAL_NOTIFICATION_PROVIDERS,
@@ -32,7 +33,6 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.services.hybrid_cloud.organization_mapping.serial import serialize_organization_mapping
 from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.actor import Actor, ActorType
 
@@ -72,11 +72,10 @@ class NotificationController:
         self.type = type
         self.provider = provider
 
+        org_mapping = OrganizationMapping.objects.filter(organization_id=organization_id).first()
         org = (
-            serialize_organization_mapping(
-                OrganizationMapping.objects.filter(organization_id=organization_id).first()
-            )
-            if organization_id
+            serialize_organization_mapping(org_mapping)
+            if organization_id and org_mapping is not None
             else None
         )
         if org and features.has("organizations:team-workflow-notifications", org):
@@ -290,11 +289,12 @@ class NotificationController:
             )
         )
 
+        org_mapping = OrganizationMapping.objects.filter(
+            organization_id=self.organization_id
+        ).first()
         org = (
-            serialize_organization_mapping(
-                OrganizationMapping.objects.filter(organization_id=self.organization_id).first()
-            )
-            if self.organization_id
+            serialize_organization_mapping(org_mapping)
+            if self.organization_id and org_mapping is not None
             else None
         )
         has_team_workflow = org and features.has("organizations:team-workflow-notifications", org)

@@ -8,8 +8,9 @@ from slack_sdk.web import SlackResponse
 
 from sentry.integrations.base import disable_integration, is_response_error, is_response_success
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.integrations import Integration
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.silo.base import SiloMode
 from sentry.utils import metrics
 
@@ -17,7 +18,7 @@ SLACK_DATADOG_METRIC = "integrations.slack.http_response"
 
 logger = logging.getLogger(__name__)
 
-SLACK_SDK_WRAP_METHODS = {"chat_postMessage"}
+SLACK_SDK_WRAP_METHODS = {"api_call"}
 
 
 def track_response_data(response: SlackResponse, method: str, error: str | None = None) -> None:
@@ -46,6 +47,7 @@ def is_response_fatal(response: SlackResponse) -> bool:
     return False
 
 
+# TODO: add this to the client somehow
 def record_response_for_disabling_integration(response: SlackResponse, integration_id: int) -> None:
     redis_key = f"sentry-integration-error:{integration_id}"
 
@@ -62,23 +64,24 @@ def record_response_for_disabling_integration(response: SlackResponse, integrati
         disable_integration(buffer, redis_key, integration_id)
 
 
-def wrapper(method: FunctionType, integration_id):
+def wrapper(method: FunctionType):
     @wraps(method)
     def wrapped(*args, **kwargs):
-        if method.__name__ not in SLACK_SDK_WRAP_METHODS:
-            return method(*args, **kwargs)
-
         try:
             response = method(*args, **kwargs)
             track_response_data(response=response, method=method.__name__)
-            record_response_for_disabling_integration(response, integration_id)
         except SlackApiError as e:
             if e.response:
                 track_response_data(response=e.response, error=str(e), method=method.__name__)
-
-                record_response_for_disabling_integration(e.response, integration_id)
             else:
                 logger.info("slack_sdk.missing_error_response", extra={"error": str(e)})
+            raise
+        except TimeoutError:
+            metrics.incr(
+                SLACK_DATADOG_METRIC,
+                sample_rate=1.0,
+                tags={"status": "timeout"},
+            )
             raise
 
         return response
@@ -86,27 +89,27 @@ def wrapper(method: FunctionType, integration_id):
     return wrapped
 
 
-def wrap_methods_in_class(cls, integration_id):
+def wrap_api_call(cls):
     for name, attribute in vars(cls).items():
-        if isinstance(attribute, FunctionType):
-            setattr(cls, name, wrapper(attribute, integration_id))
-
-    for base in cls.__bases__:
-        wrap_methods_in_class(base, integration_id)
+        if isinstance(attribute, FunctionType) and attribute.__name__ in SLACK_SDK_WRAP_METHODS:
+            setattr(cls, name, wrapper(attribute))
 
 
 class MetaClass(type):
-    def __call__(cls, *args, **kwargs):
-        obj = super().__call__(*args, **kwargs)
-        wrap_methods_in_class(cls, obj.integration_id)
-        return obj
+    def __new__(meta, name, bases, dct):
+        cls = super().__new__(meta, name, bases, dct)
+        for parent in cls.__bases__:
+            for base in parent.__bases__:
+                # this wraps the api_call function in the slack_sdk BaseClient class
+                wrap_api_call(base)
+        return cls
 
 
 class SlackSdkClient(WebClient, metaclass=MetaClass):
     def __init__(self, integration_id: int):
         self.integration_id = integration_id
 
-        integration = None
+        integration: Integration | RpcIntegration | None
         if SiloMode.get_current_mode() == SiloMode.REGION:
             integration = integration_service.get_integration(integration_id=integration_id)
         else:  # control or monolith (local)

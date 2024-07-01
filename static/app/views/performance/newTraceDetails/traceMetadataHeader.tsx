@@ -154,150 +154,140 @@ function getIssuesBreadCrumbs(organization: Organization, location: Location) {
 function getInsightsModuleBreadcrumbs(location: Location, organization: Organization) {
   const crumbs: Crumb[] = [];
 
-  if (organization.features.includes('performance-insights')) {
-    crumbs.push({
-      label: t('Insights'),
-    });
+  crumbs.push({
+    label: t('Insights'),
+  });
 
-    switch (location.query.referrer) {
-      case TraceViewSources.REQUESTS_MODULE:
-        crumbs.push({
-          label: t('Requests'),
-          to: getBreadCrumbTarget(`insights/http/`, location.query, organization),
-        });
+  switch (location.query.referrer) {
+    case TraceViewSources.REQUESTS_MODULE:
+      crumbs.push({
+        label: t('Requests'),
+        to: getBreadCrumbTarget(`insights/http/`, location.query, organization),
+      });
 
-        crumbs.push({
-          label: t('Domain Summary'),
-          to: getBreadCrumbTarget(`insights/http/domains/`, location.query, organization),
-        });
-        break;
-      case TraceViewSources.QUERIES_MODULE:
-        crumbs.push({
-          label: t('Queries'),
-          to: getBreadCrumbTarget(`insights/database`, location.query, organization),
-        });
+      crumbs.push({
+        label: t('Domain Summary'),
+        to: getBreadCrumbTarget(`insights/http/domains/`, location.query, organization),
+      });
+      break;
+    case TraceViewSources.QUERIES_MODULE:
+      crumbs.push({
+        label: t('Queries'),
+        to: getBreadCrumbTarget(`insights/database`, location.query, organization),
+      });
 
-        if (location.query.groupId) {
-          crumbs.push({
-            label: t('Query Summary'),
-            to: getBreadCrumbTarget(
-              `insights/database/spans/span/${location.query.groupId}`,
-              location.query,
-              organization
-            ),
-          });
-        } else {
-          crumbs.push({
-            label: t('Query Summary'),
-          });
-        }
-        break;
-      case TraceViewSources.ASSETS_MODULE:
+      if (location.query.groupId) {
         crumbs.push({
-          label: t('Assets'),
+          label: t('Query Summary'),
           to: getBreadCrumbTarget(
-            `insights/browser/assets`,
+            `insights/database/spans/span/${location.query.groupId}`,
             location.query,
             organization
           ),
         });
+      } else {
+        crumbs.push({
+          label: t('Query Summary'),
+        });
+      }
+      break;
+    case TraceViewSources.ASSETS_MODULE:
+      crumbs.push({
+        label: t('Assets'),
+        to: getBreadCrumbTarget(`insights/browser/assets`, location.query, organization),
+      });
 
-        if (location.query.groupId) {
-          crumbs.push({
-            label: t('Asset Summary'),
-            to: getBreadCrumbTarget(
-              `insights/browser/assets/spans/span/${location.query.groupId}`,
-              location.query,
-              organization
-            ),
-          });
-        } else {
-          crumbs.push({
-            label: t('Asset Summary'),
-          });
-        }
-        break;
-      case TraceViewSources.APP_STARTS_MODULE:
+      if (location.query.groupId) {
         crumbs.push({
-          label: t('App Starts'),
+          label: t('Asset Summary'),
           to: getBreadCrumbTarget(
-            `insights/mobile/app-startup`,
+            `insights/browser/assets/spans/span/${location.query.groupId}`,
             location.query,
             organization
           ),
         });
+      } else {
+        crumbs.push({
+          label: t('Asset Summary'),
+        });
+      }
+      break;
+    case TraceViewSources.APP_STARTS_MODULE:
+      crumbs.push({
+        label: t('App Starts'),
+        to: getBreadCrumbTarget(
+          `insights/mobile/app-startup`,
+          location.query,
+          organization
+        ),
+      });
 
-        crumbs.push({
-          label: t('Screen Summary'),
-          to: getBreadCrumbTarget(
-            `mobile/app-startup/spans/`,
-            location.query,
-            organization
-          ),
-        });
-        break;
-      case TraceViewSources.SCREEN_LOADS_MODULE:
-        crumbs.push({
-          label: t('Screen Loads'),
-          to: getBreadCrumbTarget(
-            `insights/mobile/screens`,
-            location.query,
-            organization
-          ),
-        });
+      crumbs.push({
+        label: t('Screen Summary'),
+        to: getBreadCrumbTarget(
+          `mobile/app-startup/spans/`,
+          location.query,
+          organization
+        ),
+      });
+      break;
+    case TraceViewSources.SCREEN_LOADS_MODULE:
+      crumbs.push({
+        label: t('Screen Loads'),
+        to: getBreadCrumbTarget(`insights/mobile/screens`, location.query, organization),
+      });
 
-        crumbs.push({
-          label: t('Screen Summary'),
-          to: getBreadCrumbTarget(
-            `insights/mobile/screens/spans`,
-            location.query,
-            organization
-          ),
-        });
-        break;
-      case TraceViewSources.WEB_VITALS_MODULE:
-        crumbs.push({
-          label: t('Web Vitals'),
-          to: getBreadCrumbTarget(
-            `insights/browser/pageloads`,
-            location.query,
-            organization
-          ),
-        });
+      crumbs.push({
+        label: t('Screen Summary'),
+        to: getBreadCrumbTarget(
+          `insights/mobile/screens/spans`,
+          location.query,
+          organization
+        ),
+      });
+      break;
+    case TraceViewSources.WEB_VITALS_MODULE:
+      crumbs.push({
+        label: t('Web Vitals'),
+        to: getBreadCrumbTarget(
+          `insights/browser/pageloads`,
+          location.query,
+          organization
+        ),
+      });
 
-        crumbs.push({
-          label: t('Page Overview'),
-          to: getBreadCrumbTarget(
-            `insights/browser/pageloads/overview`,
-            location.query,
-            organization
-          ),
-        });
-        break;
-      case TraceViewSources.CACHES_MODULE:
-        crumbs.push({
-          label: t('Caches'),
-          to: getBreadCrumbTarget(`insights/caches`, location.query, organization),
-        });
-        break;
-      case TraceViewSources.QUEUES_MODULE:
-        crumbs.push({
-          label: t('Queues'),
-          to: getBreadCrumbTarget(`insights/queues`, location.query, organization),
-        });
+      crumbs.push({
+        label: t('Page Overview'),
+        to: getBreadCrumbTarget(
+          `insights/browser/pageloads/overview`,
+          location.query,
+          organization
+        ),
+      });
+      break;
+    case TraceViewSources.CACHES_MODULE:
+      crumbs.push({
+        label: t('Caches'),
+        to: getBreadCrumbTarget(`insights/caches`, location.query, organization),
+      });
+      break;
+    case TraceViewSources.QUEUES_MODULE:
+      crumbs.push({
+        label: t('Queues'),
+        to: getBreadCrumbTarget(`insights/queues`, location.query, organization),
+      });
 
-        crumbs.push({
-          label: t('Destination Summary'),
-          to: getBreadCrumbTarget(
-            `insights/queues/destination`,
-            location.query,
-            organization
-          ),
-        });
-        break;
-      default:
-        break;
-    }
+      crumbs.push({
+        label: t('Destination Summary'),
+        to: getBreadCrumbTarget(
+          `insights/queues/destination`,
+          location.query,
+          organization
+        ),
+      });
+      break;
+    default:
+      break;
   }
 
   crumbs.push({

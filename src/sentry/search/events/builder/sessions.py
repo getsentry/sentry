@@ -6,6 +6,7 @@ from snuba_sdk import Column, Entity, Flags, Granularity, Query, Request
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.datasets.sessions import SessionsDatasetConfig
 from sentry.search.events.types import SelectType, WhereType
 
 
@@ -13,6 +14,7 @@ class SessionsV2QueryBuilder(QueryBuilder):
     filter_allowlist_fields = {"project", "project_id", "environment", "release"}
     requires_organization_condition = True
     organization_column: str = "org_id"
+    config_class = SessionsDatasetConfig
 
     def __init__(
         self,

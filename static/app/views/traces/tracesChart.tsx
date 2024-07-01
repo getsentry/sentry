@@ -11,10 +11,10 @@ import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {CHART_HEIGHT} from 'sentry/views/performance/database/settings';
-import Chart, {ChartType} from 'sentry/views/starfish/components/chart';
-import ChartPanel from 'sentry/views/starfish/components/chartPanel';
-import {useSpanIndexedSeries} from 'sentry/views/starfish/queries/useDiscoverSeries';
+import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
+import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
+import {useSpanIndexedSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
 
 import {areQueriesEmpty} from './utils';
 
@@ -24,14 +24,14 @@ export function TracesChart({}: Props) {
   const location = useLocation();
 
   const queries = useMemo(() => {
-    return decodeList(location.query.query);
+    return decodeList(location.query.query)?.map(query => query.trim());
   }, [location.query.query]);
 
   const enabled = useMemo(
     () => [
       true, // always visualize the first series
-      Boolean(queries?.[1]?.trim()),
-      Boolean(queries?.[2]?.trim()),
+      Boolean(queries?.[1]),
+      Boolean(queries?.[2]),
     ],
     [queries]
   );
@@ -71,7 +71,8 @@ export function TracesChart({}: Props) {
       }
       const data = series[i]['count()'];
       data.color = CHART_PALETTE[2][i];
-      data.seriesName = queries[i] || t('All spans');
+      data.seriesName =
+        `span ${i + 1}: ${queries[i] || t('All spans')}` || t('All spans');
       allData.push(data);
     }
 

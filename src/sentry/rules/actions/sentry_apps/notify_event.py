@@ -9,7 +9,7 @@ from sentry.eventstore.models import GroupEvent
 from sentry.models.project import Project
 from sentry.rules.actions.sentry_apps import SentryAppEventAction
 from sentry.rules.base import CallbackFuture
-from sentry.services.hybrid_cloud.app import (
+from sentry.sentry_apps.services.app import (
     RpcSentryApp,
     RpcSentryAppComponent,
     RpcSentryAppEventData,

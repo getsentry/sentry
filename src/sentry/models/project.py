@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import logging
 from collections import defaultdict
-from collections.abc import Collection, Iterable, Mapping
-from typing import TYPE_CHECKING, ClassVar
+from collections.abc import Callable, Collection, Iterable, Mapping
+from typing import TYPE_CHECKING, Any, ClassVar
 from uuid import uuid1
 
 import sentry_sdk
@@ -23,24 +23,21 @@ from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.db.mixin import PendingDeletionMixin, delete_pending_deletion_option
 from sentry.db.models import (
-    BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    OptionManager,
-    Value,
     region_silo_model,
     sane_repr,
 )
 from sentry.db.models.fields.slug import SentrySlugField
+from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.utils import slugify_instance
 from sentry.locks import locks
 from sentry.models.grouplink import GroupLink
-from sentry.models.options.option import OptionMixin
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.models.team import Team
 from sentry.monitors.models import MonitorEnvironment, MonitorStatus
-from sentry.services.hybrid_cloud.notifications import notifications_service
+from sentry.notifications.services import notifications_service
 from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQuery
@@ -52,6 +49,7 @@ from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
 
 if TYPE_CHECKING:
+    from sentry.models.options.project_option import ProjectOptionManager
     from sentry.models.user import User
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
@@ -105,6 +103,8 @@ GETTING_STARTED_DOCS_PLATFORMS = [
     "javascript-nextjs",
     "javascript-react",
     "javascript-remix",
+    "javascript-solid",
+    "javascript-solidstart",
     "javascript-svelte",
     "javascript-sveltekit",
     "javascript-vue",
@@ -174,7 +174,8 @@ class ProjectManager(BaseManager["Project"]):
 
         projects_by_user_id = defaultdict(set)
         for project_id, user_id in project_rows:
-            projects_by_user_id[user_id].add(project_id)
+            if user_id is not None:
+                projects_by_user_id[user_id].add(project_id)
         return projects_by_user_id
 
     def get_for_user_ids(self, user_ids: Collection[int]) -> QuerySet:
@@ -217,7 +218,7 @@ class ProjectManager(BaseManager["Project"]):
 
 @snowflake_id_model
 @region_silo_model
-class Project(Model, PendingDeletionMixin, OptionMixin):
+class Project(Model, PendingDeletionMixin):
     from sentry.models.projectteam import ProjectTeam
 
     """
@@ -304,6 +305,33 @@ class Project(Model, PendingDeletionMixin, OptionMixin):
         # This Project has enough issue volume to use high priority alerts
         has_high_priority_alerts: bool
 
+        # This Project has sent insight request spans
+        has_insights_http: bool
+
+        # This Project has sent insight db spans
+        has_insights_db: bool
+
+        # This Project has sent insight assets spans
+        has_insights_assets: bool
+
+        # This Project has sent insight app starts spans
+        has_insights_app_start: bool
+
+        # This Project has sent insight screen load spans
+        has_insights_screen_load: bool
+
+        # This Project has sent insight vitals spans
+        has_insights_vitals: bool
+
+        # This Project has sent insight caches spans
+        has_insights_caches: bool
+
+        # This Project has sent insight queues spans
+        has_insights_queues: bool
+
+        # This Project has sent insight llm monitoring spans
+        has_insights_llm_monitoring: bool
+
         bitfield_default = 10
         bitfield_null = True
 
@@ -374,18 +402,23 @@ class Project(Model, PendingDeletionMixin, OptionMixin):
         return False
 
     @property
-    def option_manager(self) -> OptionManager:
+    def option_manager(self) -> ProjectOptionManager:
         from sentry.models.options.project_option import ProjectOption
 
         return ProjectOption.objects
 
-    def update_option(self, key: str, value: Value) -> bool:
+    def get_option(
+        self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None
+    ) -> Any:
+        return self.option_manager.get_value(self, key, default, validate)
+
+    def update_option(self, key: str, value: Any) -> bool:
         projectoptions.update_rev_for_option(self)
-        return super().update_option(key, value)
+        return self.option_manager.set_value(self, key, value)
 
     def delete_option(self, key: str) -> None:
         projectoptions.update_rev_for_option(self)
-        super().delete_option(key)
+        self.option_manager.unset_value(self, key)
 
     def update_rev_for_option(self):
         return projectoptions.update_rev_for_option(self)
@@ -472,6 +505,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin):
         for rule_id, environment_id in Rule.objects.filter(
             project_id=self.id, environment_id__isnull=False
         ).values_list("id", "environment_id"):
+            assert environment_id is not None
             rules_by_environment_id[environment_id].add(rule_id)
 
         environment_names = dict(
@@ -605,7 +639,7 @@ class Project(Model, PendingDeletionMixin, OptionMixin):
     def get_lock_key(self):
         return f"project_token:{self.id}"
 
-    def copy_settings_from(self, project_id):
+    def copy_settings_from(self, project_id: int) -> bool:
         """
         Copies project level settings of the inputted project
         - General Settings
@@ -624,7 +658,13 @@ class Project(Model, PendingDeletionMixin, OptionMixin):
         from sentry.models.projectteam import ProjectTeam
         from sentry.models.rule import Rule
 
-        model_list = [EnvironmentProject, ProjectOwnership, ProjectTeam, Rule]
+        # XXX: this type sucks but it helps the type checker understand
+        model_list: tuple[type[EnvironmentProject | ProjectOwnership | ProjectTeam | Rule], ...] = (
+            EnvironmentProject,
+            ProjectOwnership,
+            ProjectTeam,
+            Rule,
+        )
 
         project = Project.objects.get(id=project_id)
         try:

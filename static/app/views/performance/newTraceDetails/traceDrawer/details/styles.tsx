@@ -9,7 +9,9 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import Tags from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
-import * as KeyValueData from 'sentry/components/keyValueData/card';
+import KeyValueData, {
+  type KeyValueDataContentProps,
+} from 'sentry/components/keyValueData';
 import {LazyRender, type LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
@@ -528,7 +530,7 @@ function SectionCard({
   items: SectionCardKeyValueList;
   title: React.ReactNode;
   disableTruncate?: boolean;
-  itemProps?: Partial<KeyValueData.ContentProps>;
+  itemProps?: Partial<KeyValueDataContentProps>;
   sortAlphabetically?: boolean;
 }) {
   const contentItems = items.map(item => ({item, ...itemProps}));
@@ -544,17 +546,19 @@ function SectionCard({
 }
 
 function SectionCardGroup({children}: {children: React.ReactNode}) {
-  return <KeyValueData.Group>{children}</KeyValueData.Group>;
+  return <KeyValueData.Container>{children}</KeyValueData.Container>;
 }
 
 function CopyableCardValueWithLink({
   value,
   linkTarget,
   linkText,
+  onClick,
 }: {
   value: React.ReactNode;
   linkTarget?: LocationDescriptor;
   linkText?: string;
+  onClick?: () => void;
 }) {
   return (
     <CardValueContainer>
@@ -569,7 +573,11 @@ function CopyableCardValueWithLink({
           />
         ) : null}
       </CardValueText>
-      {linkTarget && linkTarget ? <Link to={linkTarget}>{linkText}</Link> : null}
+      {linkTarget && linkTarget ? (
+        <Link to={linkTarget} onClick={onClick}>
+          {linkText}
+        </Link>
+      ) : null}
     </CardValueContainer>
   );
 }

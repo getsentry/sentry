@@ -94,7 +94,7 @@ export async function parseDashboard(
 const SUPPORTED_COLUMNS = new Set(['avg', 'max', 'min', 'sum', 'value']);
 const SUPPORTED_WIDGET_TYPES = new Set(['timeseries']);
 
-const METRIC_SUFFIX_TO_OP = {
+const METRIC_SUFFIX_TO_AGGREGATION = {
   avg: 'avg',
   max: 'max',
   min: 'min',
@@ -289,8 +289,8 @@ export class WidgetParser {
   }
 
   private parseQueryString(str: string) {
-    const operationMatch = str.match(/^(sum|avg|max|min):/);
-    let op = operationMatch ? operationMatch[1] : undefined;
+    const aggregationMatch = str.match(/^(sum|avg|max|min):/);
+    let aggregation = aggregationMatch ? aggregationMatch[1] : undefined;
 
     const metricNameMatch = str.match(/:(\S*){/);
     let metric = metricNameMatch ? metricNameMatch[1] : undefined;
@@ -298,10 +298,10 @@ export class WidgetParser {
     if (metric?.includes('.')) {
       const lastIndex = metric.lastIndexOf('.');
       const metricName = metric.slice(0, lastIndex);
-      const operationSuffix = metric.slice(lastIndex + 1);
+      const aggregationSuffix = metric.slice(lastIndex + 1);
 
-      if (METRIC_SUFFIX_TO_OP[operationSuffix]) {
-        op = METRIC_SUFFIX_TO_OP[operationSuffix];
+      if (METRIC_SUFFIX_TO_AGGREGATION[aggregationSuffix]) {
+        aggregation = METRIC_SUFFIX_TO_AGGREGATION[aggregationSuffix];
         metric = metricName;
       }
     }
@@ -315,9 +315,11 @@ export class WidgetParser {
     const appliedFunctionMatch = str.match(/\.(\w+)\(\)/);
     const appliedFunction = appliedFunctionMatch ? appliedFunctionMatch[1] : undefined;
 
-    if (!op) {
-      this.errors.push(`widget.request.query - could not parse op: ${str}, assuming sum`);
-      op = 'sum';
+    if (!aggregation) {
+      this.errors.push(
+        `widget.request.query - could not parse aggregation: ${str}, assuming sum`
+      );
+      aggregation = 'sum';
     }
 
     if (!metric) {
@@ -330,7 +332,7 @@ export class WidgetParser {
     // TODO: check which other functions are supported
     if (appliedFunction) {
       if (appliedFunction === 'as_count') {
-        op = 'sum';
+        aggregation = 'sum';
         this.errors.push(
           `widget.request.query - unsupported function ${appliedFunction}, assuming sum`
         );
@@ -342,7 +344,7 @@ export class WidgetParser {
     }
 
     return {
-      op,
+      aggregation,
       metric,
       filters,
       groupBy,
@@ -383,7 +385,7 @@ export class WidgetParser {
 
   // Mapping functions
   private async mapToMetricsQuery(widget): Promise<MetricsQuery | null> {
-    const {metric, op, filters} = widget;
+    const {metric, aggregation, filters} = widget;
 
     // @ts-expect-error name is actually defined on MetricMeta
     const metricMeta = this.availableMetrics.find(m => m.name === metric);
@@ -400,7 +402,7 @@ export class WidgetParser {
 
     return {
       mri: metricMeta.mri,
-      op,
+      aggregation,
       query,
       groupBy,
     };

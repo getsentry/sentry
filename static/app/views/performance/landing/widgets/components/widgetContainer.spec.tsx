@@ -869,7 +869,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
     expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
       'href',
-      '/performance/database/'
+      '/insights/database/'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
@@ -915,7 +915,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
     expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
       'href',
-      '/performance/http/'
+      '/insights/http/'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
@@ -943,7 +943,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
   });
 
   it('Most time consuming resources widget', async function () {
-    const data = initializeData(undefined, {features: ['performance-insights']});
+    const data = initializeData();
 
     wrapper = render(
       <MEPSettingProvider forceTransactions>
@@ -1008,7 +1008,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
     );
     expect(await screen.findByRole('button', {name: 'View All'})).toHaveAttribute(
       'href',
-      '/performance/caches/'
+      '/insights/caches/'
     );
     expect(eventsMock).toHaveBeenCalledTimes(1);
     expect(eventsMock).toHaveBeenNthCalledWith(
@@ -1061,7 +1061,6 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'p75(measurements.fcp)',
             'p75(measurements.cls)',
             'p75(measurements.ttfb)',
-            'p75(measurements.fid)',
             'p75(measurements.inp)',
             'opportunity_score(measurements.score.total)',
             'avg(measurements.score.total)',
@@ -1069,7 +1068,6 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'count_scores(measurements.score.lcp)',
             'count_scores(measurements.score.fcp)',
             'count_scores(measurements.score.cls)',
-            'count_scores(measurements.score.fid)',
             'count_scores(measurements.score.inp)',
             'count_scores(measurements.score.ttfb)',
           ],

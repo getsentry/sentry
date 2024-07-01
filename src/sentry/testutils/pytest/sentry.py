@@ -12,8 +12,8 @@ from typing import TypeVar
 from unittest import mock
 
 import pytest
+import sentry_sdk
 from django.conf import settings
-from sentry_sdk import Hub
 
 from sentry.runner.importer import install_plugin_apps
 from sentry.silo.base import SiloMode
@@ -295,7 +295,7 @@ def pytest_configure(config: pytest.Config) -> None:
     from sentry.runner.initializer import initialize_app
 
     initialize_app({"settings": settings, "options": None})
-    Hub.main.bind_client(None)
+    sentry_sdk.Scope.get_global_scope().set_client(None)
     register_extensions()
 
     from sentry.utils.redis import clusters
@@ -367,10 +367,11 @@ def pytest_runtest_teardown(item: pytest.Item) -> None:
     from sentry.models.options.project_option import ProjectOption
     from sentry.models.options.user_option import UserOption
 
-    for model in (OrganizationOption, ProjectOption, UserOption):
-        model.objects.clear_local_cache()
+    OrganizationOption.objects.clear_local_cache()
+    ProjectOption.objects.clear_local_cache()
+    UserOption.objects.clear_local_cache()
 
-    Hub.main.bind_client(None)
+    sentry_sdk.Scope.get_global_scope().set_client(None)
 
 
 def _shuffle(items: list[pytest.Item]) -> None:

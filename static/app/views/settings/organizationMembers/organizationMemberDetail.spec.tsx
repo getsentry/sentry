@@ -102,7 +102,7 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Can Edit', function () {
-    const organization = OrganizationFixture({teams, features: ['team-roles']});
+    const organization = OrganizationFixture({features: ['team-roles']});
 
     beforeEach(function () {
       TeamStore.init();
@@ -275,7 +275,7 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Cannot Edit', function () {
-    const organization = OrganizationFixture({teams, access: ['org:read']});
+    const organization = OrganizationFixture({access: ['org:read']});
 
     beforeEach(function () {
       TeamStore.init();
@@ -322,7 +322,7 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Display status', function () {
-    const organization = OrganizationFixture({teams, access: ['org:read']});
+    const organization = OrganizationFixture({access: ['org:read']});
 
     beforeEach(function () {
       TeamStore.init();
@@ -384,7 +384,7 @@ describe('OrganizationMemberDetail', function () {
   });
 
   describe('Show resend button', function () {
-    const organization = OrganizationFixture({teams, access: ['org:read']});
+    const organization = OrganizationFixture({access: ['org:read']});
 
     beforeEach(function () {
       TeamStore.init();
@@ -490,7 +490,7 @@ describe('OrganizationMemberDetail', function () {
       }),
     });
 
-    const organization = OrganizationFixture({teams});
+    const organization = OrganizationFixture();
 
     beforeEach(function () {
       MockApiClient.clearMockResponses();
@@ -673,7 +673,7 @@ describe('OrganizationMemberDetail', function () {
       ...teamAssignment,
     });
 
-    const organization = OrganizationFixture({teams, features: ['team-roles']});
+    const organization = OrganizationFixture({features: ['team-roles']});
 
     beforeEach(() => {
       MockApiClient.clearMockResponses();

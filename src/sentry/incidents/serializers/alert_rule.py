@@ -28,7 +28,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import (
     AlertRule,
-    AlertRuleMonitorType,
+    AlertRuleMonitorTypeInt,
     AlertRuleThresholdType,
     AlertRuleTrigger,
 )
@@ -53,7 +53,7 @@ from .alert_rule_trigger import AlertRuleTriggerSerializer
 logger = logging.getLogger(__name__)
 
 
-class AlertRuleSerializer(CamelSnakeModelSerializer):
+class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
     """
     Serializer for creating/updating an alert rule. Required context:
      - `organization`: The organization related to this alert rule.
@@ -205,7 +205,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         ):
             raise serializers.ValidationError("Invalid monitor type")
 
-        return AlertRuleMonitorType(monitor_type)
+        return AlertRuleMonitorTypeInt(monitor_type)
 
     def validate_activation_condition(self, activation_condition):
         if activation_condition is None:
@@ -357,9 +357,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer):
         dataset = Dataset(data["dataset"].value)
         self._validate_time_window(dataset, data.get("time_window"))
 
-        entity = None
-        if features.has("organizations:metric-alert-ignore-archived", projects[0].organization):
-            entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
+        entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
 
         time_col = ENTITY_TIME_COLUMNS[get_entity_key_from_query_builder(query_builder)]
         query_builder.add_conditions(

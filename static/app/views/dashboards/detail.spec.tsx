@@ -147,7 +147,6 @@ describe('Dashboards > Detail', function () {
       initialData = initializeOrg({
         organization: OrganizationFixture({
           features: ['global-views', 'dashboards-basic', 'discover-query'],
-          projects: [ProjectFixture()],
         }),
       });
 
@@ -496,7 +495,6 @@ describe('Dashboards > Detail', function () {
             'dashboards-edit',
             'discover-query',
           ],
-          projects: [ProjectFixture()],
         }),
       });
 

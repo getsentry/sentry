@@ -11,6 +11,7 @@ from sentry import roles
 from sentry.api.serializers import serialize
 from sentry.backup.dependencies import merge_users_for_model_in_org
 from sentry.db.postgres.transactions import enforce_constraints
+from sentry.hybridcloud.rpc import OptionValue, logger
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleActivity
 from sentry.incidents.models.incident import IncidentActivity, IncidentSubscription
 from sentry.models.activity import Activity
@@ -36,8 +37,7 @@ from sentry.models.savedsearch import SavedSearch
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.team import Team, TeamStatus
 from sentry.monitors.models import Monitor
-from sentry.services.hybrid_cloud import OptionValue, logger
-from sentry.services.hybrid_cloud.app import app_service
+from sentry.sentry_apps.services.app import app_service
 from sentry.services.hybrid_cloud.organization import (
     OrganizationCheckService,
     OrganizationService,
@@ -60,6 +60,7 @@ from sentry.services.hybrid_cloud.organization.model import (
     RpcOrganizationDeleteResponse,
     RpcOrganizationDeleteState,
     RpcOrganizationMemberSummary,
+    flags_to_bits,
 )
 from sentry.services.hybrid_cloud.organization.serial import (
     serialize_member,
@@ -72,7 +73,6 @@ from sentry.services.hybrid_cloud.organization_actions.impl import (
     mark_organization_as_pending_deletion_with_outbox_message,
 )
 from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.util import flags_to_bits
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.auth import email_unlink_notifications
 from sentry.types.region import find_regions_for_orgs

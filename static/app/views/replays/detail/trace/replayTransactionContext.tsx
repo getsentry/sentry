@@ -10,7 +10,7 @@ import {
 import type {Location} from 'history';
 import sortBy from 'lodash/sortBy';
 
-import {getTimeStampFromTableDateField, getUtcDateString} from 'sentry/utils/dates';
+import {getUtcDateString} from 'sentry/utils/dates';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -109,28 +109,27 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
     });
   }, [replayRecord]);
 
+  const singleTracePayload = useMemo(() => {
+    const start = getUtcDateString(replayRecord?.started_at.getTime());
+    const end = getUtcDateString(replayRecord?.finished_at.getTime());
+    const eventView = makeEventView({start, end});
+
+    if (organization.features.includes('replay-trace-view-v1')) {
+      return {
+        ...getTraceRequestPayload({eventView, location: {} as Location}),
+        useSpans: 1,
+      };
+    }
+
+    return getTraceRequestPayload({eventView, location: {} as Location});
+  }, [replayRecord, organization.features]);
+
   const fetchSingleTraceData = useCallback(
-    async dataRow => {
+    async traceId => {
       try {
-        const {trace: traceId, timestamp} = dataRow;
-        const start = getUtcDateString(replayRecord?.started_at.getTime());
-        const end = getUtcDateString(replayRecord?.finished_at.getTime());
-        const eventView = makeEventView({start, end});
-        let payload;
-
-        if (organization.features.includes('replay-trace-view-v1')) {
-          payload = {
-            limit: 10000,
-            useSpans: 1,
-            timestamp,
-          };
-        } else {
-          payload = getTraceRequestPayload({eventView, location: {} as Location});
-        }
-
         const [trace, _traceResp] = await doDiscoverQuery<
           TraceSplitResults<TraceFullDetailed> | TraceFullDetailed[]
-        >(api, `/organizations/${orgSlug}/events-trace/${traceId}/`, payload);
+        >(api, `/organizations/${orgSlug}/events-trace/${traceId}/`, singleTracePayload);
 
         const {transactions, orphanErrors} = getTraceSplitResults<TraceFullDetailed>(
           trace,
@@ -157,39 +156,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
         }));
       }
     },
-    [api, orgSlug, organization, replayRecord]
-  );
-
-  const fetchTracesInBatches = useCallback(
-    async data => {
-      const clonedData = [...data];
-
-      while (clonedData.length > 0) {
-        const batch = clonedData.splice(0, 3);
-
-        // Update state for the current batch request
-        setState(
-          prev =>
-            ({
-              ...prev,
-              detailsRequests: prev.detailsRequests + batch.length,
-            }) as InternalState
-        );
-
-        // Wait for the current batch to finish
-        await Promise.allSettled(batch.map(fetchSingleTraceData));
-
-        // Update state for the current batch response
-        setState(
-          prev =>
-            ({
-              ...prev,
-              detailsResponses: prev.detailsResponses + batch.length,
-            }) as InternalState
-        );
-      }
-    },
-    [fetchSingleTraceData]
+    [api, orgSlug, singleTracePayload, organization]
   );
 
   const fetchTransactionData = useCallback(async () => {
@@ -233,15 +200,25 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
           payload
         );
 
-        const parsedData = data
-          .filter(row => row.trace) // Filter out items where trace is not truthy
-          .map(row => ({
-            trace: row.trace,
-            timestamp: getTimeStampFromTableDateField(row['min(timestamp)']),
-          }));
+        const traceIds = data.map(({trace}) => String(trace)).filter(Boolean);
 
+        // Do not await results here. Do the fetches async and let the loop continue
         (async function () {
-          await fetchTracesInBatches(parsedData);
+          setState(
+            prev =>
+              ({
+                ...prev,
+                detailsRequests: prev.detailsRequests + traceIds.length,
+              }) as InternalState
+          );
+          await Promise.allSettled(traceIds.map(fetchSingleTraceData));
+          setState(
+            prev =>
+              ({
+                ...prev,
+                detailsResponses: prev.detailsResponses + traceIds.length,
+              }) as InternalState
+          );
         })();
 
         const pageLinks = listResp?.getResponseHeader('Link') ?? null;
@@ -253,7 +230,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
         cursor = {cursor: '', results: false, href: ''} as ParsedHeader;
       }
     }
-  }, [api, listEventView, orgSlug, replayRecord, fetchTracesInBatches]);
+  }, [api, fetchSingleTraceData, listEventView, orgSlug, replayRecord]);
 
   const externalState = useMemo(() => internalToExternalState(state), [state]);
 

@@ -43,7 +43,12 @@ from sentry.models.project import Project
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.signals import issue_escalating
 from sentry.snuba.dataset import Dataset, EntityKey
-from sentry.snuba.metrics import MetricField, MetricGroupByField, MetricsQuery, get_series
+from sentry.snuba.metrics import (
+    DeprecatingMetricsQuery,
+    MetricField,
+    MetricGroupByField,
+    get_series,
+)
 from sentry.snuba.metrics.naming_layer.mri import ErrorsMRI
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
@@ -232,7 +237,7 @@ def _query_metrics_with_pagination(
                 metrics_offset,
                 category,
             )
-            projects = Project.objects.filter(id__in=project_ids)
+            projects = list(Project.objects.filter(id__in=project_ids))
             metrics_series_results = get_series(
                 projects=projects,
                 metrics_query=metrics_query,
@@ -296,7 +301,7 @@ def _generate_generic_metrics_backend_query(
     end_date: datetime,
     offset: int,
     category: GroupCategory | None = None,
-) -> MetricsQuery:
+) -> DeprecatingMetricsQuery:
     """
     This function generates a query to fetch the hourly events
     for a group_id through the Generic Metrics Backend.
@@ -321,7 +326,7 @@ def _generate_generic_metrics_backend_query(
             rhs=[str(group_id) for group_id in group_ids],
         )
     ]
-    return MetricsQuery(
+    return DeprecatingMetricsQuery(
         org_id=organization_id,
         project_ids=project_ids,
         select=select,

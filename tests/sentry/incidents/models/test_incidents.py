@@ -6,7 +6,7 @@ from django.core.cache import cache
 from django.db import router, transaction
 from django.utils import timezone
 
-from sentry.db.models.manager import BaseManager
+from sentry.db.models.manager.base import BaseManager
 from sentry.incidents.models.incident import (
     Incident,
     IncidentStatus,
@@ -63,19 +63,24 @@ class ActiveIncidentClearCacheTest(TestCase):
         self.trigger = self.create_alert_rule_trigger(self.alert_rule)
 
     def test_negative_cache(self):
+        subscription = self.alert_rule.snuba_query.subscriptions.first()
         assert (
             cache.get(
                 Incident.objects._build_active_incident_cache_key(
-                    self.alert_rule.id, self.project.id
+                    alert_rule_id=self.alert_rule.id,
+                    project_id=self.project.id,
+                    subscription_id=subscription.id,
                 )
             )
             is None
         )
-        Incident.objects.get_active_incident(self.alert_rule, self.project)
+        Incident.objects.get_active_incident(self.alert_rule, self.project, subscription)
         assert (
             cache.get(
                 Incident.objects._build_active_incident_cache_key(
-                    self.alert_rule.id, self.project.id
+                    alert_rule_id=self.alert_rule.id,
+                    project_id=self.project.id,
+                    subscription_id=subscription.id,
                 )
             )
             is False
@@ -85,44 +90,59 @@ class ActiveIncidentClearCacheTest(TestCase):
         assert (
             cache.get(
                 Incident.objects._build_active_incident_cache_key(
-                    self.alert_rule.id, self.project.id
+                    alert_rule_id=self.alert_rule.id,
+                    project_id=self.project.id,
+                    subscription_id=subscription.id,
                 )
             )
         ) is False
 
     def test_cache(self):
+        subscription = self.alert_rule.snuba_query.subscriptions.first()
         assert (
             cache.get(
                 Incident.objects._build_active_incident_cache_key(
-                    self.alert_rule.id, self.project.id
+                    alert_rule_id=self.alert_rule.id,
+                    project_id=self.project.id,
+                    subscription_id=subscription.id,
                 )
             )
             is None
         )
-        active_incident = self.create_incident(alert_rule=self.alert_rule, projects=[self.project])
-        Incident.objects.get_active_incident(self.alert_rule, self.project)
+        active_incident = self.create_incident(
+            alert_rule=self.alert_rule, projects=[self.project], subscription=subscription
+        )
+        Incident.objects.get_active_incident(self.alert_rule, self.project, subscription)
         assert (
             cache.get(
                 Incident.objects._build_active_incident_cache_key(
-                    self.alert_rule.id, self.project.id
+                    alert_rule_id=self.alert_rule.id,
+                    project_id=self.project.id,
+                    subscription_id=subscription.id,
                 )
             )
             == active_incident
         )
-        active_incident = self.create_incident(alert_rule=self.alert_rule, projects=[self.project])
+        active_incident = self.create_incident(
+            alert_rule=self.alert_rule, projects=[self.project], subscription=subscription
+        )
         assert (
             cache.get(
                 Incident.objects._build_active_incident_cache_key(
-                    self.alert_rule.id, self.project.id
+                    alert_rule_id=self.alert_rule.id,
+                    project_id=self.project.id,
+                    subscription_id=subscription.id,
                 )
             )
             is None
         )
-        Incident.objects.get_active_incident(self.alert_rule, self.project)
+        Incident.objects.get_active_incident(self.alert_rule, self.project, subscription)
         assert (
             cache.get(
                 Incident.objects._build_active_incident_cache_key(
-                    self.alert_rule.id, self.project.id
+                    alert_rule_id=self.alert_rule.id,
+                    project_id=self.project.id,
+                    subscription_id=subscription.id,
                 )
             )
             == active_incident

@@ -18,15 +18,15 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
-import {useSpansTabTableSort} from 'sentry/views/performance/transactionSummary/transactionSpans/useSpansTabTableSort';
-import {renderHeadCell} from 'sentry/views/starfish/components/tableCells/renderHeadCell';
-import {useSpanMetrics} from 'sentry/views/starfish/queries/useDiscover';
+import {renderHeadCell} from 'sentry/views/insights/common/components/tableCells/renderHeadCell';
+import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
+import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {
   SpanMetricsField,
   type SpanMetricsQueryFilters,
-} from 'sentry/views/starfish/types';
-import {QueryParameterNames} from 'sentry/views/starfish/views/queryParameters';
+} from 'sentry/views/insights/types';
+import {spanDetailsRouteWithQuery} from 'sentry/views/performance/transactionSummary/transactionSpans/spanDetails/utils';
+import {useSpansTabTableSort} from 'sentry/views/performance/transactionSummary/transactionSpans/useSpansTabTableSort';
 
 type DataRow = {
   [SpanMetricsField.SPAN_OP]: string;
@@ -34,7 +34,7 @@ type DataRow = {
   [SpanMetricsField.SPAN_GROUP]: string;
   'avg(span.duration)': number;
   'spm()': number;
-  'sum(span.self_time)': number;
+  'sum(span.duration)': number;
 };
 
 type ColumnKeys =
@@ -42,7 +42,7 @@ type ColumnKeys =
   | SpanMetricsField.SPAN_DESCRIPTION
   | 'spm()'
   | `avg(${SpanMetricsField.SPAN_DURATION})`
-  | `sum(${SpanMetricsField.SPAN_SELF_TIME})`;
+  | `sum(${SpanMetricsField.SPAN_DURATION})`;
 
 type Column = GridColumnHeader<ColumnKeys>;
 
@@ -68,7 +68,7 @@ const COLUMN_ORDER: Column[] = [
     width: COL_WIDTH_UNDEFINED,
   },
   {
-    key: `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+    key: `sum(${SpanMetricsField.SPAN_DURATION})`,
     name: t('Time Spent'),
     width: COL_WIDTH_UNDEFINED,
   },
@@ -79,7 +79,7 @@ const COLUMN_TYPE: Record<ColumnKeys, ColumnType> = {
   [SpanMetricsField.SPAN_DESCRIPTION]: 'string',
   ['spm()']: 'rate',
   [`avg(${SpanMetricsField.SPAN_DURATION})`]: 'duration',
-  [`sum(${SpanMetricsField.SPAN_SELF_TIME})`]: 'duration',
+  [`sum(${SpanMetricsField.SPAN_DURATION})`]: 'duration',
 };
 
 const LIMIT = 12;
@@ -129,7 +129,7 @@ export default function SpanMetricsTable(props: Props) {
         SpanMetricsField.SPAN_GROUP,
         `spm()`,
         `avg(${SpanMetricsField.SPAN_DURATION})`,
-        `sum(${SpanMetricsField.SPAN_SELF_TIME})`,
+        `sum(${SpanMetricsField.SPAN_DURATION})`,
       ],
       sorts: [sort],
       cursor: spansCursor,

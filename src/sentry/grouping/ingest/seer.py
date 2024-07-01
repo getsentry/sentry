@@ -16,6 +16,7 @@ from sentry.seer.similarity.utils import (
     get_stacktrace_string,
 )
 from sentry.utils import metrics
+from sentry.utils.safe import get_path
 
 logger = logging.getLogger("sentry.events.grouping")
 
@@ -206,16 +207,18 @@ def get_seer_similar_issues(
     )
 
     request_data: SimilarIssuesEmbeddingsRequest = {
+        "event_id": event.event_id,
         "hash": event_hash,
         "project_id": event.project.id,
         "stacktrace": stacktrace_string,
         "message": filter_null_from_event_title(event.title),
+        "exception_type": get_path(event.data, "exception", "values", -1, "type"),
         "k": num_neighbors,
+        "referrer": "ingest",
     }
 
     # Similar issues are returned with the closest match first
     seer_results = get_similarity_data_from_seer(request_data)
-
     similar_issues_metadata = asdict(
         SeerSimilarIssuesMetadata(request_hash=event_hash, results=seer_results)
     )
@@ -227,6 +230,17 @@ def get_seer_similar_issues(
             and features.has("projects:similarity-embeddings-grouping", event.project)
         )
         else None
+    )
+
+    logger.info(
+        "get_seer_similar_issues.results",
+        extra={
+            "event_id": event.event_id,
+            "project_id": event.project.id,
+            "hash": event_hash,
+            "results": similar_issues_metadata["results"],
+            "group_returned": bool(parent_group),
+        },
     )
 
     return (similar_issues_metadata, parent_group)

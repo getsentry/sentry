@@ -1,5 +1,5 @@
 from unittest import mock
-from urllib.parse import parse_qs
+from unittest.mock import patch
 
 import orjson
 import responses
@@ -43,8 +43,16 @@ class SlackNotifyActionTest(RuleTestCase):
         assert form.cleaned_data["channel_id"] == expected_channel_id
         assert form.cleaned_data["channel"] == expected_channel
 
-    @responses.activate
-    def test_no_upgrade_notice_bot_app(self):
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
+    @patch(
+        "slack_sdk.web.client.WebClient._perform_urllib_http_request",
+        return_value={
+            "body": orjson.dumps({"ok": True}).decode(),
+            "headers": {},
+            "status": 200,
+        },
+    )
+    def test_no_upgrade_notice_bot_app(self, mock_api_call, mock_post):
         event = self.get_event()
 
         rule = self.get_rule(data={"workspace": self.integration.id, "channel": "#my-channel"})
@@ -52,20 +60,11 @@ class SlackNotifyActionTest(RuleTestCase):
         results = list(rule.after(event=event))
         assert len(results) == 1
 
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.postMessage",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-
         # Trigger rule callback
         results[0].callback(event, futures=[])
-        data = parse_qs(responses.calls[0].request.body)
 
-        assert "blocks" in data
-        blocks = orjson.loads(data["blocks"][0])
+        blocks = mock_post.call_args.kwargs["blocks"]
+        blocks = orjson.loads(blocks)
 
         assert event.title in blocks[0]["text"]["text"]
 
@@ -362,7 +361,16 @@ class SlackNotifyActionTest(RuleTestCase):
 
     @responses.activate
     @mock.patch("sentry.analytics.record")
-    def test_additional_attachment(self, mock_record):
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
+    @patch(
+        "slack_sdk.web.client.WebClient._perform_urllib_http_request",
+        return_value={
+            "body": orjson.dumps({"ok": True}).decode(),
+            "headers": {},
+            "status": 200,
+        },
+    )
+    def test_additional_attachment(self, mock_api_call, mock_post, mock_record):
         with mock.patch.dict(
             manager.attachment_generators,
             {ExternalProviders.SLACK: additional_attachment_generator_block_kit},
@@ -381,24 +389,14 @@ class SlackNotifyActionTest(RuleTestCase):
             results = list(rule.after(event=event, notification_uuid=notification_uuid))
             assert len(results) == 1
 
-            responses.add(
-                method=responses.POST,
-                url="https://slack.com/api/chat.postMessage",
-                body='{"ok": true}',
-                status=200,
-                content_type="application/json",
-            )
-
             # Trigger rule callback
             results[0].callback(event, futures=[])
-            data = parse_qs(responses.calls[0].request.body)
-
-            assert "blocks" in data
-            blocks = orjson.loads(data["blocks"][0])
+            blocks = mock_post.call_args.kwargs["blocks"]
+            blocks = orjson.loads(blocks)
 
             assert event.title in blocks[0]["text"]["text"]
-            assert blocks[-2]["text"]["text"] == self.organization.slug
-            assert blocks[-1]["text"]["text"] == self.integration.id
+            assert blocks[5]["text"]["text"] == self.organization.slug
+            assert blocks[6]["text"]["text"] == self.integration.id
             mock_record.assert_called_with(
                 "alert.sent",
                 provider="slack",
