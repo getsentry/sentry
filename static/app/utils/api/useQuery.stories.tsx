@@ -282,11 +282,11 @@ export default storyBook('useQuery', story => {
 
   story('suspense: true, useErrorBoundary: false', () => {
     return (
-      <ToggleMounted queryKeys={[['story-suspense-success'], ['story-suspense-error']]}>
+      <ToggleMounted queryKeys={[['story-suspense1-success'], ['story-suspense1-error']]}>
         <Suspense fallback={<LoadingFallback />}>
           <DataContainer
             options={{
-              queryKey: ['story-suspense-success'],
+              queryKey: ['story-suspense1-success'],
               queryFn: fetchData,
               suspense: true,
               useErrorBoundary: false,
@@ -296,7 +296,7 @@ export default storyBook('useQuery', story => {
         <Suspense fallback={<LoadingFallback />}>
           <DataContainer
             options={{
-              queryKey: ['story-suspense-error'],
+              queryKey: ['story-suspense1-error'],
               queryFn: fetchThrowsError,
               retry: 0,
               suspense: true,
@@ -304,6 +304,31 @@ export default storyBook('useQuery', story => {
             }}
           />
         </Suspense>
+      </ToggleMounted>
+    );
+  });
+
+  story('suspense: true, without <Suspense>', () => {
+    return (
+      <ToggleMounted queryKeys={[['story-suspense2-success'], ['story-suspense2-error']]}>
+        <DataContainer
+          options={{
+            queryKey: ['story-suspense2-success'],
+            queryFn: fetchData,
+            suspense: true,
+            useErrorBoundary: false,
+          }}
+        />
+
+        <DataContainer
+          options={{
+            queryKey: ['story-suspense2-error'],
+            queryFn: fetchThrowsError,
+            retry: 0,
+            suspense: true,
+            useErrorBoundary: false,
+          }}
+        />
       </ToggleMounted>
     );
   });
