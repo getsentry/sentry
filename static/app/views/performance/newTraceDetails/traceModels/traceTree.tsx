@@ -1,13 +1,12 @@
 import type {Theme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
-import * as qs from 'query-string';
 import type {Client} from 'sentry/api';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import type {Event, EventTransaction, Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
-import type {Location} from 'history';
+import qs from 'qs';
 import type {
   TraceError as TraceErrorType,
   TraceFullDetailed,
@@ -24,7 +23,7 @@ import {
 } from 'sentry/utils/performance/vitals/constants';
 import type {Vital} from 'sentry/utils/performance/vitals/types';
 import type {ReplayRecord} from 'sentry/views/replays/types';
-
+import type {Location} from 'history';
 import {getStylingSliceName} from '../../../traces/utils';
 import {isRootTransaction} from '../../traceDetails/utils';
 import {
@@ -342,95 +341,6 @@ function chronologicalSort(
   return startTimestamp(a) - startTimestamp(b);
 }
 
-function fetchSingleTrace(
-  api: Client,
-  params: {
-    orgSlug: string;
-    query: string;
-    traceId: string;
-  }
-): Promise<TraceSplitResults<TraceFullDetailed>> {
-  return api.requestPromise(
-    `/organizations/${params.orgSlug}/events-trace/${params.traceId}/?${params.query}`
-  );
-}
-
-type IncrementalTraceFetchOptions = {
-  api: Client;
-  additionalTraceDataRows: TraceDataRow[] | undefined;
-  organization: Organization;
-  urlParams: Location['query'];
-  filters: any;
-  traceLimit: number | undefined;
-  rerender: () => void;
-};
-
-async function incrementallyFetchTraces(
-  tree: TraceTree,
-  options: IncrementalTraceFetchOptions
-) {
-  const {
-    organization,
-    api,
-    urlParams,
-    filters,
-    traceLimit,
-    rerender,
-    additionalTraceDataRows,
-  } = options;
-
-  if (
-    !additionalTraceDataRows ||
-    additionalTraceDataRows.length === 0 ||
-    tree.type !== 'trace'
-  ) {
-    return;
-  }
-
-  const clonedTraceIds = [...additionalTraceDataRows];
-
-  tree.isIncremetallyFetching = true;
-  rerender();
-
-  while (clonedTraceIds.length > 0) {
-    const batch = clonedTraceIds.splice(0, 3);
-    const results = await Promise.allSettled(
-      batch.map(batchTraceData => {
-        return fetchSingleTrace(api, {
-          orgSlug: organization.slug,
-          query: qs.stringify(
-            getTraceQueryParams(urlParams, filters.selection, traceLimit, batchTraceData)
-          ),
-          traceId: batchTraceData.traceSlug,
-        });
-      })
-    );
-
-    const updatedData = results.reduce(
-      (acc, result) => {
-        //Ignoring the error case for now
-        if (result.status === 'fulfilled') {
-          const {transactions, orphan_errors} = result.value;
-          acc.transactions.push(...transactions);
-          acc.orphan_errors.push(...orphan_errors);
-        }
-
-        return acc;
-      },
-      {
-        transactions: [],
-        orphan_errors: [],
-      } as TraceSplitResults<TraceTree.Transaction>
-    );
-
-    tree.appendTree(TraceTree.FromTrace(updatedData, null));
-    rerender();
-  }
-
-  tree.isIncremetallyFetching = false;
-  rerender();
-}
-
 // cls is not included as it is a cumulative layout shift and not a single point in time
 const RENDERABLE_MEASUREMENTS = [
   WebVital.TTFB,
@@ -501,6 +411,95 @@ for (const key in {...MOBILE_VITAL_DETAILS, ...WEB_VITAL_DETAILS}) {
   };
 }
 
+type IncrementalTraceFetchOptions = {
+  api: Client;
+  additionalTraceDataRows: TraceDataRow[] | undefined;
+  organization: Organization;
+  urlParams: Location['query'];
+  filters: any;
+  traceLimit: number | undefined;
+  rerender: () => void;
+};
+
+function fetchSingleTrace(
+  api: Client,
+  params: {
+    orgSlug: string;
+    query: string;
+    traceId: string;
+  }
+): Promise<TraceSplitResults<TraceFullDetailed>> {
+  return api.requestPromise(
+    `/organizations/${params.orgSlug}/events-trace/${params.traceId}/?${params.query}`
+  );
+}
+
+export async function incrementallyFetchTraces(
+  tree: TraceTree,
+  options: IncrementalTraceFetchOptions
+) {
+  const {
+    organization,
+    api,
+    urlParams,
+    filters,
+    traceLimit,
+    rerender,
+    additionalTraceDataRows,
+  } = options;
+
+  if (
+    !additionalTraceDataRows ||
+    additionalTraceDataRows.length === 0 ||
+    tree.type !== 'trace'
+  ) {
+    return;
+  }
+
+  const clonedTraceIds = [...additionalTraceDataRows];
+
+  tree.isIncremetallyFetching = true;
+  rerender();
+
+  while (clonedTraceIds.length > 0) {
+    const batch = clonedTraceIds.splice(0, 3);
+    const results = await Promise.allSettled(
+      batch.map(batchTraceData => {
+        return fetchSingleTrace(api, {
+          orgSlug: organization.slug,
+          query: qs.stringify(
+            getTraceQueryParams(urlParams, filters.selection, traceLimit, batchTraceData)
+          ),
+          traceId: batchTraceData.traceSlug,
+        });
+      })
+    );
+
+    const updatedData = results.reduce(
+      (acc, result) => {
+        //Ignoring the error case for now
+        if (result.status === 'fulfilled') {
+          const {transactions, orphan_errors} = result.value;
+          acc.transactions.push(...transactions);
+          acc.orphan_errors.push(...orphan_errors);
+        }
+
+        return acc;
+      },
+      {
+        transactions: [],
+        orphan_errors: [],
+      } as TraceSplitResults<TraceTree.Transaction>
+    );
+
+    tree.appendTree(TraceTree.FromTrace(updatedData, null));
+    rerender();
+  }
+
+  tree.isIncremetallyFetching = false;
+  rerender();
+}
+
 export class TraceTree {
   type: 'loading' | 'empty' | 'error' | 'trace' = 'trace';
   root: TraceTreeNode<null> = TraceTreeNode.Root();
@@ -541,11 +540,7 @@ export class TraceTree {
     return newTree;
   }
 
-  static FromTrace(
-    trace: TraceTree.Trace,
-    replayRecord: ReplayRecord | null,
-    options?: IncrementalTraceFetchOptions
-  ): TraceTree {
+  static FromTrace(trace: TraceTree.Trace, replayRecord: ReplayRecord | null): TraceTree {
     const tree = new TraceTree();
     let traceStart = Number.POSITIVE_INFINITY;
     let traceEnd = Number.NEGATIVE_INFINITY;
@@ -689,10 +684,6 @@ export class TraceTree {
       traceStart * traceNode.multiplier,
       (traceEnd - traceStart) * traceNode.multiplier,
     ];
-
-    if (options) {
-      incrementallyFetchTraces(tree, options);
-    }
 
     return tree.build();
   }

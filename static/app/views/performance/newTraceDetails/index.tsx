@@ -63,7 +63,11 @@ import {useTrace} from './traceApi/useTrace';
 import {type TraceMetaQueryResults, useTraceMeta} from './traceApi/useTraceMeta';
 import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
-import {TraceTree, type TraceTreeNode} from './traceModels/traceTree';
+import {
+  TraceTree,
+  incrementallyFetchTraces,
+  type TraceTreeNode,
+} from './traceModels/traceTree';
 import {TraceSearchInput} from './traceSearch/traceSearchInput';
 import {
   DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -185,6 +189,10 @@ export function TraceView() {
   );
 
   const traceDataRows = useMemo(() => {
+    if (!queryParams.timestamp) {
+      return [{traceSlug, timestamp: undefined}];
+    }
+
     const timestamp = Number(queryParams.timestamp);
 
     if (isNaN(timestamp)) {
@@ -335,19 +343,23 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
     }
 
     if (traceData) {
-      return TraceTree.FromTrace(traceData, props.replayRecord, {
-        api,
-        filters,
-        additionalTraceDataRows: props.traceDataRows?.slice(1),
-        organization: props.organization,
-        traceLimit: undefined,
-        urlParams,
-        rerender: forceRerender,
-      });
+      return TraceTree.FromTrace(traceData, props.replayRecord);
     }
 
     throw new Error('Invalid trace state');
   }, [props.traceDataRows, traceData, isLoading, error, projects, props.replayRecord]);
+
+  useEffect(() => {
+    incrementallyFetchTraces(tree, {
+      api,
+      filters,
+      additionalTraceDataRows: props.traceDataRows?.slice(1),
+      organization: props.organization,
+      traceLimit: undefined,
+      urlParams,
+      rerender: forceRerender,
+    });
+  }, [tree]);
 
   // Assign the trace state to a ref so we can access it without re-rendering
   const traceStateRef = useRef<TraceReducerState>(traceState);

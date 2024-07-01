@@ -304,6 +304,7 @@ type ReplayTraceDataResults = {
   traceDataRows: TraceDataRow[] | undefined;
 };
 
+// This hook fetches the traceIds and the min(timestamp) associated with each id, for a replay record.
 export function useReplayTracesData({
   replayRecord,
 }: {
