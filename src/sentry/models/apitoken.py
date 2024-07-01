@@ -119,9 +119,7 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     expires_at = models.DateTimeField(null=True, default=default_expiration)
     date_added = models.DateTimeField(default=timezone.now)
 
-    objects: ClassVar[ControlOutboxProducingManager[ApiToken]] = ApiTokenManager(
-        cache_fields=("token",)
-    )
+    objects: ClassVar[ApiTokenManager] = ApiTokenManager(cache_fields=("token",))
 
     class Meta:
         app_label = "sentry"
