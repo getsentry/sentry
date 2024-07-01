@@ -69,3 +69,19 @@ class SlackClientTest(TestCase):
             sample_rate=1.0,
             tags={"ok": False, "status": 500},
         )
+
+    @patch("sentry.integrations.slack.sdk_client.metrics")
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    def test_api_call_timeout_error(self, mock_api_call, mock_metrics):
+        mock_api_call.side_effect = TimeoutError()
+
+        client = SlackSdkClient(integration_id=self.integration.id)
+
+        with pytest.raises(TimeoutError):
+            client.chat_postMessage(channel="#announcements", text="hello")
+
+        mock_metrics.incr.assert_called_with(
+            SLACK_DATADOG_METRIC,
+            sample_rate=1.0,
+            tags={"status": "timeout"},
+        )
