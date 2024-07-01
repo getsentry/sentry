@@ -12,6 +12,7 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint, ProjectPermission
 from sentry.api.decorators import sudo_required
+from sentry.models.options.project_option import ProjectOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri
@@ -77,6 +78,10 @@ class ProjectTransferEndpoint(ProjectEndpoint):
             project_id=project.id,
             user_id=owner.user_id,
             transaction_id=transaction_id,
+        )
+
+        ProjectOption.objects.set_value(
+            project, "sentry:project-transfer-transaction-id", transaction_id
         )
 
         context = {

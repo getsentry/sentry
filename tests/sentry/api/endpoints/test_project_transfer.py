@@ -1,6 +1,7 @@
 from django.core import mail
 from django.urls import reverse
 
+from sentry.models.options.project_option import ProjectOption
 from sentry.testutils.cases import APITestCase
 
 
@@ -46,6 +47,10 @@ class ProjectTransferTest(APITestCase):
             assert response.status_code == 204
             assert len(mail.outbox) == 1
             assert "http://testserver/accept-transfer/?" in mail.outbox[0].body
+            assert (
+                ProjectOption.objects.get_value(project, "sentry:project-transfer-transaction-id")
+                is not None
+            )
 
     def test_transfer_project_to_invalid_user(self):
         project = self.create_project()
