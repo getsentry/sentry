@@ -98,7 +98,8 @@ class SlackResolvedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         with self.tasks():
             self.create_notification(event.group).send()
 
-        blocks, fallback_text = get_blocks_and_fallback_text()
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        fallback_text = self.mock_post.call_args.kwargs["text"]
         notification_uuid = self.get_notification_uuid(blocks[0]["text"]["text"])
         assert (
             fallback_text
@@ -113,7 +114,6 @@ class SlackResolvedNotificationTest(SlackActivityNotificationTest, PerformanceIs
             "resolved_activity-slack",
         )
 
-    @responses.activate
     @mock.patch(
         "sentry.eventstore.models.GroupEvent.occurrence",
         return_value=TEST_ISSUE_OCCURRENCE,
