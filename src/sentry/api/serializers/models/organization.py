@@ -445,7 +445,6 @@ class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResp
     metricsActivatePercentiles: bool
     metricsActivateLastForGauges: bool
     extrapolateMetrics: bool
-    requiresSso: bool
 
 
 class DetailedOrganizationSerializer(OrganizationSerializer):
@@ -599,7 +598,6 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         if access.role is not None:
             context["role"] = access.role  # Deprecated
             context["orgRole"] = access.role
-        context["requiresSso"] = access.requires_sso
         context["pendingAccessRequests"] = OrganizationAccessRequest.objects.filter(
             team__organization=obj
         ).count()
