@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import datetime as datetime_mod
-from collections.abc import MutableMapping
+from collections.abc import Sequence
 from typing import TYPE_CHECKING, Any, NamedTuple, TypeAlias
 
 from django.conf import settings
@@ -13,6 +13,7 @@ from .backends.base import Backend
 from .backends.dummy import DummyBackend
 
 if TYPE_CHECKING:
+    from sentry.eventstore.models import Event
     from sentry.models.group import Group
     from sentry.models.rule import Rule
 
@@ -20,6 +21,12 @@ backend = LazyServiceWrapper(
     Backend, settings.SENTRY_DIGESTS, settings.SENTRY_DIGESTS_OPTIONS, (DummyBackend,)
 )
 backend.expose(locals())
+
+
+class Notification(NamedTuple):
+    event: Event
+    rules: Sequence[int] = ()
+    notification_uuid: str | None = None
 
 
 class Record(NamedTuple):
@@ -39,7 +46,7 @@ class ScheduleEntry(NamedTuple):
 
 OPTIONS = frozenset(("increment_delay", "maximum_delay", "minimum_delay"))
 
-Digest: TypeAlias = MutableMapping["Rule", MutableMapping["Group", list[Record]]]
+Digest: TypeAlias = dict["Rule", dict["Group", list[Record]]]
 
 
 def get_option_key(plugin: str, option: str) -> str:
