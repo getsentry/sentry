@@ -1065,6 +1065,12 @@ def _bulk_snuba_query(
                     span.set_tag(k, v)
                     sentry_sdk.set_tag(k, v)
 
+                if (
+                    "throttled_by" in quota_allowance_summary
+                    and quota_allowance_summary["throttled_by"]
+                ):
+                    metrics.incr("snuba.client.query.throttle", tags={"referrer": query_referrer})
+
             if response.status != 200:
                 _log_request_query(snuba_param_list[index][0])
                 metrics.incr(

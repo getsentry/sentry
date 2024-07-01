@@ -12,6 +12,8 @@ from django.utils.decorators import method_decorator
 from rest_framework.request import Request
 
 from sentry import analytics, features
+from sentry.identity.services.identity import identity_service
+from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.slack.metrics import (
     SLACK_BOT_COMMAND_LINK_TEAM_FAILURE_DATADOG_METRIC,
     SLACK_BOT_COMMAND_LINK_TEAM_SUCCESS_DATADOG_METRIC,
@@ -24,8 +26,6 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.notifications.services import notifications_service
 from sentry.notifications.types import NotificationSettingEnum
-from sentry.services.hybrid_cloud.identity import identity_service
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 from sentry.utils import metrics
 from sentry.utils.signing import unsign
 from sentry.web.frontend.base import BaseView, region_silo_view
