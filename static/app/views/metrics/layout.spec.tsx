@@ -34,7 +34,9 @@ jest.mock('sentry/views/metrics/scratchpad');
 jest.mock('sentry/views/metrics/queries');
 
 describe('Metrics Layout', function () {
-  const organization = OrganizationFixture({features: ['custom-metrics']});
+  const organization = OrganizationFixture({
+    features: ['custom-metrics', 'custom-metrics-extraction-rule'],
+  });
 
   it("already using performance and don't have old custom metrics", async function () {
     jest.spyOn(metricsContext, 'useMetricsContext').mockReturnValue({
@@ -46,13 +48,18 @@ describe('Metrics Layout', function () {
 
     render(<MetricsLayout />, {organization});
 
-    // Alert: Old API metrics ingestion ending soon.
+    // Button: Add New Metric
     expect(
-      await screen.findByText(/there are upcoming changes to the Metrics API/i)
+      await screen.findByRole('button', {name: 'Add New Metric'})
     ).toBeInTheDocument();
 
-    // Button: Add New Metric
-    expect(screen.getByRole('button', {name: 'Add New Metric'})).toBeInTheDocument();
+    // Alert: No alert shall be rendered
+    expect(
+      screen.queryByText(/there are upcoming changes to the Metrics API/i)
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByText(/Metrics using with the old API will stop being ingested/i)
+    ).not.toBeInTheDocument();
 
     // Main View: Does not display the empty state.
     expect(screen.queryByText(/track and solve what matters/i)).not.toBeInTheDocument();
