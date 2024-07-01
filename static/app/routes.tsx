@@ -1984,6 +1984,19 @@ function buildRoutes() {
           component={make(() => import('sentry/views/profiling/profileFlamechart'))}
         />
       </Route>
+      <Route
+        path="profile/:projectId/"
+        component={make(
+          () => import('sentry/views/profiling/continuousProfilesProvider')
+        )}
+      >
+        <Route
+          path="flamegraph/"
+          component={make(
+            () => import('sentry/views/profiling/continuousProfileFlamechart')
+          )}
+        />
+      </Route>
     </Route>
   );
 
