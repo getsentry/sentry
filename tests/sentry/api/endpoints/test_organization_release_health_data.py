@@ -2470,7 +2470,7 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         for value in group["series"]["session.crash_free_rate"]:
             assert value is None or value >= 0
 
-    def test_do_not_return_crash_rate_value_greater_than_1(self):
+    def test_do_not_return_crash_rate_value_greater_than_one(self):
         """
         Assert that value for crash_rate won't be greater than 1.
         This can happen due to possible corruption of data.  This problem
