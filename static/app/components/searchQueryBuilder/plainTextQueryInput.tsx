@@ -51,11 +51,13 @@ export function PlainTextQueryInput({label}: PlainTextQueryInputProps) {
 
   return (
     <InputWrapper>
-      {parsedQuery ? (
-        <Highlight>
+      <Highlight>
+        {parsedQuery ? (
           <HighlightQuery parsedQuery={parsedQuery} cursorPosition={cursorPosition} />
-        </Highlight>
-      ) : null}
+        ) : (
+          query
+        )}
+      </Highlight>
       <InvisibleInput
         aria-label={label}
         ref={inputRef}

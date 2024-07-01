@@ -14,6 +14,7 @@ import {
   QueryInterfaceType,
 } from 'sentry/components/searchQueryBuilder/types';
 import {INTERFACE_TYPE_LOCALSTORAGE_KEY} from 'sentry/components/searchQueryBuilder/utils';
+import * as queryBuilderUtils from 'sentry/components/searchQueryBuilder/utils';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import localStorageWrapper from 'sentry/utils/localStorage';
 
@@ -77,6 +78,7 @@ const FITLER_KEY_SECTIONS: FilterKeySection[] = [
 
 describe('SearchQueryBuilder', function () {
   beforeEach(() => {
+    jest.restoreAllMocks();
     localStorageWrapper.clear();
   });
 
@@ -90,6 +92,29 @@ describe('SearchQueryBuilder', function () {
     filterKeySections: FITLER_KEY_SECTIONS,
     label: 'Query Builder',
   };
+
+  describe('error handling', function () {
+    it('gracefully handles exceptions', async function () {
+      const mockOnSearch = jest.fn();
+
+      // Make sure something throws an exception
+      jest.spyOn(queryBuilderUtils, 'parseQueryBuilderValue').mockImplementation(() => {
+        throw new Error('foo');
+      });
+
+      // We expect there to be a console.error about the crash
+      jest.spyOn(console, 'error').mockImplementation(jest.fn());
+      render(
+        <SearchQueryBuilder {...defaultProps} initialQuery="" onSearch={mockOnSearch} />
+      );
+
+      expect(screen.getByText('Something went horribly wrong.')).toBeInTheDocument();
+
+      // Clicking "reset" should set the search to an empty string
+      await userEvent.click(screen.getByRole('button', {name: 'Reset'}));
+      expect(mockOnSearch).toHaveBeenCalledWith('');
+    });
+  });
 
   describe('callbacks', function () {
     it('calls onChange, onBlur, and onSearch with the query string', async function () {

@@ -2,11 +2,13 @@ import {useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import {inputStyles} from 'sentry/components/input';
 import {
   SearchQueryBuilerContext,
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
+import {SearchQueryBuilderErrorHandler} from 'sentry/components/searchQueryBuilder/errorHandler';
 import {PlainTextQueryInput} from 'sentry/components/searchQueryBuilder/plainTextQueryInput';
 import {TokenizedQueryGrid} from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
 import {
@@ -59,7 +61,7 @@ function ActionButtons() {
   );
 }
 
-export function SearchQueryBuilder({
+function SearchQueryBuilderContent({
   className,
   label,
   initialQuery,
@@ -121,6 +123,18 @@ export function SearchQueryBuilder({
         </Wrapper>
       </PanelProvider>
     </SearchQueryBuilerContext.Provider>
+  );
+}
+
+export function SearchQueryBuilder(props: SearchQueryBuilderProps) {
+  return (
+    <ErrorBoundary
+      customComponent={
+        <SearchQueryBuilderErrorHandler {...props} reset={() => props.onSearch?.('')} />
+      }
+    >
+      <SearchQueryBuilderContent {...props} />
+    </ErrorBoundary>
   );
 }
 
