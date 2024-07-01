@@ -196,7 +196,7 @@ class MonitorSerializer(Serializer):
             for actor, serialized_actor in zip(filtered_actors, actors_serialized)
         }
 
-        monitor_environments = (
+        monitor_environments_qs = (
             MonitorEnvironment.objects.filter(monitor__in=item_list)
             .order_by("-last_checkin")
             .exclude(
@@ -204,11 +204,11 @@ class MonitorSerializer(Serializer):
             )
         )
         if self.environments:
-            monitor_environments = monitor_environments.filter(
+            monitor_environments_qs = monitor_environments_qs.filter(
                 environment_id__in=[env.id for env in self.environments]
             )
 
-        monitor_environments = list(monitor_environments)
+        monitor_environments = list(monitor_environments_qs)
         serialized_monitor_environments = defaultdict(list)
         for monitor_env, serialized in zip(
             monitor_environments, serialize(monitor_environments, user)

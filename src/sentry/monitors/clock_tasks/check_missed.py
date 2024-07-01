@@ -107,6 +107,9 @@ def mark_environment_missing(monitor_environment_id: int, ts: datetime):
         return
 
     monitor = monitor_environment.monitor
+    # next_checkin must be set, since detecting this monitor as missed means
+    # there must have been an initial user check-in.
+    assert monitor_environment.next_checkin is not None
     expected_time = monitor_environment.next_checkin
 
     # add missed checkin.
