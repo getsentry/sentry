@@ -51,6 +51,7 @@ function CreatePullRequestButton({
           payload: {
             type: 'create_pr',
             repo_external_id: change.repo_external_id,
+            repo_id: change.repo_id, // The repo_id is only here for temporary backwards compatibility for LA customers, and we should remove it soon.
           },
         },
       });

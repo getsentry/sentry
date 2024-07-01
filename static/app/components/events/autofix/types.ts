@@ -103,11 +103,12 @@ export interface AutofixRootCauseStep extends BaseStep {
 export type AutofixCodebaseChange = {
   description: string;
   diff: FilePatch[];
-  repo_external_id: string;
   repo_name: string;
   title: string;
   diff_str?: string;
   pull_request?: AutofixPullRequestDetails;
+  repo_external_id?: string;
+  repo_id?: number; // The repo_id is only here for temporary backwards compatibility for LA customers, and we should remove it soon. Use repo_external_id instead.
 };
 
 export interface AutofixChangesStep extends BaseStep {
