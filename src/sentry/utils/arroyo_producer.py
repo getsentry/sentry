@@ -4,15 +4,12 @@ import atexit
 from collections import deque
 from collections.abc import Callable
 from concurrent import futures
-from typing import TYPE_CHECKING, Deque
+from typing import Deque
 
 from arroyo.backends.kafka import KafkaPayload, KafkaProducer
 from arroyo.types import BrokerValue, Partition, Topic
 
-if TYPE_CHECKING:
-    ProducerFuture = futures.Future[BrokerValue[KafkaPayload]]
-else:
-    ProducerFuture = object
+ProducerFuture = futures.Future[BrokerValue[KafkaPayload]]
 
 
 class SingletonProducer:

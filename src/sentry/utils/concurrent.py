@@ -9,7 +9,7 @@ from concurrent.futures._base import FINISHED, RUNNING
 from contextlib import contextmanager
 from queue import Full, PriorityQueue
 from time import time
-from typing import TYPE_CHECKING, Generic, NamedTuple, TypeVar
+from typing import Generic, NamedTuple, TypeVar
 
 import sentry_sdk
 import sentry_sdk.scope
@@ -17,11 +17,6 @@ import sentry_sdk.scope
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
-
-if TYPE_CHECKING:
-    FutureBase = Future[T]
-else:
-    FutureBase = Future
 
 
 def execute(function: Callable[..., T], daemon=True):
@@ -48,7 +43,7 @@ def execute(function: Callable[..., T], daemon=True):
 @functools.total_ordering
 class PriorityTask(NamedTuple, Generic[T]):
     priority: int
-    item: tuple[Callable[[], T], sentry_sdk.Scope, FutureBase[T]]
+    item: tuple[Callable[[], T], sentry_sdk.Scope, Future[T]]
 
     def __eq__(self, b):
         return self.priority == b.priority
@@ -57,7 +52,7 @@ class PriorityTask(NamedTuple, Generic[T]):
         return self.priority < b.priority
 
 
-class TimedFuture(FutureBase[T]):
+class TimedFuture(Future[T]):
     _condition: threading.Condition
     _state: str
 
@@ -169,7 +164,7 @@ class SynchronousExecutor(Executor[T]):
         """
         Immediately execute a callable, returning a ``TimedFuture``.
         """
-        future: FutureBase[T] = self.Future()
+        future: Future[T] = self.Future()
         assert future.set_running_or_notify_cancel()
         try:
             result = callable()
@@ -240,7 +235,7 @@ class ThreadedExecutor(Executor[T]):
         if not self.__started:
             self.start()
 
-        future: FutureBase[T] = self.Future()
+        future: Future[T] = self.Future()
         task = PriorityTask(priority, (callable, sentry_sdk.Scope.get_isolation_scope(), future))
         try:
             self.__queue.put(task, block=block, timeout=timeout)
