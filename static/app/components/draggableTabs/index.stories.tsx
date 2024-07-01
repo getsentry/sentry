@@ -1,15 +1,39 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import {DraggableTabBar} from 'sentry/components/draggableTabs';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 
+const TabPanelContainer = styled('div')`
+  width: 90%;
+  height: 250px;
+  background-color: white;
+`;
+
 export default storyBook(DraggableTabBar, story => {
   const TABS = [
-    {key: 'one', label: 'Tab One', content: 'This is the first Panel.'},
-    {key: 'two', label: 'Tab Two', content: 'This is the second panel'},
-    {key: 'three', label: 'Tab Three', content: 'This is the third panel'},
+    {
+      key: 'one',
+      label: 'Inbox',
+      content: <TabPanelContainer>This is the Inbox view</TabPanelContainer>,
+    },
+    {
+      key: 'two',
+      label: 'For Review',
+      content: <TabPanelContainer>This is the For Review view</TabPanelContainer>,
+    },
+    {
+      key: 'three',
+      label: 'Regressed',
+      content: <TabPanelContainer>This is the Regressed view</TabPanelContainer>,
+    },
+    {
+      key: 'four',
+      label: 'Unsaved',
+      content: <TabPanelContainer>This is an Unsaved view</TabPanelContainer>,
+    },
   ];
 
   story('Default', () => (
@@ -24,8 +48,17 @@ export default storyBook(DraggableTabBar, story => {
         But you will have to render all tab content, including hooks, upfront.
       </p>
       <SizingWindow>
-        <DraggableTabBar tabs={TABS} />
+        <TabBarContainer>
+          <DraggableTabBar tabs={TABS} />
+        </TabBarContainer>
       </SizingWindow>
     </Fragment>
   ));
 });
+
+const TabBarContainer = styled('div')`
+  display: flex;
+  justify-content: start;
+  width: 90%;
+  height: 300px;
+`;

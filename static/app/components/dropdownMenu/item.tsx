@@ -63,6 +63,7 @@ export interface MenuItemProps extends MenuListItemProps {
    * filtering and keyboard select (quick-focusing on options by typing the first letter).
    */
   textValue?: string;
+
   /**
    * Destination if this menu item is a link.
    */
