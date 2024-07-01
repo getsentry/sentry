@@ -537,7 +537,6 @@ export function Trace({
 
 function RenderRow(props: {
   index: number;
-  tree: TraceTree;
   isSearchResult: boolean;
   manager: VirtualizedViewManager;
   node: TraceTreeNode<TraceTree.NodeValue>;
@@ -569,6 +568,7 @@ function RenderRow(props: {
   tabIndex: number;
   theme: Theme;
   traceLabel: string;
+  tree: TraceTree;
 }) {
   const virtualized_index = props.index - props.manager.start_virtualized_index;
   const rowSearchClassName = `${props.isSearchResult ? 'SearchResult' : ''} ${props.searchResultsIteratorIndex === props.index ? 'Highlight' : ''}`;

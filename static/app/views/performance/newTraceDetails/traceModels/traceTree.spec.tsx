@@ -2576,7 +2576,7 @@ describe('TraceTree', () => {
     });
   });
 
-  describe('useTraceMeta', () => {
+  describe('incremental trace fetch', () => {
     const organization = OrganizationFixture();
 
     beforeEach(function () {

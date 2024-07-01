@@ -359,7 +359,15 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       urlParams,
       rerender: forceRerender,
     });
-  }, [tree]);
+  }, [
+    tree,
+    api,
+    filters,
+    props.traceDataRows,
+    props.organization,
+    urlParams,
+    forceRerender,
+  ]);
 
   // Assign the trace state to a ref so we can access it without re-rendering
   const traceStateRef = useRef<TraceReducerState>(traceState);
