@@ -66,6 +66,7 @@ class CreateUserTest(CliTestCase):
             with assume_test_silo_mode(SiloMode.REGION):
                 assert OrganizationMember.objects.count() == 1
                 member = OrganizationMember.objects.all()[0]
+            assert member.user_id is not None
             u = user_service.get_user(user_id=member.user_id)
             assert u
             assert u.email == "you@somewhereawesome.com"
@@ -80,6 +81,7 @@ class CreateUserTest(CliTestCase):
             with assume_test_silo_mode(SiloMode.REGION):
                 assert OrganizationMember.objects.count() == 1
                 member = OrganizationMember.objects.all()[0]
+            assert member.user_id is not None
             u = user_service.get_user(user_id=member.user_id)
             assert u
             assert u.email == "you@somewhereawesome.com"
