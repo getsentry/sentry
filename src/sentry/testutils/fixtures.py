@@ -20,6 +20,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
+from sentry.models.rule import Rule
 from sentry.models.user import User
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.services.hybrid_cloud.organization import RpcOrganization
@@ -183,7 +184,7 @@ class Fixtures:
         comparison_interval=None,
         *args,
         **kwargs,
-    ):
+    ) -> Rule:
         if project is None:
             project = self.project
         return Factories.create_project_rule(
