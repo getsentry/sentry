@@ -37,7 +37,6 @@ from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.on_demand import create_widget
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.utils import json
 
 ON_DEMAND_METRICS = "organizations:on-demand-metrics-extraction"
 ON_DEMAND_METRICS_WIDGETS = "organizations:on-demand-metrics-extraction-widgets"
@@ -2230,23 +2229,28 @@ def test_get_span_attribute_metrics(default_project: Project) -> None:
 def test_get_metric_extraction_config_span_attributes_above_max_limit(
     default_project: Project,
 ) -> None:
-    rules = [
+
+    extraction_configs = [
         {
             "spanAttribute": "span.duration",
-            "mri": "d:custom/span.duration@none",
-            "type": "d",
-            "tags": ["foo"],
+            "aggregates": ["p50", "p75", "p90", "p95", "p99"],
             "unit": "millisecond",
-            "conditions": ["bar:baz", "abc:xyz"],
+            "tags": ["foo"],
+            "conditions": [
+                {"id": 1, "value": "bar:baz"},
+                {"id": 2, "value": "abc:xyz"},
+            ],
         },
         {
-            "spanAttribute": "span.duration",
-            "mri": "c:custom/span.duration@none",
-            "type": "c",
+            "spanAttribute": "other_attribute",
+            "aggregates": ["count"],
             "unit": "none",
+            "tags": [],
+            "conditions": [{"id": 3, "value": ""}],
         },
     ]
-    default_project.update_option("sentry:metrics_extraction_rules", json.dumps(rules))
+    for extraction_config in extraction_configs:
+        SpanAttributeExtractionRuleConfig.from_dict(extraction_config, 1, default_project)
 
     with Feature("organizations:custom-metrics-extraction-rule"):
         config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
