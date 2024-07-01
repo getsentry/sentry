@@ -63,6 +63,10 @@ class OrganizationReleaseHealthDataEndpoint(OrganizationEndpoint):
                 # due to possible data corruption crash_free_rate value can be less than 0,
                 # which is not valid behavior, so those values have to be bottom capped at 0
                 metrics.ensure_non_negative_crash_free_rate_value(data, request, organization)
+                # due to possible data corruption crash_rate value can be greater than 1,
+                # which is not valid behavior, so those values have to be capped at 1
+                metrics.ensure_crash_rate_not_greater_than_1(data, request, organization)
+
                 data["query"] = query.query
             except (
                 InvalidParams,

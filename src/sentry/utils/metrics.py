@@ -316,3 +316,39 @@ def ensure_non_negative_crash_free_rate_value(
                     scope.set_extra("request_query_params", request.query_params)
                     sentry_sdk.capture_message("crash_free_rate is negative")
                 totals[CRASH_FREE_RATE_METRIC_KEY] = 0
+
+
+def ensure_crash_rate_not_greater_than_1(
+    data: Any, request: Request, organization, CRASH_RATE_METRIC_KEY="session.crash_rate"
+):
+    groups = data["groups"]
+    for group in groups:
+        if "series" in group:
+            series = group["series"]
+            if CRASH_RATE_METRIC_KEY in series:
+                for i, value in enumerate(series[CRASH_RATE_METRIC_KEY]):
+                    try:
+                        value = float(value)
+                        if value > 1:
+                            with sentry_sdk.isolation_scope() as scope:
+                                scope.set_tag("organization", organization.id)
+                                scope.set_extra("crash_rate_in_series", value)
+                                scope.set_extra("request_query_params", request.query_params)
+                                sentry_sdk.capture_message("crash_rate in series is greater than 1")
+                            series[CRASH_RATE_METRIC_KEY][i] = 1
+                    except TypeError:
+                        # value is not a number
+                        continue
+        if "totals" in group:
+            totals = group["totals"]
+            if (
+                CRASH_RATE_METRIC_KEY in totals
+                and totals[CRASH_RATE_METRIC_KEY] is not None
+                and totals[CRASH_RATE_METRIC_KEY] > 1
+            ):
+                with sentry_sdk.isolation_scope() as scope:
+                    scope.set_tag("organization", organization.id)
+                    scope.set_extra("crash_rate", totals[CRASH_RATE_METRIC_KEY])
+                    scope.set_extra("request_query_params", request.query_params)
+                    sentry_sdk.capture_message("crash_rate is greater than 1")
+                totals[CRASH_RATE_METRIC_KEY] = 1
