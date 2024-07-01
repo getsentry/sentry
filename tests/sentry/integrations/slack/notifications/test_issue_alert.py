@@ -2,7 +2,6 @@ import uuid
 from datetime import UTC, datetime
 from unittest import mock
 from unittest.mock import patch
-from urllib.parse import parse_qs
 
 import orjson
 import responses
