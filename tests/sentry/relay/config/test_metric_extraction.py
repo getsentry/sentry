@@ -2145,7 +2145,7 @@ def test_get_span_attribute_metrics(default_project: Project) -> None:
     config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
     assert not config
 
-    with Feature(["organizations:custom-metrics-extraction-rule"]):
+    with Feature("organizations:custom-metrics-extraction-rule"):
         config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
         assert config
         assert config["metrics"] == [
@@ -2177,3 +2177,33 @@ def test_get_span_attribute_metrics(default_project: Project) -> None:
                 "tags": [],
             },
         ]
+
+
+@django_db_all
+@override_options({"metric_extraction.max_span_attribute_specs": 1})
+def test_get_metric_extraction_config_span_attributes_above_max_limit(
+    default_project: Project,
+) -> None:
+    rules = [
+        {
+            "spanAttribute": "span.duration",
+            "mri": "d:custom/span.duration@none",
+            "type": "d",
+            "tags": ["foo"],
+            "unit": "millisecond",
+            "conditions": ["bar:baz", "abc:xyz"],
+        },
+        {
+            "spanAttribute": "span.duration",
+            "mri": "c:custom/span.duration@none",
+            "type": "c",
+            "unit": "none",
+        },
+    ]
+    default_project.update_option("sentry:metrics_extraction_rules", json.dumps(rules))
+
+    with Feature("organizations:custom-metrics-extraction-rule"):
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
+
+        assert config
+        assert len(config["metrics"]) == 1
