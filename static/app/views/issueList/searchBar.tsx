@@ -90,8 +90,12 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
       const orgSlug = organization.slug;
       const projectIds = pageFilters.projects.map(id => id.toString());
       const endpointParams = {
-        start: getUtcDateString(pageFilters.datetime.start),
-        end: getUtcDateString(pageFilters.datetime.end),
+        start: pageFilters.datetime.start
+          ? getUtcDateString(pageFilters.datetime.start)
+          : undefined,
+        end: pageFilters.datetime.end
+          ? getUtcDateString(pageFilters.datetime.end)
+          : undefined,
         statsPeriod: pageFilters.datetime.period,
       };
 
