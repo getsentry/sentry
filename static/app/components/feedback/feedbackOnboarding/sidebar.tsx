@@ -185,7 +185,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const webApiPlatform = feedbackWebApiPlatforms.includes(currentPlatform.id);
 
   const npmOnlyFramework = feedbackNpmPlatforms
-    .filter<PlatformKey>(p => p !== 'javascript')
+    .filter((p): p is PlatformKey => p !== 'javascript')
     .includes(currentPlatform.id);
 
   const showRadioButtons =
