@@ -16,7 +16,6 @@ from sentry.attachments.base import CachedAttachment
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, sane_repr
 from sentry.db.models.fields.bounded import BoundedIntegerField
-from sentry.features.rollout import in_random_rollout
 from sentry.models.files.utils import get_size_and_checksum, get_storage
 
 # Attachment file types that are considered a crash report (PII relevant)
@@ -180,7 +179,7 @@ class EventAttachment(Model):
 
         size, checksum = get_size_and_checksum(blob)
 
-        if can_store_inline(data) and in_random_rollout("eventattachments.store-small-inline"):
+        if can_store_inline(data):
             blob_path = ":" + data.decode()
         else:
             blob_path = "eventattachments/v1/" + FileBlob.generate_unique_path()
