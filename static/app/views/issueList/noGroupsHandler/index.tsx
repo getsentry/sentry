@@ -143,6 +143,8 @@ class NoGroupsHandler extends Component<Props, State> {
             'pyhton-flask',
             'node-express',
             'node-nestjs',
+            'go',
+            'ruby',
           ]
         : []),
     ];
