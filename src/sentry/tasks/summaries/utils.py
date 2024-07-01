@@ -153,7 +153,8 @@ def user_project_ownership(ctx: OrganizationReportContext) -> None:
     for project_id, user_id in OrganizationMember.objects.filter(
         organization_id=ctx.organization.id, teams__projectteam__project__isnull=False
     ).values_list("teams__projectteam__project_id", "user_id"):
-        ctx.project_ownership.setdefault(user_id, set()).add(project_id)
+        if user_id is not None:
+            ctx.project_ownership.setdefault(user_id, set()).add(project_id)
 
 
 def project_key_errors(
@@ -236,7 +237,7 @@ def project_key_performance_issues(ctx: OrganizationReportContext, project: Proj
         # Pick the 50 top frequent performance issues last seen within a month with the highest event count from all time.
         # Then, we use this to join with snuba, hoping that the top 3 issue by volume counted in snuba would be within this list.
         # We do this to limit the number of group_ids snuba has to join with.
-        groups = Group.objects.filter(
+        groups_qs = Group.objects.filter(
             project_id=project.id,
             status=GroupStatus.UNRESOLVED,
             last_seen__gte=ctx.end - timedelta(days=30),
@@ -246,7 +247,7 @@ def project_key_performance_issues(ctx: OrganizationReportContext, project: Proj
         ).order_by("-times_seen")[:50]
 
         # Django doesn't have a .limit function, and this will actually do its magic to use the LIMIT statement.
-        groups = list(groups)
+        groups = list(groups_qs)
         group_id_to_group = {group.id: group for group in groups}
 
         if len(group_id_to_group) == 0:

@@ -44,6 +44,8 @@ def collect_project_platforms(paginate=1000, **kwargs):
         )
 
         for platform, project_id in queryset:
+            if platform is None:
+                continue
             platform = platform.lower()
             if platform not in VALID_PLATFORMS:
                 continue
