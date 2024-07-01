@@ -35,9 +35,9 @@ class LogService(RpcService):
     def find_last_log(
         self,
         *,
-        organization_id: int | None,
+        organization_id: int,
         target_object_id: int | None,
-        event: int | None,
+        event: int,
         data: dict[str, str] | None = None,
     ) -> AuditLogEvent | None:
         pass
