@@ -4,7 +4,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import timedelta
-from typing import Any, NotRequired, TypedDict, cast
+from typing import Any, Literal, NotRequired, TypedDict, cast
 
 import sentry_sdk
 from celery.exceptions import SoftTimeLimitExceeded
@@ -354,7 +354,7 @@ def _trim_if_above_limit(
     specs: Sequence[HashedMetricSpec],
     max_specs: int,
     project: Project,
-    widget_type: str,
+    spec_type: Literal["alerts", "widgets", "span_attributes"],
 ) -> tuple[list[HashedMetricSpec], list[HashedMetricSpec]]:
     """Trim specs per version if above max limit, returns the accepted specs and the trimmed specs in a tuple"""
     return_specs = []
@@ -373,7 +373,7 @@ def _trim_if_above_limit(
                 scope.set_context("specs", {"values": [spec[0] for spec in specs_for_version]})
                 sentry_sdk.capture_exception(
                     Exception(
-                        f"Spec version {version}: Too many ({len(specs_for_version)}) on demand metric {widget_type} for org {project.organization.slug}"
+                        f"Spec version {version}: Too many ({len(specs_for_version)}) on demand metric {spec_type} for org {project.organization.slug}"
                     )
                 )
 
@@ -840,6 +840,9 @@ def _generate_span_attribute_specs(project: Project) -> list[HashedMetricSpec]:
             specs.append((spec["mri"], spec, version))
         except ValueError:
             logger.exception("Invalid span attribute metric spec", extra=rule.to_dict())
+
+    max_specs = options.get("metric_extraction.max_span_attribute_specs")
+    (specs, _) = _trim_if_above_limit(specs, max_specs, project, "span_attributes")
 
     return specs
 
