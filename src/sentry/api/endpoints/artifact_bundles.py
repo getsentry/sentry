@@ -160,7 +160,7 @@ class ArtifactBundlesEndpoint(ProjectEndpoint, ArtifactBundlesMixin):
                 # In case there are no project ids, which shouldn't happen, there is a db problem, thus we want to track
                 # it.
                 if len(found_project_ids) == 0:
-                    with sentry_sdk.push_scope() as scope:
+                    with sentry_sdk.isolation_scope() as scope:
                         scope.set_tag("bundle_id", bundle_id)
                         scope.set_tag("org_id", project.organization.id)
                         sentry_sdk.capture_message(

@@ -131,7 +131,7 @@ def apply_cors_headers(
         allowed_methods = []
     allow = ", ".join(allowed_methods)
     if not allow or "*" in allow:
-        with sentry_sdk.push_scope() as scope:
+        with sentry_sdk.isolation_scope() as scope:
             scope.set_level("warning")
             scope.set_context(
                 "cors_headers",
