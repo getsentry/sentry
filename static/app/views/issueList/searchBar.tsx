@@ -41,7 +41,9 @@ const getSupportedTags = (supportedTags: TagCollection): TagCollection => {
 };
 
 const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
-  const allTags: Tag[] = Object.values(tags);
+  const allTags: Tag[] = Object.values(tags).filter(
+    tag => !EXCLUDED_TAGS.includes(tag.key)
+  );
   const eventTags = orderBy(
     allTags.filter(tag => tag.kind === FieldKind.TAG),
     ['totalValues', 'key'],
