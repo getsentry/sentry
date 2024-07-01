@@ -206,7 +206,7 @@ export const MetricsLayout = memo(() => {
                 <Fragment>
                   <p>
                     {tct(
-                      'Query and plot metrics extracted from your span data, to visualise trends and identify anomalies. To get started, you need to enable [link:tracing].',
+                      'Query and plot metrics extracted from your span data to visualise trends and identify anomalies. To get started, you need to enable [link:tracing].',
                       {
                         link: (
                           <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/" />
