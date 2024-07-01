@@ -4,6 +4,7 @@ import google.auth
 import google.auth.transport.requests
 import requests
 
+from sentry.llm.exceptions import VertexRequestFailed
 from sentry.llm.providers.base import LlmModelBase
 from sentry.llm.types import UseCaseConfig
 
@@ -50,13 +51,12 @@ class VertexProvider(LlmModelBase):
 
         response = requests.post(vertex_url, headers=headers, json=payload)
 
-        if response.status_code == 200:
-            logger.info("Request successful.")
-        else:
-            logger.info(
+        if response.status_code != 200:
+            logger.error(
                 "Request failed with status code and response text.",
                 extra={"status_code": response.status_code, "response_text": response.text},
             )
+            raise VertexRequestFailed(f"Response {response.status_code}: {response.text}")
 
         return response.json()["predictions"][0]["content"]
 
