@@ -63,10 +63,6 @@ logger = logging.getLogger(__name__)
 # Version of the metric extraction config.
 _METRIC_EXTRACTION_VERSION = 4
 
-# Maximum number of custom metrics that can be extracted for alerts and widgets with
-# advanced filter expressions.
-_MAX_ON_DEMAND_ALERTS = 50
-
 # TTL for cardinality check
 _WIDGET_QUERY_CARDINALITY_TTL = 3600 * 24  # 24h
 _WIDGET_QUERY_CARDINALITY_SOFT_DEADLINE_TTL = 3600 * 0.5  # 30m
@@ -205,7 +201,7 @@ def _get_alert_metric_specs(
                     )
                     specs.append(spec)
 
-    max_alert_specs = options.get("on_demand.max_alert_specs") or _MAX_ON_DEMAND_ALERTS
+    max_alert_specs = options.get("on_demand.max_alert_specs")
     (specs, _) = _trim_if_above_limit(specs, max_alert_specs, project, "alerts")
 
     return specs
