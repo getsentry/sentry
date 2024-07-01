@@ -37,6 +37,7 @@ from sentry.testutils.helpers import Feature
 from sentry.testutils.helpers.on_demand import create_widget
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.pytest.fixtures import django_db_all
+from sentry.utils import json
 
 ON_DEMAND_METRICS = "organizations:on-demand-metrics-extraction"
 ON_DEMAND_METRICS_WIDGETS = "organizations:on-demand-metrics-extraction-widgets"
