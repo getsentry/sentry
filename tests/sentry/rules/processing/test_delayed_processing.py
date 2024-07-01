@@ -733,7 +733,7 @@ class ProcessDelayedAlertConditionsTest(
         assert (percent_comparison_rule.id, group5.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=self.project.id)
 
-    def _setup_percent_comparison_test(self) -> int:
+    def _setup_count_percent_test(self) -> int:
         fires_percent_condition = self.create_event_frequency_condition(
             interval="1h",
             value=50,
@@ -815,7 +815,7 @@ class ProcessDelayedAlertConditionsTest(
         # Have the percent condition be processed first. The calculated percent
         # value is 100, but the skips_count_rule with a threshold of 75 should
         # not be triggered.
-        project_id = self._setup_percent_comparison_test()
+        project_id = self._setup_count_percent_test()
         with patch(
             "sentry.rules.processing.delayed_processing.get_condition_query_groups",
             side_effect=mock_get_condition_group(descending=False),
@@ -833,7 +833,7 @@ class ProcessDelayedAlertConditionsTest(
 
         # Have a count condition be processed first. It's calculated value is 2,
         # but the fires_percent_rule with a 50 threshold should still be triggered.
-        project_id = self._setup_percent_comparison_test()
+        project_id = self._setup_count_percent_test()
         with patch(
             "sentry.rules.processing.delayed_processing.get_condition_query_groups",
             side_effect=mock_get_condition_group(descending=True),
