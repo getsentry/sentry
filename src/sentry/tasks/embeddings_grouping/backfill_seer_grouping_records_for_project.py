@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+import sentry_sdk
 from django.conf import settings
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
@@ -176,12 +177,13 @@ def backfill_seer_grouping_records_for_project(
     )
     if not seer_response.get("success"):
         logger.info(
-            "backfill_seer_grouping_records.seer_down",
+            "backfill_seer_grouping_records.seer_failed",
             extra={
                 "current_project_id": current_project_id,
                 "last_processed_project_index": last_processed_project_index,
             },
         )
+        sentry_sdk.capture_exception(Exception("Seer failed during backfill"))
         return
 
     update_groups(

@@ -12,6 +12,7 @@ import type {
   IssueCategoryConfigMapping,
   IssueTypeConfig,
 } from 'sentry/utils/issueTypeConfig/types';
+import uptimeConfig from 'sentry/utils/issueTypeConfig/uptimeConfig';
 
 type Config = Record<IssueCategory, IssueCategoryConfigMapping>;
 
@@ -57,6 +58,7 @@ const issueTypeConfig: Config = {
   [IssueCategory.PROFILE]: performanceConfig,
   [IssueCategory.CRON]: cronConfig,
   [IssueCategory.REPLAY]: replayConfig,
+  [IssueCategory.UPTIME]: uptimeConfig,
 };
 
 /**
