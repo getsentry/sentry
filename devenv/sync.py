@@ -6,7 +6,7 @@ import shlex
 import subprocess
 
 from devenv import constants
-from devenv.lib import colima, config, limactl, proc, venv, volta
+from devenv.lib import colima, config, fs, limactl, proc, venv, volta
 
 
 # TODO: need to replace this with a nicer process executor in devenv.lib
@@ -128,16 +128,11 @@ def main(context: dict[str, str]) -> int:
         repo,
         reporoot,
         venv_dir,
-        (
-            (
-                "git and precommit",
-                # this can't be done in parallel with python dependencies
-                # as multiple pips cannot act on the same venv
-                ("make", "setup-git"),
-            ),
-        ),
+        (("pre-commit dependencies", ("pre-commit", "install", "--install-hooks", "-f")),),
     ):
         return 1
+
+    fs.ensure_symlink("../../config/hooks/post-merge", f"{reporoot}/.git/hooks/post-merge")
 
     if not os.path.exists(f"{constants.home}/.sentry/config.yml") or not os.path.exists(
         f"{constants.home}/.sentry/sentry.conf.py"
