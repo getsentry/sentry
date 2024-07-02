@@ -12,7 +12,7 @@ from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityTy
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.service import user_service
 
 
 def generate_rule_label(project, rule, data):

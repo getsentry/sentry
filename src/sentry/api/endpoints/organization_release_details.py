@@ -38,7 +38,7 @@ from sentry.models.release import Release, ReleaseStatus
 from sentry.models.releases.exceptions import ReleaseCommitError, UnsafeReleaseDeletion
 from sentry.snuba.sessions import STATS_PERIODS
 from sentry.types.activity import ActivityType
-from sentry.utils.sdk import bind_organization_context, configure_scope
+from sentry.utils.sdk import Scope, bind_organization_context
 
 
 class InvalidSortException(Exception):
@@ -435,98 +435,98 @@ class OrganizationReleaseDetailsEndpoint(
         """
         bind_organization_context(organization)
 
-        with configure_scope() as scope:
-            scope.set_tag("version", version)
+        scope = Scope.get_isolation_scope()
+        scope.set_tag("version", version)
+        try:
+            release = Release.objects.get(organization_id=organization, version=version)
+            projects = release.projects.all()
+        except Release.DoesNotExist:
+            scope.set_tag("failure_reason", "Release.DoesNotExist")
+            raise ResourceDoesNotExist
+
+        if not self.has_release_permission(request, organization, release):
+            scope.set_tag("failure_reason", "no_release_permission")
+            raise ResourceDoesNotExist
+
+        serializer = OrganizationReleaseSerializer(data=request.data)
+
+        if not serializer.is_valid():
+            scope.set_tag("failure_reason", "serializer_error")
+            return Response(serializer.errors, status=400)
+
+        result = serializer.validated_data
+
+        was_released = bool(release.date_released)
+
+        kwargs = {}
+        if result.get("dateReleased"):
+            kwargs["date_released"] = result["dateReleased"]
+        if result.get("ref"):
+            kwargs["ref"] = result["ref"]
+        if result.get("url"):
+            kwargs["url"] = result["url"]
+        if result.get("status"):
+            kwargs["status"] = result["status"]
+
+        if kwargs:
+            release.update(**kwargs)
+
+        commit_list = result.get("commits")
+        if commit_list:
+            # TODO(dcramer): handle errors with release payloads
             try:
-                release = Release.objects.get(organization_id=organization, version=version)
-                projects = release.projects.all()
-            except Release.DoesNotExist:
-                scope.set_tag("failure_reason", "Release.DoesNotExist")
-                raise ResourceDoesNotExist
+                release.set_commits(commit_list)
+                self.track_set_commits_local(
+                    request,
+                    organization_id=organization.id,
+                    project_ids=[project.id for project in projects],
+                )
+            except ReleaseCommitError:
+                raise ConflictError("Release commits are currently being processed")
 
-            if not self.has_release_permission(request, organization, release):
-                scope.set_tag("failure_reason", "no_release_permission")
-                raise ResourceDoesNotExist
+        refs = result.get("refs")
+        if not refs:
+            # Handle legacy
+            if result.get("headCommits", []):
+                refs = [
+                    {
+                        "repository": r["repository"],
+                        "previousCommit": r.get("previousId"),
+                        "commit": r["currentId"],
+                    }
+                    for r in result.get("headCommits", [])
+                ]
+            # Clear commits in release
+            else:
+                if result.get("refs") == []:
+                    release.clear_commits()
 
-            serializer = OrganizationReleaseSerializer(data=request.data)
+        scope.set_tag("has_refs", bool(refs))
+        if refs:
+            if not request.user.is_authenticated and not request.auth:
+                scope.set_tag("failure_reason", "user_not_authenticated")
+                return Response(
+                    {"refs": ["You must use an authenticated API token to fetch refs"]},
+                    status=400,
+                )
+            fetch_commits = not commit_list
+            try:
+                release.set_refs(refs, request.user.id, fetch=fetch_commits)
+            except InvalidRepository as e:
+                scope.set_tag("failure_reason", "InvalidRepository")
+                return Response({"refs": [str(e)]}, status=400)
 
-            if not serializer.is_valid():
-                scope.set_tag("failure_reason", "serializer_error")
-                return Response(serializer.errors, status=400)
+        if not was_released and release.date_released:
+            for project in projects:
+                Activity.objects.create(
+                    type=ActivityType.RELEASE.value,
+                    project=project,
+                    ident=Activity.get_version_ident(release.version),
+                    data={"version": release.version},
+                    datetime=release.date_released,
+                )
 
-            result = serializer.validated_data
-
-            was_released = bool(release.date_released)
-
-            kwargs = {}
-            if result.get("dateReleased"):
-                kwargs["date_released"] = result["dateReleased"]
-            if result.get("ref"):
-                kwargs["ref"] = result["ref"]
-            if result.get("url"):
-                kwargs["url"] = result["url"]
-            if result.get("status"):
-                kwargs["status"] = result["status"]
-
-            if kwargs:
-                release.update(**kwargs)
-
-            commit_list = result.get("commits")
-            if commit_list:
-                # TODO(dcramer): handle errors with release payloads
-                try:
-                    release.set_commits(commit_list)
-                    self.track_set_commits_local(
-                        request,
-                        organization_id=organization.id,
-                        project_ids=[project.id for project in projects],
-                    )
-                except ReleaseCommitError:
-                    raise ConflictError("Release commits are currently being processed")
-
-            refs = result.get("refs")
-            if not refs:
-                # Handle legacy
-                if result.get("headCommits", []):
-                    refs = [
-                        {
-                            "repository": r["repository"],
-                            "previousCommit": r.get("previousId"),
-                            "commit": r["currentId"],
-                        }
-                        for r in result.get("headCommits", [])
-                    ]
-                # Clear commits in release
-                else:
-                    if result.get("refs") == []:
-                        release.clear_commits()
-
-            scope.set_tag("has_refs", bool(refs))
-            if refs:
-                if not request.user.is_authenticated and not request.auth:
-                    scope.set_tag("failure_reason", "user_not_authenticated")
-                    return Response(
-                        {"refs": ["You must use an authenticated API token to fetch refs"]},
-                        status=400,
-                    )
-                fetch_commits = not commit_list
-                try:
-                    release.set_refs(refs, request.user.id, fetch=fetch_commits)
-                except InvalidRepository as e:
-                    scope.set_tag("failure_reason", "InvalidRepository")
-                    return Response({"refs": [str(e)]}, status=400)
-
-            if not was_released and release.date_released:
-                for project in projects:
-                    Activity.objects.create(
-                        type=ActivityType.RELEASE.value,
-                        project=project,
-                        ident=Activity.get_version_ident(release.version),
-                        data={"version": release.version},
-                        datetime=release.date_released,
-                    )
-
-            return Response(serialize(release, request.user))
+        return Response(serialize(release, request.user))
 
     @extend_schema(
         operation_id="Delete an Organization's Release",

@@ -12,7 +12,7 @@ from sentry.utils.http import absolute_uri
 from sentry.utils.security import get_secure_token
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.lost_password_hash import RpcLostPasswordHash
+    from sentry.users.services.lost_password_hash import RpcLostPasswordHash
 
 
 @control_silo_model
@@ -98,7 +98,7 @@ class LostPasswordHash(Model):
 
     @classmethod
     def for_user(cls, user) -> "RpcLostPasswordHash":
-        from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
+        from sentry.users.services.lost_password_hash import lost_password_hash_service
 
         password_hash = lost_password_hash_service.get_or_create(user_id=user.id)
         return password_hash

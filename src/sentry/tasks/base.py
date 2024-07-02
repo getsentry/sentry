@@ -13,7 +13,7 @@ from django.db.models import Model
 from sentry.celery import app
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.utils import metrics
-from sentry.utils.sdk import capture_exception, configure_scope
+from sentry.utils.sdk import Scope, capture_exception
 
 ModelT = TypeVar("ModelT", bound=Model)
 
@@ -127,9 +127,9 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
                     "jobs.queue_time", duration, instance=instance, unit="millisecond"
                 )
 
-            with configure_scope() as scope:
-                scope.set_tag("task_name", name)
-                scope.set_tag("transaction_id", transaction_id)
+            scope = Scope.get_isolation_scope()
+            scope.set_tag("task_name", name)
+            scope.set_tag("transaction_id", transaction_id)
 
             with (
                 metrics.timer(key, instance=instance),

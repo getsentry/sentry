@@ -18,7 +18,7 @@ describe('Nest.js onboarding docs', function () {
 
     // Includes import statement
     const allMatches = screen.getAllByText(
-      textWithMarkupMatcher(/import \* as Sentry from "@sentry\/node"/)
+      textWithMarkupMatcher(/import \* as Sentry from "@sentry\/nestjs"/)
     );
     allMatches.forEach(match => {
       expect(match).toBeInTheDocument();
