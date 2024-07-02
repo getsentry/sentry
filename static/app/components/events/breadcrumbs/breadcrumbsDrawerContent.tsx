@@ -1,8 +1,10 @@
 import {Fragment, useMemo, useState} from 'react';
+import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
 import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
+import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
@@ -55,6 +57,7 @@ export function BreadcrumbsDrawerContent({
   meta,
   focusControl,
 }: BreadcrumbsDrawerContentProps) {
+  const theme = useTheme();
   const [search, setSearch] = useState('');
   const [filterSet, setFilterSet] = useState(new Set<string>());
   const [sort, setSort] = useLocalStorageState<BreadcrumbSort>(
@@ -112,9 +115,10 @@ export function BreadcrumbsDrawerContent({
         options={filterOptions}
         maxMenuHeight={400}
         trigger={(props, isOpen) => (
-          <BreadcrumbControl
+          <DropdownButton
             size="xs"
-            isActive={filterSet.size > 0}
+            borderless
+            style={{background: filterSet.size > 0 ? theme.purple100 : 'transparent'}}
             icon={<IconFilter />}
             showChevron={false}
             isOpen={isOpen}
@@ -123,14 +127,15 @@ export function BreadcrumbsDrawerContent({
             aria-label={t('Filter All Breadcrumbs')}
           >
             {filterSet.size > 0 ? filterSet.size : null}
-          </BreadcrumbControl>
+          </DropdownButton>
         )}
       />
       <CompactSelect
         size="xs"
         trigger={(props, isOpen) => (
-          <BreadcrumbControl
+          <DropdownButton
             size="xs"
+            borderless
             icon={<IconSort />}
             showChevron={false}
             isOpen={isOpen}
@@ -146,8 +151,9 @@ export function BreadcrumbsDrawerContent({
       <CompactSelect
         size="xs"
         trigger={(props, isOpen) => (
-          <BreadcrumbControl
+          <DropdownButton
             size="xs"
+            borderless
             icon={<IconClock />}
             showChevron={false}
             isOpen={isOpen}
@@ -187,12 +193,27 @@ export function BreadcrumbsDrawerContent({
         {actions}
       </HeaderGrid>
       <TimelineContainer>
-        <BreadcrumbsTimeline
-          breadcrumbs={displayCrumbs}
-          meta={meta}
-          startTimeString={startTimeString}
-          fullyExpanded
-        />
+        {displayCrumbs.length === 0 ? (
+          <EmptyMessage>
+            {t('No breadcrumbs found.')}
+            <Button
+              priority="link"
+              onClick={() => {
+                setFilterSet(new Set());
+                setSearch('');
+              }}
+            >
+              {t('Clear Filters?')}
+            </Button>
+          </EmptyMessage>
+        ) : (
+          <BreadcrumbsTimeline
+            breadcrumbs={displayCrumbs}
+            meta={meta}
+            startTimeString={startTimeString}
+            fullyExpanded
+          />
+        )}
       </TimelineContainer>
     </Fragment>
   );
@@ -231,15 +252,19 @@ const SearchInput = styled(InputGroup.Input)`
   color: inherit;
 `;
 
-const BreadcrumbControl = styled(DropdownButton)<{isActive?: boolean}>`
-  border: 0;
-  background: ${p => (p.isActive ? p.theme.purple100 : 'transparent')};
-`;
-
 const NavigationCrumbs = styled(NavigationBreadcrumbs)`
   margin: 0;
 `;
 
 const TimelineContainer = styled('div')`
   grid-column: span 2;
+`;
+
+const EmptyMessage = styled('div')`
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  color: ${p => p.theme.subText};
+  padding: ${space(3)} ${space(1)};
 `;

@@ -20,7 +20,6 @@ import useDrawer from 'sentry/components/globalDrawer';
 import {IconClock, IconEllipsis, IconFilter, IconSearch, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RawCrumb} from 'sentry/types/breadcrumbs';
 import {EntryType, type Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -37,30 +36,38 @@ export default function BreadcrumbsDataSection({
   group,
   project,
 }: BreadcrumbsDataSectionProps) {
+  const {openDrawer} = useDrawer();
   // Use the local storage preferences, but allow the drawer to do updates
   const [timeDisplay, setTimeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
     BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
     BreadcrumbTimeDisplay.RELATIVE
   );
-  const {openDrawer} = useDrawer();
 
-  const breadcrumbEntryIndex =
-    event.entries?.findIndex(entry => entry.type === EntryType.BREADCRUMBS) ?? -1;
-  const breadcrumbs: RawCrumb[] = useMemo(
-    () => event.entries?.[breadcrumbEntryIndex]?.data?.values ?? [],
-    [event, breadcrumbEntryIndex]
-  );
-  // Mapping of breadcrumb index -> breadcrumb meta
-  const meta: Record<number, any> =
-    event._meta?.entries?.[breadcrumbEntryIndex]?.data?.values;
+  const {allCrumbs, isEmpty, meta, summaryCrumbs, startTimeString, virtualCrumb} =
+    useMemo(() => {
+      const breadcrumbEntryIndex =
+        event.entries?.findIndex(entry => entry.type === EntryType.BREADCRUMBS) ?? -1;
+      const breadcrumbs = event.entries?.[breadcrumbEntryIndex]?.data?.values ?? [];
+      // Mapping of breadcrumb index -> breadcrumb meta
+      const _meta: Record<number, any> =
+        event._meta?.entries?.[breadcrumbEntryIndex]?.data?.values;
 
-  let allCrumbs = useMemo(() => [...breadcrumbs], [breadcrumbs]);
-  // The virtual crumb is a representation of this event, displayed alongside
-  // the rest of the breadcrumbs for more additional context.
-  const virtualCrumb = useMemo(() => getVirtualCrumb(event), [event]);
-  if (virtualCrumb) {
-    allCrumbs = [...breadcrumbs, virtualCrumb];
-  }
+      // The virtual crumb is a representation of this event, displayed alongside
+      // the rest of the breadcrumbs for more additional context.
+      const _virtualCrumb = getVirtualCrumb(event);
+      const _allCrumbs = _virtualCrumb ? [...breadcrumbs, _virtualCrumb] : breadcrumbs;
+      return {
+        allCrumbs: _allCrumbs,
+        isEmpty: breadcrumbEntryIndex === -1 || breadcrumbs.length === 0,
+        meta: _meta,
+        summaryCrumbs: getSummaryBreadcrumbs(_allCrumbs),
+        startTimeString:
+          timeDisplay === BreadcrumbTimeDisplay.RELATIVE
+            ? _allCrumbs?.at(-1)?.timestamp
+            : undefined,
+        virtualCrumb: _virtualCrumb,
+      };
+    }, [event, timeDisplay]);
 
   const onViewAllBreadcrumbs = useCallback(
     (focusControl?: BreadcrumbControlOptions) => {
@@ -83,21 +90,9 @@ export default function BreadcrumbsDataSection({
     [allCrumbs, meta, group, event, project, openDrawer]
   );
 
-  if (breadcrumbEntryIndex === -1) {
+  if (isEmpty) {
     return null;
   }
-
-  if (breadcrumbs.length <= 0) {
-    return null;
-  }
-
-  const summaryCrumbs = getSummaryBreadcrumbs(allCrumbs);
-  const isFullLength = summaryCrumbs.length === allCrumbs.length;
-
-  const startTimeString =
-    timeDisplay === BreadcrumbTimeDisplay.RELATIVE
-      ? allCrumbs?.at(-1)?.timestamp
-      : undefined;
 
   const actions = (
     <ButtonBar gap={1}>
@@ -143,17 +138,13 @@ export default function BreadcrumbsDataSection({
       actions={actions}
     >
       <ErrorBoundary mini message={t('There was an error loading the event breadcrumbs')}>
-        {allCrumbs.length ? (
-          <BreadcrumbsTimeline
-            breadcrumbs={summaryCrumbs}
-            virtualCrumbIndex={virtualCrumb ? 0 : undefined}
-            meta={meta}
-            startTimeString={startTimeString}
-          />
-        ) : (
-          <EmptyBreadcrumbsMessage>{t('No breadcrumbs found. ')}</EmptyBreadcrumbsMessage>
-        )}
-        {!isFullLength && (
+        <BreadcrumbsTimeline
+          breadcrumbs={summaryCrumbs}
+          virtualCrumbIndex={virtualCrumb ? 0 : undefined}
+          meta={meta}
+          startTimeString={startTimeString}
+        />
+        {summaryCrumbs.length !== allCrumbs.length && (
           <ViewAllContainer>
             <VerticalEllipsis />
             <div>
@@ -171,17 +162,6 @@ export default function BreadcrumbsDataSection({
     </EventDataSection>
   );
 }
-
-const EmptyBreadcrumbsMessage = styled('div')`
-  border: 1px solid ${p => p.theme.border};
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  color: ${p => p.theme.subText};
-  border-radius: 4px;
-  padding: ${space(3)} ${space(1)};
-`;
 
 const ViewAllContainer = styled('div')`
   position: relative;
