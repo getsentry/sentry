@@ -2,7 +2,8 @@ from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
 from snuba_sdk import Column, Function
 
 from sentry.search.events import constants
-from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder, TopEventsQueryBuilder
+from sentry.search.events.builder import TimeseriesQueryBuilder, TopEventsQueryBuilder
+from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.datasets.spans_indexed import SpansIndexedDatasetConfig
 from sentry.search.events.fields import custom_time_processor
 from sentry.search.events.types import SelectType
@@ -20,7 +21,7 @@ class SpansIndexedQueryBuilderMixin:
         return None
 
 
-class SpansIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, QueryBuilder):
+class SpansIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
     requires_organization_condition = False
     uuid_fields = {"transaction.id", "replay.id", "profile.id", "trace"}
     config_class = SpansIndexedDatasetConfig

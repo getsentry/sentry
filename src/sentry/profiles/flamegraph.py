@@ -4,7 +4,7 @@ from typing import Any, TypedDict
 from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
 
 from sentry import options
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import ParamsType
 from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset, EntityKey
@@ -19,7 +19,7 @@ def query_profiles_data(
     query: str | None = None,
     additional_conditions: list[Condition] | None = None,
 ) -> list[dict[str, Any]]:
-    builder = QueryBuilder(
+    builder = DiscoverQueryBuilder(
         dataset=Dataset.Discover,
         params=params,
         query=query,

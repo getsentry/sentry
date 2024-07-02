@@ -1,6 +1,5 @@
 from .discover import (
     HistogramQueryBuilder,
-    QueryBuilder,
     TimeseriesQueryBuilder,
     TopEventsQueryBuilder,
     UnresolvedQuery,
@@ -40,7 +39,6 @@ from .spans_metrics import (
 
 __all__ = [
     "HistogramQueryBuilder",
-    "QueryBuilder",
     "TimeseriesQueryBuilder",
     "IssuePlatformTimeseriesQueryBuilder",
     "TopEventsQueryBuilder",
