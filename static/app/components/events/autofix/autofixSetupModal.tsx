@@ -231,7 +231,7 @@ function AutofixGithubIntegrationStep({
               disabled={!canStartAutofix}
               onClick={closeModal}
             >
-              {t('Skip & enable Autofix')}
+              {t('Skip & Enable Autofix')}
             </Button>
           )}
         </GuidedSteps.StepButtons>
@@ -266,7 +266,7 @@ function AutofixGithubIntegrationStep({
             disabled={!canStartAutofix}
             onClick={closeModal}
           >
-            {t('Skip & enable Autofix')}
+            {t('Skip & Enable Autofix')}
           </Button>
         )}
       </GuidedSteps.StepButtons>
