@@ -733,6 +733,40 @@ class ProcessDelayedAlertConditionsTest(
         assert (percent_comparison_rule.id, group5.id) in rule_fire_histories
         self.assert_buffer_cleared(project_id=self.project.id)
 
+    def test_apply_delayed_event_frequency_percent_comparison_interval(self):
+        """
+        Test that the event frequency percent condition with a percent
+        comparison is using the COMPARISON_INTERVALS for it's
+        comparison_interval and does not fail with a KeyError.
+        """
+        percent_condition = self.create_event_frequency_condition(
+            id="EventFrequencyPercentCondition",
+            interval="1h",
+            value=50,
+            comparison_type=ComparisonType.PERCENT,
+            comparison_interval="1d",
+        )
+        percent_comparison_rule = self.create_project_rule(
+            project=self.project,
+            condition_match=[percent_condition],
+        )
+
+        event5 = self.create_event(self.project.id, FROZEN_TIME, "group-5")
+        self.push_to_hash(
+            self.project.id, percent_comparison_rule.id, event5.group.id, event5.event_id
+        )
+
+        project_ids = buffer.backend.get_sorted_set(
+            PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
+        )
+        apply_delayed(project_ids[0][0])
+
+        assert not RuleFireHistory.objects.filter(
+            rule__in=[percent_comparison_rule],
+            project=self.project,
+        ).exists()
+        self.assert_buffer_cleared(project_id=self.project.id)
+
     def _setup_count_percent_test(self) -> int:
         fires_percent_condition = self.create_event_frequency_condition(
             interval="1h",
