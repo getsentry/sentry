@@ -1,10 +1,4 @@
 import {t} from 'sentry/locale';
-
-export const INSIGHTS_TITLE = t('Insights');
-export const INSIGHTS_BASE_URL = 'insights';
-
-export const DEFAULT_INTERVAL = '10m';
-
 import {MODULE_TITLE as RESOURCES_MODULE_TITLE} from 'sentry/views/insights/browser/resources/settings';
 import {MODULE_TITLE as VITALS_MODULE_TITLE} from 'sentry/views/insights/browser/webVitals/settings';
 import {MODULE_TITLE as CACHE_MODULE_TITLE} from 'sentry/views/insights/cache/settings';
@@ -16,6 +10,11 @@ import {MODULE_TITLE as SCREEN_LOADS_MODULE_TITLE} from 'sentry/views/insights/m
 import {MODULE_TITLE as MOBILE_UI_MODULE_TITLE} from 'sentry/views/insights/mobile/ui/settings';
 import {MODULE_TITLE as QUEUE_MODULE_TITLE} from 'sentry/views/insights/queues/settings';
 import {ModuleName} from 'sentry/views/insights/types';
+
+export const INSIGHTS_TITLE = t('Insights');
+export const INSIGHTS_BASE_URL = 'insights';
+
+export const DEFAULT_INTERVAL = '10m';
 
 export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.DB]: DB_MODULE_TITLE,
