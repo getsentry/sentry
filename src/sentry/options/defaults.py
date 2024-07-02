@@ -1781,6 +1781,10 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# In Single Tenant with 100% DS, we may need to reverse the UI change made by dynamic-sampling
+# if metrics extraction isn't ready.
+register("performance.hide-metrics-ui", type=Bool, default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Used for enabling flags in ST. Should be removed once Flagpole works in all STs.
 register(
     "performance.use_metrics.orgs_allowlist",
