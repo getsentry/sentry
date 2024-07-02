@@ -2608,13 +2608,27 @@ describe('TraceTree', () => {
       // Mock the API calls
       MockApiClient.addMockResponse({
         method: 'GET',
-        url: '/organizations/org-slug/events-trace/slug2/?limit=10000&timestamp=2&useSpans=1',
+        url: '/organizations/org-slug/events-trace/slug1/?limit=10000&timestamp=1&useSpans=1',
         body: {
           transactions: [
             makeTransaction({
               transaction: 'txn 3',
               start_timestamp: 0,
               children: [makeTransaction({start_timestamp: 1, transaction: 'txn 4'})],
+            }),
+          ],
+          orphan_errors: [],
+        },
+      });
+      MockApiClient.addMockResponse({
+        method: 'GET',
+        url: '/organizations/org-slug/events-trace/slug2/?limit=10000&timestamp=2&useSpans=1',
+        body: {
+          transactions: [
+            makeTransaction({
+              transaction: 'txn 5',
+              start_timestamp: 0,
+              children: [makeTransaction({start_timestamp: 1, transaction: 'txn 6'})],
             }),
           ],
           orphan_errors: [],
@@ -2638,17 +2652,16 @@ describe('TraceTree', () => {
 
       expect(tree.list.length).toBe(3);
 
-      tree.fetchTraces({
+      tree.fetchAdditionalTraces({
         replayTraces: traces,
         api: new MockApiClient(),
         filters: {},
         organization,
         rerender: () => {},
         urlParams: {} as Location['query'],
-        traceLimit: undefined,
       });
 
-      await waitFor(() => expect(tree.isFetching).toBe(false));
+      await waitFor(() => expect(tree.root.children[0].fetchStatus).toBe('idle'));
 
       expect(tree.list.length).toBe(7);
     });
@@ -2710,17 +2723,16 @@ describe('TraceTree', () => {
 
       expect(tree.list.length).toBe(3);
 
-      tree.fetchTraces({
+      tree.fetchAdditionalTraces({
         replayTraces: traces,
         api: new MockApiClient(),
         filters: {},
         organization,
         rerender: () => {},
         urlParams: {} as Location['query'],
-        traceLimit: undefined,
       });
 
-      await waitFor(() => expect(tree.isFetching).toBe(false));
+      await waitFor(() => expect(tree.root.children[0].fetchStatus).toBe('idle'));
 
       expect(tree.list.length).toBe(7);
       expect(mockedResponse1).toHaveBeenCalledTimes(1);

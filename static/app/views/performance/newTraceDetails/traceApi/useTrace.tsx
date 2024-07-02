@@ -52,7 +52,7 @@ export function getTraceQueryParams(
   });
   const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
   const demo = decodeScalar(normalizedParams.demo);
-  const timestamp = decodeScalar(normalizedParams.timestamp);
+  const timestamp = options.timestamp ?? decodeScalar(normalizedParams.timestamp);
   let limit = options.limit ?? decodeScalar(normalizedParams.limit);
   if (typeof limit === 'string') {
     limit = parseInt(limit, 10);
