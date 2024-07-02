@@ -272,13 +272,14 @@ describe('TraceTimeline', () => {
   });
 
   it('works for plans with no global-views feature', async () => {
+    // This test will call the endpoint without the global-views feature, thus,
+    // we will only look at the current project (project: event.projectID) instead of passing -1
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: issuePlatformBody,
       match: [
         MockApiClient.matchQuery({
           dataset: 'issuePlatform',
-          // Since we don't have global-views, we only look at the current project
           project: event.projectID,
         }),
       ],
@@ -289,7 +290,6 @@ describe('TraceTimeline', () => {
       match: [
         MockApiClient.matchQuery({
           dataset: 'discover',
-          // Since we don't have global-views, we only look at the current project
           project: event.projectID,
         }),
       ],
