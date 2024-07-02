@@ -133,7 +133,7 @@ export interface MetricsExtractionCondition {
 }
 
 export interface MetricsExtractionRule {
-  aggregates: MetricsAggregate[];
+  aggregates: MetricAggregation[];
   conditions: MetricsExtractionCondition[];
   spanAttribute: string;
   tags: string[];

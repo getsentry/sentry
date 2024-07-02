@@ -11,7 +11,7 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricsAggregate, MetricsExtractionCondition} from 'sentry/types/metrics';
+import type {MetricAggregation, MetricsExtractionCondition} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -72,7 +72,7 @@ const AGGREGATE_OPTIONS: {label: string; value: AggregateGroup}[] = [
   },
 ];
 
-export function explodeAggregateGroup(group: AggregateGroup): MetricsAggregate[] {
+export function explodeAggregateGroup(group: AggregateGroup): MetricAggregation[] {
   switch (group) {
     case 'count':
       return ['count'];
@@ -87,7 +87,7 @@ export function explodeAggregateGroup(group: AggregateGroup): MetricsAggregate[]
   }
 }
 
-export function aggregatesToGroups(aggregates: MetricsAggregate[]): AggregateGroup[] {
+export function aggregatesToGroups(aggregates: MetricAggregation[]): AggregateGroup[] {
   const groups: AggregateGroup[] = [];
   if (aggregates.includes('count')) {
     groups.push('count');
@@ -96,12 +96,12 @@ export function aggregatesToGroups(aggregates: MetricsAggregate[]): AggregateGro
   if (aggregates.includes('count_unique')) {
     groups.push('count_unique');
   }
-  const minMaxAggregates = new Set<MetricsAggregate>(['min', 'max', 'sum', 'avg']);
+  const minMaxAggregates = new Set<MetricAggregation>(['min', 'max', 'sum', 'avg']);
   if (aggregates.find(aggregate => minMaxAggregates.has(aggregate))) {
     groups.push('min_max');
   }
 
-  const percentileAggregates = new Set<MetricsAggregate>(['p50', 'p75', 'p95', 'p99']);
+  const percentileAggregates = new Set<MetricAggregation>(['p50', 'p75', 'p95', 'p99']);
   if (aggregates.find(aggregate => percentileAggregates.has(aggregate))) {
     groups.push('percentiles');
   }
