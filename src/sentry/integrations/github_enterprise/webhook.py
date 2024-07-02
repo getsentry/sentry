@@ -21,7 +21,7 @@ from sentry.integrations.github.webhook import (
 )
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.utils import metrics
-from sentry.utils.sdk import configure_scope
+from sentry.utils.sdk import Scope
 
 from .repository import GitHubEnterpriseRepositoryProvider
 
@@ -118,64 +118,65 @@ class GitHubEnterpriseWebhookBase(Endpoint):
 
     def handle(self, request: Request) -> HttpResponse:
         clear_tags_and_context()
-        with configure_scope() as scope:
-            meta = request.META
-            host = get_host(request=request)
-            if not host:
-                logger.warning("github_enterprise.webhook.missing-enterprise-host")
-                logger.error("Missing enterprise host.")
-                return HttpResponse(status=400)
+        scope = Scope.get_isolation_scope()
 
-            extra = {"host": host}
-            # If we do tag the host early we can't even investigate
-            scope.set_tag("host", host)
+        meta = request.META
+        host = get_host(request=request)
+        if not host:
+            logger.warning("github_enterprise.webhook.missing-enterprise-host")
+            logger.error("Missing enterprise host.")
+            return HttpResponse(status=400)
 
-            body = bytes(request.body)
-            if not body:
-                logger.warning("github_enterprise.webhook.missing-body", extra=extra)
-                return HttpResponse(status=400)
+        extra = {"host": host}
+        # If we do tag the host early we can't even investigate
+        scope.set_tag("host", host)
 
-            try:
-                handler = self.get_handler(meta["HTTP_X_GITHUB_EVENT"])
-            except KeyError:
-                logger.warning("github_enterprise.webhook.missing-event", extra=extra)
-                logger.exception("Missing Github event in webhook.")
-                return HttpResponse(status=400)
+        body = bytes(request.body)
+        if not body:
+            logger.warning("github_enterprise.webhook.missing-body", extra=extra)
+            return HttpResponse(status=400)
 
-            if not handler:
-                return HttpResponse(status=204)
+        try:
+            handler = self.get_handler(meta["HTTP_X_GITHUB_EVENT"])
+        except KeyError:
+            logger.warning("github_enterprise.webhook.missing-event", extra=extra)
+            logger.exception("Missing Github event in webhook.")
+            return HttpResponse(status=400)
 
-            try:
-                # XXX: Sometimes they send us this b'payload=%7B%22ref%22 Support this
-                # See https://sentry.io/organizations/sentry/issues/2565421410
-                event = orjson.loads(body)
-            except orjson.JSONDecodeError:
-                logger.warning(
-                    "github_enterprise.webhook.invalid-json",
-                    extra=extra,
-                    exc_info=True,
-                )
-                logger.exception("Invalid JSON.")
-                return HttpResponse(status=400)
-
-            secret = self.get_secret(event, host)
-            if not secret:
-                logger.warning("github_enterprise.webhook.missing-integration", extra=extra)
-                return HttpResponse(status=400)
-
-            try:
-                # Attempt to validate the signature. Older versions of
-                # GitHub Enterprise do not send the signature so this is an optional step.
-                method, signature = meta["HTTP_X_HUB_SIGNATURE"].split("=", 1)
-                if not self.is_valid_signature(method, body, secret, signature):
-                    logger.warning("github_enterprise.webhook.invalid-signature", extra=extra)
-                    return HttpResponse(status=401)
-            except (KeyError, IndexError) as e:
-                extra["error"] = str(e)
-                logger.info("github_enterprise.webhook.missing-signature", extra=extra)
-                logger.exception("Missing webhook secret.")
-            handler()(event, host)
+        if not handler:
             return HttpResponse(status=204)
+
+        try:
+            # XXX: Sometimes they send us this b'payload=%7B%22ref%22 Support this
+            # See https://sentry.io/organizations/sentry/issues/2565421410
+            event = orjson.loads(body)
+        except orjson.JSONDecodeError:
+            logger.warning(
+                "github_enterprise.webhook.invalid-json",
+                extra=extra,
+                exc_info=True,
+            )
+            logger.exception("Invalid JSON.")
+            return HttpResponse(status=400)
+
+        secret = self.get_secret(event, host)
+        if not secret:
+            logger.warning("github_enterprise.webhook.missing-integration", extra=extra)
+            return HttpResponse(status=400)
+
+        try:
+            # Attempt to validate the signature. Older versions of
+            # GitHub Enterprise do not send the signature so this is an optional step.
+            method, signature = meta["HTTP_X_HUB_SIGNATURE"].split("=", 1)
+            if not self.is_valid_signature(method, body, secret, signature):
+                logger.warning("github_enterprise.webhook.invalid-signature", extra=extra)
+                return HttpResponse(status=401)
+        except (KeyError, IndexError) as e:
+            extra["error"] = str(e)
+            logger.info("github_enterprise.webhook.missing-signature", extra=extra)
+            logger.exception("Missing webhook secret.")
+        handler()(event, host)
+        return HttpResponse(status=204)
 
 
 @region_silo_endpoint
