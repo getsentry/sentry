@@ -399,7 +399,6 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.replays",
     "sentry.release_health",
     "sentry.search",
-    "sentry.sentry_metrics",
     "sentry.sentry_metrics.indexer.postgres.apps.Config",
     "sentry.snuba",
     "sentry.lang.java.apps.Config",
