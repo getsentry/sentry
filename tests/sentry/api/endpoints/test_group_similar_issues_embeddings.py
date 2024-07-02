@@ -17,7 +17,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.eventprocessing import save_new_event
 from sentry.utils.types import NonNone
 
-EXPECTED_STACKTRACE_STRING = 'ZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero\n    divide = 1/0'
+EXPECTED_STACKTRACE_STRING = 'ZeroDivisionError: division by zero\n  Module "__main__", file "python_onboarding.py", function divide_by_zero\n    divide = 1/0'
 
 
 class GroupSimilarIssuesEmbeddingsTest(APITestCase):
@@ -87,6 +87,13 @@ class GroupSimilarIssuesEmbeddingsTest(APITestCase):
                     "id": "value",
                     "name": None,
                     "contributes": False,
+                    "hint": None,
+                    "values": [exception_value],
+                },
+                {
+                    "id": "module",
+                    "name": None,
+                    "contributes": True,
                     "hint": None,
                     "values": [exception_value],
                 },

@@ -61,9 +61,7 @@ EXCEPTION = {
         }
     ],
 }
-EXCEPTION_STACKTRACE_STRING = (
-    'ZeroDivisionError: division by zero\n  File "python_onboarding.py", function divide_by_zero'
-)
+EXCEPTION_STACKTRACE_STRING = 'ZeroDivisionError: division by zero\n  Module "__main__", file "python_onboarding.py", function divide_by_zero'
 
 
 @django_db_all
@@ -187,7 +185,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             for event in events
         ]
         expected_stacktraces = [
-            f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
+            f'Error{i}: error with value\n  Module "__main__", file "function_{i}.py", function function_{i}'
             for i in range(5)
         ]
         assert nodestore_results["data"] == expected_group_data
@@ -216,7 +214,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             for event in events
         ]
         expected_stacktraces = [
-            f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
+            f'Error{i}: error with value\n  Module "__main__", file "function_{i}.py", function function_{i}'
             for i in range(5)
         ]
         assert nodestore_results["data"] == expected_group_data
@@ -286,7 +284,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             for event in events
         ]
         expected_stacktraces = [
-            f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
+            f'Error{i}: error with value\n  Module "__main__", file "function_{i}.py", function function_{i}'
             for i in range(2)
         ]
         # assert bulk_event_ids == {event.event_id for event in events}
@@ -321,7 +319,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             for event in events
         ]
         expected_stacktraces = [
-            f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
+            f'Error{i}: error with value\n  Module "__main__", file "function_{i}.py", function function_{i}'
             for i in range(2)
         ]
         assert bulk_group_data_stacktraces["data"] == expected_group_data
@@ -349,7 +347,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             for event in events
         ]
         expected_stacktraces = [
-            f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
+            f'Error{i}: error with value\n  Module "__main__", file "function_{i}.py", function function_{i}'
             for i in range(5)
         ]
         assert bulk_group_data_stacktraces["data"] == expected_group_data
@@ -387,7 +385,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             for event in events
         ]
         expected_stacktraces = [
-            f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
+            f'Error{i}: error with value\n  Module "__main__", file "function_{i}.py", function function_{i}'
             for i in range(5)
         ]
         assert bulk_group_data_stacktraces["data"] == expected_group_data
@@ -422,7 +420,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             for event in events
         ]
         expected_stacktraces = [
-            f'Error{i}: error with value\n  File "function_{i}.py", function function_{i}'
+            f'Error{i}: error with value\n  Module "__main__", file "function_{i}.py", function function_{i}'
             for i in range(4)
         ]
         assert bulk_group_data_stacktraces["data"] == expected_group_data
@@ -575,8 +573,11 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         group_hashes = GroupHash.objects.all().distinct("group_id")
         self.group_hashes = {group_hash.group_id: group_hash.hash for group_hash in group_hashes}
 
-        with TaskRunner(), override_settings(
-            SIMILARITY_BACKFILL_COHORT_MAP={"test": [self.project.id, project2.id]}
+        with (
+            TaskRunner(),
+            override_settings(
+                SIMILARITY_BACKFILL_COHORT_MAP={"test": [self.project.id, project2.id]}
+            ),
         ):
             backfill_seer_grouping_records_for_project(
                 current_project_id=self.project.id,
