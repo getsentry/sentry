@@ -6,7 +6,7 @@ from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
-MAX_FRAME_COUNT = 50
+MAX_FRAME_COUNT = 30
 SEER_ELIGIBLE_PLATFORMS = frozenset(["python", "javascript", "node"])
 
 
