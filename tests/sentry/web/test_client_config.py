@@ -341,3 +341,14 @@ def test_client_config_links_with_priority_org():
         assert result["links"]
         assert result["links"]["regionUrl"] == "http://us.testserver"
         assert result["links"]["organizationUrl"] == f"http://{org.slug}.testserver"
+
+
+@django_db_all
+def test_project_key_default():
+    organization = Factories.create_organization(name="test-org")
+    project = Factories.create_project(organization=organization)
+    project_key = Factories.create_project_key(project)
+    assert project_key.dsn_public
+
+    with override_settings(SENTRY_PROJECT=project.id):
+        assert get_client_config()["dsn"] == project_key.dsn_public
