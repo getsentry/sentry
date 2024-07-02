@@ -7,7 +7,8 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface BaseEvent {
-  id: string;
+  culprit: string;
+  id: string; // Used for subtitle
   'issue.id': number;
   message: string;
   project: string;
@@ -17,11 +18,11 @@ interface BaseEvent {
   transaction: string;
 }
 
-interface TimelineDiscoverEvent extends BaseEvent {}
-interface TimelineIssuePlatformEvent extends BaseEvent {
+export interface TimelineDiscoverEvent extends BaseEvent {
   'event.type': string;
   'stack.function': string[];
 }
+interface TimelineIssuePlatformEvent extends BaseEvent {}
 
 export type TimelineEvent = TimelineDiscoverEvent | TimelineIssuePlatformEvent;
 
@@ -62,7 +63,15 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
         query: {
           // Get performance issues
           dataset: DiscoverDatasets.ISSUE_PLATFORM,
-          field: ['message', 'title', 'project', 'timestamp', 'issue.id', 'transaction'],
+          field: [
+            'message',
+            'title',
+            'project',
+            'timestamp',
+            'issue.id',
+            'transaction',
+            'culprit', // Used for the subtitle
+          ],
           per_page: 100,
           query: `trace:${traceId}`,
           referrer: 'api.issues.issue_events',
@@ -98,6 +107,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
             'transaction',
             'event.type',
             'stack.function',
+            'culprit', // Used for the subtitle
           ],
           per_page: 100,
           query: `trace:${traceId}`,
@@ -136,6 +146,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
     if (!hasCurrentEvent) {
       events.push({
         id: event.id,
+        culprit: event.culprit,
         'issue.id': Number(event.groupID),
         message: event.message,
         project: event.projectID,

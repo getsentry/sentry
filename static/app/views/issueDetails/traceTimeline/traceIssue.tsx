@@ -19,7 +19,7 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
   const organization = useOrganization();
   const project = useProjectFromSlug({organization, projectSlug: event['project.name']});
   const issueId = event['issue.id'];
-  const {title, subtitle} = getTitleSubtitle(event);
+  const {title, subtitle, message} = getTitleSubtitleMessage(event);
   const avatarSize = parseInt(space(4), 10);
 
   const referrer = 'issue_details.related_trace_issue';
@@ -59,26 +59,40 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
         <TraceIssueDetailsContainer>
           <NoOverflowDiv>
             <TraceIssueEventTitle>{title}</TraceIssueEventTitle>
-            <TraceIssueEventTransaction>{event.transaction}</TraceIssueEventTransaction>
+            <TraceIssueEventSubtitle>{subtitle}</TraceIssueEventSubtitle>
           </NoOverflowDiv>
-          <NoOverflowDiv>{subtitle}</NoOverflowDiv>
+          <NoOverflowDiv>{message}</NoOverflowDiv>
         </TraceIssueDetailsContainer>
       </TraceIssueLinkContainer>
     </Fragment>
   );
 }
 
-function getTitleSubtitle(event: TimelineEvent) {
-  let title;
-  let subtitle;
+// This function tries to imitate getTitle() from utils.events
+// In that module, the data comes from the issues endpoint while here
+// we grab the data from the events endpoint. This is why a larger
+// needed in order to use that function directly. We would need
+// to grab the metadata for the issue from the issues endpoint.
+// At this moment, the issues endpoint is extremely slow and we
+// would need
+function getTitleSubtitleMessage(event: TimelineEvent) {
+  // culprit is what getTitle() from utils.events uses for the subtitle
+  const subtitle = event.culprit || '';
+  let title = event.title;
+  let message = event.message;
   if (event['event.type'] === 'error') {
+    // getTitle() from utils.events can either use `metadata.title` (custom title; normally empty) or
+    // `metadata.type`. We can't support a customTitle via the events endpoint.
+    // Reversed logic from backend:
+    // https://github.com/getsentry/sentry/blob/8be60023c8c56b1889a6cc692d857ead7e5b89e2/src/sentry/eventtypes/error.py#L86-L90
+    // An event stores the title as "error.type: truncated error.value"
+    // We could query error.type and error.value but those are arrays in the events endpoint.
     title = event.title.split(':')[0];
-    subtitle = event.message;
   } else {
-    title = event.title;
-    subtitle = event.message.replace(event.transaction, '').replace(title, '');
+    // XXX: Super hacky; find link to source code
+    message = event.message.replace(event.transaction, '').replace(title, '');
   }
-  return {title, subtitle};
+  return {title, subtitle, message};
 }
 
 const TraceIssueLinkContainer = styled(Link)`
@@ -123,6 +137,6 @@ const TraceIssueEventTitle = styled('span')`
   margin-right: ${space(1)};
 `;
 
-const TraceIssueEventTransaction = styled('span')`
+const TraceIssueEventSubtitle = styled('span')`
   color: ${p => p.theme.subText};
 `;

@@ -38,16 +38,16 @@ describe('TraceTimeline', () => {
   const issuePlatformBody: TraceEventResponse = {
     data: [
       {
-        // In issuePlatform, we store the subtitle within the message
-        message: '/api/slow/ Slow DB Query SELECT "sentry_monitorcheckin"."monitor_id"',
+        // TODO: How do we determine the message in Issue Details page??
+        message: '/api/foo/ Slow DB Query SELECT "sentry_monitorcheckin"."monitor_id"',
+        culprit: '/api/foo/', // Used for subtitle
         timestamp: '2024-01-24T09:09:03+00:00',
         'issue.id': 1000,
-
         project: project.slug,
         'project.name': project.name,
         title: 'Slow DB Query',
         id: 'abc',
-        transaction: '/api/slow/',
+        transaction: '/api/foo/',
       },
     ],
     meta: {fields: {}, units: {}},
@@ -55,7 +55,8 @@ describe('TraceTimeline', () => {
   const discoverBody: TraceEventResponse = {
     data: [
       {
-        message: 'This is the subtitle of the issue',
+        message: 'This is the message for the issue',
+        culprit: '/api/foo/', // Used for subtitle
         timestamp: '2024-01-23T22:11:42+00:00',
         'issue.id': event['issue.id'],
         project: project.slug,
@@ -197,9 +198,10 @@ describe('TraceTimeline', () => {
     });
 
     // Instead of a timeline, we should see the other related issue
-    expect(await screen.findByText('Slow DB Query')).toBeInTheDocument();
+    expect(await screen.findByText('Slow DB Query')).toBeInTheDocument(); // The title
+    expect(await screen.findByText('/api/foo')).toBeInTheDocument(); // The subtitle
     expect(
-      await screen.findByText('SELECT "sentry_monitorcheckin"."monitor_id"')
+      await screen.findByText('SELECT "sentry_monitorcheckin"."monitor_id"') // The message
     ).toBeInTheDocument();
     expect(screen.queryByLabelText('Current Event')).not.toBeInTheDocument();
 
