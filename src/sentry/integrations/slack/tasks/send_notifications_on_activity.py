@@ -2,6 +2,7 @@ import logging
 
 from django.db import router, transaction
 
+from sentry.integrations.slack.service import SlackService
 from sentry.models.activity import Activity
 from sentry.models.organization import Organization
 from sentry.silo.base import SiloMode
@@ -22,8 +23,6 @@ _TASK_QUEUED_METRIC = (
     silo_mode=SiloMode.REGION,
 )
 def send_activity_notifications_to_slack_threads(activity_id) -> None:
-    from sentry.integrations.slack.service import SlackService
-
     log_params = {"activity_id": activity_id}
     _default_logger.debug("async processing for activity", extra=log_params)
 
