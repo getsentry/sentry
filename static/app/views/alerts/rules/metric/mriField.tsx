@@ -16,7 +16,7 @@ import {
   parseField,
   parseMRI,
 } from 'sentry/utils/metrics/mri';
-import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
+import {useVirtualizedMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 
 interface Props {
@@ -30,9 +30,10 @@ function filterAndSortAggregations(aggregations: MetricAggregation[]) {
 }
 
 function MriField({aggregate, project, onChange}: Props) {
-  const {data: meta, isLoading} = useMetricsMeta({projects: [parseInt(project.id, 10)]}, [
-    'custom',
-  ]);
+  const {data: meta, isLoading} = useVirtualizedMetricsMeta(
+    {projects: [parseInt(project.id, 10)]},
+    ['custom']
+  );
 
   const metaArr = useMemo(() => {
     return meta.map(

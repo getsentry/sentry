@@ -12,7 +12,16 @@ export type MetricAggregation =
   | 'p95'
   | 'p99';
 
-export type MetricType = 'c' | 'd' | 'g' | 'e' | 's';
+export type MetricType =
+  | 'c'
+  | 'd'
+  | 'g'
+  | 'e'
+  | 's'
+  // Virtual metrics combine multiple metrics into one, to hide the internal complexity
+  // of span based metrics.
+  // Created and used only in the frontend
+  | 'v';
 
 export type UseCase = 'custom' | 'transactions' | 'sessions' | 'spans' | 'metric_stats';
 
