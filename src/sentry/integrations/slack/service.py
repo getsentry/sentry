@@ -341,7 +341,7 @@ class SlackService:
 
             text = notification.get_notification_title(ExternalProviders.SLACK, shared_context)
 
-            blocks = []
+            blocks: list[dict[str, Any]] = []
             if text:
                 blocks.append(BlockSlackMessageBuilder.get_markdown_block(text))
             attachment_blocks = local_attachments.get("blocks")
@@ -350,7 +350,8 @@ class SlackService:
                     blocks.append(attachment)
             if len(blocks) >= 2 and blocks[1].get("block_id"):
                 # block id needs to be in the first block
-                blocks[0]["block_id"] = blocks[1]["block_id"]
+                first_block = blocks[0]
+                first_block["block_id"] = blocks[1]["block_id"]
                 del blocks[1]["block_id"]
             additional_attachment = get_additional_attachment(
                 integration, notification.organization
