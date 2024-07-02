@@ -199,7 +199,7 @@ function BaseDraggableTabList({
               orientation={orientation}
               overflowing={false}
               dropState={dropState}
-              onDelete={() => setIsTempTabVisible(false)}
+              onDiscardTempView={() => setIsTempTabVisible(false)}
               ref={element => (tabItemsRef.current[tempTab.key] = element)}
               isChanged
               isTempTab

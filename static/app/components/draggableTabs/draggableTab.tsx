@@ -29,7 +29,8 @@ interface DraggableTabProps extends AriaTabProps {
   state: TabListState<any>;
   isTempTab?: boolean;
   onDelete?: () => void;
-  onDiscard?: () => void;
+  onDiscardChanges?: () => void;
+  onDiscardTempView?: () => void;
   onDuplicate?: () => void;
   onRename?: () => void;
   onSave?: () => void;
@@ -51,7 +52,8 @@ export const DraggableTab = forwardRef(
       isChanged,
       isTempTab = false,
       onDelete,
-      onDiscard,
+      onDiscardChanges,
+      onDiscardTempView,
       onDuplicate,
       onRename,
       onSave,
@@ -96,11 +98,13 @@ export const DraggableTab = forwardRef(
           {state.selectedKey === item.key && (
             <DraggableTabMenuButton
               onDelete={onDelete}
-              onDiscard={onDiscard}
+              onDiscardChanges={onDiscardChanges}
+              onDiscardTempView={onDiscardTempView}
               onDuplicate={onDuplicate}
               onRename={onRename}
               onSave={onSave}
               isChanged={isChanged}
+              isTempTab={isTempTab}
             />
           )}
         </TabContentWrap>
