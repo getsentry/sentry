@@ -1,6 +1,6 @@
-
 from __future__ import annotations
 
+import uuid
 from collections.abc import Mapping
 from datetime import UTC, datetime, timedelta
 from typing import Any
@@ -1277,6 +1277,92 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
         changes += "• Changed trigger from 'None' to 'any'\n"
         changes += "• Changed filter from 'None' to 'any'\n"
         changes += f"• Changed owner from 'Unassigned' to '{self.user.email}'\n"
+        assert sent_blocks[1]["text"]["text"] == changes
+        assert (
+            sent_blocks[2]["elements"][0]["text"]
+            == "<http://testserver/settings/account/notifications/alerts/|*Notification Settings*>"
+        )
+
+    @responses.activate
+    @with_feature("organizations:rule-create-edit-confirm-notification")
+    @patch("sentry.integrations.slack.sdk_client.SlackSdkClient.chat_postMessage")
+    @patch(
+        "slack_sdk.web.client.WebClient._perform_urllib_http_request",
+        return_value={
+            "body": orjson.dumps({"ok": True}).decode(),
+            "headers": {},
+            "status": 200,
+        },
+    )
+    def test_slack_confirmation_notification_contents_remove_environment(
+        self, mock_api_call, mock_post
+    ):
+        actions = [
+            {
+                "channel_id": "old_channel_id",
+                "workspace": str(self.slack_integration.id),
+                "id": "sentry.integrations.slack.notify_action.SlackNotifyServiceAction",
+                "channel": "old_channel_name",
+                "uuid": str(uuid.uuid4()),
+                "tags": "",
+            }
+        ]
+        self.rule.update(
+            data={"actions": actions, "filter_match": "all", "action_match": "any"},
+            label="my rule",
+            environment_id=self.environment.id,
+        )
+
+        channels = {
+            "ok": "true",
+            "channels": [
+                {"name": "old_channel_name", "id": "old_channel_id"},
+            ],
+        }
+
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.list",
+            status=200,
+            content_type="application/json",
+            body=orjson.dumps(channels),
+        )
+        responses.add(
+            method=responses.GET,
+            url="https://slack.com/api/conversations.info",
+            status=200,
+            content_type="application/json",
+            body=orjson.dumps({"ok": channels["ok"], "channel": channels["channels"][0]}),
+        )
+        blocks = SlackRuleSaveEditMessageBuilder(rule=self.rule, new=False).build()
+        payload = {
+            "text": blocks.get("text"),
+            "blocks": orjson.dumps(blocks.get("blocks")).decode(),
+            "channel": "new_channel_id",
+            "unfurl_links": False,
+            "unfurl_media": False,
+        }
+        # Pass none environment to payload
+        payload = {
+            "name": self.rule.label,
+            "actionMatch": "any",
+            "filterMatch": "all",
+            "actions": actions,
+            "environment": None,
+        }
+        response = self.get_success_response(
+            self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
+        )
+        rule_id = response.data["id"]
+        rule_label = response.data["name"]
+        assert response.data["actions"][0]["channel_id"] == "old_channel_id"
+        sent_blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
+        message = "*Alert rule updated*\n\n"
+        message += f"<http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> in the <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|*{self.project.slug}*> project was recently updated."
+        assert sent_blocks[0]["text"]["text"] == message
+
+        changes = "Changes\n"
+        changes += f"• Removed '{self.environment.name}' environment\n"
         assert sent_blocks[1]["text"]["text"] == changes
         assert (
             sent_blocks[2]["elements"][0]["text"]
