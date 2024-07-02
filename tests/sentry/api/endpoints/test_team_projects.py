@@ -1,5 +1,6 @@
 from unittest.mock import Mock
 
+from sentry.api.endpoints.organization_projects_experiment import DISABLED_FEATURE_ERROR_STRING
 from sentry.ingest import inbound_filters
 from sentry.models.project import Project
 from sentry.models.rule import Rule
@@ -129,7 +130,7 @@ class TeamProjectsCreateTest(APITestCase):
         assert signal_handler.call_count == 0
         alert_rule_created.disconnect(signal_handler)
 
-    def test_without_default_rules(self):
+    def test_without_default_rules_disable_member_project_creation(self):
         response = self.get_success_response(
             self.organization.slug,
             self.team.slug,
@@ -139,6 +140,31 @@ class TeamProjectsCreateTest(APITestCase):
         )
         project = Project.objects.get(id=response.data["id"])
         assert not Rule.objects.filter(project=project).exists()
+
+    def test_disable_member_project_creation(self):
+        test_org = self.create_organization(flags=256)
+        test_team = self.create_team(organization=test_org)
+
+        test_member = self.create_user(is_superuser=False)
+        self.create_member(user=test_member, organization=test_org, role="admin", teams=[test_team])
+        self.login_as(user=test_member)
+        response = self.get_error_response(
+            test_org.slug,
+            test_team.slug,
+            **self.data,
+            status_code=403,
+        )
+        assert response.data["detail"] == DISABLED_FEATURE_ERROR_STRING
+
+        test_manager = self.create_user(is_superuser=False)
+        self.create_member(user=test_manager, organization=test_org, role="manager", teams=[])
+        self.login_as(user=test_manager)
+        self.get_success_response(
+            test_org.slug,
+            test_team.slug,
+            **self.data,
+            status_code=201,
+        )
 
     def test_default_inbound_filters(self):
         filters = ["browser-extensions", "legacy-browsers", "web-crawlers", "filtered-transaction"]
