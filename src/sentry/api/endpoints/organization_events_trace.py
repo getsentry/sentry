@@ -138,6 +138,7 @@ FullResponse = TypedDict(
         "parent_span_id": Optional[str],
         "parent_event_id": Optional[str],
         "profile_id": Optional[str],
+        "profiler_id": Optional[str],
         "sdk_name": Optional[str],
         "generation": Optional[int],
         "errors": list[TraceError],
@@ -396,6 +397,9 @@ class TraceEvent:
             profile_id = contexts.get("profile", {}).get("profile_id")
             if profile_id is not None:
                 result["profile_id"] = profile_id
+            profiler_id = contexts.get("profile", {}).get("profiler_id")
+            if profiler_id is not None:
+                result["profiler_id"] = profiler_id
 
             if detailed:
                 if "measurements" in self.nodestore_event.data:
