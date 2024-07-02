@@ -29,12 +29,12 @@ import EmptyState from 'sentry/views/replays/detail/emptyState';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 import {
   useFetchTransactions,
-  useReplayTracesData,
   useTransactionData,
 } from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {loadTraceViewPreferences} from '../../../performance/newTraceDetails/traceState/tracePreferences';
+import {useReplayTraces} from './useReplayTraces';
 
 function TracesNotFound({performanceActive}: {performanceActive: boolean}) {
   // We want to send the 'trace_status' data if the project actively uses and has access to the performance monitoring.
@@ -152,7 +152,7 @@ function Trace({replayRecord}: {replayRecord: undefined | ReplayRecord}) {
 export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRecord}) {
   const organization = useOrganization();
   const {projects} = useProjects();
-  const {eventView, indexComplete, indexError, replayTraces} = useReplayTracesData({
+  const {eventView, indexComplete, indexError, replayTraces} = useReplayTraces({
     replayRecord,
   });
 

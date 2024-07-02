@@ -946,10 +946,10 @@ function RenderRow(props: {
             </div>
             <span className="TraceOperation">{t('Trace')}</span>
             {props.trace_id ? (
-              <React.Fragment>
+              <Fragment>
                 <strong className="TraceEmDash"> — </strong>
                 <span className="TraceDescription">{props.trace_id}</span>
-              </React.Fragment>
+              </Fragment>
             ) : null}
           </div>
         </div>

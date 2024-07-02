@@ -24,7 +24,6 @@ import {
   WEB_VITAL_DETAILS,
 } from 'sentry/utils/performance/vitals/constants';
 import type {Vital} from 'sentry/utils/performance/vitals/types';
-import type {ReplayTrace} from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {getStylingSliceName} from '../../../traces/utils';
@@ -44,6 +43,7 @@ import {
 } from '../guards';
 import {getTraceQueryParams} from '../traceApi/useTrace';
 import {TraceType} from '../traceType';
+import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 
 /**
  *
@@ -735,6 +735,7 @@ export class TraceTree {
     for (const child of tree.root.children) {
       this._list = this._list.concat(child.getVisibleChildren());
     }
+    this.build();
   }
 
   get shape(): TraceType {
