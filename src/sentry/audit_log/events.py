@@ -1,6 +1,13 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from sentry.audit_log.manager import AuditLogEvent
-from sentry.models.auditlogentry import AuditLogEntry
 from sentry.utils.strings import truncatechars
+
+if TYPE_CHECKING:
+    from sentry.models.auditlogentry import AuditLogEntry
+
 
 # AuditLogEvents with custom render functions
 

@@ -326,6 +326,7 @@ function SectionedListBox<T extends SelectOptionOrSectionWithKey<string>>({
               hiddenOptions={hiddenOptions}
               keyDownHandler={() => true}
               overlayIsOpen={isOpen}
+              showSectionHeaders={!selectedSection}
               size="sm"
             />
           </SectionedListBoxPane>
@@ -398,6 +399,7 @@ function OverlayContent({
           hiddenOptions={hiddenOptions}
           keyDownHandler={() => true}
           overlayIsOpen={isOpen}
+          showSectionHeaders={!filterValue}
           size="sm"
         />
       )}

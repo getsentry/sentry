@@ -6,6 +6,7 @@ import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types'
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import type {Event, EventTransaction, Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import type {TracingEventParameters} from 'sentry/utils/analytics/tracingEventMap';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
 import type {
   TraceError as TraceErrorType,
@@ -2441,6 +2442,30 @@ export function traceNodeAnalyticsName(node: TraceTreeNode<TraceTree.NodeValue>)
   if (isNoDataNode(node)) return 'no data';
   if (isTraceErrorNode(node)) return 'error';
   return 'unknown';
+}
+
+export function traceNodeAdjacentAnalyticsProperties(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): Pick<
+  TracingEventParameters['trace.trace_layout.span_row_click'],
+  'next_op' | 'parent_op' | 'previous_op'
+> {
+  if (isNoDataNode(node)) {
+    const parent_transaction = node.parent_transaction;
+    if (!parent_transaction) return {};
+    return {
+      parent_op: parent_transaction.value['transaction.op'],
+    };
+  }
+
+  if (isMissingInstrumentationNode(node)) {
+    return {
+      previous_op: node.previous.value.op,
+      next_op: node.next.value.op,
+    };
+  }
+
+  return {};
 }
 
 // Creates an example trace response that we use to render the loading placeholder
