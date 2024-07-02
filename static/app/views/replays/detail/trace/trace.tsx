@@ -17,6 +17,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {TraceViewWaterfall} from 'sentry/views/performance/newTraceDetails';
 import {useReplayTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useReplayTraceMeta';
+import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import TraceView, {
@@ -154,6 +155,9 @@ export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRe
     replayRecord,
   });
 
+  const firstTrace = replayTraces?.[0];
+  const trace = useTrace(firstTrace?.traceSlug, firstTrace?.timestamp);
+
   const metaResults = useReplayTraceMeta(replayRecord);
 
   const preferences = useMemo(
@@ -202,7 +206,8 @@ export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRe
         <TraceViewWaterfall
           traceLabel="Replay"
           traceSlug={replayTraces[0].traceSlug}
-          timestamp={replayTraces[0].timestamp}
+          trace={trace.data}
+          status={trace.status}
           replayTraces={replayTraces.slice(1)}
           organization={organization}
           traceEventView={eventView}

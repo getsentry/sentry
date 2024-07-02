@@ -646,9 +646,9 @@ export class TraceTree {
             query: qs.stringify(
               getTraceQueryParams(
                 urlParams,
+                batchTraceData.timestamp,
                 filters.selection,
-                traceLimit,
-                batchTraceData.timestamp
+                traceLimit
               )
             ),
             traceId: batchTraceData.traceSlug,

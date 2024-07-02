@@ -35,9 +35,9 @@ const DEFAULT_LIMIT = 1_000;
 
 export function getTraceQueryParams(
   query: Location['query'],
-  filters: Partial<PageFilters> = {},
-  traceLimit: number | undefined,
-  timestamp: number | undefined
+  timestamp: number | undefined,
+  filters?: Partial<PageFilters>,
+  limit?: number
 ): {
   eventId: string | undefined;
   limit: number;
@@ -53,40 +53,40 @@ export function getTraceQueryParams(
   });
   const statsPeriod = decodeScalar(normalizedParams.statsPeriod);
   const demo = decodeScalar(normalizedParams.demo);
+  const decodedTimestamp = decodeScalar(qs.parse(location.search).timestamp);
   let decodedLimit: string | number | undefined =
-    traceLimit ?? decodeScalar(normalizedParams.limit);
+    limit ?? decodeScalar(normalizedParams.limit);
 
   if (typeof decodedLimit === 'string') {
     decodedLimit = parseInt(decodedLimit, 10);
   }
 
   const eventId = decodeScalar(normalizedParams.eventId);
+  const timestampQueryParam = timestamp ?? decodedTimestamp;
 
-  if (timestamp) {
+  if (timestampQueryParam) {
     decodedLimit = decodedLimit ?? DEFAULT_TIMESTAMP_LIMIT;
   } else {
     decodedLimit = decodedLimit ?? DEFAULT_LIMIT;
   }
 
-  const limit = decodedLimit;
-
   const otherParams: Record<string, string | string[] | undefined | null> = {
     end: normalizedParams.pageEnd,
     start: normalizedParams.pageStart,
-    statsPeriod: statsPeriod || filters.datetime?.period,
+    statsPeriod: statsPeriod || filters?.datetime?.period,
   };
 
   // We prioritize timestamp over statsPeriod as it makes the query more specific, faster
   // and not prone to time drift issues.
-  if (timestamp) {
+  if (timestampQueryParam) {
     delete otherParams.statsPeriod;
   }
 
   const queryParams = {
     ...otherParams,
     demo,
-    limit,
-    timestamp: timestamp?.toString(),
+    limit: decodedLimit,
+    timestamp: timestampQueryParam?.toString(),
     eventId,
     useSpans: 1,
   };
@@ -197,7 +197,7 @@ export function useTrace(
   const organization = useOrganization();
   const queryParams = useMemo(() => {
     const query = qs.parse(location.search);
-    return getTraceQueryParams(query, filters.selection, limit, timestamp);
+    return getTraceQueryParams(query, timestamp, filters.selection, limit);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [limit]);
   const mode = queryParams.demo ? 'demo' : undefined;

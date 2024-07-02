@@ -28,6 +28,7 @@ import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
+import type {TraceSplitResults} from 'sentry/utils/performance/quickTrace/types';
 import {
   cancelAnimationTimeout,
   requestAnimationTimeout,
@@ -192,6 +193,8 @@ export function TraceView() {
     []
   );
 
+  const trace = useTrace(traceSlug, timestamp);
+
   return (
     <SentryDocumentTitle
       title={`${t('Trace Details')} - ${traceSlug}`}
@@ -212,7 +215,8 @@ export function TraceView() {
             <TraceInnerLayout>
               <TraceViewWaterfall
                 traceSlug={traceSlug}
-                timestamp={timestamp}
+                trace={trace.data}
+                status={trace.status}
                 traceLabel={traceSlug}
                 organization={organization}
                 traceEventView={traceEventView}
@@ -243,7 +247,8 @@ type TraceViewWaterfallProps = {
   organization: Organization;
   replayRecord: ReplayRecord | null;
   source: string;
-  timestamp: number | undefined;
+  status: 'loading' | 'error' | 'success';
+  trace: TraceSplitResults<TraceTree.Transaction> | undefined;
   traceEventView: EventView;
   traceLabel: string;
   traceSlug: string | undefined;
@@ -256,8 +261,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const organization = useOrganization();
   const loadingTraceRef = useRef<TraceTree | null>(null);
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
-  const {isLoading, data: trace, error} = useTrace(props.traceSlug, props.timestamp);
-  const rootEvent = useTraceRootEvent(trace);
+  const rootEvent = useTraceRootEvent(props.trace);
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
   const traceStateEmitter = useTraceStateEmitter();
@@ -305,7 +309,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   );
 
   const tree = useMemo(() => {
-    if (error) {
+    if (props.status === 'error') {
       const errorTree = TraceTree.Error(
         {
           project_slug: projects?.[0]?.slug ?? '',
@@ -316,11 +320,14 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       return errorTree;
     }
 
-    if (trace?.transactions.length === 0 && trace?.orphan_errors.length === 0) {
+    if (
+      props.trace?.transactions.length === 0 &&
+      props.trace?.orphan_errors.length === 0
+    ) {
       return TraceTree.Empty();
     }
 
-    if (isLoading) {
+    if (props.status === 'loading') {
       const loadingTrace =
         loadingTraceRef.current ??
         TraceTree.Loading(
@@ -335,12 +342,12 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       return loadingTrace;
     }
 
-    if (trace) {
-      return TraceTree.FromTrace(trace, props.replayRecord);
+    if (props.trace) {
+      return TraceTree.FromTrace(props.trace, props.replayRecord);
     }
 
     throw new Error('Invalid trace state');
-  }, [props.traceSlug, trace, isLoading, error, projects, props.replayRecord]);
+  }, [props.traceSlug, props.trace, props.status, projects, props.replayRecord]);
 
   useEffect(() => {
     if (props.replayTraces) {
@@ -913,7 +920,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           traceType={shape}
           trace={tree}
           traceGridRef={traceGridRef}
-          traces={trace ?? null}
+          traces={props.trace ?? null}
           manager={viewManager}
           onTabScrollToNode={onTabScrollToNode}
           onScrollToNode={onScrollToNode}
