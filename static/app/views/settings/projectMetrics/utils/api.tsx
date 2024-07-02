@@ -1,5 +1,4 @@
-import type {MetricType} from 'sentry/types/metrics';
-import type {FormattingSupportedMetricUnit} from 'sentry/utils/metrics/formatters';
+import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import {
   type ApiQueryKey,
   getApiQueryData,
@@ -12,16 +11,21 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
+/**
+ * Remove temporary ids from conditions before sending to the server
+ */
+function filterTempIds(rules: MetricsExtractionRule[]) {
+  return rules.map(rule => ({
+    ...rule,
+    conditions: rule.conditions.map(condition => ({
+      ...condition,
+      id: condition.id < 0 ? undefined : condition.id,
+    })),
+  }));
+}
+
 const getMetricsExtractionRulesEndpoint = (orgSlug: string, projectSlug: string) =>
   [`/projects/${orgSlug}/${projectSlug}/metrics/extraction-rules/`] as const;
-
-export interface MetricsExtractionRule {
-  conditions: string[];
-  spanAttribute: string;
-  tags: string[];
-  type: MetricType;
-  unit: FormattingSupportedMetricUnit;
-}
 
 export function useMetricsExtractionRules(orgSlug: string, projectSlug: string) {
   return useApiQuery<MetricsExtractionRule[]>(
@@ -35,7 +39,7 @@ export function useMetricsExtractionRules(orgSlug: string, projectSlug: string) 
 
 // Rules are identified by the combination of span_attribute, type and unit
 function getRuleIdentifier(rule: MetricsExtractionRule) {
-  return rule.spanAttribute + rule.type + rule.unit;
+  return rule.spanAttribute + rule.unit;
 }
 
 function createOptimisticUpdate(
@@ -119,7 +123,9 @@ export function useCreateMetricsExtractionRules(orgSlug: string, projectSlug: st
     data => {
       return api.requestPromise(queryKey[0], {
         method: 'POST',
-        data,
+        data: {
+          metricsExtractionRules: filterTempIds(data.metricsExtractionRules),
+        },
       });
     },
     {
@@ -156,7 +162,9 @@ export function useUpdateMetricsExtractionRules(orgSlug: string, projectSlug: st
     data => {
       return api.requestPromise(queryKey[0], {
         method: 'PUT',
-        data,
+        data: {
+          metricsExtractionRules: filterTempIds(data.metricsExtractionRules),
+        },
       });
     },
     {
