@@ -108,7 +108,6 @@ describe('TraceTimeline', () => {
     expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
       has_related_trace_issue: false,
       trace_timeline_status: 'shown',
-      trace_timeline_two_issues: false,
     });
   });
 
@@ -128,7 +127,6 @@ describe('TraceTimeline', () => {
       expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
         has_related_trace_issue: false,
         trace_timeline_status: 'empty',
-        trace_timeline_two_issues: false,
       })
     );
     expect(container).toBeEmptyDOMElement();
@@ -150,7 +148,6 @@ describe('TraceTimeline', () => {
       expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
         has_related_trace_issue: false,
         trace_timeline_status: 'empty',
-        trace_timeline_two_issues: false,
       })
     );
     expect(container).toBeEmptyDOMElement();
@@ -227,9 +224,6 @@ describe('TraceTimeline', () => {
     expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
       has_related_trace_issue: true,
       trace_timeline_status: 'empty',
-      // Even though the trace timeline has not been rendered that
-      // it would have done so we can compare the two features
-      trace_timeline_two_issues: true,
     });
     expect(trackAnalytics).toHaveBeenCalledTimes(1);
     expect(trackAnalytics).toHaveBeenCalledWith(
@@ -274,7 +268,6 @@ describe('TraceTimeline', () => {
     expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
       has_related_trace_issue: false,
       trace_timeline_status: 'empty',
-      trace_timeline_two_issues: false,
     });
   });
 

@@ -39,8 +39,6 @@ export function TraceTimeline({event}: TraceTimelineProps) {
 
   useRouteAnalyticsParams({
     trace_timeline_status: timelineStatus,
-    // Keep this until at least July 2024 so we can compare both features
-    trace_timeline_two_issues: oneOtherIssueEvent !== undefined,
     has_related_trace_issue: showTraceRelatedIssue,
   });
 
