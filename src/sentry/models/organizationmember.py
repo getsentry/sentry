@@ -45,10 +45,9 @@ from sentry.models.outbox import OutboxCategory, outbox_context
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole
-from sentry.services.hybrid_cloud.identity import identity_service
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import member_invited
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
@@ -391,7 +390,7 @@ class OrganizationMember(ReplicatedRegionModel):
         msg.send_async([self.get_email()])
 
     def send_sso_unlink_email(self, disabling_user: RpcUser | str, provider):
-        from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
+        from sentry.users.services.lost_password_hash import lost_password_hash_service
         from sentry.utils.email import MessageBuilder
 
         # Nothing to send if this member isn't associated to a user
@@ -627,6 +626,8 @@ class OrganizationMember(ReplicatedRegionModel):
     def handle_async_deletion(
         cls, identifier: int, shard_identifier: int, payload: Mapping[str, Any] | None
     ) -> None:
+        from sentry.identity.services.identity import identity_service
+
         if payload and payload.get("user_id") is not None:
             identity_service.delete_identities(
                 user_id=payload["user_id"], organization_id=shard_identifier

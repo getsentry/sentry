@@ -20,8 +20,8 @@ from sentry.models.organization import Organization
 from sentry.models.outbox import outbox_context
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import RpcOrganization
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 

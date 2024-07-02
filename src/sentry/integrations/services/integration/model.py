@@ -8,13 +8,13 @@ from typing import Any
 
 from sentry.constants import ObjectStatus
 from sentry.hybridcloud.rpc import RpcModel
+from sentry.identity.services.identity.model import RpcIdentity, RpcIdentityProvider
 from sentry.integrations.base import (
     IntegrationFeatures,
     IntegrationInstallation,
     IntegrationProvider,
 )
-from sentry.services.hybrid_cloud.identity.model import RpcIdentity, RpcIdentityProvider
-from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.users.services.user.model import RpcUser
 
 
 class RpcIntegration(RpcModel):

@@ -170,7 +170,7 @@ function modifyFilterValueDate(
     return replaceQueryToken(query, token.value, newValue);
   }
 
-  return `${token.key.text}:${newValue}`;
+  return replaceQueryToken(query, token, `${token.key.text}:${newValue}`);
 }
 
 function replaceQueryToken(

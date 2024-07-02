@@ -7,7 +7,7 @@ from django.core.exceptions import ObjectDoesNotExist
 from rest_framework import serializers
 
 from sentry.hybridcloud.rpc import RpcModel
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.users.services.user import RpcUser
 
 if TYPE_CHECKING:
     from sentry.models.team import Team
@@ -48,7 +48,7 @@ class Actor(RpcModel):
         Actor.resolve() individually will.
         """
         from sentry.models.team import Team
-        from sentry.services.hybrid_cloud.user.service import user_service
+        from sentry.users.services.user.service import user_service
 
         if not actors:
             return []
@@ -175,7 +175,7 @@ class Actor(RpcModel):
             "maiseythedog" -> look up User by username
             "maisey@dogsrule.com" -> look up User by primary email
         """
-        from sentry.services.hybrid_cloud.user.service import user_service
+        from sentry.users.services.user.service import user_service
 
         if not id:
             return None
@@ -231,7 +231,7 @@ class Actor(RpcModel):
         Will raise Team.DoesNotExist or User.DoesNotExist when the actor is invalid
         """
         from sentry.models.team import Team
-        from sentry.services.hybrid_cloud.user.service import user_service
+        from sentry.users.services.user.service import user_service
 
         if self.is_team:
             team = Team.objects.filter(id=self.id).first()

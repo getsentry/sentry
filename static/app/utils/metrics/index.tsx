@@ -332,6 +332,11 @@ export function isCustomMetric({mri}: {mri: MRI}) {
   return mri.includes(':custom/');
 }
 
+export function isExtractedCustomMetric({mri}: {mri: MRI}) {
+  // Extraced metrics are prefixed with `span_attribute_`
+  return mri.substring(1).startsWith(':custom/span_attribute_');
+}
+
 export function isSpanDuration({mri}: {mri: MRI}) {
   return mri === 'd:spans/duration@millisecond';
 }

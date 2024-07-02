@@ -17,8 +17,8 @@ from sentry.services.hybrid_cloud.project import (
     RpcProjectOptionValue,
 )
 from sentry.services.hybrid_cloud.project.serial import serialize_project
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import project_created
+from sentry.users.services.user import RpcUser
 
 
 class DatabaseBackedProjectService(ProjectService):

@@ -1024,23 +1024,6 @@ register("store.background-grouping-sample-rate", default=0.0, flags=FLAG_AUTOMA
 # contents stored as separate release files.
 register("processing.release-archive-min-files", default=10, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
-# Whether to use `zstd` instead of `zlib` for the attachment cache.
-register("attachment-cache.use-zstd", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Whether to use `zstd` instead of `zlib` for encoded grouping enhancers.
-register("enhancers.use-zstd", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Set of projects that will always store `EventAttachment` blobs directly.
-register("eventattachments.store-blobs.projects", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Percentage sample rate for `EventAttachment`s that should use direct blob storage.
-register("eventattachments.store-blobs.sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Percentage sample rate for "small" `EventAttachment`s to be stored inline.
-register("eventattachments.store-small-inline", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Percentage rollout rate to avoid sending `attachment_chunk`s for small indvidual attachments.
-register("relay.inline-attachments.rollout-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-
 # All Relay options (statically authenticated Relays can be registered here)
 register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
 
@@ -2018,6 +2001,8 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register("metric_extraction.max_span_attribute_specs", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 register(
     "delightful_metrics.minimetrics_sample_rate",
