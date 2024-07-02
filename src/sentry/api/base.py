@@ -131,7 +131,7 @@ def apply_cors_headers(
         allowed_methods = []
     allow = ", ".join(allowed_methods)
     if not allow or "*" in allow:
-        with sentry_sdk.push_scope() as scope:
+        with sentry_sdk.isolation_scope() as scope:
             scope.set_level("warning")
             scope.set_context(
                 "cors_headers",
@@ -225,6 +225,7 @@ class Endpoint(APIView):
         str, dict[RateLimitCategory, RateLimit]
     ] = DEFAULT_RATE_LIMIT_CONFIG
     enforce_rate_limit: bool = settings.SENTRY_RATELIMITER_ENABLED
+    snuba_methods: list[HTTP_METHOD_NAME] = []
 
     def build_link_header(self, request: Request, path: str, rel: str):
         # TODO(dcramer): it would be nice to expand this to support params to consolidate `build_cursor_link`

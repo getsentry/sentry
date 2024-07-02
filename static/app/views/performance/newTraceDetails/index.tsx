@@ -73,6 +73,7 @@ import {type TraceMetaQueryResults, useTraceMeta} from './traceApi/useTraceMeta'
 import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
 import {
+  traceNodeAdjacentAnalyticsProperties,
   traceNodeAnalyticsName,
   TraceTree,
   type TraceTreeNode,
@@ -87,7 +88,6 @@ import {Trace} from './trace';
 import {TraceMetadataHeader} from './traceMetadataHeader';
 import type {TraceReducer, TraceReducerState} from './traceState';
 import {TraceType} from './traceType';
-import {TraceUXChangeAlert} from './traceUXChangeBanner';
 import {useTraceQueryParamStateSync} from './useTraceQueryParamStateSync';
 
 function decodeScrollQueue(maybePath: unknown): TraceTree.NodePath[] | null {
@@ -209,7 +209,6 @@ export function TraceView() {
       >
         <NoProjectMessage organization={organization}>
           <TraceExternalLayout>
-            <TraceUXChangeAlert />
             <TraceMetadataHeader
               organization={organization}
               projectID={rootEvent?.data?.projectID ?? ''}
@@ -592,6 +591,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         type: traceNodeAnalyticsName(node),
         project_platform:
           projects.find(p => p.slug === node.metadata.project_slug)?.platform || 'other',
+        ...traceNodeAdjacentAnalyticsProperties(node),
       });
 
       if (traceStateRef.current.preferences.drawer.minimized) {

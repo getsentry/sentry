@@ -90,7 +90,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
 
         self.login_as(user=self.user)
 
-    @patch("sentry.sentry_apps.SentryAppComponentPreparer.run")
+    @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
     def test_retrieves_all_components_for_installed_apps(self, run):
         response = self.get_success_response(
             self.org.slug, qs_params={"projectId": self.project.id}
@@ -125,7 +125,7 @@ class OrganizationSentryAppComponentsTest(APITestCase):
             },
         }
 
-    @patch("sentry.sentry_apps.SentryAppComponentPreparer.run")
+    @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
     def test_filter_by_type(self, run):
         sentry_app = self.create_sentry_app(schema={"elements": [{"type": "alert-rule"}]})
 
@@ -152,13 +152,13 @@ class OrganizationSentryAppComponentsTest(APITestCase):
             }
         ]
 
-    @patch("sentry.sentry_apps.SentryAppComponentPreparer.run")
+    @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
     def test_prepares_each_component(self, run):
         self.get_success_response(self.org.slug, qs_params={"projectId": self.project.id})
 
         assert run.call_count == 2
 
-    @patch("sentry.sentry_apps.SentryAppComponentPreparer.run")
+    @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
     def test_component_prep_errors_are_isolated(self, run):
         run.side_effect = [APIError(), self.component2]
 

@@ -150,7 +150,7 @@ class ProjectRuleConfigurationTest(APITestCase):
         assert len(response.data["conditions"]) == 7
         assert len(response.data["filters"]) == 8
 
-    @patch("sentry.sentry_apps.SentryAppComponentPreparer.run")
+    @patch("sentry.sentry_apps.components.SentryAppComponentPreparer.run")
     def test_sentry_app_alert_rules(self, mock_sentry_app_components_preparer):
         team = self.create_team()
         project1 = self.create_project(teams=[team], name="foo")

@@ -33,7 +33,7 @@ from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.dashboard_widget import DashboardWidgetQueryOnDemand
 from sentry.models.organization import Organization
 from sentry.search.events import constants, fields
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.utils import (
     adjust_datetime_to_granularity,
     optimal_granularity_for_date_range,
@@ -75,12 +75,14 @@ from sentry.snuba.metrics.query import (
     MetricOrderByField,
 )
 from sentry.snuba.metrics.utils import get_num_intervals
+from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import DATASETS, bulk_snuba_queries, raw_snql_query
 
 
-class MetricsQueryBuilder(QueryBuilder):
+class MetricsQueryBuilder(BaseQueryBuilder):
     requires_organization_condition = True
 
+    duration_fields = {"transaction.duration"}
     organization_column: str = "organization_id"
 
     column_remapping = {
@@ -191,7 +193,7 @@ class MetricsQueryBuilder(QueryBuilder):
             dashboard_widget_query__widget__dashboard__organization_id=self.organization_id,
         )
         if any(not entry.extraction_enabled() for entry in on_demand_entries):
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.isolation_scope() as scope:
                 scope.set_extra("entries", on_demand_entries)
                 scope.set_extra("hash", query_hash)
                 sentry_sdk.capture_message(
@@ -1110,7 +1112,9 @@ class MetricsQueryBuilder(QueryBuilder):
                 )
         return result
 
-    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+    def run_query(
+        self, referrer: str, use_cache: bool = False, query_source: QuerySource | None = None
+    ) -> Any:
         groupbys = self.groupby
         if not groupbys and self.use_on_demand:
             # Need this otherwise top_events returns only 1 item
@@ -1315,9 +1319,10 @@ class MetricsQueryBuilder(QueryBuilder):
                     tenant_ids=self.tenant_ids,
                 )
                 current_result = raw_snql_query(
-                    request,
-                    f"{referrer}.{referrer_suffix}",
-                    use_cache,
+                    request=request,
+                    referrer=f"{referrer}.{referrer_suffix}",
+                    query_source=query_source,
+                    use_cache=use_cache,
                 )
                 for meta in current_result["meta"]:
                     meta_dict[meta["name"]] = meta["type"]

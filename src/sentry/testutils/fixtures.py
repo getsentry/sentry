@@ -9,7 +9,7 @@ from django.utils import timezone
 from django.utils.functional import cached_property
 
 from sentry.eventstore.models import Event
-from sentry.incidents.models.alert_rule import AlertRuleMonitorType
+from sentry.incidents.models.alert_rule import AlertRuleMonitorTypeInt
 from sentry.incidents.models.incident import IncidentActivityType
 from sentry.models.activity import Activity
 from sentry.models.grouprelease import GroupRelease
@@ -20,6 +20,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
+from sentry.models.rule import Rule
 from sentry.models.user import User
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.services.hybrid_cloud.organization import RpcOrganization
@@ -183,7 +184,7 @@ class Fixtures:
         comparison_interval=None,
         *args,
         **kwargs,
-    ):
+    ) -> Rule:
         if project is None:
             project = self.project
         return Factories.create_project_rule(
@@ -403,7 +404,7 @@ class Fixtures:
         alert_rule=None,
         query_subscriptions=None,
         project=None,
-        monitor_type=AlertRuleMonitorType.ACTIVATED,
+        monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
         activator=None,
         activation_condition=None,
         *args,
@@ -415,6 +416,7 @@ class Fixtures:
             )
         if not query_subscriptions:
             projects = [project] if project else [self.project]
+            # subscribing an activated alert rule will create an activation
             query_subscriptions = alert_rule.subscribe_projects(
                 projects=projects,
                 monitor_type=monitor_type,

@@ -1,10 +1,11 @@
 import type {DateString} from 'sentry/types/core';
 
-export type MetricsAggregate =
+export type MetricAggregation =
   | 'sum'
   | 'count_unique'
   | 'avg'
   | 'count'
+  | 'min'
   | 'max'
   | 'min'
   | 'p50'
@@ -12,7 +13,16 @@ export type MetricsAggregate =
   | 'p95'
   | 'p99';
 
-export type MetricType = 'c' | 'd' | 'g' | 'e' | 's';
+export type MetricType =
+  | 'c'
+  | 'd'
+  | 'g'
+  | 'e'
+  | 's'
+  // Virtual metrics combine multiple metrics into one, to hide the internal complexity
+  // of span based metrics.
+  // Created and used only in the frontend
+  | 'v';
 
 export type UseCase = 'custom' | 'transactions' | 'sessions' | 'spans' | 'metric_stats';
 
@@ -101,9 +111,8 @@ export type MetricsTagValue = {
 export type MetricMeta = {
   blockingStatus: BlockingStatus[];
   mri: MRI;
-  // name is returned by the API but should not be used, use parseMRI(mri).name instead
-  // name: string;
-  operations: MetricsAggregate[];
+  // name: string; // returned by the API but should not be used, use parseMRI(mri).name instead
+  operations: MetricAggregation[];
   projectIds: number[];
   type: MetricType;
   unit: string;
