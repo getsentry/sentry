@@ -183,18 +183,24 @@ export function Content() {
   return (
     <LayoutMain fullWidth>
       <PageFilterBar condensed>
-        <Tooltip
-          title={tct(
-            "Traces stem across multiple projects. You'll need to narrow down which projects you'd like to include per span.[br](ex. [code:project:javascript])",
-            {
-              br: <br />,
-              code: <Code />,
-            }
-          )}
-          position="bottom"
-        >
-          <ProjectPageFilter disabled projectOverride={ALL_PROJECTS} />
-        </Tooltip>
+        {organization.features.includes(
+          'organizations:performance-trace-explorer-enforce-projects'
+        ) ? (
+          <ProjectPageFilter />
+        ) : (
+          <Tooltip
+            title={tct(
+              "Traces stem across multiple projects. You'll need to narrow down which projects you'd like to include per span.[br](ex. [code:project:javascript])",
+              {
+                br: <br />,
+                code: <Code />,
+              }
+            )}
+            position="bottom"
+          >
+            <ProjectPageFilter disabled projectOverride={ALL_PROJECTS} />
+          </Tooltip>
+        )}
         <EnvironmentPageFilter />
         <DatePageFilter defaultPeriod="2h" />
       </PageFilterBar>
@@ -750,6 +756,7 @@ function useTraceSpans<F extends string>({
 
   const endpointOptions = {
     query: {
+      project: selection.projects,
       environment: selection.environments,
       ...(datetime ?? normalizeDateTimeParams(selection.datetime)),
       field: fields,
