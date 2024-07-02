@@ -31,6 +31,10 @@ class SlackOptionsLoadEndpoint(Endpoint):
     slack_request_class = SlackOptionsLoadRequest
 
     def is_substring(self, string, substring):
+        # in case either have special characters, we want to preserve the strings
+        # as is, so we escape both before applying re.match
+        string = re.escape(string)
+        substring = re.escape(substring)
         return bool(re.match(substring, string, re.I))
 
     def get_filtered_option_groups(
@@ -95,7 +99,6 @@ class SlackOptionsLoadEndpoint(Endpoint):
                 "slack.options_load.request-error",
                 extra={
                     "group_id": slack_request.group_id,
-                    "organization_id": group.project.organization.id if group else None,
                     "request_data": orjson.dumps(slack_request.data).decode(),
                 },
             )
