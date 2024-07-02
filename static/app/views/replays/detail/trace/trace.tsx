@@ -216,7 +216,7 @@ export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRe
     >
       <TraceViewWaterfallWrapper>
         <TraceViewWaterfall
-          traceSlug={replayTraces[0].traceSlug}
+          traceSlug={undefined}
           trace={trace.data ?? null}
           status={trace.status}
           rootEvent={rootEvent}
