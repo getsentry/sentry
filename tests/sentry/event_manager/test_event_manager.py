@@ -357,6 +357,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.status == GroupStatus.RESOLVED
 
         activity = Activity.objects.get(id=activity.id)
+        assert activity.data is not None
         assert activity.data["version"] == ""
 
         assert GroupResolution.objects.filter(group=group).exists()
@@ -371,6 +372,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.status == GroupStatus.UNRESOLVED
 
         activity = Activity.objects.get(id=activity.id)
+        assert activity.data is not None
         assert activity.data["version"] == "b"
 
         assert not GroupResolution.objects.filter(group=group).exists()
@@ -431,11 +433,13 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.status == GroupStatus.UNRESOLVED
 
         activity = Activity.objects.get(id=activity.id)
+        assert activity.data is not None
         assert activity.data["version"] == "foobar"
 
         regressed_activity = Activity.objects.get(
             group=group, type=ActivityType.SET_REGRESSION.value
         )
+        assert regressed_activity.data is not None
         assert regressed_activity.data["version"] == "b"
         assert regressed_activity.data["follows_semver"] is False
 
@@ -493,12 +497,14 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.status == GroupStatus.UNRESOLVED
 
         activity = Activity.objects.get(id=activity.id)
+        assert activity.data is not None
         assert activity.data["version"] == "b"
         assert activity.data["current_release_version"] == "pre foobar"
 
         regressed_activity = Activity.objects.get(
             group=group, type=ActivityType.SET_REGRESSION.value
         )
+        assert regressed_activity.data is not None
         assert regressed_activity.data["version"] == "b"
 
         mock_send_activity_notifications_delay.assert_called_once_with(regressed_activity.id)
@@ -555,11 +561,13 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert group.status == GroupStatus.UNRESOLVED
 
         activity = Activity.objects.get(id=activity.id)
+        assert activity.data is not None
         assert activity.data["version"] == "foo@1.0.0"
 
         regressed_activity = Activity.objects.get(
             group=group, type=ActivityType.SET_REGRESSION.value
         )
+        assert regressed_activity.data is not None
         assert regressed_activity.data["version"] == "foo@2.0.0"
         assert regressed_activity.data["follows_semver"] is True
         assert regressed_activity.data["resolved_in_version"] == "foo@1.0.0"
@@ -835,6 +843,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 assert group.status == GroupStatus.RESOLVED
 
                 activity = Activity.objects.get(id=activity.id)
+                assert activity.data is not None
                 assert activity.data["version"] == ""
 
                 assert GroupResolution.objects.filter(group=group).exists()
@@ -853,6 +862,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
                 assert group.status == GroupStatus.UNRESOLVED
 
                 activity = Activity.objects.get(id=activity.id)
+                assert activity.data is not None
                 assert activity.data["version"] == "b"
 
                 assert not GroupResolution.objects.filter(group=group).exists()
