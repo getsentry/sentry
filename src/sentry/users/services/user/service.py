@@ -10,7 +10,7 @@ from sentry.auth.services.auth import AuthenticationContext
 from sentry.hybridcloud.rpc.caching import back_with_silo_cache, back_with_silo_cache_many
 from sentry.hybridcloud.rpc.filter_query import OpaqueSerializedResponse
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
-from sentry.services.hybrid_cloud.organization_mapping.model import RpcOrganizationMapping
+from sentry.organizations.services.organization_mapping.model import RpcOrganizationMapping
 from sentry.silo.base import SiloMode
 from sentry.users.services.user import RpcUser, UserFilterArgs, UserSerializeType, UserUpdateArgs
 from sentry.users.services.user.model import (

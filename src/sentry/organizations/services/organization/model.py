@@ -105,13 +105,13 @@ class RpcOrganizationMemberFlags(RpcModel):
     partnership__restricted: bool = False
 
     def __getattr__(self, item: str) -> bool:
-        from sentry.services.hybrid_cloud.organization.serial import escape_flag_name
+        from sentry.organizations.services.organization.serial import escape_flag_name
 
         item = escape_flag_name(item)
         return bool(getattr(self, item))
 
     def __setattr__(self, item: str, value: bool) -> None:
-        from sentry.services.hybrid_cloud.organization.serial import escape_flag_name
+        from sentry.organizations.services.organization.serial import escape_flag_name
 
         item = escape_flag_name(item)
         super().__setattr__(item, value)
@@ -222,17 +222,17 @@ class RpcOrganizationSummary(RpcModel, OrganizationAbsoluteUrlMixin):
         default: Any | None = None,
         validate: Callable[[object], bool] | None = None,
     ) -> Any:
-        from sentry.services.hybrid_cloud.organization import organization_service
+        from sentry.organizations.services.organization import organization_service
 
         return organization_service.get_option(organization_id=self.id, key=key)
 
     def update_option(self, key: str, value: Any) -> bool:
-        from sentry.services.hybrid_cloud.organization import organization_service
+        from sentry.organizations.services.organization import organization_service
 
         return organization_service.update_option(organization_id=self.id, key=key, value=value)
 
     def delete_option(self, key: str) -> None:
-        from sentry.services.hybrid_cloud.organization import organization_service
+        from sentry.organizations.services.organization import organization_service
 
         organization_service.delete_option(organization_id=self.id, key=key)
 

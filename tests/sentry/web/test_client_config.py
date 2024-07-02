@@ -13,7 +13,7 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.features import Feature

@@ -9,7 +9,7 @@ from django.utils import timezone
 from pydantic.fields import Field
 
 from sentry.hybridcloud.rpc import RpcModel
-from sentry.services.hybrid_cloud.organization import (
+from sentry.organizations.services.organization import (
     RpcOrganizationMappingFlags,
     RpcOrganizationSummary,
 )

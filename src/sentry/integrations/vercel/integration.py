@@ -25,9 +25,9 @@ from sentry.models.integrations.sentry_app_installation_for_provider import (
 )
 from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.models.user import User
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView
 from sentry.projects.services.project_key import project_key_service
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.http import absolute_uri
 

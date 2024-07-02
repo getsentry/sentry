@@ -22,12 +22,12 @@ from sentry.auth.services.auth import AuthenticatedToken, AuthenticationContext
 from sentry.auth.superuser import is_active_superuser
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.user import User
-from sentry.projects.services.project_key import ProjectKeyRole, project_key_service
-from sentry.services.hybrid_cloud.organization import (
+from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.projects.services.project_key import ProjectKeyRole, project_key_service
 from sentry.silo.base import SiloMode
 from sentry.types.region import (
     Region,

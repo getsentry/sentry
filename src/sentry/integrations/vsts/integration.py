@@ -34,8 +34,8 @@ from sentry.models.integrations.integration import Integration as IntegrationMod
 from sentry.models.integrations.integration_external_project import IntegrationExternalProject
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView, Pipeline, PipelineView
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import (
     ApiError,
     IntegrationError,

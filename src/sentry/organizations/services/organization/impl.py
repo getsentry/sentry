@@ -37,15 +37,7 @@ from sentry.models.savedsearch import SavedSearch
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.team import Team, TeamStatus
 from sentry.monitors.models import Monitor
-from sentry.organizations.services.organization_actions.impl import (
-    mark_organization_as_pending_deletion_with_outbox_message,
-)
-from sentry.sentry_apps.services.app import app_service
-from sentry.sentry_metrics.models import (
-    SpanAttributeExtractionRuleCondition,
-    SpanAttributeExtractionRuleConfig,
-)
-from sentry.services.hybrid_cloud.organization import (
+from sentry.organizations.services.organization import (
     OrganizationCheckService,
     OrganizationService,
     OrganizationSignalService,
@@ -61,7 +53,7 @@ from sentry.services.hybrid_cloud.organization import (
     RpcUserInviteContext,
     RpcUserOrganizationContext,
 )
-from sentry.services.hybrid_cloud.organization.model import (
+from sentry.organizations.services.organization.model import (
     OrganizationMemberUpdateArgs,
     RpcAuditLogEntryActor,
     RpcOrganizationDeleteResponse,
@@ -69,12 +61,20 @@ from sentry.services.hybrid_cloud.organization.model import (
     RpcOrganizationMemberSummary,
     flags_to_bits,
 )
-from sentry.services.hybrid_cloud.organization.serial import (
+from sentry.organizations.services.organization.serial import (
     serialize_member,
     serialize_organization_summary,
     serialize_rpc_organization,
     serialize_rpc_team,
     summarize_member,
+)
+from sentry.organizations.services.organization_actions.impl import (
+    mark_organization_as_pending_deletion_with_outbox_message,
+)
+from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_metrics.models import (
+    SpanAttributeExtractionRuleCondition,
+    SpanAttributeExtractionRuleConfig,
 )
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.auth import email_unlink_notifications
