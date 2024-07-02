@@ -52,12 +52,10 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
                     for frame in exception_value["values"]
                     if frame.get("id") == "frame" and frame.get("contributes")
                 ]
-                num_frames = len(contributing_frames)
-                if frame_count + num_frames > MAX_FRAME_COUNT:
-                    remaining_frame_count = MAX_FRAME_COUNT - frame_count
-                    contributing_frames = contributing_frames[-remaining_frame_count:]
-                    num_frames = remaining_frame_count
-                frame_count += num_frames
+                contributing_frames = _discard_excess_frames(
+                    contributing_frames, MAX_FRAME_COUNT, frame_count
+                )
+                frame_count += len(contributing_frames)
 
                 for frame in contributing_frames:
                     frame_dict = {"filename": "", "function": "", "context-line": ""}
