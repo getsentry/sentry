@@ -126,7 +126,7 @@ def get_metric_extraction_config(
     }
 
 
-def get_extrapolation_config(project):
+def get_extrapolation_config(project: Project) -> object:
     if not features.has("organizations:metrics-extrapolation", project.organization):
         return {}
 
