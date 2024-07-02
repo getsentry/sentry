@@ -179,10 +179,11 @@ function BaseDraggableTabList({
                 ref={element => (tabItemsRef.current[item.key] = element)}
                 isChanged
               />
-              {state.selectedKey !== item.key &&
-                state.collection.getKeyAfter(item.key) !== state.selectedKey && (
-                  <TabDivider />
-                )}
+              {(isTempTabVisible ||
+                (state.selectedKey !== item.key &&
+                  state.collection.getKeyAfter(item.key) !== state.selectedKey)) && (
+                <TabDivider />
+              )}
             </Reorder.Item>
           ))}
           <AddViewButton borderless size="zero" onClick={() => setIsTempTabVisible(true)}>
