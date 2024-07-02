@@ -20,8 +20,8 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
-from sentry.models.rule import Rule
 from sentry.models.projecttemplate import ProjectTemplate
+from sentry.models.rule import Rule
 from sentry.models.user import User
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.organizations.services.organization import RpcOrganization
