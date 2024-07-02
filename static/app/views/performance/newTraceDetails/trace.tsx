@@ -491,7 +491,7 @@ export function Trace({
   });
 
   const traceNode = trace.root.children[0];
-  const traceStartTimestamp = traceNode.space[0];
+  const traceStartTimestamp = traceNode?.space[0];
 
   return (
     <TraceStylingWrapper

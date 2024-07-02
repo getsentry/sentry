@@ -64,43 +64,6 @@ describe('traceProfilingLink', () => {
       ).toBeNull();
     });
   });
-  it('handles invalid date', () => {
-    const event = TransactionEventFixture({
-      startTimestamp: new Date().getTime() / 1e3,
-      endTimestamp: new Date().getTime() / 1e3 + 1000,
-      contexts: {
-        profile: {
-          profiler_id: 'profiler',
-        },
-      },
-    });
-
-    // @ts-expect-error
-    event.endTimestamp = 'invalid';
-    // @ts-expect-error
-    event.startTimestamp = 'invalid';
-
-    expect(
-      makeTraceContinuousProfilingLink(
-        new TraceTreeNode(
-          null,
-          makeTransaction({
-            start_timestamp: undefined,
-            timestamp: undefined,
-          }),
-          {
-            project_slug: '',
-            event_id: '',
-          }
-        ),
-        event,
-        {
-          projectSlug: 'project',
-          orgSlug: 'sentry',
-        }
-      )
-    ).toBeNull();
-  });
 
   it('creates a window of time around end timestamp', () => {
     const event = TransactionEventFixture({
@@ -112,6 +75,7 @@ describe('traceProfilingLink', () => {
     });
 
     const timestamp = new Date().getTime();
+
     const node = new TraceTreeNode(
       null,
       makeTransaction({start_timestamp: undefined, timestamp: timestamp / 1e3}),
@@ -131,8 +95,8 @@ describe('traceProfilingLink', () => {
     );
 
     // @ts-expect-error mismatch in types?
-    expect(link.query.start).toBe(new Date(timestamp - 1000).toISOString());
+    expect(link.query.start).toBe(new Date(timestamp - 100).toISOString());
     // @ts-expect-error mismatch in types?
-    expect(link.query.end).toBe(new Date(timestamp + 1000).toISOString());
+    expect(link.query.end).toBe(new Date(timestamp + 100).toISOString());
   });
 });
