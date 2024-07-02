@@ -27,7 +27,8 @@ const InviteMembersButtonHook = HookOrDefault({
   hookName: 'member-invite-button:customization',
   defaultComponent: ({children, organization, onTriggerModal}) =>
     children({
-      disabled: !organization.features.includes('invite-members'),
+      disabledByFlag: !organization.features.includes('invite-members'),
+      disabledBySso: organization.requiresSso,
       onTriggerModal,
     }),
 });
@@ -141,11 +142,13 @@ class OrganizationMembersWrapper extends DeprecatedAsyncView<Props, State> {
 }
 
 function renderInviteMembersButton({
-  disabled,
+  disabledByFlag,
+  disabledBySso,
   onTriggerModal,
 }: {
   onTriggerModal: () => void;
-  disabled?: boolean;
+  disabledByFlag?: boolean;
+  disabledBySso?: boolean;
 }) {
   const action = (
     <Button
@@ -154,13 +157,13 @@ function renderInviteMembersButton({
       onClick={onTriggerModal}
       data-test-id="email-invite"
       icon={<IconMail />}
-      disabled={disabled}
+      disabled={disabledByFlag || disabledBySso}
     >
       {t('Invite Members')}
     </Button>
   );
 
-  return disabled ? (
+  return disabledByFlag ? (
     <Hovercard
       body={
         <FeatureDisabled
@@ -168,6 +171,19 @@ function renderInviteMembersButton({
           features="organizations:invite-members"
           hideHelpToggle
         />
+      }
+    >
+      {action}
+    </Hovercard>
+  ) : disabledBySso ? (
+    <Hovercard
+      body={
+        <Fragment>
+          {t(
+            `Your organization must use its single sign-on provider to invite
+            new members.`
+          )}
+        </Fragment>
       }
     >
       {action}

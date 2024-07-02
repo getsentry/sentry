@@ -631,10 +631,8 @@ type IntegrationsFeatureGatesHook = () => {
  */
 type InviteButtonCustomizationHook = () => React.ComponentType<{
   children: (opts: {
-    /**
-     * Whether the Invite Members button is active or not
-     */
-    disabled: boolean;
+    disabledByFlag: boolean;
+    disabledBySso: boolean;
     onTriggerModal: () => void;
   }) => React.ReactElement;
   onTriggerModal: () => void;
