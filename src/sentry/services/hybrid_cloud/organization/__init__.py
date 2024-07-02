@@ -9,6 +9,9 @@ from sentry.organizations.services.organization.model import (
     RpcUserOrganizationContext,
 )
 from sentry.organizations.services.organization.service import organization_service
+
+# This is gross, but can be removed once getsentry is updated
+from sentry.projects.services.project.model import RpcProject
 from sentry.silo.base import SiloMode
 
 __all__ = (
@@ -17,6 +20,7 @@ __all__ = (
     "RpcOrganizationMember",
     "RpcOrganizationMemberFlags",
     "RpcOrganizationSummary",
+    "RpcProject",
     "RpcTeam",
     "RpcUserOrganizationContext",
     "SiloMode",
