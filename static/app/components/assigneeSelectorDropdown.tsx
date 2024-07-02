@@ -362,7 +362,8 @@ export default function AssigneeSelectorDropdown({
       ),
       // Jank way to pass assignee type (team or user) into each row
       value: `user:${user.id}`,
-      textValue: userDisplay,
+      // This makes a user searchable by their email in the dropdown
+      textValue: user.email,
     };
   };
 
