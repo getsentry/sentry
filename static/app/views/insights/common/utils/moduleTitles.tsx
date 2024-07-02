@@ -24,10 +24,3 @@ export const MODULE_TITLES: Record<ModuleName, string> = {
   [ModuleName.OTHER]: '',
   [ModuleName.ALL]: '',
 };
-
-type ModuleNameStrings = `${ModuleName}`;
-type TitleableModuleNames = Exclude<ModuleNameStrings, '' | 'other'>;
-
-export function useModuleTitle(moduleName: TitleableModuleNames) {
-  return MODULE_TITLES[moduleName];
-}
