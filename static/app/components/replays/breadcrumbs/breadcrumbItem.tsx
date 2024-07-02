@@ -13,12 +13,12 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
-import {showPlayerTime} from 'sentry/components/replays/utils';
 import Timeline from 'sentry/components/timeline';
 import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import {getReplayDiffOffsetsFromFrame} from 'sentry/utils/replays/getDiffTimestamps';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
@@ -132,7 +132,7 @@ function BreadcrumbItem({
         colorConfig={{primary: color, secondary: color}}
         timeString={timeString}
         renderTimestamp={(_ts, _sts) =>
-          showPlayerTime(frame.timestampMs, startTimestampMs, false)
+          formatReplayDuration(Math.abs(frame.timestampMs - startTimestampMs), false)
         }
         startTimeString={startTimeString}
         data-is-error-frame={isErrorFrame(frame)}
