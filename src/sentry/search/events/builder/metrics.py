@@ -19,12 +19,14 @@ from snuba_sdk import (
     Function,
     Granularity,
     Limit,
+    Metric,
     Offset,
     Op,
     Or,
     OrderBy,
     Query,
     Request,
+    Timeseries,
 )
 
 from sentry import features
@@ -67,6 +69,7 @@ from sentry.snuba.metrics.extraction import (
     should_use_on_demand_metrics_for_querying,
 )
 from sentry.snuba.metrics.fields import histogram as metrics_histogram
+from sentry.snuba.metrics.mqb_query_transformer import transform_mqb_query_to_metrics_query
 from sentry.snuba.metrics.naming_layer.mri import extract_use_case_id, is_mri
 from sentry.snuba.metrics.query import (
     DeprecatingMetricsQuery,
@@ -1453,9 +1456,6 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
         """
         if self.use_metrics_layer or self.use_on_demand:
             from sentry.snuba.metrics import SnubaQueryBuilder
-            from sentry.snuba.metrics.mqb_query_transformer import (
-                transform_mqb_query_to_metrics_query,
-            )
 
             if self.use_on_demand:
                 spec = self._on_demand_metric_spec_map[self.selected_columns[0]]
@@ -1495,6 +1495,37 @@ class AlertMetricsQueryBuilder(MetricsQueryBuilder):
             )
 
         return super().get_snql_query()
+
+    def get_metrics_query(self) -> Timeseries | None:
+
+        intermediate_query = self.get_metrics_layer_snql_query()
+        metrics_query: DeprecatingMetricsQuery = transform_mqb_query_to_metrics_query(
+            intermediate_query, is_alerts_query=isinstance(self, AlertMetricsQueryBuilder)
+        )
+
+        mris = []
+        for s in metrics_query.select:
+            mris.append(s.metric_mri)
+
+        for mri in mris:
+            if "transaction.duration" in mri:
+
+                # somehow we have a mismatch between what MetricsQuery
+                # expects (with one aggregate) vs. what DeprecatingMetricsQuery
+                # exposes (possibly multiple aggregates)
+
+                where = metrics_query.where
+                groupby_set = metrics_query.action_by_str_fields()
+
+                groupby_cols = []
+                for field_name in groupby_set:
+                    groupby_cols.append(Column(field_name))
+
+                metric = Metric(mris[0])
+
+                return Timeseries(metric=metric, filters=where, groupby=groupby_cols)
+
+        return None
 
     def resolve_split_granularity(self) -> tuple[list[Condition], Granularity | None]:
         """Don't do this for anything but table queries"""
