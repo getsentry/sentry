@@ -107,7 +107,7 @@ class MsTeamsRequestParser(BaseRequestParser, MsTeamsWebhookMixin):
             return self.get_default_missing_integration_response()
 
         if len(regions) == 0:
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.isolation_scope() as scope:
                 scope.set_extra("view_class", self.view_class)
                 scope.set_extra("request_method", self.request.method)
                 scope.set_extra("request_path", self.request.path)

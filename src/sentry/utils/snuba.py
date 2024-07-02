@@ -1069,8 +1069,6 @@ def _bulk_snuba_query(
                     "throttled_by" in quota_allowance_summary
                     and quota_allowance_summary["throttled_by"]
                 ):
-                    logger.warning("Query is throttled", extra={"response.data": response.data})
-                    sentry_sdk.capture_message("Query is throttled", level="warning")
                     metrics.incr("snuba.client.query.throttle", tags={"referrer": query_referrer})
 
             if response.status != 200:
