@@ -98,16 +98,6 @@ def instrumented_task(name, stat_suffix=None, silo_mode=None, record_timing=Fals
 
             # Use a try/catch here to contain the blast radius of an exception being unhandled through the options lib
             # Unhandled exception could cause all tasks to be effected and not work
-            try:
-                from sentry import options
-
-                # Use option to control default behavior of queue time monitoring
-                # Value can be dynamically updated, which is why the evaluation happens during function run-time
-                record_queue_wait_time = record_queue_wait_time or options.get(
-                    "sentry-metrics.monitor-queue-time"
-                )
-            except Exception:
-                pass
 
             # TODO(dcramer): we want to tag a transaction ID, but overriding
             # the base on app.task seems to cause problems w/ Celery internals
