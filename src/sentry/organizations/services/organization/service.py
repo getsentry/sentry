@@ -18,7 +18,7 @@ from sentry.hybridcloud.rpc.resolvers import (
     RequireSingleOrganization,
 )
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
-from sentry.services.hybrid_cloud.organization.model import (
+from sentry.organizations.services.organization.model import (
     OrganizationMemberUpdateArgs,
     RpcAuditLogEntryActor,
     RpcOrganization,
@@ -44,7 +44,9 @@ class OrganizationService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from sentry.services.hybrid_cloud.organization.impl import DatabaseBackedOrganizationService
+        from sentry.organizations.services.organization.impl import (
+            DatabaseBackedOrganizationService,
+        )
 
         return DatabaseBackedOrganizationService()
 
@@ -606,13 +608,13 @@ class OrganizationCheckService(abc.ABC):
 
 
 def _control_check_organization() -> OrganizationCheckService:
-    from sentry.services.hybrid_cloud.organization.impl import ControlOrganizationCheckService
+    from sentry.organizations.services.organization.impl import ControlOrganizationCheckService
 
     return ControlOrganizationCheckService()
 
 
 def _region_check_organization() -> OrganizationCheckService:
-    from sentry.services.hybrid_cloud.organization.impl import RegionOrganizationCheckService
+    from sentry.organizations.services.organization.impl import RegionOrganizationCheckService
 
     return RegionOrganizationCheckService()
 
@@ -629,13 +631,15 @@ class OrganizationSignalService(abc.ABC):
 
 
 def _signal_from_outbox() -> OrganizationSignalService:
-    from sentry.services.hybrid_cloud.organization.impl import OutboxBackedOrganizationSignalService
+    from sentry.organizations.services.organization.impl import (
+        OutboxBackedOrganizationSignalService,
+    )
 
     return OutboxBackedOrganizationSignalService()
 
 
 def _signal_from_on_commit() -> OrganizationSignalService:
-    from sentry.services.hybrid_cloud.organization.impl import (
+    from sentry.organizations.services.organization.impl import (
         OnCommitBackedOrganizationSignalService,
     )
 

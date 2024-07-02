@@ -13,7 +13,7 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.organization.service import organization_service
+from sentry.organizations.services.organization.service import organization_service
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo.base import all_silo_function
 from sentry.utils.http import absolute_uri

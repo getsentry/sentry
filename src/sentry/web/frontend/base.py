@@ -33,7 +33,7 @@ from sentry.middleware.placeholder import placeholder_get_response
 from sentry.models.avatars.base import AvatarBase
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.project import Project
-from sentry.services.hybrid_cloud.organization import (
+from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcOrganizationSummary,
     RpcUserOrganizationContext,

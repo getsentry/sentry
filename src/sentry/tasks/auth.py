@@ -14,7 +14,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
-from sentry.services.hybrid_cloud.organization.service import organization_service
+from sentry.organizations.services.organization.service import organization_service
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.base import instrumented_task, retry

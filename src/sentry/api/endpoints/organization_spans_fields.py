@@ -16,10 +16,10 @@ from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.organizations.services.organization import RpcOrganization
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
-from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.types import TagKey, TagValue
