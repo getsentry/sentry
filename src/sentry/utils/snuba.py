@@ -228,6 +228,8 @@ METRICS_COLUMN_MAP = {
     "organization_id": "org_id",
 }
 
+REFERRER_THROTTLED_QUERIES_COUNT_MAP: dict[str, int] = {}
+SAMPLING_FREQUENCY = 100
 
 DATASETS: dict[Dataset, dict[str, str]] = {
     Dataset.Events: SENTRY_SNUBA_MAP,
@@ -1071,6 +1073,15 @@ def _bulk_snuba_query(
                 ):
                     metrics.incr("snuba.client.query.throttle", tags={"referrer": query_referrer})
 
+                    REFERRER_THROTTLED_QUERIES_COUNT_MAP[query_referrer] = (
+                        REFERRER_THROTTLED_QUERIES_COUNT_MAP.get(query_referrer, 0) + 1
+                    )
+                    if REFERRER_THROTTLED_QUERIES_COUNT_MAP[query_referrer] == SAMPLING_FREQUENCY:
+                        logger.warning("Query is throttled", extra={"response.data": response.data})
+                        sentry_sdk.capture_message(
+                            f"Query from referrer {query_referrer} is throttled", level="warning"
+                        )
+
             if response.status != 200:
                 _log_request_query(snuba_param_list[index][0])
                 metrics.incr(
@@ -1080,6 +1091,7 @@ def _bulk_snuba_query(
                 if body.get("error"):
                     error = body["error"]
                     if response.status == 429:
+                        REFERRER_THROTTLED_QUERIES_COUNT_MAP[query_referrer] = 0
                         raise RateLimitExceeded(error["message"])
                     elif error["type"] == "schema":
                         raise SchemaValidationError(error["message"])
