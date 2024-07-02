@@ -419,7 +419,6 @@ type TraceFetchOptions = {
   organization: Organization;
   replayTraces: ReplayTrace[];
   rerender: () => void;
-  traceLimit: number | undefined;
   urlParams: Location['query'];
 };
 
@@ -443,8 +442,6 @@ export class TraceTree {
   vitals: Map<TraceTreeNode<TraceTree.NodeValue>, TraceTree.CollectedVital[]> = new Map();
   vital_types: Set<'web' | 'mobile'> = new Set();
   eventsCount: number = 0;
-  isFetching: boolean = false;
-
   profiled_events: Set<TraceTreeNode<TraceTree.NodeValue>> = new Set();
 
   private _spanPromises: Map<string, Promise<Event>> = new Map();
@@ -624,13 +621,10 @@ export class TraceTree {
     return tree.build();
   }
 
-  async fetchTraces(options: TraceFetchOptions) {
-    const {organization, api, urlParams, filters, traceLimit, rerender, replayTraces} =
-      options;
-
+  async fetchTraces(options: TraceFetchOptions): Promise<void> {
+    const {organization, api, urlParams, filters, rerender, replayTraces} = options;
     const clonedTraceIds = [...replayTraces];
 
-    this.isFetching = true;
     rerender();
 
     while (clonedTraceIds.length > 0) {
@@ -640,21 +634,18 @@ export class TraceTree {
           return fetchSingleTrace(api, {
             orgSlug: organization.slug,
             query: qs.stringify(
-              getTraceQueryParams(
-                urlParams,
-                batchTraceData.timestamp,
-                filters.selection,
-                traceLimit
-              )
+              getTraceQueryParams(urlParams, filters.selection, {
+                timestamp: batchTraceData.timestamp,
+              })
             ),
             traceId: batchTraceData.traceSlug,
           });
         })
       );
 
-      if (!this.isFetching) {
-        break;
-      }
+      // if (!this.isFetching) {
+      //   break;
+      // }
 
       const updatedData = results.reduce(
         (acc, result) => {
@@ -677,13 +668,10 @@ export class TraceTree {
       rerender();
     }
 
-    this.isFetching = false;
     rerender();
   }
 
-  stopFetching() {
-    this.isFetching = false;
-  }
+  stopFetching() {}
 
   appendTree(tree: TraceTree) {
     const baseTraceNode = this.root.children[0];
@@ -2572,7 +2560,7 @@ function printNode(t: TraceTreeNode<TraceTree.NodeValue>, offset: number): strin
 }
 
 // Creates an example trace response that we use to render the loading placeholder
-export function partialTransaction(
+function partialTransaction(
   partial: Partial<TraceTree.Transaction>
 ): TraceTree.Transaction {
   return {

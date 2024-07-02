@@ -18,6 +18,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {TraceViewWaterfall} from 'sentry/views/performance/newTraceDetails';
 import {useReplayTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useReplayTraceMeta';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
+import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import TraceView, {
@@ -156,8 +157,11 @@ export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRe
   });
 
   const firstTrace = replayTraces?.[0];
-  const trace = useTrace(firstTrace?.traceSlug, firstTrace?.timestamp);
-
+  const trace = useTrace({
+    traceSlug: firstTrace?.traceSlug,
+    timestamp: firstTrace?.timestamp,
+  });
+  const rootEvent = useTraceRootEvent(trace.data ?? null);
   const metaResults = useReplayTraceMeta(replayRecord);
 
   const preferences = useMemo(
@@ -166,6 +170,13 @@ export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRe
       DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES,
     []
   );
+
+  const otherReplayTraces = useMemo(() => {
+    if (!replayTraces) {
+      return [];
+    }
+    return replayTraces.slice(1);
+  }, [replayTraces]);
 
   if (indexError) {
     // Same style as <EmptyStateWarning>
@@ -204,11 +215,11 @@ export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRe
     >
       <TraceViewWaterfallWrapper>
         <TraceViewWaterfall
-          traceLabel="Replay"
           traceSlug={replayTraces[0].traceSlug}
-          trace={trace.data}
+          trace={trace.data ?? null}
           status={trace.status}
-          replayTraces={replayTraces.slice(1)}
+          rootEvent={rootEvent}
+          replayTraces={otherReplayTraces}
           organization={organization}
           traceEventView={eventView}
           metaResults={metaResults}

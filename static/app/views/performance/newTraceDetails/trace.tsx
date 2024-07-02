@@ -168,12 +168,10 @@ interface TraceProps {
     | undefined
   >;
   trace: TraceTree;
-  traceLabel: string;
 }
 
 export function Trace({
   trace,
-  traceLabel,
   onRowClick,
   manager,
   scrollQueueRef,
@@ -259,7 +257,6 @@ export function Trace({
   }, [
     api,
     trace,
-    traceLabel,
     manager,
     onTraceLoad,
     traceDispatch,
@@ -398,7 +395,6 @@ export function Trace({
           isSearchResult={traceState.search.resultsLookup.has(n.item)}
           searchResultsIteratorIndex={traceState.search.resultIndex}
           style={n.style}
-          traceLabel={traceLabel}
           projects={projectLookup}
           node={n.item}
           manager={manager}
@@ -428,7 +424,6 @@ export function Trace({
       traceState.search.resultsLookup,
       traceState.search.resultIndex,
       theme,
-      traceLabel,
       trace.type,
       forceRerender,
     ]
@@ -567,7 +562,6 @@ function RenderRow(props: {
   style: React.CSSProperties;
   tabIndex: number;
   theme: Theme;
-  traceLabel: string;
   tree: TraceTree;
 }) {
   const virtualized_index = props.index - props.manager.start_virtualized_index;
@@ -946,7 +940,8 @@ function RenderRow(props: {
             </div>
             <span className="TraceOperation">{t('Trace')}</span>
             <strong className="TraceEmDash"> — </strong>
-            <span className="TraceDescription">{props.traceLabel}</span>
+            {/* @TODO */}
+            <span className="TraceDescription">{''}</span>
           </div>
         </div>
         <div
@@ -1208,7 +1203,7 @@ function ChildrenButton(props: {
 }) {
   return (
     <button className={`TraceChildrenCount`} onClick={props.onClick}>
-      {<div className="TraceChildrenCountContent">{props.children}</div>}
+      <div className="TraceChildrenCountContent">{props.children}</div>
       <div className="TraceChildrenCountAction">
         {props.icon}
         {props.status === 'loading' ? (

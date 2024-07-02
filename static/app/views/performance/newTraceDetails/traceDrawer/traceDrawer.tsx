@@ -81,7 +81,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
   // we try to prefetch the tags as soon as the drawer loads, hoping that the tags will be loaded
   // by the time the user clicks on the trace tab. Also prevents the tags from being refetched.
   const urlParams = useMemo(() => {
-    const timestamp = getTraceQueryParams(location.query, undefined).timestamp;
+    const {timestamp} = getTraceQueryParams(location.query, undefined);
     const params = pick(location.query, [
       ...Object.values(PERFORMANCE_URL_PARAM),
       'cursor',
