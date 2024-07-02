@@ -7,8 +7,8 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 
 from .response import OrganizationMemberResponse
 from .utils import get_organization_id

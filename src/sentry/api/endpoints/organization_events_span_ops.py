@@ -9,7 +9,7 @@ from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.snuba.dataset import Dataset
 from sentry.utils.snuba import raw_snql_query
 
@@ -34,7 +34,7 @@ class OrganizationEventsSpanOpsEndpoint(OrganizationEventsEndpointBase):
         query = request.GET.get("query")
 
         def data_fn(offset: int, limit: int) -> Any:
-            builder = QueryBuilder(
+            builder = DiscoverQueryBuilder(
                 dataset=Dataset.Discover,
                 params=params,
                 selected_columns=["spans_op", "count()"],

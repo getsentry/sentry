@@ -16,10 +16,10 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.group import Group
 from sentry.search.events.builder import (
     HistogramQueryBuilder,
-    QueryBuilder,
     TimeseriesQueryBuilder,
     TopEventsQueryBuilder,
 )
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.fields import (
     FIELD_ALIASES,
     get_function_alias,
@@ -206,7 +206,7 @@ def _query(
 
     assert dataset in [Dataset.Discover, Dataset.Transactions]
 
-    builder = QueryBuilder(
+    builder = DiscoverQueryBuilder(
         dataset,
         params,
         snuba_params=snuba_params,
@@ -740,7 +740,7 @@ def get_facets(
     fetch_projects = len(params["project_id"]) > 1
 
     with sentry_sdk.start_span(op="discover.discover", description="facets.frequent_tags"):
-        key_name_builder = QueryBuilder(
+        key_name_builder = DiscoverQueryBuilder(
             Dataset.Discover,
             params,
             query=query,
@@ -785,7 +785,7 @@ def get_facets(
     # Inject project data on the first page if multiple projects are selected
     if fetch_projects and cursor == 0:
         with sentry_sdk.start_span(op="discover.discover", description="facets.projects"):
-            project_value_builder = QueryBuilder(
+            project_value_builder = DiscoverQueryBuilder(
                 Dataset.Discover,
                 params,
                 query=query,
@@ -823,7 +823,7 @@ def get_facets(
         span.set_data("tag_count", len(individual_tags))
         for tag_name in individual_tags:
             tag = f"tags[{tag_name}]"
-            tag_value_builder = QueryBuilder(
+            tag_value_builder = DiscoverQueryBuilder(
                 Dataset.Discover,
                 params,
                 query=query,
@@ -844,7 +844,7 @@ def get_facets(
 
     if aggregate_tags:
         with sentry_sdk.start_span(op="discover.discover", description="facets.aggregate_tags"):
-            aggregate_value_builder = QueryBuilder(
+            aggregate_value_builder = DiscoverQueryBuilder(
                 Dataset.Discover,
                 params,
                 query=(query if query is not None else "")

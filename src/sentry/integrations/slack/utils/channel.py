@@ -1,12 +1,13 @@
 from __future__ import annotations
 
+import logging
 import time
 from dataclasses import dataclass
 
 from django.core.exceptions import ValidationError
 from slack_sdk.errors import SlackApiError
 
-from sentry import features
+from sentry import features, options
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.sdk_client import SlackSdkClient
@@ -20,7 +21,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationError,
 )
 
-from . import logger
+_logger = logging.getLogger(__name__)
 
 SLACK_GET_CHANNEL_ID_PAGE_SIZE = 200
 SLACK_DEFAULT_TIMEOUT = 10
@@ -97,14 +98,34 @@ def validate_channel_id(name: str, integration_id: int | None, input_channel_id:
     """
     # The empty string should be converted to None
     payload = {"channel": input_channel_id or None}
-    client = SlackClient(integration_id=integration_id)
-    try:
-        results = client.get("/conversations.info", params=payload)
-    except ApiError as e:
-        if e.text == "channel_not_found":
-            raise ValidationError("Channel not found. Invalid ID provided.")
-        logger.info("rule.slack.conversation_info_failed", extra={"error": str(e)})
-        raise IntegrationError("Could not retrieve Slack channel information.")
+
+    if options.get("slack-sdk.valid_channel_id") or integration_id in options.get(
+        "slack-sdk.valid_channel_id_la_integration_ids"
+    ):
+        client = SlackSdkClient(integration_id=integration_id)
+        try:
+            results = client.conversations_info(channel=input_channel_id).data
+        except SlackApiError as e:
+            if e.response["error"] == "channel_not_found":
+                raise ValidationError("Channel not found. Invalid ID provided.") from e
+            _logger.exception(
+                "rule.slack.conversation_info_failed",
+                extra={
+                    "integration_id": integration_id,
+                    "channel_name": name,
+                    "input_channel_id": input_channel_id,
+                },
+            )
+            raise IntegrationError("Could not retrieve Slack channel information.") from e
+    else:
+        client = SlackClient(integration_id=integration_id)
+        try:
+            results = client.get("/conversations.info", params=payload)
+        except ApiError as e:
+            if e.text == "channel_not_found":
+                raise ValidationError("Channel not found. Invalid ID provided.") from e
+            _logger.info("rule.slack.conversation_info_failed", extra={"error": str(e)})
+            raise IntegrationError("Could not retrieve Slack channel information.") from e
 
     if not isinstance(results, dict):
         raise IntegrationError("Bad slack channel list response.")
@@ -144,13 +165,13 @@ def get_channel_id_with_timeout(
 
     logger_params = {
         "integration_id": integration.id,
-        "name": name,
+        "channel_name": name,
     }
     try:  # Check for channel
         _channel_id = check_for_channel(client, name)
         _prefix = "#"
     except SlackApiError:
-        logger.exception("rule.slack.channel_check_error", extra=logger_params)
+        _logger.exception("rule.slack.channel_check_error", extra=logger_params)
         return SlackChannelIdData(prefix=_prefix, channel_id=None, timed_out=False)
 
     if _channel_id is not None:
@@ -175,32 +196,40 @@ def check_user_with_timeout(
         "types": "public_channel,private_channel",
     }
 
+    logger_params = {
+        "integration_id": integration.id,
+        "channel_name": name,
+    }
+
     # Get each user from a page from the Slack API
-    page_generator = (
+    user_generator = (
         user
         for page in get_slack_user_list(integration, organization=None, kwargs=payload)
         for user in page
     )
-    for user in page_generator:
-        # The "name" field is unique (this is the username for users)
-        # so we return immediately if we find a match.
-        # convert to lower case since all names in Slack are lowercase
-        if name and str(user["name"]).casefold() == name.casefold():
-            return SlackChannelIdData(prefix="@", channel_id=user["id"], timed_out=False)
+    try:
+        for user in user_generator:
+            # The "name" field is unique (this is the username for users)
+            # so we return immediately if we find a match.
+            # convert to lower case since all names in Slack are lowercase
+            if name and str(user["name"]).casefold() == name.casefold():
+                return SlackChannelIdData(prefix="@", channel_id=user["id"], timed_out=False)
 
-        # If we don't get a match on a unique identifier, we look through
-        # the users' display names, and error if there is a repeat.
-        profile = user.get("profile")
-        if profile and profile.get("display_name") == name:
-            if _channel_id is not None:
-                raise DuplicateDisplayNameError(name)
-            else:
-                _prefix = "@"
-                _channel_id = user["id"]
+            # If we don't get a match on a unique identifier, we look through
+            # the users' display names, and error if there is a repeat.
+            profile = user.get("profile")
+            if profile and profile.get("display_name") == name:
+                if _channel_id is not None:
+                    raise DuplicateDisplayNameError(name)
+                else:
+                    _prefix = "@"
+                    _channel_id = user["id"]
 
-        # TODO: This is a problem if we don't go through all the users and eventually run in to someone with duplicate display name
-        if time.time() > time_to_quit:
-            return SlackChannelIdData(prefix=_prefix, channel_id=None, timed_out=True)
+            # TODO: This is a problem if we don't go through all the users and eventually run in to someone with duplicate display name
+            if time.time() > time_to_quit:
+                return SlackChannelIdData(prefix=_prefix, channel_id=None, timed_out=True)
+    except SlackApiError:
+        _logger.exception("rule.slack.user_check_error", extra=logger_params)
 
     return SlackChannelIdData(prefix=_prefix, channel_id=_channel_id, timed_out=False)
 
@@ -225,7 +254,7 @@ def check_for_channel(
             "channel": name,
             "post_at": int(time.time() + 500),
         }
-        logger.exception("slack.chat_scheduleMessage.error", extra=logger_params)
+        _logger.exception("slack.chat_scheduleMessage.error", extra=logger_params)
         if "channel_not_found" in str(e):
             return None
         else:
@@ -249,7 +278,7 @@ def check_for_channel(
             "channel_id": msg_response.get("channel"),
             "scheduled_message_id": msg_response.get("scheduled_message_id"),
         }
-        logger.exception("slack.chat_deleteScheduledMessage.error", extra=logger_params)
+        _logger.exception("slack.chat_deleteScheduledMessage.error", extra=logger_params)
         raise
 
 
@@ -292,13 +321,13 @@ def get_channel_id_with_timeout_deprecated(
             try:
                 items = client.get("/users.list", params=dict(payload, cursor=cursor, limit=1000))
             except ApiRateLimitedError as e:
-                logger.info(
+                _logger.info(
                     "rule.slack.user_list_rate_limited",
                     extra={"error": str(e), "integration_id": integration.id},
                 )
                 raise
             except ApiError as e:
-                logger.info(
+                _logger.info(
                     "rule.slack.user_list_other_error",
                     extra={"error": str(e), "integration_id": integration.id},
                 )
