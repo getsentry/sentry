@@ -1,16 +1,14 @@
-import responses
+import orjson
 from django.utils import timezone
 
 from sentry.models.activity import Activity
 from sentry.models.deploy import Deploy
 from sentry.notifications.notifications.activity.release import ReleaseActivityNotification
 from sentry.testutils.cases import SlackActivityNotificationTest
-from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
 from sentry.types.activity import ActivityType
 
 
 class SlackDeployNotificationTest(SlackActivityNotificationTest):
-    @responses.activate
     def test_deploy_block(self):
         """
         Test that a Slack message is sent with the expected payload when a deploy happens.
@@ -44,7 +42,8 @@ class SlackDeployNotificationTest(SlackActivityNotificationTest):
         with self.tasks():
             notification.send()
 
-        blocks, fallback_text = get_blocks_and_fallback_text()
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        fallback_text = self.mock_post.call_args.kwargs["text"]
         assert (
             fallback_text
             == f"Release {release.version} was deployed to {self.environment.name} for these projects"
