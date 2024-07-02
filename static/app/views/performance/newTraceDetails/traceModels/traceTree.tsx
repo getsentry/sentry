@@ -24,7 +24,7 @@ import {
   WEB_VITAL_DETAILS,
 } from 'sentry/utils/performance/vitals/constants';
 import type {Vital} from 'sentry/utils/performance/vitals/types';
-import type {TraceDataRow} from 'sentry/views/replays/detail/trace/replayTransactionContext';
+import type {ReplayTrace} from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {getStylingSliceName} from '../../../traces/utils';
@@ -414,7 +414,7 @@ for (const key in {...MOBILE_VITAL_DETAILS, ...WEB_VITAL_DETAILS}) {
 }
 
 type IncrementalTraceFetchOptions = {
-  additionalTraceDataRows: TraceDataRow[] | undefined;
+  additionalTraceDataRows: ReplayTrace[] | undefined;
   api: Client;
   filters: any;
   organization: Organization;
@@ -470,7 +470,12 @@ export async function incrementallyFetchTraces(
         return fetchSingleTrace(api, {
           orgSlug: organization.slug,
           query: qs.stringify(
-            getTraceQueryParams(urlParams, filters.selection, traceLimit, batchTraceData)
+            getTraceQueryParams(
+              urlParams,
+              filters.selection,
+              traceLimit,
+              batchTraceData.timestamp
+            )
           ),
           traceId: batchTraceData.traceSlug,
         });

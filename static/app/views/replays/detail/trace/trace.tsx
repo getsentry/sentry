@@ -150,7 +150,7 @@ function Trace({replayRecord}: {replayRecord: undefined | ReplayRecord}) {
 export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRecord}) {
   const organization = useOrganization();
   const {projects} = useProjects();
-  const {eventView, indexComplete, indexError, traceDataRows} = useReplayTracesData({
+  const {eventView, indexComplete, indexError, replayTraces} = useReplayTracesData({
     replayRecord,
   });
 
@@ -175,7 +175,7 @@ export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRe
     );
   }
 
-  if (!replayRecord || !indexComplete || !traceDataRows || !eventView) {
+  if (!replayRecord || !indexComplete || !replayTraces || !eventView) {
     // Show the blank screen until we start fetching, thats when you get a spinner
     return (
       <StyledPlaceholder height="100%">
@@ -189,7 +189,7 @@ export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRe
   const performanceActive =
     organization.features.includes('performance-view') && hasPerformance;
 
-  if (traceDataRows.length === 0) {
+  if (replayTraces.length === 0) {
     return <TracesNotFound performanceActive={performanceActive} />;
   }
 
@@ -201,7 +201,9 @@ export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRe
       <TraceViewWaterfallWrapper>
         <TraceViewWaterfall
           traceLabel="Replay"
-          traceDataRows={traceDataRows}
+          traceSlug={replayTraces[0].traceSlug}
+          timestamp={replayTraces[0].timestamp}
+          replayTraces={replayTraces}
           organization={organization}
           traceEventView={eventView}
           metaResults={metaResults}

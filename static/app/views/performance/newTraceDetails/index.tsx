@@ -57,7 +57,7 @@ import {
   useTraceStateDispatch,
   useTraceStateEmitter,
 } from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
-import type {TraceDataRow} from 'sentry/views/replays/detail/trace/replayTransactionContext';
+import type {ReplayTrace} from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {useTrace} from './traceApi/useTrace';
@@ -143,8 +143,22 @@ export function TraceView() {
     return {start, end, statsPeriod, timestamp, useSpans: 1};
   }, []);
 
+  const timestamp = useMemo(() => {
+    if (!queryParams.timestamp) {
+      return undefined;
+    }
+
+    const parsedTimestamp = Number(queryParams.timestamp);
+
+    if (isNaN(parsedTimestamp)) {
+      throw new Error('Invalid timestamp');
+    }
+
+    return parsedTimestamp;
+  }, [queryParams.timestamp]);
+
   const traceEventView = useMemo(() => {
-    const {start, end, statsPeriod, timestamp} = queryParams;
+    const {start, end, statsPeriod} = queryParams;
 
     let startTimeStamp = start;
     let endTimeStamp = end;
@@ -152,14 +166,8 @@ export function TraceView() {
     // If timestamp exists in the query params, we want to use it to set the start and end time
     // with a buffer of 1.5 days, for retrieving events belonging to the trace.
     if (timestamp) {
-      const parsedTimeStamp = Number(timestamp);
-
-      if (isNaN(parsedTimeStamp)) {
-        throw new Error('Invalid timestamp');
-      }
-
       const buffer = 36 * 60 * 60 * 1000; // 1.5 days in milliseconds
-      const dateFromTimestamp = new Date(parsedTimeStamp * 1000);
+      const dateFromTimestamp = new Date(timestamp * 1000);
 
       startTimeStamp = new Date(dateFromTimestamp.getTime() - buffer).toISOString();
       endTimeStamp = new Date(dateFromTimestamp.getTime() + buffer).toISOString();
@@ -177,7 +185,7 @@ export function TraceView() {
       end: endTimeStamp,
       range: !(startTimeStamp || endTimeStamp) ? statsPeriod : undefined,
     });
-  }, [queryParams, traceSlug]);
+  }, [queryParams, traceSlug, timestamp]);
 
   const meta = useTraceMeta([traceSlug]);
 
@@ -187,20 +195,6 @@ export function TraceView() {
       DEFAULT_TRACE_VIEW_PREFERENCES,
     []
   );
-
-  const traceDataRows = useMemo(() => {
-    if (!queryParams.timestamp) {
-      return [{traceSlug, timestamp: undefined}];
-    }
-
-    const timestamp = Number(queryParams.timestamp);
-
-    if (isNaN(timestamp)) {
-      throw new Error('Invalid timestamp: NaN');
-    }
-
-    return [{traceSlug, timestamp}];
-  }, [traceSlug, queryParams.timestamp]);
 
   return (
     <SentryDocumentTitle
@@ -221,7 +215,8 @@ export function TraceView() {
             />
             <TraceInnerLayout>
               <TraceViewWaterfall
-                traceDataRows={traceDataRows}
+                traceSlug={traceSlug}
+                timestamp={timestamp}
                 traceLabel={traceSlug}
                 organization={organization}
                 traceEventView={traceEventView}
@@ -252,9 +247,11 @@ type TraceViewWaterfallProps = {
   organization: Organization;
   replayRecord: ReplayRecord | null;
   source: string;
-  traceDataRows: TraceDataRow[] | undefined;
+  timestamp: number | undefined;
   traceEventView: EventView;
   traceLabel: string;
+  traceSlug: string | undefined;
+  replayTraces?: ReplayTrace[];
 };
 
 export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
@@ -263,8 +260,8 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   const organization = useOrganization();
   const loadingTraceRef = useRef<TraceTree | null>(null);
   const [forceRender, rerender] = useReducer(x => (x + 1) % Number.MAX_SAFE_INTEGER, 0);
-  const {isLoading, data: traceData, error} = useTrace(props.traceDataRows?.[0]);
-  const rootEvent = useTraceRootEvent(traceData);
+  const {isLoading, data: trace, error} = useTrace(props.traceSlug, props.timestamp);
+  const rootEvent = useTraceRootEvent(trace);
   const traceState = useTraceState();
   const traceDispatch = useTraceStateDispatch();
   const traceStateEmitter = useTraceStateEmitter();
@@ -316,14 +313,14 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       const errorTree = TraceTree.Error(
         {
           project_slug: projects?.[0]?.slug ?? '',
-          event_id: props.traceDataRows ? props.traceDataRows[0].traceSlug : '',
+          event_id: props.traceSlug,
         },
         loadingTraceRef.current
       );
       return errorTree;
     }
 
-    if (traceData?.transactions.length === 0 && traceData?.orphan_errors.length === 0) {
+    if (trace?.transactions.length === 0 && trace?.orphan_errors.length === 0) {
       return TraceTree.Empty();
     }
 
@@ -333,7 +330,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         TraceTree.Loading(
           {
             project_slug: projects?.[0]?.slug ?? '',
-            event_id: props.traceDataRows ? props.traceDataRows[0].traceSlug : '',
+            event_id: props.traceSlug,
           },
           loadingTraceRef.current
         );
@@ -342,28 +339,30 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       return loadingTrace;
     }
 
-    if (traceData) {
-      return TraceTree.FromTrace(traceData, props.replayRecord);
+    if (trace) {
+      return TraceTree.FromTrace(trace, props.replayRecord);
     }
 
     throw new Error('Invalid trace state');
-  }, [props.traceDataRows, traceData, isLoading, error, projects, props.replayRecord]);
+  }, [props.traceSlug, trace, isLoading, error, projects, props.replayRecord]);
 
   useEffect(() => {
-    incrementallyFetchTraces(tree, {
-      api,
-      filters,
-      additionalTraceDataRows: props.traceDataRows?.slice(1),
-      organization: props.organization,
-      traceLimit: undefined,
-      urlParams,
-      rerender: forceRerender,
-    });
+    if (props.replayTraces) {
+      incrementallyFetchTraces(tree, {
+        api,
+        filters,
+        additionalTraceDataRows: props.replayTraces?.slice(1),
+        organization: props.organization,
+        traceLimit: undefined,
+        urlParams,
+        rerender: forceRerender,
+      });
+    }
   }, [
     tree,
     api,
     filters,
-    props.traceDataRows,
+    props.replayTraces,
     props.organization,
     urlParams,
     forceRerender,
@@ -920,7 +919,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
           traceType={shape}
           trace={tree}
           traceGridRef={traceGridRef}
-          traces={traceData ?? null}
+          traces={trace ?? null}
           manager={viewManager}
           onTabScrollToNode={onTabScrollToNode}
           onScrollToNode={onScrollToNode}

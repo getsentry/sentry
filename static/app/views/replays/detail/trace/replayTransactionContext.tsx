@@ -292,7 +292,7 @@ function internalToExternalState({
 
 export default ReplayTransactionContext;
 
-export type TraceDataRow = {
+export type ReplayTrace = {
   timestamp: number | undefined;
   traceSlug: string;
 };
@@ -301,7 +301,7 @@ type ReplayTraceDataResults = {
   eventView: EventView | undefined;
   indexComplete: boolean;
   indexError: undefined | Error;
-  traceDataRows: TraceDataRow[] | undefined;
+  replayTraces: ReplayTrace[] | undefined;
 };
 
 // This hook fetches the traceIds and the min(timestamp) associated with each id, for a replay record.
@@ -316,7 +316,7 @@ export function useReplayTracesData({
   const [state, setState] = useState<ReplayTraceDataResults>({
     indexComplete: false,
     indexError: undefined,
-    traceDataRows: undefined,
+    replayTraces: undefined,
     eventView: undefined,
   });
 
@@ -354,7 +354,7 @@ export function useReplayTracesData({
     setState({
       indexComplete: false,
       indexError: undefined,
-      traceDataRows: undefined,
+      replayTraces: undefined,
       eventView: listEventView,
     });
 
@@ -393,8 +393,8 @@ export function useReplayTracesData({
         const indexComplete = !cursor.results;
         setState(prev => ({
           ...prev,
-          traceDataRows: prev.traceDataRows
-            ? [...prev.traceDataRows, ...parsedData]
+          replayTraces: prev.replayTraces
+            ? [...prev.replayTraces, ...parsedData]
             : parsedData,
           indexComplete,
         }));

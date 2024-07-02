@@ -14,7 +14,6 @@ import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {TraceDataRow} from 'sentry/views/replays/detail/trace/replayTransactionContext';
 
 import type {TraceTree} from '../traceModels/traceTree';
 
@@ -38,7 +37,7 @@ export function getTraceQueryParams(
   query: Location['query'],
   filters: Partial<PageFilters> = {},
   traceLimit: number | undefined,
-  traceDataRow: TraceDataRow | undefined
+  timestamp: number | undefined
 ): {
   eventId: string | undefined;
   limit: number;
@@ -63,7 +62,7 @@ export function getTraceQueryParams(
 
   const eventId = decodeScalar(normalizedParams.eventId);
 
-  if (traceDataRow?.timestamp) {
+  if (timestamp) {
     decodedLimit = decodedLimit ?? DEFAULT_TIMESTAMP_LIMIT;
   } else {
     decodedLimit = decodedLimit ?? DEFAULT_LIMIT;
@@ -79,7 +78,7 @@ export function getTraceQueryParams(
 
   // We prioritize timestamp over statsPeriod as it makes the query more specific, faster
   // and not prone to time drift issues.
-  if (traceDataRow?.timestamp) {
+  if (timestamp) {
     delete otherParams.statsPeriod;
   }
 
@@ -87,7 +86,7 @@ export function getTraceQueryParams(
     ...otherParams,
     demo,
     limit,
-    timestamp: traceDataRow?.timestamp?.toString(),
+    timestamp: timestamp?.toString(),
     eventId,
     useSpans: 1,
   };
@@ -190,26 +189,27 @@ function useDemoTrace(
 }
 
 export function useTrace(
-  traceDataRow: TraceDataRow | undefined,
+  traceSlug: string | undefined,
+  timestamp: number | undefined,
   limit?: number
 ): UseApiQueryResult<TraceSplitResults<TraceTree.Transaction> | undefined, any> {
   const filters = usePageFilters();
   const organization = useOrganization();
   const queryParams = useMemo(() => {
     const query = qs.parse(location.search);
-    return getTraceQueryParams(query, filters.selection, limit, traceDataRow);
+    return getTraceQueryParams(query, filters.selection, limit, timestamp);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [limit]);
   const mode = queryParams.demo ? 'demo' : undefined;
   const demoTrace = useDemoTrace(queryParams.demo, organization);
   const traceQuery = useApiQuery<TraceSplitResults<TraceTree.Transaction>>(
     [
-      `/organizations/${organization.slug}/events-trace/${traceDataRow?.traceSlug ?? ''}/`,
+      `/organizations/${organization.slug}/events-trace/${traceSlug ?? ''}/`,
       {query: queryParams},
     ],
     {
       staleTime: Infinity,
-      enabled: !!traceDataRow?.traceSlug && !!organization.slug && mode !== 'demo',
+      enabled: !!traceSlug && !!organization.slug && mode !== 'demo',
     }
   );
 
