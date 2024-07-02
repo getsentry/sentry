@@ -91,6 +91,13 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         data = self.mock_post.call_args[1]
         assert data.get("channel") == event_data["channel"]
 
+    def test_identifying_channel_correctly_sdk_la(self):
+        with override_options({"slack.event-endpoint-sdk-integration-ids": [self.integration.id]}):
+            event_data = orjson.loads(MESSAGE_IM_EVENT)
+            self.post_webhook(event_data=event_data)
+            data = self.mock_post.call_args[1]
+            assert data.get("channel") == event_data["channel"]
+
     @responses.activate
     def test_user_message_im_notification_platform(self):
         responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})

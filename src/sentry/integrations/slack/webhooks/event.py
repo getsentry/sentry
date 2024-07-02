@@ -65,7 +65,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
         }
 
         payload = {"channel": slack_request.channel_id, "text": message}
-        if options.get("slack.event-endpoint-sdk") and slack_request.integration.id in options.get(
+        if options.get("slack.event-endpoint-sdk") or slack_request.integration.id in options.get(
             "slack.event-endpoint-sdk-integration-ids"
         ):
             client = SlackSdkClient(integration_id=slack_request.integration.id)
@@ -119,7 +119,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
             **payload,
         }
 
-        if options.get("slack.event-endpoint-sdk") and slack_request.integration.id in options.get(
+        if options.get("slack.event-endpoint-sdk") or slack_request.integration.id in options.get(
             "slack.event-endpoint-sdk-integration-ids"
         ):
             client = SlackSdkClient(integration_id=slack_request.integration.id)
@@ -160,7 +160,7 @@ class SlackEventEndpoint(SlackDMEndpoint):
             **payload,
         }
 
-        if options.get("slack.event-endpoint-sdk") and slack_request.integration.id in options.get(
+        if options.get("slack.event-endpoint-sdk") or slack_request.integration.id in options.get(
             "slack.event-endpoint-sdk-integration-ids"
         ):
             client = SlackSdkClient(integration_id=slack_request.integration.id)
