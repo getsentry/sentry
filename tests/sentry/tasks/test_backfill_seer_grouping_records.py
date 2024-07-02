@@ -475,6 +475,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
+    @override_options(
+        {"similarity.backfill_seer_threads": 2, "similarity.backfill_seer_chunk_size": 10}
+    )
     def test_backfill_seer_grouping_records_success_cohorts_simple(
         self, mock_post_bulk_grouping_records, mock_logger
     ):
