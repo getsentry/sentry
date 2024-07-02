@@ -178,17 +178,14 @@ describe('TraceTimeline', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      // The event for the mainError is missing, thus, it will get added
-      body: emptyBody,
+      body: {
+        // The event for the mainError is missing, thus, it will get added
+        data: [secondError],
+      },
       match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
-    // Used to determine the project badge
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/projects/`,
-      body: [],
-    });
     render(<TraceTimeline event={event} />, {organization});
-    expect(await screen.findByText('Slow DB Query')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
   });
 
   it('skips the timeline and shows related issues (2 issues)', async () => {
@@ -271,7 +268,7 @@ describe('TraceTimeline', () => {
     });
   });
 
-  it('works for plans with no global-views feature', async () => {
+  it('trace timeline works for plans with no global-views feature', async () => {
     // This test will call the endpoint without the global-views feature, thus,
     // we will only look at the current project (project: event.projectID) instead of passing -1
     MockApiClient.addMockResponse({
@@ -297,9 +294,46 @@ describe('TraceTimeline', () => {
 
     render(<TraceTimeline event={event} />, {
       organization: OrganizationFixture({
-        features: [], // No global-views feature
+        features: [],
       }),
     });
     expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
+  });
+
+  it('trace-related issue works for plans with no global-views feature', async () => {
+    // This test will call the endpoint without the global-views feature, thus,
+    // we will only look at the current project (project: event.projectID) instead of passing -1
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: issuePlatformBody,
+      match: [
+        MockApiClient.matchQuery({
+          dataset: 'issuePlatform',
+          project: event.projectID,
+        }),
+      ],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: discoverBody,
+      match: [
+        MockApiClient.matchQuery({
+          dataset: 'discover',
+          project: event.projectID,
+        }),
+      ],
+    });
+    // Used to determine the project badge
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+
+    render(<TraceTimeline event={event} />, {
+      organization: OrganizationFixture({
+        features: [],
+      }),
+    });
+    expect(await screen.findByText('Slow DB Query')).toBeInTheDocument();
   });
 });
