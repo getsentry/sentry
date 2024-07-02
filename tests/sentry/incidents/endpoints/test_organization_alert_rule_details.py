@@ -1008,7 +1008,7 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
         assert resp.data == {"uuid": "abc123"}
 
     @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout_deprecated",
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
         side_effect=[
             SlackChannelIdData("#", "10", False),
             SlackChannelIdData("#", "10", False),
