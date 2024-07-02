@@ -175,32 +175,40 @@ def check_user_with_timeout(
         "types": "public_channel,private_channel",
     }
 
+    logger_params = {
+        "integration_id": integration.id,
+        "channel_name": name,
+    }
+
     # Get each user from a page from the Slack API
-    page_generator = (
+    user_generator = (
         user
         for page in get_slack_user_list(integration, organization=None, kwargs=payload)
         for user in page
     )
-    for user in page_generator:
-        # The "name" field is unique (this is the username for users)
-        # so we return immediately if we find a match.
-        # convert to lower case since all names in Slack are lowercase
-        if name and str(user["name"]).casefold() == name.casefold():
-            return SlackChannelIdData(prefix="@", channel_id=user["id"], timed_out=False)
+    try:
+        for user in user_generator:
+            # The "name" field is unique (this is the username for users)
+            # so we return immediately if we find a match.
+            # convert to lower case since all names in Slack are lowercase
+            if name and str(user["name"]).casefold() == name.casefold():
+                return SlackChannelIdData(prefix="@", channel_id=user["id"], timed_out=False)
 
-        # If we don't get a match on a unique identifier, we look through
-        # the users' display names, and error if there is a repeat.
-        profile = user.get("profile")
-        if profile and profile.get("display_name") == name:
-            if _channel_id is not None:
-                raise DuplicateDisplayNameError(name)
-            else:
-                _prefix = "@"
-                _channel_id = user["id"]
+            # If we don't get a match on a unique identifier, we look through
+            # the users' display names, and error if there is a repeat.
+            profile = user.get("profile")
+            if profile and profile.get("display_name") == name:
+                if _channel_id is not None:
+                    raise DuplicateDisplayNameError(name)
+                else:
+                    _prefix = "@"
+                    _channel_id = user["id"]
 
-        # TODO: This is a problem if we don't go through all the users and eventually run in to someone with duplicate display name
-        if time.time() > time_to_quit:
-            return SlackChannelIdData(prefix=_prefix, channel_id=None, timed_out=True)
+            # TODO: This is a problem if we don't go through all the users and eventually run in to someone with duplicate display name
+            if time.time() > time_to_quit:
+                return SlackChannelIdData(prefix=_prefix, channel_id=None, timed_out=True)
+    except SlackApiError:
+        logger.exception("rule.slack.user_check_error", extra=logger_params)
 
     return SlackChannelIdData(prefix=_prefix, channel_id=_channel_id, timed_out=False)
 
