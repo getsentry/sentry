@@ -106,6 +106,7 @@ describe('CreateProject', function () {
       organization: {
         access: ['project:read'],
         features: ['team-roles'],
+        allowMemberProjectCreation: true,
       },
     });
 
@@ -152,6 +153,7 @@ describe('CreateProject', function () {
       organization: {
         access: ['project:read'],
         features: ['team-roles'],
+        allowMemberProjectCreation: true,
       },
     });
 
@@ -178,6 +180,7 @@ describe('CreateProject', function () {
       organization: {
         access: ['project:read'],
         features: ['team-roles'],
+        allowMemberProjectCreation: true,
       },
     });
 
@@ -210,6 +213,7 @@ describe('CreateProject', function () {
       organization: {
         access: ['project:read'],
         features: ['team-roles'],
+        allowMemberProjectCreation: true,
       },
     });
 
@@ -250,6 +254,7 @@ describe('CreateProject', function () {
       organization: {
         access: ['project:read'],
         features: ['team-roles'],
+        allowMemberProjectCreation: true,
       },
     });
 
@@ -281,6 +286,7 @@ describe('CreateProject', function () {
       organization: {
         features: ['onboarding-sdk-selection', 'team-roles'],
         access: ['project:read', 'project:write'],
+        allowMemberProjectCreation: true,
       },
     });
 

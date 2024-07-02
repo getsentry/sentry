@@ -40,6 +40,7 @@ export function OrganizationFixture( params: Partial<Organization> = {}): Organi
     aiSuggestedSolution: false,
     alertsMemberWrite: false,
     allowJoinRequests: false,
+    allowMemberProjectCreation: false,
     allowSharedIssues: false,
     attachmentsRole: '',
     availableRoles: [],
