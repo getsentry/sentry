@@ -31,6 +31,10 @@ from sentry.models.tombstone import RegionTombstone
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.monitors.models import Monitor
+from sentry.sentry_metrics.models import (
+    SpanAttributeExtractionRuleCondition,
+    SpanAttributeExtractionRuleConfig,
+)
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key_jobs
 from sentry.testutils.cases import TestCase
@@ -349,6 +353,8 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         RuleActivity,
         RuleSnooze,
         SavedSearch,
+        SpanAttributeExtractionRuleCondition,
+        SpanAttributeExtractionRuleConfig,
     )
     def test_only_source_user_is_member_of_organization(self, expected_models: list[type[Model]]):
         from_user = self.create_exhaustive_user("foo@example.com")
@@ -389,6 +395,8 @@ class UserMergeToTest(BackupTestCase, HybridCloudTestMixin):
         RuleActivity,
         RuleSnooze,
         SavedSearch,
+        SpanAttributeExtractionRuleCondition,
+        SpanAttributeExtractionRuleConfig,
     )
     def test_both_users_are_members_of_organization(self, expected_models: list[type[Model]]):
         from_user = self.create_exhaustive_user("foo@example.com")
