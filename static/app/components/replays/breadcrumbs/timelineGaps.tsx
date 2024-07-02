@@ -11,20 +11,16 @@ import {
 interface Props {
   durationMs: number;
   frames: ReplayFrame[];
+  totalFrames: number;
   width: number;
 }
 
 // create gaps in the timeline by finding all columns between a background frame and foreground frame
 // or background frame to end of replay
-export default function TimelineGaps({durationMs, frames, width}: Props) {
-  const markerWidth = frames.length < 200 ? 4 : frames.length < 500 ? 6 : 10;
-
+export default function TimelineGaps({durationMs, frames, totalFrames, width}: Props) {
+  const markerWidth = totalFrames < 200 ? 4 : totalFrames < 500 ? 6 : 10;
   const totalColumns = Math.floor(width / markerWidth);
-  const framesByCol = getFramesByColumn(
-    durationMs,
-    frames.filter(f => isBackgroundFrame(f) || isForegroundFrame(f)),
-    totalColumns
-  );
+  const framesByCol = getFramesByColumn(durationMs, frames, totalColumns);
 
   // returns all numbers in the range, exclusive of start and inclusive of stop
   const range = (start, stop) =>
@@ -44,11 +40,11 @@ export default function TimelineGaps({durationMs, frames, width}: Props) {
       const [column, colFrame] = currFrame.value;
       for (const frame of colFrame) {
         // only considered start of gap if background frame hasn't been found yet
-        if (start === -1 && 'category' in frame && frame.category === 'app.background') {
+        if (start === -1 && isBackgroundFrame(frame)) {
           start = column;
         }
         // gap only ends if background frame has been found
-        if (start !== -1 && 'category' in frame && frame.category === 'app.foreground') {
+        if (start !== -1 && isForegroundFrame(frame)) {
           end = column;
         }
       }
