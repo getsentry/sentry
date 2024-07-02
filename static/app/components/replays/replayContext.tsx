@@ -20,6 +20,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import clamp from 'sentry/utils/number/clamp';
 import type useInitialOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useRAF from 'sentry/utils/replays/hooks/useRAF';
+import {replayPlayerTimestampEmitter} from 'sentry/utils/replays/replayPlayerTimestampEmitter';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -32,40 +33,6 @@ type Dimensions = {height: number; width: number};
 type RootElem = null | HTMLDivElement;
 
 type HighlightCallbacks = ReturnType<typeof useReplayHighlighting>;
-
-type ReplayPlayerTimestampChangeEvent = {
-  currentHoverTime: number | undefined;
-  currentTime: number;
-};
-type ReplayPlayerListener = (arg: ReplayPlayerTimestampChangeEvent) => void;
-
-class ReplayPlayerTimestampEmitter {
-  private listeners: {[key: string]: Set<ReplayPlayerListener>} = {};
-
-  on(event: 'replay timestamp change', handler: ReplayPlayerListener): void {
-    if (!this.listeners[event]) {
-      this.listeners[event] = new Set();
-    }
-    this.listeners[event].add(handler);
-  }
-
-  emit(event: 'replay timestamp change', arg: ReplayPlayerTimestampChangeEvent): void {
-    const handlers = this.listeners[event] || [];
-    handlers.forEach(handler => handler(arg));
-  }
-
-  off(event: 'replay timestamp change', handler: ReplayPlayerListener): void {
-    const handlers = this.listeners[event];
-
-    if (!handlers) {
-      return;
-    }
-
-    handlers.delete?.(handler);
-  }
-}
-
-export const replayPlayerTimestampEmitter = new ReplayPlayerTimestampEmitter();
 
 // Important: Don't allow context Consumers to access `Replayer` directly.
 // It has state that, when changed, will not trigger a react render.
