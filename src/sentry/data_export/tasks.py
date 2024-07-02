@@ -74,13 +74,7 @@ def assemble_download(
             logger.exception(str(error))
             return
 
-        with sentry_sdk.configure_scope() as scope:
-            if data_export.user_id:
-                user = dict(id=data_export.user_id)
-                scope.set_user(user)
-            scope.set_tag("organization.slug", data_export.organization.slug)
-            scope.set_tag("export.type", ExportQueryType.as_str(data_export.query_type))
-            scope.set_extra("export.query", data_export.query_info)
+        _set_data_on_scope(data_export)
 
         base_bytes_written = bytes_written
 
@@ -306,13 +300,7 @@ def merge_export_blobs(data_export_id, **kwargs):
             logger.exception(str(error))
             return
 
-        with sentry_sdk.configure_scope() as scope:
-            if data_export.user_id:
-                user = dict(id=data_export.user_id)
-                scope.set_user(user)
-            scope.set_tag("organization.slug", data_export.organization.slug)
-            scope.set_tag("export.type", ExportQueryType.as_str(data_export.query_type))
-            scope.set_extra("export.query", data_export.query_info)
+        _set_data_on_scope(data_export)
 
         # adapted from `putfile` in  `src/sentry/models/file.py`
         try:
@@ -381,3 +369,13 @@ def merge_export_blobs(data_export_id, **kwargs):
             else:
                 message = "Internal processing failure."
             return data_export.email_failure(message=message)
+
+
+def _set_data_on_scope(data_export):
+    scope = sentry_sdk.Scope.get_isolation_scope()
+    if data_export.user_id:
+        user = dict(id=data_export.user_id)
+        scope.set_user(user)
+    scope.set_tag("organization.slug", data_export.organization.slug)
+    scope.set_tag("export.type", ExportQueryType.as_str(data_export.query_type))
+    scope.set_extra("export.query", data_export.query_info)
