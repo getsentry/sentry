@@ -6,6 +6,7 @@ import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {Button} from 'sentry/components/button';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {Hovercard} from 'sentry/components/hovercard';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconMail} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Member, Organization} from 'sentry/types/organization';
@@ -164,17 +165,13 @@ function renderInviteMembersButton({
 
   return disabled ? (
     isSsoRequired ? (
-      <Hovercard
-        body={
-          <Fragment>
-            {t(
-              `Your organization must use its single sign-on provider to register new members.`
-            )}
-          </Fragment>
-        }
+      <Tooltip
+        title={t(
+          `Your organization must use its single sign-on provider to register new members.`
+        )}
       >
         {action}
-      </Hovercard>
+      </Tooltip>
     ) : (
       <Hovercard
         body={
