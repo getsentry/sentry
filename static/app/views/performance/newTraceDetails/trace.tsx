@@ -19,7 +19,8 @@ import {replayPlayerTimestampEmitter} from 'sentry/components/replays/replayCont
 import {t, tct} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import type {Organization, PlatformKey, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {PlatformKey, Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {formatTraceDuration} from 'sentry/utils/duration/formatTraceDuration';
 import type {
@@ -167,12 +168,12 @@ interface TraceProps {
     | undefined
   >;
   trace: TraceTree;
-  trace_id: string;
+  traceLabel: string;
 }
 
 export function Trace({
   trace,
-  trace_id,
+  traceLabel,
   onRowClick,
   manager,
   scrollQueueRef,
@@ -258,7 +259,7 @@ export function Trace({
   }, [
     api,
     trace,
-    trace_id,
+    traceLabel,
     manager,
     onTraceLoad,
     traceDispatch,
@@ -397,7 +398,7 @@ export function Trace({
           isSearchResult={traceState.search.resultsLookup.has(n.item)}
           searchResultsIteratorIndex={traceState.search.resultIndex}
           style={n.style}
-          trace_id={trace_id}
+          traceLabel={traceLabel}
           projects={projectLookup}
           node={n.item}
           manager={manager}
@@ -406,6 +407,7 @@ export function Trace({
           onZoomIn={onNodeZoomIn}
           onRowClick={onRowClick}
           onRowKeyDown={onRowKeyDown}
+          tree={trace}
         />
       );
     },
@@ -426,7 +428,7 @@ export function Trace({
       traceState.search.resultsLookup,
       traceState.search.resultIndex,
       theme,
-      trace_id,
+      traceLabel,
       trace.type,
       forceRerender,
     ]
@@ -438,6 +440,9 @@ export function Trace({
       : r => renderVirtualizedRow(r);
   }, [renderLoadingRow, renderVirtualizedRow, trace.type, scrollQueueRef]);
 
+  const traceNode = trace.root.children[0];
+  const traceStartTimestamp = traceNode?.space?.[0];
+
   const [scrollContainer, setScrollContainer] = useState<HTMLElement | null>(null);
   const virtualizedList = useVirtualizedList({
     manager,
@@ -445,9 +450,6 @@ export function Trace({
     container: scrollContainer,
     render: render,
   });
-
-  const traceNode = trace.root.children[0];
-  const traceStartTimestamp = traceNode?.space?.[0];
 
   return (
     <TraceStylingWrapper
@@ -565,7 +567,8 @@ function RenderRow(props: {
   style: React.CSSProperties;
   tabIndex: number;
   theme: Theme;
-  trace_id: string;
+  traceLabel: string;
+  tree: TraceTree;
 }) {
   const virtualized_index = props.index - props.manager.start_virtualized_index;
   const rowSearchClassName = `${props.isSearchResult ? 'SearchResult' : ''} ${props.searchResultsIteratorIndex === props.index ? 'Highlight' : ''}`;
@@ -929,8 +932,13 @@ function RenderRow(props: {
             <div className="TraceChildrenCountWrapper Root">
               <Connectors node={props.node} manager={props.manager} />
               {props.node.children.length > 0 || props.node.canFetch ? (
-                <ChildrenButton icon={''} status={'idle'} expanded onClick={() => void 0}>
-                  {props.node.children.length > 0
+                <ChildrenButton
+                  icon={''}
+                  status={props.tree.isFetching ? 'loading' : 'idle'}
+                  expanded
+                  onClick={() => void 0}
+                >
+                  {props.node.children.length > 0 && !props.tree.isFetching
                     ? COUNT_FORMATTER.format(props.node.children.length)
                     : null}
                 </ChildrenButton>
@@ -938,7 +946,7 @@ function RenderRow(props: {
             </div>
             <span className="TraceOperation">{t('Trace')}</span>
             <strong className="TraceEmDash"> — </strong>
-            <span className="TraceDescription">{props.trace_id}</span>
+            <span className="TraceDescription">{props.traceLabel}</span>
           </div>
         </div>
         <div
@@ -1200,7 +1208,7 @@ function ChildrenButton(props: {
 }) {
   return (
     <button className={`TraceChildrenCount`} onClick={props.onClick}>
-      <div className="TraceChildrenCountContent">{props.children}</div>
+      {<div className="TraceChildrenCountContent">{props.children}</div>}
       <div className="TraceChildrenCountAction">
         {props.icon}
         {props.status === 'loading' ? (
@@ -1731,6 +1739,16 @@ const TraceStylingWrapper = styled('div')`
   height: 100%;
   grid-area: trace;
   padding-top: 26px;
+
+  --info: ${p => p.theme.purple400};
+  --warning: ${p => p.theme.yellow300};
+  --error: ${p => p.theme.error};
+  --fatal: ${p => p.theme.error};
+  --default: ${p => p.theme.gray300};
+  --unknown: ${p => p.theme.gray300};
+  --profile: ${p => p.theme.purple300};
+  --autogrouped: ${p => p.theme.blue300};
+  --performance-issue: ${p => p.theme.blue300};
 
   &.WithIndicators {
     padding-top: 44px;

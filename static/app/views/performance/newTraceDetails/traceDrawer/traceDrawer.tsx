@@ -2,6 +2,7 @@ import {useCallback, useLayoutEffect, useMemo, useRef, useState} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import pick from 'lodash/pick';
+import * as qs from 'query-string';
 
 import type {Tag} from 'sentry/actionCreators/events';
 import {Button} from 'sentry/components/button';
@@ -21,11 +22,11 @@ import {
 } from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useInfiniteApiQuery} from 'sentry/utils/queryClient';
+import {decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
-import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
 import {TraceVitals} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceVitals';
 import {
@@ -81,7 +82,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
   // we try to prefetch the tags as soon as the drawer loads, hoping that the tags will be loaded
   // by the time the user clicks on the trace tab. Also prevents the tags from being refetched.
   const urlParams = useMemo(() => {
-    const {timestamp} = getTraceQueryParams(location.query);
+    const timestamp = decodeScalar(qs.parse(location.search).timestamp);
     const params = pick(location.query, [
       ...Object.values(PERFORMANCE_URL_PARAM),
       'cursor',

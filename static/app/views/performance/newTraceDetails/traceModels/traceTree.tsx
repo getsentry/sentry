@@ -1,5 +1,7 @@
 import type {Theme} from '@emotion/react';
 import * as Sentry from '@sentry/react';
+import type {Location} from 'history';
+import qs from 'qs';
 
 import type {Client} from 'sentry/api';
 import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types';
@@ -22,6 +24,7 @@ import {
   WEB_VITAL_DETAILS,
 } from 'sentry/utils/performance/vitals/constants';
 import type {Vital} from 'sentry/utils/performance/vitals/types';
+import type {ReplayTrace} from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {getStylingSliceName} from '../../../traces/utils';
@@ -39,6 +42,7 @@ import {
   isTransactionNode,
   shouldAddMissingInstrumentationSpan,
 } from '../guards';
+import {getTraceQueryParams} from '../traceApi/useTrace';
 import {TraceType} from '../traceType';
 
 /**
@@ -409,6 +413,29 @@ for (const key in {...MOBILE_VITAL_DETAILS, ...WEB_VITAL_DETAILS}) {
   };
 }
 
+type IncrementalTraceFetchOptions = {
+  api: Client;
+  filters: any;
+  organization: Organization;
+  replayTraces: ReplayTrace[] | undefined;
+  rerender: () => void;
+  traceLimit: number | undefined;
+  urlParams: Location['query'];
+};
+
+function fetchSingleTrace(
+  api: Client,
+  params: {
+    orgSlug: string;
+    query: string;
+    traceId: string;
+  }
+): Promise<TraceSplitResults<TraceFullDetailed>> {
+  return api.requestPromise(
+    `/organizations/${params.orgSlug}/events-trace/${params.traceId}/?${params.query}`
+  );
+}
+
 export class TraceTree {
   type: 'loading' | 'empty' | 'error' | 'trace' = 'trace';
   root: TraceTreeNode<null> = TraceTreeNode.Root();
@@ -416,6 +443,7 @@ export class TraceTree {
   vitals: Map<TraceTreeNode<TraceTree.NodeValue>, TraceTree.CollectedVital[]> = new Map();
   vital_types: Set<'web' | 'mobile'> = new Set();
   eventsCount: number = 0;
+  isFetching: boolean = false;
 
   profiled_events: Set<TraceTreeNode<TraceTree.NodeValue>> = new Set();
 
@@ -594,6 +622,124 @@ export class TraceTree {
     ];
 
     return tree.build();
+  }
+
+  async fetchTraces(options: IncrementalTraceFetchOptions) {
+    const {organization, api, urlParams, filters, traceLimit, rerender, replayTraces} =
+      options;
+
+    if (!replayTraces || replayTraces.length === 0 || this.type !== 'trace') {
+      return;
+    }
+
+    const clonedTraceIds = [...replayTraces];
+
+    this.isFetching = true;
+    rerender();
+
+    while (clonedTraceIds.length > 0) {
+      const batch = clonedTraceIds.splice(0, 3);
+      const results = await Promise.allSettled(
+        batch.map(batchTraceData => {
+          return fetchSingleTrace(api, {
+            orgSlug: organization.slug,
+            query: qs.stringify(
+              getTraceQueryParams(
+                urlParams,
+                filters.selection,
+                traceLimit,
+                batchTraceData.timestamp
+              )
+            ),
+            traceId: batchTraceData.traceSlug,
+          });
+        })
+      );
+
+      if (!this.isFetching) {
+        break;
+      }
+
+      const updatedData = results.reduce(
+        (acc, result) => {
+          // Ignoring the error case for now
+          if (result.status === 'fulfilled') {
+            const {transactions, orphan_errors} = result.value;
+            acc.transactions.push(...transactions);
+            acc.orphan_errors.push(...orphan_errors);
+          }
+
+          return acc;
+        },
+        {
+          transactions: [],
+          orphan_errors: [],
+        } as TraceSplitResults<TraceTree.Transaction>
+      );
+
+      this.appendTree(TraceTree.FromTrace(updatedData, null));
+      rerender();
+    }
+
+    this.isFetching = false;
+    rerender();
+  }
+
+  stopFetching() {
+    this.isFetching = false;
+  }
+
+  appendTree(tree: TraceTree) {
+    const baseTraceNode = this.root.children[0];
+    const additionalTraceNode = tree.root.children[0];
+
+    if (!baseTraceNode || !additionalTraceNode) {
+      throw new Error('No trace node found in tree');
+    }
+
+    for (const child of additionalTraceNode.children) {
+      child.parent = baseTraceNode;
+      baseTraceNode.children.push(child);
+    }
+
+    for (const error of additionalTraceNode.errors) {
+      baseTraceNode.errors.add(error);
+    }
+
+    for (const performanceIssue of additionalTraceNode.performance_issues) {
+      baseTraceNode.performance_issues.add(performanceIssue);
+    }
+
+    for (const profile of additionalTraceNode.profiles) {
+      baseTraceNode.profiles.push(profile);
+    }
+
+    for (const [node, vitals] of tree.vitals) {
+      this.vitals.set(node, vitals);
+    }
+
+    for (const [node, _] of tree.vitals) {
+      // Collect all measurements
+      if (
+        baseTraceNode.space?.[0] &&
+        node.value &&
+        'start_timestamp' in node.value &&
+        'measurements' in node.value
+      ) {
+        this.collectMeasurements(
+          node,
+          baseTraceNode.space[0],
+          node.value.measurements as Record<string, Measurement>,
+          this.vitals,
+          this.vital_types,
+          this.indicators
+        );
+      }
+    }
+
+    baseTraceNode.children.sort(chronologicalSort);
+    baseTraceNode.invalidate(baseTraceNode);
+    this.build();
   }
 
   get shape(): TraceType {
@@ -2430,7 +2576,7 @@ function printNode(t: TraceTreeNode<TraceTree.NodeValue>, offset: number): strin
 }
 
 // Creates an example trace response that we use to render the loading placeholder
-function partialTransaction(
+export function partialTransaction(
   partial: Partial<TraceTree.Transaction>
 ): TraceTree.Transaction {
   return {
