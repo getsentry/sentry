@@ -74,11 +74,17 @@ class HighCardinalityWidgetException(Exception):
     pass
 
 
+class MetricExtrapolationConfig(TypedDict):
+    include: NotRequired[list[str]]
+    exclude: NotRequired[list[str]]
+
+
 class MetricExtractionConfig(TypedDict):
     """Configuration for generic extraction of metrics from all data categories."""
 
     version: int
     metrics: list[MetricSpec]
+    extrapolation: NotRequired[MetricExtrapolationConfig]
 
 
 def get_max_widget_specs(organization: Organization) -> int:
@@ -119,22 +125,26 @@ def get_metric_extraction_config(
     if not metric_specs:
         return None
 
-    return {
+    rv: MetricExtractionConfig = {
         "version": _METRIC_EXTRACTION_VERSION,
         "metrics": metric_specs,
-        "extrapolate": extrapolation_config,
     }
 
+    if extrapolation_config:
+        rv["extrapolation"] = extrapolation_config
 
-def get_extrapolation_config(project: Project) -> object:
+    return rv
+
+
+def get_extrapolation_config(project: Project) -> MetricExtrapolationConfig | None:
     if not features.has("organizations:metrics-extrapolation", project.organization):
-        return {}
+        return None
 
     enabled = project.get_option("sentry:extrapolate_metrics", None)
     if enabled is None:
         enabled = project.organization.get_option("sentry:extrapolate_metrics", False)
     if not enabled:
-        return {}
+        return None
 
     # Extrapolation applies to extracted metrics. This enables extrapolation for
     # the entire `custom` namespace, but this does not extrapolate old custom
