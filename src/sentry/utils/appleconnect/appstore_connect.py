@@ -142,8 +142,7 @@ def _get_appstore_json(
             except Exception:
                 err_info["text"] = response.text
 
-            with sentry_sdk.configure_scope() as scope:
-                scope.set_extra("http.appconnect.api", err_info)
+            sentry_sdk.Scope.get_isolation_scope().set_extra("http.appconnect.api", err_info)
 
             if response.status_code == HTTPStatus.UNAUTHORIZED:
                 raise UnauthorizedError(full_url)
@@ -460,8 +459,7 @@ def download_dsyms(
                 # The 315s is just above how long it would take a 4MB/s connection to download
                 # 2GB.
                 if (time.time() - start) > 315:
-                    with sdk.configure_scope() as scope:
-                        scope.set_extra("dSYM.bytes_fetched", bytes_count)
+                    sdk.Scope.get_isolation_scope().set_extra("dSYM.bytes_fetched", bytes_count)
                     raise Timeout("Timeout during dSYM download")
                 bytes_count += len(chunk)
                 fp.write(chunk)
