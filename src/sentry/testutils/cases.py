@@ -3251,7 +3251,9 @@ class UptimeTestCase(TestCase):
             "status": CHECKSTATUS_FAILURE,
             "status_reason": {"type": CHECKSTATUSREASONTYPE_TIMEOUT, "description": "it timed out"},
             "trace_id": uuid.uuid4().hex,
-            "scheduled_check_time_ms": int(datetime.now().replace(microsecond=0).timestamp() * 1000),
+            "scheduled_check_time_ms": int(
+                datetime.now().replace(microsecond=0).timestamp() * 1000
+            ),
             "actual_check_time_ms": int(datetime.now().replace(microsecond=0).timestamp() * 1000),
             "duration_ms": 100,
             "request_info": {"request_type": REQUESTTYPE_HEAD, "http_status_code": 500},
