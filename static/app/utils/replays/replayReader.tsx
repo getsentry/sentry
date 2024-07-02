@@ -248,7 +248,7 @@ export default class ReplayReader {
     this._optionFrame = optionFrame;
 
     // Insert extra records to satisfy minimum requirements for the UI
-    this._sortedBreadcrumbFrames.push(replayInitBreadcrumb(replayRecord));
+    this._sortedBreadcrumbFrames.unshift(replayInitBreadcrumb(replayRecord));
     this._sortedRRWebEvents.unshift(recordingStartFrame(replayRecord));
     this._sortedRRWebEvents.push(recordingEndFrame(replayRecord));
 
