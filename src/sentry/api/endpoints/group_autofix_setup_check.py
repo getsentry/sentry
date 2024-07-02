@@ -129,12 +129,13 @@ class GroupAutofixSetupCheck(GroupEndpoint):
         repos = get_repos_and_access(group.project)
         write_access_ok = len(repos) > 0 and all(repo["ok"] for repo in repos)
 
-        codebase_indexing_status = get_project_codebase_indexing_status(group.project)
-        codebase_indexing_ok = (
-            is_codebase_indexing_disabled
-            or codebase_indexing_status == AutofixCodebaseIndexingStatus.UP_TO_DATE
-            or codebase_indexing_status == AutofixCodebaseIndexingStatus.INDEXING
-        )
+        codebase_indexing_ok = is_codebase_indexing_disabled
+        if not codebase_indexing_ok:
+            codebase_indexing_status = get_project_codebase_indexing_status(group.project)
+            codebase_indexing_ok = (
+                codebase_indexing_status == AutofixCodebaseIndexingStatus.UP_TO_DATE
+                or codebase_indexing_status == AutofixCodebaseIndexingStatus.INDEXING
+            )
 
         return Response(
             {
