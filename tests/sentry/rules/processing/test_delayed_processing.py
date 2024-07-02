@@ -103,12 +103,13 @@ class BulkFetchEventsTest(TestCase):
 class GetConditionGroupResultsTest(CreateEventTestCase):
     def test_get_condition_group_results(self):
         interval = "1h"
+        comparison_interval = "15m"
         condition_data: EventFrequencyConditionData = {
             "interval": interval,
             "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
             "value": 50,
             "comparisonType": ComparisonType.PERCENT,
-            "comparisonInterval": "15m",
+            "comparisonInterval": comparison_interval,
         }
         first_query = UniqueConditionQuery(
             cls_id="sentry.rules.conditions.event_frequency.EventFrequencyCondition",
@@ -116,7 +117,7 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
             environment_id=self.environment.id,
             comparison_interval=None,
         )
-        second_query = first_query._replace(comparison_interval="15m")
+        second_query = first_query._replace(comparison_interval=comparison_interval)
 
         # Create current events for the first query
         event = self.create_event(self.project.id, FROZEN_TIME, "group-1", self.environment.name)
@@ -133,13 +134,12 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
             data=condition_data,
             group_ids={event.group.id},
         )
-
         condition_groups = {
             first_query: data_and_groups,
             second_query: data_and_groups,
         }
-
         results = get_condition_group_results(condition_groups, self.project)
+
         assert results == {
             first_query: {event.group.id: 2},
             second_query: {event.group.id: 1},
