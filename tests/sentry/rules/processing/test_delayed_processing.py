@@ -15,8 +15,11 @@ from sentry.rules.conditions.event_frequency import (
     EventFrequencyCondition,
     EventFrequencyConditionData,
 )
-from sentry.rules.processing.delayed_processing import (  # build_group_to_groupevent,; bulk_fetch_events,; get_condition_group_results,; get_group_to_groupevent,; get_rules_to_fire,; ; ; parse_rulegroup_to_event_data,
+from sentry.rules.processing.delayed_processing import (  # bulk_fetch_events; get_group_to_groupevent; parse_rulegroup_to_event_data,
+    DataAndGroups,
+    UniqueConditionQuery,
     apply_delayed,
+    get_condition_group_results,
     get_condition_query_groups,
     get_rules_to_groups,
     get_rules_to_slow_conditions,
@@ -54,6 +57,39 @@ def mock_get_condition_group(descending=False):
     return _callthrough_with_order
 
 
+@freeze_time(FROZEN_TIME)
+class CreateEventTestCase(TestCase, APITestCase):
+    def create_event(
+        self,
+        project_id: int,
+        timestamp: datetime,
+        fingerprint: str,
+        environment=None,
+        tags: list[list[str]] | None = None,
+    ) -> GroupEvent:
+        data = {
+            "timestamp": iso_format(timestamp),
+            "environment": environment,
+            "fingerprint": [fingerprint],
+            "level": "error",
+            "user": {"id": uuid4().hex},
+            "exception": {
+                "values": [
+                    {
+                        "type": "IntegrationError",
+                        "value": "Identity not found.",
+                    }
+                ]
+            },
+        }
+        if tags:
+            data["tags"] = tags
+
+        return self.store_event(
+            data=data, project_id=project_id, assert_no_errors=False, event_type=EventType.ERROR
+        )
+
+
 class BuildGroupToGroupEventTest(TestCase):
     def test_build_group_to_groupevent(self):
         pass
@@ -64,9 +100,45 @@ class BulkFetchEventsTest(TestCase):
         pass
 
 
-class GetConditionGroupResultsTest(TestCase):
+class GetConditionGroupResultsTest(CreateEventTestCase):
     def test_get_condition_group_results(self):
-        pass
+        interval = "1h"
+        condition_data: EventFrequencyConditionData = {
+            "interval": interval,
+            "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+            "value": 50,
+            "comparisonType": "percent",
+            "comparisonInterval": "15m",
+        }
+        first_query = UniqueConditionQuery(
+            cls_id="sentry.rules.conditions.event_frequency.EventFrequencyCondition",
+            interval=interval,
+            environment_id=None,
+            comparison_interval=None,
+        )
+        second_query = first_query._replace(comparison_interval="15m")
+
+        # Create current events for the first query
+        event = self.create_event(self.project.id, FROZEN_TIME, "group-1")
+        self.create_event(self.project.id, FROZEN_TIME, "group-1")
+        # Create a past event for the second query
+        self.create_event(self.project.id, FROZEN_TIME - timedelta(hours=1, minutes=10), "group-1")
+
+        data_and_groups = DataAndGroups(
+            data=condition_data,
+            group_ids={event.group.id},
+        )
+
+        condition_groups = {
+            first_query: data_and_groups,
+            second_query: data_and_groups,
+        }
+
+        results = get_condition_group_results(condition_groups, self.project)
+        assert results == {
+            first_query: {event.group.id: 2},
+            second_query: {event.group.id: 1},
+        }
 
 
 class GetGroupToGroupEventTest(TestCase):
@@ -154,41 +226,10 @@ class ParseRuleGroupToEventDataTest(TestCase):
         pass
 
 
-@freeze_time(FROZEN_TIME)
 class ProcessDelayedAlertConditionsTest(
-    TestCase, APITestCase, BaseEventFrequencyPercentTest, PerformanceIssueTestCase
+    CreateEventTestCase, BaseEventFrequencyPercentTest, PerformanceIssueTestCase
 ):
     buffer_timestamp = (FROZEN_TIME + timedelta(seconds=1)).timestamp()
-
-    def create_event(
-        self,
-        project_id: int,
-        timestamp: datetime,
-        fingerprint: str,
-        environment=None,
-        tags: list[list[str]] | None = None,
-    ) -> GroupEvent:
-        data = {
-            "timestamp": iso_format(timestamp),
-            "environment": environment,
-            "fingerprint": [fingerprint],
-            "level": "error",
-            "user": {"id": uuid4().hex},
-            "exception": {
-                "values": [
-                    {
-                        "type": "IntegrationError",
-                        "value": "Identity not found.",
-                    }
-                ]
-            },
-        }
-        if tags:
-            data["tags"] = tags
-
-        return self.store_event(
-            data=data, project_id=project_id, assert_no_errors=False, event_type=EventType.ERROR
-        )
 
     def create_event_frequency_condition(
         self,

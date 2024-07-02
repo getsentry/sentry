@@ -53,16 +53,16 @@ class UniqueConditionQuery(NamedTuple):
     environment_id: int
     comparison_interval: str | None = None
 
-    def __repr__(self):
-        return f"id: {self.cls_id},\ninterval: {self.interval},\nenv id: {self.environment_id},\ncomp interval: {self.comparison_interval}"
+    # def __repr__(self):
+    #     return f"id: {self.cls_id},\ninterval: {self.interval},\nenv id: {self.environment_id},\ncomp interval: {self.comparison_interval}"
 
 
 class DataAndGroups(NamedTuple):
     data: EventFrequencyConditionData
     group_ids: set[int]
 
-    def __repr__(self):
-        return f"data: {self.data}\ngroup_ids: {self.group_ids}"
+    # def __repr__(self):
+    #     return f"data: {self.data}\ngroup_ids: {self.group_ids}"
 
 
 def get_slow_conditions(rule: Rule) -> list[EventFrequencyConditionData]:
