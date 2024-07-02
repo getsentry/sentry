@@ -15,7 +15,10 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
 
     def do_request(self, query=None, features=None, **kwargs):
         if features is None:
-            features = ["organizations:performance-trace-explorer"]
+            features = [
+                "organizations:performance-trace-explorer",
+                "organizations:performance-trace-explorer-enforce-projects",
+            ]
         with self.feature(features):
             return self.client.get(
                 reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
@@ -47,13 +50,17 @@ class OrganizationSpansTagsEndpointTest(BaseSpansTestCase, APITestCase):
                 exclusive_time=100,
                 tags={tag: tag},
             )
-        response = self.do_request()
-        assert response.status_code == 200, response.data
-        assert response.data == [
-            {"key": "bar", "name": "Bar"},
-            {"key": "baz", "name": "Baz"},
-            {"key": "foo", "name": "Foo"},
-        ]
+        for features in [
+            None,  # use the default features
+            ["organizations:performance-trace-explorer"],
+        ]:
+            response = self.do_request(features=features)
+            assert response.status_code == 200, response.data
+            assert response.data == [
+                {"key": "bar", "name": "Bar"},
+                {"key": "baz", "name": "Baz"},
+                {"key": "foo", "name": "Foo"},
+            ]
 
 
 class OrganizationSpansTagKeyValuesEndpointTest(BaseSpansTestCase, APITestCase):

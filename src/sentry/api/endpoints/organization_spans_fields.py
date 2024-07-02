@@ -15,8 +15,10 @@ from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.search.events.builder import QueryBuilder, SpansIndexedQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
+from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.tagstore.types import TagKey, TagValue
@@ -28,7 +30,48 @@ class OrganizationSpansFieldsEndpointBase(OrganizationEventsV2EndpointBase):
     ) -> tuple[SnubaParams, dict[str, Any]]:
         # Disables the global views check so that this endpoint is allowed to do
         # cross project queries if requested.
+
+        "We are reverting this decision to allow cross project searches"
+        if features.has(
+            "organizations:performance-trace-explorer-enforce-projects",
+            organization,
+            actor=request.user,
+        ):
+            return super().get_snuba_dataclass(
+                request, organization, check_global_views=check_global_views
+            )
+
         return super().get_snuba_dataclass(request, organization, check_global_views=False)
+
+    def get_projects(  # type: ignore[override]
+        self,
+        request: Request,
+        organization: Organization | RpcOrganization,
+        project_ids: set[int] | None = None,
+        project_slugs: set[str] | None = None,
+        include_all_accessible: bool = True,
+    ) -> list[Project]:
+        "We are reverting this decision to allow cross project searches"
+        if features.has(
+            "organizations:performance-trace-explorer-enforce-projects",
+            organization,
+            actor=request.user,
+        ):
+            return super().get_projects(
+                request,
+                organization,
+                project_ids=project_ids,
+                project_slugs=project_slugs,
+                include_all_accessible=include_all_accessible,
+            )
+
+        return super().get_projects(
+            request,
+            organization,
+            project_ids={-1},
+            project_slugs=None,
+            include_all_accessible=True,
+        )
 
 
 @region_silo_endpoint
