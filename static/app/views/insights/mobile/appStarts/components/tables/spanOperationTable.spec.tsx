@@ -98,6 +98,52 @@ describe('SpanOpSelector', function () {
     );
   });
 
+  it('displays the infinity symbol for new spans with null percent change', async function () {
+    mockEventsRequest = MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {
+        meta: {
+          fields: {
+            'project.id': 'integer',
+            'span.op': 'string',
+            'span.description': 'string',
+            'span.group': 'string',
+            'avg_if(span.self_time,release,release1)': 'duration',
+            'avg_compare(span.self_time,release,release1,release2)': 'percent_change',
+            'count()': 'integer',
+            'avg_if(span.self_time,release,release2)': 'duration',
+            'sum(span.self_time)': 'duration',
+          },
+        },
+        data: [
+          {
+            'project.id': parseInt(project.id, 10),
+            'span.op': 'app.start.warm',
+            'span.description': 'Application Init',
+            'span.group': '7f4be68f08c0455f',
+            'count()': 14,
+            'sum(span.self_time)': 162586.66467600001,
+
+            // simulate a scenario where a span was added in release 2
+            'avg_if(span.self_time,release,release1)': 0,
+            'avg_if(span.self_time,release,release2)': 12504.931908384617,
+            'avg_compare(span.self_time,release,release1,release2)': null,
+          },
+        ],
+      },
+    });
+
+    render(
+      <SpanOperationTable
+        transaction="foo-bar"
+        primaryRelease="release1"
+        secondaryRelease="release2"
+      />
+    );
+
+    expect(await screen.findByRole('cell', {name: '+∞%'})).toBeInTheDocument();
+  });
+
   it('modifies the request to events when a span operation is selected', async function () {
     // Mock useLocation to simulate the span op query param
     jest.mocked(useLocation).mockReturnValue(
