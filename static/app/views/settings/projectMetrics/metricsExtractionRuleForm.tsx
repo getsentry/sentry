@@ -116,7 +116,7 @@ function createTempId(): number {
 
 export function createCondition(): MetricsExtractionCondition {
   return {
-    query: '',
+    value: '',
     // id and mris will be set by the backend after creation
     id: createTempId(),
     mris: [],
@@ -264,7 +264,7 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                 onChange(
                   conditions.toSpliced(index, 1, {
                     ...conditions[index],
-                    query: queryString,
+                    value: queryString,
                   }),
                   {}
                 );
@@ -280,7 +280,7 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                           <SearchBar
                             {...SPAN_SEARCH_CONFIG}
                             searchSource="metrics-extraction"
-                            query={condition.query}
+                            query={condition.value}
                             onSearch={(queryString: string) =>
                               handleChange(queryString, index)
                             }

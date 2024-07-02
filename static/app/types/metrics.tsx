@@ -120,7 +120,7 @@ export type MetricsMetaCollection = Record<string, MetricMeta>;
 export interface MetricsExtractionCondition {
   id: number;
   mris: MRI[];
-  query: string;
+  value: string;
 }
 
 export interface MetricsExtractionRule {
