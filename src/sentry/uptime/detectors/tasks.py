@@ -154,6 +154,7 @@ def process_candidate_url(
 
 
 def is_failed_url(url: str) -> bool:
+    # TODO: Hash this
     key = get_failed_url_key(url)
     return _get_cluster().exists(key) == 1
 
@@ -163,6 +164,7 @@ def set_failed_url(url: str) -> None:
     If we failed to monitor a url for some reason, skip processing it for FAILED_URL_RETRY_FREQ
     """
     key = get_failed_url_key(url)
+    # TODO: Jitter
     _get_cluster().set(key, 1, ex=FAILED_URL_RETRY_FREQ)
 
 

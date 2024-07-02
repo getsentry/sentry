@@ -45,6 +45,7 @@ class Topic(Enum):
     INGEST_MONITORS = "ingest-monitors"
     MONITORS_CLOCK_TICK = "monitors-clock-tick"
     MONITORS_CLOCK_TASKS = "monitors-clock-tasks"
+    UPTIME_CONFIG = "uptime-configs"
     UPTIME_RESULTS = "uptime-results"
     EVENTSTREAM_GENERIC = "generic-events"
     GENERIC_EVENTS_COMMIT_LOG = "snuba-generic-events-commit-log"

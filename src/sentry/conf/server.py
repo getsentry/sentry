@@ -808,6 +808,7 @@ CELERY_IMPORTS = (
     "sentry.replays.usecases.ingest.issue_creation",
     "sentry.integrations.slack.tasks",
     "sentry.uptime.detectors.tasks",
+    "sentry.uptime.subscriptions.tasks",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -2893,6 +2894,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "ingest-monitors": "default",
     "monitors-clock-tick": "default",
     "monitors-clock-tasks": "default",
+    "uptime-configs": "default",
     "uptime-results": "default",
     "generic-events": "default",
     "snuba-generic-events-commit-log": "default",
