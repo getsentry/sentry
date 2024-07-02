@@ -838,8 +838,6 @@ def get_default_comparators() -> dict[str, list[JSONScrubbingComparator]]:
             ],
             "sentry.sentryappinstallation": [DateUpdatedComparator("date_updated")],
             "sentry.servicehook": [HashObfuscatingComparator("secret")],
-            "sentry.spanattributeextractionruleconfig": [DateUpdatedComparator("date_updated")],
-            "sentry.spanattributeextractionrulecondition": [DateUpdatedComparator("date_updated")],
             "sentry.team": [
                 # TODO(getsentry/sentry#66247): Remove once self-hosted 24.4.0 is released.
                 IgnoredComparator("org_role"),
