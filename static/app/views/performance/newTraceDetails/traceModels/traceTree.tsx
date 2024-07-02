@@ -669,10 +669,10 @@ export class TraceTree {
         this.appendTree(TraceTree.FromTrace(updatedData, null));
         rerender();
       }
-    })();
 
-    root.fetchStatus = 'idle';
-    rerender();
+      root.fetchStatus = 'idle';
+      rerender();
+    })();
 
     return () => {
       root.fetchStatus = 'idle';
@@ -735,7 +735,6 @@ export class TraceTree {
     for (const child of tree.root.children) {
       this._list = this._list.concat(child.getVisibleChildren());
     }
-    this.build();
   }
 
   get shape(): TraceType {
