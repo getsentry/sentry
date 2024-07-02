@@ -7,6 +7,7 @@ export type MetricAggregation =
   | 'count'
   | 'min'
   | 'max'
+  | 'min'
   | 'p50'
   | 'p75'
   | 'p95'
@@ -124,3 +125,17 @@ export type BlockingStatus = {
 };
 
 export type MetricsMetaCollection = Record<string, MetricMeta>;
+
+export interface MetricsExtractionCondition {
+  id: number;
+  mris: MRI[];
+  value: string;
+}
+
+export interface MetricsExtractionRule {
+  aggregates: MetricAggregation[];
+  conditions: MetricsExtractionCondition[];
+  spanAttribute: string;
+  tags: string[];
+  unit: string;
+}
