@@ -76,6 +76,7 @@ def get_slack_user_list(
                 "integration_id": integration.id,
             },
         )
+        raise
 
 
 def get_slack_data_by_user(

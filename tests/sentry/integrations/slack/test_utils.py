@@ -198,9 +198,8 @@ class GetChannelIdTest(TestCase):
         assert get_channel_id(self.organization, self.integration, "@fake-user").channel_id is None
 
     @with_feature("organizations:slack-sdk-get-channel-id")
-    @patch("sentry.integrations.slack.sdk_client.metrics")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_invalid_channel_selected_sdk(self, mock_api_call, mock_metrics):
+    def test_invalid_channel_selected_sdk(self, mock_api_call):
         # Tests chat_scheduleMessage and chat_deleteScheduledMessage
         mock_api_call.return_value = {
             "body": orjson.dumps({"ok": False, "error": "channel_not_found"}).decode(),
