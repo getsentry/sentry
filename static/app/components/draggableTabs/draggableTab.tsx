@@ -1,16 +1,10 @@
 import type React from 'react';
-import {forwardRef, Fragment, useRef} from 'react';
+import {forwardRef} from 'react';
 import styled from '@emotion/styled';
-import {useButton} from '@react-aria/button';
-import {
-  type DropIndicatorProps,
-  useDrag,
-  useDropIndicator,
-  useDroppableItem,
-} from '@react-aria/dnd';
+import {useDroppableItem} from '@react-aria/dnd';
 import type {AriaTabProps} from '@react-aria/tabs';
 import {useTab} from '@react-aria/tabs';
-import {mergeProps, useObjectRef} from '@react-aria/utils';
+import {useObjectRef} from '@react-aria/utils';
 import type {DroppableCollectionState} from '@react-stately/dnd';
 import type {TabListState} from '@react-stately/tabs';
 import type {Node, Orientation} from '@react-types/shared';
@@ -33,50 +27,12 @@ interface DraggableTabProps extends AriaTabProps {
    */
   overflowing: boolean;
   state: TabListState<any>;
-}
-
-interface BaseDropIndicatorProps {
-  dropState: DroppableCollectionState;
-  target: DropIndicatorProps['target'];
-}
-
-function TabDropIndicator(props: BaseDropIndicatorProps) {
-  const ref = useRef(null);
-  const {dropIndicatorProps, isHidden} = useDropIndicator(props, props.dropState, ref);
-  if (isHidden) {
-    return null;
-  }
-
-  return <TabSeparator {...dropIndicatorProps} role="option" ref={ref} />;
-}
-
-interface DraggableProps {
-  children: React.ReactNode;
-  item: Node<any>;
-  onTabClick: () => void;
-}
-
-function Draggable({item, children, onTabClick}: DraggableProps) {
-  // TODO(msun): Implement the "preview" parameter in this useDrag hook
-  const {dragProps, dragButtonProps} = useDrag({
-    getAllowedDropOperations: () => ['move'],
-    getItems() {
-      return [
-        {
-          tab: JSON.stringify({key: item.key}),
-        },
-      ];
-    },
-  });
-
-  const ref = useRef(null);
-  const {buttonProps} = useButton({...dragButtonProps, elementType: 'div'}, ref);
-
-  return (
-    <div {...mergeProps(buttonProps, dragProps)} ref={ref} onClick={onTabClick}>
-      {children}
-    </div>
-  );
+  isTempTab?: boolean;
+  onDelete?: () => void;
+  onDiscard?: () => void;
+  onDuplicate?: () => void;
+  onRename?: () => void;
+  onSave?: () => void;
 }
 
 /**
@@ -86,7 +42,20 @@ function Draggable({item, children, onTabClick}: DraggableProps) {
  */
 export const DraggableTab = forwardRef(
   (
-    {item, state, orientation, overflowing, dropState, isChanged}: DraggableTabProps,
+    {
+      item,
+      state,
+      orientation,
+      overflowing,
+      dropState,
+      isChanged,
+      isTempTab = false,
+      onDelete,
+      onDiscard,
+      onDuplicate,
+      onRename,
+      onSave,
+    }: DraggableTabProps,
     forwardedRef: React.ForwardedRef<HTMLLIElement>
   ) => {
     const ref = useObjectRef(forwardedRef);
@@ -107,62 +76,38 @@ export const DraggableTab = forwardRef(
     );
 
     return (
-      <Fragment>
-        <TabDropIndicator
-          target={{type: 'item', key: item.key, dropPosition: 'before'}}
-          dropState={dropState}
-        />
-        <StyledBaseTab
-          additionalProps={dropProps}
-          tabProps={tabProps}
-          isSelected={isSelected}
-          isTempTab={state.collection.getLastKey() === item.key}
-          to={to}
-          hidden={hidden}
-          orientation={orientation}
-          overflowing={overflowing}
-          ref={ref}
-          newVariant
-        >
-          <StyledDraggable onTabClick={() => state.setSelectedKey(item.key)} item={item}>
-            <TabContentWrap>
-              {rendered}
-              <StyledBadge>
-                <QueryCount hideParens count={1} max={1000} />
-              </StyledBadge>
-              {state.selectedKey === item.key && (
-                <DraggableTabMenuButton isChanged={isChanged} />
-              )}
-            </TabContentWrap>
-          </StyledDraggable>
-        </StyledBaseTab>
-        {state.selectedKey !== item.key &&
-          state.collection.getKeyAfter(item.key) !== state.selectedKey && <TabDivider />}
-        {state.collection.getKeyAfter(item.key) == null && (
-          <TabDropIndicator
-            target={{type: 'item', key: item.key, dropPosition: 'after'}}
-            dropState={dropState}
-          />
-        )}
-      </Fragment>
+      <StyledBaseTab
+        additionalProps={dropProps}
+        tabProps={tabProps}
+        isSelected={isSelected}
+        isTempTab={isTempTab}
+        to={to}
+        hidden={hidden}
+        orientation={orientation}
+        overflowing={overflowing}
+        ref={ref}
+        newVariant
+      >
+        <TabContentWrap>
+          {rendered}
+          <StyledBadge>
+            <QueryCount hideParens count={1} max={1000} />
+          </StyledBadge>
+          {state.selectedKey === item.key && (
+            <DraggableTabMenuButton
+              onDelete={onDelete}
+              onDiscard={onDiscard}
+              onDuplicate={onDuplicate}
+              onRename={onRename}
+              onSave={onSave}
+              isChanged={isChanged}
+            />
+          )}
+        </TabContentWrap>
+      </StyledBaseTab>
     );
   }
 );
-
-export const TabDivider = styled('div')`
-  height: 50%;
-  width: 1px;
-  border-radius: 6px;
-  background-color: ${p => p.theme.gray200};
-  margin: auto;
-`;
-
-const StyledDraggable = styled(Draggable)`
-  display: flex;
-  align-items: center;
-  flex-direction: row;
-  gap: 6px;
-`;
 
 const StyledBaseTab = styled(BaseTab)`
   padding: 2px 12px 2px 12px;
@@ -189,10 +134,4 @@ const StyledBadge = styled(Badge)`
   border: 1px solid ${p => p.theme.gray200};
   color: ${p => p.theme.gray300};
   margin-left: ${space(0)};
-`;
-
-const TabSeparator = styled('li')`
-  height: 80%;
-  width: 2px;
-  background-color: ${p => p.theme.gray200};
 `;

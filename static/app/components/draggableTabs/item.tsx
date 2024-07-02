@@ -6,6 +6,7 @@ export interface DraggableTabListItemProps extends ItemProps<any> {
   key: string | number;
   disabled?: boolean;
   hidden?: boolean;
+  queryCount?: number;
   to?: LocationDescriptor;
 }
 

@@ -6,54 +6,71 @@ import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import {SvgIcon} from 'sentry/icons/svgIcon';
 import {t} from 'sentry/locale';
 
-const TAB_MENU_OPTIONS_CHANGED: MenuItemProps[] = [
-  {
-    key: 'save-changes',
-    label: t('Save Changes'),
-    priority: 'primary',
-  },
-  {
-    key: 'discard-changes',
-    label: t('Discard Changes'),
-  },
-];
-
-const TAB_MENU_OPTIONS_DEFAULT: MenuItemProps[] = [
-  {
-    key: 'rename-tab',
-    label: t('Rename'),
-  },
-  {
-    key: 'duplicate-tab',
-    label: t('Duplicate'),
-  },
-  {
-    key: 'delete-tab',
-    label: t('Delete'),
-    priority: 'danger',
-  },
-];
-
-const TAB_MENU_OPTIONS: MenuItemProps[] = [
-  {
-    key: 'changed',
-    children: TAB_MENU_OPTIONS_CHANGED,
-  },
-  {
-    key: 'default',
-    children: TAB_MENU_OPTIONS_DEFAULT,
-  },
-];
-
 interface DraggableTabMenuButtonProps {
-  isChanged: boolean;
+  isChanged?: boolean;
+  onDelete?: () => void;
+  onDiscard?: () => void;
+  onDuplicate?: () => void;
+  onRename?: () => void;
+  onSave?: () => void;
   triggerProps?: Omit<React.HTMLAttributes<HTMLElement>, 'children'>;
 }
 
 export function DraggableTabMenuButton({
   triggerProps,
-  isChanged,
+  isChanged = false,
+  onDelete,
+  onDiscard,
+  onDuplicate,
+  onRename,
+  onSave,
 }: DraggableTabMenuButtonProps) {
+  const TAB_MENU_OPTIONS_CHANGED: MenuItemProps[] = [
+    {
+      key: 'save-changes',
+      label: t('Save Changes'),
+      priority: 'primary',
+      onAction: onSave,
+    },
+    {
+      key: 'discard-changes',
+      label: t('Discard Changes'),
+      onAction: onDiscard,
+    },
+  ];
+
+  const TAB_MENU_OPTIONS_DEFAULT: MenuItemProps[] = [
+    {
+      key: 'rename-tab',
+      label: t('Rename'),
+      onAction: onRename,
+    },
+    {
+      key: 'duplicate-tab',
+      label: t('Duplicate'),
+      onAction: onDuplicate,
+    },
+    {
+      key: 'delete-tab',
+      label: t('Delete'),
+      priority: 'danger',
+      onAction: onDelete,
+    },
+  ];
+
+  const menuOptions = isChanged
+    ? [
+        {
+          key: 'changed',
+          children: TAB_MENU_OPTIONS_CHANGED,
+        },
+        {
+          key: 'default',
+          children: TAB_MENU_OPTIONS_DEFAULT,
+        },
+      ]
+    : TAB_MENU_OPTIONS_DEFAULT;
+
   return (
     <TriggerIconWrap>
       <StyledDropdownMenu
@@ -76,7 +93,7 @@ export function DraggableTabMenuButton({
           ),
           style: {width: '18px', height: '16px'},
         }}
-        items={TAB_MENU_OPTIONS}
+        items={menuOptions}
         offset={[-10, 5]}
       />
     </TriggerIconWrap>

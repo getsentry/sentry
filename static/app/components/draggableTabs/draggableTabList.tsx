@@ -1,4 +1,4 @@
-import {useContext, useEffect, useMemo, useRef} from 'react';
+import {useContext, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {ListDropTargetDelegate, useDroppableCollection} from '@react-aria/dnd';
 import {ListKeyboardDelegate} from '@react-aria/selection';
@@ -19,6 +19,7 @@ import type {
   Orientation,
   TextDropItem,
 } from '@react-types/shared';
+import {Reorder} from 'framer-motion';
 
 import {Button} from 'sentry/components/button';
 import type {SelectOption} from 'sentry/components/compactSelect';
@@ -29,19 +30,23 @@ import {IconAdd} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 
-import {DraggableTab, TabDivider} from './draggableTab';
+import {DraggableTab} from './draggableTab';
 import type {DraggableTabListItemProps} from './item';
 import {Item} from './item';
 import {tabsShouldForwardProp} from './utils';
 
 interface BaseDraggableTabListProps extends DraggableTabListProps {
   items: DraggableTabListItemProps[];
+  setTabs: (tabs: Tab[]) => void;
+  tabs: Tab[];
 }
 
 function BaseDraggableTabList({
   hideBorder = false,
   className,
   outerWrapStyles,
+  tabs,
+  setTabs,
   ...props
 }: BaseDraggableTabListProps) {
   const tabListRef = useRef<HTMLUListElement>(null);
@@ -77,6 +82,7 @@ function BaseDraggableTabList({
   };
 
   const state = useTabListState(ariaProps);
+  const [isTempTabVisible, setIsTempTabVisible] = useState<boolean>(false);
 
   const {tabListProps} = useTabList({orientation, ...ariaProps}, state, tabListRef);
   useEffect(() => {
@@ -136,46 +142,78 @@ function BaseDraggableTabList({
     });
   }, [state.collection, overflowTabs]);
 
+  const persistentTabs = [...state.collection].filter(
+    item => item.key !== 'temporary-tab'
+  );
+  const tempTab = [...state.collection].find(item => item.key === 'temporary-tab');
+
   return (
     <TabListOuterWrap style={outerWrapStyles}>
-      <TabListWrap
-        {...mergeProps(tabListProps, collectionProps)}
-        tempViewSelected={state.selectedKey === state.collection.getLastKey()}
-        orientation={orientation}
-        hideBorder={hideBorder}
-        className={className}
-        ref={tabListRef}
+      <Reorder.Group
+        axis="x"
+        values={tabs}
+        onReorder={newOrder => {
+          setTabs(newOrder);
+        }}
+        as="div"
       >
-        {[...state.collection].slice(0, -1).map(item => (
-          <DraggableTab
-            key={item.key}
-            item={item}
-            state={state}
-            orientation={orientation}
-            overflowing={orientation === 'horizontal' && overflowTabs.includes(item.key)}
-            dropState={dropState}
-            ref={element => (tabItemsRef.current[item.key] = element)}
-            isChanged
-          />
-        ))}
-        <AddViewButton borderless size="zero">
-          <IconAdd size="xs" style={{margin: '2 4 2 2'}} />
-          Add View
-        </AddViewButton>
-        <TabDivider />
-        {[...state.collection].slice(-1).map(item => (
-          <DraggableTab
-            key={item.key}
-            item={item}
-            state={state}
-            orientation={orientation}
-            overflowing={orientation === 'horizontal' && overflowTabs.includes(item.key)}
-            dropState={dropState}
-            ref={element => (tabItemsRef.current[item.key] = element)}
-            isChanged
-          />
-        ))}
-      </TabListWrap>
+        <TabListWrap
+          {...mergeProps(tabListProps, collectionProps)}
+          tempViewSelected={state.selectedKey === state.collection.getLastKey()}
+          orientation={orientation}
+          hideBorder={hideBorder}
+          className={className}
+          ref={tabListRef}
+        >
+          {persistentTabs.map(item => (
+            <Reorder.Item
+              key={item.key}
+              value={tabs.find(tab => tab.key === item.key)}
+              style={{display: 'flex', flexDirection: 'row'}}
+            >
+              <DraggableTab
+                key={item.key}
+                item={item}
+                state={state}
+                orientation={orientation}
+                overflowing={
+                  orientation === 'horizontal' && overflowTabs.includes(item.key)
+                }
+                dropState={dropState}
+                onDelete={() => {
+                  const updatedTabs = tabs.filter(tab => tab.key !== item.key);
+                  setTabs(updatedTabs);
+                }}
+                ref={element => (tabItemsRef.current[item.key] = element)}
+                isChanged
+              />
+              {state.selectedKey !== item.key &&
+                state.collection.getKeyAfter(item.key) !== state.selectedKey && (
+                  <TabDivider />
+                )}
+            </Reorder.Item>
+          ))}
+          <AddViewButton borderless size="zero" onClick={() => setIsTempTabVisible(true)}>
+            <IconAdd size="xs" style={{margin: '2 4 2 2'}} />
+            Add View
+          </AddViewButton>
+          {isTempTabVisible && <TabDivider />}
+          {isTempTabVisible && tempTab && (
+            <DraggableTab
+              key={tempTab.key}
+              item={tempTab}
+              state={state}
+              orientation={orientation}
+              overflowing={false}
+              dropState={dropState}
+              onDelete={() => setIsTempTabVisible(false)}
+              ref={element => (tabItemsRef.current[tempTab.key] = element)}
+              isChanged
+              isTempTab
+            />
+          )}
+        </TabListWrap>
+      </Reorder.Group>
 
       {orientation === 'horizontal' && overflowMenuItems.length > 0 && (
         <OverflowMenu
@@ -265,10 +303,18 @@ export function DraggableTabList({
 
 DraggableTabList.Item = Item;
 
+const TabDivider = styled('div')`
+  height: 50%;
+  width: 1px;
+  border-radius: 6px;
+  background-color: ${p => p.theme.gray200};
+  margin: 9px auto;
+`;
+
 const AddViewButton = styled(Button)`
   color: ${p => p.theme.gray300};
   padding-right: ${space(0.5)};
-  margin: auto;
+  margin-top: 3px;
   font-weight: normal;
 `;
 
@@ -276,7 +322,9 @@ const TabListOuterWrap = styled('div')`
   position: relative;
 `;
 
-const TabListWrap = styled('ul', {shouldForwardProp: tabsShouldForwardProp})<{
+const TabListWrap = styled('ul', {
+  shouldForwardProp: tabsShouldForwardProp,
+})<{
   hideBorder: boolean;
   orientation: Orientation;
   tempViewSelected: boolean;

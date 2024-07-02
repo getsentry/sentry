@@ -29,11 +29,6 @@ export default storyBook(DraggableTabBar, story => {
       label: 'Regressed',
       content: <TabPanelContainer>This is the Regressed view</TabPanelContainer>,
     },
-    {
-      key: 'four',
-      label: 'Unsaved',
-      content: <TabPanelContainer>This is an Unsaved view</TabPanelContainer>,
-    },
   ];
 
   story('Default', () => (
@@ -49,7 +44,12 @@ export default storyBook(DraggableTabBar, story => {
       </p>
       <SizingWindow>
         <TabBarContainer>
-          <DraggableTabBar tabs={TABS} />
+          <DraggableTabBar
+            tabs={TABS}
+            tempTabContent={
+              <TabPanelContainer>This is a temporary tab</TabPanelContainer>
+            }
+          />
         </TabBarContainer>
       </SizingWindow>
     </Fragment>

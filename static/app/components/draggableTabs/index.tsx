@@ -10,24 +10,34 @@ export interface Tab {
   content: React.ReactNode;
   key: Key;
   label: string;
+  queryCount?: number;
 }
 
 export interface DragAndDropTabBarProps {
   tabs: Tab[];
+  tempTabContent: React.ReactNode;
 }
 
 export function DraggableTabBar(props: DragAndDropTabBarProps) {
-  const [tabs, setTabs] = useState<Tab[]>(props.tabs);
+  const [tabs, setTabs] = useState<Tab[]>([
+    ...props.tabs,
+    {key: 'temporary-tab', label: 'Unsaved', content: props.tempTabContent},
+  ]);
 
   useEffect(() => {
-    setTabs(props.tabs);
-  }, [props.tabs]);
+    setTabs([
+      ...props.tabs,
+      {key: 'temporary-tab', label: 'Unsaved', content: props.tempTabContent},
+    ]);
+  }, [props.tabs, props.tempTabContent]);
 
   return (
     <Tabs>
-      <DraggableTabList tabs={tabs} setTabs={setTabs}>
+      <DraggableTabList tabs={tabs} setTabs={setTabs} orientation="horizontal">
         {tabs.map(tab => (
-          <DraggableTabList.Item key={tab.key}>{tab.label}</DraggableTabList.Item>
+          <DraggableTabList.Item queryCount={tab.queryCount} key={tab.key}>
+            {tab.label}
+          </DraggableTabList.Item>
         ))}
       </DraggableTabList>
       <TabPanels>
