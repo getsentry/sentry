@@ -743,6 +743,7 @@ def test_alert_metric_extraction_rules(default_project, factories):
                     "tags": [{"key": "query_hash", "value": ANY}],
                 }
             ],
+            "extrapolate": {},
         }
 
         normalized = normalize_project_config(config)
