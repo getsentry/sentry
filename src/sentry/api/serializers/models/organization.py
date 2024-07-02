@@ -10,7 +10,7 @@ from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
 
-from sentry import features, onboarding_tasks, quotas, roles
+from sentry import features, onboarding_tasks, options, quotas, roles
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.project import ProjectSerializerResponse
@@ -302,6 +302,8 @@ class OrganizationSerializer(Serializer):
         if not getattr(obj.flags, "disable_shared_issues"):
             feature_set.add("shared-issues")
         if "dynamic-sampling" not in feature_set and "mep-rollout-flag" in feature_set:
+            feature_set.remove("mep-rollout-flag")
+        if options.get("performance.hide-metrics-ui") and "mep-rollout-flag" in feature_set:
             feature_set.remove("mep-rollout-flag")
 
         return feature_set
