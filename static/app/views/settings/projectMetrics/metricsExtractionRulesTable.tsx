@@ -6,6 +6,7 @@ import {openModal} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {modalCss} from 'sentry/components/featureFeedback/feedbackModal';
+import Pagination from 'sentry/components/pagination';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import {IconArrow} from 'sentry/icons/iconArrow';
@@ -31,14 +32,17 @@ export function MetricsExtractionRulesTable({project}: Props) {
   const organization = useOrganization();
   const [query, setQuery] = useSearchQueryParam('query');
 
-  const {data: extractionRules, isLoading} = useMetricsExtractionRules(
-    organization.slug,
-    project.slug
-  );
+  const {
+    data: extractionRules,
+    isLoading,
+    getResponseHeader,
+  } = useMetricsExtractionRules(organization.slug, project.slug);
   const {mutate: deleteMetricsExtractionRules} = useDeleteMetricsExtractionRules(
     organization.slug,
     project.slug
   );
+
+  const ruleListPageLinks = getResponseHeader?.('Link');
 
   const filteredExtractionRules = useMemo(() => {
     return (extractionRules || []).filter(rule =>
@@ -110,6 +114,7 @@ export function MetricsExtractionRulesTable({project}: Props) {
         extractionRules={filteredExtractionRules}
         hasSearch={!!query}
       />
+      <Pagination pageLinks={ruleListPageLinks} />
     </Fragment>
   );
 }
