@@ -68,21 +68,19 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
 
         try:
             configs = SpanAttributeExtractionRuleConfig.objects.filter(project=project)
-
         except Exception as e:
             return Response(status=500, data={"detail": str(e)})
 
-        # TODO(metrics): do real pagination using the database
         return self.paginate(
             request,
-            queryset=list(configs),
+            queryset=configs,
+            order_by="id",
             paginator_cls=OffsetPaginator,
             on_results=lambda x: serialize(
                 x, user=request.user, serializer=SpanAttributeExtractionRuleConfigSerializer()
             ),
-            default_per_page=1000,
-            max_per_page=1000,
-            max_limit=1000,  # overrides default max_limit of 100 when creating paginator object
+            default_per_page=25,
+            max_per_page=25,
         )
 
     def post(self, request: Request, project: Project) -> Response:
