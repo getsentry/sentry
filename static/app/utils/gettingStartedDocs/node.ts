@@ -86,7 +86,7 @@ export function getInstallConfig(
 }
 
 function getImport(
-  sdkPackage: 'node' | 'google-cloud-serverless' | 'aws-serverless',
+  sdkPackage: 'node' | 'google-cloud-serverless' | 'aws-serverless' | 'nestjs',
   defaultMode?: 'esm' | 'cjs'
 ): string[] {
   return defaultMode === 'esm'
@@ -110,36 +110,18 @@ function getProfilingImport(defaultMode?: 'esm' | 'cjs'): string {
  * Import Snippet for the Node and Serverless SDKs without other packages (like profiling).
  */
 export function getSentryImportSnippet(
-  sdkPackage: 'node' | 'google-cloud-serverless' | 'aws-serverless',
+  sdkPackage: 'node' | 'google-cloud-serverless' | 'aws-serverless' | 'nestjs',
   defaultMode?: 'esm' | 'cjs'
 ): string {
   return getImport(sdkPackage, defaultMode).join('\n');
 }
 
-/**
- * Import Snippet for the Node SDK with other selected packages (like profiling).
- */
 export function getDefaultNodeImports({
-  productSelection,
-  defaultMode,
-}: {
-  productSelection: ProductSelectionMap;
-  defaultMode?: 'esm' | 'cjs';
-}) {
-  const imports: string[] = getImport('node', defaultMode);
-
-  if (productSelection.profiling) {
-    imports.push(getProfilingImport(defaultMode));
-  }
-  return imports;
-}
-
-export function getDefaultServerlessImports({
   productSelection,
   library,
   defaultMode,
 }: {
-  library: `google-cloud-serverless` | `aws-serverless`;
+  library: 'node' | `google-cloud-serverless` | `aws-serverless` | 'nestjs';
   productSelection: ProductSelectionMap;
   defaultMode?: 'esm' | 'cjs';
 }) {
@@ -166,29 +148,36 @@ export function getImportInstrumentSnippet(defaultMode?: 'esm' | 'cjs'): string 
  */
 export const getSdkInitSnippet = (
   params: DocsParams,
-  sdkImport: 'node' | 'aws' | 'gpc' | null,
+  sdkImport: 'node' | 'aws' | 'gpc' | 'nestjs' | null,
   defaultMode?: 'esm' | 'cjs'
 ) => `${
   sdkImport === null
     ? ''
     : sdkImport === 'node'
       ? getDefaultNodeImports({
+          library: 'node',
           productSelection: getProductSelectionMap(params),
           defaultMode,
         }).join('\n') + '\n'
       : sdkImport === 'aws'
-        ? getDefaultServerlessImports({
+        ? getDefaultNodeImports({
             productSelection: getProductSelectionMap(params),
             library: 'aws-serverless',
             defaultMode,
           }).join('\n') + '\n'
         : sdkImport === 'gpc'
-          ? getDefaultServerlessImports({
+          ? getDefaultNodeImports({
               productSelection: getProductSelectionMap(params),
               library: 'google-cloud-serverless',
               defaultMode,
             }).join('\n') + '\n'
-          : ''
+          : sdkImport === 'nestjs'
+            ? getDefaultNodeImports({
+                productSelection: getProductSelectionMap(params),
+                library: 'nestjs',
+                defaultMode,
+              }).join('\n') + '\n'
+            : ''
 }
 Sentry.init({
   dsn: "${params.dsn}",
