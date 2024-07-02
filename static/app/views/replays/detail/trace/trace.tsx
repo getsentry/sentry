@@ -203,7 +203,7 @@ export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRe
           traceLabel="Replay"
           traceSlug={replayTraces[0].traceSlug}
           timestamp={replayTraces[0].timestamp}
-          replayTraces={replayTraces}
+          replayTraces={replayTraces.slice(1)}
           organization={organization}
           traceEventView={eventView}
           metaResults={metaResults}

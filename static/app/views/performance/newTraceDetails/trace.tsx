@@ -934,11 +934,11 @@ function RenderRow(props: {
               {props.node.children.length > 0 || props.node.canFetch ? (
                 <ChildrenButton
                   icon={''}
-                  status={props.tree.isIncremetallyFetching ? 'loading' : 'idle'}
+                  status={props.tree.isFetching ? 'loading' : 'idle'}
                   expanded
                   onClick={() => void 0}
                 >
-                  {props.node.children.length > 0 && !props.tree.isIncremetallyFetching
+                  {props.node.children.length > 0 && !props.tree.isFetching
                     ? COUNT_FORMATTER.format(props.node.children.length)
                     : null}
                 </ChildrenButton>

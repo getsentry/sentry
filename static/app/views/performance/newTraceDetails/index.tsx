@@ -64,11 +64,7 @@ import {useTrace} from './traceApi/useTrace';
 import {type TraceMetaQueryResults, useTraceMeta} from './traceApi/useTraceMeta';
 import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
-import {
-  incrementallyFetchTraces,
-  TraceTree,
-  type TraceTreeNode,
-} from './traceModels/traceTree';
+import {TraceTree, type TraceTreeNode} from './traceModels/traceTree';
 import {TraceSearchInput} from './traceSearch/traceSearchInput';
 import {
   DEFAULT_TRACE_VIEW_PREFERENCES,
@@ -348,25 +344,23 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
 
   useEffect(() => {
     if (props.replayTraces) {
-      incrementallyFetchTraces(tree, {
+      tree.fetchTraces({
         api,
         filters,
-        additionalTraceDataRows: props.replayTraces?.slice(1),
+        replayTraces: props.replayTraces,
         organization: props.organization,
         traceLimit: undefined,
         urlParams,
         rerender: forceRerender,
       });
     }
-  }, [
-    tree,
-    api,
-    filters,
-    props.replayTraces,
-    props.organization,
-    urlParams,
-    forceRerender,
-  ]);
+
+    return () => {
+      tree.stopFetching();
+    };
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tree]);
 
   // Assign the trace state to a ref so we can access it without re-rendering
   const traceStateRef = useRef<TraceReducerState>(traceState);

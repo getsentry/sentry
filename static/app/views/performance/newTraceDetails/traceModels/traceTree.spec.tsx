@@ -21,7 +21,6 @@ import {
 import {TraceType} from '../traceType';
 
 import {
-  incrementallyFetchTraces,
   NoDataNode,
   ParentAutogroupNode,
   SiblingAutogroupNode,
@@ -2588,7 +2587,7 @@ describe('TraceTree', () => {
     });
 
     it('Fetches and updates tree with fetched trace', async () => {
-      const traceDataRows = [
+      const traces = [
         {traceSlug: 'slug1', timestamp: 1},
         {traceSlug: 'slug2', timestamp: 2},
       ];
@@ -2639,8 +2638,8 @@ describe('TraceTree', () => {
 
       expect(tree.list.length).toBe(3);
 
-      incrementallyFetchTraces(tree, {
-        additionalTraceDataRows: traceDataRows,
+      tree.fetchTraces({
+        replayTraces: traces,
         api: new MockApiClient(),
         filters: {},
         organization,
@@ -2649,13 +2648,13 @@ describe('TraceTree', () => {
         traceLimit: undefined,
       });
 
-      await waitFor(() => expect(tree.isIncremetallyFetching).toBe(false));
+      await waitFor(() => expect(tree.isFetching).toBe(false));
 
       expect(tree.list.length).toBe(7);
     });
 
     it('Does not infinitely fetch on error', async () => {
-      const traceDataRows = [
+      const traces = [
         {traceSlug: 'slug1', timestamp: 1},
         {traceSlug: 'slug2', timestamp: 2},
         {traceSlug: 'slug3', timestamp: 3},
@@ -2711,8 +2710,8 @@ describe('TraceTree', () => {
 
       expect(tree.list.length).toBe(3);
 
-      incrementallyFetchTraces(tree, {
-        additionalTraceDataRows: traceDataRows,
+      tree.fetchTraces({
+        replayTraces: traces,
         api: new MockApiClient(),
         filters: {},
         organization,
@@ -2721,7 +2720,7 @@ describe('TraceTree', () => {
         traceLimit: undefined,
       });
 
-      await waitFor(() => expect(tree.isIncremetallyFetching).toBe(false));
+      await waitFor(() => expect(tree.isFetching).toBe(false));
 
       expect(tree.list.length).toBe(7);
       expect(mockedResponse1).toHaveBeenCalledTimes(1);

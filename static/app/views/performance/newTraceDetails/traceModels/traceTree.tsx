@@ -414,10 +414,10 @@ for (const key in {...MOBILE_VITAL_DETAILS, ...WEB_VITAL_DETAILS}) {
 }
 
 type IncrementalTraceFetchOptions = {
-  additionalTraceDataRows: ReplayTrace[] | undefined;
   api: Client;
   filters: any;
   organization: Organization;
+  replayTraces: ReplayTrace[] | undefined;
   rerender: () => void;
   traceLimit: number | undefined;
   urlParams: Location['query'];
@@ -436,77 +436,6 @@ function fetchSingleTrace(
   );
 }
 
-export async function incrementallyFetchTraces(
-  tree: TraceTree,
-  options: IncrementalTraceFetchOptions
-) {
-  const {
-    organization,
-    api,
-    urlParams,
-    filters,
-    traceLimit,
-    rerender,
-    additionalTraceDataRows,
-  } = options;
-
-  if (
-    !additionalTraceDataRows ||
-    additionalTraceDataRows.length === 0 ||
-    tree.type !== 'trace'
-  ) {
-    return;
-  }
-
-  const clonedTraceIds = [...additionalTraceDataRows];
-
-  tree.isIncremetallyFetching = true;
-  rerender();
-
-  while (clonedTraceIds.length > 0) {
-    const batch = clonedTraceIds.splice(0, 3);
-    const results = await Promise.allSettled(
-      batch.map(batchTraceData => {
-        return fetchSingleTrace(api, {
-          orgSlug: organization.slug,
-          query: qs.stringify(
-            getTraceQueryParams(
-              urlParams,
-              filters.selection,
-              traceLimit,
-              batchTraceData.timestamp
-            )
-          ),
-          traceId: batchTraceData.traceSlug,
-        });
-      })
-    );
-
-    const updatedData = results.reduce(
-      (acc, result) => {
-        // Ignoring the error case for now
-        if (result.status === 'fulfilled') {
-          const {transactions, orphan_errors} = result.value;
-          acc.transactions.push(...transactions);
-          acc.orphan_errors.push(...orphan_errors);
-        }
-
-        return acc;
-      },
-      {
-        transactions: [],
-        orphan_errors: [],
-      } as TraceSplitResults<TraceTree.Transaction>
-    );
-
-    tree.appendTree(TraceTree.FromTrace(updatedData, null));
-    rerender();
-  }
-
-  tree.isIncremetallyFetching = false;
-  rerender();
-}
-
 export class TraceTree {
   type: 'loading' | 'empty' | 'error' | 'trace' = 'trace';
   root: TraceTreeNode<null> = TraceTreeNode.Root();
@@ -514,7 +443,7 @@ export class TraceTree {
   vitals: Map<TraceTreeNode<TraceTree.NodeValue>, TraceTree.CollectedVital[]> = new Map();
   vital_types: Set<'web' | 'mobile'> = new Set();
   eventsCount: number = 0;
-  isIncremetallyFetching: boolean = false;
+  isFetching: boolean = false;
 
   profiled_events: Set<TraceTreeNode<TraceTree.NodeValue>> = new Set();
 
@@ -693,6 +622,71 @@ export class TraceTree {
     ];
 
     return tree.build();
+  }
+
+  async fetchTraces(options: IncrementalTraceFetchOptions) {
+    const {organization, api, urlParams, filters, traceLimit, rerender, replayTraces} =
+      options;
+
+    if (!replayTraces || replayTraces.length === 0 || this.type !== 'trace') {
+      return;
+    }
+
+    const clonedTraceIds = [...replayTraces];
+
+    this.isFetching = true;
+    rerender();
+
+    while (clonedTraceIds.length > 0) {
+      const batch = clonedTraceIds.splice(0, 3);
+      const results = await Promise.allSettled(
+        batch.map(batchTraceData => {
+          return fetchSingleTrace(api, {
+            orgSlug: organization.slug,
+            query: qs.stringify(
+              getTraceQueryParams(
+                urlParams,
+                filters.selection,
+                traceLimit,
+                batchTraceData.timestamp
+              )
+            ),
+            traceId: batchTraceData.traceSlug,
+          });
+        })
+      );
+
+      if (!this.isFetching) {
+        break;
+      }
+
+      const updatedData = results.reduce(
+        (acc, result) => {
+          // Ignoring the error case for now
+          if (result.status === 'fulfilled') {
+            const {transactions, orphan_errors} = result.value;
+            acc.transactions.push(...transactions);
+            acc.orphan_errors.push(...orphan_errors);
+          }
+
+          return acc;
+        },
+        {
+          transactions: [],
+          orphan_errors: [],
+        } as TraceSplitResults<TraceTree.Transaction>
+      );
+
+      this.appendTree(TraceTree.FromTrace(updatedData, null));
+      rerender();
+    }
+
+    this.isFetching = false;
+    rerender();
+  }
+
+  stopFetching() {
+    this.isFetching = false;
   }
 
   appendTree(tree: TraceTree) {
