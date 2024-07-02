@@ -107,22 +107,27 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
             "interval": interval,
             "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
             "value": 50,
-            "comparisonType": "percent",
+            "comparisonType": ComparisonType.PERCENT,
             "comparisonInterval": "15m",
         }
         first_query = UniqueConditionQuery(
             cls_id="sentry.rules.conditions.event_frequency.EventFrequencyCondition",
             interval=interval,
-            environment_id=None,
+            environment_id=self.environment.id,
             comparison_interval=None,
         )
         second_query = first_query._replace(comparison_interval="15m")
 
         # Create current events for the first query
-        event = self.create_event(self.project.id, FROZEN_TIME, "group-1")
-        self.create_event(self.project.id, FROZEN_TIME, "group-1")
+        event = self.create_event(self.project.id, FROZEN_TIME, "group-1", self.environment.name)
+        self.create_event(self.project.id, FROZEN_TIME, "group-1", self.environment.name)
         # Create a past event for the second query
-        self.create_event(self.project.id, FROZEN_TIME - timedelta(hours=1, minutes=10), "group-1")
+        self.create_event(
+            self.project.id,
+            FROZEN_TIME - timedelta(hours=1, minutes=10),
+            "group-1",
+            self.environment.name,
+        )
 
         data_and_groups = DataAndGroups(
             data=condition_data,
