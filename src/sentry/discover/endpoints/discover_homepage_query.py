@@ -83,6 +83,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
                 name="",
                 query=data["query"],
                 version=data["version"],
+                dataset=data["query_dataset"],
             )
             previous_homepage.set_projects(data["project_ids"])
             return Response(serialize(previous_homepage), status=status.HTTP_200_OK)
