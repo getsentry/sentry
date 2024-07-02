@@ -4,7 +4,6 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import SessionMRI, TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -50,7 +49,6 @@ class OrganizationMetricsTagsIntegrationTest(MetricsAPIBaseTestCase):
             self.store_metric(
                 self.project.organization.id,
                 self.project.id,
-                "distribution",
                 TransactionMRI.DURATION.value,
                 {
                     "transaction": transaction,
@@ -60,7 +58,6 @@ class OrganizationMetricsTagsIntegrationTest(MetricsAPIBaseTestCase):
                 },
                 timestamp.timestamp(),
                 value,
-                UseCaseID.TRANSACTIONS,
             )
         # Use Case: CUSTOM
         for value, release, tag_value, timestamp in (
@@ -73,7 +70,6 @@ class OrganizationMetricsTagsIntegrationTest(MetricsAPIBaseTestCase):
             self.store_metric(
                 self.project.organization.id,
                 self.project.id,
-                "distribution",
                 "d:custom/my_test_metric@percent",
                 {
                     "transaction": "/hello",
@@ -84,7 +80,6 @@ class OrganizationMetricsTagsIntegrationTest(MetricsAPIBaseTestCase):
                 },
                 timestamp.timestamp(),
                 value,
-                UseCaseID.CUSTOM,
             )
 
         self.prod_env = self.create_environment(name="prod", project=self.project)
@@ -213,12 +208,10 @@ class OrganizationMetricsTagsIntegrationTest(MetricsAPIBaseTestCase):
         self.store_metric(
             self.project.organization.id,
             self.project.id,
-            "gauge",
             mri,
             {"transaction": "/hello", "release": "1.0", "environment": "prod"},
             int(self.now().timestamp()),
             10,
-            UseCaseID.CUSTOM,
         )
 
         response = self.get_success_response(
@@ -248,12 +241,10 @@ class OrganizationMetricsTagsIntegrationTest(MetricsAPIBaseTestCase):
         self.store_metric(
             self.project.organization.id,
             self.project.id,
-            "distribution",
             mri,
             {"transaction": "/hello", "release": "1.0", "environment": "prod"},
             int(self.now().timestamp()),
             10,
-            UseCaseID.SPANS,
         )
 
         response = self.get_success_response(
@@ -266,12 +257,10 @@ class OrganizationMetricsTagsIntegrationTest(MetricsAPIBaseTestCase):
         self.store_metric(
             self.project.organization.id,
             self.project.id,
-            "distribution",
             mri,
             {},
             int(self.now().timestamp()),
             10,
-            UseCaseID.SPANS,
         )
 
         response = self.get_success_response(

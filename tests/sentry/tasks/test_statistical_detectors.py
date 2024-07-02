@@ -23,7 +23,6 @@ from sentry.models.statistical_detectors import (
     get_regression_groups,
 )
 from sentry.seer.breakpoints import BreakpointData
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.discover import zerofill
 from sentry.snuba.metrics.naming_layer.mri import TransactionMRI
 from sentry.statistical_detectors.algorithm import MovingAverageDetectorState
@@ -1401,22 +1400,18 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
                 self.store_metric(
                     self.org.id,
                     project.id,
-                    "distribution",
                     TransactionMRI.DURATION.value,
                     {"transaction": f"transaction_{i}", "transaction.op": "http.server"},
                     self.hour_ago_seconds,
                     1.0,
-                    UseCaseID.TRANSACTIONS,
                 )
                 self.store_metric(
                     self.org.id,
                     project.id,
-                    "distribution",
                     TransactionMRI.DURATION.value,
                     {"transaction": f"transaction_{i}", "transaction.op": "http.server"},
                     self.hour_ago_seconds,
                     9.5,
-                    UseCaseID.TRANSACTIONS,
                 )
 
                 # Store metrics for a frontend transaction, which should be
@@ -1424,22 +1419,18 @@ class TestTransactionsQuery(MetricsAPIBaseTestCase):
                 self.store_metric(
                     self.org.id,
                     project.id,
-                    "distribution",
                     TransactionMRI.DURATION.value,
                     {"transaction": f"fe_transaction_{i}", "transaction.op": "navigation"},
                     self.hour_ago_seconds,
                     1.0,
-                    UseCaseID.TRANSACTIONS,
                 )
                 self.store_metric(
                     self.org.id,
                     project.id,
-                    "distribution",
                     TransactionMRI.DURATION.value,
                     {"transaction": f"fe_transaction_{i}", "transaction.op": "navigation"},
                     self.hour_ago_seconds,
                     9.5,
-                    UseCaseID.TRANSACTIONS,
                 )
 
     @property
@@ -1480,12 +1471,10 @@ class TestTransactionChangePointDetection(MetricsAPIBaseTestCase):
             self.store_metric(
                 self.org.id,
                 project_id,
-                "distribution",
                 TransactionMRI.DURATION_LIGHT.value,
                 {"transaction": transaction},
                 int((self.now - timedelta(minutes=minutes_ago)).timestamp()),
                 value,
-                UseCaseID.TRANSACTIONS,
             )
 
         for project in self.projects:
