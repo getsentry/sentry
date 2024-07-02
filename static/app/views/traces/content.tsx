@@ -183,9 +183,7 @@ export function Content() {
   return (
     <LayoutMain fullWidth>
       <PageFilterBar condensed>
-        {organization.features.includes(
-          'organizations:performance-trace-explorer-enforce-projects'
-        ) ? (
+        {organization.features.includes('performance-trace-explorer-enforce-projects') ? (
           <ProjectPageFilter />
         ) : (
           <Tooltip
