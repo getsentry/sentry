@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useMemo} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
@@ -6,15 +6,13 @@ import Alert from 'sentry/components/alert';
 import {Flex} from 'sentry/components/container/flex';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {StaticReplayPreferences} from 'sentry/components/replays/preferences/replayPreferences';
-import {
-  Provider as ReplayContextProvider,
-  useReplayContext,
-} from 'sentry/components/replays/replayContext';
+import {Provider as ReplayContextProvider} from 'sentry/components/replays/replayContext';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
 import SplitDiff from 'sentry/components/splitDiff';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useExtractedPageHtml from 'sentry/utils/replays/hooks/useExtractedPageHtml';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 
 const MAX_CLAMP_TO_START = 2000;
@@ -39,8 +37,15 @@ export default function ReplayDiff({
 }: Props) {
   const fetching = false;
 
-  const [leftBody, setLeftBody] = useState(null);
-  const [rightBody, setRightBody] = useState(null);
+  const {data} = useExtractedPageHtml({
+    replay,
+    offsetMsToStopAt: [leftOffsetMs, rightOffsetMs],
+  });
+
+  const [leftBody, rightBody] = useMemo(
+    () => data?.map(([_, html]) => beautify.html(html, {indent_size: 2})) ?? [],
+    [data]
+  );
 
   let startOffset = leftOffsetMs - 1;
   // If the error occurs close to the start of the replay, clamp the start offset to 1
@@ -49,7 +54,7 @@ export default function ReplayDiff({
     startOffset = 1;
   }
 
-  const isSameTimestamp = leftBody && rightBody && leftBody === rightBody;
+  const isSameTimestamp = startOffset === rightOffsetMs;
 
   return (
     <Tabs<DiffType> defaultValue={defaultTab}>
@@ -87,11 +92,7 @@ export default function ReplayDiff({
                   replay={replay}
                 >
                   <ComparisonSideWrapper id="leftSide">
-                    <ReplaySide
-                      selector="#leftSide iframe"
-                      expectedTime={startOffset}
-                      onLoad={setLeftBody}
-                    />
+                    <ReplayPlayer isPreview />
                   </ComparisonSideWrapper>
                 </ReplayContextProvider>
                 <ReplayContextProvider
@@ -102,15 +103,7 @@ export default function ReplayDiff({
                   replay={replay}
                 >
                   <ComparisonSideWrapper id="rightSide">
-                    {rightOffsetMs > 0 ? (
-                      <ReplaySide
-                        selector="#rightSide iframe"
-                        expectedTime={rightOffsetMs + 1}
-                        onLoad={setRightBody}
-                      />
-                    ) : (
-                      <div />
-                    )}
+                    {rightOffsetMs > 0 ? <ReplayPlayer isPreview /> : <div />}
                   </ComparisonSideWrapper>
                 </ReplayContextProvider>
               </ReplayGrid>
@@ -147,28 +140,6 @@ export default function ReplayDiff({
       </Flex>
     </Tabs>
   );
-}
-
-function ReplaySide({expectedTime, selector, onLoad}) {
-  const {currentTime} = useReplayContext();
-
-  useEffect(() => {
-    if (currentTime === expectedTime) {
-      // Wait for the replay iframe to load before selecting the body
-      setTimeout(() => {
-        const iframe = document.querySelector<HTMLIFrameElement>(selector)!;
-        const body = iframe.contentWindow?.document.body;
-        if (body) {
-          onLoad(
-            beautify.html(body.innerHTML, {
-              indent_size: 2,
-            })
-          );
-        }
-      }, 50);
-    }
-  }, [currentTime, expectedTime, selector, onLoad]);
-  return <ReplayPlayer isPreview />;
 }
 
 const ComparisonSideWrapper = styled('div')`
