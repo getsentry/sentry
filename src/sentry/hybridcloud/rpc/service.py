@@ -594,9 +594,9 @@ class _RemoteSiloCall:
 
     def _raise_from_response_status_error(self, response: requests.Response) -> NoReturn:
         rpc_method = f"{self.service_name}.{self.method_name}"
-        with sentry_sdk.configure_scope() as scope:
-            scope.set_tag("rpc_method", rpc_method)
-            scope.set_tag("rpc_status_code", response.status_code)
+        scope = sentry_sdk.Scope.get_isolation_scope()
+        scope.set_tag("rpc_method", rpc_method)
+        scope.set_tag("rpc_status_code", response.status_code)
 
         if in_test_environment():
             if response.status_code == 500:

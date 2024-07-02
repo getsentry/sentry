@@ -14,7 +14,7 @@ from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.monitors.models import CheckInStatus, Monitor, MonitorCheckIn, MonitorEnvironment
-from sentry.utils.sdk import bind_organization_context, configure_scope
+from sentry.utils.sdk import Scope, bind_organization_context
 
 DEPRECATED_INGEST_API_MESSAGE = "We have removed this deprecated API. Please migrate to using DSN instead: https://docs.sentry.io/product/crons/legacy-endpoint-migration/#am-i-using-legacy-endpoints"
 
@@ -85,8 +85,7 @@ class MonitorEndpoint(Endpoint):
 
         self.check_object_permissions(request, project)
 
-        with configure_scope() as scope:
-            scope.set_tag("project", project.id)
+        Scope.get_isolation_scope().set_tag("project", project.id)
 
         bind_organization_context(project.organization)
 
