@@ -6,6 +6,7 @@ import {Autofix} from 'sentry/components/events/autofix';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {Resources} from 'sentry/components/events/interfaces/performance/resources';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {EntryType, type Event, type Group, type Project} from 'sentry/types';
 import {
@@ -44,6 +45,7 @@ function hasStacktraceWithFrames(event: Event) {
 export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
   const organization = useOrganization();
   const config = getConfigForIssueType(group, project);
+  const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
   // NOTE:  Autofix is for INTERNAL testing only for now.
   const displayAiAutofix =
@@ -59,7 +61,10 @@ export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
     !shouldShowCustomErrorResourceConfig(group, project) &&
     !displayAiAutofix;
 
-  if (!config.resources && !(displayAiSuggestedSolution || displayAiAutofix)) {
+  if (
+    isSelfHostedErrorsOnly ||
+    (!config.resources && !(displayAiSuggestedSolution || displayAiAutofix))
+  ) {
     return null;
   }
 
