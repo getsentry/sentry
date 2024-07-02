@@ -23,7 +23,8 @@ from sentry.eventstore.models import Event
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.search.events.builder import QueryBuilder, SpansIndexedQueryBuilder
+from sentry.search.events.builder import SpansIndexedQueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
@@ -59,6 +60,8 @@ SnubaTransaction = TypedDict(
         "root": str,
         "project.id": int,
         "project": str,
+        "profile.profile_id": str,
+        "profiler.id": str,
         "issue.ids": list[int],
         "occurrence_to_issue_id": dict[str, list[int]],
     },
@@ -138,6 +141,7 @@ FullResponse = TypedDict(
         "parent_span_id": Optional[str],
         "parent_event_id": Optional[str],
         "profile_id": Optional[str],
+        "profiler_id": Optional[str],
         "sdk_name": Optional[str],
         "generation": Optional[int],
         "errors": list[TraceError],
@@ -270,7 +274,7 @@ class TraceEvent:
                 span = [self.event["trace.span"]]
             else:
                 if self.nodestore_event is not None:
-                    occurrence_query = QueryBuilder(
+                    occurrence_query = DiscoverQueryBuilder(
                         Dataset.IssuePlatform,
                         snuba_params,
                         query=f"event_id:{self.event['id']}",
@@ -383,6 +387,7 @@ class TraceEvent:
             result["timestamp"] = self.event["precise.finish_ts"]
             result["start_timestamp"] = self.event["precise.start_ts"]
             result["profile_id"] = self.event["profile.id"]
+            result["profiler_id"] = self.event["profile.profiler_id"]
             result["sdk_name"] = self.event["sdk.name"]
             # TODO: once we're defaulting measurements we don't need this check
             if "measurements" in self.event:
@@ -396,6 +401,7 @@ class TraceEvent:
             profile_id = contexts.get("profile", {}).get("profile_id")
             if profile_id is not None:
                 result["profile_id"] = profile_id
+            result["profiler_id"] = self.event["profile.profiler_id"]
 
             if detailed:
                 if "measurements" in self.nodestore_event.data:
@@ -464,7 +470,7 @@ def child_sort_key(item: TraceEvent) -> list[int]:
 
 
 def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
-    transaction_query = QueryBuilder(
+    transaction_query = DiscoverQueryBuilder(
         Dataset.IssuePlatform,
         params,
         query=f"trace:{trace_id}",
@@ -490,7 +496,7 @@ def create_transaction_params(
     if not query_metadata:
         return params
 
-    metadata_query = QueryBuilder(
+    metadata_query = DiscoverQueryBuilder(
         Dataset.Discover,
         params,
         query=f"trace:{trace_id}",
@@ -560,6 +566,7 @@ def query_trace_data(
         "project",
         "project.id",
         "profile.id",
+        "profile.profiler_id",
         "sdk.name",
         "trace.span",
         "trace.parent_span",
@@ -580,7 +587,7 @@ def query_trace_data(
                 "measurements.value",
             ]
         )
-    transaction_query = QueryBuilder(
+    transaction_query = DiscoverQueryBuilder(
         Dataset.Transactions,
         transaction_params,
         query=f"trace:{trace_id}",
@@ -588,7 +595,7 @@ def query_trace_data(
         orderby=transaction_orderby,
         limit=limit,
     )
-    occurrence_query = QueryBuilder(
+    occurrence_query = DiscoverQueryBuilder(
         Dataset.IssuePlatform,
         params,
         query=f"trace:{trace_id}",
@@ -602,7 +609,7 @@ def query_trace_data(
     )
     occurrence_query.groupby = [Column("event_id"), Column("occurrence_id")]
 
-    error_query = QueryBuilder(
+    error_query = DiscoverQueryBuilder(
         Dataset.Events,
         params,
         query=f"trace:{trace_id}",

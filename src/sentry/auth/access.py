@@ -40,7 +40,7 @@ from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
 from sentry.services.hybrid_cloud.organization import RpcTeamMember, RpcUserOrganizationContext
 from sentry.services.hybrid_cloud.organization.serial import summarize_member
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 
 

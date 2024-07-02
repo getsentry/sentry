@@ -16,10 +16,10 @@ from sentry.hybridcloud.rpc import RpcModel
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
 from sentry.services.hybrid_cloud.project import RpcProject
-from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.signals import sso_enabled
 from sentry.silo.base import SiloMode
 from sentry.types.organization import OrganizationAbsoluteUrlMixin
+from sentry.users.services.user.model import RpcUser
 
 
 def flags_to_bits(*flag_values: bool) -> int:
@@ -263,7 +263,7 @@ class RpcOrganization(RpcOrganizationSummary):
     def get_owners(self) -> Sequence[RpcUser]:
         from sentry.models.organizationmember import OrganizationMember
         from sentry.models.organizationmembermapping import OrganizationMemberMapping
-        from sentry.services.hybrid_cloud.user.service import user_service
+        from sentry.users.services.user.service import user_service
 
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             owners: Iterable[int | None] = OrganizationMemberMapping.objects.filter(

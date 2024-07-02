@@ -10,8 +10,8 @@ from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo.base import control_silo_function
+from sentry.users.services.user.service import user_service
 
 _logger = logging.getLogger(__name__)
 

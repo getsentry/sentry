@@ -43,12 +43,10 @@ class DatasourceTestCase(BaseMetricsLayerTestCase, TestCase):
         self.store_metric(
             self.project.organization.id,
             self.project.id,
-            "distribution",
             custom_mri,
             {},
             int(self.now.timestamp()),
             10,
-            UseCaseID.CUSTOM,
         )
 
         mris = get_stored_metrics_of_projects([self.project], [UseCaseID.TRANSACTIONS])
