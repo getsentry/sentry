@@ -60,6 +60,8 @@ SnubaTransaction = TypedDict(
         "root": str,
         "project.id": int,
         "project": str,
+        "profile.profile_id": str,
+        "profiler.id": str,
         "issue.ids": list[int],
         "occurrence_to_issue_id": dict[str, list[int]],
     },
@@ -139,6 +141,7 @@ FullResponse = TypedDict(
         "parent_span_id": Optional[str],
         "parent_event_id": Optional[str],
         "profile_id": Optional[str],
+        "profiler_id": Optional[str],
         "sdk_name": Optional[str],
         "generation": Optional[int],
         "errors": list[TraceError],
@@ -384,6 +387,7 @@ class TraceEvent:
             result["timestamp"] = self.event["precise.finish_ts"]
             result["start_timestamp"] = self.event["precise.start_ts"]
             result["profile_id"] = self.event["profile.id"]
+            result["profiler_id"] = self.event["profile.profiler_id"]
             result["sdk_name"] = self.event["sdk.name"]
             # TODO: once we're defaulting measurements we don't need this check
             if "measurements" in self.event:
@@ -397,6 +401,7 @@ class TraceEvent:
             profile_id = contexts.get("profile", {}).get("profile_id")
             if profile_id is not None:
                 result["profile_id"] = profile_id
+            result["profiler_id"] = self.event["profile.profiler_id"]
 
             if detailed:
                 if "measurements" in self.nodestore_event.data:
@@ -561,6 +566,7 @@ def query_trace_data(
         "project",
         "project.id",
         "profile.id",
+        "profile.profiler_id",
         "sdk.name",
         "trace.span",
         "trace.parent_span",
