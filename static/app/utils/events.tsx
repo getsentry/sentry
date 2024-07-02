@@ -42,7 +42,7 @@ export function getMessage(
     return event.culprit || '';
   }
 
-  const {metadata, type, culprit} = event;
+  const {metadata, type, transaction} = event;
 
   switch (type) {
     case EventOrGroupType.ERROR:
@@ -57,7 +57,7 @@ export function getMessage(
     case EventOrGroupType.GENERIC:
       return metadata.value;
     default:
-      return culprit || '';
+      return transaction || '';
   }
 }
 
@@ -125,7 +125,7 @@ export function getTitle(
   features: string[] = [],
   grouping = false
 ) {
-  const {metadata, type, culprit, title} = event;
+  const {metadata, type, transaction, title} = event;
   const customTitle = metadata?.title;
 
   switch (type) {
@@ -133,7 +133,7 @@ export function getTitle(
       if (customTitle && customTitle !== '<unlabeled event>') {
         return {
           title: customTitle,
-          subtitle: culprit,
+          subtitle: transaction,
           treeLabel: undefined,
         };
       }
@@ -147,13 +147,13 @@ export function getTitle(
 
       if (displayTitleWithTreeLabel) {
         return {
-          subtitle: culprit,
+          subtitle: transaction,
           ...computeTitleWithTreeLabel(metadata),
         };
       }
 
       return {
-        subtitle: culprit,
+        subtitle: transaction,
         title: metadata.type || metadata.function || '<unknown>',
         treeLabel: undefined,
       };
@@ -187,7 +187,7 @@ export function getTitle(
       const isIssue = !isTombstone(event) && defined(event.issueCategory);
       return {
         title: customTitle ?? title,
-        subtitle: isIssue ? culprit : '',
+        subtitle: isIssue ? transaction : '',
         treeLabel: undefined,
       };
     default:
