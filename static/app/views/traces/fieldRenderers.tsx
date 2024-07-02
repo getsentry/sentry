@@ -1,5 +1,5 @@
 import {useState} from 'react';
-import {type Theme, useTheme} from '@emotion/react';
+import {css, type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 
@@ -13,7 +13,7 @@ import PerformanceDuration from 'sentry/components/performanceDuration';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconIssues} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
@@ -33,21 +33,146 @@ import type {SpanResult, TraceResult} from './content';
 import type {Field} from './data';
 import {getShortenedSdkName, getStylingSliceName} from './utils';
 
-interface ProjectRendererProps {
-  projectSlug: string;
-  hideName?: boolean;
-}
+export const ProjectBadgeWrapper = styled('span')`
+  /**
+   * Max of 2 visible projects, 16px each, 2px border, 8px overlap.
+   */
+  width: 32px;
+  min-width: 32px;
+`;
 
 export function SpanDescriptionRenderer({span}: {span: SpanResult<Field>}) {
   return (
     <Description>
-      <ProjectRenderer projectSlug={span.project} hideName />
+      <ProjectBadgeWrapper>
+        <ProjectRenderer projectSlug={span.project} hideName />
+      </ProjectBadgeWrapper>
       <strong>{span['span.op']}</strong>
       <em>{'\u2014'}</em>
       <WrappingText>{span['span.description']}</WrappingText>
       {<StatusTag status={span['span.status']} />}
     </Description>
   );
+}
+
+interface ProjectsRendererProps {
+  projectSlugs: string[];
+  maxVisibleProjects?: number;
+}
+
+export function ProjectsRenderer({
+  projectSlugs,
+  maxVisibleProjects = 2,
+}: ProjectsRendererProps) {
+  const organization = useOrganization();
+
+  return (
+    <Projects orgId={organization.slug} slugs={projectSlugs}>
+      {({projects}) => {
+        const projectAvatars =
+          projects.length > 0 ? projects : projectSlugs.map(slug => ({slug}));
+        const numProjects = projectAvatars.length;
+        const numVisibleProjects =
+          maxVisibleProjects - numProjects >= 0 ? numProjects : maxVisibleProjects - 1;
+        const visibleProjectAvatars = projectAvatars
+          .slice(0, numVisibleProjects)
+          .reverse();
+        const collapsedProjectAvatars = projectAvatars.slice(numVisibleProjects);
+        const numCollapsedProjects = collapsedProjectAvatars.length;
+
+        return (
+          <ProjectList>
+            {numCollapsedProjects > 0 && (
+              <Tooltip
+                skipWrapper
+                title={
+                  <CollapsedProjects>
+                    {tn(
+                      'This trace contains %s more project.',
+                      'This trace contains %s more projects.',
+                      numCollapsedProjects
+                    )}
+                    {collapsedProjectAvatars.map(project => (
+                      <ProjectBadge
+                        key={project.slug}
+                        project={project}
+                        avatarSize={16}
+                      />
+                    ))}
+                  </CollapsedProjects>
+                }
+              >
+                <CollapsedBadge size={20} fontSize={10}>
+                  +{numCollapsedProjects}
+                </CollapsedBadge>
+              </Tooltip>
+            )}
+            {visibleProjectAvatars.map(project => (
+              <StyledProjectBadge
+                key={project.slug}
+                hideName
+                project={project}
+                avatarSize={16}
+                avatarProps={{hasTooltip: true, tooltip: project.slug}}
+              />
+            ))}
+          </ProjectList>
+        );
+      }}
+    </Projects>
+  );
+}
+
+const ProjectList = styled('div')`
+  display: flex;
+  align-items: center;
+  flex-direction: row-reverse;
+  justify-content: flex-end;
+  padding-right: 8px;
+`;
+
+const CollapsedProjects = styled('div')`
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: ${space(0.5)};
+`;
+
+const AvatarStyle = p => css`
+  border: 2px solid ${p.theme.background};
+  margin-right: -8px;
+  cursor: default;
+
+  &:hover {
+    z-index: 1;
+  }
+`;
+
+const StyledProjectBadge = styled(ProjectBadge)`
+  overflow: hidden;
+  z-index: 0;
+  ${AvatarStyle}
+`;
+
+const CollapsedBadge = styled('div')<{fontSize: number; size: number}>`
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  text-align: center;
+  font-weight: ${p => p.theme.fontWeightBold};
+  background-color: ${p => p.theme.gray200};
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.fontSize}px;
+  width: ${p => p.size}px;
+  height: ${p => p.size}px;
+  border-radius: ${p => p.theme.borderRadius};
+  ${AvatarStyle}
+`;
+
+interface ProjectRendererProps {
+  projectSlug: string;
+  hideName?: boolean;
 }
 
 export function ProjectRenderer({projectSlug, hideName}: ProjectRendererProps) {
@@ -62,6 +187,7 @@ export function ProjectRenderer({projectSlug, hideName}: ProjectRendererProps) {
             hideName={hideName}
             project={project ? project : {slug: projectSlug}}
             avatarSize={16}
+            avatarProps={{hasTooltip: true, tooltip: projectSlug}}
           />
         );
       }}
@@ -464,7 +590,7 @@ const StyledTag = styled(Tag)`
   cursor: ${p => (p.onClick ? 'pointer' : 'default')};
 `;
 
-const Description = styled('div')`
+export const Description = styled('div')`
   ${p => p.theme.overflowEllipsis};
   display: flex;
   flex-direction: row;

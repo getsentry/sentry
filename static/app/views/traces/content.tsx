@@ -31,6 +31,7 @@ import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
 import type {MetricAggregation, MRI} from 'sentry/types/metrics';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -46,7 +47,9 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {type Field, FIELDS, SORTS} from './data';
 import {
   BREAKDOWN_SLICES,
-  ProjectRenderer,
+  Description,
+  ProjectBadgeWrapper,
+  ProjectsRenderer,
   SpanBreakdownSliceRenderer,
   SpanDescriptionRenderer,
   SpanIdRenderer,
@@ -301,6 +304,9 @@ export function Content() {
 }
 
 function TraceRow({defaultExpanded, trace}: {defaultExpanded; trace: TraceResult}) {
+  const {selection} = usePageFilters();
+  const {projects} = useProjects();
+
   const [expanded, setExpanded] = useState<boolean>(defaultExpanded);
   const [highlightedSliceName, _setHighlightedSliceName] = useState('');
   const location = useLocation();
@@ -318,6 +324,41 @@ function TraceRow({defaultExpanded, trace}: {defaultExpanded; trace: TraceResult
   );
 
   const onClickExpand = useCallback(() => setExpanded(e => !e), [setExpanded]);
+
+  const selectedProjects = useMemo(() => {
+    const selectedProjectIds = new Set(
+      selection.projects.map(project => project.toString())
+    );
+    return new Set(
+      projects
+        .filter(project => selectedProjectIds.has(project.id))
+        .map(project => project.slug)
+    );
+  }, [projects, selection.projects]);
+
+  const traceProjects = useMemo(() => {
+    const seenProjects: Set<string> = new Set();
+
+    const leadingProjects: string[] = [];
+    const trailingProjects: string[] = [];
+
+    for (let i = 0; i < trace.breakdowns.length; i++) {
+      const project = trace.breakdowns[i].project;
+      if (!defined(project) || seenProjects.has(project)) {
+        continue;
+      }
+      seenProjects.add(project);
+
+      // Priotize projects that are selected in the page filters
+      if (selectedProjects.has(project)) {
+        leadingProjects.push(project);
+      } else {
+        trailingProjects.push(project);
+      }
+    }
+
+    return [...leadingProjects, ...trailingProjects];
+  }, [selectedProjects, trace]);
 
   return (
     <Fragment>
@@ -348,9 +389,13 @@ function TraceRow({defaultExpanded, trace}: {defaultExpanded; trace: TraceResult
       </StyledPanelItem>
       <StyledPanelItem align="left" overflow>
         <Description>
-          {trace.project ? (
-            <ProjectRenderer projectSlug={trace.project} hideName />
-          ) : null}
+          <ProjectBadgeWrapper>
+            {traceProjects.length > 0 ? (
+              <ProjectsRenderer projectSlugs={traceProjects} />
+            ) : trace.project ? (
+              <ProjectsRenderer projectSlugs={[trace.project]} />
+            ) : null}
+          </ProjectBadgeWrapper>
           {trace.name ? (
             <WrappingText>{trace.name}</WrappingText>
           ) : (
@@ -796,13 +841,13 @@ const StyledPanel = styled(Panel)`
 const TracePanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(1, min-content) auto repeat(2, min-content) 85px 112px 66px;
+  grid-template-columns: 116px auto repeat(2, min-content) 85px 112px 66px;
 `;
 
 const SpanPanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(1, min-content) auto repeat(1, min-content) 160px 85px;
+  grid-template-columns: 100px auto repeat(1, min-content) 160px 85px;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)<{align: 'left' | 'right'}>`
@@ -814,14 +859,6 @@ const EmptyStateText = styled('div')<{size: 'fontSizeExtraLarge' | 'fontSizeMedi
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme[p.size]};
   padding-bottom: ${space(1)};
-`;
-
-const Description = styled('div')`
-  ${p => p.theme.overflowEllipsis};
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const StyledPanelItem = styled(PanelItem)<{
