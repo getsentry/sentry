@@ -17,6 +17,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
+import {useMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/api';
 
 export type AggregateGroup = 'count' | 'count_unique' | 'min_max' | 'percentiles';
 export interface FormData {
@@ -138,11 +139,17 @@ const SPAN_SEARCH_CONFIG = {
 };
 
 export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}: Props) {
+  const organization = useOrganization();
+
   const [customAttributes, setCustomeAttributes] = useState<string[]>(() => {
     const {spanAttribute, tags} = props.initialData;
     return [...new Set(spanAttribute ? [...tags, spanAttribute] : tags)];
   });
-  const organization = useOrganization();
+
+  const {data: extractionRules} = useMetricsExtractionRules(
+    organization.slug,
+    project.slug
+  );
   const tags = useSpanFieldSupportedTags({projects: [parseInt(project.id, 10)]});
 
   // TODO(aknaus): Make this nicer
@@ -154,6 +161,7 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
 
   const attributeOptions = useMemo(() => {
     let keys = Object.keys(supportedTags);
+    const disabledKeys = new Set(extractionRules?.map(rule => rule.spanAttribute) || []);
 
     if (customAttributes.length) {
       keys = [...new Set(keys.concat(customAttributes))];
@@ -163,9 +171,16 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
       .map(key => ({
         label: key,
         value: key,
+        disabled: disabledKeys.has(key),
+        tooltip: disabledKeys.has(key)
+          ? t(
+              'This attribute is already in use. Please select another one or edit the existing metric.'
+            )
+          : undefined,
+        tooltipOptions: {position: 'left'},
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
-  }, [customAttributes, supportedTags]);
+  }, [customAttributes, supportedTags, extractionRules]);
 
   const tagOptions = useMemo(() => {
     return attributeOptions.filter(
