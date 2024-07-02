@@ -9,7 +9,7 @@ from sentry import eventstore
 from sentry.api.serializers import serialize
 from sentry.eventstore.models import Event
 from sentry.issues.grouptype import GroupCategory
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.utils.validators import normalize_event_id
@@ -58,7 +58,7 @@ def get_query_builder_for_group(
     limit: int,
     offset: int,
     orderby: str | None = None,
-) -> QueryBuilder:
+) -> DiscoverQueryBuilder:
     dataset = Dataset.IssuePlatform
     if group.issue_category == GroupCategory.ERROR:
         dataset = Dataset.Events
@@ -70,7 +70,7 @@ def get_query_builder_for_group(
         # IDs are UUIDs, so should be random, but we'll hasd them just in case
         selected_columns.append("column_hash(id) as sample")
 
-    return QueryBuilder(
+    return DiscoverQueryBuilder(
         dataset=dataset,
         query=f"issue:{group.qualified_short_id} {query}",
         params=snuba_params,

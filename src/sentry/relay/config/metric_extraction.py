@@ -31,7 +31,7 @@ from sentry.models.transaction_threshold import (
 )
 from sentry.relay.config.experimental import TimeChecker
 from sentry.search.events import fields
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
 from sentry.snuba.dataset import Dataset
@@ -682,7 +682,7 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
         if not fields.is_function(column)
     ]
 
-    query_builder = QueryBuilder(
+    query_builder = DiscoverQueryBuilder(
         dataset=Dataset.Discover,
         params=params,
         selected_columns=unique_columns,

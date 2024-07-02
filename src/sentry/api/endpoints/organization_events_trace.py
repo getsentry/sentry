@@ -23,7 +23,8 @@ from sentry.eventstore.models import Event
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.search.events.builder import QueryBuilder, SpansIndexedQueryBuilder
+from sentry.search.events.builder import SpansIndexedQueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
@@ -270,7 +271,7 @@ class TraceEvent:
                 span = [self.event["trace.span"]]
             else:
                 if self.nodestore_event is not None:
-                    occurrence_query = QueryBuilder(
+                    occurrence_query = DiscoverQueryBuilder(
                         Dataset.IssuePlatform,
                         snuba_params,
                         query=f"event_id:{self.event['id']}",
@@ -464,7 +465,7 @@ def child_sort_key(item: TraceEvent) -> list[int]:
 
 
 def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
-    transaction_query = QueryBuilder(
+    transaction_query = DiscoverQueryBuilder(
         Dataset.IssuePlatform,
         params,
         query=f"trace:{trace_id}",
@@ -490,7 +491,7 @@ def create_transaction_params(
     if not query_metadata:
         return params
 
-    metadata_query = QueryBuilder(
+    metadata_query = DiscoverQueryBuilder(
         Dataset.Discover,
         params,
         query=f"trace:{trace_id}",
@@ -580,7 +581,7 @@ def query_trace_data(
                 "measurements.value",
             ]
         )
-    transaction_query = QueryBuilder(
+    transaction_query = DiscoverQueryBuilder(
         Dataset.Transactions,
         transaction_params,
         query=f"trace:{trace_id}",
@@ -588,7 +589,7 @@ def query_trace_data(
         orderby=transaction_orderby,
         limit=limit,
     )
-    occurrence_query = QueryBuilder(
+    occurrence_query = DiscoverQueryBuilder(
         Dataset.IssuePlatform,
         params,
         query=f"trace:{trace_id}",
@@ -602,7 +603,7 @@ def query_trace_data(
     )
     occurrence_query.groupby = [Column("event_id"), Column("occurrence_id")]
 
-    error_query = QueryBuilder(
+    error_query = DiscoverQueryBuilder(
         Dataset.Events,
         params,
         query=f"trace:{trace_id}",
