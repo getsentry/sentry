@@ -71,6 +71,7 @@ from sentry.tasks.relocation import (
     preprocessing_scan,
     preprocessing_transfer,
     uploading_complete,
+    uploading_start,
     validating_complete,
     validating_poll,
     validating_start,
@@ -213,6 +214,11 @@ class RelocationTaskTestCase(TestCase):
 @patch("sentry.utils.relocation.MessageBuilder")
 @patch("sentry.tasks.relocation.preprocessing_scan.apply_async")
 class UploadingCompleteTest(RelocationTaskTestCase):
+    def setUp(self):
+        super().setUp()
+        self.relocation.latest_task = OrderedTask.UPLOADING_START.name
+        self.relocation.save()
+
     def test_success(
         self,
         preprocessing_scan_mock: Mock,
@@ -2322,7 +2328,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         org_count = Organization.objects.filter(slug__startswith="testing").count()
 
         with BurstTaskRunner() as burst:
-            uploading_complete(self.relocation.uuid)
+            uploading_start(self.relocation.uuid, None, None)
 
             with patch.object(
                 LostPasswordHash, "send_relocate_account_email"
@@ -2371,7 +2377,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         org_count = Organization.objects.filter(slug__startswith="testing").count()
 
         with BurstTaskRunner() as burst:
-            uploading_complete(self.relocation.uuid)
+            uploading_start(self.relocation.uuid, None, None)
 
             with patch.object(
                 LostPasswordHash, "send_relocate_account_email"
@@ -2419,7 +2425,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         org_count = Organization.objects.filter(slug__startswith="testing").count()
 
         with BurstTaskRunner() as burst:
-            uploading_complete(self.relocation.uuid)
+            uploading_start(self.relocation.uuid, None, None)
 
             with patch.object(
                 LostPasswordHash, "send_relocate_account_email"
@@ -2469,7 +2475,7 @@ class EndToEndTest(RelocationTaskTestCase, TransactionTestCase):
         org_count = Organization.objects.filter(slug__startswith="testing").count()
 
         with BurstTaskRunner() as burst:
-            uploading_complete(self.relocation.uuid)
+            uploading_start(self.relocation.uuid, None, None)
 
             with patch.object(
                 LostPasswordHash, "send_relocate_account_email"
