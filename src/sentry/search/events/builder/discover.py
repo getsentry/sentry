@@ -38,7 +38,7 @@ from sentry.snuba.dataset import Dataset
 from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 
-class QueryBuilder(BaseQueryBuilder):
+class DiscoverQueryBuilder(BaseQueryBuilder):
     """Builds a discover query"""
 
     duration_fields = {"transaction.duration"}
@@ -153,7 +153,7 @@ class QueryBuilder(BaseQueryBuilder):
         return super().default_filter_converter(search_filter)
 
 
-class UnresolvedQuery(QueryBuilder):
+class UnresolvedQuery(DiscoverQueryBuilder):
     def resolve_query(
         self,
         query: str | None = None,
@@ -436,7 +436,7 @@ class TopEventsQueryBuilder(TimeseriesQueryBuilder):
         return final_condition
 
 
-class HistogramQueryBuilder(QueryBuilder):
+class HistogramQueryBuilder(DiscoverQueryBuilder):
     base_function_acl = ["array_join", "histogram", "spans_histogram"]
 
     def __init__(

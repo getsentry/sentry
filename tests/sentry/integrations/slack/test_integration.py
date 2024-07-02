@@ -2,8 +2,10 @@ from unittest.mock import patch
 from urllib.parse import parse_qs, urlencode, urlparse
 
 import orjson
+import pytest
 import responses
 from responses.matchers import query_string_matcher
+from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 
 from sentry import audit_log
@@ -134,7 +136,7 @@ class SlackIntegrationTest(IntegrationTestCase):
         self.assertDialogSuccess(resp)
 
     @responses.activate
-    def test_bot_flow_slack_sdk(self, mock_api_call):
+    def test_bot_flow(self, mock_api_call):
         with self.tasks():
             self.assert_setup_flow()
 
@@ -429,7 +431,7 @@ class SlackIntegrationPostInstallTest(APITestCase):
             teams=[self.team],
         )
 
-        with self.tasks():
+        with self.tasks(), pytest.raises(SlackApiError):
             SlackIntegrationProvider().post_install(self.integration, self.organization)
 
         user5_identity = Identity.objects.filter(user=user5).first()

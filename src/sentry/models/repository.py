@@ -20,8 +20,8 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.array import ArrayField
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import pending_delete
+from sentry.users.services.user import RpcUser
 
 
 @region_silo_model

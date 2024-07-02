@@ -20,8 +20,8 @@ from sentry.integrations.services.repository import RpcRepository, repository_se
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
 from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView, PipelineView
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils.http import absolute_uri

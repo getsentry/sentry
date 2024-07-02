@@ -23,7 +23,10 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.models.organization import Organization
-from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
+from sentry.search.events.builder import TimeseriesQueryBuilder
+from sentry.search.events.builder.base import BaseQueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.datasets.discover import DiscoverDatasetConfig
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
@@ -517,7 +520,7 @@ def query_suspect_span_groups(
         if is_equation(column)
     ]
 
-    builder = QueryBuilder(
+    builder = DiscoverQueryBuilder(
         dataset=Dataset.Discover,
         params=params,
         selected_columns=selected_columns,
@@ -608,7 +611,9 @@ def query_suspect_span_groups(
     ]
 
 
-class SpanQueryBuilder(QueryBuilder):
+class SpanQueryBuilder(BaseQueryBuilder):
+    config_class = DiscoverDatasetConfig
+
     def resolve_span_function(
         self,
         function: str,

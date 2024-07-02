@@ -17,7 +17,7 @@ import {getDefaultAggregation, isAllowedAggregation} from 'sentry/utils/metrics'
 import {parseMRI} from 'sentry/utils/metrics/mri';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
-import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
+import {useVirtualizedMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
@@ -43,7 +43,7 @@ export const QueryBuilder = memo(function QueryBuilder({
     isLoading: isMetaLoading,
     isRefetching: isMetaRefetching,
     refetch: refetchMeta,
-  } = useMetricsMeta(pageFilters.selection);
+  } = useVirtualizedMetricsMeta(pageFilters.selection);
 
   const {data: tagsData = [], isLoading: tagsIsLoading} = useMetricsTags(
     metricsQuery.mri,

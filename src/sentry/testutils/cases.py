@@ -12,7 +12,7 @@ from collections.abc import Mapping, Sequence
 from contextlib import contextmanager
 from datetime import UTC, datetime, timedelta
 from io import BytesIO
-from typing import Any, Literal, TypedDict, Union
+from typing import Any, TypedDict, Union
 from unittest import mock
 from urllib.parse import urlencode
 from uuid import uuid4
@@ -1627,6 +1627,13 @@ class BaseSpansTestCase(SnubaTestCase):
 
 
 class BaseMetricsTestCase(SnubaTestCase):
+    ENTITY_SHORTHANDS = {
+        "c": "counter",
+        "s": "set",
+        "d": "distribution",
+        "g": "gauge",
+    }
+
     snuba_endpoint = "/tests/entities/{entity}/insert"
 
     def store_session(self, session):
@@ -1648,11 +1655,10 @@ class BaseMetricsTestCase(SnubaTestCase):
         # This check is not yet reflected in relay, see https://getsentry.atlassian.net/browse/INGEST-464
         user_is_nil = user is None or user == "00000000-0000-0000-0000-000000000000"
 
-        def push(type, mri: str, tags, value):
+        def push(mri: str, tags, value):
             self.store_metric(
                 org_id,
                 project_id,
-                type,
                 mri,
                 {**tags, **base_tags},
                 int(
@@ -1661,33 +1667,31 @@ class BaseMetricsTestCase(SnubaTestCase):
                     else session["started"].timestamp()
                 ),
                 value,
-                use_case_id=UseCaseID.SESSIONS,
             )
 
         # seq=0 is equivalent to relay's session.init, init=True is transformed
         # to seq=0 in Relay.
         if session["seq"] == 0:  # init
-            push("counter", SessionMRI.RAW_SESSION.value, {"session.status": "init"}, +1)
+            push(SessionMRI.RAW_SESSION.value, {"session.status": "init"}, +1)
 
         status = session["status"]
 
         # Mark the session as errored, which includes fatal sessions.
         if session.get("errors", 0) > 0 or status not in ("ok", "exited"):
-            push("set", SessionMRI.RAW_ERROR.value, {}, session["session_id"])
+            push(SessionMRI.RAW_ERROR.value, {}, session["session_id"])
             if not user_is_nil:
-                push("set", SessionMRI.RAW_USER.value, {"session.status": "errored"}, user)
+                push(SessionMRI.RAW_USER.value, {"session.status": "errored"}, user)
         elif not user_is_nil:
-            push("set", SessionMRI.RAW_USER.value, {}, user)
+            push(SessionMRI.RAW_USER.value, {}, user)
 
         if status in ("abnormal", "crashed"):  # fatal
-            push("counter", SessionMRI.RAW_SESSION.value, {"session.status": status}, +1)
+            push(SessionMRI.RAW_SESSION.value, {"session.status": status}, +1)
             if not user_is_nil:
-                push("set", SessionMRI.RAW_USER.value, {"session.status": status}, user)
+                push(SessionMRI.RAW_USER.value, {"session.status": status}, user)
 
         if status == "exited":
             if session["duration"] is not None:
                 push(
-                    "distribution",
                     SessionMRI.RAW_DURATION.value,
                     {"session.status": status},
                     session["duration"],
@@ -1702,14 +1706,17 @@ class BaseMetricsTestCase(SnubaTestCase):
         cls,
         org_id: int,
         project_id: int,
-        type: Literal["counter", "set", "distribution", "gauge"],
-        name: str,
+        mri: str,
         tags: dict[str, str],
         timestamp: int,
         value: Any,
-        use_case_id: UseCaseID,
         aggregation_option: AggregationOption | None = None,
     ) -> None:
+
+        parsed = parse_mri(mri)
+        metric_type = parsed.entity
+        use_case_id = UseCaseID(parsed.namespace)
+
         mapping_meta = {}
 
         def metric_id(key: str):
@@ -1751,12 +1758,12 @@ class BaseMetricsTestCase(SnubaTestCase):
 
         assert not isinstance(value, list)
 
-        if type == "set":
+        if metric_type == "s":
             # Relay uses a different hashing algorithm, but that's ok
             value = [int.from_bytes(hashlib.md5(str(value).encode()).digest()[:4], "big")]
-        elif type == "distribution":
+        elif metric_type == "d":
             value = [value]
-        elif type == "gauge":
+        elif metric_type == "g":
             # In case we pass either an int or float, we will emit a gauge with all the same values.
             if not isinstance(value, dict):
                 value = {
@@ -1770,10 +1777,10 @@ class BaseMetricsTestCase(SnubaTestCase):
         msg = {
             "org_id": org_id,
             "project_id": project_id,
-            "metric_id": metric_id(name),
+            "metric_id": metric_id(mri),
             "timestamp": timestamp,
             "tags": {tag_key(key): tag_value(value) for key, value in tags.items()},
-            "type": {"counter": "c", "set": "s", "distribution": "d", "gauge": "g"}[type],
+            "type": metric_type,
             "value": value,
             "retention_days": 90,
             "use_case_id": use_case_id.value,
@@ -1790,9 +1797,9 @@ class BaseMetricsTestCase(SnubaTestCase):
             msg["aggregation_option"] = aggregation_option.value
 
         if METRIC_PATH_MAPPING[use_case_id] == UseCaseKey.PERFORMANCE:
-            entity = f"generic_metrics_{type}s"
+            entity = f"generic_metrics_{cls.ENTITY_SHORTHANDS[metric_type]}s"
         else:
-            entity = f"metrics_{type}s"
+            entity = f"metrics_{cls.ENTITY_SHORTHANDS[metric_type]}s"
 
         cls.__send_buckets([msg], entity)
 
@@ -1819,12 +1826,7 @@ class BaseMetricsTestCase(SnubaTestCase):
 
 
 class BaseMetricsLayerTestCase(BaseMetricsTestCase):
-    ENTITY_SHORTHANDS = {
-        "c": "counter",
-        "s": "set",
-        "d": "distribution",
-        "g": "gauge",
-    }
+
     # In order to avoid complexity and edge cases while working on tests, all children of this class should use
     # this mocked time, except in case in which a specific time is required. This is suggested because working
     # with time ranges in metrics is very error-prone and requires an in-depth knowledge of the underlying
@@ -1847,22 +1849,11 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         """
         raise NotImplementedError
 
-    def _extract_entity_from_mri(self, mri_string: str) -> str | None:
-        """
-        Extracts the entity name from the MRI given a map of shorthands used to represent that entity in the MRI.
-        """
-        if (parsed_mri := parse_mri(mri_string)) is not None:
-            return self.ENTITY_SHORTHANDS[parsed_mri.entity]
-        else:
-            return None
-
     def _store_metric(
         self,
-        name: str,
+        mri: str,
         tags: dict[str, str],
         value: int | float | dict[str, int | float],
-        use_case_id: UseCaseID,
-        type: str | None = None,
         org_id: int | None = None,
         project_id: int | None = None,
         days_before_now: int = 0,
@@ -1881,8 +1872,7 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         self.store_metric(
             org_id=self.organization.id if org_id is None else org_id,
             project_id=self.project.id if project_id is None else project_id,
-            type=self._extract_entity_from_mri(name) if type is None else type,
-            name=name,
+            mri=mri,
             tags=tags,
             timestamp=int(
                 (
@@ -1898,7 +1888,6 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
                 ).timestamp()
             ),
             value=value,
-            use_case_id=use_case_id,
             aggregation_option=aggregation_option,
         )
 
@@ -1948,13 +1937,11 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         aggregation_option: AggregationOption | None = None,
     ):
         self._store_metric(
-            type=type,
-            name=name,
+            mri=name,
             tags=tags,
             value=value,
             org_id=org_id,
             project_id=project_id,
-            use_case_id=UseCaseID.TRANSACTIONS,
             days_before_now=days_before_now,
             hours_before_now=hours_before_now,
             minutes_before_now=minutes_before_now,
@@ -1976,13 +1963,11 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         seconds_before_now: int = 0,
     ):
         self._store_metric(
-            type=type,
-            name=name,
+            mri=name,
             tags=tags,
             value=value,
             org_id=org_id,
             project_id=project_id,
-            use_case_id=UseCaseID.SESSIONS,
             days_before_now=days_before_now,
             hours_before_now=hours_before_now,
             minutes_before_now=minutes_before_now,
@@ -2004,13 +1989,11 @@ class BaseMetricsLayerTestCase(BaseMetricsTestCase):
         aggregation_option: AggregationOption | None = None,
     ):
         self._store_metric(
-            type=type,
-            name=name,
+            mri=name,
             tags=tags,
             value=value,
             org_id=org_id,
             project_id=project_id,
-            use_case_id=UseCaseID.CUSTOM,
             days_before_now=days_before_now,
             hours_before_now=hours_before_now,
             minutes_before_now=minutes_before_now,
@@ -2178,12 +2161,10 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
             self.store_metric(
                 org_id,
                 project,
-                self.TYPE_MAP[entity],
                 internal_metric,
                 tags,
                 int(metric_timestamp),
                 subvalue,
-                use_case_id=use_case_id,
                 aggregation_option=aggregation_option,
             )
 
@@ -2247,12 +2228,10 @@ class MetricsEnhancedPerformanceTestCase(BaseMetricsLayerTestCase, TestCase):
             self.store_metric(
                 org_id,
                 project,
-                self.TYPE_MAP[entity],
                 internal_metric,
                 tags,
                 int(metric_timestamp),
                 subvalue,
-                use_case_id=use_case_id,
             )
 
     def wait_for_metric_count(
@@ -2893,13 +2872,6 @@ class SlackActivityNotificationTest(ActivityTestCase):
                 status=IdentityStatus.VALID,
                 scopes=[],
             )
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.postMessage",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
         self.name = self.user.get_display_name()
         self.short_id = self.group.qualified_short_id
 
@@ -3129,49 +3101,41 @@ class OrganizationMetricsIntegrationTestCase(MetricsAPIBaseTestCase):
         self.store_metric(
             org_id=org_id,
             project_id=self.project.id,
-            name="metric1",
+            mri="c:sessions/metric1@none",
             timestamp=now,
             tags={
                 "tag1": "value1",
                 "tag2": "value2",
             },
-            type="counter",
             value=1,
-            use_case_id=UseCaseID.SESSIONS,
         )
         self.store_metric(
             org_id=org_id,
             project_id=self.project.id,
-            name="metric1",
+            mri="c:sessions/metric1@none",
             timestamp=now,
             tags={"tag3": "value3"},
-            type="counter",
             value=1,
-            use_case_id=UseCaseID.SESSIONS,
         )
         self.store_metric(
             org_id=org_id,
             project_id=self.project.id,
-            name="metric2",
+            mri="c:sessions/metric2@none",
             timestamp=now,
             tags={
                 "tag4": "value3",
                 "tag1": "value2",
                 "tag2": "value1",
             },
-            type="set",
             value=123,
-            use_case_id=UseCaseID.SESSIONS,
         )
         self.store_metric(
             org_id=org_id,
             project_id=self.project.id,
-            name="metric3",
+            mri="c:sessions/metric3@none",
             timestamp=now,
             tags={},
-            type="set",
             value=123,
-            use_case_id=UseCaseID.SESSIONS,
         )
 
 
