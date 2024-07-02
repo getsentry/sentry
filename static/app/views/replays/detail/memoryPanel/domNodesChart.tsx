@@ -8,13 +8,13 @@ import {computeChartTooltip} from 'sentry/components/charts/components/tooltip';
 import XAxis from 'sentry/components/charts/components/xAxis';
 import YAxis from 'sentry/components/charts/components/yAxis';
 import type {useReplayContext} from 'sentry/components/replays/replayContext';
-import {formatTime} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import toArray from 'sentry/utils/array/toArray';
 import {getFormattedDate} from 'sentry/utils/dates';
 import {axisLabelFormatter} from 'sentry/utils/discover/charts';
 import domId from 'sentry/utils/domId';
+import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
 import type {DomNodeChartDatapoint} from 'sentry/utils/replays/countDomNodes';
 
 interface Props
@@ -70,7 +70,7 @@ export default function DomNodesChart({
               ${t('Date: %s', getFormattedDate(startTimestampMs + firstValue.axisValue, 'MMM D, YYYY hh:mm:ss A z', {local: false}))}
             </div>
             <div class="tooltip-footer" style="border: none;">
-              ${t('Time within replay: %s', formatTime(firstValue.axisValue))}
+              ${t('Time within replay: %s', formatReplayDuration(firstValue.axisValue))}
             </div>
           <div class="tooltip-arrow"></div>
         `;
@@ -81,7 +81,7 @@ export default function DomNodesChart({
       xAxis: XAxis({
         type: 'time',
         axisLabel: {
-          formatter: (time: number) => formatTime(time),
+          formatter: (time: number) => formatReplayDuration(time),
         },
         theme,
       }),

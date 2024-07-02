@@ -4,27 +4,14 @@ import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {
   countColumns,
-  divide,
   findVideoSegmentIndex,
   flattenFrames,
-  formatTime,
   getFramesByColumn,
-  showPlayerTime,
 } from 'sentry/components/replays/utils';
 import hydrateErrors from 'sentry/utils/replays/hydrateErrors';
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 
 const SECOND = 1000;
-
-describe('formatTime', () => {
-  it.each([
-    ['seconds', 15 * 1000, '00:15'],
-    ['minutes', 2.5 * 60 * 1000, '02:30'],
-    ['hours', 75 * 60 * 1000, '01:15:00'],
-  ])('should format a %s long duration into a string', (_desc, duration, expected) => {
-    expect(formatTime(duration)).toEqual(expected);
-  });
-});
 
 describe('countColumns', () => {
   it('should divide 27s by 2700px to find twentyseven 1s columns, with some fraction remaining', () => {
@@ -260,27 +247,6 @@ describe('flattenFrames', () => {
         startTimestamp: 10000,
       },
     ]);
-  });
-
-  const diffMs = 1652309918676;
-  describe('showPlayerTime', () => {
-    it('returns time formatted for player', () => {
-      expect(showPlayerTime('2022-05-11T23:04:27.576000Z', diffMs)).toEqual('05:48');
-    });
-
-    it('returns 0:00 if timestamp is malformed', () => {
-      expect(showPlayerTime('20223:04:27.576000Z', diffMs)).toEqual('00:00');
-    });
-  });
-
-  describe('divide', () => {
-    it('divides numbers safely', () => {
-      expect(divide(81, 9)).toEqual(9);
-    });
-
-    it('dividing by zero returns zero', () => {
-      expect(divide(81, 0)).toEqual(0);
-    });
   });
 });
 

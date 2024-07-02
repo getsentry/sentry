@@ -13,7 +13,7 @@ import TimelineGaps from 'sentry/components/replays/breadcrumbs/timelineGaps';
 import {TimelineScrubber} from 'sentry/components/replays/player/scrubber';
 import {useTimelineScrubberMouseTracking} from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {divide} from 'sentry/components/replays/utils';
+import divide from 'sentry/utils/number/divide';
 import toPercent from 'sentry/utils/number/toPercent';
 import {useDimensions} from 'sentry/utils/useDimensions';
 

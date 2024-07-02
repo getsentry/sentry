@@ -9,7 +9,6 @@ import {DropdownMenu} from 'sentry/components/dropdownMenu';
 import Link from 'sentry/components/links/link';
 import ContextIcon from 'sentry/components/replays/contextIcon';
 import ReplayPlayPauseButton from 'sentry/components/replays/replayPlayPauseButton';
-import {formatTime} from 'sentry/components/replays/utils';
 import ScoreBar from 'sentry/components/scoreBar';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -30,6 +29,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import type EventView from 'sentry/utils/discover/eventView';
 import {spanOperationRelativeBreakdownRenderer} from 'sentry/utils/discover/fieldRenderers';
+import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
 import {getShortEventId} from 'sentry/utils/events';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -526,7 +526,7 @@ export function DurationCell({replay, showDropdownFilters}: Props) {
   return (
     <Item>
       <Container>
-        <Time>{formatTime(replay.duration.asMilliseconds())}</Time>
+        <Time>{formatReplayDuration(replay.duration.asMilliseconds())}</Time>
         {showDropdownFilters ? (
           <NumericDropdownFilter type="duration" val={replay.duration.asSeconds()} />
         ) : null}
