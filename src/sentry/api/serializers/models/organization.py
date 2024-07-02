@@ -350,6 +350,14 @@ class OrganizationSerializer(Serializer):
 
         if include_feature_flags:
             context["features"] = self.get_feature_set(obj, attrs, user, **kwargs)
+            context["extraOptions"] = {
+                "traces": {
+                    "spansExtractionDate": options.get("performance.traces.spans_extraction_date"),
+                    "checkSpanExtractionDate": options.get(
+                        "performance.traces.check_span_extraction_date"
+                    ),
+                }
+            }
 
         if "access" in kwargs:
             context["access"] = kwargs["access"].scopes
