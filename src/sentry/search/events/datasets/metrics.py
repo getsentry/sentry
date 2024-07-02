@@ -1892,27 +1892,23 @@ class MetricsDatasetConfig(DatasetConfig):
         _: Mapping[str, str | Column | SelectType | int | float],
         alias: str,
     ) -> SelectType:
-        lcp_metric_id = self.resolve_metric("measurements.score.lcp")
-        fcp_metric_id = self.resolve_metric("measurements.score.fcp")
-        cls_metric_id = self.resolve_metric("measurements.score.cls")
-        ttfb_metric_id = self.resolve_metric("measurements.score.ttfb")
-        inp_metric_id = self.resolve_metric("measurements.score.inp")
-
-        lcp = self._resolve_web_vital_score_function(
-            {"column": "measurements.score.lcp", "metric_id": lcp_metric_id}, None
-        )
-        fcp = self._resolve_web_vital_score_function(
-            {"column": "measurements.score.fcp", "metric_id": fcp_metric_id}, None
-        )
-        cls = self._resolve_web_vital_score_function(
-            {"column": "measurements.score.cls", "metric_id": cls_metric_id}, None
-        )
-        ttfb = self._resolve_web_vital_score_function(
-            {"column": "measurements.score.ttfb", "metric_id": ttfb_metric_id}, None
-        )
-        inp = self._resolve_web_vital_score_function(
-            {"column": "measurements.score.inp", "metric_id": inp_metric_id}, None
-        )
+        vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
+        scores = {
+            vital: Function(
+                "multiply",
+                [
+                    constants.WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital],
+                    self._resolve_web_vital_score_function(
+                        {
+                            "column": f"measurements.score.{vital}",
+                            "metric_id": self.resolve_metric(f"measurements.score.{vital}"),
+                        },
+                        None,
+                    ),
+                ],
+            )
+            for vital in vitals
+        }
 
         # TODO: Is there a way to sum more than 2 values at once?
         return Function(
@@ -1927,39 +1923,17 @@ class MetricsDatasetConfig(DatasetConfig):
                                 Function(
                                     "plus",
                                     [
-                                        Function(
-                                            "multiply",
-                                            [
-                                                lcp,
-                                                constants.WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[
-                                                    "lcp"
-                                                ],
-                                            ],
-                                        ),
-                                        Function(
-                                            "multiply",
-                                            [
-                                                fcp,
-                                                constants.WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[
-                                                    "fcp"
-                                                ],
-                                            ],
-                                        ),
+                                        scores["lcp"],
+                                        scores["fcp"],
                                     ],
                                 ),
-                                Function(
-                                    "multiply",
-                                    [cls, constants.WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS["cls"]],
-                                ),
+                                scores["cls"],
                             ],
                         ),
-                        Function(
-                            "multiply",
-                            [ttfb, constants.WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS["ttfb"]],
-                        ),
+                        scores["ttfb"],
                     ],
                 ),
-                Function("multiply", [inp, constants.WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS["inp"]]),
+                scores["inp"],
             ],
             alias,
         )
