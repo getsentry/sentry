@@ -6,6 +6,8 @@ from sentry.models.environment import Environment, EnvironmentProject
 from sentry.models.grouplink import GroupLink
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.notificationsettingoption import NotificationSettingOption
+from sentry.models.options.project_option import ProjectOption
+from sentry.models.options.project_template_option import ProjectTemplateOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -405,6 +407,55 @@ class ProjectTest(APITestCase, TestCase):
         alert_rule.refresh_from_db()
         assert alert_rule.team_id is None
         assert alert_rule.user_id is None
+
+
+class ProjectSettings(TestCase):
+    def setUp(self):
+        super().setUp()
+        self.option_key = "sentry:test_data"
+        self.project = self.create_project()
+
+        self.project_template = self.create_project_template(organization=self.project.organization)
+        self.project.template = self.project_template
+
+    def tearDown(self):
+        super().tearDown()
+
+        self.project_template.delete()
+        self.project.delete()
+
+    def test_get_option(self):
+        assert self.project.get_option(self.option_key) is None
+        ProjectOption.objects.set_value(self.project, self.option_key, True)
+        assert self.project.get_option(self.option_key) is True
+
+    def test_get_template_option(self):
+        assert self.project.get_option(self.option_key) is None
+        ProjectTemplateOption.objects.set_value(self.project_template, self.option_key, "test")
+        assert self.project.get_option(self.option_key) == "test"
+
+    def test_get_option__overide_template(self):
+        assert self.project.get_option(self.option_key) is None
+        ProjectOption.objects.set_value(self.project, self.option_key, True)
+        ProjectTemplateOption.objects.set_value(self.project_template, self.option_key, "test")
+
+        assert self.project.get_option(self.option_key) is True
+
+    def test_get_option__without_template(self):
+        self.project.template = None
+        assert self.project.get_option(self.option_key) is None
+        ProjectTemplateOption.objects.set_value(self.project_template, self.option_key, "test")
+
+        assert self.project.get_option(self.option_key) is None
+
+    def test_get_option__without_template_and_value(self):
+        self.project.template = None
+        assert self.project.get_option(self.option_key) is None
+
+        ProjectOption.objects.set_value(self.project, self.option_key, True)
+        ProjectTemplateOption.objects.set_value(self.project_template, self.option_key, "test")
+
+        assert self.project.get_option(self.option_key) is True
 
 
 class CopyProjectSettingsTest(TestCase):
