@@ -5,7 +5,7 @@ from uuid import UUID
 from django.core.files.uploadedfile import UploadedFile
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import configure_scope
+from sentry_sdk import Scope
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -150,8 +150,7 @@ class MonitorIngestCheckinAttachmentEndpoint(Endpoint):
         # Check project permission. Required for Token style authentication
         self.check_object_permissions(request, project)
 
-        with configure_scope() as scope:
-            scope.set_tag("project", project.id)
+        Scope.get_isolation_scope().set_tag("project", project.id)
 
         bind_organization_context(project.organization)
 

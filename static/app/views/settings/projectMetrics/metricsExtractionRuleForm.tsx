@@ -11,18 +11,20 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import {IconAdd, IconClose} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricType} from 'sentry/types/metrics';
+import type {MetricAggregation, MetricsExtractionCondition} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
+import {useMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/api';
 
+export type AggregateGroup = 'count' | 'count_unique' | 'min_max' | 'percentiles';
 export interface FormData {
-  conditions: string[];
+  aggregates: AggregateGroup[];
+  conditions: MetricsExtractionCondition[];
   spanAttribute: string | null;
   tags: string[];
-  type: MetricType | null;
 }
 
 interface Props extends Omit<FormProps, 'onSubmit'> {
@@ -38,13 +40,6 @@ interface Props extends Omit<FormProps, 'onSubmit'> {
   ) => void;
 }
 
-const ListItemDetails = styled('span')`
-  color: ${p => p.theme.subText};
-  font-size: ${p => p.theme.fontSizeSmall};
-  text-align: right;
-  line-height: 1.2;
-`;
-
 const KNOWN_NUMERIC_FIELDS = new Set([
   SpanIndexedField.SPAN_DURATION,
   SpanIndexedField.SPAN_SELF_TIME,
@@ -59,29 +54,75 @@ const KNOWN_NUMERIC_FIELDS = new Set([
   SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
 ]);
 
-const TYPE_OPTIONS = [
+const AGGREGATE_OPTIONS: {label: string; value: AggregateGroup}[] = [
   {
-    label: t('Counter'),
-    value: 'c',
-    trailingItems: [<ListItemDetails key="aggregates">{t('count')}</ListItemDetails>],
+    label: t('count'),
+    value: 'count',
   },
   {
-    label: t('Set'),
-    value: 's',
-    trailingItems: [
-      <ListItemDetails key="aggregates">{t('count_unique')}</ListItemDetails>,
-    ],
+    label: t('count_unique'),
+    value: 'count_unique',
   },
   {
-    label: t('Distribution'),
-    value: 'd',
-    trailingItems: [
-      <ListItemDetails key="aggregates">
-        {t('count, avg, sum, min, max, percentiles')}
-      </ListItemDetails>,
-    ],
+    label: t('min, max, sum, avg'),
+    value: 'min_max',
+  },
+  {
+    label: t('percentiles'),
+    value: 'percentiles',
   },
 ];
+
+export function explodeAggregateGroup(group: AggregateGroup): MetricAggregation[] {
+  switch (group) {
+    case 'count':
+      return ['count'];
+    case 'count_unique':
+      return ['count_unique'];
+    case 'min_max':
+      return ['min', 'max', 'sum', 'avg'];
+    case 'percentiles':
+      return ['p50', 'p75', 'p95', 'p99'];
+    default:
+      throw new Error(`Unknown aggregate group: ${group}`);
+  }
+}
+
+export function aggregatesToGroups(aggregates: MetricAggregation[]): AggregateGroup[] {
+  const groups: AggregateGroup[] = [];
+  if (aggregates.includes('count')) {
+    groups.push('count');
+  }
+
+  if (aggregates.includes('count_unique')) {
+    groups.push('count_unique');
+  }
+  const minMaxAggregates = new Set<MetricAggregation>(['min', 'max', 'sum', 'avg']);
+  if (aggregates.find(aggregate => minMaxAggregates.has(aggregate))) {
+    groups.push('min_max');
+  }
+
+  const percentileAggregates = new Set<MetricAggregation>(['p50', 'p75', 'p95', 'p99']);
+  if (aggregates.find(aggregate => percentileAggregates.has(aggregate))) {
+    groups.push('percentiles');
+  }
+  return groups;
+}
+
+let currentTempId = 0;
+function createTempId(): number {
+  currentTempId -= 1;
+  return currentTempId;
+}
+
+export function createCondition(): MetricsExtractionCondition {
+  return {
+    value: '',
+    // id and mris will be set by the backend after creation
+    id: createTempId(),
+    mris: [],
+  };
+}
 
 const EMPTY_SET = new Set<never>();
 const SPAN_SEARCH_CONFIG = {
@@ -98,11 +139,17 @@ const SPAN_SEARCH_CONFIG = {
 };
 
 export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}: Props) {
+  const organization = useOrganization();
+
   const [customAttributes, setCustomeAttributes] = useState<string[]>(() => {
     const {spanAttribute, tags} = props.initialData;
     return [...new Set(spanAttribute ? [...tags, spanAttribute] : tags)];
   });
-  const organization = useOrganization();
+
+  const {data: extractionRules} = useMetricsExtractionRules(
+    organization.slug,
+    project.slug
+  );
   const tags = useSpanFieldSupportedTags({projects: [parseInt(project.id, 10)]});
 
   // TODO(aknaus): Make this nicer
@@ -114,18 +161,30 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
 
   const attributeOptions = useMemo(() => {
     let keys = Object.keys(supportedTags);
+    const disabledKeys = new Set(extractionRules?.map(rule => rule.spanAttribute) || []);
 
     if (customAttributes.length) {
       keys = [...new Set(keys.concat(customAttributes))];
     }
 
-    return keys
-      .map(key => ({
-        label: key,
-        value: key,
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label));
-  }, [customAttributes, supportedTags]);
+    return (
+      keys
+        .map(key => ({
+          label: key,
+          value: key,
+          disabled: disabledKeys.has(key),
+          tooltip: disabledKeys.has(key)
+            ? t(
+                'This attribute is already in use. Please select another one or edit the existing metric.'
+              )
+            : undefined,
+          tooltipOptions: {position: 'left'},
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label))
+        // Sort disabled attributes to bottom
+        .sort((a, b) => Number(a.disabled) - Number(b.disabled))
+    );
+  }, [customAttributes, supportedTags, extractionRules]);
 
   const tagOptions = useMemo(() => {
     return attributeOptions.filter(
@@ -175,12 +234,13 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
             required
           />
           <SelectField
-            name="type"
-            disabled={isEdit}
-            options={TYPE_OPTIONS}
-            label={t('Type')}
+            name="aggregates"
+            required
+            options={AGGREGATE_OPTIONS}
+            label={t('Aggregate')}
+            multiple
             help={tct(
-              'The type of the metric determines which aggregation functions are available and what types of values it can store. For more information, read [link:our docs]',
+              'Select the aggregations you want to store. For more information, read [link:our docs]',
               {
                 // TODO(telemetry-experience): add the correct link here once we have it!!!
                 link: (
@@ -215,20 +275,33 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
             flexibleControlStateSize
           >
             {({onChange, initialData, value}) => {
-              const conditions = (value || initialData) as string[];
+              const conditions = (value ||
+                initialData ||
+                []) as MetricsExtractionCondition[];
+
+              const handleChange = (queryString: string, index: number) => {
+                onChange(
+                  conditions.toSpliced(index, 1, {
+                    ...conditions[index],
+                    value: queryString,
+                  }),
+                  {}
+                );
+              };
+
               return (
                 <Fragment>
                   <ConditionsWrapper hasDelete={value.length > 1}>
-                    {conditions.map((query, index) => (
-                      <Fragment key={index}>
+                    {conditions.map((condition, index) => (
+                      <Fragment key={condition.id}>
                         <SearchWrapper hasPrefix={index !== 0}>
                           {index !== 0 && <ConditionLetter>{t('or')}</ConditionLetter>}
                           <SearchBar
                             {...SPAN_SEARCH_CONFIG}
                             searchSource="metrics-extraction"
-                            query={query}
+                            query={condition.value}
                             onSearch={(queryString: string) =>
-                              onChange(conditions.toSpliced(index, 1, queryString), {})
+                              handleChange(queryString, index)
                             }
                             placeholder={t('Search for span attributes')}
                             organization={organization}
@@ -238,8 +311,10 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                             projectIds={[parseInt(project.id, 10)]}
                             hasRecentSearches={false}
                             onBlur={(queryString: string) =>
-                              onChange(conditions.toSpliced(index, 1, queryString), {})
+                              handleChange(queryString, index)
                             }
+                            savedSearchType={undefined}
+                            useFormWrapper={false}
                           />
                         </SearchWrapper>
                         {value.length > 1 && (
@@ -254,7 +329,7 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                   </ConditionsWrapper>
                   <ConditionsButtonBar>
                     <Button
-                      onClick={() => onChange([...conditions, ''], {})}
+                      onClick={() => onChange([...conditions, createCondition()], {})}
                       icon={<IconAdd />}
                     >
                       {t('Add Query')}

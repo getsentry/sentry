@@ -13,7 +13,6 @@ from sentry.issues.grouptype import PerformanceNPlusOneGroupType
 from sentry.models.activity import Activity
 from sentry.models.group import GroupStatus
 from sentry.notifications.notifications.daily_summary import DailySummaryNotification
-from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.tasks.summaries.daily_summary import (
     build_summary_data,
     build_top_projects_map,
@@ -34,6 +33,7 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
+from sentry.users.services.user_option import user_option_service
 from sentry.utils.outcomes import Outcome
 
 

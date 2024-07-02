@@ -38,6 +38,10 @@ from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.team import Team, TeamStatus
 from sentry.monitors.models import Monitor
 from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_metrics.models import (
+    SpanAttributeExtractionRuleCondition,
+    SpanAttributeExtractionRuleConfig,
+)
 from sentry.services.hybrid_cloud.organization import (
     OrganizationCheckService,
     OrganizationService,
@@ -72,10 +76,10 @@ from sentry.services.hybrid_cloud.organization.serial import (
 from sentry.services.hybrid_cloud.organization_actions.impl import (
     mark_organization_as_pending_deletion_with_outbox_message,
 )
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.auth import email_unlink_notifications
 from sentry.types.region import find_regions_for_orgs
+from sentry.users.services.user import RpcUser
 from sentry.utils.audit import create_org_delete_log
 
 
@@ -577,6 +581,8 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 RuleActivity,
                 RuleSnooze,
                 SavedSearch,
+                SpanAttributeExtractionRuleCondition,
+                SpanAttributeExtractionRuleConfig,
             ]
             for model in model_list:
                 merge_users_for_model_in_org(
