@@ -27,7 +27,7 @@ from sentry.rules.processing.delayed_processing import (  # bulk_fetch_events; g
     process_delayed_alert_conditions,
 )
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
-from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, RuleTestCase, TestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, TestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.redis import mock_redis_buffer
@@ -58,7 +58,7 @@ def mock_get_condition_group(descending=False):
 
 
 @freeze_time(FROZEN_TIME)
-class CreateEventTestCase(TestCase, APITestCase):
+class CreateEventTestCase(TestCase, BaseEventFrequencyPercentTest):
     def create_event(
         self,
         project_id: int,
@@ -226,9 +226,7 @@ class ParseRuleGroupToEventDataTest(TestCase):
         pass
 
 
-class ProcessDelayedAlertConditionsTest(
-    CreateEventTestCase, BaseEventFrequencyPercentTest, PerformanceIssueTestCase
-):
+class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTestCase):
     buffer_timestamp = (FROZEN_TIME + timedelta(seconds=1)).timestamp()
 
     def create_event_frequency_condition(
