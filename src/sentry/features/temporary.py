@@ -398,8 +398,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:slack-sdk-get-channel-id", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Use new Slack SDK Client to respond to link commands
     manager.add("organizations:slack-sdk-link-commands", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
-    # User new Slack SDK Client in SlackEventEndpoint
-    manager.add("organizations:slack-sdk-slack-event-endpoint", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Use new Slack SDK Client in SlackActionEndpoint
     manager.add("organizations:slack-sdk-webhook-handling", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Add regression chart as image to slack message

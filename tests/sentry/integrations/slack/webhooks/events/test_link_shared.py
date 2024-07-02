@@ -8,7 +8,7 @@ import responses
 from slack_sdk.web import SlackResponse
 
 from sentry.integrations.slack.unfurl import Handler, make_type_coercer
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 
 from . import LINK_SHARED_EVENT, BaseEventTest, build_test_block
 
@@ -87,7 +87,7 @@ class LinkSharedEventTest(BaseEventTest):
             )
         },
     )
-    @with_feature("organizations:slack-sdk-slack-event-endpoint")
+    @override_options({"slack.event-endpoint-sdk": True})
     def test_share_links_sdk(self, mock_match_link):
         resp = self.post_webhook(event_data=orjson.loads(LINK_SHARED_EVENT))
         assert resp.status_code == 200, resp.content
@@ -171,7 +171,7 @@ class LinkSharedEventTest(BaseEventTest):
             )
         },
     )
-    @with_feature("organizations:slack-sdk-slack-event-endpoint")
+    @override_options({"slack.event-endpoint-sdk": True})
     def test_share_links_block_kit_sdk(self, mock_match_link):
         resp = self.post_webhook(event_data=orjson.loads(LINK_SHARED_EVENT))
         assert resp.status_code == 200, resp.content

@@ -278,7 +278,9 @@ class SlackEventEndpoint(SlackDMEndpoint):
             "unfurls": orjson.dumps(results).decode(),
         }
 
-        if features.has("organizations:slack-sdk-slack-event-endpoint", organization):
+        if options.get("slack.event-endpoint-sdk") or slack_request.integration.id in options.get(
+            "slack.event-endpoint-sdk-integration-ids"
+        ):
             client = SlackSdkClient(integration_id=slack_request.integration.id)
             try:
                 client.chat_unfurl(

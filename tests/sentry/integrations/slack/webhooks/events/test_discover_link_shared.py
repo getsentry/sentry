@@ -10,7 +10,6 @@ from slack_sdk.web import SlackResponse
 from sentry.integrations.slack.unfurl import Handler, LinkType, make_type_coercer
 from sentry.models.identity import Identity, IdentityStatus
 from sentry.silo.base import SiloMode
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 
@@ -177,7 +176,6 @@ class DiscoverLinkSharedEvent(BaseEventTest):
         assert [button["text"]["text"] for button in blocks[1]["elements"]] == ["Link", "Cancel"]
 
     @override_options({"slack.event-endpoint-sdk": True})
-    @with_feature("organizations:slack-sdk-slack-event-endpoint")
     def test_share_discover_links_unlinked_user_sdk(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
@@ -211,7 +209,6 @@ class DiscoverLinkSharedEvent(BaseEventTest):
             assert len(responses.calls) == 0
 
     @override_options({"slack.event-endpoint-sdk": True})
-    @with_feature("organizations:slack-sdk-slack-event-endpoint")
     def test_share_discover_links_unlinked_user_no_channel_sdk(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
@@ -240,7 +237,6 @@ class DiscoverLinkSharedEvent(BaseEventTest):
         assert unfurls["link2"] == "unfurl"
 
     @override_options({"slack.event-endpoint-sdk": True})
-    @with_feature("organizations:slack-sdk-slack-event-endpoint")
     def test_share_discover_links_linked_user_sdk(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
             idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
