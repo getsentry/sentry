@@ -8,7 +8,7 @@ from sentry import options
 from sentry.api import client
 from sentry.api.serializers import serialize
 from sentry.models.options.project_option import ProjectOption
-from sentry.utils import json
+from sentry.utils.json import dumps_htmlsafe
 from sentry.web.helpers import render_to_string
 
 
@@ -42,9 +42,9 @@ def react_plugin_config(plugin, project, request):
     """
         % (
             nonce,
-            json.dumps_htmlsafe(serialize(project, request.user)),
-            json.dumps_htmlsafe(serialize(project.organization, request.user)),
-            json.dumps_htmlsafe(response.data),
+            dumps_htmlsafe(serialize(project, request.user)),
+            dumps_htmlsafe(serialize(project.organization, request.user)),
+            dumps_htmlsafe(response.data),
         )
     )
 
