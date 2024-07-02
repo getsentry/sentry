@@ -3146,6 +3146,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
                     "total_opportunity_score()",
                 ],
                 "query": "event.type:transaction",
+                "orderby": "transaction",
                 "dataset": "metrics",
                 "per_page": 50,
             }
@@ -3155,8 +3156,8 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         data = response.data["data"]
         meta = response.data["meta"]
 
-        assert data[0]["total_opportunity_score()"] == 0.36
-        assert data[1]["total_opportunity_score()"] == 0.029999999999999995
+        assert data[0]["total_opportunity_score()"] == 0.029999999999999995
+        assert data[1]["total_opportunity_score()"] == 0.36
         assert meta["isMetricsData"]
 
     def test_total_performance_score(self):
