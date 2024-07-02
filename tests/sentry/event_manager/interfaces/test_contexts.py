@@ -39,6 +39,10 @@ def test_null_values3(make_ctx_snapshot):
     make_ctx_snapshot({"os": {"name": None}})
 
 
+def test_null_values_custom_context(make_ctx_snapshot):
+    make_ctx_snapshot({"custom_context": {"null_value": None}})
+
+
 def test_os_normalization(make_ctx_snapshot):
     make_ctx_snapshot({"os": {"raw_description": "Microsoft Windows 6.1.7601 S"}})
 

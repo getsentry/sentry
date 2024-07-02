@@ -6,7 +6,6 @@ from typing import Any, ClassVar, TypeVar
 from django.utils.encoding import force_str
 
 from sentry.interfaces.base import Interface
-from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path
 
 __all__ = ("Contexts",)
@@ -89,10 +88,7 @@ class ContextType:
             # we use a simple check here, rather than ' in set()' to avoid
             # issues with maps/lists.
 
-            # Even if the value is an empty string,
-            # we still want to display the info the UI
-            if value is not None:
-                ctx_data[force_str(key)] = value
+            ctx_data[force_str(key)] = value
             # Numbers exceeding 15 place values will be converted to strings to avoid rendering issues
             if isinstance(value, (int, float, list, dict)):
                 ctx_data[force_str(key)] = self.change_type(value)
@@ -101,7 +97,7 @@ class ContextType:
     def to_json(self):
         rv = dict(self.data)
         rv["type"] = self.type
-        return prune_empty_keys(rv)
+        return rv
 
     @classmethod
     def values_for_data(cls, data):
