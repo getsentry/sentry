@@ -1,6 +1,6 @@
 import copy
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Literal
 from uuid import uuid1
 
 from sentry.eventstore.models import Event
@@ -395,7 +395,19 @@ class GetStacktraceStringTest(TestCase):
         contributes: bool = True,
         start_index: int = 1,
         context_line_factory: Callable[[int], str] = lambda i: f"test = {i}!",
+        minified_frames: Literal["all", "some", "none"] = "none",
     ) -> list[dict[str, Any]]:
+        if minified_frames == "all":
+            make_context_line = lambda i: "{snip}" + context_line_factory(i) + "{snip}"
+        elif minified_frames == "some":
+            make_context_line = lambda i: (
+                "{snip}" + context_line_factory(i) + "{snip}"
+                if i % 2 == 0
+                else context_line_factory(i)
+            )
+        else:
+            make_context_line = context_line_factory
+
         frames = []
         for i in range(start_index, start_index + num_frames):
             frames.append(
@@ -424,7 +436,7 @@ class GetStacktraceStringTest(TestCase):
                             "name": None,
                             "contributes": contributes,
                             "hint": None,
-                            "values": [context_line_factory(i)],
+                            "values": [make_context_line(i)],
                         },
                     ],
                 }
