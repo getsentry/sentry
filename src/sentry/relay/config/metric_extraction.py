@@ -112,6 +112,8 @@ def get_metric_extraction_config(
         span_attr_specs = _generate_span_attribute_specs(project)
     with sentry_sdk.start_span(op="merge_metric_specs"):
         metric_specs = _merge_metric_specs(alert_specs, widget_specs, span_attr_specs)
+    with sentry_sdk.start_span(op="get_extrapolation_config"):
+        extrapolation_config = get_extrapolation_config(project)
     timeout.check()
 
     if not metric_specs:
@@ -120,6 +122,25 @@ def get_metric_extraction_config(
     return {
         "version": _METRIC_EXTRACTION_VERSION,
         "metrics": metric_specs,
+        "extrapolate": extrapolation_config,
+    }
+
+
+def get_extrapolation_config(project):
+    if not features.has("organizations:metrics-extrapolation", project.organization):
+        return {}
+
+    enabled = project.get_option("sentry:extrapolate_metrics", None)
+    if enabled is None:
+        enabled = project.organization.get_option("sentry:extrapolate_metrics", False)
+    if not enabled:
+        return {}
+
+    # Extrapolation applies to extracted metrics. This enables extrapolation for
+    # the entire `custom` namespace, but this does not extrapolate old custom
+    # metrics sent from the SDK directly.
+    return {
+        "include": ["?:custom/*"],
     }
 
 
