@@ -180,8 +180,7 @@ function renderInviteMembersButton({
       body={
         <Fragment>
           {t(
-            `Your organization must use its single sign-on provider to invite
-            new members.`
+            `Your organization must use its single sign-on provider to register new members.`
           )}
         </Fragment>
       }
