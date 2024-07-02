@@ -21,6 +21,7 @@ class MetricsDatasetConfig(DatasetConfig):
     def __init__(self, builder: builder.MetricsQueryBuilder):
         self.builder = builder
         self.total_transaction_duration: float | None = None
+        self.total_score_weights: dict[str, int] = {}
 
     @property
     def search_filter_converter(
@@ -713,6 +714,11 @@ class MetricsDatasetConfig(DatasetConfig):
                     ],
                     calculated_args=[resolve_metric_id],
                     snql_distribution=self._resolve_web_vital_opportunity_score_function,
+                    default_result_type="number",
+                ),
+                fields.MetricsFunction(
+                    "total_opportunity_score",
+                    snql_distribution=self._resolve_total_web_vital_opportunity_score_with_fixed_weights_function,
                     default_result_type="number",
                 ),
                 fields.MetricsFunction(
@@ -1858,6 +1864,134 @@ class MetricsDatasetConfig(DatasetConfig):
             ],
             alias,
         )
+
+    def _resolve_total_web_vital_opportunity_score_with_fixed_weights_function(
+        self,
+        args: Mapping[str, str | Column | SelectType | int | float],
+        alias: str,
+    ) -> SelectType:
+        """Calculates the total opportunity score for a page.
+        The formula for an individual web vital opportunity score is:
+        (sum_page_lcp_weight - sum_page_lcp_score) / sum_project_lcp_weight
+        The total opportunity score is the sum of all individual web vital opportunity scores with another layer of fixed weights applied.
+        """
+        vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
+        opportunity_score_sums = {
+            vital: Function(
+                "minus",
+                [
+                    Function(
+                        "sumIf",
+                        [
+                            Column("value"),
+                            Function(
+                                "equals",
+                                [
+                                    Column("metric_id"),
+                                    self.resolve_metric(f"measurements.score.weight.{vital}"),
+                                ],
+                            ),
+                        ],
+                    ),
+                    Function(
+                        "sumIf",
+                        [
+                            Column("value"),
+                            Function(
+                                "equals",
+                                [
+                                    Column("metric_id"),
+                                    self.resolve_metric(f"measurements.score.{vital}"),
+                                ],
+                            ),
+                        ],
+                    ),
+                ],
+            )
+            for vital in vitals
+        }
+        adjusted_opportunity_scores = {
+            vital: Function(
+                "multiply",
+                [
+                    constants.WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital],
+                    Function(
+                        "if",
+                        [
+                            Function(
+                                "isZeroOrNull",
+                                [opportunity_score_sums[vital]],
+                            ),
+                            0,
+                            Function(
+                                "divide",
+                                [
+                                    opportunity_score_sums[vital],
+                                    self._resolve_total_score_weights_function(
+                                        f"measurements.score.weight.{vital}", None
+                                    ),
+                                ],
+                            ),
+                        ],
+                    ),
+                ],
+            )
+            for vital in vitals
+        }
+        return Function(
+            "plus",
+            [
+                adjusted_opportunity_scores["lcp"],
+                Function(
+                    "plus",
+                    [
+                        adjusted_opportunity_scores["fcp"],
+                        Function(
+                            "plus",
+                            [
+                                adjusted_opportunity_scores["cls"],
+                                Function(
+                                    "plus",
+                                    [
+                                        adjusted_opportunity_scores["ttfb"],
+                                        adjusted_opportunity_scores["inp"],
+                                    ],
+                                ),
+                            ],
+                        ),
+                    ],
+                ),
+            ],
+            alias,
+        )
+
+    def _resolve_total_score_weights_function(self, column: str, alias: str) -> SelectType:
+        """Calculates the total sum score weights for a given web vital.
+        This must be cached since it runs another query."""
+
+        self.builder.requires_other_aggregates = True
+        if column in self.total_score_weights and self.total_score_weights[column] is not None:
+            return Function("toFloat64", [self.total_score_weights[column]], alias)
+
+        total_query = builder.MetricsQueryBuilder(
+            dataset=self.builder.dataset,
+            params={},
+            snuba_params=self.builder.params,
+            selected_columns=[f"sum({column})"],
+        )
+
+        total_query.columns += self.builder.resolve_groupby()
+
+        total_results = total_query.run_query(Referrer.API_DISCOVER_TOTAL_SCORE_WEIGHTS_FIELD.value)
+        results = total_query.process_results(total_results)
+
+        if len(results["data"]) != 1:
+            self.total_score_weights[column] = 0
+            return Function("toFloat64", [0], alias)
+        self.total_score_weights[column] = results["data"][0][
+            fields.get_function_alias(f"sum({column})")
+        ]
+        return Function("toFloat64", [self.total_score_weights[column]], alias)
 
     def _resolve_count_scores_function(
         self,
