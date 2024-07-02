@@ -4,7 +4,7 @@ import pydantic
 from rest_framework.exceptions import NotFound, ParseError, PermissionDenied, ValidationError
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import capture_exception, configure_scope
+from sentry_sdk import Scope, capture_exception
 
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -34,8 +34,7 @@ class InternalRpcServiceEndpoint(Endpoint):
         return False
 
     def post(self, request: Request, service_name: str, method_name: str) -> Response:
-        with configure_scope() as scope:
-            scope.set_tag("rpc_method", f"{service_name}.{method_name}")
+        Scope.get_isolation_scope().set_tag("rpc_method", f"{service_name}.{method_name}")
         if not self._is_authorized(request):
             raise PermissionDenied
 
