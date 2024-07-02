@@ -501,6 +501,29 @@ describe('AssigneeSelectorDropdown', () => {
     expect(screen.getByTestId('assignee-selector')).toHaveTextContent('CD');
   });
 
+  it('filters users based on their email address', async () => {
+    MemberListStore.loadInitialData([USER_1, USER_2, USER_3, USER_4]);
+    render(
+      <AssigneeSelectorDropdown
+        group={GROUP_2}
+        loading={false}
+        memberList={[USER_1, USER_2, USER_3, USER_4]}
+        onAssign={newAssignee => updateGroup(GROUP_2, newAssignee)}
+      />
+    );
+    await openMenu();
+    expect(screen.queryByTestId('loading-indicator')).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByRole('textbox'), 'github@example.com');
+
+    // 1 total item
+    await waitFor(() => {
+      expect(screen.getAllByRole('option')).toHaveLength(1);
+    });
+
+    expect(await screen.findByText(`${USER_4.name}`)).toBeInTheDocument();
+  });
+
   it('successfully shows suggested assignees and suggestion reason', async () => {
     jest.spyOn(GroupStore, 'get').mockImplementation(() => GROUP_2);
 
