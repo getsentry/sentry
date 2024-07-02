@@ -62,7 +62,7 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
                 frame_count += len(contributing_frames)
 
                 for frame in contributing_frames:
-                    frame_dict = {"filename": "", "function": "", "context-line": ""}
+                    frame_dict = {"module": "", "filename": "", "function": "", "context-line": ""}
                     for frame_values in frame.get("values", []):
                         if frame_values.get("id") in frame_dict:
                             frame_dict[frame_values["id"]] = _get_value_if_exists(frame_values)
@@ -71,7 +71,7 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
                         found_non_snipped_context_line = True
 
                     frame_strings.append(
-                        f'  File "{frame_dict["filename"]}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
+                        f'  Module "{frame_dict["module"]}", file "{frame_dict["filename"]}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
                     )
         # Only exceptions have the type and value properties, so we don't need to handle the threads
         # case here
