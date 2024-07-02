@@ -6,7 +6,7 @@ import type {BaseRole} from 'sentry/types/organization';
 import slugify from 'sentry/utils/slugify';
 
 // Export route to make these forms searchable by label/help
-export const route = '/settings/:orgId/';
+export const route = '/settings/organization/:orgId';
 
 const formGroups: JsonFormObject[] = [
   {
