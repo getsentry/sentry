@@ -323,6 +323,7 @@ class SlackService:
         return text_description
 
     def notify_recipient(
+        self,
         notification: BaseNotification,
         recipient: Actor,
         attachments: SlackBlock,
