@@ -1,5 +1,5 @@
 import logging
-from typing import Any
+from typing import Any, TypeVar
 
 from sentry.eventstore.models import Event
 from sentry.utils.safe import get_path
@@ -102,3 +102,26 @@ def filter_null_from_event_title(title: str) -> str:
     Filter out null bytes from event title so that it can be saved in records table.
     """
     return title.replace("\x00", "")
+
+
+T = TypeVar("T", dict[str, Any], str)
+
+
+def _discard_excess_frames(frames: list[T], max_frames: int, current_frame_count: int) -> list[T]:
+    if current_frame_count >= max_frames:
+        return []
+
+    # If adding in all of the new frames would put us over the limit, truncate the list
+    if current_frame_count + len(frames) > max_frames:
+        remaining_frames_allowed = max_frames - current_frame_count
+        # Pull from the end of the list, since those frames are the most recent
+        frames = frames[-remaining_frames_allowed:]
+
+    return frames
+
+
+def _is_snipped_context_line(context_line: str) -> bool:
+    # This check is implicitly restricted to JS (and friends) events by the fact that the `{snip]`
+    # is only added in the JS processor. See
+    # https://github.com/getsentry/sentry/blob/d077a5bb7e13a5927794b35d9ae667a4f181feb7/src/sentry/lang/javascript/utils.py#L72-L77.
+    return context_line.startswith("{snip}") and context_line.endswith("{snip}")
