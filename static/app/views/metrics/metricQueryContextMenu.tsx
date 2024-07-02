@@ -27,7 +27,11 @@ import {
   getWidgetAsQueryParams,
   getWidgetQuery,
 } from 'sentry/utils/metrics/dashboard';
-import {hasCustomMetrics, hasMetricAlertFeature} from 'sentry/utils/metrics/features';
+import {
+  hasCustomMetrics,
+  hasCustomMetricsExtractionRules,
+  hasMetricAlertFeature,
+} from 'sentry/utils/metrics/features';
 import {
   isMetricsQueryWidget,
   type MetricDisplayType,
@@ -138,19 +142,29 @@ export function MetricQueryContextMenu({
       {
         leadingItems: [<IconSettings key="icon" />],
         key: 'settings',
+        disabled: hasCustomMetricsExtractionRules(organization)
+          ? false
+          : !isCustomMetric({mri: metricsQuery.mri}),
         label: t('Metric Settings'),
-        disabled: !isCustomMetric({mri: metricsQuery.mri}),
         onAction: () => {
           trackAnalytics('ddm.widget.settings', {
             organization,
           });
           Sentry.metrics.increment('ddm.widget.settings');
-          navigateTo(
-            `/settings/projects/:projectId/metrics/${encodeURIComponent(
-              metricsQuery.mri
-            )}`,
-            router
-          );
+          if (
+            !hasCustomMetricsExtractionRules(organization) ||
+            isCustomMetric({mri: metricsQuery.mri})
+          ) {
+            navigateTo(
+              `/settings/projects/:projectId/metrics/${encodeURIComponent(
+                metricsQuery.mri
+              )}`,
+              router
+            );
+          } else {
+            // TODO(telemetry-experience): As soon as the span-based-metrics data has an unique identifier, we should use it here
+            navigateTo(`/settings/projects/:projectId/metrics/`, router);
+          }
         },
       },
       {

@@ -11,6 +11,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {OrganizationContext} from 'sentry/views/organizationContext';
@@ -22,7 +23,7 @@ export function useOptInModal() {
     false
   );
 
-  if (!dismissedModal) {
+  if (!dismissedModal && !hasCustomMetricsExtractionRules(organization)) {
     openMetricsOptInModal(organization, setDismissedModal);
   }
 }
