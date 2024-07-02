@@ -224,6 +224,25 @@ class GitHubClientMixin(GithubProxyClient):
         """
         return self.get_cached(f"/repos/{repo}/commits/{sha}")
 
+    def get_merge_commit_sha_from_commit(self, repo: str, sha: str) -> str | None:
+        """
+        Get the merge commit sha from a commit sha.
+        """
+        response = self.get_pullrequest_from_commit(repo, sha)
+        if not isinstance(response, list) or len(response) != 1:
+            # the response should return a single merged PR, return if multiple
+            if len(response) > 1:
+                return None
+
+        if response[0]["state"] == "open":
+            metrics.incr(
+                "github_pr_comment.queue_comment_check.open_pr",
+                sample_rate=1.0,
+            )
+            return None
+
+        return response[0].get("merge_commit_sha")
+
     def get_pullrequest_from_commit(self, repo: str, sha: str) -> Any:
         """
         https://docs.github.com/en/rest/commits/commits#list-pull-requests-associated-with-a-commit

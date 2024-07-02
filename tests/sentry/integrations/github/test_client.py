@@ -332,6 +332,40 @@ class GitHubAppsClientTest(TestCase):
         del stored_reactions["url"]
         assert reactions == stored_reactions
 
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_merge_commit_sha_from_commit(self, get_jwt):
+        merge_commit_sha = "jkl123"
+        pull_requests = [{"merge_commit_sha": merge_commit_sha, "state": "closed"}]
+        commit_sha = "asdf"
+        responses.add(
+            responses.GET,
+            f"https://api.github.com/repos/{self.repo.name}/commits/{commit_sha}/pulls",
+            json=pull_requests,
+        )
+
+        sha = self.github_client.get_merge_commit_sha_from_commit(
+            repo=self.repo.name, sha=commit_sha
+        )
+        assert sha == merge_commit_sha
+
+    @mock.patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
+    @responses.activate
+    def test_get_merge_commit_sha_from_commit_open_pr(self, get_jwt):
+        merge_commit_sha = "jkl123"
+        pull_requests = [{"merge_commit_sha": merge_commit_sha, "state": "open"}]
+        commit_sha = "asdf"
+        responses.add(
+            responses.GET,
+            f"https://api.github.com/repos/{self.repo.name}/commits/{commit_sha}/pulls",
+            json=pull_requests,
+        )
+
+        sha = self.github_client.get_merge_commit_sha_from_commit(
+            repo=self.repo.name, sha=commit_sha
+        )
+        assert sha is None
+
     @responses.activate
     def test_disable_email(self):
         with self.tasks():
