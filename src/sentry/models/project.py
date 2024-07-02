@@ -418,9 +418,9 @@ class Project(Model, PendingDeletionMixin):
         self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None
     ) -> Any:
         # don't pass the default, we need to check the template if it doesn't exist
-        option = self.option_manager.get_value(self, key, None, validate)
+        option = self.option_manager.get_value(self, key, default, validate)
 
-        if option is None and self.template is not None:
+        if option == default and self.template is not None:
             return self.template_manager.get_value(self.template, key, default, validate)
 
         # check if the option is set, if not return the default
