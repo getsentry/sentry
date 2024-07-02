@@ -229,7 +229,7 @@ def check_user_with_timeout(
             if time.time() > time_to_quit:
                 return SlackChannelIdData(prefix=_prefix, channel_id=None, timed_out=True)
     except SlackApiError:
-        logger.exception("rule.slack.user_check_error", extra=logger_params)
+        _logger.exception("rule.slack.user_check_error", extra=logger_params)
 
     return SlackChannelIdData(prefix=_prefix, channel_id=_channel_id, timed_out=False)
 
