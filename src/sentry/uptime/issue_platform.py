@@ -82,7 +82,7 @@ def build_event_data_for_occurrence(result: CheckResult, occurrence: IssueOccurr
         "platform": "other",
         "project_id": occurrence.project_id,
         # We set this to the time that the check was performed
-        "received": datetime.fromtimestamp(result["actual_check_time"]),
+        "received": datetime.fromtimestamp(result["actual_check_time_ms"] / 1000),
         "sdk": None,
         "tags": {
             "subscription_id": result["subscription_id"],
