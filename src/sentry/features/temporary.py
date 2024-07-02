@@ -429,8 +429,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:starfish-browser-webvitals-pageoverview-v2", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable INP in the browser starfish webvitals module
     manager.add("organizations:starfish-browser-webvitals-replace-fid-with-inp", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Uses a computed total count to calculate the score in the browser starfish webvitals module, instead of measurements.score.total
-    manager.add("organizations:starfish-browser-webvitals-score-computed-total", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Update Web Vitals UI to display aggregate web vital values as avg instead of p75
     manager.add("organizations:performance-webvitals-avg", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable browser starfish webvitals module to use backend provided performance scores
