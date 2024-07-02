@@ -24,6 +24,7 @@ import {
   WEB_VITAL_DETAILS,
 } from 'sentry/utils/performance/vitals/constants';
 import type {Vital} from 'sentry/utils/performance/vitals/types';
+import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {getStylingSliceName} from '../../../traces/utils';
@@ -43,7 +44,6 @@ import {
 } from '../guards';
 import {getTraceQueryParams} from '../traceApi/useTrace';
 import {TraceType} from '../traceType';
-import type {ReplayTrace} from 'sentry/views/replays/detail/trace/useReplayTraces';
 
 /**
  *

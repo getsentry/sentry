@@ -7,10 +7,9 @@ import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import type {ParsedHeader} from 'sentry/utils/parseLinkHeader';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
-
+import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {ReplayRecord} from 'sentry/views/replays/types';
-import useApi from 'sentry/utils/useApi';
 
 export type ReplayTrace = {
   timestamp: number | undefined;

@@ -34,6 +34,7 @@ import {
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
 import {loadTraceViewPreferences} from '../../../performance/newTraceDetails/traceState/tracePreferences';
+
 import {useReplayTraces} from './useReplayTraces';
 
 function TracesNotFound({performanceActive}: {performanceActive: boolean}) {

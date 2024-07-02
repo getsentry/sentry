@@ -1,11 +1,12 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {makeTestQueryClient} from 'sentry-test/queryClient';
 import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import * as useOrganization from 'sentry/utils/useOrganization';
+
 import {useReplayTraces} from './useReplayTraces';
-import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 const organization = OrganizationFixture();
 const queryClient = makeTestQueryClient();
