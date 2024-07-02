@@ -2858,7 +2858,7 @@ def save_attachment(
             project_id=project.id,
             key_id=key_id,
             outcome=Outcome.RATE_LIMITED,
-            reason=f"Too many attachments ({num_requests}) uploaded in a 5 minute window, will reset at {reset_time}",
+            reason="rate_limited",
             timestamp=timestamp,
             event_id=event_id,
             category=DataCategory.ATTACHMENT,
