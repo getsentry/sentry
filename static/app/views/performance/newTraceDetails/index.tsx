@@ -350,7 +350,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   }, [props.traceSlug, props.trace, props.status, projects, props.replayRecord]);
 
   useEffect(() => {
-    if (props.replayTraces) {
+    if (props.replayTraces && props.replayTraces.length > 0 && tree.type === 'trace') {
       tree.fetchTraces({
         api,
         filters,

@@ -413,11 +413,11 @@ for (const key in {...MOBILE_VITAL_DETAILS, ...WEB_VITAL_DETAILS}) {
   };
 }
 
-type IncrementalTraceFetchOptions = {
+type TraceFetchOptions = {
   api: Client;
   filters: any;
   organization: Organization;
-  replayTraces: ReplayTrace[] | undefined;
+  replayTraces: ReplayTrace[];
   rerender: () => void;
   traceLimit: number | undefined;
   urlParams: Location['query'];
@@ -624,13 +624,9 @@ export class TraceTree {
     return tree.build();
   }
 
-  async fetchTraces(options: IncrementalTraceFetchOptions) {
+  async fetchTraces(options: TraceFetchOptions) {
     const {organization, api, urlParams, filters, traceLimit, rerender, replayTraces} =
       options;
-
-    if (!replayTraces || replayTraces.length === 0 || this.type !== 'trace') {
-      return;
-    }
 
     const clonedTraceIds = [...replayTraces];
 
