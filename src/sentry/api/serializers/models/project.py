@@ -253,8 +253,10 @@ class ProjectSerializerBaseResponse(_ProjectSerializerOptionalBaseResponse):
     access: list[str]
     hasAccess: bool
     hasCustomMetrics: bool
+    hasFeedbacks: bool
     hasMinifiedStackTrace: bool
     hasMonitors: bool
+    hasNewFeedbacks: bool
     hasProfiles: bool
     hasReplays: bool
     hasSessions: bool

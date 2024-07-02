@@ -16,6 +16,7 @@ class BaseRoleSerializerResponse(TypedDict):
     allowed: bool
     isAllowed: bool
     isRetired: bool
+    isTeamRolesAllowed: bool
 
 
 class OrganizationRoleSerializerResponse(BaseRoleSerializerResponse):
