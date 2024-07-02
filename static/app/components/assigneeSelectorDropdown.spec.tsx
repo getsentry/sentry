@@ -501,7 +501,7 @@ describe('AssigneeSelectorDropdown', () => {
     expect(screen.getByTestId('assignee-selector')).toHaveTextContent('CD');
   });
 
-  it('filters users based on their email addres', async () => {
+  it('filters users based on their email address', async () => {
     MemberListStore.loadInitialData([USER_1, USER_2, USER_3, USER_4]);
     render(
       <AssigneeSelectorDropdown
