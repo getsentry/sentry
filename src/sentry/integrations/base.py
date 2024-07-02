@@ -44,7 +44,7 @@ from sentry.shared_integrations.exceptions import (
     UnsupportedResponseType,
 )
 from sentry.utils.audit import create_audit_entry, create_system_audit_entry
-from sentry.utils.sdk import configure_scope
+from sentry.utils.sdk import Scope
 
 if TYPE_CHECKING:
     from sentry.integrations.services.integration import RpcOrganizationIntegration
@@ -393,10 +393,10 @@ class IntegrationInstallation:
             filter={"id": self.org_integration.default_auth_id}
         )
         if identity is None:
-            with configure_scope() as scope:
-                scope.set_tag("integration_provider", self.model.get_provider().name)
-                scope.set_tag("org_integration_id", self.org_integration.id)
-                scope.set_tag("default_auth_id", self.org_integration.default_auth_id)
+            scope = Scope.get_isolation_scope()
+            scope.set_tag("integration_provider", self.model.get_provider().name)
+            scope.set_tag("org_integration_id", self.org_integration.id)
+            scope.set_tag("default_auth_id", self.org_integration.default_auth_id)
             raise Identity.DoesNotExist
         return identity
 
