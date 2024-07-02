@@ -24,8 +24,6 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import OrganizationMembersList from 'sentry/views/settings/organizationMembers/organizationMembersList';
 
 jest.mock('sentry/utils/analytics');
-
-jest.mock('sentry/api');
 jest.mock('sentry/actionCreators/indicator');
 
 const roles = [
@@ -86,23 +84,9 @@ describe('OrganizationMembersList', function () {
     },
   });
   const router = RouterFixture();
-  const defaultProps = {
-    organization,
-    router,
-    location: router.location,
-    routes: router.routes,
-    route: router.routes[0],
-    params: router.params,
-    routeParams: router.params,
-  };
-
-  jest.spyOn(ConfigStore, 'get').mockImplementation(() => currentUser.user);
-
-  afterAll(function () {
-    jest.mocked(ConfigStore.get).mockRestore();
-  });
 
   beforeEach(function () {
+    ConfigStore.set('user', currentUser.user!);
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/members/me/',
@@ -180,12 +164,11 @@ describe('OrganizationMembersList', function () {
       method: 'DELETE',
     });
 
-    render(<OrganizationMembersList {...defaultProps} />);
-
-    await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
-
+    render(<OrganizationMembersList />, {organization});
     renderGlobalModal();
-    await userEvent.click(screen.getByTestId('confirm-button'));
+
+    await userEvent.click((await screen.findAllByRole('button', {name: 'Remove'}))[0]);
+    await userEvent.click(await screen.findByTestId('confirm-button'));
 
     await waitFor(() => expect(addSuccessMessage).toHaveBeenCalled());
 
@@ -201,7 +184,7 @@ describe('OrganizationMembersList', function () {
       statusCode: 500,
     });
 
-    render(<OrganizationMembersList {...defaultProps} />);
+    render(<OrganizationMembersList />, {organization});
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Remove'})[0]);
 
@@ -221,7 +204,7 @@ describe('OrganizationMembersList', function () {
       method: 'DELETE',
     });
 
-    render(<OrganizationMembersList {...defaultProps} />);
+    render(<OrganizationMembersList />, {organization});
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Leave'})[0]);
 
@@ -249,7 +232,7 @@ describe('OrganizationMembersList', function () {
     });
     OrganizationsStore.addOrReplace(secondOrg);
 
-    render(<OrganizationMembersList {...defaultProps} />);
+    render(<OrganizationMembersList />, {organization});
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Leave'})[0]);
 
@@ -273,7 +256,7 @@ describe('OrganizationMembersList', function () {
       statusCode: 500,
     });
 
-    render(<OrganizationMembersList {...defaultProps} />);
+    render(<OrganizationMembersList />, {organization});
 
     await userEvent.click(screen.getAllByRole('button', {name: 'Leave'})[0]);
 
@@ -296,7 +279,7 @@ describe('OrganizationMembersList', function () {
       },
     });
 
-    render(<OrganizationMembersList {...defaultProps} />);
+    render(<OrganizationMembersList />, {organization});
 
     expect(inviteMock).not.toHaveBeenCalled();
 
@@ -313,7 +296,7 @@ describe('OrganizationMembersList', function () {
       },
     });
 
-    render(<OrganizationMembersList {...defaultProps} />);
+    render(<OrganizationMembersList />, {organization});
 
     expect(inviteMock).not.toHaveBeenCalled();
 
@@ -327,7 +310,7 @@ describe('OrganizationMembersList', function () {
       body: [],
     });
 
-    render(<OrganizationMembersList {...defaultProps} />, {
+    render(<OrganizationMembersList />, {
       router,
     });
 
@@ -353,7 +336,7 @@ describe('OrganizationMembersList', function () {
       url: '/organizations/org-slug/members/',
       body: [],
     });
-    render(<OrganizationMembersList {...defaultProps} />);
+    render(<OrganizationMembersList />, {organization});
 
     await userEvent.click(screen.getByRole('button', {name: 'Filter'}));
     await userEvent.click(screen.getByRole('option', {name: 'Member'}));
@@ -445,7 +428,7 @@ describe('OrganizationMembersList', function () {
         method: 'PUT',
       });
 
-      render(<OrganizationMembersList {...defaultProps} organization={org} />);
+      render(<OrganizationMembersList />, {organization: org});
 
       expect(await screen.findByText('Pending Members')).toBeInTheDocument();
       expect(screen.getByRole('button', {name: 'Approve'})).toBeDisabled();
@@ -469,7 +452,7 @@ describe('OrganizationMembersList', function () {
         method: 'PUT',
       });
 
-      render(<OrganizationMembersList {...defaultProps} />);
+      render(<OrganizationMembersList />, {organization});
 
       expect(screen.getByText('Pending Members')).toBeInTheDocument();
 
@@ -505,7 +488,7 @@ describe('OrganizationMembersList', function () {
         method: 'DELETE',
       });
 
-      render(<OrganizationMembersList {...defaultProps} />);
+      render(<OrganizationMembersList />, {organization});
 
       expect(screen.getByText('Pending Members')).toBeInTheDocument();
 
@@ -520,7 +503,7 @@ describe('OrganizationMembersList', function () {
       });
     });
 
-    it('can update invite requests', async function () {
+    it.only('can update invite requests', async function () {
       const org = OrganizationFixture({
         access: ['member:admin', 'org:admin', 'member:write'],
         status: {
@@ -539,9 +522,12 @@ describe('OrganizationMembersList', function () {
         method: 'PUT',
       });
 
-      render(<OrganizationMembersList {...defaultProps} />, {organization: org});
+      render(<OrganizationMembersList />, {organization: org});
 
-      await selectEvent.select(screen.getAllByRole('textbox')[1], ['Admin']);
+      expect(await screen.findByText('Pending Members')).toBeInTheDocument();
+      await selectEvent.select(screen.getByRole('textbox', {name: 'Role: Member'}), [
+        'Admin',
+      ]);
 
       await userEvent.click(screen.getByRole('button', {name: 'Approve'}));
 
