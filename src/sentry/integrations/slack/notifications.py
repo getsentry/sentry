@@ -8,7 +8,6 @@ from typing import Any
 import orjson
 import sentry_sdk
 
-from sentry import features
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.notifications import get_context, get_integrations_by_channel_by_recipient
 from sentry.integrations.slack.message_builder import SlackBlock
@@ -110,26 +109,17 @@ def _notify_recipient(
         if SiloMode.get_current_mode() == SiloMode.CONTROL:
             post_message_task = post_message_control
 
-        has_sdk_flag = features.has(
-            "organizations:slack-sdk-notify-recipient", notification.organization
-        )
-
         log_params = {
             "notification": str(notification),
             "recipient": recipient.id,
             "channel_id": channel,
         }
-        if has_sdk_flag:
-            log_error_message = "slack.notify_recipient.fail"
-        else:
-            log_error_message = "notification.fail.slack_post"
         post_message_task.apply_async(
             kwargs={
                 "integration_id": integration.id,
                 "payload": payload,
-                "log_error_message": log_error_message,
+                "log_error_message": "slack.notify_recipient.fail",
                 "log_params": log_params,
-                "has_sdk_flag": has_sdk_flag,
             }
         )
     # recording data outside of span
