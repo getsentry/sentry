@@ -14,7 +14,7 @@ from sentry.models.authproviderreplica import AuthProviderReplica
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberSummary
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.service import user_service
 
 
 class ControlAccessService(AccessService):

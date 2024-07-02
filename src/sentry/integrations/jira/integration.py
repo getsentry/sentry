@@ -27,8 +27,6 @@ from sentry.models.group import Group
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration_external_project import IntegrationExternalProject
 from sentry.services.hybrid_cloud.organization.service import organization_service
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,
@@ -38,6 +36,8 @@ from sentry.shared_integrations.exceptions import (
 )
 from sentry.silo.base import all_silo_function
 from sentry.tasks.integrations.migrate_issues import migrate_issues
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils.strings import truncatechars
 
 from .client import JiraCloudClient

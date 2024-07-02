@@ -4,8 +4,8 @@ from django import template
 from django.urls import reverse
 
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils.avatar import get_email_avatar, get_gravatar_url, get_letter_avatar
 from sentry.utils.http import absolute_uri
 

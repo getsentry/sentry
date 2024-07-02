@@ -27,26 +27,26 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
-from sentry.services.hybrid_cloud.user import (
+from sentry.signals import user_signup
+from sentry.users.services.user import (
     RpcAvatar,
     RpcUser,
     UserFilterArgs,
     UserSerializeType,
     UserUpdateArgs,
 )
-from sentry.services.hybrid_cloud.user.model import (
+from sentry.users.services.user.model import (
     RpcUserProfile,
     RpcVerifyUserEmail,
     UserCreateResult,
     UserIdEmailArgs,
 )
-from sentry.services.hybrid_cloud.user.serial import (
+from sentry.users.services.user.serial import (
     serialize_rpc_user,
     serialize_rpc_user_profile,
     serialize_user_avatar,
 )
-from sentry.services.hybrid_cloud.user.service import UserService
-from sentry.signals import user_signup
+from sentry.users.services.user.service import UserService
 
 logger = logging.getLogger("user:provisioning")
 

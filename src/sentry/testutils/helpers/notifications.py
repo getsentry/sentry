@@ -20,8 +20,8 @@ from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.utils.actions import MessageAction
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.actor import Actor
+from sentry.users.services.user import RpcUser
 
 
 class DummyNotification(BaseNotification):
