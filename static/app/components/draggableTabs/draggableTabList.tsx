@@ -149,14 +149,7 @@ function BaseDraggableTabList({
 
   return (
     <TabListOuterWrap style={outerWrapStyles}>
-      <Reorder.Group
-        axis="x"
-        values={tabs}
-        onReorder={newOrder => {
-          setTabs(newOrder);
-        }}
-        as="div"
-      >
+      <Reorder.Group axis="x" values={tabs} onReorder={setTabs} as="div">
         <TabListWrap
           {...mergeProps(tabListProps, collectionProps)}
           tempViewSelected={state.selectedKey === state.collection.getLastKey()}
@@ -181,8 +174,7 @@ function BaseDraggableTabList({
                 }
                 dropState={dropState}
                 onDelete={() => {
-                  const updatedTabs = tabs.filter(tab => tab.key !== item.key);
-                  setTabs(updatedTabs);
+                  setTabs(tabs.filter(tab => tab.key !== item.key));
                 }}
                 ref={element => (tabItemsRef.current[item.key] = element)}
                 isChanged
