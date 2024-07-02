@@ -7,8 +7,7 @@ import PageFiltersContainer from 'sentry/components/organizations/pageFilters/co
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import useOrganization from 'sentry/utils/useOrganization';
 import {NoAccess} from 'sentry/views/insights/common/components/noAccess';
-import {MODULE_TITLES} from 'sentry/views/insights/common/utils/useModuleTitle';
-import {INSIGHTS_TITLE} from 'sentry/views/insights/settings';
+import {INSIGHTS_TITLE, MODULE_TITLES} from 'sentry/views/insights/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 type ModuleNameStrings = `${ModuleName}`;

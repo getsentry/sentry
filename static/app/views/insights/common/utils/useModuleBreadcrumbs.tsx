@@ -1,7 +1,6 @@
 import type {Crumb} from 'sentry/components/breadcrumbs';
-import {MODULE_TITLES} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
-import {INSIGHTS_TITLE} from 'sentry/views/insights/settings';
+import {INSIGHTS_TITLE, MODULE_TITLES} from 'sentry/views/insights/settings';
 import type {ModuleName} from 'sentry/views/insights/types';
 
 type ModuleNameStrings = `${ModuleName}`;
