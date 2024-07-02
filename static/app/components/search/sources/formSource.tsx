@@ -2,6 +2,7 @@ import {Component} from 'react';
 import type {WithRouterProps} from 'react-router';
 
 import {loadSearchMap} from 'sentry/actionCreators/formSearch';
+import ConfigStore from 'sentry/stores/configStore';
 import type {FormSearchField} from 'sentry/stores/formSearchStore';
 import FormSearchStore from 'sentry/stores/formSearchStore';
 import type {Fuse} from 'sentry/utils/fuzzySearch';
@@ -65,9 +66,15 @@ class FormSource extends Component<Props, State> {
     const {searchMap, query, params, children} = this.props;
     const {fuzzy} = this.state;
 
+    const isCustomerDomain = !!ConfigStore.get('customerDomain');
+
     const results =
       fuzzy?.search(query).map<Result>(value => {
         const {item, ...rest} = value;
+        if (isCustomerDomain && item.route === '/settings/:orgId/') {
+          item.route = '/settings/organization/:orgId/';
+        }
+
         return {
           item: {
             ...item,
