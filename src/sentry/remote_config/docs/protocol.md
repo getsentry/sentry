@@ -8,6 +8,10 @@ Host: https://o1300299.ingest.us.sentry.io
 
 ## Configuration [/api/<project_id>/configuration/]
 
+- Parameters
+  - environment (optional, string) - The environment to scope the configuration by.
+  - name (optional, string) - An explicit name to scope the configuration by.
+
 ### Get Configuration [GET]
 
 Retrieve a project's configuration.
