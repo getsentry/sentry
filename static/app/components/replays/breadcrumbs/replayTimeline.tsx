@@ -9,6 +9,7 @@ import {
 } from 'sentry/components/replays/breadcrumbs/gridlines';
 import ReplayTimelineEvents from 'sentry/components/replays/breadcrumbs/replayTimelineEvents';
 import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
+import TimelineGaps from 'sentry/components/replays/breadcrumbs/timelineGaps';
 import {TimelineScrubber} from 'sentry/components/replays/player/scrubber';
 import {useTimelineScrubberMouseTracking} from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
@@ -64,6 +65,7 @@ export default function ReplayTimeline() {
       >
         <MinorGridlines durationMs={durationMs} width={width} />
         <MajorGridlines durationMs={durationMs} width={width} />
+        <TimelineGaps durationMs={durationMs} frames={chapterFrames} width={width} />
         <TimelineScrubber />
         <TimelineEventsContainer>
           <ReplayTimelineEvents
