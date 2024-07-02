@@ -34,7 +34,7 @@ class RpcProject(RpcModel):
         default: Any | None = None,
         validate: Callable[[object], bool] | None = None,
     ) -> Any:
-        from sentry.services.hybrid_cloud.project import project_service
+        from sentry.projects.services.project import project_service
 
         keyed_result, well_known_result = project_service.get_option(project=self, key=key)
         if validate is None or validate(keyed_result):
@@ -44,12 +44,12 @@ class RpcProject(RpcModel):
         return well_known_result
 
     def update_option(self, key: str, value: Any) -> bool:
-        from sentry.services.hybrid_cloud.project import project_service
+        from sentry.projects.services.project import project_service
 
         return project_service.update_option(self, key, value)
 
     def delete_option(self, key: str) -> None:
-        from sentry.services.hybrid_cloud.project import project_service
+        from sentry.projects.services.project import project_service
 
         project_service.delete_option(self, key)
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from sentry.models.project import Project
-from sentry.services.hybrid_cloud.project import RpcProject
+from sentry.projects.services.project import RpcProject
 
 
 def serialize_project(project: Project) -> RpcProject:

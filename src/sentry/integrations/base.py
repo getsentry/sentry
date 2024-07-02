@@ -23,13 +23,13 @@ from sentry.models.identity import Identity
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.integrations.integration import Integration
 from sentry.models.team import Team
-from sentry.pipeline import PipelineProvider
-from sentry.pipeline.views.base import PipelineView
-from sentry.services.hybrid_cloud.organization import (
+from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcOrganizationSummary,
     organization_service,
 )
+from sentry.pipeline import PipelineProvider
+from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.constants import (
     ERR_INTERNAL,
     ERR_UNAUTHORIZED,

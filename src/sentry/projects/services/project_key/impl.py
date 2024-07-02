@@ -1,12 +1,8 @@
 from django.db.models import F
 
 from sentry.models.projectkey import ProjectKey, ProjectKeyStatus, UseCase
-from sentry.services.hybrid_cloud.project_key import (
-    ProjectKeyRole,
-    ProjectKeyService,
-    RpcProjectKey,
-)
-from sentry.services.hybrid_cloud.project_key.serial import serialize_project_key
+from sentry.projects.services.project_key import ProjectKeyRole, ProjectKeyService, RpcProjectKey
+from sentry.projects.services.project_key.serial import serialize_project_key
 
 
 class DatabaseBackedProjectKeyService(ProjectKeyService):
