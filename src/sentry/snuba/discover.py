@@ -28,6 +28,7 @@ from sentry.search.events.fields import (
 )
 from sentry.search.events.types import HistogramParams, ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
+from sentry.snuba.query_sources import QuerySource
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.math import nice_int
 from sentry.utils.snuba import (
@@ -200,6 +201,7 @@ def _query(
     on_demand_metrics_enabled=False,
     on_demand_metrics_type=None,
     dataset=Dataset.Discover,
+    query_source: QuerySource | None = None,
 ) -> EventsResponse:
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
@@ -233,7 +235,9 @@ def _query(
     if extra_columns is not None:
         builder.columns.extend(extra_columns)
 
-    result = builder.process_results(builder.run_query(referrer))
+    result = builder.process_results(
+        builder.run_query(referrer=referrer, query_source=query_source)
+    )
     result["meta"]["tips"] = transform_tips(builder.tips)
     return result
 
@@ -253,6 +257,7 @@ def _timeseries_query(
     on_demand_metrics_enabled=False,
     on_demand_metrics_type=None,
     dataset=Dataset.Discover,
+    query_source: QuerySource | None = None,
 ):
     assert dataset in [Dataset.Discover, Dataset.Transactions]
     with sentry_sdk.start_span(op="discover.discover", description="timeseries.filter_transform"):
@@ -287,7 +292,7 @@ def _timeseries_query(
             query_list.append(comparison_builder)
 
         query_results = bulk_snuba_queries(
-            [query.get_snql_query() for query in query_list], referrer
+            [query.get_snql_query() for query in query_list], referrer, query_source=query_source
         )
 
     with sentry_sdk.start_span(op="discover.discover", description="timeseries.transform_results"):
@@ -438,6 +443,7 @@ def timeseries_query(
     use_metrics_layer=False,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type=None,
+    query_source: QuerySource | None = None,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -477,6 +483,7 @@ def timeseries_query(
         on_demand_metrics_enabled=on_demand_metrics_enabled,
         on_demand_metrics_type=on_demand_metrics_type,
         dataset=Dataset.Discover,
+        query_source=query_source,
     )
 
 
@@ -525,6 +532,7 @@ def _top_events_timeseries(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type=None,
     dataset=Dataset.Discover,
+    query_source: QuerySource | None = None,
 ):
     assert dataset in [Dataset.Discover, Dataset.Transactions]
     if top_events is None:
@@ -542,6 +550,7 @@ def _top_events_timeseries(
                 include_equation_fields=True,
                 skip_tag_resolution=True,
                 dataset=dataset,
+                query_source=query_source,
             )
 
     top_events_builder = TopEventsQueryBuilder(
@@ -574,9 +583,10 @@ def _top_events_timeseries(
         result, other_result = bulk_snuba_queries(
             [top_events_builder.get_snql_query(), other_events_builder.get_snql_query()],
             referrer=referrer,
+            query_source=query_source,
         )
     else:
-        result = top_events_builder.run_query(referrer)
+        result = top_events_builder.run_query(referrer=referrer, query_source=query_source)
         other_result = {"data": []}
     if (
         not allow_empty
@@ -664,6 +674,7 @@ def top_events_timeseries(
     functions_acl=None,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type=None,
+    query_source: QuerySource | None = None,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -706,6 +717,7 @@ def top_events_timeseries(
         on_demand_metrics_enabled=on_demand_metrics_enabled,
         on_demand_metrics_type=on_demand_metrics_type,
         dataset=Dataset.Discover,
+        query_source=query_source,
     )
 
 

@@ -1704,7 +1704,9 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
         return queries
 
-    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+    def run_query(
+        self, referrer: str, use_cache: bool = False, query_source: QuerySource | None = None
+    ) -> Any:
         if self.use_metrics_layer or self.use_on_demand:
             from sentry.snuba.metrics.datasource import get_series
             from sentry.snuba.metrics.mqb_query_transformer import (
@@ -1752,7 +1754,7 @@ class TimeseriesMetricQueryBuilder(MetricsQueryBuilder):
 
         queries = self.get_snql_query()
         if queries:
-            results = bulk_snuba_queries(queries, referrer, use_cache)
+            results = bulk_snuba_queries(queries, referrer, use_cache, query_source=query_source)
         else:
             results = []
 
@@ -1960,7 +1962,9 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
 
         return final_condition
 
-    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+    def run_query(
+        self, referrer: str, use_cache: bool = False, query_source: QuerySource | None = None
+    ) -> Any:
         result = {}
         results = []
         meta_dict = {}
@@ -2028,7 +2032,9 @@ class TopMetricsQueryBuilder(TimeseriesMetricQueryBuilder):
         else:
             queries = self.get_snql_query()
             if queries:
-                results = bulk_snuba_queries(queries, referrer, use_cache)
+                results = bulk_snuba_queries(
+                    queries, referrer, use_cache, query_source=query_source
+                )
 
             time_map: dict[str, dict[str, Any]] = defaultdict(dict)
             for current_result in results:

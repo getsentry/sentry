@@ -8,6 +8,7 @@ from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaPara
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.discover import transform_tips, zerofill
 from sentry.snuba.metrics.extraction import MetricSpecType
+from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import SnubaTSResult
 
 
@@ -71,6 +72,7 @@ def timeseries_query(
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    query_source: QuerySource | None = None,
 ) -> Any:
     builder = ProfilesTimeseriesQueryBuilder(
         dataset=Dataset.Profiles,
@@ -82,19 +84,21 @@ def timeseries_query(
             functions_acl=functions_acl,
         ),
     )
-    results = builder.run_query(referrer)
+    results = builder.run_query(referrer=referrer, query_source=query_source)
 
     return SnubaTSResult(
         {
-            "data": zerofill(
-                results["data"],
-                params["start"],
-                params["end"],
-                rollup,
-                "time",
-            )
-            if zerofill_results
-            else results["data"],
+            "data": (
+                zerofill(
+                    results["data"],
+                    params["start"],
+                    params["end"],
+                    rollup,
+                    "time",
+                )
+                if zerofill_results
+                else results["data"]
+            ),
             "meta": {
                 "fields": {
                     value["name"]: get_json_meta_type(value["name"], value.get("type"), builder)

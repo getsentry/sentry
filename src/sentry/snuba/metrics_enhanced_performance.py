@@ -16,6 +16,7 @@ from sentry.snuba.metrics_performance import histogram_query as metrics_histogra
 from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.metrics_performance import timeseries_query as metrics_timeseries_query
 from sentry.snuba.metrics_performance import top_events_timeseries as metrics_top_events_timeseries
+from sentry.snuba.query_sources import QuerySource
 from sentry.utils.snuba import SnubaTSResult
 
 
@@ -123,6 +124,7 @@ def timeseries_query(
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type=None,
+    query_source: QuerySource | None = None,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -146,6 +148,7 @@ def timeseries_query(
                 use_metrics_layer=use_metrics_layer,
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
+                query_source=query_source,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery:
@@ -168,12 +171,15 @@ def timeseries_query(
             comparison_delta,
             functions_acl,
             has_metrics=has_metrics,
+            query_source=query_source,
         )
     return SnubaTSResult(
         {
-            "data": discover.zerofill([], params["start"], params["end"], rollup, "time")
-            if zerofill_results
-            else [],
+            "data": (
+                discover.zerofill([], params["start"], params["end"], rollup, "time")
+                if zerofill_results
+                else []
+            ),
         },
         params["start"],
         params["end"],
@@ -199,6 +205,7 @@ def top_events_timeseries(
     functions_acl: list[str] | None = None,
     on_demand_metrics_enabled: bool | None = False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    query_source: QuerySource | None = None,
 ) -> SnubaTSResult | dict[str, Any]:
     metrics_compatible = False
     equations, _ = categorize_columns(selected_columns)
@@ -225,6 +232,7 @@ def top_events_timeseries(
                 functions_acl,
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
+                query_source=query_source,
             )
         # raise Invalid Queries since the same thing will happen with discover
         except InvalidSearchQuery:
@@ -253,12 +261,15 @@ def top_events_timeseries(
             zerofill_results,
             include_other,
             functions_acl,
+            query_source=query_source,
         )
     return SnubaTSResult(
         {
-            "data": discover.zerofill([], params["start"], params["end"], rollup, "time")
-            if zerofill_results
-            else [],
+            "data": (
+                discover.zerofill([], params["start"], params["end"], rollup, "time")
+                if zerofill_results
+                else []
+            ),
         },
         params["start"],
         params["end"],
