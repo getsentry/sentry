@@ -15,7 +15,7 @@ from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.models.integrations.sentry_app import MASKED_VALUE, SentryApp
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.organizations.services.organization import organization_service
 from sentry.users.services.user.service import user_service
 
 

@@ -26,7 +26,7 @@ from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration_external_project import IntegrationExternalProject
-from sentry.services.hybrid_cloud.organization.service import organization_service
+from sentry.organizations.services.organization.service import organization_service
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiHostError,

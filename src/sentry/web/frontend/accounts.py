@@ -15,8 +15,8 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
+from sentry.organizations.services.organization import organization_service
 from sentry.security.utils import capture_security_activity
-from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import email_verified, terms_accepted
 from sentry.silo.base import control_silo_function
 from sentry.users.services.lost_password_hash import lost_password_hash_service

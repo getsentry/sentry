@@ -18,8 +18,8 @@ from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
-from sentry.services.hybrid_cloud.organization.model import RpcAuditLogEntryActor
+from sentry.organizations.services.organization import RpcOrganization, organization_service
+from sentry.organizations.services.organization.model import RpcAuditLogEntryActor
 from sentry.silo.base import region_silo_function
 from sentry.users.services.user import RpcUser
 

@@ -26,7 +26,7 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
+from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.signals import join_request_link_viewed, user_signup
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import auth, json, metrics

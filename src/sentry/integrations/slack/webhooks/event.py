@@ -20,7 +20,7 @@ from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequest
 from sentry.integrations.slack.requests.event import COMMANDS, SlackEventRequest
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
 from sentry.integrations.slack.views.link_identity import build_linking_url
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.organizations.services.organization import organization_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.urls import parse_link
 

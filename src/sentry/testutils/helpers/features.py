@@ -14,7 +14,7 @@ from sentry.features.base import OrganizationFeature, ProjectFeature
 from sentry.features.exceptions import FeatureNotRegistered
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.services.hybrid_cloud.organization import (
+from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcOrganizationSummary,
     RpcUserOrganizationContext,

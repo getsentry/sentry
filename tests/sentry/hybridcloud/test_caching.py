@@ -10,8 +10,8 @@ from sentry.hybridcloud.rpc.caching import (
     region_caching_service,
 )
 from sentry.hybridcloud.rpc.caching.impl import CacheBackend, _consume_generator
-from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
-from sentry.services.hybrid_cloud.organization.service import organization_service
+from sentry.organizations.services.organization.model import RpcOrganizationSummary
+from sentry.organizations.services.organization.service import organization_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all

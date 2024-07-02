@@ -14,7 +14,7 @@ from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
-from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
+from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.signals import integration_added
 from sentry.types.region import find_regions_for_orgs
 

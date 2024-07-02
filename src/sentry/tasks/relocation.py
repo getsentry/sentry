@@ -46,7 +46,7 @@ from sentry.models.relocation import (
     ValidationStatus,
 )
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.organizations.services.organization import organization_service
 from sentry.signals import relocated, relocation_redeem_promo_code
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task

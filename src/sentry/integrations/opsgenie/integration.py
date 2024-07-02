@@ -19,8 +19,8 @@ from sentry.integrations.base import (
 )
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import PipelineView
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import (
     ApiError,
     ApiRateLimitedError,

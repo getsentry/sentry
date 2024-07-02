@@ -5,7 +5,7 @@ from sentry.hybridcloud.services.organization_mapping import (
 from sentry.hybridcloud.services.organization_mapping.model import CustomerId
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.services.hybrid_cloud.organization import RpcOrganizationMappingFlags
+from sentry.organizations.services.organization import RpcOrganizationMappingFlags
 from sentry.types.region import Region
 
 

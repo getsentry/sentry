@@ -11,7 +11,7 @@ from sentry.features.flagpole_context import (
 )
 from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.models.useremail import UserEmail
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.organizations.services.organization import organization_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 

@@ -42,15 +42,15 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.outbox import outbox_context
 from sentry.models.user import User
-from sentry.pipeline import Pipeline, PipelineSessionStore
-from sentry.pipeline.provider import PipelineProvider
-from sentry.services.hybrid_cloud.organization import (
+from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcOrganizationFlagsUpdate,
     RpcOrganizationMember,
     RpcOrganizationMemberFlags,
     organization_service,
 )
+from sentry.pipeline import Pipeline, PipelineSessionStore
+from sentry.pipeline.provider import PipelineProvider
 from sentry.signals import sso_enabled, user_signup
 from sentry.tasks.auth import email_missing_links_control
 from sentry.utils import auth, metrics

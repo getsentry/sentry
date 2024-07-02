@@ -1,6 +1,6 @@
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.team import Team, TeamStatus
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.organizations.services.organization import organization_service
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 

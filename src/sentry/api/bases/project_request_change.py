@@ -3,7 +3,7 @@ from __future__ import annotations
 from rest_framework.request import Request
 
 from sentry.api.bases import ProjectEndpoint, ProjectPermission
-from sentry.services.hybrid_cloud.organization import RpcOrganization, RpcUserOrganizationContext
+from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 
 
 class ProjectRequestChangeEndpointPermission(ProjectPermission):

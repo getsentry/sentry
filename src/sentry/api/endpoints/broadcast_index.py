@@ -17,8 +17,8 @@ from sentry.api.serializers import AdminBroadcastSerializer, BroadcastSerializer
 from sentry.api.validators import AdminBroadcastValidator, BroadcastValidator
 from sentry.db.models.query import in_icontains
 from sentry.models.broadcast import Broadcast, BroadcastSeen
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.search.utils import tokenize_query
-from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 
 logger = logging.getLogger("sentry")
 

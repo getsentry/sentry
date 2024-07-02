@@ -10,13 +10,13 @@ from sentry.hybridcloud.rpc.filter_query import OpaqueSerializedResponse
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
-from sentry.services.hybrid_cloud.project import (
+from sentry.projects.services.project import (
     ProjectFilterArgs,
     ProjectService,
     RpcProject,
     RpcProjectOptionValue,
 )
-from sentry.services.hybrid_cloud.project.serial import serialize_project
+from sentry.projects.services.project.serial import serialize_project
 from sentry.signals import project_created
 from sentry.users.services.user import RpcUser
 

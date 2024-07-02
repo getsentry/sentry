@@ -1,5 +1,5 @@
 from sentry.models.organization import OrganizationStatus
-from sentry.services.hybrid_cloud.organization_actions.impl import (
+from sentry.organizations.services.organization_actions.impl import (
     update_organization_with_outbox_message,
 )
 

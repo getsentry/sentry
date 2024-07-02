@@ -13,7 +13,7 @@ from sentry.models.organizationslugreservation import (
     OrganizationSlugReservationType,
 )
 from sentry.models.outbox import OutboxCategory, outbox_context, process_control_outbox
-from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
+from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.services.organization.model import OrganizationProvisioningOptions
 from sentry.silo.base import SiloMode
 from sentry.types.region import get_local_region

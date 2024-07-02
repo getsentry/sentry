@@ -18,7 +18,7 @@ from sentry.plugins.base.response import Response
 from sentry.plugins.base.view import PluggableViewMixin
 from sentry.plugins.config import PluginConfigMixin
 from sentry.plugins.status import PluginStatusMixin
-from sentry.services.hybrid_cloud.project import RpcProject
+from sentry.projects.services.project import RpcProject
 from sentry.utils.hashlib import md5_text
 
 if TYPE_CHECKING:

@@ -24,7 +24,7 @@ from sentry.models.outbox import (
     RegionOutbox,
     outbox_context,
 )
-from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.organizations.services.organization import RpcOrganization
 from sentry.services.organization import OrganizationProvisioningOptions
 from sentry.utils.snowflake import generate_snowflake_id
 

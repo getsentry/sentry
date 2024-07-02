@@ -8,7 +8,7 @@ from sentry.auth.services.auth import RpcAuthProvider
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
-from sentry.services.hybrid_cloud.organization.model import RpcOrganization
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.types.organization import OrganizationAbsoluteUrlMixin
 
 

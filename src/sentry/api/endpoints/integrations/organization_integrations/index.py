@@ -21,7 +21,7 @@ from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.constants import ObjectStatus
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.services.hybrid_cloud.organization.model import (
+from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcUserOrganizationContext,
 )

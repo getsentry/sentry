@@ -23,7 +23,7 @@ from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.models.user import User
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
-from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.organizations.services.organization import RpcOrganization
 from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format

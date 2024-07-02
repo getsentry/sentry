@@ -66,8 +66,8 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.useremail import UserEmail
-from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.organization.model import (
+from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcOrganizationDeleteResponse,
     RpcOrganizationDeleteState,

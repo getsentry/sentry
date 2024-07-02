@@ -19,12 +19,12 @@ from sentry.hybridcloud.rpc.service import (
     dispatch_to_local_service,
 )
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.services.hybrid_cloud.organization import (
+from sentry.organizations.services.organization import (
     OrganizationService,
     RpcOrganizationMemberFlags,
     RpcUserOrganizationContext,
 )
-from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase

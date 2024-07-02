@@ -20,7 +20,7 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.outbox import outbox_context
-from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin

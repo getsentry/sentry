@@ -13,8 +13,8 @@ from sentry.models.organizationonboardingtask import (
 )
 from sentry.models.project import Project
 from sentry.models.rule import Rule
+from sentry.organizations.services.organization import organization_service
 from sentry.plugins.bases.issue import IssueTrackingPlugin
-from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import (
     alert_rule_created,
     event_processed,

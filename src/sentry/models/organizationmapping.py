@@ -13,7 +13,7 @@ from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH, REGION_NAME_LENGTH
 from sentry.models.organization import OrganizationStatus
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.organization import RpcOrganizationMappingFlags
+    from sentry.organizations.services.organization import RpcOrganizationMappingFlags
 
 
 @control_silo_model

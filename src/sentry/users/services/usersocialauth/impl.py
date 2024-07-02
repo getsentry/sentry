@@ -11,7 +11,7 @@ from django.db.models import QuerySet
 from sentry.api.serializers.base import Serializer
 from sentry.hybridcloud.rpc.filter_query import FilterQueryDatabaseImpl
 from sentry.models.integrations.integration import Integration
-from sentry.services.hybrid_cloud.organization.model import RpcOrganization
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.users.services.usersocialauth.model import RpcUserSocialAuth, UserSocialAuthFilterArgs
 from sentry.users.services.usersocialauth.serial import serialize_usersocialauth
 from sentry.users.services.usersocialauth.service import UserSocialAuthService

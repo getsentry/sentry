@@ -25,8 +25,8 @@ from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization import organization_service
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.services.hybrid_cloud.organization import organization_service
 
 logger = logging.getLogger("sentry.webhooks")
 

@@ -13,7 +13,7 @@ from rest_framework.request import Request
 
 from sentry import features, options
 from sentry.api.utils import customer_domain_path, generate_organization_url
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.organizations.services.organization import organization_service
 from sentry.types.region import subdomain_is_region
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.http import is_using_customer_domain, query_string

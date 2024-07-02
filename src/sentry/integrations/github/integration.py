@@ -31,8 +31,8 @@ from sentry.integrations.utils.code_mapping import RepoTree
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization import RpcOrganizationSummary, organization_service
 from sentry.pipeline import Pipeline, PipelineView
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.tasks.integrations import migrate_repo

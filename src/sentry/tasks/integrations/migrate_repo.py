@@ -4,7 +4,7 @@ from sentry.integrations.services.repository import repository_service
 from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.integrations import logger

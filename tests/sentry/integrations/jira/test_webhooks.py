@@ -13,7 +13,7 @@ from sentry.integrations.jira.webhooks.base import JiraTokenError, JiraWebhookBa
 from sentry.integrations.mixins import IssueSyncMixin
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.utils import AtlassianConnectValidationError
-from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.testutils.cases import APITestCase, TestCase
 

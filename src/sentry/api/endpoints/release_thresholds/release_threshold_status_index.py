@@ -36,7 +36,7 @@ from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.release import Release
 from sentry.models.release_threshold.constants import ReleaseThresholdType
-from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.organizations.services.organization import RpcOrganization
 from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.release_threshold_status")

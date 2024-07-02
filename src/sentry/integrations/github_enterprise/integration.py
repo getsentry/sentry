@@ -24,8 +24,8 @@ from sentry.integrations.mixins import RepositoryMixin
 from sentry.integrations.mixins.commit_context import CommitContextMixin
 from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView, PipelineView
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.constants import ERR_INTERNAL, ERR_UNAUTHORIZED
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils import jwt
