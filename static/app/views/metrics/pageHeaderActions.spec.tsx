@@ -41,7 +41,7 @@ describe('Metrics Page Header Actions', function () {
       await userEvent.click(button);
 
       expect(navigateTo).toHaveBeenCalledWith(
-        `/settings/projects/:projectId/metrics/`,
+        `/settings/projects/:projectId/metrics/configure-metric/`,
         expect.objectContaining({
           params: expect.objectContaining({
             projectId: 'project-slug',
