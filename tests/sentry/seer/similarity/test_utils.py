@@ -1,6 +1,6 @@
 import copy
 from collections.abc import Callable
-from typing import Any
+from typing import Any, Literal, cast
 from uuid import uuid1
 
 from sentry.eventstore.models import Event
@@ -395,7 +395,19 @@ class GetStacktraceStringTest(TestCase):
         contributes: bool = True,
         start_index: int = 1,
         context_line_factory: Callable[[int], str] = lambda i: f"test = {i}!",
+        minified_frames: Literal["all", "some", "none"] = "none",
     ) -> list[dict[str, Any]]:
+        if minified_frames == "all":
+            make_context_line = lambda i: "{snip}" + context_line_factory(i) + "{snip}"
+        elif minified_frames == "some":
+            make_context_line = lambda i: (
+                "{snip}" + context_line_factory(i) + "{snip}"
+                if i % 2 == 0
+                else context_line_factory(i)
+            )
+        else:
+            make_context_line = context_line_factory
+
         frames = []
         for i in range(start_index, start_index + num_frames):
             frames.append(
@@ -424,7 +436,7 @@ class GetStacktraceStringTest(TestCase):
                             "name": None,
                             "contributes": contributes,
                             "hint": None,
-                            "values": [context_line_factory(i)],
+                            "values": [make_context_line(i)],
                         },
                     ],
                 }
@@ -527,6 +539,100 @@ class GetStacktraceStringTest(TestCase):
         )
         assert stacktrace_str == expected
 
+    def test_chained_too_many_frames_all_minified_js(self):
+        data_chained_exception = copy.deepcopy(self.CHAINED_APP_DATA)
+        data_chained_exception["app"]["component"]["values"][0]["values"] = [
+            self.create_exception(
+                exception_type_str="InnerException",
+                exception_value="nope",
+                frames=self.create_frames(
+                    num_frames=15,
+                    context_line_factory=lambda i: f"inner line {i}",
+                    minified_frames="all",
+                ),
+            ),
+            self.create_exception(
+                exception_type_str="MiddleException",
+                exception_value="un-uh",
+                frames=self.create_frames(
+                    num_frames=15,
+                    context_line_factory=lambda i: f"middle line {i}",
+                    minified_frames="all",
+                ),
+            ),
+            self.create_exception(
+                exception_type_str="OuterException",
+                exception_value="no way",
+                frames=self.create_frames(
+                    num_frames=15,
+                    context_line_factory=lambda i: f"outer line {i}",
+                    minified_frames="all",
+                ),
+            ),
+        ]
+        stacktrace_str = get_stacktrace_string(data_chained_exception)
+
+        # The stacktrace string should be:
+        #    15 frames from OuterExcepton (with lines counting up from 1 to 15), followed by
+        #    5 frames from MiddleExcepton (with lines counting up from 11 to 15), followed by
+        #    no frames from InnerExcepton (though the type and value are in there)
+        expected = "".join(
+            ["OuterException: no way"]
+            + [
+                f'\n  File "hello.py", function hello_there\n    {{snip}}outer line {i}{{snip}}'
+                for i in range(1, 16)  #
+            ]
+            + ["\nMiddleException: un-uh"]
+            + [
+                f'\n  File "hello.py", function hello_there\n    {{snip}}middle line {i}{{snip}}'
+                for i in range(11, 16)
+            ]
+            + ["\nInnerException: nope"]
+        )
+        assert stacktrace_str == expected
+
+    def test_chained_too_many_frames_minified_js_frame_limit(self):
+        """Test that we restrict fully-minified stacktraces to 20 frames, and all other stacktraces to 50 frames."""
+        for minified_frames, expected_frame_count in [("all", 20), ("some", 50), ("none", 50)]:
+            data_chained_exception = copy.deepcopy(self.CHAINED_APP_DATA)
+            data_chained_exception["app"]["component"]["values"][0]["values"] = [
+                self.create_exception(
+                    exception_type_str="InnerException",
+                    exception_value="nope",
+                    frames=self.create_frames(
+                        num_frames=30,
+                        context_line_factory=lambda i: f"inner line {i}",
+                        minified_frames=cast(Literal["all", "some", "none"], minified_frames),
+                    ),
+                ),
+                self.create_exception(
+                    exception_type_str="MiddleException",
+                    exception_value="un-uh",
+                    frames=self.create_frames(
+                        num_frames=30,
+                        context_line_factory=lambda i: f"middle line {i}",
+                        minified_frames=cast(Literal["all", "some", "none"], minified_frames),
+                    ),
+                ),
+                self.create_exception(
+                    exception_type_str="OuterException",
+                    exception_value="no way",
+                    frames=self.create_frames(
+                        num_frames=30,
+                        context_line_factory=lambda i: f"outer line {i}",
+                        minified_frames=cast(Literal["all", "some", "none"], minified_frames),
+                    ),
+                ),
+            ]
+            stacktrace_str = get_stacktrace_string(data_chained_exception)
+
+            assert (
+                stacktrace_str.count("outer line")
+                + stacktrace_str.count("middle line")
+                + stacktrace_str.count("inner line")
+                == expected_frame_count
+            )
+
     def test_thread(self):
         stacktrace_str = get_stacktrace_string(self.MOBILE_THREAD_DATA)
         assert stacktrace_str == 'File "", function TestHandler'
@@ -582,6 +688,23 @@ class GetStacktraceStringTest(TestCase):
             num_frames += 1
             assert ("test = " + str(i) + "!") in stacktrace_str
         assert num_frames == 50
+
+    def test_too_many_frames_minified_js_frame_limit(self):
+        """Test that we restrict fully-minified stacktraces to 20 frames, and all other stacktraces to 50 frames."""
+        for minified_frames, expected_frame_count in [("all", 20), ("some", 50), ("none", 50)]:
+            data_frames = copy.deepcopy(self.BASE_APP_DATA)
+            data_frames["app"]["component"]["values"] = [
+                self.create_exception(
+                    frames=self.create_frames(
+                        num_frames=60,
+                        context_line_factory=lambda i: f"context line {i}",
+                        minified_frames=cast(Literal["all", "some", "none"], minified_frames),
+                    ),
+                ),
+            ]
+            stacktrace_str = get_stacktrace_string(data_frames)
+
+            assert stacktrace_str.count("context line") == expected_frame_count
 
     def test_no_exception(self):
         data_no_exception = copy.deepcopy(self.BASE_APP_DATA)
