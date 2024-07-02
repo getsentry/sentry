@@ -621,57 +621,64 @@ export class TraceTree {
     return tree.build();
   }
 
-  async fetchTraces(options: TraceFetchOptions): Promise<void> {
+  fetchAdditionalTraces(options: TraceFetchOptions): () => void {
+    let cancelled = false;
     const {organization, api, urlParams, filters, rerender, replayTraces} = options;
     const clonedTraceIds = [...replayTraces];
 
+    const root = this.root.children[0];
+    root.fetchStatus = 'loading';
     rerender();
 
-    while (clonedTraceIds.length > 0) {
-      const batch = clonedTraceIds.splice(0, 3);
-      const results = await Promise.allSettled(
-        batch.map(batchTraceData => {
-          return fetchSingleTrace(api, {
-            orgSlug: organization.slug,
-            query: qs.stringify(
-              getTraceQueryParams(urlParams, filters.selection, {
-                timestamp: batchTraceData.timestamp,
-              })
-            ),
-            traceId: batchTraceData.traceSlug,
-          });
-        })
-      );
+    (async () => {
+      while (clonedTraceIds.length > 0) {
+        const batch = clonedTraceIds.splice(0, 3);
+        const results = await Promise.allSettled(
+          batch.map(batchTraceData => {
+            return fetchSingleTrace(api, {
+              orgSlug: organization.slug,
+              query: qs.stringify(
+                getTraceQueryParams(urlParams, filters.selection, {
+                  timestamp: batchTraceData.timestamp,
+                })
+              ),
+              traceId: batchTraceData.traceSlug,
+            });
+          })
+        );
 
-      // if (!this.isFetching) {
-      //   break;
-      // }
+        if (cancelled) return;
 
-      const updatedData = results.reduce(
-        (acc, result) => {
-          // Ignoring the error case for now
-          if (result.status === 'fulfilled') {
-            const {transactions, orphan_errors} = result.value;
-            acc.transactions.push(...transactions);
-            acc.orphan_errors.push(...orphan_errors);
-          }
+        const updatedData = results.reduce(
+          (acc, result) => {
+            // Ignoring the error case for now
+            if (result.status === 'fulfilled') {
+              const {transactions, orphan_errors} = result.value;
+              acc.transactions.push(...transactions);
+              acc.orphan_errors.push(...orphan_errors);
+            }
 
-          return acc;
-        },
-        {
-          transactions: [],
-          orphan_errors: [],
-        } as TraceSplitResults<TraceTree.Transaction>
-      );
+            return acc;
+          },
+          {
+            transactions: [],
+            orphan_errors: [],
+          } as TraceSplitResults<TraceTree.Transaction>
+        );
 
-      this.appendTree(TraceTree.FromTrace(updatedData, null));
-      rerender();
-    }
+        this.appendTree(TraceTree.FromTrace(updatedData, null));
+        rerender();
+      }
+    })();
 
+    root.fetchStatus = 'idle';
     rerender();
+
+    return () => {
+      root.fetchStatus = 'idle';
+      cancelled = true;
+    };
   }
-
-  stopFetching() {}
 
   appendTree(tree: TraceTree) {
     const baseTraceNode = this.root.children[0];
@@ -703,7 +710,6 @@ export class TraceTree {
     }
 
     for (const [node, _] of tree.vitals) {
-      // Collect all measurements
       if (
         baseTraceNode.space?.[0] &&
         node.value &&
@@ -721,9 +727,14 @@ export class TraceTree {
       }
     }
 
-    baseTraceNode.children.sort(chronologicalSort);
-    baseTraceNode.invalidate(baseTraceNode);
-    this.build();
+    // We need to invalidate the data in the last node of the tree
+    // so that the connectors are updated and pointing to the sibling nodes
+    const last = this.root.children[this.root.children.length - 1];
+    last.invalidate(last);
+
+    for (const child of tree.root.children) {
+      this._list = this._list.concat(child.getVisibleChildren());
+    }
   }
 
   get shape(): TraceType {

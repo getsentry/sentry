@@ -168,6 +168,7 @@ interface TraceProps {
     | undefined
   >;
   trace: TraceTree;
+  trace_id: string | undefined;
 }
 
 export function Trace({
@@ -181,6 +182,7 @@ export function Trace({
   rerender,
   initializedRef,
   forceRerender,
+  trace_id,
 }: TraceProps) {
   const theme = useTheme();
   const api = useApi();
@@ -404,6 +406,7 @@ export function Trace({
           onRowClick={onRowClick}
           onRowKeyDown={onRowKeyDown}
           tree={trace}
+          trace_id={trace_id}
         />
       );
     },
@@ -562,6 +565,7 @@ function RenderRow(props: {
   style: React.CSSProperties;
   tabIndex: number;
   theme: Theme;
+  trace_id: string | undefined;
   tree: TraceTree;
 }) {
   const virtualized_index = props.index - props.manager.start_virtualized_index;
@@ -928,20 +932,25 @@ function RenderRow(props: {
               {props.node.children.length > 0 || props.node.canFetch ? (
                 <ChildrenButton
                   icon={''}
-                  status={props.tree.isFetching ? 'loading' : 'idle'}
+                  status={props.node.fetchStatus}
                   expanded
                   onClick={() => void 0}
                 >
-                  {props.node.children.length > 0 && !props.tree.isFetching
-                    ? COUNT_FORMATTER.format(props.node.children.length)
-                    : null}
+                  {props.node.fetchStatus === 'loading'
+                    ? null
+                    : props.node.children.length > 0
+                      ? COUNT_FORMATTER.format(props.node.children.length)
+                      : null}
                 </ChildrenButton>
               ) : null}
             </div>
             <span className="TraceOperation">{t('Trace')}</span>
-            <strong className="TraceEmDash"> — </strong>
-            {/* @TODO */}
-            <span className="TraceDescription">{''}</span>
+            {props.trace_id ? (
+              <React.Fragment>
+                <strong className="TraceEmDash"> — </strong>
+                <span className="TraceDescription">{props.trace_id}</span>
+              </React.Fragment>
+            ) : null}
           </div>
         </div>
         <div

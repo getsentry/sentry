@@ -340,7 +340,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       return undefined;
     }
 
-    tree.fetchTraces({
+    const cleanup = tree.fetchAdditionalTraces({
       api,
       filters,
       replayTraces: props.replayTraces,
@@ -349,8 +349,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
       rerender: forceRerender,
     });
 
-    return () => tree.stopFetching();
-
+    return () => cleanup();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tree, props.replayTraces]);
 
@@ -879,6 +878,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         <Trace
           trace={tree}
           rerender={rerender}
+          trace_id={props.traceSlug}
           scrollQueueRef={scrollQueueRef}
           initializedRef={initializedRef}
           onRowClick={onRowClick}
