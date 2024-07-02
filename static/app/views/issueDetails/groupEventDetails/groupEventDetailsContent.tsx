@@ -32,6 +32,7 @@ import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashC
 import {CronTimelineSection} from 'sentry/components/events/interfaces/crons/cronTimelineSection';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
+import {UptimeDataSection} from 'sentry/components/events/interfaces/uptime/uptimeDataSection';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {DataSection} from 'sentry/components/events/styles';
@@ -165,6 +166,9 @@ function DefaultGroupEventDetailsContent({
           organization={organization}
         />
       ) : null}
+      {group.issueCategory === IssueCategory.UPTIME && (
+        <UptimeDataSection group={group} />
+      )}
       {group.issueCategory === IssueCategory.CRON && (
         <CronTimelineSection
           event={event}
