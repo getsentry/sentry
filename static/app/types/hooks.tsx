@@ -631,9 +631,15 @@ type IntegrationsFeatureGatesHook = () => {
  */
 type InviteButtonCustomizationHook = () => React.ComponentType<{
   children: (opts: {
-    disabledByFlag: boolean;
-    disabledBySso: boolean;
+    /**
+     * Whether the Invite Members button is active or not
+     */
+    disabled: boolean;
     onTriggerModal: () => void;
+    /**
+     * Whether to display a message that new members must be registered via SSO
+     */
+    isSsoRequired?: boolean;
   }) => React.ReactElement;
   onTriggerModal: () => void;
   organization: Organization;

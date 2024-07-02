@@ -25,12 +25,11 @@ type State = DeprecatedAsyncView['state'] & {
 
 const InviteMembersButtonHook = HookOrDefault({
   hookName: 'member-invite-button:customization',
-  defaultComponent: ({children, organization, onTriggerModal}) =>
-    children({
-      disabledByFlag: !organization.features.includes('invite-members'),
-      disabledBySso: organization.requiresSso,
-      onTriggerModal,
-    }),
+  defaultComponent: ({children, organization, onTriggerModal}) => {
+    const isSsoRequired = organization.requiresSso;
+    const disabled = isSsoRequired || !organization.features.includes('invite-members');
+    return children({disabled, isSsoRequired, onTriggerModal});
+  },
 });
 
 class OrganizationMembersWrapper extends DeprecatedAsyncView<Props, State> {
@@ -142,13 +141,13 @@ class OrganizationMembersWrapper extends DeprecatedAsyncView<Props, State> {
 }
 
 function renderInviteMembersButton({
-  disabledByFlag,
-  disabledBySso,
+  disabled,
+  isSsoRequired,
   onTriggerModal,
 }: {
   onTriggerModal: () => void;
-  disabledByFlag?: boolean;
-  disabledBySso?: boolean;
+  disabled?: boolean;
+  isSsoRequired?: boolean;
 }) {
   const action = (
     <Button
@@ -157,36 +156,38 @@ function renderInviteMembersButton({
       onClick={onTriggerModal}
       data-test-id="email-invite"
       icon={<IconMail />}
-      disabled={disabledByFlag || disabledBySso}
+      disabled={disabled}
     >
       {t('Invite Members')}
     </Button>
   );
 
-  return disabledByFlag ? (
-    <Hovercard
-      body={
-        <FeatureDisabled
-          featureName={t('Invite Members')}
-          features="organizations:invite-members"
-          hideHelpToggle
-        />
-      }
-    >
-      {action}
-    </Hovercard>
-  ) : disabledBySso ? (
-    <Hovercard
-      body={
-        <Fragment>
-          {t(
-            `Your organization must use its single sign-on provider to register new members.`
-          )}
-        </Fragment>
-      }
-    >
-      {action}
-    </Hovercard>
+  return disabled ? (
+    isSsoRequired ? (
+      <Hovercard
+        body={
+          <Fragment>
+            {t(
+              `Your organization must use its single sign-on provider to register new members.`
+            )}
+          </Fragment>
+        }
+      >
+        {action}
+      </Hovercard>
+    ) : (
+      <Hovercard
+        body={
+          <FeatureDisabled
+            featureName={t('Invite Members')}
+            features="organizations:invite-members"
+            hideHelpToggle
+          />
+        }
+      >
+        {action}
+      </Hovercard>
+    )
   ) : (
     action
   );
