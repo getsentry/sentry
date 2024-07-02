@@ -96,6 +96,7 @@ export function BreadcrumbsDrawerContent({
           value={search}
           onChange={e => setSearch(e.target.value)}
           autoFocus={focusControl === BreadcrumbControlOptions.SEARCH}
+          aria-label={t('Search All Breadcrumbs')}
         />
         <InputGroup.TrailingItems disablePointerEvents>
           <IconSearch size="xs" />
@@ -119,6 +120,7 @@ export function BreadcrumbsDrawerContent({
             isOpen={isOpen}
             autoFocus={focusControl === BreadcrumbControlOptions.FILTER}
             {...props}
+            aria-label={t('Filter All Breadcrumbs')}
           >
             {filterSet.size > 0 ? filterSet.size : null}
           </BreadcrumbControl>
@@ -133,6 +135,7 @@ export function BreadcrumbsDrawerContent({
             showChevron={false}
             isOpen={isOpen}
             autoFocus={focusControl === BreadcrumbControlOptions.SORT}
+            aria-label={t('Sort All Breadcrumbs')}
             {...props}
           />
         )}
@@ -148,6 +151,7 @@ export function BreadcrumbsDrawerContent({
             icon={<IconClock />}
             showChevron={false}
             isOpen={isOpen}
+            aria-label={t('Change Time Format for All Breadcrumbs')}
             {...props}
           />
         )}

@@ -77,13 +77,13 @@ export default function BreadcrumbsDataSection({
             />
           </Body>
         ),
-        {ariaLabel: 'breadcrumbs drawer'}
+        {ariaLabel: 'breadcrumb drawer'}
       );
     },
     [allCrumbs, meta, group, event, project, openDrawer]
   );
 
-  if (!breadcrumbEntryIndex) {
+  if (breadcrumbEntryIndex === -1) {
     return null;
   }
 
@@ -120,7 +120,7 @@ export default function BreadcrumbsDataSection({
         onClick={() => onViewAllBreadcrumbs(BreadcrumbControlOptions.SORT)}
       />
       <Button
-        aria-label={t('Change Breadcrumb Time Format')}
+        aria-label={t('Change Time Format for Breadcrumbs')}
         icon={<IconClock size="xs" />}
         onClick={() =>
           setTimeDisplay(
@@ -156,7 +156,6 @@ export default function BreadcrumbsDataSection({
         {!isFullLength && (
           <ViewAllContainer>
             <VerticalEllipsis />
-
             <div>
               <ViewAllButton
                 size="sm"
