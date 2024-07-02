@@ -1,43 +1,39 @@
 import {
   BREADCRUMB_TIMESTAMP_PLACEHOLDER,
   BreadcrumbIcon,
-  BreadcrumbTimeDisplay,
   getBreadcrumbColorConfig,
   getBreadcrumbTitle,
 } from 'sentry/components/events/breadcrumbs/utils';
-import {BreadcrumbSort} from 'sentry/components/events/interfaces/breadcrumbs';
 import {convertCrumbType} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import {StructuredData} from 'sentry/components/structuredEventData';
-import Timeline from 'sentry/components/timeline';
+import Timeline, {type TimelineItemProps} from 'sentry/components/timeline';
 import type {RawCrumb} from 'sentry/types/breadcrumbs';
 import {defined} from 'sentry/utils';
 
 interface BreadcrumbsTimelineProps {
   breadcrumbs: RawCrumb[];
+  fullyExpanded?: boolean;
   meta?: Record<string, any>;
-  sort?: BreadcrumbSort;
-  timeDisplay?: BreadcrumbTimeDisplay;
+  startTimeString?: TimelineItemProps['startTimeString'];
   virtualCrumbIndex?: number;
 }
+
 export default function BreadcrumbsTimeline({
   breadcrumbs,
+  startTimeString,
   virtualCrumbIndex,
-  sort = BreadcrumbSort.NEWEST,
-  timeDisplay = BreadcrumbTimeDisplay.RELATIVE,
   meta = {},
+  fullyExpanded = false,
 }: BreadcrumbsTimelineProps) {
   if (!breadcrumbs.length) {
     return null;
   }
 
-  const startTimestamp =
-    timeDisplay === BreadcrumbTimeDisplay.RELATIVE
-      ? breadcrumbs?.at(-1)?.timestamp
-      : undefined;
   const items = breadcrumbs.map((breadcrumb, i) => {
     const bc = convertCrumbType(breadcrumb);
     const bcMeta = meta[i];
     const isVirtualCrumb = defined(virtualCrumbIndex) && i === virtualCrumbIndex;
+    const defaultDepth = fullyExpanded ? 10000 : 1;
     return (
       <Timeline.Item
         key={i}
@@ -45,16 +41,17 @@ export default function BreadcrumbsTimeline({
         colorConfig={getBreadcrumbColorConfig(bc.type)}
         icon={<BreadcrumbIcon type={bc.type} />}
         timeString={bc.timestamp ?? BREADCRUMB_TIMESTAMP_PLACEHOLDER}
-        startTimeString={startTimestamp}
+        startTimeString={startTimeString}
         // XXX: Only the virtual crumb can be marked as active for breadcrumbs
         isActive={isVirtualCrumb ?? false}
+        style={{background: 'transparent'}}
       >
         {defined(bc.message) && (
           <Timeline.Text>
             <StructuredData
               value={bc.message}
               depth={0}
-              maxDefaultDepth={1}
+              maxDefaultDepth={defaultDepth}
               meta={bcMeta?.message}
               withAnnotatedText
               withOnlyFormattedText
@@ -66,7 +63,7 @@ export default function BreadcrumbsTimeline({
             <StructuredData
               value={bc.data}
               depth={0}
-              maxDefaultDepth={1}
+              maxDefaultDepth={defaultDepth}
               meta={bcMeta?.data}
               withAnnotatedText
               withOnlyFormattedText
@@ -77,9 +74,5 @@ export default function BreadcrumbsTimeline({
     );
   });
 
-  return (
-    <Timeline.Container>
-      {sort === BreadcrumbSort.NEWEST ? items.reverse() : items}
-    </Timeline.Container>
-  );
+  return <Timeline.Container>{items}</Timeline.Container>;
 }
