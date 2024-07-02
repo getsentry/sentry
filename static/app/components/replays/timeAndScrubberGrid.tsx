@@ -11,6 +11,9 @@ import {formatTime} from 'sentry/components/replays/utils';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useTimelineScale, {
+  TimelineScaleContextProvider,
+} from 'sentry/utils/replays/hooks/useTimelineScale';
 
 type TimeAndScrubberGridProps = {
   isCompact?: boolean;
@@ -18,7 +21,8 @@ type TimeAndScrubberGridProps = {
 };
 
 function TimelineSizeBar() {
-  const {replay, timelineScale, setTimelineScale} = useReplayContext();
+  const {replay} = useReplayContext();
+  const [timelineScale, setTimelineScale] = useTimelineScale();
   const durationMs = replay?.getDurationMs();
   const maxScale = durationMs ? Math.ceil(durationMs / 60000) : 10;
 
@@ -33,10 +37,7 @@ function TimelineSizeBar() {
         aria-label={t('Zoom out')}
         disabled={timelineScale === 1}
       />
-      <span style={{padding: `0 ${space(0.5)}`}}>
-        {timelineScale}
-        {t('x')}
-      </span>
+      <span style={{padding: `0 ${space(0.5)}`}}>{timelineScale}×</span>
       <Button
         size="xs"
         title={t('Zoom in')}
@@ -60,21 +61,23 @@ function TimeAndScrubberGrid({
   const mouseTrackingProps = useScrubberMouseTracking({elem});
 
   return (
-    <Grid id="replay-timeline-player" isCompact={isCompact}>
-      <Time style={{gridArea: 'currentTime'}}>{formatTime(currentTime)}</Time>
-      <div style={{gridArea: 'timeline'}}>
-        <ReplayTimeline />
-      </div>
-      <div style={{gridArea: 'timelineSize', fontVariantNumeric: 'tabular-nums'}}>
-        {showZoom ? <TimelineSizeBar /> : null}
-      </div>
-      <StyledScrubber style={{gridArea: 'scrubber'}} ref={elem} {...mouseTrackingProps}>
-        <PlayerScrubber showZoomIndicators={showZoom} />
-      </StyledScrubber>
-      <Time style={{gridArea: 'duration'}}>
-        {durationMs ? formatTime(durationMs) : '--:--'}
-      </Time>
-    </Grid>
+    <TimelineScaleContextProvider>
+      <Grid id="replay-timeline-player" isCompact={isCompact}>
+        <Time style={{gridArea: 'currentTime'}}>{formatTime(currentTime)}</Time>
+        <div style={{gridArea: 'timeline'}}>
+          <ReplayTimeline />
+        </div>
+        <div style={{gridArea: 'timelineSize', fontVariantNumeric: 'tabular-nums'}}>
+          {showZoom ? <TimelineSizeBar /> : null}
+        </div>
+        <StyledScrubber style={{gridArea: 'scrubber'}} ref={elem} {...mouseTrackingProps}>
+          <PlayerScrubber showZoomIndicators={showZoom} />
+        </StyledScrubber>
+        <Time style={{gridArea: 'duration'}}>
+          {durationMs ? formatTime(durationMs) : '--:--'}
+        </Time>
+      </Grid>
+    </TimelineScaleContextProvider>
   );
 }
 
@@ -104,7 +107,10 @@ const StyledScrubber = styled('div')`
 `;
 
 const Time = styled('span')`
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeSmall};
   font-variant-numeric: tabular-nums;
+  font-weight: ${p => p.theme.fontWeightBold};
   padding: 0 ${space(1.5)};
 `;
 
