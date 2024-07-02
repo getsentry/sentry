@@ -14,11 +14,7 @@ from sentry.hybridcloud.rpc.resolvers import (
     ByRegionName,
 )
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
-from sentry.services.hybrid_cloud.project import (
-    ProjectFilterArgs,
-    RpcProject,
-    RpcProjectOptionValue,
-)
+from sentry.projects.services.project import ProjectFilterArgs, RpcProject, RpcProjectOptionValue
 from sentry.silo.base import SiloMode
 from sentry.users.services.user import RpcUser
 
@@ -29,7 +25,7 @@ class ProjectService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from sentry.services.hybrid_cloud.project.impl import DatabaseBackedProjectService
+        from sentry.projects.services.project.impl import DatabaseBackedProjectService
 
         return DatabaseBackedProjectService()
 

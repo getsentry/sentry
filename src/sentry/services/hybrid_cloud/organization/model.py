@@ -13,9 +13,9 @@ from pydantic import Field
 
 from sentry import roles
 from sentry.hybridcloud.rpc import RpcModel
+from sentry.projects.services.project import RpcProject
 from sentry.roles import team_roles
 from sentry.roles.manager import TeamRole
-from sentry.services.hybrid_cloud.project import RpcProject
 from sentry.signals import sso_enabled
 from sentry.silo.base import SiloMode
 from sentry.types.organization import OrganizationAbsoluteUrlMixin

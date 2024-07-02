@@ -10,6 +10,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.team import Team, TeamStatus
+from sentry.projects.services.project.serial import serialize_project
 from sentry.services.hybrid_cloud.organization import (
     RpcOrganization,
     RpcOrganizationFlags,
@@ -21,7 +22,6 @@ from sentry.services.hybrid_cloud.organization import (
     RpcTeam,
     RpcTeamMember,
 )
-from sentry.services.hybrid_cloud.project.serial import serialize_project
 
 
 def escape_flag_name(flag_name: str) -> str:

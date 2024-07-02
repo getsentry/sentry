@@ -7,7 +7,7 @@ from abc import abstractmethod
 
 from sentry.hybridcloud.rpc.resolvers import ByOrganizationId, ByRegionName
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
-from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, RpcProjectKey
+from sentry.projects.services.project_key import ProjectKeyRole, RpcProjectKey
 from sentry.silo.base import SiloMode
 
 
@@ -17,7 +17,7 @@ class ProjectKeyService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> "RpcService":
-        from sentry.services.hybrid_cloud.project_key.impl import DatabaseBackedProjectKeyService
+        from sentry.projects.services.project_key.impl import DatabaseBackedProjectKeyService
 
         return DatabaseBackedProjectKeyService()
 

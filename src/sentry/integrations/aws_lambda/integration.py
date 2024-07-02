@@ -23,8 +23,8 @@ from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.user import User
 from sentry.pipeline import PipelineView
+from sentry.projects.services.project import project_service
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary, organization_service
-from sentry.services.hybrid_cloud.project import project_service
 from sentry.silo.base import control_silo_function
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils.sdk import capture_exception

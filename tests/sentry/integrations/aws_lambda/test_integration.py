@@ -10,8 +10,8 @@ from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.projectkey import ProjectKey
 from sentry.pipeline import PipelineView
+from sentry.projects.services.project import project_service
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.project import project_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
