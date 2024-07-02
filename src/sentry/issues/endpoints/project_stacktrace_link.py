@@ -6,7 +6,7 @@ from typing import TypedDict
 from django.http import QueryDict
 from rest_framework.request import Request
 from rest_framework.response import Response
-from sentry_sdk import Scope, configure_scope
+from sentry_sdk import Scope
 
 from sentry import analytics
 from sentry.api.api_owners import ApiOwner
@@ -151,27 +151,28 @@ class ProjectStacktraceLinkEndpoint(ProjectEndpoint):
         error = None
         serialized_config = None
 
-        with configure_scope() as scope:
-            set_top_tags(scope, project, ctx, len(configs) > 0)
-            result = get_stacktrace_config(configs, ctx)
-            error = result["error"]
+        scope = Scope.get_isolation_scope()
 
-            # Post-processing before exiting scope context
-            if result["current_config"]:
-                # Use the provider key to split up stacktrace-link metrics by integration type
-                serialized_config = serialize(result["current_config"]["config"], request.user)
-                provider = serialized_config["provider"]["key"]
-                scope.set_tag("integration_provider", provider)  # e.g. github
+        set_top_tags(scope, project, ctx, len(configs) > 0)
+        result = get_stacktrace_config(configs, ctx)
+        error = result["error"]
 
-                if not result["source_url"]:
-                    error = result["current_config"]["outcome"].get("error")
-                    # When no code mapping have been matched we have not attempted a URL
-                    if result["current_config"]["outcome"].get("attemptedUrl"):
-                        attempted_url = result["current_config"]["outcome"]["attemptedUrl"]
-            try:
-                set_tags(scope, result, serialized_integrations)
-            except Exception:
-                logger.exception("Failed to set tags.")
+        # Post-processing before exiting scope context
+        if result["current_config"]:
+            # Use the provider key to split up stacktrace-link metrics by integration type
+            serialized_config = serialize(result["current_config"]["config"], request.user)
+            provider = serialized_config["provider"]["key"]
+            scope.set_tag("integration_provider", provider)  # e.g. github
+
+            if not result["source_url"]:
+                error = result["current_config"]["outcome"].get("error")
+                # When no code mapping have been matched we have not attempted a URL
+                if result["current_config"]["outcome"].get("attemptedUrl"):
+                    attempted_url = result["current_config"]["outcome"]["attemptedUrl"]
+        try:
+            set_tags(scope, result, serialized_integrations)
+        except Exception:
+            logger.exception("Failed to set tags.")
 
         if result["current_config"] and serialized_config:
             analytics.record(
