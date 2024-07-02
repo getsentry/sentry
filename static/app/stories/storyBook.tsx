@@ -1,8 +1,9 @@
 import type {JSXElementConstructor, ReactNode} from 'react';
-import {Children} from 'react';
+import {Children, Suspense} from 'react';
 import styled from '@emotion/styled';
 
 import {Flex} from 'sentry/components/container/flex';
+import Placeholder from 'sentry/components/placeholder';
 import SideBySide from 'sentry/components/stories/sideBySide';
 import {space} from 'sentry/styles/space';
 
@@ -39,7 +40,9 @@ export default function storyBook(
           return (
             <Story key={key}>
               <StoryTitle id={key}>{name}</StoryTitle>
-              {isOneChild ? children : <SideBySide>{children}</SideBySide>}
+              <Suspense fallback={<Placeholder />}>
+                {isOneChild ? children : <SideBySide>{children}</SideBySide>}
+              </Suspense>
             </Story>
           );
         })}
