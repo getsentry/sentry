@@ -736,8 +736,8 @@ class ProcessDelayedAlertConditionsTest(
     def test_apply_delayed_event_frequency_percent_comparison_interval(self):
         """
         Test that the event frequency percent condition with a percent
-        comparison uses the right comparison interval mapping and does not fail
-        with a KeyError.
+        comparison is using the COMPARISON_INTERVALS for it's
+        comparison_interval and does not fail with a KeyError.
         """
         percent_condition = self.create_event_frequency_condition(
             id="EventFrequencyPercentCondition",
