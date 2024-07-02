@@ -95,3 +95,9 @@ class SpanAttributeExtractionRuleConfig(DefaultFieldsModel):
                 rules.append(rule)
 
         return rules
+
+    @property
+    def number_of_extracted_metrics(self):
+        metric_types = len(MetricsExtractionRule.infer_types(self.aggregates))
+
+        return self.conditions.count() * metric_types
