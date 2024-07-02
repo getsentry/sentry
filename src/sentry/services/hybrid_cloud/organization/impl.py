@@ -38,6 +38,10 @@ from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.team import Team, TeamStatus
 from sentry.monitors.models import Monitor
 from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_metrics.models import (
+    SpanAttributeExtractionRuleCondition,
+    SpanAttributeExtractionRuleConfig,
+)
 from sentry.services.hybrid_cloud.organization import (
     OrganizationCheckService,
     OrganizationService,
@@ -577,6 +581,8 @@ class DatabaseBackedOrganizationService(OrganizationService):
                 RuleActivity,
                 RuleSnooze,
                 SavedSearch,
+                SpanAttributeExtractionRuleCondition,
+                SpanAttributeExtractionRuleConfig,
             ]
             for model in model_list:
                 merge_users_for_model_in_org(
