@@ -7,10 +7,12 @@ from typing import Any
 
 import orjson
 import sentry_sdk
+from slack_sdk.errors import SlackApiError
 
 from sentry import features
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.notifications import get_context, get_integrations_by_channel_by_recipient
+from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 from sentry.integrations.slack.message_builder.notifications import get_message_builder
@@ -32,15 +34,28 @@ SLACK_TIMEOUT = 5
 class SlackNotifyBasicMixin(NotifyBasicMixin):
     def send_message(self, channel_id: str, message: str) -> None:
         payload = {"channel": channel_id, "text": message}
-        try:
-            self.get_client().post("/chat.postMessage", data=payload, json=True)
-        except ApiError as e:
-            message = str(e)
-            if message not in ["Expired url", "channel_not_found"]:
-                logger.exception(
-                    "slack.slash-notify.response-error",
-                    extra={"error": message},
-                )
+        client = self.get_client()
+
+        if isinstance(client, SlackClient):
+            try:
+                client.post("/chat.postMessage", data=payload, json=True)
+            except ApiError as e:
+                message = str(e)
+                if message not in ["Expired url", "channel_not_found"]:
+                    logger.exception(
+                        "slack.slash-notify.response-error",
+                        extra={"error": message},
+                    )
+        else:
+            try:
+                client.chat_postMessage(channel=channel_id, text=message)
+            except SlackApiError as e:
+                message = str(e)
+                if "Expired url" not in message and "channel_not_found" not in message:
+                    logger.exception(
+                        "slack.slash-response.error",
+                        extra={"error": message},
+                    )
 
 
 def _get_attachments(
