@@ -7,6 +7,7 @@ from sentry.utils.safe import get_path
 logger = logging.getLogger(__name__)
 
 MAX_FRAME_COUNT = 50
+FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
 SEER_ELIGIBLE_PLATFORMS = frozenset(["python", "javascript", "node"])
 
 
@@ -35,12 +36,15 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
 
     frame_count = 0
     stacktrace_str = ""
+    found_non_snipped_context_line = False
+    result_parts = []
+
     for exception in reversed(exceptions):
         if exception.get("id") not in ["exception", "threads"] or not exception.get("contributes"):
             continue
 
         # For each exception, extract its type, value, and up to 50 stacktrace frames
-        exc_type, exc_value, frame_str = "", "", ""
+        exc_type, exc_value, frame_strings = "", "", []
         for exception_value in exception.get("values", []):
             if exception_value.get("id") == "type":
                 exc_type = _get_value_if_exists(exception_value)
@@ -63,14 +67,31 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
                         if frame_values.get("id") in frame_dict:
                             frame_dict[frame_values["id"]] = _get_value_if_exists(frame_values)
 
-                    frame_str += f'  File "{frame_dict["filename"]}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
+                    if not _is_snipped_context_line(frame_dict["context-line"]):
+                        found_non_snipped_context_line = True
 
+                    frame_strings.append(
+                        f'  File "{frame_dict["filename"]}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
+                    )
         # Only exceptions have the type and value properties, so we don't need to handle the threads
         # case here
-        if exception.get("id") == "exception":
-            stacktrace_str += f"{exc_type}: {exc_value}\n"
-        if frame_str:
-            stacktrace_str += frame_str
+        header = f"{exc_type}: {exc_value}\n" if exception["id"] == "exception" else ""
+
+        result_parts.append((header, frame_strings))
+
+    final_frame_count = 0
+
+    for header, frame_strings in result_parts:
+        # For performance reasons, if the entire stacktrace is made of minified frames, restrict the
+        # result to include only the first 20 frames, since minified frames are significantly more
+        # token-dense than non-minified ones
+        if not found_non_snipped_context_line:
+            frame_strings = _discard_excess_frames(
+                frame_strings, FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT, final_frame_count
+            )
+            final_frame_count += len(frame_strings)
+
+        stacktrace_str += header + "".join(frame_strings)
 
     return stacktrace_str.strip()
 
