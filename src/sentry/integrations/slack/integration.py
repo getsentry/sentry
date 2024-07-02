@@ -74,9 +74,9 @@ metadata = IntegrationMetadata(
 
 class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):
     def get_client(self) -> SlackClient | SlackSdkClient:
-        # if sentry_features.has("organizations:slack-sdk-notify-mixin", self.organization):
-        return SlackSdkClient(integration_id=self.model.id)
-        # return SlackClient(integration_id=self.model.id)
+        if sentry_features.has("organizations:slack-sdk-notify-mixin", self.organization):
+            return SlackSdkClient(integration_id=self.model.id)
+        return SlackClient(integration_id=self.model.id)
 
     def get_config_data(self) -> Mapping[str, str]:
         metadata_ = self.model.metadata
