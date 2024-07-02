@@ -15,9 +15,9 @@ from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
+from sentry.models.project import Project
 from sentry.search.events.builder import SpansIndexedQueryBuilder
 from sentry.search.events.builder.base import BaseQueryBuilder
-from sentry.models.project import Project
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.snuba.dataset import Dataset
