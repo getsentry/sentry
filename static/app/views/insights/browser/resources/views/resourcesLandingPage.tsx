@@ -20,6 +20,7 @@ import {
   DEFAULT_RESOURCE_TYPES,
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
+  MODULE_TITLE,
 } from 'sentry/views/insights/browser/resources/settings';
 import {
   BrowserStarfishFields,
@@ -27,9 +28,7 @@ import {
 } from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
-import {MODULE_TITLES} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
-import {ModuleName} from 'sentry/views/insights/types';
 
 const {SPAN_OP, SPAN_DOMAIN} = BrowserStarfishFields;
 
@@ -46,7 +45,7 @@ function ResourcesLandingPage() {
             <Breadcrumbs crumbs={crumbs} />
 
             <Layout.Title>
-              {MODULE_TITLES[ModuleName.RESOURCE]}
+              {MODULE_TITLE}
               <PageHeadingQuestionTooltip
                 docsUrl={MODULE_DOC_LINK}
                 title={MODULE_DESCRIPTION}
