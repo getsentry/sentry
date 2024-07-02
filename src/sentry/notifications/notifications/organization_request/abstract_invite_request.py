@@ -78,7 +78,7 @@ class AbstractInviteRequestNotification(OrganizationRequestNotification, abc.ABC
             MessageAction(
                 name="Reject",
                 style="danger",
-                action_id="approve_request",
+                action_id="reject_request",
                 value="reject_member",
                 label="Reject",
             ),

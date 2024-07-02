@@ -317,7 +317,7 @@ def get_events_from_nodestore(
 @sentry_sdk.tracing.trace
 @metrics.wraps(f"{BACKFILL_NAME}.send_group_and_stacktrace_to_seer", sample_rate=1.0)
 def send_group_and_stacktrace_to_seer(
-    project, groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row, nodestore_results
+    groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row, nodestore_results
 ):
     seer_response = post_bulk_grouping_records(
         CreateGroupingRecordsRequest(
@@ -327,6 +327,65 @@ def send_group_and_stacktrace_to_seer(
         )
     )
     return seer_response
+
+
+@sentry_sdk.tracing.trace
+@metrics.wraps(f"{BACKFILL_NAME}.send_group_and_stacktrace_to_seer", sample_rate=1.0)
+def send_group_and_stacktrace_to_seer_multithreaded(
+    groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row, nodestore_results
+):
+    def process_chunk(chunk_data, chunk_stacktrace):
+        return post_bulk_grouping_records(
+            CreateGroupingRecordsRequest(
+                group_id_list=chunk_data["group_ids"],
+                data=chunk_data["data"],
+                stacktrace_list=chunk_stacktrace,
+            )
+        )
+
+    chunk_size = options.get("similarity.backfill_seer_chunk_size")
+    chunks = [
+        {
+            "group_ids": groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row[
+                i : i + chunk_size
+            ],
+            "data": nodestore_results["data"][i : i + chunk_size],
+        }
+        for i in range(
+            0,
+            len(groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row),
+            chunk_size,
+        )
+    ]
+    stacktrace_chunks = [
+        nodestore_results["stacktrace_list"][i : i + chunk_size]
+        for i in range(0, len(nodestore_results["stacktrace_list"]), chunk_size)
+    ]
+
+    seer_responses = []
+    with ThreadPoolExecutor(
+        max_workers=options.get("similarity.backfill_seer_threads")
+    ) as executor:
+        future_to_chunk = {
+            executor.submit(process_chunk, chunk, stacktrace_chunks[i]): chunk
+            for i, chunk in enumerate(chunks)
+        }
+        for future in as_completed(future_to_chunk):
+            chunk_response = future.result()
+            seer_responses.append(chunk_response)
+
+    aggregated_response: dict[str, Any] = {
+        "success": True,
+        "groups_with_neighbor": {},
+    }
+    for seer_response in seer_responses:
+        if not seer_response["success"]:
+            aggregated_response["success"] = False
+            return aggregated_response
+
+        aggregated_response["groups_with_neighbor"].update(seer_response["groups_with_neighbor"])
+
+    return aggregated_response
 
 
 @sentry_sdk.tracing.trace
