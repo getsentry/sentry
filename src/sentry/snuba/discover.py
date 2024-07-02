@@ -26,7 +26,7 @@ from sentry.search.events.fields import (
     get_json_meta_type,
     is_function,
 )
-from sentry.search.events.types import HistogramParams, ParamsType, QueryBuilderConfig
+from sentry.search.events.types import HistogramParams, ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.tagstore.base import TOP_VALUES_DEFAULT_LIMIT
 from sentry.utils.math import nice_int
@@ -718,6 +718,7 @@ def get_facets(
     query: str,
     params: ParamsType,
     referrer: str,
+    snuba_params: SnubaParams | None = None,
     per_page: int | None = TOP_KEYS_DEFAULT_LIMIT,
     cursor: int | None = 0,
 ):
@@ -743,6 +744,7 @@ def get_facets(
         key_name_builder = DiscoverQueryBuilder(
             Dataset.Discover,
             params,
+            snuba_params=snuba_params,
             query=query,
             selected_columns=["tags_key", "count()"],
             orderby=["-count()", "tags_key"],

@@ -2,6 +2,7 @@ import logging
 from collections import defaultdict, deque
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from copy import deepcopy
 from datetime import datetime, timedelta
 from typing import Any, Deque, Optional, TypedDict, TypeVar
 
@@ -25,7 +26,7 @@ from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
-from sentry.search.events.types import ParamsType, QueryBuilderConfig
+from sentry.search.events.types import QueryBuilderConfig, SnubaParams
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -166,7 +167,7 @@ class TraceEvent:
         parent: str | None,
         generation: int | None,
         light: bool = False,
-        snuba_params: ParamsType | None = None,
+        snuba_params: SnubaParams | None = None,
         span_serialized: bool = False,
     ) -> None:
         self.event: SnubaTransaction = event
@@ -184,7 +185,7 @@ class TraceEvent:
         self.span_serialized = span_serialized
         if len(self.event["issue.ids"]) > 0:
             if self.span_serialized:
-                self.load_span_serialized_performance_issues(light, snuba_params)
+                self.load_span_serialized_performance_issues(light)
             else:
                 self.load_performance_issues(light, snuba_params)
 
@@ -198,9 +199,7 @@ class TraceEvent:
                 )
         return self._nodestore_event
 
-    def load_span_serialized_performance_issues(
-        self, light: bool, snuba_params: ParamsType
-    ) -> None:
+    def load_span_serialized_performance_issues(self, light: bool) -> None:
         """Rewriting load_performance_issues from scratch so the logic is more independent"""
         memoized_groups = {}
         for event_span in self.event["occurrence_spans"]:
@@ -258,7 +257,7 @@ class TraceEvent:
                     }
                 )
 
-    def load_performance_issues(self, light: bool, snuba_params: ParamsType | None) -> None:
+    def load_performance_issues(self, light: bool, snuba_params: SnubaParams | None) -> None:
         """Doesn't get suspect spans, since we don't need that for the light view"""
         for group_id in self.event["issue.ids"]:
             group = Group.objects.filter(id=group_id, project=self.event["project.id"]).first()
@@ -276,7 +275,7 @@ class TraceEvent:
                 if self.nodestore_event is not None:
                     occurrence_query = DiscoverQueryBuilder(
                         Dataset.IssuePlatform,
-                        snuba_params,
+                        snuba_params=snuba_params,
                         query=f"event_id:{self.event['id']}",
                         selected_columns=["occurrence_id"],
                     )
@@ -469,10 +468,10 @@ def child_sort_key(item: TraceEvent) -> list[int]:
         ]
 
 
-def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
+def count_performance_issues(trace_id: str, params: SnubaParams) -> int:
     transaction_query = DiscoverQueryBuilder(
         Dataset.IssuePlatform,
-        params,
+        snuba_params=params,
         query=f"trace:{trace_id}",
         selected_columns=[],
         limit=MAX_TRACE_SIZE,
@@ -487,10 +486,10 @@ def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
 @sentry_sdk.tracing.trace
 def create_transaction_params(
     trace_id: str,
-    params: Mapping[str, str],
-) -> Mapping[str, str]:
+    params: SnubaParams,
+) -> SnubaParams:
     """Can't use the transaction params for errors since traces can be errors only"""
-    transaction_params = params.copy()
+    transaction_params = deepcopy(params)
     query_metadata = options.get("performance.traces.query_timestamp_projects")
     sentry_sdk.set_tag("trace_view.queried_timestamp_projects", query_metadata)
     if not query_metadata:
@@ -498,7 +497,7 @@ def create_transaction_params(
 
     metadata_query = DiscoverQueryBuilder(
         Dataset.Discover,
-        params,
+        snuba_params=params,
         query=f"trace:{trace_id}",
         selected_columns=[
             "min(timestamp)",
@@ -534,13 +533,10 @@ def create_transaction_params(
     # Reusing this option for now
     time_buffer = options.get("performance.traces.span_query_timebuffer_hours")
     if min_timestamp:
-        transaction_params["start"] = min_timestamp - timedelta(hours=time_buffer)
+        transaction_params.start = min_timestamp - timedelta(hours=time_buffer)
     if max_timestamp:
-        transaction_params["end"] = max_timestamp + timedelta(hours=time_buffer)
-    transaction_params["project_objects"] = [
-        p for p in transaction_params["project_objects"] if p.id in project_ids
-    ]
-    transaction_params["project_id"] = project_ids
+        transaction_params.end = max_timestamp + timedelta(hours=time_buffer)
+    transaction_params.projects = [p for p in transaction_params.projects if p.id in project_ids]
 
     return transaction_params
 
@@ -548,7 +544,7 @@ def create_transaction_params(
 @sentry_sdk.tracing.trace
 def query_trace_data(
     trace_id: str,
-    params: Mapping[str, str],
+    params: SnubaParams,
     transaction_params: Mapping[str, str],
     limit: int,
     event_id: str | None,
@@ -589,7 +585,7 @@ def query_trace_data(
         )
     transaction_query = DiscoverQueryBuilder(
         Dataset.Transactions,
-        transaction_params,
+        snuba_params=transaction_params,
         query=f"trace:{trace_id}",
         selected_columns=transaction_columns,
         orderby=transaction_orderby,
@@ -597,7 +593,7 @@ def query_trace_data(
     )
     occurrence_query = DiscoverQueryBuilder(
         Dataset.IssuePlatform,
-        params,
+        snuba_params=params,
         query=f"trace:{trace_id}",
         selected_columns=["event_id", "occurrence_id"],
         config=QueryBuilderConfig(
@@ -611,7 +607,7 @@ def query_trace_data(
 
     error_query = DiscoverQueryBuilder(
         Dataset.Events,
-        params,
+        snuba_params=params,
         query=f"trace:{trace_id}",
         selected_columns=[
             "id",
@@ -691,7 +687,7 @@ def strip_span_id(span_id):
 def build_span_query(trace_id, spans_params, query_spans):
     parents_query = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,
-        spans_params,
+        snuba_params=spans_params,
         query=f"trace:{trace_id}",
         selected_columns=[
             "transaction.id",
@@ -736,7 +732,7 @@ def augment_transactions_with_spans(
     transactions: Sequence[SnubaTransaction],
     errors: Sequence[SnubaError],
     trace_id: str,
-    params: Mapping[str, str],
+    params: SnubaParams,
 ) -> Sequence[SnubaTransaction]:
     """Augment the list of transactions with parent, error and problem data"""
     with sentry_sdk.start_span(op="augment.transactions", description="setup"):
@@ -756,9 +752,9 @@ def augment_transactions_with_spans(
         time_buffer = options.get("performance.traces.span_query_timebuffer_hours")
         sentry_sdk.set_measurement("trace_view.spans.time_buffer", time_buffer)
         if ts_params["min"]:
-            params["start"] = ts_params["min"] - timedelta(hours=time_buffer)
+            params.start = ts_params["min"] - timedelta(hours=time_buffer)
         if ts_params["max"]:
-            params["end"] = ts_params["max"] + timedelta(hours=time_buffer)
+            params.end = ts_params["max"] + timedelta(hours=time_buffer)
 
         if ts_params["max"] and ts_params["min"]:
             sentry_sdk.set_measurement(
@@ -815,9 +811,8 @@ def augment_transactions_with_spans(
         # Fetch parent span ids of segment spans and their corresponding
         # transaction id so we can link parent/child transactions in
         # a trace.
-        spans_params = params.copy()
-        spans_params["project_objects"] = [p for p in params["project_objects"] if p.id in projects]
-        spans_params["project_id"] = list(projects.union(set(problem_project_map.keys())))
+        spans_params = deepcopy(params)
+        spans_params.projects = [p for p in params.projects if p.id in projects]
 
     # If we're querying over 100 span ids, lets split the query into 3
     sentry_sdk.set_tag("trace_view.use_spans.span_len", len(query_spans))
@@ -989,7 +984,9 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
 
         try:
             # The trace view isn't useful without global views, so skipping the check here
-            params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params, params = self.get_snuba_dataclass(
+                request, organization, check_global_views=False
+            )
         except NoProjects:
             return Response(status=404)
 
@@ -997,7 +994,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         detailed = request.GET.get("detailed", "0") == "1"
         # Temporary url params until we finish migrating the frontend
         use_spans = request.GET.get("useSpans", "0") == "1"
-        update_snuba_params_with_timestamp(request, params)
+        update_snuba_params_with_timestamp(request, snuba_params)
 
         sentry_sdk.set_tag("trace_view.using_spans", str(use_spans))
         if detailed and use_spans:
@@ -1015,18 +1012,18 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             actor=request.user,
         )
         with handle_query_errors():
-            transaction_params = create_transaction_params(trace_id, params)
+            transaction_params = create_transaction_params(trace_id, snuba_params)
 
             if use_spans:
                 transactions, errors = query_trace_data(
-                    trace_id, params, transaction_params, limit, event_id, use_spans
+                    trace_id, snuba_params, transaction_params, limit, event_id, use_spans
                 )
                 transactions = augment_transactions_with_spans(
-                    transactions, errors, trace_id, params
+                    transactions, errors, trace_id, snuba_params
                 )
             else:
                 transactions, errors = query_trace_data(
-                    trace_id, params, transaction_params, limit, None, False
+                    trace_id, snuba_params, transaction_params, limit, None, False
                 )
             if len(transactions) == 0 and not tracing_without_performance_enabled:
                 return Response(status=404)
@@ -1173,7 +1170,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                     current_generation = 0
                     break
 
-            params = self.get_snuba_params(
+            snuba_params, params = self.get_snuba_dataclass(
                 self.request, self.request.organization, check_global_views=False
             )
             if current_generation is None:
@@ -1201,14 +1198,14 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                                     None,
                                     0,
                                     True,
-                                    snuba_params=params,
+                                    snuba_params=snuba_params,
                                 )
                             )
                             current_generation = 1
                             break
 
             current_event = TraceEvent(
-                snuba_event, root_id, current_generation, True, snuba_params=params
+                snuba_event, root_id, current_generation, True, snuba_params=snuba_params
             )
             trace_results.append(current_event)
 
@@ -1240,7 +1237,7 @@ class OrganizationEventsTraceLightEndpoint(OrganizationEventsTraceEndpointBase):
                                     else None
                                 ),
                                 True,
-                                snuba_params=params,
+                                snuba_params=snuba_params,
                             )
                             for child_event in child_events
                         ]
@@ -1330,7 +1327,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         parent_events: dict[str, TraceEvent] = {}
         results_map: dict[str | None, list[TraceEvent]] = defaultdict(list)
         to_check: Deque[SnubaTransaction] = deque()
-        params = self.get_snuba_params(
+        snuba_params, _ = self.get_snuba_dataclass(
             self.request, self.request.organization, check_global_views=False
         )
         # The root of the orphan tree we're currently navigating through
@@ -1338,7 +1335,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
         if roots:
             results_map[None] = []
         for root in roots:
-            root_event = TraceEvent(root, None, 0, snuba_params=params)
+            root_event = TraceEvent(root, None, 0, snuba_params=snuba_params)
             parent_events[root["id"]] = root_event
             results_map[None].append(root_event)
             to_check.append(root)
@@ -1359,7 +1356,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                         parent_map[parent_span_id] = siblings
 
                     previous_event = parent_events[current_event["id"]] = TraceEvent(
-                        current_event, None, 0, snuba_params=params
+                        current_event, None, 0, snuba_params=snuba_params
                     )
 
                     # Used to avoid removing the orphan from results entirely if we loop
@@ -1433,7 +1430,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
                                 if previous_event.generation is not None
                                 else None
                             ),
-                            snuba_params=params,
+                            snuba_params=snuba_params,
                         )
                         # Add this event to its parent's children
                         previous_event.children.append(parent_events[child_event["id"]])
@@ -1597,11 +1594,13 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
 
         try:
             # The trace meta isn't useful without global views, so skipping the check here
-            params = self.get_snuba_params(request, organization, check_global_views=False)
+            snuba_params, params = self.get_snuba_dataclass(
+                request, organization, check_global_views=False
+            )
         except NoProjects:
             return Response(status=404)
 
-        update_snuba_params_with_timestamp(request, params)
+        update_snuba_params_with_timestamp(request, snuba_params)
 
         with handle_query_errors():
             result = discover.query(
@@ -1611,6 +1610,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
                     "count_if(event.type, notEquals, transaction) as errors",
                 ],
                 params=params,
+                snuba_params=snuba_params,
                 query=f"trace:{trace_id}",
                 limit=1,
                 referrer=Referrer.API_TRACE_VIEW_GET_META.value,
@@ -1618,7 +1618,9 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
             if len(result["data"]) == 0:
                 return Response(status=404)
             # Merge the result back into the first query
-            result["data"][0]["performance_issues"] = count_performance_issues(trace_id, params)
+            result["data"][0]["performance_issues"] = count_performance_issues(
+                trace_id, snuba_params
+            )
         return Response(self.serialize(result["data"][0]))
 
     @staticmethod

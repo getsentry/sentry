@@ -156,6 +156,7 @@ class BaseQueryBuilder:
                 )
             else:
                 environments = []  # type: ignore[unreachable]
+        use_case_id = params.get("use_case_id")
 
         user_id = params.get("user_id")
         user = user_service.get_user(user_id=user_id) if user_id is not None else None  # type: ignore[arg-type]
@@ -172,6 +173,7 @@ class BaseQueryBuilder:
             user=user,
             teams=teams,
             organization=organization,
+            use_case_id=use_case_id,
         )
 
     def __init__(
@@ -206,7 +208,7 @@ class BaseQueryBuilder:
         self.filter_params = params
         self.params = self._dataclass_params(snuba_params, params)
 
-        org_id = params.get("organization_id")
+        org_id = self.params.organization_id
         self.organization_id: int | None = (
             org_id if org_id is not None and isinstance(org_id, int) else None
         )
@@ -227,8 +229,8 @@ class BaseQueryBuilder:
         self.tenant_ids: dict[str, str | None | int] | None = dict()
         if org_id is not None:
             self.tenant_ids["organization_id"] = org_id
-        if "use_case_id" in params and params.get("use_case_id") is not None:
-            self.tenant_ids["use_case_id"] = params.get("use_case_id")
+        if self.params.use_case_id is not None:
+            self.tenant_ids["use_case_id"] = self.params.use_case_id
         if not self.tenant_ids:
             self.tenant_ids = None
 
