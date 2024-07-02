@@ -12,12 +12,9 @@ from sentry.api.serializers.base import Serializer
 from sentry.hybridcloud.rpc.filter_query import FilterQueryDatabaseImpl
 from sentry.models.integrations.integration import Integration
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
-from sentry.services.hybrid_cloud.usersocialauth.model import (
-    RpcUserSocialAuth,
-    UserSocialAuthFilterArgs,
-)
-from sentry.services.hybrid_cloud.usersocialauth.serial import serialize_usersocialauth
-from sentry.services.hybrid_cloud.usersocialauth.service import UserSocialAuthService
+from sentry.users.services.usersocialauth.model import RpcUserSocialAuth, UserSocialAuthFilterArgs
+from sentry.users.services.usersocialauth.serial import serialize_usersocialauth
+from sentry.users.services.usersocialauth.service import UserSocialAuthService
 from social_auth.models import UserSocialAuth
 
 

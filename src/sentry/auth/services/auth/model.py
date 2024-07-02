@@ -11,7 +11,7 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 from pydantic.fields import Field
 
 from sentry.hybridcloud.rpc import RpcModel
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.users.services.user import RpcUser
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser

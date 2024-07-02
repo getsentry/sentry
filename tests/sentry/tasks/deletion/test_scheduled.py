@@ -14,7 +14,6 @@ from sentry.models.scheduledeletion import (
     ScheduledDeletion,
 )
 from sentry.models.team import Team
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import pending_delete
 from sentry.tasks.deletion.scheduled import (
     reattempt_deletions,
@@ -25,6 +24,7 @@ from sentry.tasks.deletion.scheduled import (
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
+from sentry.users.services.user.service import user_service
 
 
 class RegionalRunScheduleDeletionTest(abc.ABC, TestCase):

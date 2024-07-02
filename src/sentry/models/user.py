@@ -45,8 +45,8 @@ from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.outbox import ControlOutboxBase, OutboxCategory, outbox_context
 from sentry.services.hybrid_cloud.organization import RpcRegionUser, organization_service
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.region import find_all_region_names, find_regions_for_user
+from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
 
@@ -482,7 +482,7 @@ class User(Model, AbstractBaseUser):
                 SuperuserUserSerializer,
                 UserSerializer,
             )
-            from sentry.services.hybrid_cloud.lost_password_hash.impl import (
+            from sentry.users.services.lost_password_hash.impl import (
                 DatabaseLostPasswordHashService,
             )
 
@@ -548,7 +548,7 @@ class User(Model, AbstractBaseUser):
         payload: Mapping[str, Any] | None,
     ) -> None:
         from sentry.hybridcloud.rpc.caching import region_caching_service
-        from sentry.services.hybrid_cloud.user.service import get_many_by_id, get_user
+        from sentry.users.services.user.service import get_many_by_id, get_user
 
         region_caching_service.clear_key(key=get_user.key_from(identifier), region_name=region_name)
         region_caching_service.clear_key(
@@ -557,7 +557,7 @@ class User(Model, AbstractBaseUser):
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
         from sentry.hybridcloud.rpc.caching import region_caching_service
-        from sentry.services.hybrid_cloud.user.service import get_many_by_id, get_user
+        from sentry.users.services.user.service import get_many_by_id, get_user
 
         region_caching_service.clear_key(key=get_user.key_from(self.id), region_name=region_name)
         region_caching_service.clear_key(

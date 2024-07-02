@@ -5,10 +5,10 @@ from sentry.models.user import User
 from sentry.models.userrole import manage_default_super_admin_role
 from sentry.receivers import create_default_projects
 from sentry.runner.commands.createuser import createuser
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import CliTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
+from sentry.users.services.user.service import user_service
 
 
 @control_silo_test

@@ -11,7 +11,7 @@ from sentry import features
 from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.pipeline import IntegrationPipeline
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.service import user_service
 from sentry.web.frontend.base import BaseView
 
 logger = logging.getLogger(__name__)

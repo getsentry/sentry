@@ -4,9 +4,9 @@ from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.pullrequest import PullRequest
-from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.activity import ActivityType
+from sentry.users.services.user.serial import serialize_generic_user
+from sentry.users.services.user.service import user_service
 
 
 @register(Activity)

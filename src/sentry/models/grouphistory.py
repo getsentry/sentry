@@ -25,7 +25,7 @@ if TYPE_CHECKING:
     from sentry.models.release import Release
     from sentry.models.team import Team
     from sentry.models.user import User
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.services.user import RpcUser
 
 
 class GroupHistoryStatus:
@@ -285,7 +285,7 @@ def record_group_history(
 ):
     from sentry.models.team import Team
     from sentry.models.user import User
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.services.user import RpcUser
 
     prev_history = get_prev_history(group, status)
     user_id = None
@@ -319,7 +319,7 @@ def bulk_record_group_history(
 ):
     from sentry.models.team import Team
     from sentry.models.user import User
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.services.user import RpcUser
 
     def get_prev_history_date(group, status):
         prev_history = get_prev_history(group, status)

@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from sentry.services.hybrid_cloud.usersocialauth.model import RpcUserSocialAuth
+from sentry.users.services.usersocialauth.model import RpcUserSocialAuth
 
 if TYPE_CHECKING:
     from social_auth.models import UserSocialAuth

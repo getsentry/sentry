@@ -8,11 +8,11 @@ from sentry.middleware.auth import AuthenticationMiddleware
 from sentry.models.apikey import ApiKey
 from sentry.models.apitoken import ApiToken
 from sentry.models.userip import UserIP
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
+from sentry.users.services.user.service import user_service
 from sentry.utils.auth import login
 
 

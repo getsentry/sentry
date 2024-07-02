@@ -7,11 +7,8 @@ from abc import abstractmethod
 
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
-from sentry.services.hybrid_cloud.usersocialauth.model import (
-    RpcUserSocialAuth,
-    UserSocialAuthFilterArgs,
-)
 from sentry.silo.base import SiloMode
+from sentry.users.services.usersocialauth.model import RpcUserSocialAuth, UserSocialAuthFilterArgs
 
 
 class UserSocialAuthService(RpcService):
@@ -20,9 +17,7 @@ class UserSocialAuthService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from sentry.services.hybrid_cloud.usersocialauth.impl import (
-            DatabaseBackedUserSocialAuthService,
-        )
+        from sentry.users.services.usersocialauth.impl import DatabaseBackedUserSocialAuthService
 
         return DatabaseBackedUserSocialAuthService()
 

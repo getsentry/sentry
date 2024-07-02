@@ -6,7 +6,7 @@ from django.utils.translation import gettext as _
 
 from sentry.app import env
 from sentry.interfaces.base import DataPath, Interface
-from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
+from sentry.users.services.user_option import get_option_from_list, user_option_service
 from sentry.utils.json import prune_empty_keys
 from sentry.web.helpers import render_to_string
 

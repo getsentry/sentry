@@ -21,9 +21,9 @@ from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization.model import RpcOrganization
-from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.signals import repo_linked
+from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import metrics
 
 

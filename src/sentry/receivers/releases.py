@@ -24,12 +24,12 @@ from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.repository import Repository
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.signals import buffer_incr_complete, issue_resolved
 from sentry.tasks.clear_expired_resolutions import clear_expired_resolutions
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user_option import get_option_from_list, user_option_service
 
 
 def validate_release_empty_version(instance: Release, **kwargs):

@@ -34,8 +34,8 @@ from sentry.services.hybrid_cloud.organization.model import (
     RpcUserInviteContext,
     RpcUserOrganizationContext,
 )
-from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.silo.base import SiloMode
+from sentry.users.services.user.model import RpcUser
 
 
 class OrganizationService(RpcService):

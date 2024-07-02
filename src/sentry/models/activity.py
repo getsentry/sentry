@@ -30,7 +30,7 @@ from sentry.types.group import PriorityLevel
 if TYPE_CHECKING:
     from sentry.models.group import Group
     from sentry.models.user import User
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.services.user import RpcUser
 
 
 _default_logger = logging.getLogger(__name__)

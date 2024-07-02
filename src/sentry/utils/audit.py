@@ -20,8 +20,8 @@ from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
 from sentry.services.hybrid_cloud.organization.model import RpcAuditLogEntryActor
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo.base import region_silo_function
+from sentry.users.services.user import RpcUser
 
 
 def create_audit_entry(

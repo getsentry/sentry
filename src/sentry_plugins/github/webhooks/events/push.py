@@ -15,8 +15,8 @@ from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
 from sentry.plugins.providers import RepositoryProvider
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.users.services.user.service import user_service
 from sentry_plugins.github.client import GithubPluginClient
 
 from . import Webhook, get_external_id, is_anonymous_email

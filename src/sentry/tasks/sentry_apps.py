@@ -20,10 +20,10 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.servicehook import ServiceHook, ServiceHookProject
 from sentry.sentry_apps.services.app.service import app_service
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ApiHostError, ApiTimeoutError, ClientError
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task, retry
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentry_apps import send_and_save_webhook_request

@@ -15,7 +15,7 @@ from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
 from sentry.models.group import Group
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.users.services.user import RpcUser
 from sentry.utils import json
 
 logger = logging.getLogger("sentry.mediators.external-requests")

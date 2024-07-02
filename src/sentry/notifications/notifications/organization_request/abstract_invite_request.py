@@ -13,8 +13,8 @@ from sentry.notifications.notifications.strategies.member_write_role_recipient_s
     MemberWriteRoleRecipientStrategy,
 )
 from sentry.notifications.utils.actions import MessageAction
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.actor import Actor
+from sentry.users.services.user.service import user_service
 
 if TYPE_CHECKING:
     from sentry.models.user import User

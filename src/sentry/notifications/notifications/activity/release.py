@@ -23,8 +23,8 @@ from sentry.notifications.utils import (
 )
 from sentry.notifications.utils.actions import MessageAction
 from sentry.notifications.utils.participants import ParticipantMap, get_participants_for_release
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.actor import Actor
+from sentry.users.services.user.service import user_service
 
 from .base import ActivityNotification
 

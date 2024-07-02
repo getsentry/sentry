@@ -72,11 +72,11 @@ from sentry.services.hybrid_cloud.organization.model import (
     RpcOrganizationDeleteResponse,
     RpcOrganizationDeleteState,
 )
-from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.organization.provisioning import (
     OrganizationSlugCollisionException,
     organization_provisioning_service,
 )
+from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.audit import create_audit_entry
 
 ERR_DEFAULT_ORG = "You cannot remove the default organization."

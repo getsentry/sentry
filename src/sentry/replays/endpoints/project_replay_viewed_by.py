@@ -19,8 +19,8 @@ from sentry.models.project import Project
 from sentry.replays.query import query_replay_viewed_by_ids
 from sentry.replays.usecases.events import publish_replay_event, viewed_event
 from sentry.replays.usecases.query import execute_query, make_full_aggregation_query
-from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.serial import serialize_generic_user
+from sentry.users.services.user.service import user_service
 
 
 class ReplayViewedByResponsePayload(TypedDict):

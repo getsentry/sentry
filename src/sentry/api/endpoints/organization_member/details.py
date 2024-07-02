@@ -35,7 +35,7 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.roles import organization_roles, team_roles
-from sentry.services.hybrid_cloud.user_option import user_option_service
+from sentry.users.services.user_option import user_option_service
 from sentry.utils import metrics
 
 from . import get_allowed_org_roles, save_team_assignments

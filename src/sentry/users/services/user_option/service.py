@@ -9,9 +9,9 @@ from typing import Any
 from sentry.auth.services.auth import AuthenticationContext
 from sentry.hybridcloud.rpc.filter_query import OpaqueSerializedResponse
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user_option import RpcUserOption, UserOptionFilterArgs
 from sentry.silo.base import SiloMode
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user_option import RpcUserOption, UserOptionFilterArgs
 
 
 def get_option_from_list(
@@ -36,7 +36,7 @@ class UserOptionService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from sentry.services.hybrid_cloud.user_option.impl import DatabaseBackedUserOptionService
+        from sentry.users.services.user_option.impl import DatabaseBackedUserOptionService
 
         return DatabaseBackedUserOptionService()
 

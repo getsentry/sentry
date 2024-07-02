@@ -6,7 +6,7 @@ import abc
 from collections.abc import Mapping, MutableSet, Sequence
 from typing import TYPE_CHECKING
 
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.users.services.user import RpcUser
 
 if TYPE_CHECKING:
     from sentry.features.base import Feature

@@ -17,7 +17,6 @@ from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
-from sentry.services.hybrid_cloud.user_option import user_option_service
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.snuba.referrer import Referrer
@@ -42,6 +41,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_forma
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.group import GroupSubStatus
+from sentry.users.services.user_option import user_option_service
 from sentry.utils.dates import floor_to_utc_day
 from sentry.utils.outcomes import Outcome
 

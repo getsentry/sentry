@@ -1,8 +1,8 @@
 from sentry.api.serializers import serialize
 from sentry.models.grouphash import GroupHash
 from sentry.models.grouptombstone import GroupTombstone
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TestCase
+from sentry.users.services.user.service import user_service
 
 
 class GroupTombstoneSerializerTest(TestCase):

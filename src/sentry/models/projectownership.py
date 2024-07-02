@@ -25,7 +25,7 @@ from sentry.utils.cache import cache
 if TYPE_CHECKING:
     from sentry.models.projectcodeowners import ProjectCodeOwners
     from sentry.models.team import Team
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
 READ_CACHE_DURATION = 3600
@@ -248,7 +248,7 @@ class ProjectOwnership(Model):
         from sentry.models.groupowner import GroupOwner, GroupOwnerType
         from sentry.models.team import Team
         from sentry.models.user import User
-        from sentry.services.hybrid_cloud.user import RpcUser
+        from sentry.users.services.user import RpcUser
 
         if logging_extra is None:
             logging_extra = {}

@@ -63,7 +63,7 @@ from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
 from sentry.models.user import User
 from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.service import user_service
 
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 

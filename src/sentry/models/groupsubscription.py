@@ -24,8 +24,8 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.actor import Actor
+from sentry.users.services.user import RpcUser
 
 if TYPE_CHECKING:
     from sentry.models.group import Group

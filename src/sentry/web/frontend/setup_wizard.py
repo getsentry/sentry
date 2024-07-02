@@ -23,8 +23,8 @@ from sentry.models.user import User
 from sentry.services.hybrid_cloud.project.service import project_service
 from sentry.services.hybrid_cloud.project_key.model import ProjectKeyRole
 from sentry.services.hybrid_cloud.project_key.service import project_key_service
-from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.types.token import AuthTokenType
+from sentry.users.services.user.model import RpcUser
 from sentry.utils.http import absolute_uri
 from sentry.utils.security.orgauthtoken_token import (
     SystemUrlPrefixMissingException,

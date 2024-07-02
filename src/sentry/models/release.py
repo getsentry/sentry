@@ -47,8 +47,8 @@ from sentry.models.releases.constants import (
 from sentry.models.releases.exceptions import ReleaseCommitError, UnsafeReleaseDeletion
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.releases.util import ReleaseQuerySet, SemverFilter, SemverVersion
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import issue_resolved
+from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction

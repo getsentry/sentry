@@ -9,7 +9,7 @@ from sentry.hybridcloud.services.organization_mapping import organization_mappin
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.users.services.user import RpcUser
 
 
 @register(SentryAppInstallation)

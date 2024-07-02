@@ -1,6 +1,6 @@
-from sentry.services.hybrid_cloud.usersocialauth.service import usersocialauth_service
 from sentry.shared_integrations.client import BaseApiClient, BaseInternalApiClient
 from sentry.shared_integrations.exceptions import ApiUnauthorized
+from sentry.users.services.usersocialauth.service import usersocialauth_service
 
 
 class ApiClient(BaseApiClient):

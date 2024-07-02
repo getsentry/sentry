@@ -1,11 +1,8 @@
 import datetime
 
 from sentry.models.lostpasswordhash import LostPasswordHash
-from sentry.services.hybrid_cloud.lost_password_hash import (
-    LostPasswordHashService,
-    RpcLostPasswordHash,
-)
-from sentry.services.hybrid_cloud.lost_password_hash.serial import serialize_lostpasswordhash
+from sentry.users.services.lost_password_hash import LostPasswordHashService, RpcLostPasswordHash
+from sentry.users.services.lost_password_hash.serial import serialize_lostpasswordhash
 
 
 class DatabaseLostPasswordHashService(LostPasswordHashService):

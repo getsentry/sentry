@@ -21,8 +21,8 @@ from sentry.sentry_apps.services.app import (
     SentryAppInstallationFilterArgs,
 )
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.silo.base import SiloMode
+from sentry.users.services.user import RpcUser
 
 
 class AppService(RpcService):

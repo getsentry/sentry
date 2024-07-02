@@ -22,8 +22,8 @@ from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.organization import Organization
 from sentry.models.team import Team
 from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 
 AVAILABLE_PROVIDERS = {
     ExternalProviders.GITHUB,

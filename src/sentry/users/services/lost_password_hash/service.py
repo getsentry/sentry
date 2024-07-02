@@ -6,8 +6,8 @@
 from abc import abstractmethod
 
 from sentry.hybridcloud.rpc.service import RpcService, rpc_method
-from sentry.services.hybrid_cloud.lost_password_hash import RpcLostPasswordHash
 from sentry.silo.base import SiloMode
+from sentry.users.services.lost_password_hash import RpcLostPasswordHash
 
 
 class LostPasswordHashService(RpcService):
@@ -16,9 +16,7 @@ class LostPasswordHashService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from sentry.services.hybrid_cloud.lost_password_hash.impl import (
-            DatabaseLostPasswordHashService,
-        )
+        from sentry.users.services.lost_password_hash.impl import DatabaseLostPasswordHashService
 
         return DatabaseLostPasswordHashService()
 

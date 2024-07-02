@@ -15,8 +15,8 @@ from sentry.features.base import (
     UserFeature,
 )
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.testutils.cases import TestCase
+from sentry.users.services.user import RpcUser
 
 
 class MockBatchHandler(features.BatchFeatureHandler):

@@ -1,6 +1,6 @@
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.silo import all_silo_test
+from sentry.users.services.user.service import user_service
 
 
 @all_silo_test
