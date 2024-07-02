@@ -212,7 +212,7 @@ describe('Autofix', () => {
                 {
                   title: 'Test PR Title',
                   description: 'Test PR Description',
-                  repo_id: 1,
+                  repo_external_id: '1',
                   repo_name: 'getsentry/sentry',
                   diff: [],
                 },
