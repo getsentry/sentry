@@ -249,6 +249,41 @@ class MailAdapterNotifyTest(BaseMailAdapterTest):
 
         assert len(mail.outbox) == 0
 
+    def test_snooze_issue_owners_fallthrough_active_members(self):
+        """
+        Test that a notification for an alert with an action to notify issue owners but fall back to active members
+        is not sent to the user who snoozed it.
+        """
+        event = self.store_event(
+            data={"message": "Hello world", "level": "error"}, project_id=self.project.id
+        )
+        notify_issue_owners_action = [
+            {
+                "targetType": "IssueOwners",
+                "fallthroughType": "ActiveMembers",
+                "id": "sentry.mail.actions.NotifyEmailAction",
+                "targetIdentifier": "",
+                "name": "Send a notification to IssueOwners and if none can be found then send a notification to ActiveMembers",
+                "uuid": str(uuid.uuid4()),
+            },
+        ]
+        rule = self.create_project_rule(
+            project=self.project, action_match=notify_issue_owners_action
+        )
+        self.snooze_rule(user_id=self.user.id, owner_id=self.user.id, rule=rule)
+        ProjectOwnership.objects.create(project_id=self.project.id, fallthrough=True)
+
+        notification = Notification(event=event, rule=rule)
+
+        with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
+            self.adapter.notify(
+                notification,
+                target_type=ActionTargetType.ISSUE_OWNERS,
+                fallthrough_choice=FallthroughChoiceType.ACTIVE_MEMBERS,
+            )
+
+        assert len(mail.outbox) == 0
+
     def test_snooze_for_all(self):
         """Test that notification for alert snoozed for everyone is not send to user."""
         event = self.store_event(
