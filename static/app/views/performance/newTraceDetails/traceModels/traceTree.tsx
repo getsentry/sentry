@@ -1635,6 +1635,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     clone.expanded = this.expanded;
     clone.zoomedIn = this.zoomedIn;
     clone.canFetch = this.canFetch;
+    clone.fetchStatus = this.fetchStatus;
     clone.space = this.space;
     clone.metadata = this.metadata;
 
