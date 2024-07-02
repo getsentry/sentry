@@ -9,9 +9,8 @@ import {SavedSearchType} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
-
-import {ALL_PROJECTS} from './utils';
 
 interface TracesSearchBarProps {
   handleClearSearch: (index: number) => boolean;
@@ -33,16 +32,14 @@ export function TracesSearchBar({
   handleSearch,
   handleClearSearch,
 }: TracesSearchBarProps) {
-  // TODO: load tags for autocompletion
   const organization = useOrganization();
+  const {selection} = usePageFilters();
   const canAddMoreQueries = queries.length <= 2;
   const localQueries = queries.length ? queries : [''];
 
   // Since trace explorer permits cross project searches,
   // autocompletion should also be cross projects.
-  const supportedTags = useSpanFieldSupportedTags({
-    projects: ALL_PROJECTS,
-  });
+  const supportedTags = useSpanFieldSupportedTags();
 
   return (
     <TraceSearchBarsContainer>
@@ -58,7 +55,7 @@ export function TracesSearchBar({
             metricAlert={false}
             supportedTags={supportedTags}
             dataset={DiscoverDatasets.SPANS_INDEXED}
-            projectIds={ALL_PROJECTS}
+            projectIds={selection.projects}
             savedSearchType={SavedSearchType.SPAN}
           />
           <StyledButton
