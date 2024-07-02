@@ -167,19 +167,23 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
       keys = [...new Set(keys.concat(customAttributes))];
     }
 
-    return keys
-      .map(key => ({
-        label: key,
-        value: key,
-        disabled: disabledKeys.has(key),
-        tooltip: disabledKeys.has(key)
-          ? t(
-              'This attribute is already in use. Please select another one or edit the existing metric.'
-            )
-          : undefined,
-        tooltipOptions: {position: 'left'},
-      }))
-      .sort((a, b) => a.label.localeCompare(b.label));
+    return (
+      keys
+        .map(key => ({
+          label: key,
+          value: key,
+          disabled: disabledKeys.has(key),
+          tooltip: disabledKeys.has(key)
+            ? t(
+                'This attribute is already in use. Please select another one or edit the existing metric.'
+              )
+            : undefined,
+          tooltipOptions: {position: 'left'},
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label))
+        // Sort disabled attributes to bottom
+        .sort((a, b) => Number(a.disabled) - Number(b.disabled))
+    );
   }, [customAttributes, supportedTags, extractionRules]);
 
   const tagOptions = useMemo(() => {
