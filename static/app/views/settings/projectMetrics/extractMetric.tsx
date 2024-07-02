@@ -6,6 +6,7 @@ import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
+import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
 import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
 import routeTitleGen from 'sentry/utils/routeTitle';
@@ -14,19 +15,18 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {
+  createCondition,
+  explodeAggregateGroup,
   type FormData,
   MetricsExtractionRuleForm,
 } from 'sentry/views/settings/projectMetrics/metricsExtractionRuleForm';
-import {
-  type MetricsExtractionRule,
-  useCreateMetricsExtractionRules,
-} from 'sentry/views/settings/projectMetrics/utils/api';
+import {useCreateMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/api';
 
 const INITIAL_DATA: FormData = {
   spanAttribute: null,
-  type: 'c',
+  aggregates: ['count'],
   tags: ['release', 'environment'],
-  conditions: [''],
+  conditions: [createCondition()],
 };
 
 const PAGE_TITLE = t('Configure Metric');
@@ -50,9 +50,9 @@ function ExtractMetric({project}: {project: Project}) {
       const extractionRule: MetricsExtractionRule = {
         spanAttribute: data.spanAttribute!,
         tags: data.tags,
-        type: data.type!,
+        aggregates: data.aggregates.flatMap(explodeAggregateGroup),
         unit: 'none',
-        conditions: data.conditions.filter(Boolean),
+        conditions: data.conditions,
       };
 
       createExtractionRuleMutation.mutate(

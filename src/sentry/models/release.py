@@ -97,7 +97,7 @@ def _get_cache_key(project_id: int, group_id: int, first: bool) -> str:
 
 
 class ReleaseModelManager(BaseManager["Release"]):
-    def get_queryset(self):
+    def get_queryset(self) -> ReleaseQuerySet:
         return ReleaseQuerySet(self.model, using=self._db)
 
     def annotate_prerelease_column(self):
