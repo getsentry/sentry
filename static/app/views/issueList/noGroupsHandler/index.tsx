@@ -136,7 +136,16 @@ class NoGroupsHandler extends Component<Props, State> {
       'javascript-nextjs',
       'android',
       ...(organization.features.includes('issue-stream-empty-state-additional-platforms')
-        ? ['python', 'javascript', 'python-fastapi', 'pyhton-flask']
+        ? [
+            'python',
+            'javascript',
+            'python-fastapi',
+            'python-flask',
+            'node-express',
+            'node-nestjs',
+            'go',
+            'ruby',
+          ]
         : []),
     ];
 
