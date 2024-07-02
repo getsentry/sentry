@@ -1,10 +1,23 @@
 import {useMemo} from 'react';
+import {useParams as useReactRouter6Params} from 'react-router-dom';
 
-import {CUSTOMER_DOMAIN, USING_CUSTOMER_DOMAIN} from 'sentry/constants';
+import {
+  CUSTOMER_DOMAIN,
+  USING_CUSTOMER_DOMAIN,
+  USING_REACT_ROUTER_SIX,
+} from 'sentry/constants';
 import {useRouteContext} from 'sentry/utils/useRouteContext';
 
 export function useParams<P = Record<string, string>>(): P {
-  const contextParams = useRouteContext().params;
+  let contextParams: any;
+
+  if (USING_REACT_ROUTER_SIX) {
+    // biome-ignore lint/correctness/useHookAtTopLevel: react-router 6 migration
+    contextParams = useReactRouter6Params();
+  } else {
+    // biome-ignore lint/correctness/useHookAtTopLevel: react-router 6 migration
+    contextParams = useRouteContext().params;
+  }
 
   // Memoize params as mutating for customer domains causes other hooks
   // that depend on `useParams()` to refresh infinitely.

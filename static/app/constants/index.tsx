@@ -397,3 +397,5 @@ export const USE_REACT_QUERY_DEVTOOL = process.env.USE_REACT_QUERY_DEVTOOL;
 export const DEFAULT_ERROR_JSON = {
   detail: t('Unknown error. Please try again.'),
 };
+
+export const USING_REACT_ROUTER_SIX = true;
