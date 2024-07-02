@@ -2622,3 +2622,13 @@ register(
     default=20,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "similarity.backfill_seer_chunk_size",
+    default=30,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "similarity.backfill_seer_threads",
+    default=1,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)

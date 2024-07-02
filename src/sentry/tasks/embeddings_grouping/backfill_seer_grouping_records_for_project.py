@@ -21,6 +21,7 @@ from sentry.tasks.embeddings_grouping.utils import (
     make_backfill_grouping_index_redis_key,
     make_backfill_project_index_redis_key,
     send_group_and_stacktrace_to_seer,
+    send_group_and_stacktrace_to_seer_multithreaded,
     update_groups,
 )
 
@@ -170,11 +171,17 @@ def backfill_seer_grouping_records_for_project(
         if group_id in group_hashes_dict
     ]
 
-    seer_response = send_group_and_stacktrace_to_seer(
-        project,
-        groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
-        nodestore_results,
-    )
+    if options.get("similarity.backfill_seer_threads") > 1:
+        seer_response = send_group_and_stacktrace_to_seer_multithreaded(
+            groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
+            nodestore_results,
+        )
+    else:
+        seer_response = send_group_and_stacktrace_to_seer(
+            groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
+            nodestore_results,
+        )
+
     if not seer_response.get("success"):
         logger.info(
             "backfill_seer_grouping_records.seer_failed",
