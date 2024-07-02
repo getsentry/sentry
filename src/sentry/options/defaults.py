@@ -1757,6 +1757,13 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    # the timestamp that spans extraction was enabled for this environment
+    "performance.traces.spans_extraction_date",
+    type=Int,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "performance.spans-tags-key.sample-rate",
     type=Float,
     default=1.0,
