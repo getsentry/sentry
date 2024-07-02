@@ -2448,12 +2448,10 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             self.store_metric(
                 self.organization.id,
                 self.project.id,
-                "counter",
                 SessionMRI.RAW_SESSION.value,
                 {"session.status": "crashed"},
                 int(session["started"]),
                 +1,
-                use_case_id=UseCaseID.SESSIONS,
             )
 
         response = self.get_success_response(
@@ -2501,12 +2499,10 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             self.store_metric(
                 self.organization.id,
                 self.project.id,
-                "counter",
                 SessionMRI.RAW_SESSION.value,
                 {"session.status": "crashed"},
                 int(session["started"]),
                 +1,
-                use_case_id=UseCaseID.SESSIONS,
             )
 
         response = self.get_success_response(
