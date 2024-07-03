@@ -6,7 +6,6 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useOrganization from 'sentry/utils/useOrganization';
 import {GroupEventCarousel} from 'sentry/views/issueDetails/groupEventCarousel';
 import {TraceLink} from 'sentry/views/issueDetails/traceTimeline/traceLink';
@@ -21,7 +20,6 @@ type GroupEventHeaderProps = {
 
 function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {
   const organization = useOrganization();
-  const issueTypeConfig = getConfigForIssueType(group, group.project);
   // This is also called within the TraceTimeline component but caching will save a second call
   const {isLoading, oneOtherIssueEvent} = useTraceTimelineEvents({
     event,
@@ -32,12 +30,13 @@ function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {
       <GroupEventCarousel group={group} event={event} projectSlug={project.slug} />
       {!isLoading && (
         <StyledTraceLink>
+          {/* This message is used when showing a trace-related issue */}
           {oneOtherIssueEvent && <span>One other issue appears in the same trace.</span>}
           <TraceLink event={event} />
         </StyledTraceLink>
       )}
       {/* This renders either the trace timeline or the trace-related issue */}
-      {issueTypeConfig.traceTimeline && <TraceTimeline event={event} />}
+      <TraceTimeline event={event} />
       <StyledGlobalAppStoreConnectUpdateAlert
         project={project}
         organization={organization}

@@ -49,7 +49,6 @@ const BASE_CONFIG: IssueTypeConfig = {
   evidence: {title: t('Evidence')},
   resources: null,
   usesIssuePlatform: true,
-  traceTimeline: true,
 };
 
 const issueTypeConfig: Config = {
