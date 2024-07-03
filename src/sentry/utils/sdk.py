@@ -14,7 +14,7 @@ from rest_framework.request import Request
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
-from sentry_sdk import Scope, capture_exception, capture_message, configure_scope, isolation_scope
+from sentry_sdk import Scope, capture_exception, capture_message, isolation_scope
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
 from sentry_sdk.transport import make_transport
@@ -700,7 +700,6 @@ __all__ = (
     "capture_message",
     "check_current_scope_transaction",
     "check_tag_for_scope_bleed",
-    "configure_scope",
     "configure_sdk",
     "get_options",
     "get_project_key",

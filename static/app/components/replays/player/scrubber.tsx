@@ -11,6 +11,7 @@ import {space} from 'sentry/styles/space';
 import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
 import divide from 'sentry/utils/number/divide';
 import toPercent from 'sentry/utils/number/toPercent';
+import useTimelineScale from 'sentry/utils/replays/hooks/useTimelineScale';
 
 type Props = {
   className?: string;
@@ -18,8 +19,8 @@ type Props = {
 };
 
 function Scrubber({className, showZoomIndicators = false}: Props) {
-  const {replay, currentHoverTime, currentTime, setCurrentTime, timelineScale} =
-    useReplayContext();
+  const {replay, currentHoverTime, currentTime, setCurrentTime} = useReplayContext();
+  const [timelineScale] = useTimelineScale();
 
   const durationMs = replay?.getDurationMs() ?? 0;
   const percentComplete = divide(currentTime, durationMs);
@@ -44,15 +45,15 @@ function Scrubber({className, showZoomIndicators = false}: Props) {
     <Wrapper className={className}>
       {showZoomIndicators ? (
         <Fragment>
-          <ZoomIndicatorContainer style={{left: toPercent(translate()), top: '-10px'}}>
+          <ZoomIndicatorContainer style={{left: toPercent(translate())}}>
             <ZoomTriangleDown />
             <ZoomIndicator />
           </ZoomIndicatorContainer>
           <ZoomIndicatorContainer
-            style={{left: toPercent(translate() + 2 * initialTranslate), top: '-2px'}}
+            style={{left: toPercent(translate() + 2 * initialTranslate)}}
           >
+            <ZoomTriangleDown />
             <ZoomIndicator />
-            <ZoomTriangleUp />
           </ZoomIndicatorContainer>
         </Fragment>
       ) : null}
@@ -140,8 +141,9 @@ const ZoomIndicatorContainer = styled('div')`
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: ${space(0.5)};
+  gap: ${space(0.75)};
   translate: -6px;
+  top: -12px;
 `;
 
 const ZoomIndicator = styled('div')`
@@ -156,14 +158,6 @@ const ZoomTriangleDown = styled('div')`
   border-left: 4px solid transparent;
   border-right: 4px solid transparent;
   border-top: 4px solid ${p => p.theme.gray500};
-`;
-
-const ZoomTriangleUp = styled('div')`
-  width: 0;
-  height: 0;
-  border-left: 4px solid transparent;
-  border-right: 4px solid transparent;
-  border-bottom: 4px solid ${p => p.theme.gray500};
 `;
 
 export const TimelineScrubber = styled(Scrubber)`

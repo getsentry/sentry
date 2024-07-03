@@ -470,7 +470,7 @@ class TestCommentWebhook(TestCase):
         self.data = {
             "comment_id": self.note.id,
             "timestamp": self.note.datetime,
-            "comment": self.note.data.get("text"),
+            "comment": self.note.data["text"],
             "project_slug": self.note.project.slug,
         }
 

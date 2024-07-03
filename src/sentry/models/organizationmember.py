@@ -275,7 +275,7 @@ class OrganizationMember(ReplicatedRegionModel):
         self.token = self.generate_token()
         self.refresh_expires_at()
 
-    def payload_for_update(self) -> Mapping[str, Any] | None:
+    def payload_for_update(self) -> dict[str, Any] | None:
         return dict(user_id=self.user_id)
 
     def refresh_expires_at(self):

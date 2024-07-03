@@ -1,7 +1,12 @@
 // import {initializeOrg} from 'sentry-test/initializeOrg';
 import {CheckinProcessingErrorFixture} from 'sentry-fixture/checkinProcessingError';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
 import MonitorProcessingErrors from 'sentry/views/monitors/components/processingErrors/monitorProcessingErrors';
 
@@ -68,5 +73,35 @@ describe('MonitorProcessingErrors', () => {
     expect(screen.getAllByText('Check-in already completed')).toHaveLength(2);
     expect(screen.getAllByText('2x')).toHaveLength(2);
     expect(screen.getAllByText('Monitor disabled')).toHaveLength(2);
+  });
+
+  it('should show dismiss dialog when onDismiss is passed', async () => {
+    const checkinErrors = [CheckinProcessingErrorFixture()];
+
+    const dismissFn = jest.fn();
+    const children =
+      'Errors were encountered while ingesting check-ins for the selected projects';
+    render(
+      <MonitorProcessingErrors checkinErrors={checkinErrors} onDismiss={dismissFn}>
+        {children}
+      </MonitorProcessingErrors>
+    );
+    renderGlobalModal();
+
+    expect(screen.getByText(children)).toBeInTheDocument();
+    await userEvent.click(screen.getByText(children));
+
+    // Hover the error group and click the dismissal button
+    await userEvent.hover(screen.getByText('Check-in already completed'));
+    await userEvent.click(screen.getByLabelText('Dismiss Errors'));
+
+    // Verify that the confirm dialog is shown
+    expect(
+      screen.getByText('Are you sure you want to dismiss this error?')
+    ).toBeInTheDocument();
+
+    // Verify we call onDismiss
+    await userEvent.click(screen.getByLabelText('Confirm'));
+    expect(dismissFn).toHaveBeenCalled();
   });
 });

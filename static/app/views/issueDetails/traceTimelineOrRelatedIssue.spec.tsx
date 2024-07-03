@@ -8,13 +8,14 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 
-import {TraceTimeline} from './traceTimeline';
-import type {TraceEventResponse} from './useTraceTimelineEvents';
+import {TraceTimeline} from './traceTimeline/traceTimeline';
+import type {TraceEventResponse} from './traceTimeline/useTraceTimelineEvents';
+import {TraceTimeLineOrRelatedIssue} from './traceTimelineOrRelatedIssue';
 
 jest.mock('sentry/utils/routeAnalytics/useRouteAnalyticsParams');
 jest.mock('sentry/utils/analytics');
 
-describe('TraceTimeline', () => {
+describe('TraceTimeline & TraceRelated Issue', () => {
   // Paid plans have global-views enabled
   // Include project: -1 in all matchQuery calls to ensure we are looking at all projects
   const organization = OrganizationFixture({
@@ -100,13 +101,12 @@ describe('TraceTimeline', () => {
       body: twoIssuesBody,
       match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
-    render(<TraceTimeline event={event} />, {organization});
+    render(<TraceTimeLineOrRelatedIssue event={event} />, {organization});
     expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
 
     await userEvent.hover(screen.getByTestId('trace-timeline-tooltip-1'));
     expect(await screen.findByText('You are here')).toBeInTheDocument();
     expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
-      has_related_trace_issue: false,
       trace_timeline_status: 'shown',
     });
   });
@@ -125,7 +125,6 @@ describe('TraceTimeline', () => {
     const {container} = render(<TraceTimeline event={event} />, {organization});
     await waitFor(() =>
       expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
-        has_related_trace_issue: false,
         trace_timeline_status: 'empty',
       })
     );
@@ -146,7 +145,6 @@ describe('TraceTimeline', () => {
     const {container} = render(<TraceTimeline event={event} />, {organization});
     await waitFor(() =>
       expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
-        has_related_trace_issue: false,
         trace_timeline_status: 'empty',
       })
     );
@@ -164,7 +162,7 @@ describe('TraceTimeline', () => {
       body: twoIssuesBody,
       match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
-    render(<TraceTimeline event={event} />, {organization});
+    render(<TraceTimeLineOrRelatedIssue event={event} />, {organization});
     // Checking for the presence of seconds
     expect(await screen.findAllByText(/\d{1,2}:\d{2}:\d{2} (AM|PM)/)).toHaveLength(5);
   });
@@ -184,7 +182,7 @@ describe('TraceTimeline', () => {
       },
       match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
-    render(<TraceTimeline event={event} />, {organization});
+    render(<TraceTimeLineOrRelatedIssue event={event} />, {organization});
     expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
   });
 
@@ -205,12 +203,13 @@ describe('TraceTimeline', () => {
       body: [],
     });
 
-    render(<TraceTimeline event={event} />, {
-      organization,
-    });
+    render(<TraceTimeLineOrRelatedIssue event={event} />, {organization});
 
     // Instead of a timeline, we should see the other related issue
     expect(await screen.findByText('Slow DB Query')).toBeInTheDocument();
+    expect(
+      await screen.findByText('One other issue appears in the same trace.')
+    ).toBeInTheDocument();
     expect(
       await screen.findByText('SELECT "sentry_monitorcheckin"."monitor_id"')
     ).toBeInTheDocument();
@@ -220,7 +219,6 @@ describe('TraceTimeline', () => {
     await userEvent.click(await screen.findByText('Slow DB Query'));
     expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
       has_related_trace_issue: true,
-      trace_timeline_status: 'empty',
     });
     expect(trackAnalytics).toHaveBeenCalledTimes(1);
     expect(trackAnalytics).toHaveBeenCalledWith(
@@ -250,9 +248,7 @@ describe('TraceTimeline', () => {
       body: [],
     });
 
-    render(<TraceTimeline event={event} />, {
-      organization,
-    });
+    render(<TraceTimeLineOrRelatedIssue event={event} />, {organization});
 
     // We do not display any related issues because we only have 1 issue
     expect(await screen.queryByText('Slow DB Query')).not.toBeInTheDocument();
@@ -262,10 +258,7 @@ describe('TraceTimeline', () => {
 
     // We do not display the timeline because we only have 1 event
     expect(await screen.queryByLabelText('Current Event')).not.toBeInTheDocument();
-    expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
-      has_related_trace_issue: false,
-      trace_timeline_status: 'empty',
-    });
+    expect(useRouteAnalyticsParams).toHaveBeenCalledWith({});
   });
 
   it('trace timeline works for plans with no global-views feature', async () => {
@@ -292,7 +285,7 @@ describe('TraceTimeline', () => {
       ],
     });
 
-    render(<TraceTimeline event={event} />, {
+    render(<TraceTimeLineOrRelatedIssue event={event} />, {
       organization: OrganizationFixture({
         features: [],
       }),
@@ -329,7 +322,7 @@ describe('TraceTimeline', () => {
       body: [],
     });
 
-    render(<TraceTimeline event={event} />, {
+    render(<TraceTimeLineOrRelatedIssue event={event} />, {
       organization: OrganizationFixture({
         features: [],
       }),
