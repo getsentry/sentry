@@ -51,7 +51,7 @@ export default function getGuidesContent(
           target: 'breadcrumbs',
           description: t(
             `Not sure how you got here? Sentry automatically captures breadcrumbs for
-              events your user and app took that lead to the error.`
+              events your user and app took that led to the error.`
           ),
         },
         {
