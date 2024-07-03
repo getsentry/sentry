@@ -174,10 +174,11 @@ function Query({
     () => ({
       mri: widget.mri,
       aggregation: widget.aggregation,
+      condition: widget.condition,
       groupBy: widget.groupBy,
       query: widget.query,
     }),
-    [widget.groupBy, widget.mri, widget.aggregation, widget.query]
+    [widget.mri, widget.aggregation, widget.condition, widget.groupBy, widget.query]
   );
 
   const handleToggle = useCallback(() => {
