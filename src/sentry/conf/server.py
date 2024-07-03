@@ -1310,8 +1310,8 @@ BGTASKS = {
     },
 }
 
-# Sentry logs to two major places: stdout, and it's internal project.
-# To disable logging to the internal project, add a logger who's only
+# Sentry logs to two major places: stdout, and its internal project.
+# To disable logging to the internal project, add a logger whose only
 # handler is 'console' and disable propagating upwards.
 # Additionally, Sentry has the ability to override logger levels by
 # providing the cli with -l/--loglevel or the SENTRY_LOG_LEVEL env var.

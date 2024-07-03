@@ -700,6 +700,7 @@ def chained_exception(
         )
     except Exception:
         # We shouldn't have exceptions here. But if we do, just record it and continue with the original list.
+        # TODO: Except we do, as it turns out. See https://github.com/getsentry/sentry/issues/73592.
         logging.exception(
             "Failed to filter exceptions for exception groups. Continuing with original list."
         )
