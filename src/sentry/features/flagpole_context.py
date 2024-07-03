@@ -7,10 +7,10 @@ from sentry.hybridcloud.services.organization_mapping.model import RpcOrganizati
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.organization import RpcOrganization
-from sentry.services.hybrid_cloud.organization.model import RpcOrganizationSummary
-from sentry.services.hybrid_cloud.project import RpcProject
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.organizations.services.organization import RpcOrganization
+from sentry.organizations.services.organization.model import RpcOrganizationSummary
+from sentry.projects.services.project import RpcProject
+from sentry.users.services.user import RpcUser
 
 
 class InvalidContextDataException(Exception):

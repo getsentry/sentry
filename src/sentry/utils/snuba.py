@@ -3,6 +3,7 @@ from __future__ import annotations
 import functools
 import logging
 import os
+import random
 import re
 import time
 from collections import namedtuple
@@ -1064,6 +1065,17 @@ def _bulk_snuba_query(
                 for k, v in quota_allowance_summary["rejected_by"].items():
                     span.set_tag(k, v)
                     sentry_sdk.set_tag(k, v)
+
+                if (
+                    "throttled_by" in quota_allowance_summary
+                    and quota_allowance_summary["throttled_by"]
+                ):
+                    metrics.incr("snuba.client.query.throttle", tags={"referrer": query_referrer})
+                    if random.random() < 0.01:
+                        logger.warning("Query is throttled", extra={"response.data": response.data})
+                        sentry_sdk.capture_message(
+                            f"Query from referrer {query_referrer} is throttled", level="warning"
+                        )
 
             if response.status != 200:
                 _log_request_query(snuba_param_list[index][0])

@@ -73,6 +73,7 @@ import {type TraceMetaQueryResults, useTraceMeta} from './traceApi/useTraceMeta'
 import {useTraceRootEvent} from './traceApi/useTraceRootEvent';
 import {TraceDrawer} from './traceDrawer/traceDrawer';
 import {
+  traceNodeAdjacentAnalyticsProperties,
   traceNodeAnalyticsName,
   TraceTree,
   type TraceTreeNode,
@@ -590,6 +591,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
         type: traceNodeAnalyticsName(node),
         project_platform:
           projects.find(p => p.slug === node.metadata.project_slug)?.platform || 'other',
+        ...traceNodeAdjacentAnalyticsProperties(node),
       });
 
       if (traceStateRef.current.preferences.drawer.minimized) {
@@ -893,7 +895,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   }, [tree, projects, props.organization]);
 
   useLayoutEffect(() => {
-    if (!tree.root?.space || tree.type !== 'trace') {
+    if (tree.type !== 'trace') {
       return undefined;
     }
 

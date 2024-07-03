@@ -28,16 +28,19 @@ import {
   getWidgetQuery,
 } from 'sentry/utils/metrics/dashboard';
 import {hasCustomMetrics, hasMetricAlertFeature} from 'sentry/utils/metrics/features';
+import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
 import {
   isMetricsQueryWidget,
   type MetricDisplayType,
   type MetricsQuery,
 } from 'sentry/utils/metrics/types';
+import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {useMetricsContext} from 'sentry/views/metrics/context';
 import {CreateAlertModal} from 'sentry/views/metrics/createAlertModal';
+import {useSelectedProjects} from 'sentry/views/metrics/utils/useSelectedProjects';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 type ContextMenuProps = {
@@ -51,6 +54,8 @@ export function MetricQueryContextMenu({
   displayType,
   widgetIndex,
 }: ContextMenuProps) {
+  const {getVirtualMeta} = useVirtualMetricsContext();
+  const selectedProjects = useSelectedProjects();
   const organization = useOrganization();
   const router = useRouter();
 
@@ -64,6 +69,10 @@ export function MetricQueryContextMenu({
     metricsQuery,
     displayType
   );
+
+  const parsedMRI = useMemo(() => {
+    return parseMRI(metricsQuery.mri);
+  }, [metricsQuery.mri]);
 
   // At least one query must remain
   const canDelete = widgets.filter(isMetricsQueryWidget).length > 1;
@@ -87,7 +96,8 @@ export function MetricQueryContextMenu({
         leadingItems: [<IconSiren key="icon" />],
         key: 'add-alert',
         label: <CreateMetricAlertFeature>{t('Create Alert')}</CreateMetricAlertFeature>,
-        disabled: !createAlert || !hasMetricAlertFeature(organization),
+        disabled:
+          !createAlert || !hasMetricAlertFeature(organization) || parsedMRI.type === 'v',
         onAction: () => {
           trackAnalytics('ddm.create-alert', {
             organization,
@@ -122,7 +132,8 @@ export function MetricQueryContextMenu({
             <span>{t('Add to Dashboard')}</span>
           </Feature>
         ),
-        disabled: !createDashboardWidget || !hasDashboardFeature,
+        disabled:
+          !createDashboardWidget || !hasDashboardFeature || parsedMRI.type === 'v',
         onAction: () => {
           if (!organization.features.includes('dashboards-edit')) {
             return;
@@ -138,19 +149,34 @@ export function MetricQueryContextMenu({
       {
         leadingItems: [<IconSettings key="icon" />],
         key: 'settings',
-        label: t('Metric Settings'),
         disabled: !isCustomMetric({mri: metricsQuery.mri}),
+        label: t('Metric Settings'),
         onAction: () => {
           trackAnalytics('ddm.widget.settings', {
             organization,
           });
           Sentry.metrics.increment('ddm.widget.settings');
-          navigateTo(
-            `/settings/projects/:projectId/metrics/${encodeURIComponent(
-              metricsQuery.mri
-            )}`,
-            router
-          );
+
+          const {type} = parseMRI(metricsQuery.mri) ?? {};
+          const isVirtualMetric = type === 'v';
+
+          if (!isVirtualMetric) {
+            navigateTo(
+              `/settings/projects/:projectId/metrics/${encodeURIComponent(
+                metricsQuery.mri
+              )}`,
+              router
+            );
+          } else {
+            const metricsMeta = getVirtualMeta(metricsQuery.mri);
+            const targetProject = selectedProjects.find(
+              p => p.id === String(metricsMeta.projectIds[0])
+            );
+            navigateTo(
+              `/settings/projects/${targetProject?.slug || ':projectId'}/metrics/${formatMRI(metricsQuery.mri)}/edit/`,
+              router
+            );
+          }
         },
       },
       {
@@ -167,6 +193,7 @@ export function MetricQueryContextMenu({
     [
       createAlert,
       organization,
+      parsedMRI.type,
       createDashboardWidget,
       hasDashboardFeature,
       metricsQuery.mri,
@@ -174,6 +201,8 @@ export function MetricQueryContextMenu({
       duplicateWidget,
       widgetIndex,
       router,
+      getVirtualMeta,
+      selectedProjects,
       removeWidget,
     ]
   );

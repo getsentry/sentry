@@ -33,8 +33,8 @@ from sentry.incidents.utils.sentry_apps import trigger_sentry_app_action_creator
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.sentry_apps.services.app import app_service
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.tasks.integrations.slack import find_channel_id_for_alert_rule
+from sentry.users.services.user.service import user_service
 
 
 def fetch_alert_rule(request: Request, organization, alert_rule):

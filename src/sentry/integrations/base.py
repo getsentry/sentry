@@ -15,21 +15,21 @@ from rest_framework.exceptions import NotFound
 from sentry import audit_log, features
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidIdentity
+from sentry.identity.services.identity import identity_service
+from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.notify_disable import notify_disable
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models.identity import Identity
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.integrations.integration import Integration
 from sentry.models.team import Team
-from sentry.pipeline import PipelineProvider
-from sentry.pipeline.views.base import PipelineView
-from sentry.services.hybrid_cloud.identity import identity_service
-from sentry.services.hybrid_cloud.identity.model import RpcIdentity
-from sentry.services.hybrid_cloud.organization import (
+from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcOrganizationSummary,
     organization_service,
 )
+from sentry.pipeline import PipelineProvider
+from sentry.pipeline.views.base import PipelineView
 from sentry.shared_integrations.constants import (
     ERR_INTERNAL,
     ERR_UNAUTHORIZED,
@@ -44,7 +44,7 @@ from sentry.shared_integrations.exceptions import (
     UnsupportedResponseType,
 )
 from sentry.utils.audit import create_audit_entry, create_system_audit_entry
-from sentry.utils.sdk import configure_scope
+from sentry.utils.sdk import Scope
 
 if TYPE_CHECKING:
     from sentry.integrations.services.integration import RpcOrganizationIntegration
@@ -393,10 +393,10 @@ class IntegrationInstallation:
             filter={"id": self.org_integration.default_auth_id}
         )
         if identity is None:
-            with configure_scope() as scope:
-                scope.set_tag("integration_provider", self.model.get_provider().name)
-                scope.set_tag("org_integration_id", self.org_integration.id)
-                scope.set_tag("default_auth_id", self.org_integration.default_auth_id)
+            scope = Scope.get_isolation_scope()
+            scope.set_tag("integration_provider", self.model.get_provider().name)
+            scope.set_tag("org_integration_id", self.org_integration.id)
+            scope.set_tag("default_auth_id", self.org_integration.default_auth_id)
             raise Identity.DoesNotExist
         return identity
 

@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -13,11 +13,14 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconEdit} from 'sentry/icons/iconEdit';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {MetricsExtractionRuleEditModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleEditModal';
 import {
-  type MetricsExtractionRule,
   useDeleteMetricsExtractionRules,
   useMetricsExtractionRules,
 } from 'sentry/views/settings/projectMetrics/utils/api';
@@ -29,6 +32,9 @@ type Props = {
 
 export function MetricsExtractionRulesTable({project}: Props) {
   const organization = useOrganization();
+  const location = useLocation();
+  const params = useParams();
+  const navigate = useNavigate();
   const [query, setQuery] = useSearchQueryParam('query');
 
   const {data: extractionRules, isLoading} = useMetricsExtractionRules(
@@ -70,19 +76,46 @@ export function MetricsExtractionRulesTable({project}: Props) {
 
   const handleEdit = useCallback(
     (rule: MetricsExtractionRule) => {
-      openModal(
-        props => (
-          <MetricsExtractionRuleEditModal
-            project={project}
-            metricExtractionRule={rule}
-            {...props}
-          />
-        ),
-        {modalCss}
-      );
+      navigate(`/settings/projects/${project.slug}/metrics/${rule.spanAttribute}/edit/`);
     },
-    [project]
+    [project.slug, navigate]
   );
+
+  useEffect(() => {
+    const editPath = `/settings/projects/${project.slug}/metrics/${params.spanAttribute}/edit/`;
+
+    if (location.pathname !== editPath) {
+      return;
+    }
+
+    const rule = filteredExtractionRules.find(
+      r => r.spanAttribute === params.spanAttribute
+    );
+
+    if (!rule) {
+      return;
+    }
+
+    openModal(
+      props => (
+        <MetricsExtractionRuleEditModal
+          project={project}
+          metricExtractionRule={rule}
+          {...props}
+        />
+      ),
+      {
+        modalCss,
+        onClose: () => navigate(`/settings/projects/${project.slug}/metrics/`),
+      }
+    );
+  }, [
+    filteredExtractionRules,
+    project,
+    location.pathname,
+    params.spanAttribute,
+    navigate,
+  ]);
 
   return (
     <Fragment>
@@ -154,7 +187,7 @@ function RulesTable({
       {extractionRules
         .toSorted((a, b) => a?.spanAttribute?.localeCompare(b?.spanAttribute))
         .map(rule => (
-          <Fragment key={rule.spanAttribute + rule.type + rule.unit}>
+          <Fragment key={rule.spanAttribute + rule.unit}>
             <Cell>{rule.spanAttribute}</Cell>
             <Cell right>
               {rule.conditions.length ? (

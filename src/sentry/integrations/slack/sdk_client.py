@@ -6,6 +6,7 @@ from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 
+from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.integrations.base import disable_integration, is_response_error, is_response_success
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.integrations.services.integration import integration_service
@@ -76,6 +77,13 @@ def wrapper(method: FunctionType):
             else:
                 logger.info("slack_sdk.missing_error_response", extra={"error": str(e)})
             raise
+        except TimeoutError:
+            metrics.incr(
+                SLACK_DATADOG_METRIC,
+                sample_rate=1.0,
+                tags={"status": "timeout"},
+            )
+            raise
 
         return response
 
@@ -104,7 +112,14 @@ class SlackSdkClient(WebClient, metaclass=MetaClass):
 
         integration: Integration | RpcIntegration | None
         if SiloMode.get_current_mode() == SiloMode.REGION:
-            integration = integration_service.get_integration(integration_id=integration_id)
+            """
+            # In order to send requests, SlackClient needs to fetch the integration
+            # to get access tokens which trips up rpc method/transaction
+            # boundary detection. Those boundaries are not relevant because
+            # this is a read operation.
+            """
+            with in_test_hide_transaction_boundary():
+                integration = integration_service.get_integration(integration_id=integration_id)
         else:  # control or monolith (local)
             integration = Integration.objects.filter(id=integration_id).first()
 

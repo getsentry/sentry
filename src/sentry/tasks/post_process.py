@@ -46,7 +46,7 @@ if TYPE_CHECKING:
     from sentry.models.project import Project
     from sentry.models.team import Team
     from sentry.ownership.grammar import Rule
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
 
@@ -336,7 +336,7 @@ def handle_group_owners(
     from sentry.models.groupowner import GroupOwner, GroupOwnerType, OwnerRuleType
     from sentry.models.team import Team
     from sentry.models.user import User
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.services.user import RpcUser
 
     lock = locks.get(f"groupowner-bulk:{group.id}", duration=10, name="groupowner_bulk")
     logging_params = {

@@ -22,25 +22,21 @@ type GroupEventHeaderProps = {
 function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {
   const organization = useOrganization();
   const issueTypeConfig = getConfigForIssueType(group, group.project);
-  const isRelatedIssuesEnabled = organization.features.includes(
-    'related-issues-issue-details-page'
-  );
   // This is also called within the TraceTimeline component but caching will save a second call
   const {isLoading, oneOtherIssueEvent} = useTraceTimelineEvents({
     event,
   });
-  const showTraceLink = isRelatedIssuesEnabled && !isLoading;
 
   return (
     <StyledDataSection>
       <GroupEventCarousel group={group} event={event} projectSlug={project.slug} />
-      {/* XXX: Remove TraceLink from groupEventCarousel when we GA. */}
-      {showTraceLink && (
+      {!isLoading && (
         <StyledTraceLink>
           {oneOtherIssueEvent && <span>One other issue appears in the same trace.</span>}
           <TraceLink event={event} />
         </StyledTraceLink>
       )}
+      {/* This renders either the trace timeline or the trace-related issue */}
       {issueTypeConfig.traceTimeline && <TraceTimeline event={event} />}
       <StyledGlobalAppStoreConnectUpdateAlert
         project={project}
