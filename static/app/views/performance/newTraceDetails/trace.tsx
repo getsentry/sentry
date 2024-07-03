@@ -491,13 +491,13 @@ export function Trace({
   });
 
   const traceNode = trace.root.children[0];
-  const traceStartTimestamp = traceNode?.space?.[0];
+  const traceStartTimestamp = traceNode?.space[0];
 
   return (
     <TraceStylingWrapper
       ref={manager.registerContainerRef}
       className={`
-        ${trace?.root?.space?.[1] === 0 ? 'Empty' : ''}
+        ${trace.root.space[1] === 0 ? 'Empty' : ''}
         ${trace.indicators.length > 0 ? 'WithIndicators' : ''}
         ${trace.type !== 'trace' || scrollQueueRef.current ? 'Loading' : ''}
         ${ConfigStore.get('theme')}`}

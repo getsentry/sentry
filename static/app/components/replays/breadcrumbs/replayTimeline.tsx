@@ -15,10 +15,12 @@ import {useTimelineScrubberMouseTracking} from 'sentry/components/replays/player
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import divide from 'sentry/utils/number/divide';
 import toPercent from 'sentry/utils/number/toPercent';
+import useTimelineScale from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
 export default function ReplayTimeline() {
-  const {replay, currentTime, timelineScale} = useReplayContext();
+  const {replay, currentTime} = useReplayContext();
+  const [timelineScale] = useTimelineScale();
 
   const panelRef = useRef<HTMLDivElement>(null);
   const mouseTrackingProps = useTimelineScrubberMouseTracking(
