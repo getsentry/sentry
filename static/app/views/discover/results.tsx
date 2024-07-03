@@ -6,12 +6,16 @@ import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
-import {updateSavedQueryVisit} from 'sentry/actionCreators/discoverSavedQueries';
+import {
+  updateSavedQuery,
+  updateSavedQueryVisit,
+} from 'sentry/actionCreators/discoverSavedQueries';
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {fetchProjectsCount} from 'sentry/actionCreators/projects';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import SearchBar from 'sentry/components/events/searchBar';
@@ -30,6 +34,7 @@ import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilt
 import type {CursorHandler} from 'sentry/components/pagination';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
+import {IconClose} from 'sentry/icons/iconClose';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization, PageFilters, SavedQuery} from 'sentry/types';
@@ -44,7 +49,7 @@ import {
   DiscoverDatasets,
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
-  type SavedQueryDatasets,
+  SavedQueryDatasets,
 } from 'sentry/utils/discover/types';
 import localStorage from 'sentry/utils/localStorage';
 import marked from 'sentry/utils/marked';
@@ -90,7 +95,9 @@ type State = {
   showTags: boolean;
   tips: string[];
   totalValues: null | number;
+  loadingForcedDataset?: boolean;
   savedQuery?: SavedQuery;
+  showForcedDatasetAlert?: boolean;
   showMetricsAlert?: boolean;
   showUnparameterizedBanner?: boolean;
   splitDecision?: SavedQueryDatasets;
@@ -135,6 +142,7 @@ export class Results extends Component<Props, State> {
     showTags: readShowTagsState(),
     needConfirmation: false,
     confirmedQuery: false,
+    loadingForcedDataset: false,
     tips: [],
   };
 
@@ -296,6 +304,22 @@ export class Results extends Component<Props, State> {
       Sentry.captureException(err);
     }
   }
+
+  handleForcedDataset = () => {
+    const {api, organization, setSavedQuery} = this.props;
+    const {eventView} = this.state;
+
+    const newEventView = eventView.withQueryDataset(SavedQueryDatasets.ERRORS);
+    const query = newEventView.toNewQuery();
+
+    try {
+      updateSavedQuery(api, organization.slug, query).then((savedQuery: SavedQuery) => {
+        setSavedQuery(savedQuery);
+      });
+    } catch (err) {
+      Sentry.captureException(err);
+    }
+  };
 
   checkEventView() {
     const {eventView, splitDecision} = this.state;
@@ -558,6 +582,39 @@ export class Results extends Component<Props, State> {
     return null;
   }
 
+  renderForcedDatasetBanner() {
+    const {organization} = this.props;
+    if (
+      organization.features.includes('performance-discover-dataset-selector') &&
+      this.state.showForcedDatasetAlert &&
+      this.state.splitDecision
+    ) {
+      return (
+        <Alert
+          type="warning"
+          showIcon
+          trailingItems={
+            <StyledCloseButton
+              icon={<IconClose size="sm" />}
+              aria-label={t('Close')}
+              onClick={() => {
+                this.setState({showForcedDatasetAlert: false});
+              }}
+              size="zero"
+              borderless
+            />
+          }
+        >
+          {tct(
+            "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to [splitDecision]. Edit as you see fit.",
+            {splitDecision: this.state.splitDecision}
+          )}
+        </Alert>
+      );
+    }
+    return null;
+  }
+
   renderTips() {
     const {tips} = this.state;
     if (tips) {
@@ -577,6 +634,10 @@ export class Results extends Component<Props, State> {
       return;
     }
     this.setState({tips});
+  };
+
+  setSplitDecision = (value?: SavedQueryDatasets) => {
+    this.setState({splitDecision: value});
   };
 
   render() {
@@ -627,6 +688,7 @@ export class Results extends Component<Props, State> {
                 {this.renderMetricsFallbackBanner()}
                 {this.renderError(error)}
                 {this.renderTips()}
+                {this.renderForcedDatasetBanner()}
                 <StyledPageFilterBar condensed>
                   <ProjectPageFilter />
                   <EnvironmentPageFilter />
@@ -681,8 +743,19 @@ export class Results extends Component<Props, State> {
                   onCursor={this.handleCursor}
                   isHomepage={isHomepage}
                   setTips={this.setTips}
-                  setSplitDecision={(value?: string) => {
-                    this.setState({splitDecision: value as SavedQueryDatasets});
+                  setSplitDecision={(value?: SavedQueryDatasets) => {
+                    this.setSplitDecision(value);
+                    if (
+                      organization.features.includes(
+                        'performance-discover-dataset-selector'
+                      ) &&
+                      value === SavedQueryDatasets.DISCOVER &&
+                      savedQuery
+                    ) {
+                      this.setSplitDecision(SavedQueryDatasets.ERRORS);
+                      this.handleForcedDataset();
+                      this.setState({showForcedDatasetAlert: true});
+                    }
                   }}
                   dataset={
                     organization.features.includes(
@@ -810,3 +883,14 @@ function ResultsContainer(props: Props) {
 }
 
 export default withApi(withOrganization(withPageFilters(ResultsContainer)));
+
+const StyledCloseButton = styled(Button)`
+  background-color: transparent;
+  transition: opacity 0.1s linear;
+
+  &:hover,
+  &:focus {
+    background-color: transparent;
+    opacity: 1;
+  }
+`;

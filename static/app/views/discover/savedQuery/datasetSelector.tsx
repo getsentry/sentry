@@ -1,10 +1,8 @@
-import omit from 'lodash/omit';
-
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import type {SavedQuery} from 'sentry/types';
 import EventView from 'sentry/utils/discover/eventView';
-import type {SavedQueryDatasets} from 'sentry/utils/discover/types';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -14,13 +12,14 @@ import {getSavedQueryDataset} from 'sentry/views/discover/savedQuery/utils';
 export const DATASET_PARAM = 'queryDataset';
 
 type Props = {
+  eventView: EventView;
   isHomepage: boolean | undefined;
   savedQuery: SavedQuery | undefined;
   splitDecision?: SavedQueryDatasets;
 };
 
 export function DatasetSelector(props: Props) {
-  const {savedQuery, isHomepage, splitDecision} = props;
+  const {savedQuery, isHomepage, splitDecision, eventView} = props;
   const location = useLocation();
   const organization = useOrganization();
   const navigate = useNavigate();
@@ -28,12 +27,12 @@ export function DatasetSelector(props: Props) {
   const value = getSavedQueryDataset(location, savedQuery, splitDecision);
 
   const options = [
-    {value: 'error-events', label: t('Errors')},
-    {value: 'transaction-like', label: t('Transactions')},
+    {value: SavedQueryDatasets.ERRORS, label: t('Errors')},
+    {value: SavedQueryDatasets.TRANSACTIONS, label: t('Transactions')},
   ];
 
   if (value === 'discover') {
-    options.push({value: 'discover', label: t('Unknown')});
+    options.push({value: SavedQueryDatasets.DISCOVER, label: t('Unknown')});
   }
 
   return (
@@ -42,11 +41,13 @@ export function DatasetSelector(props: Props) {
       value={value}
       options={options}
       onChange={newValue => {
-        const query = DEFAULT_EVENT_VIEW_MAP[newValue.value];
-        const newQuery = savedQuery
-          ? omit(query, ['name', 'id', 'projects', 'range'])
-          : query;
-        const nextEventView = EventView.fromNewQueryWithLocation(newQuery, location);
+        let nextEventView: EventView;
+        if (eventView.id) {
+          nextEventView = eventView.withQueryDataset(newValue.value);
+        } else {
+          const query = DEFAULT_EVENT_VIEW_MAP[newValue.value];
+          nextEventView = EventView.fromNewQueryWithLocation(query, location);
+        }
         const nextLocation = nextEventView.getResultsViewUrlTarget(
           organization.slug,
           isHomepage

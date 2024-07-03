@@ -596,6 +596,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
                 isHomepage={isHomepage}
                 savedQuery={savedQuery}
                 splitDecision={splitDecision}
+                eventView={eventView}
               />
             )
           }

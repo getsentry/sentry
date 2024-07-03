@@ -20,6 +20,7 @@ import type {
   SelectValue,
   User,
 } from 'sentry/types';
+import {defined} from 'sentry/utils';
 import toArray from 'sentry/utils/array/toArray';
 import type {Column, ColumnType, Field, Sort} from 'sentry/utils/discover/fields';
 import {
@@ -44,6 +45,7 @@ import {
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {getDatasetFromSavedQueryDataset} from 'sentry/views/discover/savedQuery/utils';
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
@@ -794,6 +796,13 @@ class EventView {
     return newEventView;
   }
 
+  withQueryDataset(queryDataset: SavedQueryDatasets): EventView {
+    const newEventView = this.clone();
+    newEventView.queryDataset = queryDataset;
+
+    return newEventView;
+  }
+
   withColumns(columns: Column[]): EventView {
     const newEventView = this.clone();
     const fields: Field[] = columns
@@ -1159,6 +1168,10 @@ class EventView {
       queryString += ' ' + forceAppendRawQueryString;
     }
 
+    const dataset = defined(this.queryDataset)
+      ? getDatasetFromSavedQueryDataset(this.queryDataset)
+      : undefined;
+
     // generate event query
     const eventQuery = Object.assign(
       omit(picked, DATETIME_QUERY_STRING_KEYS),
@@ -1171,7 +1184,7 @@ class EventView {
         sort,
         per_page: DEFAULT_PER_PAGE,
         query: queryString,
-        dataset: this.dataset,
+        dataset: this.dataset ?? dataset,
       }
     ) as EventQuery & LocationQuery;
 

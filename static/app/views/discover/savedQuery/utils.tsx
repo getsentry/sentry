@@ -263,7 +263,7 @@ export function getSavedQueryDataset(
   if (savedQuery?.queryDataset === SavedQueryDatasets.DISCOVER && splitDecision) {
     return splitDecision;
   }
-  return (savedQuery?.queryDataset ?? SavedQueryDatasets.ERRORS) as SavedQueryDatasets;
+  return (savedQuery?.queryDataset ?? SavedQueryDatasets.DISCOVER) as SavedQueryDatasets;
 }
 
 export function getDatasetFromSavedQueryDataset(
