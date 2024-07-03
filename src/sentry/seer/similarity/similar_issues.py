@@ -40,12 +40,12 @@ def get_similarity_data_from_seer(
     referrer = similar_issues_request.get("referrer")
     metric_tags: dict[str, str | int] = {"referrer": referrer} if referrer else {}
 
-    # We have to rename the key `message` because it conflicts with the `LogRecord` attribute of the
-    # same name
     logger_extra = apply_key_filter(
         similar_issues_request,
         keep_keys=["event_id", "project_id", "message", "hash", "referrer"],
     )
+    # We have to rename the key `message` because it conflicts with the `LogRecord` attribute of the
+    # same name
     logger_extra["message_value"] = logger_extra.pop("message", None)
     logger.info(
         "get_seer_similar_issues.request",
