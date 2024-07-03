@@ -118,6 +118,7 @@ from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
@@ -492,6 +493,17 @@ class Factories:
                     project=project, user=AnonymousUser(), default_rules=True, sender=Factories
                 )
         return project
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_project_template(project=None, organization=None, **kwargs) -> ProjectTemplate:
+        if not kwargs.get("name"):
+            kwargs["name"] = petname.generate(2, " ", letters=10).title()
+
+        with transaction.atomic(router.db_for_write(Project)):
+            project_template = ProjectTemplate.objects.create(organization=organization, **kwargs)
+
+        return project_template
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
