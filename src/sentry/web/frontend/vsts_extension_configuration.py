@@ -1,7 +1,5 @@
 import re
 
-from django.core.exceptions import BadRequest
-
 from sentry.web.frontend.base import control_silo_view
 
 from .integration_extension_configuration import IntegrationExtensionConfigurationView
@@ -12,7 +10,7 @@ class VstsExtensionConfigurationView(IntegrationExtensionConfigurationView):
     provider = "vsts"
     external_provider_key = "vsts-extension"
 
-    def __is_validate_account_name(self, account_name: str) -> bool:
+    def _is_valid_account_name(self, account_name: str) -> bool:
         """Validates the Azure DevOps account name
 
         https://learn.microsoft.com/en-us/azure/devops/organizations/accounts/rename-organization?view=azure-devops#rename-your-organization
@@ -30,7 +28,7 @@ class VstsExtensionConfigurationView(IntegrationExtensionConfigurationView):
         return bool(re.match(pattern, account_name))
 
     def map_params_to_state(self, params):
-        if not self.__is_validate_account_name(account_name=params["targetName"]):
-            raise BadRequest("invalid targetName")
+        if not self._is_valid_account_name(params["targetName"]):
+            raise ValueError("Invalid targetName")
 
         return {"accountId": params["targetId"], "accountName": params["targetName"]}

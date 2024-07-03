@@ -76,3 +76,11 @@ class VstsExtensionConfigurationTest(TestCase):
         assert resp.headers["Location"].startswith(
             "https://app.vssps.visualstudio.com/oauth2/authorize"
         )
+
+    def test_invalid_account_name(self):
+        self.login_as(self.user)
+
+        resp = self.client.get(self.path, {"targetId": "1", "targetName": "example.com/"})
+
+        assert resp.status_code == 200
+        assert b"Invalid targetName" in resp.content
