@@ -261,18 +261,25 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         return new_discover_widget_split
 
-    def save_discover_saved_query_split_decision(self, query, has_errors, has_transactions_data):
+    def save_discover_saved_query_split_decision(
+        self, query, dataset_inferred_from_query, has_errors, has_transactions_data
+    ):
         """This can be removed once the discover dataset has been fully split"""
-        if has_errors and not has_transactions_data:
+        if dataset_inferred_from_query:
+            decision = dataset_inferred_from_query
+            sentry_sdk.set_tag("discover.split_reason", "inferred_from_columns")
+        elif has_errors and not has_transactions_data:
             decision = DiscoverSavedQueryTypes.ERROR_EVENTS
+            sentry_sdk.set_tag("discover.split_reason", "query_result")
         elif not has_errors and has_transactions_data:
             decision = DiscoverSavedQueryTypes.TRANSACTION_LIKE
+            sentry_sdk.set_tag("discover.split_reason", "query_result")
         else:
             # In the case that neither or both datasets return data,
-            # we don't split this yet and can make multiple queries to check each time.
-            # This will help newly created widgets or infrequent count
-            # widgets that shouldn't be prematurely assigned a side.
-            decision = DiscoverSavedQueryTypes.DISCOVER
+            # default to Errors.
+            decision = DiscoverSavedQueryTypes.ERROR_EVENTS
+            sentry_sdk.set_tag("discover.split_reason", "default")
+
         sentry_sdk.set_tag("discover.split_decision", decision)
         if query.dataset != decision:
             query.dataset = decision

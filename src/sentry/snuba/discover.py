@@ -70,6 +70,7 @@ class EventsMeta(TypedDict):
     datasetReason: NotRequired[str]
     isMetricsData: NotRequired[bool]
     isMetricsExtractedData: NotRequired[bool]
+    discoverSplitDecision: NotRequired[bool]
 
 
 # When calling make build-spectacular-docs we hit this issue
