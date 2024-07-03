@@ -323,8 +323,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:related-events", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable related issues feature
     manager.add("organizations:related-issues", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable related issues in issue details page
-    manager.add("organizations:related-issues-issue-details-page", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Metrics cardinality limiter in Relay
     manager.add("organizations:relay-cardinality-limiter", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable the release details performance section
@@ -415,6 +413,10 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:insights-initial-modules", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable access to newer Insights modules (Caches, Queues, LLMs, Mobile UI)
     manager.add("organizations:insights-addon-modules", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    # Use static web vital performance scoring weights
+    manager.add("organizations:insights-browser-webvitals-static-weights", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    # Sets all web vitals to optional when calculating performance scores
+    manager.add("organizations:insights-browser-webvitals-optional-components", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable standalone span ingestion
     manager.add("organizations:standalone-span-ingestion", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable the aggregate span waterfall view
@@ -425,16 +427,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:starfish-browser-resource-module-image-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enables the resource module ui
     manager.add("organizations:starfish-browser-resource-module-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable browser starfish webvitals module view
-    manager.add("organizations:starfish-browser-webvitals", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable browser starfish webvitals module pageoverview v2 view
-    manager.add("organizations:starfish-browser-webvitals-pageoverview-v2", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable INP in the browser starfish webvitals module
-    manager.add("organizations:starfish-browser-webvitals-replace-fid-with-inp", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Update Web Vitals UI to display aggregate web vital values as avg instead of p75
-    manager.add("organizations:performance-webvitals-avg", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable browser starfish webvitals module to use backend provided performance scores
-    manager.add("organizations:starfish-browser-webvitals-use-backend-scores", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable mobile starfish app start module view
     manager.add("organizations:starfish-mobile-appstart", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable mobile starfish ui module view

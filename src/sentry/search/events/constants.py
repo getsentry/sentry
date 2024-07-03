@@ -90,6 +90,14 @@ VITAL_THRESHOLDS: dict[str, ThresholdDict] = {
     },
 }
 
+WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS: dict[str, float] = {
+    "lcp": 0.30,
+    "fcp": 0.15,
+    "cls": 0.15,
+    "ttfb": 0.10,
+    "inp": 0.30,
+}
+
 TAG_KEY_RE = re.compile(r"^(sentry_tags|tags)\[(?P<tag>.*)\]$")
 # Based on general/src/protocol/tags.rs in relay
 VALID_FIELD_PATTERN = re.compile(r"^[a-zA-Z0-9_.:-]*$")
