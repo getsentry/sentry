@@ -62,7 +62,6 @@ class DeployNotifyTest(TestCase):
         activity = Activity.objects.get(
             type=ActivityType.DEPLOY.value, project=project, ident=release.version
         )
-        assert activity.data is not None
         assert activity.data["deploy_id"] == deploy.id
         assert Deploy.objects.get(id=deploy.id).notified is True
 
@@ -113,6 +112,5 @@ class DeployNotifyTest(TestCase):
         activity = Activity.objects.get(
             type=ActivityType.DEPLOY.value, project=project, ident=release.version
         )
-        assert activity.data is not None
         assert activity.data["deploy_id"] == deploy.id
         assert Deploy.objects.get(id=deploy.id).notified is True

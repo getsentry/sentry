@@ -83,7 +83,6 @@ class HandleStatusChangeTest(TestCase):
 
         assert issue_ignored.called
         activity = Activity.objects.get(group=self.group, type=ActivityType.SET_IGNORED.value)
-        assert activity.data is not None
         assert activity.data.get("ignoreDuration") == 30
 
         assert GroupHistory.objects.filter(
@@ -107,7 +106,6 @@ class HandleStatusChangeTest(TestCase):
 
         assert issue_ignored.called
         activity = Activity.objects.get(group=self.group, type=ActivityType.SET_IGNORED.value)
-        assert activity.data is not None
         assert activity.data.get("ignoreUntilEscalating")
 
         assert GroupHistory.objects.filter(
