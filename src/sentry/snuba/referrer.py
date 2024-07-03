@@ -887,15 +887,25 @@ class Referrer(Enum):
 
 VALUES = {referrer.value for referrer in Referrer}
 
+# These suffixes are automatically added by Query Builder code in certain conditions. Any valid referrer with these suffixes is still a valid referrer.
+VALID_SUFFIXES = ["primary", "secondary"]
+
 
 def validate_referrer(referrer: str | None) -> None:
     if not referrer:
         return
 
+    if referrer in VALUES:
+        return
+
+    for suffix in VALID_SUFFIXES:
+        if referrer.removesuffix(f".{suffix}") in VALUES:
+            return
+
     error_message = f"referrer {referrer} is not part of Referrer Enum"
+
     try:
-        if referrer not in VALUES:
-            raise Exception(error_message)
+        raise Exception(error_message)
     except Exception:
         metrics.incr("snql.sdk.api.new_referrers", tags={"referrer": referrer})
         logger.warning(error_message, exc_info=True)
