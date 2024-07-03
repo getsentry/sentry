@@ -264,11 +264,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
     def save_discover_saved_query_split_decision(
         self, query, dataset_inferred_from_query, has_errors, has_transactions_data
     ):
-        """
-        This can be removed once the discover dataset has been fully split.
-        If dataset is ambiguous (i.e., could be either transactions or errors),
-        default to errors.
-        """
+        """This can be removed once the discover dataset has been fully split"""
         if dataset_inferred_from_query:
             decision = dataset_inferred_from_query
             sentry_sdk.set_tag("discover.split_reason", "inferred_from_query")

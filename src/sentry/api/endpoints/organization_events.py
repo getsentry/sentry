@@ -467,7 +467,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 if does_widget_have_split:
                     return _data_fn(scopedDataset, offset, limit, scoped_query)
 
-                # See if we can infer which dataset based on selected columns and query string.
                 dataset_inferred_from_query = dataset_split_decision_inferred_from_query(
                     self.get_field_list(organization, request),
                     scoped_query,
@@ -495,7 +494,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
                     return result
 
-                # Unable to infer based on selected fields and query string, so run both queries.
                 else:
                     map = {}
                     with ThreadPoolExecutor(max_workers=3) as exe:
