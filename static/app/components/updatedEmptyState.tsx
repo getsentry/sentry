@@ -206,7 +206,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                 title={extraConfigTitle || 'Upload Source Maps'}
               >
                 <div>
-                 <div>
+                  <div>
                     <DescriptionWrapper>{extraConfigDescription}</DescriptionWrapper>
                     {extraConfigurations?.map((configuration, index) => (
                       <div key={index}>
