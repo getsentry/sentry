@@ -294,8 +294,10 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                   <ConditionsWrapper hasDelete={value.length > 1}>
                     {conditions.map((condition, index) => (
                       <Fragment key={condition.id}>
-                        <SearchWrapper hasPrefix={index !== 0}>
-                          {index !== 0 && <ConditionLetter>{t('or')}</ConditionLetter>}
+                        <SearchWrapper hasPrefix={conditions.length > 1}>
+                          {conditions.length > 1 && (
+                            <ConditionSymbol>{index + 1}</ConditionSymbol>
+                          )}
                           <SearchBar
                             {...SPAN_SEARCH_CONFIG}
                             searchSource="metrics-extraction"
@@ -347,6 +349,7 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
 
 const ConditionsWrapper = styled('div')<{hasDelete: boolean}>`
   display: grid;
+  align-items: center;
   gap: ${space(1)};
   ${p =>
     p.hasDelete
@@ -361,6 +364,7 @@ const ConditionsWrapper = styled('div')<{hasDelete: boolean}>`
 const SearchWrapper = styled('div')<{hasPrefix: boolean}>`
   display: grid;
   gap: ${space(1)};
+  align-items: center;
   ${p =>
     p.hasPrefix
       ? `
@@ -371,17 +375,17 @@ const SearchWrapper = styled('div')<{hasPrefix: boolean}>`
   `}
 `;
 
-const ConditionLetter = styled('div')`
-  background-color: ${p => p.theme.purple100};
-  border-radius: ${p => p.theme.borderRadius};
-  text-align: center;
-  padding: 0 ${space(2)};
+const ConditionSymbol = styled('div')`
+  background-color: ${p => p.theme.purple200};
   color: ${p => p.theme.purple400};
-  white-space: nowrap;
-  font-weight: ${p => p.theme.fontWeightBold};
+  text-align: center;
   align-content: center;
+  height: ${space(3)};
+  width: ${space(3)};
+  border-radius: 50%;
 `;
 
 const ConditionsButtonBar = styled('div')`
   margin-top: ${space(1)};
+  height: ${space(3)};
 `;
