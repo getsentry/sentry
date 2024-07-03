@@ -15,6 +15,7 @@ from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.rules import history, rules
 from sentry.rules.conditions.event_frequency import (
+    COMPARISON_INTERVALS,
     DEFAULT_COMPARISON_INTERVAL,
     BaseEventFrequencyCondition,
     ComparisonType,
@@ -189,7 +190,7 @@ def get_condition_group_results(
         # The comparison interval is only set for the second query of a percent
         # comparison condition.
         comparison_interval = (
-            condition_inst.intervals[unique_condition.comparison_interval][1]
+            COMPARISON_INTERVALS[unique_condition.comparison_interval][1]
             if unique_condition.comparison_interval
             else None
         )

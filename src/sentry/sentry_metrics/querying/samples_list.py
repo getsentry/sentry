@@ -9,9 +9,10 @@ from snuba_sdk import And, Column, Condition, Function, Op, Or
 
 from sentry import options
 from sentry.api.event_search import SearchFilter, SearchKey, SearchValue
-from sentry.search.events.builder import MetricsSummariesQueryBuilder, SpansIndexedQueryBuilder
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.builder.metrics_summaries import MetricsSummariesQueryBuilder
+from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SelectType, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import (

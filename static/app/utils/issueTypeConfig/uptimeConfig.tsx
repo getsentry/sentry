@@ -18,7 +18,6 @@ const uptimeConfig: IssueCategoryConfigMapping = {
     similarIssues: {enabled: false},
     userFeedback: {enabled: false},
     usesIssuePlatform: true,
-    traceTimeline: true,
     stats: {enabled: false},
   },
 };

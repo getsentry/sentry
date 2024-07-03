@@ -26,13 +26,16 @@ from sentry.api.utils import handle_query_errors
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.search.events.builder import SpansIndexedQueryBuilder, TimeseriesSpanIndexedQueryBuilder
+from sentry.organizations.services.organization import RpcOrganization
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.builder.spans_indexed import (
+    SpansIndexedQueryBuilder,
+    TimeseriesSpanIndexedQueryBuilder,
+)
 from sentry.search.events.constants import TIMEOUT_SPAN_ERROR_MESSAGE
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams, WhereType
 from sentry.sentry_metrics.querying.samples_list import SpanKey, get_sample_list_executor_cls
-from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.snuba import discover, spans_indexed
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer

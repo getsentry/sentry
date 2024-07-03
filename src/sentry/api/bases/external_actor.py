@@ -21,7 +21,7 @@ from sentry.integrations.utils.providers import get_provider_choices
 from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.organization import Organization
 from sentry.models.team import Team
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.organizations.services.organization import organization_service
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 

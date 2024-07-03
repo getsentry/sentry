@@ -13,7 +13,7 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.authproviderreplica import AuthProviderReplica
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberSummary
+from sentry.organizations.services.organization import RpcOrganizationMemberSummary
 from sentry.users.services.user.service import user_service
 
 

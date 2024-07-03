@@ -199,7 +199,7 @@ class Team(ReplicatedRegionModel):
 
     def handle_async_replication(self, shard_identifier: int) -> None:
         from sentry.hybridcloud.services.replica import control_replica_service
-        from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_team
+        from sentry.organizations.services.organization.serial import serialize_rpc_team
 
         control_replica_service.upsert_replicated_team(team=serialize_rpc_team(self))
 
