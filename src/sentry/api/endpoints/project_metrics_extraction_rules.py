@@ -145,7 +145,7 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                     configs.append(config)
 
                     # delete conditions not present in update
-                    included_conditions = [x["id"] for x in obj["conditions"]]
+                    included_conditions = [x["id"] for x in obj["conditions"] if "id" in x]
                     SpanAttributeExtractionRuleCondition.objects.filter(config=config).exclude(
                         id__in=included_conditions
                     ).delete()
