@@ -5,7 +5,6 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.helpers.processing_issues import get_processing_issues
 from sentry.api.serializers import serialize
 
 
@@ -27,9 +26,18 @@ class OrganizationProcessingIssuesEndpoint(OrganizationEndpoint):
         :auth: required
 
         """
-        data = get_processing_issues(
-            request.user,
-            self.get_projects(request, organization),
-            request.GET.get("detailed") == "1",
-        )
+        data = []
+        for project in self.get_projects(request, organization):
+            data.append(
+                {
+                    "hasIssues": False,
+                    "numIssues": 0,
+                    "lastSeen": None,
+                    "resolveableIssues": 0,
+                    "hasMoreResolveableIssues": False,
+                    "issuesProcessing": 0,
+                    "project": project.slug,
+                    "issues": [],
+                }
+            )
         return Response(serialize(data, request.user))
