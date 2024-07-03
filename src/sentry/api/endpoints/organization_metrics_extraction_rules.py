@@ -46,7 +46,6 @@ class OrganizationMetricsExtractionRulesEndpoint(OrganizationEndpoint):
         except Exception as e:
             return Response(status=500, data={"detail": str(e)})
 
-        # TODO(metrics): do real pagination using the database
         return self.paginate(
             request,
             queryset=configs,
