@@ -91,7 +91,7 @@ describe('BreadcrumbsDataSection', function () {
     {action: 'Filter', elementRole: 'button'},
     {action: 'Sort', elementRole: 'button'},
   ])(
-    'opens the drawer, and focuses $action $elementRole when $action button is pressedb',
+    'opens the drawer, and focuses $action $elementRole when $action button is pressed',
     async ({action, elementRole}) => {
       render(<BreadcrumbsDataSection {...MOCK_DATA_SECTION_PROPS} />);
 
