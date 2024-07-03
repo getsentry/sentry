@@ -16,8 +16,6 @@ from sentry.shared_integrations.client.proxy import infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import control_silo_function
 
-from .client import PagerDutyClient
-
 logger = logging.getLogger("sentry.integrations.pagerduty")
 
 PAGERDUTY_CUSTOM_PRIORITIES = {
@@ -144,14 +142,28 @@ def send_incident_alert_notification(
     new_status: IncidentStatus,
     notification_uuid: str | None = None,
 ) -> bool:
+    from sentry.integrations.pagerduty.integration import PagerDutyIntegration
+
     integration_id = action.integration_id
     organization_id = incident.organization_id
 
     service: PagerDutyServiceDict | None = None
-    org_integration = integration_service.get_organization_integration(
-        integration_id=integration_id,
+    result = integration_service.organization_context(
         organization_id=organization_id,
+        integration_id=integration_id,
     )
+    integration = result.integration
+    org_integration = result.organization_integration
+    if integration is None:
+        logger.info(
+            "pagerduty.integration.missing",
+            extra={
+                "integration_id": integration_id,
+                "organization_id": organization_id,
+            },
+        )
+        return False
+
     org_integration_id: int | None = None
     if org_integration:
         org_integration_id = org_integration.id
@@ -177,18 +189,17 @@ def send_incident_alert_notification(
             "fetch.fail.pagerduty_metric_alert",
             extra={
                 "integration_id": integration_id,
-                "organization_id": incident.organization_id,
+                "organization_id": organization_id,
                 "target_identifier": action.target_identifier,
             },
         )
         raise Http404
 
     integration_key = service["integration_key"]
-    # TODO(hybridcloud) This should use the integration.installation client workflow instead.
-    client = PagerDutyClient(
-        integration_id=integration_id,
-        integration_key=integration_key,
-    )
+    install = integration.get_installation(organization_id=organization_id)
+    assert isinstance(install, PagerDutyIntegration)
+
+    client = install.get_keyring_client(integration_key)
     attachment = build_incident_attachment(
         incident, integration_key, new_status, metric_value, notification_uuid
     )

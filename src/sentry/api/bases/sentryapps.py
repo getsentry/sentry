@@ -377,7 +377,6 @@ class SentryAppInstallationPermission(SentryPermission):
         if request.user.is_sentry_app:
             return request.user.id == installation.sentry_app.proxy_user_id
 
-        # TODO(hybrid-cloud): Replace this RPC with an org member lookup when that exists?
         org_context = organization_service.get_organization_by_id(
             id=installation.organization_id,
             user_id=request.user.id,
