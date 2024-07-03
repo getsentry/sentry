@@ -5,7 +5,7 @@ from django.urls import reverse
 from sentry.models.apitoken import ApiToken
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.helpers import with_feature
+from sentry.testutils.helpers import override_options, with_feature
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode
 
@@ -379,12 +379,13 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
 
     @django_db_all
     @with_feature("organizations:custom-metrics-extraction-rule")
+    @override_options({"metric_extraction.max_span_attribute_specs": 5000})
     def test_get_pagination(self):
         json_payload = {
             "metricsExtractionRules": [
                 {
                     "spanAttribute": f"count_clicks_{i:04d}",
-                    "aggregates": ["count", "p50", "p75", "p95", "p99"],
+                    "aggregates": ["count"],
                     "unit": "none",
                     "tags": ["tag1", "tag2", "tag3"],
                     "conditions": [
@@ -629,3 +630,33 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         )
         assert response.status_code == 200
         assert len(response.data) == 0
+
+    @django_db_all
+    @with_feature("organizations:custom-metrics-extraction-rule")
+    @override_options({"metric_extraction.max_span_attribute_specs": 1})
+    def test_specs_over_limit(self):
+
+        new_rule = {
+            "metricsExtractionRules": [
+                {
+                    "spanAttribute": "my_span_attribute",
+                    "aggregates": ["count"],
+                    "unit": None,
+                    "tags": ["tag1", "tag2", "tag3"],
+                    "conditions": [
+                        {"id": str(uuid.uuid4()), "value": "foo:bar"},
+                        {"id": str(uuid.uuid4()), "value": "baz:faz"},
+                    ],
+                }
+            ]
+        }
+
+        response = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            method="post",
+            **new_rule,
+        )
+
+        assert response.status_code == 400
+        assert response.data["detail"] == "Total number of rules exceeds the limit of 1."
