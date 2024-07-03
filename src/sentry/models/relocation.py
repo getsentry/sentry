@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import Enum, unique
+from enum import Enum, IntEnum, unique
 from uuid import uuid4
 
 from django.db import models
@@ -81,6 +81,15 @@ class Relocation(DefaultFieldsModel):
         def get_choices(cls) -> list[tuple[int, str]]:
             return [(key.value, key.name) for key in cls]
 
+    class Provenance(IntEnum):
+        SELF_HOSTED = 0
+        SAAS_TO_SAAS = 1
+
+        # TODO(azaslavsky): Could we dedup this with a mixin in the future?
+        @classmethod
+        def get_choices(cls) -> list[tuple[int, str]]:
+            return [(key.value, key.name) for key in cls]
+
     # The user that requested this relocation - if the request was made by an admin on behalf of a
     # user, this will be different from `owner`. Otherwise, they are identical.
     creator_id = BoundedBigIntegerField()
@@ -98,6 +107,12 @@ class Relocation(DefaultFieldsModel):
 
     # Possible values are in the Stage enum.
     step = models.SmallIntegerField(choices=Step.get_choices(), default=None)
+
+    # Possible values are in the Provenance enum. The relocation pipeline has different behaviors
+    # depending on the source of the relocation.
+    provenance = models.SmallIntegerField(
+        choices=Provenance.get_choices(), default=Provenance.SELF_HOSTED
+    )
 
     # Possible values are in the Status enum.
     status = models.SmallIntegerField(
