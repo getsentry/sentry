@@ -72,7 +72,7 @@ class EventManagerGroupingTest(TestCase):
     def test_adds_default_fingerprint_if_none_in_event(self):
         event = save_new_event({"message": "Dogs are great!"}, self.project)
 
-        assert event.data.get("fingerprint") == ["{{ default }}"]
+        assert event.data["fingerprint"] == ["{{ default }}"]
 
     def test_ignores_fingerprint_on_transaction_event(self):
         error_event = save_new_event(
@@ -116,7 +116,7 @@ class EventManagerGroupingTest(TestCase):
         assert group.times_seen == 1
         assert group.last_seen == event1.datetime
         assert group.message == event1.message
-        assert group.data.get("metadata").get("title") == event1.title
+        assert group.data["metadata"]["title"] == event1.title
 
         # Normally this should go into a different group, since the messages don't match, but the
         # fingerprint takes precedence. (We need to make the messages different in order to show
@@ -131,7 +131,7 @@ class EventManagerGroupingTest(TestCase):
         assert group.times_seen == 2
         assert group.last_seen == event2.datetime
         assert group.message == event2.message
-        assert group.data.get("metadata").get("title") == event2.title
+        assert group.data["metadata"]["title"] == event2.title
 
     def test_auto_updates_grouping_config(self):
         self.project.update_option("sentry:grouping_config", LEGACY_CONFIG)
@@ -145,7 +145,7 @@ class EventManagerGroupingTest(TestCase):
             assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
 
             with assume_test_silo_mode_of(AuditLogEntry):
-                audit_log_entry = AuditLogEntry.objects.first()
+                audit_log_entry = AuditLogEntry.objects.get()
 
             assert audit_log_entry.event == audit_log.get_event_id("PROJECT_EDIT")
             assert audit_log_entry.actor_label == "Sentry"
@@ -237,8 +237,8 @@ class PlaceholderTitleTest(TestCase):
         assert group.title == event2.title == "<unlabeled event>"
         assert group.data["title"] == event2.data["title"] == "<unlabeled event>"
         assert (
-            group.data["metadata"].get("title")
-            == event2.data["metadata"].get("title")
+            group.data["metadata"]["title"]
+            == event2.data["metadata"]["title"]
             == "<unlabeled event>"
         )
         assert group.message == "<unlabeled event>"
@@ -318,7 +318,7 @@ class PlaceholderTitleTest(TestCase):
         assert event2.data["title"] == "<unlabeled event>"
         assert group.data["title"] == "DogsAreNeverAnError: Dogs are great!"
         assert group.data["metadata"].get("title") is None
-        assert event2.data["metadata"].get("title") == "<unlabeled event>"
+        assert event2.data["metadata"]["title"] == "<unlabeled event>"
         assert group.message == "Dogs are great! DogsAreNeverAnError"
 
         # An event after the bug was fixed

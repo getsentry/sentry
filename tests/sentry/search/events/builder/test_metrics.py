@@ -10,7 +10,7 @@ from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
 
 from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.search.events import constants, fields
-from sentry.search.events.builder import (
+from sentry.search.events.builder.metrics import (
     AlertMetricsQueryBuilder,
     HistogramMetricQueryBuilder,
     MetricsQueryBuilder,
