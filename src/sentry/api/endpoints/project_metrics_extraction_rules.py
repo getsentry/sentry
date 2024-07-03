@@ -188,6 +188,9 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
 
             return Response(data=persisted_config, status=200)
 
+        except KeyError as e:
+            return Response(status=400, data={"detail": f"Missing field in input data: {str(e)}"})
+
         except MetricsExtractionRuleValidationError as e:
             logger.warning("Failed to update extraction rule", exc_info=True)
             return Response(status=400, data={"detail": str(e)})
