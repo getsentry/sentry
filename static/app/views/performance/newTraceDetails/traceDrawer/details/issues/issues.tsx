@@ -140,7 +140,9 @@ export function IssueList({issues, node, organization}: IssueListProps) {
     }
 
     return unique;
-  }, [node]);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [node, node.errors.size]);
 
   const uniquePerformanceIssues = useMemo(() => {
     const unique: TracePerformanceIssue[] = [];
@@ -155,7 +157,9 @@ export function IssueList({issues, node, organization}: IssueListProps) {
     }
 
     return unique;
-  }, [node]);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [node, node.performance_issues.size]);
 
   const uniqueIssues = useMemo(() => {
     return [...uniqueErrorIssues, ...uniquePerformanceIssues];

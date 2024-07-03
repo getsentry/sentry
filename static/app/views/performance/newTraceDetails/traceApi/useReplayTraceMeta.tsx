@@ -42,12 +42,9 @@ export function useReplayTraceMeta(
   const start = getUtcDateString(replayRecord?.started_at.getTime());
   const end = getUtcDateString(replayRecord?.finished_at.getTime());
 
-  const {
-    data: eventsData,
-    isLoading: eventsIsLoading,
-    isRefetching: eventsIsRefetching,
-    refetch: eventsRefetch,
-  } = useApiQuery<{data: TableDataRow[]}>(
+  const {data: eventsData, isLoading: eventsIsLoading} = useApiQuery<{
+    data: TableDataRow[];
+  }>(
     [
       `/organizations/${organization.slug}/events/`,
       {
@@ -79,13 +76,9 @@ export function useReplayTraceMeta(
     return {
       data: meta.data,
       isLoading: eventsIsLoading || meta.isLoading,
-      isRefetching: meta.isRefetching || eventsIsRefetching,
-      refetch: () => {
-        meta.refetch();
-        eventsRefetch();
-      },
+      errors: meta.errors,
     };
-  }, [meta, eventsIsLoading, eventsIsRefetching, eventsRefetch]);
+  }, [meta, eventsIsLoading]);
 
   return metaResults;
 }

@@ -19,8 +19,6 @@ import Tab from '../transactionSummary/tabs';
 
 interface TraceMetadataHeaderProps {
   organization: Organization;
-  projectID: string;
-  title: string;
   traceEventView: EventView;
   traceSlug: string;
 }
