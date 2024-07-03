@@ -1,0 +1,62 @@
+from rest_framework.request import Request
+from rest_framework.response import Response
+
+from sentry import features
+from sentry.api.api_owners import ApiOwner
+from sentry.api.api_publish_status import ApiPublishStatus
+from sentry.api.base import region_silo_endpoint
+from sentry.api.bases import OrganizationEndpoint
+from sentry.api.paginator import OffsetPaginator
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.metrics_extraction_rules import (
+    SpanAttributeExtractionRuleConfigSerializer,
+)
+from sentry.models.organization import Organization
+from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
+from sentry.services.hybrid_cloud.organization import RpcOrganization
+
+
+@region_silo_endpoint
+class OrganizationMetricsExtractionRulesEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.EXPERIMENTAL,
+    }
+    owner = ApiOwner.TELEMETRY_EXPERIENCE
+
+    def has_feature(self, organization, request):
+        return features.has(
+            "organizations:custom-metrics-extraction-rule", organization, actor=request.user
+        )
+
+    def get(self, request: Request, organization: Organization | RpcOrganization) -> Response:
+        """GET extraction rules for a list of projects. Returns 200 and a list of extraction rules on success."""
+        if not self.has_feature(organization, request):
+            return Response(status=404)
+
+        project_ids = {int(project_id) for project_id in request.GET.getlist("project")}
+        # get_projects validates that the user is allowed to access the requested project_ids
+        projects = self.get_projects(request, organization, project_ids=project_ids)
+
+        if not project_ids or not projects:
+            return Response(
+                {"detail": "You must supply at least one project to see its metrics"}, status=404
+            )
+
+        try:
+            configs = SpanAttributeExtractionRuleConfig.objects.filter(project__in=project_ids)
+
+        except Exception as e:
+            return Response(status=500, data={"detail": str(e)})
+
+        # TODO(metrics): do real pagination using the database
+        return self.paginate(
+            request,
+            queryset=configs,
+            paginator_cls=OffsetPaginator,
+            on_results=lambda x: serialize(
+                x, user=request.user, serializer=SpanAttributeExtractionRuleConfigSerializer()
+            ),
+            default_per_page=1000,
+            max_per_page=1000,
+            max_limit=1000,  # overrides default max_limit of 100 when creating paginator object
+        )
