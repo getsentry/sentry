@@ -231,6 +231,7 @@ export type ComponentHooks = {
  * These are very similar to the component wrapping hooks
  */
 export type CustomizationHooks = {
+  'insights:upsell-page': InsightsUpsellHook;
   'integrations:feature-gates': IntegrationsFeatureGatesHook;
   'member-invite-button:customization': InviteButtonCustomizationHook;
   'member-invite-modal:customization': InviteModalCustomizationHook;
@@ -654,6 +655,18 @@ type SidebarNavigationItemHook = () => React.ComponentType<{
     Wrapper: React.FunctionComponent<{children: React.ReactElement}>;
     additionalContent: React.ReactElement | null;
     disabled: boolean;
+  }) => React.ReactElement;
+  id: string;
+}>;
+
+/**
+ * Insights upsell hook takes in a insights sidebar item id
+ * and (if applicable) passes in the module specific upsell page as props to its children.
+ */
+type InsightsUpsellHook = () => React.ComponentType<{
+  children: (opts: {
+    disabled: boolean;
+    upsellPage: React.ReactElement | null;
   }) => React.ReactElement;
   id: string;
 }>;
