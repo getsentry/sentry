@@ -425,16 +425,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:starfish-browser-resource-module-image-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enables the resource module ui
     manager.add("organizations:starfish-browser-resource-module-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable browser starfish webvitals module view
-    manager.add("organizations:starfish-browser-webvitals", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable browser starfish webvitals module pageoverview v2 view
-    manager.add("organizations:starfish-browser-webvitals-pageoverview-v2", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable INP in the browser starfish webvitals module
-    manager.add("organizations:starfish-browser-webvitals-replace-fid-with-inp", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Update Web Vitals UI to display aggregate web vital values as avg instead of p75
-    manager.add("organizations:performance-webvitals-avg", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable browser starfish webvitals module to use backend provided performance scores
-    manager.add("organizations:starfish-browser-webvitals-use-backend-scores", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable mobile starfish app start module view
     manager.add("organizations:starfish-mobile-appstart", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable mobile starfish ui module view
