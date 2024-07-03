@@ -53,6 +53,7 @@ import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {releaseLevelAsBadgeProps as CacheModuleBadgeProps} from 'sentry/views/insights/cache/settings';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
+import {MODULE_SIDEBAR_TITLE as HTTP_MODULE_SIDEBAR_TITLE} from 'sentry/views/insights/http/settings';
 import {releaseLevelAsBadgeProps as LLMModuleBadgeProps} from 'sentry/views/insights/llmMonitoring/settings';
 import {releaseLevelAsBadgeProps as QueuesModuleBadgeProps} from 'sentry/views/insights/queues/settings';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
@@ -255,7 +256,9 @@ function Sidebar() {
     <Feature key="http" features="insights-entry-points" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
-        label={<GuideAnchor target="performance-http">{MODULE_TITLES.http}</GuideAnchor>}
+        label={
+          <GuideAnchor target="performance-http">{HTTP_MODULE_SIDEBAR_TITLE}</GuideAnchor>
+        }
         to={`/organizations/${organization.slug}/${moduleURLBuilder('http')}/`}
         id="performance-http"
         icon={<SubitemDot collapsed />}

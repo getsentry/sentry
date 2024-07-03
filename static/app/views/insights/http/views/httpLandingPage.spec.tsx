@@ -274,6 +274,10 @@ describe('HTTPLandingPage', function () {
 
     await waitForElementToBeRemoved(() => screen.queryAllByTestId('loading-indicator'));
 
+    expect(screen.getByRole('heading', {level: 1})).toHaveTextContent(
+      'Outbound API Requests'
+    );
+
     expect(screen.getByRole('table', {name: 'Domains'})).toBeInTheDocument();
 
     expect(screen.getByRole('columnheader', {name: 'Domain'})).toBeInTheDocument();
