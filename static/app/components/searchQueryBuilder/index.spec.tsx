@@ -312,6 +312,15 @@ describe('SearchQueryBuilder', function () {
       ).toBeInTheDocument();
     });
 
+    it('can search by key description', async function () {
+      render(<SearchQueryBuilder {...defaultProps} />);
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.keyboard('assignee');
+
+      // "assignee" is in the description of "assigned"
+      expect(await screen.findByRole('option', {name: 'assigned'})).toBeInTheDocument();
+    });
+
     it('can add a new token by clicking a key suggestion', async function () {
       render(<SearchQueryBuilder {...defaultProps} />);
 
