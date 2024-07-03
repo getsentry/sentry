@@ -122,16 +122,6 @@ def is_current_event_safe():
     return True
 
 
-def mark_scope_as_unsafe():
-    """
-    Set the unsafe tag on the SDK isolation scope for outgoing crashes and transactions.
-
-    Marking a scope explicitly as unsafe allows the recursion breaker to
-    decide early, before walking the stack and checking for unsafe files.
-    """
-    Scope.get_isolation_scope().set_tag(UNSAFE_TAG, True)
-
-
 def set_current_event_project(project_id):
     """
     Set the current project on the SDK isolation scope for outgoing crash reports.
@@ -718,7 +708,6 @@ __all__ = (
     "is_current_event_safe",
     "isolation_scope",
     "make_transport",
-    "mark_scope_as_unsafe",
     "merge_context_into_scope",
     "patch_transport_for_instrumentation",
     "isolation_scope",
