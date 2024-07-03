@@ -35,7 +35,7 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.tasks.backfill_seer_grouping_records",
     queue="backfill_seer_grouping_records",
-    max_retries=0,
+    max_retries=5,
     silo_mode=SiloMode.REGION,
     soft_time_limit=60 * 15,
     time_limit=60 * 15 + 5,
