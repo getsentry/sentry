@@ -36,6 +36,8 @@ if last_drip == false then
   last_drip = current_time
 else
   last_drip = tonumber(last_drip)
+  -- to prevent time going backwards
+  current_time = math.max(current_time, last_drip)
 end
 
 -- level of "water" in the bucket at the last drip, as in how many requests we allowed
@@ -48,8 +50,8 @@ else
 end
 
 
--- time elapsed since the last drip, in seconds, not allowing negative
-local elapsed_time = max(0, current_time - last_drip)
+-- time elapsed since the last drip, in seconds
+local elapsed_time = current_time - last_drip
 -- bucket cannot be less than empty + we need to add one to the level to account for the new drop
 local new_level = math.max(0, current_level - elapsed_time * drip_rate) + 1
 -- check it the current request would overflow the bucket
@@ -60,8 +62,8 @@ if allowed then
   redis.call("hset", key, "current_level", new_level)
   redis.call("hset", key, "last_drip", current_time)
   redis.call("expire", key, max_tll_seconds)
-  return nil
+  return bucket_size, drip_rate, current_time, new_level, nil
 else
   local wait_time = (new_level - bucket_size) / drip_rate
-  return wait_time
+  return bucket_size, drip_rate, last_drip, current_level, wait_time
 end
