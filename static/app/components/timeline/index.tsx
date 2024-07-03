@@ -143,8 +143,7 @@ const IconWrapper = styled('div')`
   }
 `;
 
-const Title = styled('p')`
-  margin: 0;
+const Title = styled('div')`
   font-weight: bold;
   text-transform: capitalize;
   text-align: left;
