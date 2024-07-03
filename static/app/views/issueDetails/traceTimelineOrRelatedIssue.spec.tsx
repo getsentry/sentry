@@ -101,9 +101,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
       body: twoIssuesBody,
       match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
-    render(<TraceTimeLineOrRelatedIssue event={event} />, {
-      organization,
-    });
+    render(<TraceTimeLineOrRelatedIssue event={event} />, {organization});
     expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
 
     await userEvent.hover(screen.getByTestId('trace-timeline-tooltip-1'));
@@ -144,9 +142,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
       body: emptyBody,
       match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
-    const {container} = render(<TraceTimeline event={event} />, {
-      organization,
-    });
+    const {container} = render(<TraceTimeline event={event} />, {organization});
     await waitFor(() =>
       expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
         trace_timeline_status: 'empty',
@@ -166,9 +162,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
       body: twoIssuesBody,
       match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
-    render(<TraceTimeLineOrRelatedIssue event={event} />, {
-      organization,
-    });
+    render(<TraceTimeLineOrRelatedIssue event={event} />, {organization});
     // Checking for the presence of seconds
     expect(await screen.findAllByText(/\d{1,2}:\d{2}:\d{2} (AM|PM)/)).toHaveLength(5);
   });
@@ -188,9 +182,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
       },
       match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
-    render(<TraceTimeLineOrRelatedIssue event={event} />, {
-      organization,
-    });
+    render(<TraceTimeLineOrRelatedIssue event={event} />, {organization});
     expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
   });
 
@@ -211,9 +203,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
       body: [],
     });
 
-    render(<TraceTimeLineOrRelatedIssue event={event} />, {
-      organization,
-    });
+    render(<TraceTimeLineOrRelatedIssue event={event} />, {organization});
 
     // Instead of a timeline, we should see the other related issue
     expect(await screen.findByText('Slow DB Query')).toBeInTheDocument();
@@ -255,9 +245,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
       body: [],
     });
 
-    render(<TraceTimeLineOrRelatedIssue event={event} />, {
-      organization,
-    });
+    render(<TraceTimeLineOrRelatedIssue event={event} />, {organization});
 
     // We do not display any related issues because we only have 1 issue
     expect(await screen.queryByText('Slow DB Query')).not.toBeInTheDocument();
