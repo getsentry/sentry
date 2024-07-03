@@ -8,6 +8,7 @@ from django.utils import timezone as django_timezone
 
 from sentry import analytics, features
 from sentry.constants import InsightModules
+from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.organization import Organization
 from sentry.models.organizationonboardingtask import (
     OnboardingTask,
@@ -18,8 +19,6 @@ from sentry.models.project import Project
 from sentry.onboarding_tasks import try_mark_onboarding_complete
 from sentry.plugins.bases.issue import IssueTrackingPlugin
 from sentry.plugins.bases.issue2 import IssueTrackingPlugin2
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import (
     alert_rule_created,
     cron_monitor_created,
@@ -43,6 +42,7 @@ from sentry.signals import (
     project_created,
     transaction_processed,
 )
+from sentry.users.services.user import RpcUser
 from sentry.utils.event import has_event_minified_stack_trace
 from sentry.utils.javascript import has_sourcemap
 from sentry.utils.safe import get_path

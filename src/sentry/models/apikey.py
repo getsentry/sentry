@@ -12,9 +12,9 @@ from sentry.db.models import BoundedPositiveIntegerField, control_silo_model, sa
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.outboxes import ReplicatedControlModel
+from sentry.hybridcloud.services.replica import region_replica_service
 from sentry.models.apiscopes import HasApiScopes
 from sentry.models.outbox import OutboxCategory
-from sentry.services.hybrid_cloud.replica import region_replica_service
 
 
 # TODO(dcramer): pull in enum library
@@ -49,7 +49,7 @@ class ApiKey(ReplicatedControlModel, HasApiScopes):
     __repr__ = sane_repr("organization_id", "key")
 
     def handle_async_replication(self, region_name: str, shard_identifier: int) -> None:
-        from sentry.services.hybrid_cloud.auth.serial import serialize_api_key
+        from sentry.auth.services.auth.serial import serialize_api_key
 
         region_replica_service.upsert_replicated_api_key(
             api_key=serialize_api_key(self), region_name=region_name
@@ -98,8 +98,8 @@ class ApiKey(ReplicatedControlModel, HasApiScopes):
 
 def is_api_key_auth(auth: object) -> bool:
     """:returns True when an API Key is hitting the API."""
+    from sentry.auth.services.auth import AuthenticatedToken
     from sentry.hybridcloud.models.apikeyreplica import ApiKeyReplica
-    from sentry.services.hybrid_cloud.auth import AuthenticatedToken
 
     if isinstance(auth, AuthenticatedToken):
         return auth.kind == "api_key"

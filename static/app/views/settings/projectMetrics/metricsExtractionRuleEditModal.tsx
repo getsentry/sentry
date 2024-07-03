@@ -1,21 +1,20 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
+import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
-import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
+  aggregatesToGroups,
+  createCondition as createExtractionCondition,
+  explodeAggregateGroup,
   type FormData,
   MetricsExtractionRuleForm,
 } from 'sentry/views/settings/projectMetrics/metricsExtractionRuleForm';
-import {
-  type MetricsExtractionRule,
-  useUpdateMetricsExtractionRules,
-} from 'sentry/views/settings/projectMetrics/utils/api';
+import {useUpdateMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/api';
 
 interface Props extends ModalRenderProps {
   metricExtractionRule: MetricsExtractionRule;
@@ -39,11 +38,11 @@ export function MetricsExtractionRuleEditModal({
   const initialData: FormData = useMemo(() => {
     return {
       spanAttribute: metricExtractionRule.spanAttribute,
-      type: metricExtractionRule.type,
+      aggregates: aggregatesToGroups(metricExtractionRule.aggregates),
       tags: metricExtractionRule.tags,
       conditions: metricExtractionRule.conditions.length
         ? metricExtractionRule.conditions
-        : [''],
+        : [createExtractionCondition()],
     };
   }, [metricExtractionRule]);
 
@@ -56,9 +55,9 @@ export function MetricsExtractionRuleEditModal({
       const extractionRule: MetricsExtractionRule = {
         spanAttribute: data.spanAttribute!,
         tags: data.tags,
-        type: data.type!,
+        aggregates: data.aggregates.flatMap(explodeAggregateGroup),
         unit: 'none',
-        conditions: data.conditions.filter(Boolean),
+        conditions: data.conditions,
       };
 
       updateExtractionRuleMutation.mutate(
@@ -88,11 +87,7 @@ export function MetricsExtractionRuleEditModal({
   return (
     <Fragment>
       <Header>
-        <h4>
-          <Capitalize>{getReadableMetricType(metricExtractionRule.type)}</Capitalize>
-          {' — '}
-          {metricExtractionRule.spanAttribute}
-        </h4>
+        <h4>{metricExtractionRule.spanAttribute}</h4>
       </Header>
       <CloseButton />
       <Body>
@@ -114,8 +109,4 @@ export function MetricsExtractionRuleEditModal({
 export const modalCss = css`
   width: 100%;
   max-width: 1000px;
-`;
-
-const Capitalize = styled('span')`
-  text-transform: capitalize;
 `;

@@ -16,7 +16,6 @@ describe('WebVitalMeters', function () {
   const projectScore: ProjectScore = {
     lcpWeight: 30,
     fcpWeight: 20,
-    fidWeight: 25,
     clsWeight: 15,
     ttfbWeight: 10,
     inpWeight: 10,

@@ -7,13 +7,13 @@ from typing import TYPE_CHECKING, Any, Generic, TypeVar, Union
 
 from django.db.models import Model, QuerySet
 
-from sentry.services.hybrid_cloud import RpcModel
+from sentry.hybridcloud.rpc import RpcModel
 from sentry.silo.base import SiloMode
 
 if TYPE_CHECKING:
     from sentry.api.serializers import Serializer
-    from sentry.services.hybrid_cloud.auth import AuthenticationContext
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.auth.services.auth import AuthenticationContext
+    from sentry.users.services.user import RpcUser
 
 
 FILTER_ARGS = TypeVar("FILTER_ARGS")  # A typedict
@@ -91,7 +91,7 @@ class FilterQueryDatabaseImpl(
 
     # Helpers
 
-    def query_many(self, filter: FILTER_ARGS, select_related: bool = True) -> QuerySet:
+    def query_many(self, filter: FILTER_ARGS, select_related: bool = True) -> QuerySet[BASE_MODEL]:
         validation_error = self.filter_arg_validator()(filter)
         if validation_error is not None:
             raise TypeError(
@@ -111,7 +111,7 @@ class FilterQueryDatabaseImpl(
         serializer: SERIALIZER_ENUM | None = None,
     ) -> list[OpaqueSerializedResponse]:
         from sentry.api.serializers import serialize
-        from sentry.services.hybrid_cloud.user import RpcUser
+        from sentry.users.services.user import RpcUser
 
         if as_user is not None and SiloMode.get_current_mode() != SiloMode.MONOLITH:
             if not isinstance(as_user, RpcUser):
@@ -132,4 +132,5 @@ class FilterQueryDatabaseImpl(
         return [self.serialize_rpc(o) for o in self.query_many(filter=filter)]
 
     def get_many_ids(self, filter: FILTER_ARGS) -> list[int]:
-        return [o.id for o in self.query_many(filter=filter, select_related=False)]
+        # Using getattr to avoid mypy errors that Model does not have attr id
+        return [getattr(o, "id") for o in self.query_many(filter=filter, select_related=False)]

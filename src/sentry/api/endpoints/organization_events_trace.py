@@ -23,7 +23,8 @@ from sentry.eventstore.models import Event
 from sentry.issues.issue_occurrence import IssueOccurrence
 from sentry.models.group import Group
 from sentry.models.organization import Organization
-from sentry.search.events.builder import QueryBuilder, SpansIndexedQueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
@@ -59,6 +60,8 @@ SnubaTransaction = TypedDict(
         "root": str,
         "project.id": int,
         "project": str,
+        "profile.profile_id": str,
+        "profiler.id": str,
         "issue.ids": list[int],
         "occurrence_to_issue_id": dict[str, list[int]],
     },
@@ -138,6 +141,7 @@ FullResponse = TypedDict(
         "parent_span_id": Optional[str],
         "parent_event_id": Optional[str],
         "profile_id": Optional[str],
+        "profiler_id": Optional[str],
         "sdk_name": Optional[str],
         "generation": Optional[int],
         "errors": list[TraceError],
@@ -270,14 +274,16 @@ class TraceEvent:
                 span = [self.event["trace.span"]]
             else:
                 if self.nodestore_event is not None:
-                    occurrence_query = QueryBuilder(
+                    occurrence_query = DiscoverQueryBuilder(
                         Dataset.IssuePlatform,
                         snuba_params,
                         query=f"event_id:{self.event['id']}",
                         selected_columns=["occurrence_id"],
                     )
                     occurrence_ids = occurrence_query.process_results(
-                        occurrence_query.run_query("api.trace-view.get-occurrence-ids")
+                        occurrence_query.run_query(
+                            referrer=Referrer.API_TRACE_VIEW_GET_OCCURRENCE_IDS.value
+                        )
                     )["data"]
 
                     issue_occurrences = IssueOccurrence.fetch_multi(
@@ -381,6 +387,7 @@ class TraceEvent:
             result["timestamp"] = self.event["precise.finish_ts"]
             result["start_timestamp"] = self.event["precise.start_ts"]
             result["profile_id"] = self.event["profile.id"]
+            result["profiler_id"] = self.event["profile.profiler_id"]
             result["sdk_name"] = self.event["sdk.name"]
             # TODO: once we're defaulting measurements we don't need this check
             if "measurements" in self.event:
@@ -394,6 +401,7 @@ class TraceEvent:
             profile_id = contexts.get("profile", {}).get("profile_id")
             if profile_id is not None:
                 result["profile_id"] = profile_id
+            result["profiler_id"] = self.event["profile.profiler_id"]
 
             if detailed:
                 if "measurements" in self.nodestore_event.data:
@@ -462,7 +470,7 @@ def child_sort_key(item: TraceEvent) -> list[int]:
 
 
 def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
-    transaction_query = QueryBuilder(
+    transaction_query = DiscoverQueryBuilder(
         Dataset.IssuePlatform,
         params,
         query=f"trace:{trace_id}",
@@ -470,7 +478,9 @@ def count_performance_issues(trace_id: str, params: Mapping[str, str]) -> int:
         limit=MAX_TRACE_SIZE,
     )
     transaction_query.columns.append(Function("count()", alias="total_groups"))
-    count = transaction_query.run_query("api.trace-view.count-performance-issues")
+    count = transaction_query.run_query(
+        referrer=Referrer.API_TRACE_VIEW_COUNT_PERFORMANCE_ISSUES.value
+    )
     return count["data"][0].get("total_groups", 0)
 
 
@@ -486,7 +496,7 @@ def create_transaction_params(
     if not query_metadata:
         return params
 
-    metadata_query = QueryBuilder(
+    metadata_query = DiscoverQueryBuilder(
         Dataset.Discover,
         params,
         query=f"trace:{trace_id}",
@@ -556,6 +566,7 @@ def query_trace_data(
         "project",
         "project.id",
         "profile.id",
+        "profile.profiler_id",
         "sdk.name",
         "trace.span",
         "trace.parent_span",
@@ -576,7 +587,7 @@ def query_trace_data(
                 "measurements.value",
             ]
         )
-    transaction_query = QueryBuilder(
+    transaction_query = DiscoverQueryBuilder(
         Dataset.Transactions,
         transaction_params,
         query=f"trace:{trace_id}",
@@ -584,7 +595,7 @@ def query_trace_data(
         orderby=transaction_orderby,
         limit=limit,
     )
-    occurrence_query = QueryBuilder(
+    occurrence_query = DiscoverQueryBuilder(
         Dataset.IssuePlatform,
         params,
         query=f"trace:{trace_id}",
@@ -598,7 +609,7 @@ def query_trace_data(
     )
     occurrence_query.groupby = [Column("event_id"), Column("occurrence_id")]
 
-    error_query = QueryBuilder(
+    error_query = DiscoverQueryBuilder(
         Dataset.Events,
         params,
         query=f"trace:{trace_id}",
@@ -627,7 +638,7 @@ def query_trace_data(
             error_query.get_snql_query(),
             occurrence_query.get_snql_query(),
         ],
-        referrer="api.trace-view.get-events",
+        referrer=Referrer.API_TRACE_VIEW_GET_EVENTS.value,
     )
 
     transformed_results = [
@@ -837,7 +848,7 @@ def augment_transactions_with_spans(
             referrer=Referrer.API_TRACE_VIEW_GET_PARENTS.value,
         )
         parents_results = results[0]
-        for (result, query) in zip(results, queries):
+        for result, query in zip(results, queries):
             if len(result["data"]) == query.limit.limit:
                 hit_limit = True
         for result in results[1:]:
@@ -887,6 +898,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
+    snuba_methods = ["GET"]
 
     def get_projects(self, request: Request, organization, project_ids=None, project_slugs=None):
         """The trace endpoint always wants to get all projects regardless of what's passed into the API
@@ -1601,7 +1613,7 @@ class OrganizationEventsTraceMetaEndpoint(OrganizationEventsTraceEndpointBase):
                 params=params,
                 query=f"trace:{trace_id}",
                 limit=1,
-                referrer="api.trace-view.get-meta",
+                referrer=Referrer.API_TRACE_VIEW_GET_META.value,
             )
             if len(result["data"]) == 0:
                 return Response(status=404)

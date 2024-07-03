@@ -51,7 +51,6 @@ from sentry.replays.lib import kafka as replays_kafka
 from sentry.replays.lib.kafka import clear_replay_publisher
 from sentry.rules import init_registry
 from sentry.rules.actions.base import EventAction
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.derive_code_mappings import SUPPORTED_LANGUAGES
@@ -76,6 +75,8 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
+from sentry.uptime.detectors.ranking import _get_cluster, get_project_bucket_key
+from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.utils.cache import cache
 from sentry.utils.sdk_crashes.sdk_crash_detection_config import SdkName
@@ -2147,6 +2148,54 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
             assert len(mock_produce_occurrence_to_kafka.mock_calls) == 0
 
 
+class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
+    def assert_project_key(self, project, exists: bool) -> None:
+        key = get_project_bucket_key(project)
+        cluster = _get_cluster()
+        assert exists == cluster.hexists(key, str(project.id))
+
+    @with_feature("organizations:uptime-automatic-hostname-detection")
+    def test_uptime_detection_feature_url(self):
+        event = self.create_event(
+            data={"request": {"url": "http://sentry.io"}},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+        self.assert_project_key(self.project, True)
+
+    @with_feature("organizations:uptime-automatic-hostname-detection")
+    def test_uptime_detection_feature_no_url(self):
+        event = self.create_event(
+            data={},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+        self.assert_project_key(self.project, False)
+
+    def test_uptime_detection_no_feature(self):
+        event = self.create_event(
+            data={"request": {"url": "http://sentry.io"}},
+            project_id=self.project.id,
+        )
+        self.call_post_process_group(
+            is_new=False,
+            is_regression=False,
+            is_new_group_environment=False,
+            event=event,
+        )
+        self.assert_project_key(self.project, False)
+
+
 class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):
     @patch("sentry.tasks.post_process.run_post_process_job", side_effect=run_post_process_job)
     def test_has_escalated(self, mock_run_post_process_job):
@@ -2396,6 +2445,7 @@ class PostProcessGroupErrorTest(
     ReplayLinkageTestMixin,
     DetectNewEscalationTestMixin,
     UserReportEventLinkTestMixin,
+    DetectBaseUrlsForUptimeTestMixin,
 ):
     def setUp(self):
         super().setUp()

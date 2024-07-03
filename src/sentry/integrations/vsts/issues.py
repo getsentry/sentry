@@ -7,12 +7,12 @@ from mistune import markdown
 from rest_framework.response import Response
 
 from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
+from sentry.integrations.services.integration import integration_service
 from sentry.models.activity import Activity
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.services.hybrid_cloud.util import all_silo_function
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
+from sentry.silo.base import all_silo_function
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 
 if TYPE_CHECKING:
     from sentry.models.group import Group

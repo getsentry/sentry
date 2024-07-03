@@ -18,6 +18,7 @@ from sentry.snuba.metrics.naming_layer.public import (
     TransactionStatusTagValue,
     TransactionTagsKey,
 )
+from sentry.snuba.metrics.query import MetricField
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.cursors import Cursor
@@ -1647,8 +1648,10 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     @patch("sentry.snuba.metrics.fields.base.get_public_name_from_mri")
     @patch("sentry.snuba.metrics.query_builder.get_mri")
     @patch("sentry.snuba.metrics.query.get_public_name_from_mri")
+    @patch("sentry.api.endpoints.organization_release_health_data.parse_field")
     def test_derived_metric_incorrectly_defined_as_singular_entity(
         self,
+        mocked_parse_field,
         mocked_get_public_name_from_mri,
         mocked_get_mri_query,
         mocked_reverse_mri,
@@ -1658,6 +1661,8 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         mocked_get_mri_query.return_value = "crash_free_fake"
         mocked_reverse_mri.return_value = "crash_free_fake"
         mocked_parse_mri.return_value = ParsedMRI("e", "sessions", "crash_free_fake", "none")
+        mocked_parse_field.return_value = MetricField(None, "e:sessions/crashed_free_fake@none")
+
         for status in ["ok", "crashed"]:
             for minute in range(4):
                 self.build_and_store_session(
@@ -2413,3 +2418,141 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             "totals": {"p50(session.duration)": 6.0},
             "series": {"p50(session.duration)": [6.0]},
         }
+
+    def test_do_not_return_negative_crash_free_rate_value_to_the_customer(self):
+        """
+        Bug: https://github.com/getsentry/sentry/issues/73172
+        Assert that negative value is never returned to the user, even
+        in case when there is a problem with the data, instead of negative value we return 0.
+        This problem happens during ingestion when 'e:session/crashed' metric is
+        ingested, but 'e:session/all' for some reason is not. That would cause
+        crash_free_rate value to be negative since it is calculated as:
+
+        crash_free_rate = 1 - (count('e:session/crashed') / count('e:session/all'))
+        """
+        # ingesting 'e:session/all' and 'e:session/crashed'
+        self.build_and_store_session(
+            project_id=self.project.id,
+            minutes_before_now=1,
+            status="crashed",
+        )
+
+        # manually ingesting only 'e:session/crashed' metric
+        # to make sure that there are more 'e:session/crashed' metrics ingested
+        # than 'e:session/all'
+        for i in range(2):
+            session = self.build_session(
+                started=self.adjust_timestamp(
+                    self.now
+                    - timedelta(
+                        minutes=i,
+                    )
+                ).timestamp()
+            )
+            # ingesting only 'e:session/crashed'
+            self.store_metric(
+                self.organization.id,
+                self.project.id,
+                SessionMRI.RAW_SESSION.value,
+                {"session.status": "crashed"},
+                int(session["started"]),
+                +1,
+            )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.crash_free_rate", "session.all", "session.crashed"],
+            statsPeriod="6m",
+            interval="1m",
+        )
+
+        group = response.data["groups"][0]
+        assert group["totals"]["session.all"] == 1.0
+        assert group["totals"]["session.crashed"] == 3.0
+        assert group["totals"]["session.crash_free_rate"] == 0.0
+        for value in group["series"]["session.crash_free_rate"]:
+            assert value is None or value >= 0
+
+    def test_do_not_return_crash_rate_value_greater_than_one(self):
+        """
+        Assert that value for crash_rate won't be greater than 1.
+        This can happen due to possible corruption of data.  This problem
+        happens during ingestion when 'e:session/crashed' metric is
+        ingested, but 'e:session/all' for some reason is not.
+        """
+
+        # ingesting 'e:session/all' and 'e:session/crashed'
+        self.build_and_store_session(
+            project_id=self.project.id,
+            minutes_before_now=1,
+            status="crashed",
+        )
+
+        # manually ingesting only 'e:session/crashed' metric
+        # to make sure that there are more 'e:session/crashed' metrics ingested
+        # than 'e:session/all'
+        for i in range(2):
+            session = self.build_session(
+                started=self.adjust_timestamp(
+                    self.now
+                    - timedelta(
+                        minutes=i,
+                    )
+                ).timestamp()
+            )
+            # ingesting only 'e:session/crashed'
+            self.store_metric(
+                self.organization.id,
+                self.project.id,
+                SessionMRI.RAW_SESSION.value,
+                {"session.status": "crashed"},
+                int(session["started"]),
+                +1,
+            )
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["session.crash_rate", "session.all", "session.crashed"],
+            statsPeriod="6m",
+            interval="1m",
+        )
+        group = response.data["groups"][0]
+        assert group["totals"]["session.all"] == 1.0
+        assert group["totals"]["session.crashed"] == 3.0
+        assert group["totals"]["session.crash_rate"] == 1.0  # value is capped at 1.0
+        for value in group["series"]["session.crash_rate"]:
+            assert value is None or value <= 1
+
+    def test_metric_without_operation_is_not_allowed(self):
+        """
+        Do not allow to query for a metric without operation.
+        For example:
+            - querying for `sentry.sessions.session` is not valid because operation is missing
+            - querying for `sum(sentry.sessions.session)` is valid because operation `sum` exists
+        """
+        self.build_and_store_session(
+            project_id=self.project.id,
+            minutes_before_now=1,
+            status="crashed",
+        )
+
+        response = self.get_error_response(
+            self.organization.slug,
+            field=["sentry.sessions.session"],
+            includeSeries=0,
+            statsPeriod="6m",
+            interval="1m",
+            status_code=400,
+        )
+        result = response.json()
+        assert "detail" in result
+        assert result["detail"] == "You can not use generic metric public field without operation"
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["sum(sentry.sessions.session)"],
+            includeSeries=0,
+            statsPeriod="6m",
+            interval="1m",
+        )
+        assert response.status_code == 200

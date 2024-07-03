@@ -1,7 +1,8 @@
+import dataclasses
 import math
 import time
 from collections import defaultdict
-from collections.abc import Generator, Mapping, MutableMapping, Sequence
+from collections.abc import Callable, Generator, Mapping, MutableMapping, Sequence
 from contextlib import contextmanager
 from dataclasses import replace
 from datetime import datetime, timedelta
@@ -25,15 +26,16 @@ from sentry.api.utils import handle_query_errors
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.search.events.builder import (
-    QueryBuilder,
+from sentry.organizations.services.organization import RpcOrganization
+from sentry.search.events.builder.base import BaseQueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.builder.spans_indexed import (
     SpansIndexedQueryBuilder,
     TimeseriesSpanIndexedQueryBuilder,
 )
 from sentry.search.events.constants import TIMEOUT_SPAN_ERROR_MESSAGE
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams, WhereType
 from sentry.sentry_metrics.querying.samples_list import SpanKey, get_sample_list_executor_cls
-from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.snuba import discover, spans_indexed
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -116,6 +118,17 @@ class OrganizationTracesEndpointBase(OrganizationEventsV2EndpointBase):
         """The trace endpoint always wants to get all projects regardless of what's passed into the API.
         This is because a trace can span any number of projects in an organization. So disable the
         check_global_views condition."""
+
+        "We are reverting this decision to allow cross project searches"
+        if features.has(
+            "organizations:performance-trace-explorer-enforce-projects",
+            organization,
+            actor=request.user,
+        ):
+            return super().get_snuba_dataclass(
+                request, organization, check_global_views=check_global_views
+            )
+
         return super().get_snuba_dataclass(request, organization, check_global_views=False)
 
     def get_projects(  # type: ignore[override]
@@ -131,6 +144,21 @@ class OrganizationTracesEndpointBase(OrganizationEventsV2EndpointBase):
         This is because a trace can span any number of projects in an organization. But we still want to
         use the get_projects function to check for any permissions. So we'll just pass project_ids=-1 everytime
         which is what would be sent if we wanted all projects"""
+
+        "We are reverting this decision to allow cross project searches"
+        if features.has(
+            "organizations:performance-trace-explorer-enforce-projects",
+            organization,
+            actor=request.user,
+        ):
+            return super().get_projects(
+                request,
+                organization,
+                project_ids=project_ids,
+                project_slugs=project_slugs,
+                include_all_accessible=include_all_accessible,
+            )
+
         return super().get_projects(
             request,
             organization,
@@ -142,6 +170,8 @@ class OrganizationTracesEndpointBase(OrganizationEventsV2EndpointBase):
 
 @region_silo_endpoint
 class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
+    snuba_methods = ["GET"]
+
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has(
             "organizations:performance-trace-explorer", organization, actor=request.user
@@ -174,6 +204,13 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
             limit=self.get_per_page(request),
             breakdown_slices=serialized["breakdownSlices"],
             sort=serialized.get("sort") if allow_sorting else None,
+            get_all_projects=lambda: self.get_projects(
+                request,
+                organization,
+                project_ids={-1},
+                project_slugs=None,
+                include_all_accessible=True,
+            ),
         )
 
         return self.paginate(
@@ -206,6 +243,8 @@ class OrganizationTraceSpansSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationTraceSpansEndpoint(OrganizationTracesEndpointBase):
+    snuba_methods = ["GET"]
+
     def get(self, request: Request, organization: Organization, trace_id: str) -> Response:
         if not features.has(
             "organizations:performance-trace-explorer", organization, actor=request.user
@@ -259,6 +298,8 @@ class OrganizationTracesStatsSerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationTracesStatsEndpoint(OrganizationTracesEndpointBase):
+    snuba_methods = ["GET"]
+
     def get(self, request: Request, organization: Organization) -> Response:
         if not features.has(
             "organizations:performance-trace-explorer", organization, actor=request.user
@@ -336,6 +377,7 @@ class TracesExecutor:
         limit: int,
         breakdown_slices: int,
         sort: str | None,
+        get_all_projects: Callable[[], list[Project]],
     ):
         self.params = params
         self.snuba_params = snuba_params
@@ -348,21 +390,31 @@ class TracesExecutor:
         self.limit = limit
         self.breakdown_slices = breakdown_slices
         self.sort = sort
+        self.get_all_projects = get_all_projects
 
         if self.sort is not None:
             sentry_sdk.set_tag("sort_key", self.sort)
+
+    def params_with_all_projects(self) -> tuple[ParamsType, SnubaParams]:
+        all_projects_snuba_params = dataclasses.replace(
+            self.snuba_params, projects=self.get_all_projects()
+        )
+
+        all_projects_params = dict(self.params)
+        all_projects_params["projects"] = all_projects_snuba_params.projects
+        all_projects_params["projects_objects"] = all_projects_snuba_params.projects
+        all_projects_params["projects_id"] = all_projects_snuba_params.project_ids
+
+        return cast(ParamsType, all_projects_params), all_projects_snuba_params
 
     def execute(self, offset: int, limit: int):
         return {"data": self._execute()}
 
     def _execute(self):
-        selected_projects_params = self.params
-        selected_projects_snuba_params = self.snuba_params
-
         with handle_span_query_errors():
             min_timestamp, max_timestamp, trace_ids = self.get_traces_matching_conditions(
-                selected_projects_params,
-                selected_projects_snuba_params,
+                self.params,
+                self.snuba_params,
             )
 
         self.refine_params(min_timestamp, max_timestamp)
@@ -371,9 +423,11 @@ class TracesExecutor:
             return []
 
         with handle_span_query_errors():
+            params, snuba_params = self.params_with_all_projects()
+
             all_queries = self.get_all_queries(
-                self.params,
-                self.snuba_params,
+                params,
+                snuba_params,
                 trace_ids,
             )
 
@@ -410,12 +464,6 @@ class TracesExecutor:
                 traces_breakdown_projects_results=traces_breakdown_projects_results,
             )
 
-            # Ensure that the order of the data is in the same order as the trace ids.
-            # This guarantees that if the trace ids are sorted, the final result will
-            # be sorted the same way.
-            trace_id_order = {trace_id: i for i, trace_id in enumerate(trace_ids)}
-            data.sort(key=lambda row: trace_id_order[row["trace"]])
-
         return data
 
     def refine_params(self, min_timestamp: datetime, max_timestamp: datetime):
@@ -447,7 +495,7 @@ class TracesExecutor:
                 return self.get_traces_matching_span_conditions_timestamp_order(
                     params, snuba_params
                 )
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.isolation_scope() as scope:
                 scope.set_extra("sort", {"sort": self.sort})
                 sentry_sdk.capture_message("Unsupported sort specified")
 
@@ -530,7 +578,7 @@ class TracesExecutor:
         builder, timestamp_column = self.get_traces_matching_span_conditions_query(
             params,
             snuba_params,
-            orderby=[self.sort],
+            sort=self.sort,
         )
 
         executor = OrderedTracesExecutor(
@@ -593,7 +641,7 @@ class TracesExecutor:
         snuba_params: SnubaParams,
         trace_ids: list[str],
     ) -> tuple[datetime, datetime, list[str]]:
-        all_queries: list[QueryBuilder] = []
+        all_queries: list[BaseQueryBuilder] = []
         timestamp_column: str | None = None
 
         # Putting all the trace ids into a single query will likely encounter the
@@ -657,15 +705,24 @@ class TracesExecutor:
         self,
         params: ParamsType,
         snuba_params: SnubaParams,
-        # The orderby is intentionally `None` here as this query is much faster
-        # if we let Clickhouse decide which order to return the results in.
-        # This also means we cannot order by any columns or paginate.
-        orderby: list[str] | None = None,
-    ) -> tuple[QueryBuilder, str]:
+        sort: str | None = None,
+    ) -> tuple[BaseQueryBuilder, str]:
+        if len(self.user_queries) < 2:
+            timestamp_column = "timestamp"
+        else:
+            timestamp_column = "min(timestamp)"
+
+        if sort == "-timestamp":
+            orderby = [f"-{timestamp_column}"]
+        else:
+            # The orderby is intentionally `None` here as this query is much faster
+            # if we let Clickhouse decide which order to return the results in.
+            # This also means we cannot order by any columns or paginate.
+            orderby = None
+
         if len(self.user_queries) < 2:
             # Optimization: If there is only a condition for a single span,
             # we can take the fast path and query without using aggregates.
-            timestamp_column = "timestamp"
             query = SpansIndexedQueryBuilder(
                 Dataset.SpansIndexed,
                 params=params,
@@ -683,7 +740,6 @@ class TracesExecutor:
             for where in self.user_queries.values():
                 query.where.extend(where)
         else:
-            timestamp_column = "min(timestamp)"
             query = SpansIndexedQueryBuilder(
                 Dataset.SpansIndexed,
                 params=params,
@@ -728,7 +784,7 @@ class TracesExecutor:
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
-    ) -> list[QueryBuilder]:
+    ) -> list[BaseQueryBuilder]:
         traces_metas_query = self.get_traces_metas_query(
             params,
             snuba_params,
@@ -770,6 +826,12 @@ class TracesExecutor:
         traces_occurrences_results,
         traces_breakdown_projects_results,
     ) -> list[TraceResult]:
+        if self.sort == "-timestamp":
+            traces_metas_results["data"].sort(
+                key=lambda row: row["last_seen()"],
+                reverse=True,
+            )
+
         # mapping of trace id to a tuple of start/finish times
         traces_range = {
             row["trace"]: {
@@ -853,7 +915,7 @@ class TracesExecutor:
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
-    ) -> QueryBuilder:
+    ) -> BaseQueryBuilder:
         query = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             params,
@@ -897,7 +959,7 @@ class TracesExecutor:
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
-    ) -> QueryBuilder:
+    ) -> BaseQueryBuilder:
         query = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             params,
@@ -965,8 +1027,8 @@ class TracesExecutor:
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
-    ) -> QueryBuilder:
-        query = QueryBuilder(
+    ) -> BaseQueryBuilder:
+        query = DiscoverQueryBuilder(
             Dataset.Events,
             params,
             snuba_params=snuba_params,
@@ -996,8 +1058,8 @@ class TracesExecutor:
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
-    ) -> QueryBuilder:
-        query = QueryBuilder(
+    ) -> BaseQueryBuilder:
+        query = DiscoverQueryBuilder(
             Dataset.IssuePlatform,
             params,
             snuba_params=snuba_params,
@@ -1033,7 +1095,7 @@ class OrderedTracesExecutor:
         *,
         params: ParamsType,
         snuba_params: SnubaParams,
-        builder: QueryBuilder,
+        builder: BaseQueryBuilder,
         limit: int,
         timestamp_column: str,
         max_block_size_hours: int,
@@ -1257,7 +1319,7 @@ class TraceSpansExecutor:
         span_keys: list[SpanKey] | None,
         limit: int,
         offset: int,
-    ) -> QueryBuilder:
+    ) -> BaseQueryBuilder:
         user_spans_query = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             params,
@@ -1405,7 +1467,7 @@ class TraceStatsExecutor:
             self.rollup,
         )
 
-    def get_timeseries_query(self) -> QueryBuilder:
+    def get_timeseries_query(self) -> BaseQueryBuilder:
         query = TimeseriesSpanIndexedQueryBuilder(
             Dataset.SpansIndexed,
             self.params,
@@ -1465,12 +1527,12 @@ def quantize_range(span_start, span_end, trace_range):
         end_index = clip(raw_end_index, 0, slices)
 
         if raw_start_index != start_index:
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.isolation_scope() as scope:
                 scope.set_extra("slice start", {"raw": raw_start_index, "clipped": start_index})
                 sentry_sdk.capture_message("Slice start was adjusted", level="warning")
 
         if raw_end_index != end_index:
-            with sentry_sdk.push_scope() as scope:
+            with sentry_sdk.isolation_scope() as scope:
                 scope.set_extra("slice end", {"raw": raw_end_index, "clipped": end_index})
                 sentry_sdk.capture_message("Slice end was adjusted", level="warning")
 

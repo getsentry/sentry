@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from django.db import models
 from django.utils import timezone
 from django.utils.encoding import force_str
@@ -33,23 +35,23 @@ class OrgAuthTokenReplica(Model):
 
     __repr__ = sane_repr("organization_id", "token_hashed")
 
-    def __str__(self):
+    def __str__(self) -> str:
         return force_str(self.token_hashed)
 
     @property
     def entity_id(self) -> int:
         return self.orgauthtoken_id
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, Any]:
         return {"name": self.name, "scopes": self.get_scopes()}
 
-    def get_allowed_origins(self):
+    def get_allowed_origins(self) -> list[str]:
         return []
 
-    def get_scopes(self):
+    def get_scopes(self) -> list[str]:
         return self.scope_list
 
-    def has_scope(self, scope):
+    def has_scope(self, scope: str) -> bool:
         return scope in self.get_scopes()
 
     def is_active(self) -> bool:

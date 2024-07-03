@@ -9,7 +9,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.integrations.gitlab.integration import GitlabIntegration
 from sentry.models.integrations.integration import Integration
-from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.organizations.services.organization import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError
 
 

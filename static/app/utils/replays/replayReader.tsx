@@ -1,6 +1,4 @@
 import * as Sentry from '@sentry/react';
-import type {incrementalSnapshotEvent} from '@sentry-internal/rrweb';
-import {IncrementalSource} from '@sentry-internal/rrweb';
 import memoize from 'lodash/memoize';
 import {type Duration, duration} from 'moment';
 
@@ -25,6 +23,7 @@ import type {
   ClipWindow,
   ErrorFrame,
   fullSnapshotEvent,
+  incrementalSnapshotEvent,
   MemoryFrame,
   OptionFrame,
   RecordingFrame,
@@ -36,8 +35,11 @@ import type {
 import {
   BreadcrumbCategories,
   EventType,
+  IncrementalSource,
+  isBackgroundFrame,
   isDeadClick,
   isDeadRageClick,
+  isForegroundFrame,
   isPaintFrame,
   isWebVitalFrame,
 } from 'sentry/utils/replays/types';
@@ -248,7 +250,7 @@ export default class ReplayReader {
     this._optionFrame = optionFrame;
 
     // Insert extra records to satisfy minimum requirements for the UI
-    this._sortedBreadcrumbFrames.push(replayInitBreadcrumb(replayRecord));
+    this._sortedBreadcrumbFrames.unshift(replayInitBreadcrumb(replayRecord));
     this._sortedRRWebEvents.unshift(recordingStartFrame(replayRecord));
     this._sortedRRWebEvents.push(recordingEndFrame(replayRecord));
 
@@ -425,6 +427,8 @@ export default class ReplayReader {
 
   getRRWebFrames = () => this._sortedRRWebEvents;
 
+  getBreadcrumbFrames = () => this._sortedBreadcrumbFrames;
+
   getRRWebMutations = () =>
     this._sortedRRWebEvents.filter(
       event =>
@@ -533,6 +537,12 @@ export default class ReplayReader {
       return this._sortedSpanFrames.filter(isWebVitalFrame);
     }
     return [];
+  });
+
+  getAppFrames = memoize(() => {
+    return this._sortedBreadcrumbFrames.filter(
+      frame => isBackgroundFrame(frame) || isForegroundFrame(frame)
+    );
   });
 
   getVideoEvents = () => this._videoEvents;

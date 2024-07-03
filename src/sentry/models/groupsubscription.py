@@ -18,14 +18,14 @@ from sentry.db.models import (
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.integrations.types import ExternalProviders
+from sentry.notifications.services import notifications_service
 from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.actor import Actor
+from sentry.users.services.user import RpcUser
 
 if TYPE_CHECKING:
     from sentry.models.group import Group

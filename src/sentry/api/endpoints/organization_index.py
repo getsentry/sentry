@@ -21,12 +21,11 @@ from sentry.apidocs.parameters import CursorQueryParam, OrganizationParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.superuser import is_active_superuser
 from sentry.db.models.query import in_iexact
+from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.projectplatform import ProjectPlatform
 from sentry.search.utils import tokenize_query
-from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.services.organization import (
     OrganizationOptions,
     OrganizationProvisioningOptions,
@@ -34,6 +33,7 @@ from sentry.services.organization import (
 )
 from sentry.services.organization.provisioning import organization_provisioning_service
 from sentry.signals import org_setup_complete, terms_accepted
+from sentry.users.services.user.service import user_service
 
 
 class OrganizationPostSerializer(BaseOrganizationSerializer):

@@ -14,7 +14,7 @@ from sentry.tsdb.base import TSDBModel
 logger = logging.getLogger("sentry.merge")
 delete_logger = logging.getLogger("sentry.deletions.async")
 
-
+# populated in `TagStorage.setup_merge`
 EXTRA_MERGE_MODELS: list[type[Model]] = []
 
 

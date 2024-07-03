@@ -38,7 +38,7 @@ import {
   DISPLAY_MODE_FALLBACK_OPTIONS,
   DISPLAY_MODE_OPTIONS,
   DisplayModes,
-  type SavedQueryDatasets,
+  SavedQueryDatasets,
   TOP_N,
 } from 'sentry/utils/discover/types';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
@@ -546,7 +546,7 @@ class EventView {
       display: DisplayModes.DEFAULT,
       topEvents: '5',
       dataset: DiscoverDatasets.DISCOVER,
-      queryDataset: undefined,
+      queryDataset: SavedQueryDatasets.DISCOVER,
     };
     const keys = Object.keys(defaults).filter(key => !omitList.includes(key));
     for (const key of keys) {

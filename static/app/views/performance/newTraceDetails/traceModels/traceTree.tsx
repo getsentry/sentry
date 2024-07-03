@@ -8,6 +8,7 @@ import type {RawSpanType} from 'sentry/components/events/interfaces/spans/types'
 import {pickBarColor} from 'sentry/components/performance/waterfall/utils';
 import type {Event, EventTransaction, Measurement} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
+import type {TracingEventParameters} from 'sentry/utils/analytics/tracingEventMap';
 import {MobileVital, WebVital} from 'sentry/utils/fields';
 import type {
   TraceError as TraceErrorType,
@@ -1671,7 +1672,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
   profiles: TraceTree.Profile[] = [];
 
   multiplier: number;
-  space: [number, number] | null = null;
+  space: [number, number] = [0, 0];
 
   private unit = 'milliseconds' as const;
   private _depth: number | undefined;
@@ -1685,7 +1686,13 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     this.metadata = metadata;
     this.multiplier = this.unit === 'milliseconds' ? 1e3 : 1;
 
-    if (value && 'timestamp' in value && 'start_timestamp' in value) {
+    if (
+      value &&
+      'timestamp' in value &&
+      'start_timestamp' in value &&
+      typeof value.timestamp === 'number' &&
+      typeof value.start_timestamp === 'number'
+    ) {
       this.space = [
         value.start_timestamp * this.multiplier,
         (value.timestamp - value.start_timestamp) * this.multiplier,
@@ -1775,6 +1782,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     clone.expanded = this.expanded;
     clone.zoomedIn = this.zoomedIn;
     clone.canFetch = this.canFetch;
+    clone.fetchStatus = this.fetchStatus;
     clone.space = this.space;
     clone.metadata = this.metadata;
 
@@ -2568,6 +2576,44 @@ function printNode(t: TraceTreeNode<TraceTree.NodeValue>, offset: number): strin
   }
 
   return 'unknown node';
+}
+
+export function traceNodeAnalyticsName(node: TraceTreeNode<TraceTree.NodeValue>): string {
+  if (isAutogroupedNode(node)) {
+    return isParentAutogroupedNode(node) ? 'parent autogroup' : 'sibling autogroup';
+  }
+  if (isSpanNode(node)) return 'span';
+  if (isTransactionNode(node)) return 'transaction';
+  if (isMissingInstrumentationNode(node)) return 'missing instrumentation';
+  if (isRootNode(node)) return 'root';
+  if (isTraceNode(node)) return 'trace';
+  if (isNoDataNode(node)) return 'no data';
+  if (isTraceErrorNode(node)) return 'error';
+  return 'unknown';
+}
+
+export function traceNodeAdjacentAnalyticsProperties(
+  node: TraceTreeNode<TraceTree.NodeValue>
+): Pick<
+  TracingEventParameters['trace.trace_layout.span_row_click'],
+  'next_op' | 'parent_op' | 'previous_op'
+> {
+  if (isNoDataNode(node)) {
+    const parent_transaction = node.parent_transaction;
+    if (!parent_transaction) return {};
+    return {
+      parent_op: parent_transaction.value['transaction.op'],
+    };
+  }
+
+  if (isMissingInstrumentationNode(node)) {
+    return {
+      previous_op: node.previous.value.op,
+      next_op: node.next.value.op,
+    };
+  }
+
+  return {};
 }
 
 // Creates an example trace response that we use to render the loading placeholder

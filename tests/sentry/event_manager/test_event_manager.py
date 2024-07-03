@@ -17,7 +17,6 @@ from arroyo.backends.local.storages.memory import MemoryMessageStorage
 from arroyo.types import Partition, Topic
 from django.conf import settings
 from django.core.cache import cache
-from django.test.utils import override_settings
 from django.utils import timezone
 
 from fixtures.github import (
@@ -28,7 +27,7 @@ from fixtures.github import (
     GET_PRIOR_COMMIT_EXAMPLE,
     LATER_COMMIT_SHA,
 )
-from sentry import audit_log, eventstore, nodestore, tsdb
+from sentry import eventstore, nodestore, tsdb
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.constants import MAX_VERSION_LENGTH, DataCategory
 from sentry.dynamic_sampling import (
@@ -58,7 +57,6 @@ from sentry.issues.grouptype import (
 )
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.activity import Activity
-from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.commit import Commit
 from sentry.models.environment import Environment
 from sentry.models.group import Group, GroupStatus
@@ -70,14 +68,12 @@ from sentry.models.groupresolution import GroupResolution
 from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.integrations import Integration
 from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.project import Project
 from sentry.models.pullrequest import PullRequest, PullRequestCommit
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseheadcommit import ReleaseHeadCommit
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.options import set
-from sentry.projectoptions.defaults import DEFAULT_GROUPING_CONFIG, LEGACY_GROUPING_CONFIG
 from sentry.spans.grouping.utils import hash_values
 from sentry.testutils.asserts import assert_mock_called_once_with_partial
 from sentry.testutils.cases import (
@@ -88,7 +84,6 @@ from sentry.testutils.cases import (
 )
 from sentry.testutils.helpers import apply_feature_flag_on_cls, override_options
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
-from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.performance_issues.event_generators import get_event
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode_of
@@ -126,20 +121,6 @@ class EventManagerTestMixin:
 
 
 class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, PerformanceIssueTestCase):
-    def test_similar_message_prefix_doesnt_group(self) -> None:
-        # we had a regression which caused the default hash to just be
-        # 'event.message' instead of '[event.message]' which caused it to
-        # generate a hash per letter
-        manager = EventManager(make_event(event_id="a", message="foo bar"))
-        manager.normalize()
-        event1 = manager.save(self.project.id)
-
-        manager = EventManager(make_event(event_id="b", message="foo baz"))
-        manager.normalize()
-        event2 = manager.save(self.project.id)
-
-        assert event1.group_id != event2.group_id
-
     def test_ephemeral_interfaces_removed_on_save(self) -> None:
         manager = EventManager(make_event(platform="python"))
         manager.normalize()
@@ -168,32 +149,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert nodestore.backend.get(node_id)["logentry"]["formatted"] == "second"
 
         assert eventstream_insert.call_count == 2
-
-    def test_updates_group(self) -> None:
-        timestamp = time() - 300
-        manager = EventManager(
-            make_event(message="foo", event_id="a" * 32, checksum="a" * 32, timestamp=timestamp)
-        )
-        manager.normalize()
-        event = manager.save(self.project.id)
-
-        manager = EventManager(
-            make_event(
-                message="foo bar", event_id="b" * 32, checksum="a" * 32, timestamp=timestamp + 2.0
-            )
-        )
-        manager.normalize()
-
-        with self.tasks():
-            event2 = manager.save(self.project.id)
-
-        group = Group.objects.get(id=event.group_id)
-
-        assert group.times_seen == 2
-        assert group.last_seen == event2.datetime
-        assert group.message == event2.message
-        assert group.data["type"] == "default"
-        assert group.data["metadata"]["title"] == "foo bar"
 
     def test_materialze_metadata_simple(self) -> None:
         manager = EventManager(make_event(transaction="/dogs/are/great/"))
@@ -1146,6 +1101,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_group_release_no_env(self) -> None:
         project_id = self.project.id
         event = self.make_release_event("1.0", project_id)
+        assert event.group_id is not None
 
         release = Release.objects.get(version="1.0", projects=event.project_id)
 
@@ -1160,6 +1116,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         manager = EventManager(make_event(release="1.0", environment="prod", event_id="a" * 32))
         manager.normalize()
         event = manager.save(self.project.id)
+        assert event.group_id is not None
 
         release = Release.objects.get(version="1.0", projects=event.project_id)
 
@@ -1172,6 +1129,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
 
         release = Release.objects.get(version="1.0", projects=event.project_id)
 
+        assert event.group_id is not None
         assert GroupRelease.objects.filter(
             release_id=release.id, group_id=event.group_id, environment="staging"
         ).exists()
@@ -1361,6 +1319,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             return manager.save(self.project.id)
 
         event = save_event()
+        assert event.group_id is not None
 
         # Ensure the `GroupEnvironment` record was created.
         instance = GroupEnvironment.objects.get(
@@ -2262,51 +2221,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert mechanism is not None
         assert mechanism.synthetic is True
         assert event.title == "foo"
-
-    def test_auto_update_grouping(self) -> None:
-        with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=False):
-            # start out with legacy grouping, this should update us
-            self.project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
-
-            manager = EventManager(
-                make_event(
-                    message="foo",
-                    event_id="c" * 32,
-                ),
-                project=self.project,
-            )
-            manager.normalize()
-            manager.save(self.project.id)
-
-            # No update yet
-            project = Project.objects.get(id=self.project.id)
-            assert project.get_option("sentry:grouping_config") == LEGACY_GROUPING_CONFIG
-
-        with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=1.0):
-            # start out with legacy grouping, this should update us
-            self.project.update_option("sentry:grouping_config", LEGACY_GROUPING_CONFIG)
-
-            manager = EventManager(
-                make_event(
-                    message="foo",
-                    event_id="c" * 32,
-                ),
-                project=self.project,
-            )
-            manager.normalize()
-            with outbox_runner():
-                manager.save(self.project.id)
-
-            # This should have moved us back to the default grouping
-            project = Project.objects.get(id=self.project.id)
-            assert project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
-
-            # and we should see an audit log record.
-            with assume_test_silo_mode_of(AuditLogEntry):
-                record = AuditLogEntry.objects.get()
-            assert record.event == audit_log.get_event_id("PROJECT_EDIT")
-            assert record.data["sentry:grouping_config"] == DEFAULT_GROUPING_CONFIG
-            assert record.data["slug"] == self.project.slug
 
     @override_options({"performance.issues.all.problem-detection": 1.0})
     @override_options({"performance.issues.n_plus_one_db.problem-creation": 1.0})

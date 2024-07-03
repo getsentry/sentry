@@ -29,6 +29,7 @@ from django.utils.encoding import force_str
 from django.utils.text import slugify
 
 from sentry.auth.access import RpcBackedAccess
+from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.event_manager import EventManager
 from sentry.eventstore.models import Event
@@ -41,7 +42,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import (
     AlertRule,
-    AlertRuleMonitorType,
+    AlertRuleMonitorTypeInt,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
 )
@@ -133,17 +134,15 @@ from sentry.models.useremail import UserEmail
 from sentry.models.userpermission import UserPermission
 from sentry.models.userreport import UserReport
 from sentry.models.userrole import UserRole
+from sentry.organizations.services.organization import RpcOrganization
+from sentry.organizations.services.organization.model import RpcUserOrganizationContext
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
 )
-from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
-from sentry.services.hybrid_cloud.auth.model import RpcAuthState, RpcMemberSsoState
-from sentry.services.hybrid_cloud.hook import hook_service
-from sentry.services.hybrid_cloud.organization import RpcOrganization
-from sentry.services.hybrid_cloud.organization.model import RpcUserOrganizationContext
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
+from sentry.sentry_apps.services.hook import hook_service
 from sentry.signals import project_created
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -154,6 +153,7 @@ from sentry.types.activity import ActivityType
 from sentry.types.region import Region, get_local_region, get_region_by_name
 from sentry.types.token import AuthTokenType
 from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
+from sentry.users.services.user import RpcUser
 from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from social_auth.models import UserSocialAuth
@@ -1462,6 +1462,7 @@ class Factories:
         seen_by=None,
         alert_rule=None,
         subscription=None,
+        activation=None,
     ):
         if not title:
             title = petname.generate(2, " ", letters=10).title()
@@ -1481,6 +1482,7 @@ class Factories:
             date_closed=timezone.now() if date_closed is not None else date_closed,
             type=IncidentType.ALERT_TRIGGERED.value,
             subscription=subscription,
+            activation=activation,
         )
         for project in projects:
             IncidentProject.objects.create(incident=incident, project=project)
@@ -1520,7 +1522,7 @@ class Factories:
         user=None,
         event_types=None,
         comparison_delta=None,
-        monitor_type=AlertRuleMonitorType.CONTINUOUS,
+        monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS,
         activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
         description=None,
     ):

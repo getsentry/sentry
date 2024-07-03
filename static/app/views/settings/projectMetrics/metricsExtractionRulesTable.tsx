@@ -1,9 +1,8 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
-import Tag from 'sentry/components/badge/tag';
 import {Button, LinkButton} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
 import {modalCss} from 'sentry/components/featureFeedback/feedbackModal';
@@ -14,12 +13,14 @@ import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconEdit} from 'sentry/icons/iconEdit';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
-import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
+import {useLocation} from 'sentry/utils/useLocation';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
+import {useParams} from 'sentry/utils/useParams';
 import {MetricsExtractionRuleEditModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleEditModal';
 import {
-  type MetricsExtractionRule,
   useDeleteMetricsExtractionRules,
   useMetricsExtractionRules,
 } from 'sentry/views/settings/projectMetrics/utils/api';
@@ -31,6 +32,9 @@ type Props = {
 
 export function MetricsExtractionRulesTable({project}: Props) {
   const organization = useOrganization();
+  const location = useLocation();
+  const params = useParams();
+  const navigate = useNavigate();
   const [query, setQuery] = useSearchQueryParam('query');
 
   const {data: extractionRules, isLoading} = useMetricsExtractionRules(
@@ -72,27 +76,54 @@ export function MetricsExtractionRulesTable({project}: Props) {
 
   const handleEdit = useCallback(
     (rule: MetricsExtractionRule) => {
-      openModal(
-        props => (
-          <MetricsExtractionRuleEditModal
-            project={project}
-            metricExtractionRule={rule}
-            {...props}
-          />
-        ),
-        {modalCss}
-      );
+      navigate(`/settings/projects/${project.slug}/metrics/${rule.spanAttribute}/edit/`);
     },
-    [project]
+    [project.slug, navigate]
   );
+
+  useEffect(() => {
+    const editPath = `/settings/projects/${project.slug}/metrics/${params.spanAttribute}/edit/`;
+
+    if (location.pathname !== editPath) {
+      return;
+    }
+
+    const rule = filteredExtractionRules.find(
+      r => r.spanAttribute === params.spanAttribute
+    );
+
+    if (!rule) {
+      return;
+    }
+
+    openModal(
+      props => (
+        <MetricsExtractionRuleEditModal
+          project={project}
+          metricExtractionRule={rule}
+          {...props}
+        />
+      ),
+      {
+        modalCss,
+        onClose: () => navigate(`/settings/projects/${project.slug}/metrics/`),
+      }
+    );
+  }, [
+    filteredExtractionRules,
+    project,
+    location.pathname,
+    params.spanAttribute,
+    navigate,
+  ]);
 
   return (
     <Fragment>
       <SearchWrapper>
-        <h6>{t('Metric Extraction Rules')}</h6>
+        <h6>{t('Span-based Metrics')}</h6>
         <FlexSpacer />
         <SearchBar
-          placeholder={t('Search Extraction Rules')}
+          placeholder={t('Search Metrics')}
           onChange={setQuery}
           query={query}
           size="sm"
@@ -102,7 +133,7 @@ export function MetricsExtractionRulesTable({project}: Props) {
           priority="primary"
           size="sm"
         >
-          {t('Add Extraction Rule')}
+          {t('Add Metric')}
         </LinkButton>
       </SearchWrapper>
       <RulesTable
@@ -138,17 +169,8 @@ function RulesTable({
           <IconArrow size="xs" direction="down" />
           {t('Span attribute')}
         </Cell>,
-        <Cell right key="type">
-          {t('Type')}
-        </Cell>,
-        <Cell right key="unit">
-          {t('Unit')}
-        </Cell>,
         <Cell right key="filters">
           {t('Filters')}
-        </Cell>,
-        <Cell right key="tags">
-          {t('Tags')}
         </Cell>,
         <Cell right key="actions">
           {t('Actions')}
@@ -156,8 +178,8 @@ function RulesTable({
       ]}
       emptyMessage={
         hasSearch
-          ? t('No extraction rules match the query.')
-          : t('You have not created any extraction rules yet.')
+          ? t('No metrics match the query.')
+          : t('You have not created any span-based metrics yet.')
       }
       isEmpty={extractionRules.length === 0}
       isLoading={isLoading}
@@ -165,14 +187,8 @@ function RulesTable({
       {extractionRules
         .toSorted((a, b) => a?.spanAttribute?.localeCompare(b?.spanAttribute))
         .map(rule => (
-          <Fragment key={rule.spanAttribute + rule.type + rule.unit}>
+          <Fragment key={rule.spanAttribute + rule.unit}>
             <Cell>{rule.spanAttribute}</Cell>
-            <Cell right>
-              <Tag>{getReadableMetricType(rule.type)}</Tag>
-            </Cell>
-            <Cell right>
-              <Tag>{rule.unit}</Tag>
-            </Cell>
             <Cell right>
               {rule.conditions.length ? (
                 <Button priority="link" onClick={() => onEdit(rule)}>
@@ -183,24 +199,15 @@ function RulesTable({
               )}
             </Cell>
             <Cell right>
-              {rule.tags.length ? (
-                <Button priority="link" onClick={() => onEdit(rule)}>
-                  {rule.tags.length}
-                </Button>
-              ) : (
-                <NoValue>{t('(none)')}</NoValue>
-              )}
-            </Cell>
-            <Cell right>
               <Button
-                aria-label={t('Delete rule')}
+                aria-label={t('Delete metric')}
                 size="xs"
                 icon={<IconDelete />}
                 borderless
                 onClick={() => onDelete(rule)}
               />
               <Button
-                aria-label={t('Edit rule')}
+                aria-label={t('Edit metric')}
                 size="xs"
                 icon={<IconEdit />}
                 borderless
@@ -230,7 +237,7 @@ const FlexSpacer = styled('div')`
 `;
 
 const ExtractionRulesPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr repeat(5, min-content);
+  grid-template-columns: 1fr repeat(2, min-content);
 `;
 
 const Cell = styled('div')<{right?: boolean}>`

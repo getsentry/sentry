@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from typing import cast
 
 from drf_spectacular.utils import extend_schema
 from rest_framework.exceptions import ParseError
@@ -20,6 +21,7 @@ from sentry.models.organization import Organization
 from sentry.replays.post_process import ReplayDetailsResponse, process_raw_response
 from sentry.replays.query import query_replays_collection_paginated, replay_url_parser_config
 from sentry.replays.usecases.errors import handled_snuba_exceptions
+from sentry.replays.usecases.query import PREFERRED_SOURCE, QueryResponse
 from sentry.replays.validators import ReplayValidator
 from sentry.utils.cursors import Cursor, CursorResult
 
@@ -63,6 +65,25 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
             if key not in filter_params:
                 filter_params[key] = value  # type: ignore[literal-required]
 
+        # We allow the requester to make their own decision about where to source the data.
+        # Because this is a stateless, isolated interaction its okay for the user to decide where
+        # to source the data. At worst they receive an exception and stop manually specifying the
+        # header. This allows us to quickly test and compare multiple data sources without
+        # interacting with a feature flagging system.
+        preferred_source = request.headers.get("X-Preferred-Data-Source")
+        if preferred_source not in ("scalar", "aggregated", "materialized-view"):
+            # If the feature flag has been enabled we'll default to the materialized-view data
+            # source if none was provided. This would be the common path for users using the
+            # Javascript web application.
+            if features.has("organizations:session-replay-materialized-view", organization):
+                preferred_source = "materialized-view"
+            else:
+                preferred_source = "scalar"
+
+        preferred_source = cast(PREFERRED_SOURCE, preferred_source)
+
+        headers = {}
+
         def data_fn(offset: int, limit: int):
             try:
                 search_filters = parse_search_query(
@@ -83,7 +104,7 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
                 # to do this for completeness sake.
                 return Response({"detail": "Missing start or end period."}, status=400)
 
-            return query_replays_collection_paginated(
+            response = query_replays_collection_paginated(
                 project_ids=filter_params["project_id"],
                 start=start,
                 end=end,
@@ -93,11 +114,18 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
                 limit=limit,
                 offset=offset,
                 search_filters=search_filters,
+                preferred_source=preferred_source,
                 organization=organization,
                 actor=request.user,
             )
 
-        return self.paginate(
+            # We set the data-source header so we can figure out which query is giving
+            # incorrect or slow results.
+            headers["X-Data-Source"] = response.source
+
+            return response
+
+        response = self.paginate(
             request=request,
             paginator=ReplayPaginator(data_fn=data_fn),
             on_results=lambda results: {
@@ -108,20 +136,25 @@ class OrganizationReplayIndexEndpoint(OrganizationEndpoint):
             },
         )
 
+        for header, value in headers.items():
+            response[header] = value
+
+        return response
+
 
 class ReplayPaginator:
     """Defers all pagination decision making to the implementation."""
 
-    def __init__(self, data_fn: Callable[[int, int], tuple[list, bool]]) -> None:
+    def __init__(self, data_fn: Callable[[int, int], QueryResponse]) -> None:
         self.data_fn = data_fn
 
     def get_result(self, limit: int, cursor=None):
         assert limit > 0
         offset = int(cursor.offset) if cursor is not None else 0
-        data, has_more = self.data_fn(offset, limit + 1)
+        response = self.data_fn(offset, limit + 1)
 
         return CursorResult(
-            data,
+            response.response,
             prev=Cursor(0, max(0, offset - limit), True, offset > 0),
-            next=Cursor(0, max(0, offset + limit), False, has_more),
+            next=Cursor(0, max(0, offset + limit), False, response.has_more),
         )

@@ -13,16 +13,28 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
-import {showPlayerTime} from 'sentry/components/replays/utils';
 import Timeline from 'sentry/components/timeline';
 import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
+import {getReplayDiffOffsetsFromFrame} from 'sentry/utils/replays/getDiffTimestamps';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
-import type {ErrorFrame, FeedbackFrame, ReplayFrame} from 'sentry/utils/replays/types';
-import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
+import type ReplayReader from 'sentry/utils/replays/replayReader';
+import type {
+  ErrorFrame,
+  FeedbackFrame,
+  HydrationErrorFrame,
+  ReplayFrame,
+} from 'sentry/utils/replays/types';
+import {
+  isBreadcrumbFrame,
+  isErrorFrame,
+  isFeedbackFrame,
+  isHydrationErrorFrame,
+} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
@@ -88,22 +100,10 @@ function BreadcrumbItem({
   }, [description, expandPaths, onInspectorExpanded]);
 
   const renderComparisonButton = useCallback(() => {
-    return frame?.data && 'mutations' in frame.data ? (
-      <div>
-        <OpenReplayComparisonButton
-          replay={replay}
-          leftTimestamp={frame.offsetMs}
-          rightTimestamp={
-            (frame.data.mutations.next?.timestamp ?? 0) -
-            (replay?.getReplay().started_at.getTime() ?? 0)
-          }
-          size="xs"
-        >
-          {t('Open Hydration Diff')}
-        </OpenReplayComparisonButton>
-      </div>
+    return isBreadcrumbFrame(frame) && isHydrationErrorFrame(frame) ? (
+      <CrumbHydrationButton replay={replay} frame={frame} />
     ) : null;
-  }, [frame?.data, frame.offsetMs, replay]);
+  }, [frame, replay]);
 
   const renderCodeSnippet = useCallback(() => {
     return extraction?.html ? (
@@ -132,7 +132,7 @@ function BreadcrumbItem({
         colorConfig={{primary: color, secondary: color}}
         timeString={timeString}
         renderTimestamp={(_ts, _sts) =>
-          showPlayerTime(frame.timestampMs, startTimestampMs, false)
+          formatReplayDuration(Math.abs(frame.timestampMs - startTimestampMs), false)
         }
         startTimeString={startTimeString}
         data-is-error-frame={isErrorFrame(frame)}
@@ -184,6 +184,29 @@ function BreadcrumbItem({
         </CrumbDetails>
       </ErrorBoundary>
     </CrumbItem>
+  );
+}
+
+function CrumbHydrationButton({
+  replay,
+  frame,
+}: {
+  frame: HydrationErrorFrame;
+  replay: ReplayReader | null;
+}) {
+  const {leftOffsetMs, rightOffsetMs} = getReplayDiffOffsetsFromFrame(replay, frame);
+
+  return (
+    <div>
+      <OpenReplayComparisonButton
+        replay={replay}
+        leftOffsetMs={leftOffsetMs}
+        rightOffsetMs={rightOffsetMs}
+        size="xs"
+      >
+        {t('Open Hydration Diff')}
+      </OpenReplayComparisonButton>
+    </div>
   );
 }
 

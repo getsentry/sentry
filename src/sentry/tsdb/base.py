@@ -276,7 +276,7 @@ class BaseTSDB(Service):
             series.append(self.normalize_to_epoch(timestamp, rollup))
             timestamp = timestamp - timedelta(seconds=rollup)
 
-        return rollup, sorted(series)
+        return rollup, series[::-1]
 
     def get_active_series(
         self,
@@ -355,7 +355,6 @@ class BaseTSDB(Service):
         count: int = 1,
         environment_id: int | None = None,
     ) -> None:
-
         """
         Increment project ID=1 and group ID=5:
 
@@ -685,13 +684,13 @@ class BaseTSDB(Service):
     def get_frequency_totals(
         self,
         model: TSDBModel,
-        items: Mapping[str, Sequence[str]],
+        items: Mapping[TSDBKey, Sequence[TSDBItem]],
         start: datetime,
         end: datetime | None = None,
         rollup: int | None = None,
         environment_id: int | None = None,
         tenant_ids: dict[str, str | int] | None = None,
-    ) -> dict[str, dict[str, float]]:
+    ) -> dict[TSDBKey, dict[TSDBItem, float]]:
         """
         Retrieve the total frequency of known items in a table over time.
 

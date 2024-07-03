@@ -23,7 +23,7 @@ from sentry.relay.config.metric_extraction import (
     widget_exceeds_max_specs,
 )
 from sentry.search.events import fields
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import EventsResponse, ParamsType, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
@@ -424,7 +424,7 @@ def check_field_cardinality(
 
     query_columns = [col for col, key in cache_keys.items() if key not in cardinality_map]
 
-    with sentry_sdk.push_scope() as scope:
+    with sentry_sdk.isolation_scope() as scope:
         if widget_query:
             scope.set_tag("widget_query.widget_id", widget_query.id)
             scope.set_tag("widget_query.org_slug", organization.slug)
@@ -479,7 +479,7 @@ def _query_cardinality(
     columns_to_check = [column for column in query_columns if not fields.is_function(column)]
     unique_columns = [f"count_unique({column})" for column in columns_to_check]
 
-    query_builder = QueryBuilder(
+    query_builder = DiscoverQueryBuilder(
         dataset=Dataset.Discover,
         params=params,
         selected_columns=unique_columns,

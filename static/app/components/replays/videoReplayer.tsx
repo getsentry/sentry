@@ -14,6 +14,7 @@ interface OffsetOptions {
 }
 
 interface VideoReplayerOptions {
+  config: VideoReplayerConfig;
   durationMs: number;
   onBuffer: (isBuffering: boolean) => void;
   onFinished: () => void;
@@ -58,10 +59,7 @@ export class VideoReplayer {
   private _videoApiPrefix: string;
   private _clipDuration: number | undefined;
   private _durationMs: number;
-  public config: VideoReplayerConfig = {
-    skipInactive: false,
-    speed: 1.0,
-  };
+  public config: VideoReplayerConfig;
   public wrapper: HTMLElement;
   public iframe = {};
 
@@ -76,6 +74,7 @@ export class VideoReplayer {
       onLoaded,
       clipWindow,
       durationMs,
+      config,
     }: VideoReplayerOptions
   ) {
     this._attachments = attachments;
@@ -90,6 +89,7 @@ export class VideoReplayer {
     this._videos = new Map<any, HTMLVideoElement>();
     this._clipDuration = undefined;
     this._durationMs = durationMs;
+    this.config = config;
 
     this.wrapper = document.createElement('div');
     if (root) {
@@ -204,7 +204,6 @@ export class VideoReplayer {
     el.setAttribute('muted', '');
     el.setAttribute('playinline', '');
     el.setAttribute('preload', 'auto');
-    // TODO: Timer needs to also account for playback speed
     el.setAttribute('playbackRate', `${this.config.speed}`);
     el.appendChild(sourceEl);
 
@@ -677,6 +676,7 @@ export class VideoReplayer {
         return;
       }
       currentVideo.playbackRate = this.config.speed;
+      this._timer.setSpeed(this.config.speed);
     }
   }
 }

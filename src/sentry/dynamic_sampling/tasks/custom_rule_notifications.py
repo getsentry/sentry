@@ -16,10 +16,10 @@ from sentry.dynamic_sampling.tasks.utils import (
     dynamic_sampling_task_with_context,
 )
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo.base import SiloMode
 from sentry.snuba import discover
 from sentry.tasks.base import instrumented_task
+from sentry.users.services.user.service import user_service
 from sentry.utils.email import MessageBuilder
 
 MIN_SAMPLES_FOR_NOTIFICATION = 10

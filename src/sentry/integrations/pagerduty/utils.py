@@ -9,9 +9,9 @@ from django.http import Http404
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
 from sentry.shared_integrations.client.proxy import infer_org_integration
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import control_silo_function
@@ -157,7 +157,10 @@ def send_incident_alert_notification(
         org_integration_id = org_integration.id
     else:
         org_integrations = None
-        org_integration_id = infer_org_integration(integration_id=integration_id, ctx_logger=logger)
+        if integration_id is not None:
+            org_integration_id = infer_org_integration(
+                integration_id=integration_id, ctx_logger=logger
+            )
         if org_integration_id:
             org_integrations = integration_service.get_organization_integrations(
                 org_integration_ids=[org_integration_id]

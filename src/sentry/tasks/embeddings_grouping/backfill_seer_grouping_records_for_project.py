@@ -1,6 +1,7 @@
 import logging
 from typing import Any
 
+import sentry_sdk
 from django.conf import settings
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
@@ -20,12 +21,12 @@ from sentry.tasks.embeddings_grouping.utils import (
     make_backfill_grouping_index_redis_key,
     make_backfill_project_index_redis_key,
     send_group_and_stacktrace_to_seer,
+    send_group_and_stacktrace_to_seer_multithreaded,
     update_groups,
 )
 
 BACKFILL_NAME = "backfill_grouping_records"
 BULK_DELETE_METADATA_CHUNK_SIZE = 100
-SNUBA_QUERY_RATELIMIT = 4
 REDIS_KEY_EXPIRY = 60 * 60 * 24  # 1 day
 
 logger = logging.getLogger(__name__)
@@ -33,11 +34,12 @@ logger = logging.getLogger(__name__)
 
 @instrumented_task(
     name="sentry.tasks.backfill_seer_grouping_records",
-    queue="default",
+    queue="backfill_seer_grouping_records",
     max_retries=0,
     silo_mode=SiloMode.REGION,
     soft_time_limit=60 * 15,
     time_limit=60 * 15 + 5,
+    acks_late=True,
 )
 def backfill_seer_grouping_records_for_project(
     current_project_id: int,
@@ -169,19 +171,26 @@ def backfill_seer_grouping_records_for_project(
         if group_id in group_hashes_dict
     ]
 
-    seer_response = send_group_and_stacktrace_to_seer(
-        project,
-        groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
-        nodestore_results,
-    )
+    if options.get("similarity.backfill_seer_threads") > 1:
+        seer_response = send_group_and_stacktrace_to_seer_multithreaded(
+            groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
+            nodestore_results,
+        )
+    else:
+        seer_response = send_group_and_stacktrace_to_seer(
+            groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
+            nodestore_results,
+        )
+
     if not seer_response.get("success"):
         logger.info(
-            "backfill_seer_grouping_records.seer_down",
+            "backfill_seer_grouping_records.seer_failed",
             extra={
                 "current_project_id": current_project_id,
                 "last_processed_project_index": last_processed_project_index,
             },
         )
+        sentry_sdk.capture_exception(Exception("Seer failed during backfill"))
         return
 
     update_groups(
@@ -246,6 +255,7 @@ def call_next_backfill(
                 last_processed_project_index,
                 only_delete,
             ],
+            headers={"sentry-propagate-traces": False},
         )
     else:
         # TODO: delete project redis key here if needed?
@@ -291,4 +301,5 @@ def call_next_backfill(
                 last_processed_project_index,
                 only_delete,
             ],
+            headers={"sentry-propagate-traces": False},
         )

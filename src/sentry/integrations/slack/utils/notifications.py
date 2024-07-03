@@ -4,7 +4,8 @@ from typing import Any
 
 import orjson
 import sentry_sdk
-from slack_sdk.errors import SlackApiError
+from slack_sdk.errors import SlackApiError, SlackRequestError
+from slack_sdk.webhook import WebhookClient
 
 from sentry import features
 from sentry.constants import METRIC_ALERTS_THREAD_DEFAULT, ObjectStatus
@@ -16,6 +17,7 @@ from sentry.integrations.repository.metric_alert import (
     MetricAlertNotificationMessageRepository,
     NewMetricAlertNotificationMessage,
 )
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.metrics import (
@@ -25,7 +27,6 @@ from sentry.integrations.slack.metrics import (
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.views.types import IdentityParams
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils import metrics
 
@@ -57,6 +58,7 @@ def send_incident_alert_notification(
                 organization=organization,
                 alert_rule=incident.alert_rule,
                 selected_incident=incident,
+                subscription=incident.subscription,
             )
         except Exception as e:
             sentry_sdk.capture_exception(e)
@@ -160,6 +162,35 @@ def send_incident_alert_notification(
     return success
 
 
+def respond_to_slack_command(
+    params: IdentityParams,
+    text: str,
+    command: str,
+) -> None:
+    log = "slack.link-identity." if command == "link" else "slack.unlink-identity."
+
+    # TODO: ignore expired url errors
+    if params.response_url:
+        logger.info(log + "respond-webhook", extra={"response_url": params.response_url})
+        try:
+            webhook_client = WebhookClient(params.response_url)
+            webhook_client.send(text=text, replace_original=False, response_type="ephemeral")
+        except (SlackApiError, SlackRequestError) as e:
+            logger.exception(log + "error", extra={"error": str(e)})
+    else:
+        logger.info(log + "respond-ephemeral")
+        try:
+            client = SlackSdkClient(integration_id=params.integration.id)
+            client.chat_postMessage(
+                text=text,
+                channel=params.slack_id,
+                replace_original=False,
+                response_type="ephemeral",
+            )
+        except SlackApiError as e:
+            logger.exception(log + "error", extra={"error": str(e)})
+
+
 def send_slack_response(
     params: IdentityParams,
     text: str,
@@ -175,14 +206,11 @@ def send_slack_response(
 
     client = SlackClient(integration_id=integration.id)
 
-    logger.info(
-        "slack.send_slack_response",
-        extra={
-            "integration_id": integration.id,
-            "response_url": params.response_url or default_path,
-            "payload": payload,
-        },
-    )
+    if not params.response_url:
+        logger.info(
+            "slack.send_slack_response.no-response-url",
+            extra={"integration_id": integration.id, "payload": payload},
+        )
 
     if params.response_url:
         path = params.response_url

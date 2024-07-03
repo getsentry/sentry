@@ -37,10 +37,10 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.models.team import Team
 from sentry.monitors.models import MonitorEnvironment, MonitorStatus
-from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.notifications.services import notifications_service
 from sentry.snuba.models import SnubaQuery
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.iterators import chunked

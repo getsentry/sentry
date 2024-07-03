@@ -20,6 +20,7 @@ import {useReplayTraceMeta} from 'sentry/views/performance/newTraceDetails/trace
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
+import {loadTraceViewPreferences} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
 import TraceView, {
   StyledTracePanel,
@@ -32,8 +33,6 @@ import {
   useTransactionData,
 } from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
-
-import {loadTraceViewPreferences} from '../../../performance/newTraceDetails/traceState/tracePreferences';
 
 import {useReplayTraces} from './useReplayTraces';
 

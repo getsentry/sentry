@@ -19,6 +19,7 @@ import {
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isCustomMeasurement} from 'sentry/utils/metrics';
+import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
 import {formatMRI} from 'sentry/utils/metrics/mri';
 import {MetricExpressionType, type MetricsQueryWidget} from 'sentry/utils/metrics/types';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
@@ -31,10 +32,10 @@ import {useFormulaDependencies} from 'sentry/views/metrics/utils/useFormulaDepen
 
 interface Props {
   addCustomMetric: () => void;
-  showCustomMetricButton: boolean;
+  showAddMetricButton: boolean;
 }
 
-export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Props) {
+export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props) {
   const router = useRouter();
   const organization = useOrganization();
   const formulaDependencies = useFormulaDependencies();
@@ -113,7 +114,7 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
             query: widget.query,
             mri: widget.mri,
             groupBy: widget.groupBy,
-            op: widget.op,
+            aggregation: widget.aggregation,
           });
           return {
             leadingItems: showQuerySymbols
@@ -121,7 +122,7 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
               : [],
             key: `add-alert-${index}`,
             label: widget.mri
-              ? `${widget.op}(${middleEllipsis(formatMRI(widget.mri), 60, /\.|-|_/)})`
+              ? `${widget.aggregation}(${middleEllipsis(formatMRI(widget.mri), 60, /\.|-|_/)})`
               : t('Select a metric to create an alert'),
             tooltip: isCustomMeasurement({mri: widget.mri})
               ? t('Custom measurements cannot be used to create alerts')
@@ -141,11 +142,25 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
 
   return (
     <ButtonBar gap={1}>
-      {showCustomMetricButton && (
-        <Button priority="primary" onClick={() => addCustomMetric()} size="sm">
-          {t('Add Custom Metrics')}
-        </Button>
-      )}
+      {showAddMetricButton &&
+        (hasCustomMetricsExtractionRules(organization) ? (
+          <Button
+            priority="primary"
+            onClick={() =>
+              navigateTo(
+                `/settings/projects/:projectId/metrics/configure-metric/`,
+                router
+              )
+            }
+            size="sm"
+          >
+            {t('Add New Metric')}
+          </Button>
+        ) : (
+          <Button priority="primary" onClick={() => addCustomMetric()} size="sm">
+            {t('Add Custom Metrics')}
+          </Button>
+        ))}
       <Button
         size="sm"
         icon={<IconBookmark isSolid={isDefaultQuery} />}
