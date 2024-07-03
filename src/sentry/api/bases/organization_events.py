@@ -267,7 +267,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         """This can be removed once the discover dataset has been fully split"""
         if dataset_inferred_from_query:
             decision = dataset_inferred_from_query
-            sentry_sdk.set_tag("discover.split_reason", "inferred_from_columns")
+            sentry_sdk.set_tag("discover.split_reason", "inferred_from_query")
         elif has_errors and not has_transactions_data:
             decision = DiscoverSavedQueryTypes.ERROR_EVENTS
             sentry_sdk.set_tag("discover.split_reason", "query_result")
