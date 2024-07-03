@@ -426,6 +426,9 @@ from .endpoints.organization_member_unreleased_commits import (
 )
 from .endpoints.organization_metrics_code_locations import OrganizationMetricsCodeLocationsEndpoint
 from .endpoints.organization_metrics_details import OrganizationMetricsDetailsEndpoint
+from .endpoints.organization_metrics_extraction_rules import (
+    OrganizationMetricsExtractionRulesEndpoint,
+)
 from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
     OrganizationMetricsCompatibilitySums,
@@ -1497,6 +1500,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/metrics-compatibility-sums/$",
         OrganizationMetricsCompatibilitySums.as_view(),
         name="sentry-api-0-organization-metrics-compatibility-sums",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/metrics/extraction-rules/$",
+        OrganizationMetricsExtractionRulesEndpoint.as_view(),
+        name="sentry-api-0-organization-metrics-extraction-rules",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/missing-members/$",
