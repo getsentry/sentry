@@ -95,8 +95,11 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
   const installConfigurations = install.configurations ?? [];
 
   const {configurations, description: configureDescription} = configure[0] ?? {};
-  const {configurations: sourceMapConfigurations, description: sourcemapDescription} =
-    configure[1] ?? {};
+  const {
+    configurations: extraConfigurations,
+    description: extraConfigDescription,
+    title: extraConfigTitle,
+  } = configure[1] ?? {};
 
   const {description: verifyDescription, configurations: verifyConfigutations} =
     verify[0] ?? {};
@@ -135,23 +138,25 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                       </CodeSnippetWrapper>
                     </div>
                   ))}
-                  {verify.length === 0 && (
-                    <FirstEventIndicator
-                      organization={organization}
-                      project={project}
-                      eventType="error"
-                    >
-                      {({indicator, firstEventButton}) => (
-                        <div>
-                          <IndicatorWrapper>{indicator}</IndicatorWrapper>
-                          <StyledButtonBar gap={1}>
-                            <GuidedSteps.BackButton size="md" />
-                            {firstEventButton}
-                          </StyledButtonBar>
-                        </div>
-                      )}
-                    </FirstEventIndicator>
-                  )}
+                  {!configurations &&
+                    !extraConfigDescription &&
+                    !verifyConfigutations && (
+                      <FirstEventIndicator
+                        organization={organization}
+                        project={project}
+                        eventType="error"
+                      >
+                        {({indicator, firstEventButton}) => (
+                          <div>
+                            <IndicatorWrapper>{indicator}</IndicatorWrapper>
+                            <StyledButtonBar gap={1}>
+                              <GuidedSteps.BackButton size="md" />
+                              {firstEventButton}
+                            </StyledButtonBar>
+                          </div>
+                        )}
+                      </FirstEventIndicator>
+                    )}
                 </div>
                 <GuidedSteps.ButtonWrapper>
                   <GuidedSteps.BackButton size="md" />
@@ -180,6 +185,9 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                             )
                           ) : null}
                         </CodeSnippetWrapper>
+                        <DescriptionWrapper>
+                          {configuration.additionalInfo}
+                        </DescriptionWrapper>
                       </div>
                     ))}
                   </div>
@@ -192,43 +200,66 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
             ) : (
               <Fragment />
             )}
-            {sourcemapDescription ? (
+            {extraConfigDescription ? (
               <GuidedSteps.Step
-                stepKey="sourcemaps-sentry"
-                title={t('Upload Sourcemaps')}
+                stepKey="extra-configuration-sentry"
+                title={extraConfigTitle || 'Upload Source Maps'}
               >
                 <div>
-                  <DescriptionWrapper>{sourcemapDescription}</DescriptionWrapper>
-                  {sourceMapConfigurations?.map((configuration, index) => (
-                    <div key={index}>
-                      <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
-                      <CodeSnippetWrapper>
-                        {configuration.code ? (
-                          Array.isArray(configuration.code) ? (
-                            <TabbedCodeSnippet tabs={configuration.code} />
-                          ) : (
-                            <OnboardingCodeSnippet language={configuration.language}>
-                              {configuration.code}
-                            </OnboardingCodeSnippet>
-                          )
-                        ) : null}
-                      </CodeSnippetWrapper>
-                    </div>
-                  ))}
-                  <GuidedSteps.ButtonWrapper>
-                    <GuidedSteps.BackButton size="md" />
-                    <GuidedSteps.NextButton size="md" />
-                  </GuidedSteps.ButtonWrapper>
+                  <div>
+                    <DescriptionWrapper>{extraConfigDescription}</DescriptionWrapper>
+                    {extraConfigurations?.map((configuration, index) => (
+                      <div key={index}>
+                        <DescriptionWrapper>
+                          {configuration.description}
+                        </DescriptionWrapper>
+                        <CodeSnippetWrapper>
+                          {configuration.code ? (
+                            Array.isArray(configuration.code) ? (
+                              <TabbedCodeSnippet tabs={configuration.code} />
+                            ) : (
+                              <OnboardingCodeSnippet language={configuration.language}>
+                                {configuration.code}
+                              </OnboardingCodeSnippet>
+                            )
+                          ) : null}
+                        </CodeSnippetWrapper>
+                      </div>
+                    ))}
+                    {!verifyConfigutations && !verifyDescription && (
+                      <FirstEventIndicator
+                        organization={organization}
+                        project={project}
+                        eventType="error"
+                      >
+                        {({indicator, firstEventButton}) => (
+                          <div>
+                            <IndicatorWrapper>{indicator}</IndicatorWrapper>
+                            <StyledButtonBar gap={1}>
+                              <GuidedSteps.BackButton size="md" />
+                              {firstEventButton}
+                            </StyledButtonBar>
+                          </div>
+                        )}
+                      </FirstEventIndicator>
+                    )}
+                  </div>
+                  {(verifyConfigutations || verifyDescription) && (
+                    <GuidedSteps.ButtonWrapper>
+                      <GuidedSteps.BackButton size="md" />
+                      <GuidedSteps.NextButton size="md" />
+                    </GuidedSteps.ButtonWrapper>
+                  )}
                 </div>
               </GuidedSteps.Step>
             ) : (
               <Fragment />
             )}
-            {verifyConfigutations ? (
+            {verifyConfigutations || verifyDescription ? (
               <GuidedSteps.Step stepKey="verify-sentry" title={t('Verify')}>
                 <div>
                   <DescriptionWrapper>{verifyDescription}</DescriptionWrapper>
-                  {verifyConfigutations.map((configuration, index) => (
+                  {verifyConfigutations?.map((configuration, index) => (
                     <div key={index}>
                       <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
                       <CodeSnippetWrapper>
@@ -378,4 +409,8 @@ const CodeSnippetWrapper = styled('div')`
 
 const DescriptionWrapper = styled('div')`
   margin-bottom: ${space(1)};
+  display: flex;
+  align-items: center;
+  flex-direction: row;
+  gap: ${space(0.5)};
 `;
