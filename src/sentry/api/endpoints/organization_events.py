@@ -28,7 +28,7 @@ from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import dataset_split_decision_inferred_from_query, get_dataset
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils.snuba import QueryIllegalTypeOfArgument, SnubaError
+from sentry.utils.snuba import SnubaError
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +38,11 @@ SAVED_QUERY_DATASET_MAP = {
     DiscoverSavedQueryTypes.TRANSACTION_LIKE: get_dataset("discover"),
     DiscoverSavedQueryTypes.ERROR_EVENTS: get_dataset("errors"),
 }
+
+
+class DiscoverDatasetSplitException(Exception):
+    pass
+
 
 ALLOWED_EVENTS_REFERRERS = {
     Referrer.API_ORGANIZATION_EVENTS.value,
@@ -507,7 +512,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                             try:
                                 result = future.result()
                                 map[dataset_] = result
-                            except (SnubaError, QueryIllegalTypeOfArgument):
+                            except SnubaError:
                                 pass
 
                     try:
@@ -519,12 +524,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         )
                         has_errors = len(error_results["data"]) > 0
                     except KeyError:
-                        error_results = EMPTY_EVENTS_RESPONSE
-                        error_results["meta"][
-                            "discoverSplitDecision"
-                        ] = DiscoverSavedQueryTypes.get_type_name(
-                            DiscoverSavedQueryTypes.ERROR_EVENTS
-                        )
+                        error_results = None
 
                     try:
                         transaction_results = map["transactions"]
@@ -546,8 +546,10 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
                     if decision == DiscoverSavedQueryTypes.TRANSACTION_LIKE and transaction_results:
                         return transaction_results
-                    else:
+                    elif error_results:
                         return error_results
+                    else:
+                        raise DiscoverDatasetSplitException
             except Exception as e:
                 # Swallow the exception if it was due to the discover split, and try again one more time.
                 sentry_sdk.capture_exception(e)
