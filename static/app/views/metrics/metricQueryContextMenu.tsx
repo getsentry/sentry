@@ -152,8 +152,14 @@ export function MetricQueryContextMenu({
             organization,
           });
           Sentry.metrics.increment('ddm.widget.settings');
+
+          const {useCase, name} = parseMRI(metricsQuery.mri) ?? {};
+
+          const isSpanBasedMetric = useCase === 'spans';
+
           if (
             !hasCustomMetricsExtractionRules(organization) ||
+            !isSpanBasedMetric ||
             isCustomMetric({mri: metricsQuery.mri})
           ) {
             navigateTo(
@@ -163,7 +169,6 @@ export function MetricQueryContextMenu({
               router
             );
           } else {
-            const {name} = parseMRI(metricsQuery.mri) ?? {};
             navigateTo(`/settings/projects/:projectId/metrics/${name}/edit/`, router);
           }
         },
