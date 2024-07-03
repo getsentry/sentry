@@ -33,17 +33,15 @@ class OrganizationMetricsExtractionRulesEndpoint(OrganizationEndpoint):
         if not self.has_feature(organization, request):
             return Response(status=404)
 
-        project_ids = {int(project_id) for project_id in request.GET.getlist("project")}
-        # get_projects validates that the user is allowed to access the requested project_ids
-        projects = self.get_projects(request, organization, project_ids=project_ids)
+        projects = self.get_projects(request, organization)
 
-        if not project_ids or not projects:
+        if not projects:
             return Response(
                 {"detail": "You must supply at least one project to see its metrics"}, status=404
             )
 
         try:
-            configs = SpanAttributeExtractionRuleConfig.objects.filter(project__in=project_ids)
+            configs = SpanAttributeExtractionRuleConfig.objects.filter(project__in=projects)
 
         except Exception as e:
             return Response(status=500, data={"detail": str(e)})
