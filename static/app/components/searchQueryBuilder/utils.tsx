@@ -22,6 +22,8 @@ import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 
 export const INTERFACE_TYPE_LOCALSTORAGE_KEY = 'search-query-builder-interface';
 
+const SHOULD_ESCAPE_REGEX = /[\s"()]/;
+
 function getSearchConfigFromKeys(keys: TagCollection): Partial<SearchConfig> {
   const config = {
     booleanKeys: new Set<string>(),
@@ -158,10 +160,8 @@ export function escapeTagValue(value: string): string {
     return '';
   }
 
-  // Wrap in quotes if there is a space
-  return value.includes(' ') || value.includes('"')
-    ? `"${escapeDoubleQuotes(value)}"`
-    : value;
+  // Wrap in quotes if there is a space or parens
+  return SHOULD_ESCAPE_REGEX.test(value) ? `"${escapeDoubleQuotes(value)}"` : value;
 }
 
 export function unescapeTagValue(value: string): string {
