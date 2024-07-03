@@ -27,7 +27,7 @@ function TimelineSizeBar() {
   const maxScale = durationMs ? Math.ceil(durationMs / 60000) : 10;
 
   return (
-    <ButtonBar>
+    <ButtonBar gap={space(0.5)}>
       <Button
         size="xs"
         title={t('Zoom out')}
@@ -37,7 +37,10 @@ function TimelineSizeBar() {
         aria-label={t('Zoom out')}
         disabled={timelineScale === 1}
       />
-      <span style={{padding: `0 ${space(0.5)}`}}>{timelineScale}×</span>
+      <Numeric>
+        {timelineScale}
+        {'\u00D7'}
+      </Numeric>
       <Button
         size="xs"
         title={t('Zoom in')}
@@ -63,7 +66,9 @@ function TimeAndScrubberGrid({
   return (
     <TimelineScaleContextProvider>
       <Grid id="replay-timeline-player" isCompact={isCompact}>
-        <Time style={{gridArea: 'currentTime'}}>{formatTime(currentTime)}</Time>
+        <Numeric style={{gridArea: 'currentTime', paddingInline: space(1.5)}}>
+          {formatTime(currentTime)}
+        </Numeric>
         <div style={{gridArea: 'timeline'}}>
           <ReplayTimeline />
         </div>
@@ -73,9 +78,9 @@ function TimeAndScrubberGrid({
         <StyledScrubber style={{gridArea: 'scrubber'}} ref={elem} {...mouseTrackingProps}>
           <PlayerScrubber showZoomIndicators={showZoom} />
         </StyledScrubber>
-        <Time style={{gridArea: 'duration'}}>
+        <Numeric style={{gridArea: 'duration', paddingInline: space(1.5)}}>
           {durationMs ? formatTime(durationMs) : '--:--'}
-        </Time>
+        </Numeric>
       </Grid>
     </TimelineScaleContextProvider>
   );
@@ -106,12 +111,11 @@ const StyledScrubber = styled('div')`
   align-items: center;
 `;
 
-const Time = styled('span')`
+const Numeric = styled('span')`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeSmall};
   font-variant-numeric: tabular-nums;
   font-weight: ${p => p.theme.fontWeightBold};
-  padding: 0 ${space(1.5)};
 `;
 
 export default TimeAndScrubberGrid;
