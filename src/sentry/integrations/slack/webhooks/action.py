@@ -29,6 +29,7 @@ from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.requests.action import SlackActionRequest
 from sentry.integrations.slack.requests.base import SlackRequestError
+from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.integrations.types import ExternalProviderEnum
@@ -399,32 +400,49 @@ class SlackActionEndpoint(Endpoint):
             callback_id["rule"] = slack_request.callback_data.get("rule")
         callback_id = orjson.dumps(callback_id).decode()
 
-        slack_client = SlackClient(integration_id=slack_request.integration.id)
-
         # XXX(CEO): the second you make a selection (without hitting Submit) it sends a slightly different request
         modal_payload = self.build_resolve_modal_payload(callback_id)
-        try:
-            payload = {
-                "view": orjson.dumps(modal_payload).decode(),
-                "trigger_id": slack_request.data["trigger_id"],
-            }
-            headers = {"content-type": "application/json; charset=utf-8"}
-            slack_client.post(
-                "/views.open",
-                data=orjson.dumps(payload).decode(),
-                headers=headers,
-            )
-        except ApiError as e:
-            logger.exception(
-                "slack.action.response-error",
-                extra={
-                    "error": str(e),
-                    "organization_id": org.id,
-                    "integration_id": slack_request.integration.id,
+        if not features.has("organizations:slack-sdk-action-view-open", group.project.organization):
+            slack_client = SlackSdkClient(integration_id=slack_request.integration.id)
+            try:
+                slack_client.views_open(
+                    trigger_id=slack_request.data["trigger_id"],
+                    view=modal_payload,
+                )
+            except SlackApiError:
+                logger.exception(
+                    "slack.action.response-error",
+                    extra={
+                        "organization_id": org.id,
+                        "integration_id": slack_request.integration.id,
+                        "trigger_id": slack_request.data["trigger_id"],
+                        "dialog": "resolve",
+                    },
+                )
+        else:
+            slack_client = SlackClient(integration_id=slack_request.integration.id)
+            try:
+                payload = {
+                    "view": orjson.dumps(modal_payload).decode(),
                     "trigger_id": slack_request.data["trigger_id"],
-                    "dialog": "resolve",
-                },
-            )
+                }
+                headers = {"content-type": "application/json; charset=utf-8"}
+                slack_client.post(
+                    "/views.open",
+                    data=orjson.dumps(payload).decode(),
+                    headers=headers,
+                )
+            except ApiError as e:
+                logger.exception(
+                    "slack.action.response-error",
+                    extra={
+                        "error": str(e),
+                        "organization_id": org.id,
+                        "integration_id": slack_request.integration.id,
+                        "trigger_id": slack_request.data["trigger_id"],
+                        "dialog": "resolve",
+                    },
+                )
 
     def open_archive_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:
         org = group.project.organization
@@ -440,30 +458,50 @@ class SlackActionEndpoint(Endpoint):
             callback_id["channel_id"] = slack_request.data["channel"]["id"]
         callback_id = orjson.dumps(callback_id).decode()
 
-        slack_client = SlackClient(integration_id=slack_request.integration.id)
         modal_payload = self.build_archive_modal_payload(callback_id)
-        try:
-            payload = {
-                "view": orjson.dumps(modal_payload).decode(),
-                "trigger_id": slack_request.data["trigger_id"],
-            }
-            headers = {"content-type": "application/json; charset=utf-8"}
-            slack_client.post(
-                "/views.open",
-                data=orjson.dumps(payload).decode(),
-                headers=headers,
-            )
-        except ApiError as e:
-            logger.exception(
-                "slack.action.response-error",
-                extra={
-                    "error": str(e),
-                    "organization_id": org.id,
-                    "integration_id": slack_request.integration.id,
-                    "trigger_id": slack_request.data["trigger_id"],
-                    "dialog": "archive",
-                },
-            )
+        payload = {
+            "view": orjson.dumps(modal_payload).decode(),
+            "trigger_id": slack_request.data["trigger_id"],
+        }
+
+        if not features.has("organizations:slack-sdk-action-view-open", group.project.organization):
+            slack_client = SlackSdkClient(integration_id=slack_request.integration.id)
+            try:
+                slack_client.views_open(
+                    trigger_id=slack_request.data["trigger_id"],
+                    view=modal_payload,
+                )
+            except SlackApiError:
+                logger.exception(
+                    "slack.action.response-error",
+                    extra={
+                        "organization_id": org.id,
+                        "integration_id": slack_request.integration.id,
+                        "trigger_id": slack_request.data["trigger_id"],
+                        "dialog": "archive",
+                    },
+                )
+        else:
+            slack_client = SlackClient(integration_id=slack_request.integration.id)
+
+            try:
+                headers = {"content-type": "application/json; charset=utf-8"}
+                slack_client.post(
+                    "/views.open",
+                    data=orjson.dumps(payload).decode(),
+                    headers=headers,
+                )
+            except ApiError as e:
+                logger.exception(
+                    "slack.action.response-error",
+                    extra={
+                        "error": str(e),
+                        "organization_id": org.id,
+                        "integration_id": slack_request.integration.id,
+                        "trigger_id": slack_request.data["trigger_id"],
+                        "dialog": "archive",
+                    },
+                )
 
     def construct_reply(self, attachment: SlackBody, is_message: bool = False) -> SlackBody:
         # XXX(epurkhiser): Slack is inconsistent about it's expected responses
