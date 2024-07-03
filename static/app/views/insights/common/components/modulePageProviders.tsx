@@ -42,11 +42,7 @@ export function ModulePageProviders({moduleName, pageTitle, children, features}:
   return (
     <PageFiltersContainer>
       <SentryDocumentTitle title={fullPageTitle} orgSlug={organization.slug}>
-        <UpsellPageHook id={sidebarIdMap[moduleName]}>
-          {({disabled, upsellPage}) =>
-            disabled && upsellPage ? upsellPage : defaultBody
-          }
-        </UpsellPageHook>
+        <UpsellPageHook id={sidebarIdMap[moduleName]}>{() => defaultBody}</UpsellPageHook>
       </SentryDocumentTitle>
     </PageFiltersContainer>
   );
