@@ -658,6 +658,7 @@ class MetricsDatasetConfig(DatasetConfig):
                                 "measurements.score.inp",
                                 "measurements.score.cls",
                                 "measurements.score.ttfb",
+                                "measurements.score.total",
                             ],
                             allow_custom_measurements=False,
                         )
@@ -1455,8 +1456,12 @@ class MetricsDatasetConfig(DatasetConfig):
             "measurements.score.inp",
             "measurements.score.cls",
             "measurements.score.ttfb",
+            "measurements.score.total",
         ]:
             raise InvalidSearchQuery("performance_score only supports measurements")
+
+        if column == "measurements.score.total":
+            return self._resolve_total_performance_score_function(args, alias)
 
         weight_metric_id = self.resolve_metric(column.replace("score", "score.weight"))
 
@@ -1717,6 +1722,57 @@ class MetricsDatasetConfig(DatasetConfig):
             [
                 Column("value"),
                 Function("equals", [Column("metric_id"), metric_id]),
+            ],
+            alias,
+        )
+
+    def _resolve_total_performance_score_function(
+        self,
+        _: Mapping[str, str | Column | SelectType | int | float],
+        alias: str,
+    ) -> SelectType:
+        vitals = ["lcp", "fcp", "cls", "ttfb", "inp"]
+        scores = {
+            vital: Function(
+                "multiply",
+                [
+                    constants.WEB_VITALS_PERFORMANCE_SCORE_WEIGHTS[vital],
+                    self._resolve_web_vital_score_function(
+                        {
+                            "column": f"measurements.score.{vital}",
+                            "metric_id": self.resolve_metric(f"measurements.score.{vital}"),
+                        },
+                        None,
+                    ),
+                ],
+            )
+            for vital in vitals
+        }
+
+        # TODO: Is there a way to sum more than 2 values at once?
+        return Function(
+            "plus",
+            [
+                Function(
+                    "plus",
+                    [
+                        Function(
+                            "plus",
+                            [
+                                Function(
+                                    "plus",
+                                    [
+                                        scores["lcp"],
+                                        scores["fcp"],
+                                    ],
+                                ),
+                                scores["cls"],
+                            ],
+                        ),
+                        scores["ttfb"],
+                    ],
+                ),
+                scores["inp"],
             ],
             alias,
         )
