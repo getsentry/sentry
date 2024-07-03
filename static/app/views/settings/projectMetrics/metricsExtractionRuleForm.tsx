@@ -331,6 +331,7 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                   </ConditionsWrapper>
                   <ConditionsButtonBar>
                     <Button
+                      size="sm"
                       onClick={() => onChange([...conditions, createCondition()], {})}
                       icon={<IconAdd />}
                     >
@@ -348,6 +349,7 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
 }
 
 const ConditionsWrapper = styled('div')<{hasDelete: boolean}>`
+  padding: ${space(1)} 0;
   display: grid;
   align-items: center;
   gap: ${space(1)};
@@ -376,7 +378,7 @@ const SearchWrapper = styled('div')<{hasPrefix: boolean}>`
 `;
 
 const ConditionSymbol = styled('div')`
-  background-color: ${p => p.theme.purple200};
+  background-color: ${p => p.theme.purple100};
   color: ${p => p.theme.purple400};
   text-align: center;
   align-content: center;
