@@ -43,7 +43,7 @@ export const ProjectBadgeWrapper = styled('span')`
 
 export function SpanDescriptionRenderer({span}: {span: SpanResult<Field>}) {
   return (
-    <Description>
+    <Description data-test-id="span-description">
       <ProjectBadgeWrapper>
         <ProjectRenderer projectSlug={span.project} hideName />
       </ProjectBadgeWrapper>
@@ -102,7 +102,11 @@ export function ProjectsRenderer({
                   </CollapsedProjects>
                 }
               >
-                <CollapsedBadge size={20} fontSize={10}>
+                <CollapsedBadge
+                  size={20}
+                  fontSize={10}
+                  data-test-id="collapsed-projects-badge"
+                >
                   +{numCollapsedProjects}
                 </CollapsedBadge>
               </Tooltip>
