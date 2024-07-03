@@ -25,7 +25,7 @@ describe('createMRIToVirtualMap', () => {
         projectId: 2,
         aggregates: [],
         tags: [],
-        unit: 'none',
+        unit: 'millisecond',
         conditions: [
           {
             id: 2,
@@ -38,10 +38,10 @@ describe('createMRIToVirtualMap', () => {
     const result = createMRIToVirtualMap(rules);
     expect(result).toEqual(
       new Map([
-        ['mri1', rules[0]],
-        ['mri2', rules[0]],
-        ['mri3', rules[1]],
-        ['mri4', rules[1]],
+        ['c:custom/mri1@none', 'v:custom/span1|1@none'],
+        ['c:custom/mri2@none', 'v:custom/span1|1@none'],
+        ['c:custom/mri3@none', 'v:custom/span2|2@millisecond'],
+        ['c:custom/mri4@none', 'v:custom/span2|2@millisecond'],
       ])
     );
   });
