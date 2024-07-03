@@ -21,7 +21,7 @@ from sentry.db.models import (
 from sentry.db.models.fields.jsonfield import JSONField
 from sentry.db.models.manager.base import BaseManager
 from sentry.integrations.types import ExternalProviders
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.users.services.user import RpcUser
 
 if TYPE_CHECKING:
     from sentry.identity.base import Provider

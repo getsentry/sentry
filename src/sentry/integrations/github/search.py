@@ -10,7 +10,7 @@ from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.integrations.github.integration import GitHubIntegration, build_repository_query
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
 from sentry.models.integrations.integration import Integration
-from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.organizations.services.organization import RpcOrganization
 from sentry.shared_integrations.exceptions import ApiError
 
 

@@ -13,7 +13,7 @@ from sentry.integrations.services.repository.serial import serialize_repository
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.users.services.user.model import RpcUser
 
 
 class DatabaseBackedRepositoryService(RepositoryService):

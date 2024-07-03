@@ -16,13 +16,6 @@ import NoUnresolvedIssues from './noUnresolvedIssues';
 const WaitingForEvents = lazy(() => import('sentry/components/waitingForEvents'));
 const UpdatedEmptyState = lazy(() => import('sentry/components/updatedEmptyState'));
 
-const updatedEmptyStatePlatforms = [
-  'python-django',
-  'node',
-  'javascript-nextjs',
-  'android',
-];
-
 type Props = {
   api: Client;
   groupIds: string[];
@@ -136,6 +129,27 @@ class NoGroupsHandler extends Component<Props, State> {
     const {organization, groupIds} = this.props;
     const project = projects && projects.length > 0 ? projects[0] : undefined;
     const sampleIssueId = groupIds.length > 0 ? groupIds[0] : undefined;
+
+    const updatedEmptyStatePlatforms = [
+      'python-django',
+      'node',
+      'javascript-nextjs',
+      'android',
+      ...(organization.features.includes('issue-stream-empty-state-additional-platforms')
+        ? [
+            'python',
+            'python-fastapi',
+            'python-flask',
+            'javascript',
+            'javascript-react',
+            'javascript-vue',
+            'node-express',
+            'node-nestjs',
+            'go',
+            'ruby',
+          ]
+        : []),
+    ];
 
     const hasUpdatedEmptyState =
       organization.features.includes('issue-stream-empty-state') &&

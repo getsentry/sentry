@@ -31,7 +31,7 @@ if TYPE_CHECKING:
     from sentry.models.organization import Organization
     from sentry.models.project import Project
     from sentry.models.user import User
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.services.user import RpcUser
 
 
 class TeamManager(BaseManager["Team"]):
@@ -199,7 +199,7 @@ class Team(ReplicatedRegionModel):
 
     def handle_async_replication(self, shard_identifier: int) -> None:
         from sentry.hybridcloud.services.replica import control_replica_service
-        from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_team
+        from sentry.organizations.services.organization.serial import serialize_rpc_team
 
         control_replica_service.upsert_replicated_team(team=serialize_rpc_team(self))
 
