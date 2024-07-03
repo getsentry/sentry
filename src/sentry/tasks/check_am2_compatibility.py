@@ -17,7 +17,7 @@ from sentry.models.dashboard_widget import (
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.search.events.builder import MetricsQueryBuilder
+from sentry.search.events.builder.metrics import MetricsQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset

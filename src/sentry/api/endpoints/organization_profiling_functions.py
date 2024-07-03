@@ -17,7 +17,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
-from sentry.search.events.builder import ProfileTopFunctionsTimeseriesQueryBuilder
+from sentry.search.events.builder.profile_functions import ProfileTopFunctionsTimeseriesQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.seer.breakpoints import BreakpointData, BreakpointRequest, detect_breakpoints
 from sentry.snuba import functions

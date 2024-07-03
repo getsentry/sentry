@@ -10,7 +10,7 @@ from snuba_sdk import Column
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import IncompatibleMetricsQuery
-from sentry.search.events.builder import (
+from sentry.search.events.builder.metrics import (
     HistogramMetricQueryBuilder,
     MetricsQueryBuilder,
     TimeseriesMetricQueryBuilder,

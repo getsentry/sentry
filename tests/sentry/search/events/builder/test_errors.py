@@ -6,7 +6,7 @@ from snuba_sdk.column import Column
 from snuba_sdk.conditions import Condition, Op
 from snuba_sdk.function import Function
 
-from sentry.search.events.builder import ErrorsQueryBuilder
+from sentry.search.events.builder.errors import ErrorsQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.errors import PARSER_CONFIG_OVERRIDES

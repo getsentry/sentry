@@ -7,7 +7,8 @@ from snuba_sdk import Column, Function, OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.search.events import builder, constants, fields
+from sentry.search.events import constants, fields
+from sentry.search.events.builder import profile_functions_metrics
 from sentry.search.events.constants import PROJECT_ALIAS, PROJECT_NAME_ALIAS
 from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
@@ -17,7 +18,7 @@ from sentry.search.events.types import SelectType, WhereType
 class ProfileFunctionsMetricsDatasetConfig(DatasetConfig):
     missing_function_error = IncompatibleMetricsQuery
 
-    def __init__(self, builder: builder.ProfileFunctionsMetricsQueryBuilder):
+    def __init__(self, builder: profile_functions_metrics.ProfileFunctionsMetricsQueryBuilder):
         self.builder = builder
 
     def resolve_mri(self, value: str) -> Column:

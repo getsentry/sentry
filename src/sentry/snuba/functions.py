@@ -5,7 +5,7 @@ from typing import Any
 import sentry_sdk
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.events.builder import (
+from sentry.search.events.builder.profile_functions import (
     ProfileFunctionsQueryBuilder,
     ProfileFunctionsTimeseriesQueryBuilder,
     ProfileTopFunctionsTimeseriesQueryBuilder,

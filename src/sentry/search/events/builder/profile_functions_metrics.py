@@ -1,4 +1,4 @@
-from sentry.search.events.builder import (
+from sentry.search.events.builder.metrics import (
     MetricsQueryBuilder,
     TimeseriesMetricQueryBuilder,
     TopMetricsQueryBuilder,

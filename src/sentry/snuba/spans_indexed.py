@@ -5,7 +5,7 @@ from datetime import timedelta
 import sentry_sdk
 
 from sentry.discover.arithmetic import categorize_columns
-from sentry.search.events.builder import (
+from sentry.search.events.builder.spans_indexed import (
     SpansIndexedQueryBuilder,
     TimeseriesSpanIndexedQueryBuilder,
     TopEventsSpanIndexedQueryBuilder,

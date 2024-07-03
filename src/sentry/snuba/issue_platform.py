@@ -6,8 +6,8 @@ import sentry_sdk
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.events.builder import IssuePlatformTimeseriesQueryBuilder
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.builder.issue_platform import IssuePlatformTimeseriesQueryBuilder
 from sentry.search.events.fields import get_json_meta_type
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
