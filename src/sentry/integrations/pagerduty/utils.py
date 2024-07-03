@@ -147,7 +147,6 @@ def send_incident_alert_notification(
     integration_id = action.integration_id
     organization_id = incident.organization_id
 
-    service: PagerDutyServiceDict | None = None
     result = integration_service.organization_context(
         organization_id=organization_id,
         integration_id=integration_id,
@@ -209,8 +208,7 @@ def send_incident_alert_notification(
             "rule.fail.pagerduty_metric_alert",
             extra={
                 "error": str(e),
-                "service_name": service["service_name"],
-                "service_id": service["id"],
+                "service_id": action.target_identifier,
                 "integration_id": integration_id,
             },
         )
