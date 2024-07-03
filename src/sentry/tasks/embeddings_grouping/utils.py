@@ -270,6 +270,7 @@ def get_events_from_nodestore(
     invalid_event_group_ids = []
     bulk_event_ids = set()
     for group_id, event in nodestore_events.items():
+        event._project_cache = project
         if event and event.data and event.data.get("exception"):
             grouping_info = get_grouping_info(None, project=project, event=event)
             stacktrace_string = get_stacktrace_string(grouping_info)
