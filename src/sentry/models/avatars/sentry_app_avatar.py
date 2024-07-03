@@ -8,7 +8,7 @@ from typing import TYPE_CHECKING, ClassVar
 from django.db import models
 
 from sentry.db.models import FlexibleForeignKey, control_silo_model
-from sentry.db.models.manager import BaseManager
+from sentry.db.models.manager.base import BaseManager
 
 from . import ControlAvatarBase
 

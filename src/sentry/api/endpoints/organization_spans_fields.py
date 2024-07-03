@@ -15,7 +15,10 @@ from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
-from sentry.search.events.builder import QueryBuilder, SpansIndexedQueryBuilder
+from sentry.models.project import Project
+from sentry.organizations.services.organization import RpcOrganization
+from sentry.search.events.builder import SpansIndexedQueryBuilder
+from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -28,7 +31,48 @@ class OrganizationSpansFieldsEndpointBase(OrganizationEventsV2EndpointBase):
     ) -> tuple[SnubaParams, dict[str, Any]]:
         # Disables the global views check so that this endpoint is allowed to do
         # cross project queries if requested.
+
+        "We are reverting this decision to allow cross project searches"
+        if features.has(
+            "organizations:performance-trace-explorer-enforce-projects",
+            organization,
+            actor=request.user,
+        ):
+            return super().get_snuba_dataclass(
+                request, organization, check_global_views=check_global_views
+            )
+
         return super().get_snuba_dataclass(request, organization, check_global_views=False)
+
+    def get_projects(  # type: ignore[override]
+        self,
+        request: Request,
+        organization: Organization | RpcOrganization,
+        project_ids: set[int] | None = None,
+        project_slugs: set[str] | None = None,
+        include_all_accessible: bool = True,
+    ) -> list[Project]:
+        "We are reverting this decision to allow cross project searches"
+        if features.has(
+            "organizations:performance-trace-explorer-enforce-projects",
+            organization,
+            actor=request.user,
+        ):
+            return super().get_projects(
+                request,
+                organization,
+                project_ids=project_ids,
+                project_slugs=project_slugs,
+                include_all_accessible=include_all_accessible,
+            )
+
+        return super().get_projects(
+            request,
+            organization,
+            project_ids={-1},
+            project_slugs=None,
+            include_all_accessible=True,
+        )
 
 
 @region_silo_endpoint
@@ -37,6 +81,7 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.PERFORMANCE
+    snuba_methods = ["GET"]
 
     def get(self, request: Request, organization) -> Response:
         if not features.has(
@@ -81,7 +126,8 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
                 # TODO: prepend the list of sentry defined fields here
                 (row["array_join(tags.key)"], TagKey(row["array_join(tags.key)"]))
                 for row in results["data"]
-            ]
+            ],
+            max_limit=max_span_tags,
         )
 
         return self.paginate(
@@ -99,6 +145,7 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.PERFORMANCE
+    snuba_methods = ["GET"]
 
     def get(self, request: Request, organization, key: str) -> Response:
         if not features.has(
@@ -116,20 +163,28 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
 
         sentry_sdk.set_tag("query.tag_key", key)
 
+        max_span_tag_values = options.get("performance.spans-tags-values.max")
+
         executor = SpanFieldValuesAutocompletionExecutor(
             params=cast(ParamsType, params),
             snuba_params=snuba_params,
             key=key,
             query=request.GET.get("query"),
+            max_span_tag_values=max_span_tag_values,
         )
         tag_values = executor.execute()
 
-        paginator = SequencePaginator([(tag_value.value, tag_value) for tag_value in tag_values])
+        paginator = SequencePaginator(
+            [(tag_value.value, tag_value) for tag_value in tag_values],
+            max_limit=max_span_tag_values,
+        )
 
         return self.paginate(
             request=request,
             paginator=paginator,
             on_results=lambda results: serialize(results, request.user),
+            default_per_page=max_span_tag_values,
+            max_per_page=max_span_tag_values,
         )
 
 
@@ -162,12 +217,13 @@ class SpanFieldValuesAutocompletionExecutor:
         snuba_params: SnubaParams,
         key: str,
         query: str | None,
+        max_span_tag_values: int,
     ):
         self.params = params
         self.snuba_params = snuba_params
         self.key = key
         self.query = query
-        self.max_span_tags = options.get("performance.spans-tags-values.max")
+        self.max_span_tag_values = max_span_tag_values
 
     def execute(self) -> list[TagValue]:
         if (
@@ -240,7 +296,7 @@ class SpanFieldValuesAutocompletionExecutor:
 
         return self.get_autocomplete_results(query)
 
-    def get_autocomplete_query_base(self) -> QueryBuilder:
+    def get_autocomplete_query_base(self) -> BaseQueryBuilder:
         with handle_query_errors():
             return SpansIndexedQueryBuilder(
                 Dataset.SpansIndexed,
@@ -248,14 +304,14 @@ class SpanFieldValuesAutocompletionExecutor:
                 snuba_params=self.snuba_params,
                 selected_columns=[self.key, "count()", "min(timestamp)", "max(timestamp)"],
                 orderby="-count()",
-                limit=self.max_span_tags,
+                limit=self.max_span_tag_values,
                 sample_rate=options.get("performance.spans-tags-key.sample-rate"),
                 config=QueryBuilderConfig(
                     transform_alias_to_input_format=True,
                 ),
             )
 
-    def get_autocomplete_results(self, query: QueryBuilder) -> list[TagValue]:
+    def get_autocomplete_results(self, query: BaseQueryBuilder) -> list[TagValue]:
         with handle_query_errors():
             results = query.process_results(query.run_query(Referrer.API_SPANS_TAG_KEYS.value))
 

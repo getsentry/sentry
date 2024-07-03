@@ -5,7 +5,7 @@ from django.dispatch import receiver
 from pydantic import ValidationError
 from sentry_sdk import capture_exception
 
-from sentry.hybridcloud.rpc_services.region_organization_provisioning import (
+from sentry.hybridcloud.services.region_organization_provisioning import (
     region_organization_provisioning_rpc_service,
 )
 from sentry.models.organizationslugreservation import (
@@ -13,7 +13,7 @@ from sentry.models.organizationslugreservation import (
     OrganizationSlugReservationType,
 )
 from sentry.models.outbox import OutboxCategory, outbox_context, process_control_outbox
-from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
+from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.services.organization.model import OrganizationProvisioningOptions
 from sentry.silo.base import SiloMode
 from sentry.types.region import get_local_region
@@ -50,7 +50,7 @@ class OrganizationProvisioningService:
         provisioning_options: OrganizationProvisioningOptions,
         region_name: str,
     ) -> RpcOrganization:
-        from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
+        from sentry.hybridcloud.services.control_organization_provisioning import (
             RpcOrganizationSlugReservation,
             control_organization_provisioning_rpc_service,
         )
@@ -99,7 +99,7 @@ class OrganizationProvisioningService:
     ):
         destination_region_name = self._validate_or_default_region(region_name=region_name)
 
-        from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
+        from sentry.hybridcloud.services.control_organization_provisioning import (
             RpcOrganizationSlugReservation,
             control_organization_provisioning_rpc_service,
         )
@@ -159,7 +159,7 @@ class OrganizationProvisioningService:
         """
         destination_region_name = self._validate_or_default_region(region_name=region_name)
 
-        from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
+        from sentry.hybridcloud.services.control_organization_provisioning import (
             control_organization_provisioning_rpc_service,
         )
 
@@ -201,7 +201,7 @@ def handle_organization_provisioning_outbox_payload(
         )
         return
 
-    org_slug_reservation = org_slug_reservation_qs.first()
+    org_slug_reservation = org_slug_reservation_qs.get()
 
     able_to_provision = region_organization_provisioning_rpc_service.create_organization_in_region(
         organization_id=organization_id,
@@ -257,8 +257,9 @@ def handle_possible_organization_slug_swap(*, region_name: str, org_slug_reserva
         return
 
     org_slug_reservation = org_slug_reservation_qs.first()
+    assert org_slug_reservation is not None
 
-    from sentry.hybridcloud.rpc_services.control_organization_provisioning import (
+    from sentry.hybridcloud.services.control_organization_provisioning import (
         serialize_slug_reservation,
     )
 

@@ -45,7 +45,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
 from sentry.models.team import Team
-from sentry.services.hybrid_cloud.app import app_service
+from sentry.sentry_apps.services.app import app_service
 from sentry.signals import alert_rule_created
 from sentry.snuba.dataset import Dataset
 from sentry.tasks.integrations.slack import find_channel_id_for_alert_rule

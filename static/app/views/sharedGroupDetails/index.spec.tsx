@@ -81,5 +81,6 @@ describe('SharedGroupDetails', function () {
       {router}
     );
     await waitFor(() => expect(screen.getByText('Details')).toBeInTheDocument());
+    await waitFor(() => expect(screen.getByTestId('sgh-timestamp')).toBeInTheDocument());
   });
 });

@@ -56,6 +56,7 @@ export enum SavedSearchType {
   SESSION = 2,
   REPLAY = 3,
   METRIC = 4,
+  SPAN = 5,
 }
 
 export enum IssueCategory {
@@ -64,6 +65,7 @@ export enum IssueCategory {
   CRON = 'cron',
   PROFILE = 'profile',
   REPLAY = 'replay',
+  UPTIME = 'uptime',
 }
 
 export enum IssueType {
@@ -714,6 +716,7 @@ export interface ResolvedStatusDetails {
   };
   inNextRelease?: boolean;
   inRelease?: string;
+  inUpcomingRelease?: boolean;
   repository?: string;
 }
 interface ReprocessingStatusDetails {

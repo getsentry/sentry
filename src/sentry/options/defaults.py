@@ -499,6 +499,26 @@ register("slack.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 # signing-secret is preferred, but need to keep verification-token for apps that use it
 register("slack.verification-token", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 register("slack.signing-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
+# Use Slack SDK in SlackEventEndpoint
+register(
+    "slack.event-endpoint-sdk",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Integration Ids to LA for Using Slack SDK in SlackEventEndpoint
+register(
+    "slack.event-endpoint-sdk-integration-ids",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+
+# Use Slack SDK in `validate_channel_id`
+register("slack-sdk.valid_channel_id", type=Bool, default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register(
+    "slack-sdk.valid_channel_id_la_integration_ids", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
+)
 
 # Codecov Integration
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
@@ -842,6 +862,12 @@ register(
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "seer.similarity-backfill-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "seer.severity-killswitch.enabled",
     default=False,
     type=Bool,
@@ -929,6 +955,13 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "embeddings-grouping.seer.delete-record-batch-size",
+    type=Int,
+    default=100,
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # ## sentry.killswitches
 #
 # The following options are documented in sentry.killswitches in more detail
@@ -1010,23 +1043,6 @@ register("store.background-grouping-sample-rate", default=0.0, flags=FLAG_AUTOMA
 # Minimum number of files in an archive. Archives with fewer files are extracted and have their
 # contents stored as separate release files.
 register("processing.release-archive-min-files", default=10, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Whether to use `zstd` instead of `zlib` for the attachment cache.
-register("attachment-cache.use-zstd", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Whether to use `zstd` instead of `zlib` for encoded grouping enhancers.
-register("enhancers.use-zstd", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Set of projects that will always store `EventAttachment` blobs directly.
-register("eventattachments.store-blobs.projects", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Percentage sample rate for `EventAttachment`s that should use direct blob storage.
-register("eventattachments.store-blobs.sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-# Percentage sample rate for "small" `EventAttachment`s to be stored inline.
-register("eventattachments.store-small-inline", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-# Percentage rollout rate to avoid sending `attachment_chunk`s for small indvidual attachments.
-register("relay.inline-attachments.rollout-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
 
 # All Relay options (statically authenticated Relays can be registered here)
 register("relay.static_auth", default={}, flags=FLAG_NOSTORE)
@@ -1451,13 +1467,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-register(
-    "sentry-metrics.monitor-queue-time",
-    type=Bool,
-    default=False,
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-
 # Performance issue option for *all* performance issues detection
 register("performance.issues.all.problem-detection", default=1.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -1717,7 +1726,7 @@ register(
     type=Float,
     default=1.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
-)  # hours
+)
 register(
     "performance.traces.trace-explorer-max-trace-ids-per-chunk",
     type=Int,
@@ -1731,11 +1740,48 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
+    "performance.traces.trace-explorer-scan-max-block-size-hours",
+    type=Int,
+    default=8,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.traces.trace-explorer-scan-max-batches",
+    type=Int,
+    default=7,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.traces.trace-explorer-scan-max-execution-seconds",
+    type=Int,
+    default=30,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "performance.traces.trace-explorer-scan-max-parallel-queries",
+    type=Int,
+    default=3,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
     "performance.traces.span_query_minimum_spans",
     type=Int,
     default=10000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "performance.traces.check_span_extraction_date",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    # the timestamp that spans extraction was enabled for this environment
+    "performance.traces.spans_extraction_date",
+    type=Int,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 register(
     "performance.spans-tags-key.sample-rate",
     type=Float,
@@ -1760,6 +1806,20 @@ register(
     default=1000,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+# In Single Tenant with 100% DS, we may need to reverse the UI change made by dynamic-sampling
+# if metrics extraction isn't ready.
+register("performance.hide-metrics-ui", type=Bool, default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
+# Used for enabling flags in ST. Should be removed once Flagpole works in all STs.
+register(
+    "performance.use_metrics.orgs_allowlist",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
+# Used for enabling flags in ST. Should be removed once Flagpole works in all STs.
+register("performance.use_metrics.enabled", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Dynamic Sampling system-wide options
 # Size of the sliding window used for dynamic sampling. It is defaulted to 24 hours.
@@ -1800,13 +1860,15 @@ register("flagpole_features", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("flagpole.rollout_phase", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("flagpole.flagpole_only_features", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("flagpole.feature_compare_list", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE)
-
+register("flagpole.debounce_reporting_seconds", default=0, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Retry controls
 register("hybridcloud.regionsiloclient.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybridcloud.rpc.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
 register("hybridcloud.integrationproxy.retries", default=5, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
+register("hybridcloud.endpoint_flag_logging", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("hybridcloud.rpc.method_retry_overrides", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
+register("hybridcloud.rpc.method_timeout_overrides", default={}, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Webhook processing controls
 register(
     "hybridcloud.webhookpayload.worker_threads",
@@ -1969,6 +2031,8 @@ register(
     default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
+
+register("metric_extraction.max_span_attribute_specs", default=100, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 register(
     "delightful_metrics.minimetrics_sample_rate",
@@ -2542,10 +2606,59 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+# max number of profile chunks to use for computing
+# the merged profile.
+register(
+    "profiling.continuous-profiling.chunks-set.size",
+    type=Int,
+    default=50,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # Enable orjson in the occurrence_consumer.process_[message|batch]
 register(
     "issues.occurrence_consumer.use_orjson",
     type=Bool,
     default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+# Controls the rate of using the sentry api shared secret for communicating to sentry.
+register(
+    "seer.api.use-shared-secret",
+    default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "similarity.backfill_nodestore_use_multithread",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "similarity.backfill_nodestore_chunk_size",
+    default=5,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "similarity.backfill_nodestore_threads",
+    default=6,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "similarity.backfill_snuba_concurrent_requests",
+    default=20,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "similarity.backfill_seer_chunk_size",
+    default=30,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "similarity.backfill_seer_threads",
+    default=1,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )

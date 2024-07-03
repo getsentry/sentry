@@ -11,8 +11,8 @@ from sentry.models.integrations.sentry_app_installation import prepare_ui_compon
 from sentry.models.rule import NeglectedRule, Rule, RuleActivity, RuleActivityType
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.models.rulesnooze import RuleSnooze
-from sentry.services.hybrid_cloud.app.model import RpcSentryAppComponentContext
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
+from sentry.users.services.user.service import user_service
 
 
 def generate_rule_label(project, rule, data):
@@ -81,7 +81,7 @@ class RuleSerializer(Serializer):
         self.project_slug = project_slug
 
     def get_attrs(self, item_list, user, **kwargs):
-        from sentry.services.hybrid_cloud.app import app_service
+        from sentry.sentry_apps.services.app import app_service
 
         prefetch_related_objects(item_list, "project")
 

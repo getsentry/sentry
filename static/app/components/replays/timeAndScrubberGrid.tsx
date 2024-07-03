@@ -7,10 +7,10 @@ import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {formatTime} from 'sentry/components/replays/utils';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
 
 type TimeAndScrubberGridProps = {
   isCompact?: boolean;
@@ -61,7 +61,7 @@ function TimeAndScrubberGrid({
 
   return (
     <Grid id="replay-timeline-player" isCompact={isCompact}>
-      <Time style={{gridArea: 'currentTime'}}>{formatTime(currentTime)}</Time>
+      <Time style={{gridArea: 'currentTime'}}>{formatReplayDuration(currentTime)}</Time>
       <div style={{gridArea: 'timeline'}}>
         <ReplayTimeline />
       </div>
@@ -72,7 +72,7 @@ function TimeAndScrubberGrid({
         <PlayerScrubber showZoomIndicators={showZoom} />
       </StyledScrubber>
       <Time style={{gridArea: 'duration'}}>
-        {durationMs ? formatTime(durationMs) : '--:--'}
+        {durationMs ? formatReplayDuration(durationMs) : '--:--'}
       </Time>
     </Grid>
   );

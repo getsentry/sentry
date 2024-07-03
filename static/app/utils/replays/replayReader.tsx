@@ -1,6 +1,4 @@
 import * as Sentry from '@sentry/react';
-import type {incrementalSnapshotEvent} from '@sentry-internal/rrweb';
-import {IncrementalSource} from '@sentry-internal/rrweb';
 import memoize from 'lodash/memoize';
 import {type Duration, duration} from 'moment';
 
@@ -25,6 +23,7 @@ import type {
   ClipWindow,
   ErrorFrame,
   fullSnapshotEvent,
+  incrementalSnapshotEvent,
   MemoryFrame,
   OptionFrame,
   RecordingFrame,
@@ -36,10 +35,13 @@ import type {
 import {
   BreadcrumbCategories,
   EventType,
+  IncrementalSource,
+  isBackgroundFrame,
   isDeadClick,
   isDeadRageClick,
-  isLCPFrame,
+  isForegroundFrame,
   isPaintFrame,
+  isWebVitalFrame,
 } from 'sentry/utils/replays/types';
 import type {ReplayError, ReplayRecord} from 'sentry/views/replays/types';
 
@@ -69,6 +71,11 @@ interface ReplayReaderParams {
    * If provided, the replay will be clipped to this window.
    */
   clipWindow?: ClipWindow;
+
+  /**
+   * The org's feature flags
+   */
+  featureFlags?: string[];
 }
 
 type RequiredNotNull<T> = {
@@ -134,13 +141,25 @@ function removeDuplicateNavCrumbs(
 }
 
 export default class ReplayReader {
-  static factory({attachments, errors, replayRecord, clipWindow}: ReplayReaderParams) {
+  static factory({
+    attachments,
+    errors,
+    replayRecord,
+    clipWindow,
+    featureFlags,
+  }: ReplayReaderParams) {
     if (!attachments || !replayRecord || !errors) {
       return null;
     }
 
     try {
-      return new ReplayReader({attachments, errors, replayRecord, clipWindow});
+      return new ReplayReader({
+        attachments,
+        errors,
+        replayRecord,
+        featureFlags,
+        clipWindow,
+      });
     } catch (err) {
       Sentry.captureException(err);
 
@@ -151,6 +170,7 @@ export default class ReplayReader {
       return new ReplayReader({
         attachments: [],
         errors: [],
+        featureFlags,
         replayRecord,
         clipWindow,
       });
@@ -160,6 +180,7 @@ export default class ReplayReader {
   private constructor({
     attachments,
     errors,
+    featureFlags,
     replayRecord,
     clipWindow,
   }: RequiredNotNull<ReplayReaderParams>) {
@@ -205,6 +226,7 @@ export default class ReplayReader {
 
     // Hydrate the data we were given
     this._replayRecord = replayRecord;
+    this._featureFlags = featureFlags;
     // Errors don't need to be sorted here, they will be merged with breadcrumbs
     // and spans in the getter and then sorted together.
     const {errorFrames, feedbackFrames} = hydrateErrors(replayRecord, errors);
@@ -228,7 +250,7 @@ export default class ReplayReader {
     this._optionFrame = optionFrame;
 
     // Insert extra records to satisfy minimum requirements for the UI
-    this._sortedBreadcrumbFrames.push(replayInitBreadcrumb(replayRecord));
+    this._sortedBreadcrumbFrames.unshift(replayInitBreadcrumb(replayRecord));
     this._sortedRRWebEvents.unshift(recordingStartFrame(replayRecord));
     this._sortedRRWebEvents.push(recordingEndFrame(replayRecord));
 
@@ -244,6 +266,7 @@ export default class ReplayReader {
   private _cacheKey: string;
   private _duration: Duration = duration(0);
   private _errors: ErrorFrame[] = [];
+  private _featureFlags: string[] | undefined = [];
   private _optionFrame: undefined | OptionFrame;
   private _replayRecord: ReplayRecord;
   private _sortedBreadcrumbFrames: BreadcrumbFrame[] = [];
@@ -404,6 +427,8 @@ export default class ReplayReader {
 
   getRRWebFrames = () => this._sortedRRWebEvents;
 
+  getBreadcrumbFrames = () => this._sortedBreadcrumbFrames;
+
   getRRWebMutations = () =>
     this._sortedRRWebEvents.filter(
       event =>
@@ -469,6 +494,7 @@ export default class ReplayReader {
     this._trimFramesToClipWindow(
       [
         ...this.getPerfFrames(),
+        ...this.getWebVitalFrames(),
         ...this._sortedBreadcrumbFrames.filter(frame =>
           [
             'replay.hydrate-error',
@@ -506,7 +532,18 @@ export default class ReplayReader {
     return [...uniqueCrumbs, ...spans].sort(sortFrames);
   });
 
-  getLPCFrames = memoize(() => this._sortedSpanFrames.filter(isLCPFrame));
+  getWebVitalFrames = memoize(() => {
+    if (this._featureFlags?.includes('session-replay-web-vitals')) {
+      return this._sortedSpanFrames.filter(isWebVitalFrame);
+    }
+    return [];
+  });
+
+  getAppFrames = memoize(() => {
+    return this._sortedBreadcrumbFrames.filter(
+      frame => isBackgroundFrame(frame) || isForegroundFrame(frame)
+    );
+  });
 
   getVideoEvents = () => this._videoEvents;
 

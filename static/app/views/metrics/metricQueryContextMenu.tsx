@@ -27,7 +27,12 @@ import {
   getWidgetAsQueryParams,
   getWidgetQuery,
 } from 'sentry/utils/metrics/dashboard';
-import {hasCustomMetrics, hasMetricAlertFeature} from 'sentry/utils/metrics/features';
+import {
+  hasCustomMetrics,
+  hasCustomMetricsExtractionRules,
+  hasMetricAlertFeature,
+} from 'sentry/utils/metrics/features';
+import {parseMRI} from 'sentry/utils/metrics/mri';
 import {
   isMetricsQueryWidget,
   type MetricDisplayType,
@@ -65,6 +70,10 @@ export function MetricQueryContextMenu({
     displayType
   );
 
+  const parsedMRI = useMemo(() => {
+    return parseMRI(metricsQuery.mri);
+  }, [metricsQuery.mri]);
+
   // At least one query must remain
   const canDelete = widgets.filter(isMetricsQueryWidget).length > 1;
   const hasDashboardFeature = organization.features.includes('dashboards-edit');
@@ -87,7 +96,8 @@ export function MetricQueryContextMenu({
         leadingItems: [<IconSiren key="icon" />],
         key: 'add-alert',
         label: <CreateMetricAlertFeature>{t('Create Alert')}</CreateMetricAlertFeature>,
-        disabled: !createAlert || !hasMetricAlertFeature(organization),
+        disabled:
+          !createAlert || !hasMetricAlertFeature(organization) || parsedMRI.type === 'v',
         onAction: () => {
           trackAnalytics('ddm.create-alert', {
             organization,
@@ -122,7 +132,8 @@ export function MetricQueryContextMenu({
             <span>{t('Add to Dashboard')}</span>
           </Feature>
         ),
-        disabled: !createDashboardWidget || !hasDashboardFeature,
+        disabled:
+          !createDashboardWidget || !hasDashboardFeature || parsedMRI.type === 'v',
         onAction: () => {
           if (!organization.features.includes('dashboards-edit')) {
             return;
@@ -138,19 +149,32 @@ export function MetricQueryContextMenu({
       {
         leadingItems: [<IconSettings key="icon" />],
         key: 'settings',
-        label: t('Metric Settings'),
         disabled: !isCustomMetric({mri: metricsQuery.mri}),
+        label: t('Metric Settings'),
         onAction: () => {
           trackAnalytics('ddm.widget.settings', {
             organization,
           });
           Sentry.metrics.increment('ddm.widget.settings');
-          navigateTo(
-            `/settings/projects/:projectId/metrics/${encodeURIComponent(
-              metricsQuery.mri
-            )}`,
-            router
-          );
+
+          const {name, type} = parseMRI(metricsQuery.mri) ?? {};
+
+          const isVirtualMetric = type === 'v';
+
+          if (
+            !hasCustomMetricsExtractionRules(organization) ||
+            !isVirtualMetric ||
+            isCustomMetric({mri: metricsQuery.mri})
+          ) {
+            navigateTo(
+              `/settings/projects/:projectId/metrics/${encodeURIComponent(
+                metricsQuery.mri
+              )}`,
+              router
+            );
+          } else {
+            navigateTo(`/settings/projects/:projectId/metrics/${name}/edit/`, router);
+          }
         },
       },
       {
@@ -167,6 +191,7 @@ export function MetricQueryContextMenu({
     [
       createAlert,
       organization,
+      parsedMRI.type,
       createDashboardWidget,
       hasDashboardFeature,
       metricsQuery.mri,
@@ -199,7 +224,7 @@ export function MetricQueryContextMenu({
 export function getCreateAlert(organization: Organization, metricsQuery: MetricsQuery) {
   if (
     !metricsQuery.mri ||
-    !metricsQuery.op ||
+    !metricsQuery.aggregation ||
     isCustomMeasurement(metricsQuery) ||
     !organization.access.includes('alerts:write')
   ) {
@@ -223,7 +248,11 @@ export function useCreateDashboardWidget(
   const {selection} = usePageFilters();
 
   return useMemo(() => {
-    if (!metricsQuery.mri || !metricsQuery.op || isCustomMeasurement(metricsQuery)) {
+    if (
+      !metricsQuery.mri ||
+      !metricsQuery.aggregation ||
+      isCustomMeasurement(metricsQuery)
+    ) {
       return undefined;
     }
 

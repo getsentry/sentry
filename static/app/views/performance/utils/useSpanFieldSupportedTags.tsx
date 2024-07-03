@@ -1,13 +1,24 @@
 import {getHasTag} from 'sentry/components/events/searchBar';
 import type {PageFilters, TagCollection} from 'sentry/types';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {type ApiQueryKey, useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {SpanIndexedField} from 'sentry/views/starfish/types';
+import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
 
-const getSpanFieldSupportedTags = excludedTags => {
+const DATASET_TO_FIELDS = {
+  [DiscoverDatasets.SPANS_INDEXED]: SpanIndexedField,
+  [DiscoverDatasets.SPANS_METRICS]: SpanMetricsField,
+};
+
+const getSpanFieldSupportedTags = (
+  excludedTags,
+  dataset: DiscoverDatasets.SPANS_INDEXED | DiscoverDatasets.SPANS_METRICS
+) => {
+  const fields = DATASET_TO_FIELDS[dataset];
+
   const tags: TagCollection = Object.fromEntries(
-    Object.values(SpanIndexedField)
+    Object.values(fields)
       .filter(v => !excludedTags.includes(v))
       .map(v => [v, {key: v, name: v}])
   );
@@ -36,6 +47,16 @@ const getDynamicSpanFieldsEndpoint = (
   },
 ];
 
+export function useSpanMetricsFieldSupportedTags(options?: {excludedTags?: string[]}) {
+  const {excludedTags = []} = options || {};
+
+  // we do not yet support span field search by SPAN_AI_PIPELINE_GROUP
+  return getSpanFieldSupportedTags(
+    [SpanIndexedField.SPAN_AI_PIPELINE_GROUP, ...excludedTags],
+    DiscoverDatasets.SPANS_METRICS
+  );
+}
+
 export function useSpanFieldSupportedTags(options?: {
   excludedTags?: string[];
   projects?: PageFilters['projects'];
@@ -44,10 +65,10 @@ export function useSpanFieldSupportedTags(options?: {
   const {selection} = usePageFilters();
   const organization = useOrganization();
   // we do not yet support span field search by SPAN_AI_PIPELINE_GROUP
-  const staticTags = getSpanFieldSupportedTags([
-    SpanIndexedField.SPAN_AI_PIPELINE_GROUP,
-    ...excludedTags,
-  ]);
+  const staticTags = getSpanFieldSupportedTags(
+    [SpanIndexedField.SPAN_AI_PIPELINE_GROUP, ...excludedTags],
+    DiscoverDatasets.SPANS_INDEXED
+  );
 
   const dynamicTagQuery = useApiQuery<SpanFieldsResponse>(
     getDynamicSpanFieldsEndpoint(

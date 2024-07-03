@@ -27,6 +27,7 @@ from sentry.api.serializers.models.organization import (
     BaseOrganizationSerializer,
     TrustedRelaySerializer,
 )
+from sentry.auth.services.auth import auth_service
 from sentry.auth.staff import is_active_staff
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
@@ -36,6 +37,7 @@ from sentry.constants import (
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
+    EXTRAPOLATE_METRICS_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
@@ -52,6 +54,7 @@ from sentry.constants import (
     SENSITIVE_FIELDS_DEFAULT,
 )
 from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
+from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
     STORE_CRASH_REPORTS_DEFAULT,
@@ -63,19 +66,17 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.useremail import UserEmail
-from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
-from sentry.services.hybrid_cloud.auth import auth_service
-from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.organization.model import (
+from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcOrganizationDeleteResponse,
     RpcOrganizationDeleteState,
 )
-from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.organization.provisioning import (
     OrganizationSlugCollisionException,
     organization_provisioning_service,
 )
+from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.audit import create_audit_entry
 
 ERR_DEFAULT_ORG = "You cannot remove the default organization."
@@ -204,6 +205,7 @@ ORG_OPTIONS = (
         bool,
         METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
     ),
+    ("extrapolateMetrics", "sentry:extrapolate_metrics", bool, EXTRAPOLATE_METRICS_DEFAULT),
 )
 
 DELETION_STATUSES = frozenset(
@@ -262,6 +264,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
+    extrapolateMetrics = serializers.BooleanField(required=False)
 
     @cached_property
     def _has_legacy_rate_limits(self):

@@ -1,48 +1,44 @@
-from .discover import (  # NOQA
-    BaseQueryBuilder,
+from .discover import (
     HistogramQueryBuilder,
-    QueryBuilder,
     TimeseriesQueryBuilder,
     TopEventsQueryBuilder,
     UnresolvedQuery,
 )
-from .errors import ErrorsQueryBuilder  # NOQA
-from .issue_platform import IssuePlatformTimeseriesQueryBuilder  # NOQA
-from .metrics import (  # NOQA
+from .errors import ErrorsQueryBuilder
+from .issue_platform import IssuePlatformTimeseriesQueryBuilder
+from .metrics import (
     AlertMetricsQueryBuilder,
     HistogramMetricQueryBuilder,
     MetricsQueryBuilder,
     TimeseriesMetricQueryBuilder,
     TopMetricsQueryBuilder,
 )
-from .metrics_summaries import MetricsSummariesQueryBuilder  # NOQA
-from .profile_functions import (  # NOQA
+from .metrics_summaries import MetricsSummariesQueryBuilder
+from .profile_functions import (
     ProfileFunctionsQueryBuilder,
     ProfileFunctionsTimeseriesQueryBuilder,
     ProfileTopFunctionsTimeseriesQueryBuilder,
 )
-from .profile_functions_metrics import (  # NOQA
+from .profile_functions_metrics import (
     ProfileFunctionsMetricsQueryBuilder,
     TimeseriesProfileFunctionsMetricsQueryBuilder,
     TopProfileFunctionsMetricsQueryBuilder,
 )
-from .profiles import ProfilesQueryBuilder, ProfilesTimeseriesQueryBuilder  # NOQA
-from .sessions import SessionsV2QueryBuilder, TimeseriesSessionsV2QueryBuilder  # NOQA
-from .spans_indexed import (  # NOQA
+from .profiles import ProfilesQueryBuilder, ProfilesTimeseriesQueryBuilder
+from .sessions import SessionsV2QueryBuilder, TimeseriesSessionsV2QueryBuilder
+from .spans_indexed import (
     SpansIndexedQueryBuilder,
     TimeseriesSpanIndexedQueryBuilder,
     TopEventsSpanIndexedQueryBuilder,
 )
-from .spans_metrics import (  # NOQA
+from .spans_metrics import (
     SpansMetricsQueryBuilder,
     TimeseriesSpansMetricsQueryBuilder,
     TopSpansMetricsQueryBuilder,
 )
 
 __all__ = [
-    "BaseQueryBuilder",
     "HistogramQueryBuilder",
-    "QueryBuilder",
     "TimeseriesQueryBuilder",
     "IssuePlatformTimeseriesQueryBuilder",
     "TopEventsQueryBuilder",

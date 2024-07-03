@@ -17,16 +17,16 @@ from rest_framework.request import Request
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization import organization_service
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
-from sentry.services.hybrid_cloud.organization import organization_service
 
 logger = logging.getLogger("sentry.webhooks")
 

@@ -27,8 +27,8 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.team import Team, TeamStatus
 from sentry.roles import organization_roles, team_roles
 from sentry.search.utils import tokenize_query
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import member_invited
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 from . import get_allowed_org_roles, save_team_assignments

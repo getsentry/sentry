@@ -6,10 +6,10 @@ from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, sane_repr
-from sentry.db.models.manager import BaseManager
+from sentry.db.models.manager.base import BaseManager
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.services.user import RpcUser
 
 
 class CommitAuthorManager(BaseManager["CommitAuthor"]):
@@ -49,7 +49,7 @@ class CommitAuthor(Model):
 
     def find_users(self) -> list[RpcUser]:
         from sentry.models.organizationmember import OrganizationMember
-        from sentry.services.hybrid_cloud.user.service import user_service
+        from sentry.users.services.user.service import user_service
 
         if self.users is not None:
             return self.users

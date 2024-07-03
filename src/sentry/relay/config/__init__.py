@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 from typing import Any, Literal, NotRequired, TypedDict
 
 import sentry_sdk
-from sentry_sdk import Hub, capture_exception
+from sentry_sdk import capture_exception
 
 from sentry import features, killswitches, options, quotas, utils
 from sentry.constants import HEALTH_CHECK_GLOBS, ObjectStatus
@@ -112,7 +112,7 @@ def get_exposed_features(project: Project) -> Sequence[str]:
 
 
 def get_public_key_configs(
-    project: Project, full_config: bool, project_keys: Iterable[ProjectKey] | None = None
+    project_keys: Iterable[ProjectKey] | None = None,
 ) -> list[Mapping[str, Any]]:
     public_keys: list[Mapping[str, Any]] = []
     for project_key in project_keys or ():
@@ -329,28 +329,25 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
 
 
 def get_project_config(
-    project: Project, full_config: bool = True, project_keys: Iterable[ProjectKey] | None = None
+    project: Project, project_keys: Iterable[ProjectKey] | None = None
 ) -> ProjectConfig:
     """Constructs the ProjectConfig information.
     :param project: The project to load configuration for. Ensure that
         organization is bound on this object; otherwise it will be loaded from
         the database.
-    :param full_config: True if only the full config is required, False
-        if only the restricted (for external relays) is required
-        (default True, i.e. full configuration)
     :param project_keys: Pre-fetched project keys for performance. However, if
         no project keys are provided it is assumed that the config does not
         need to contain auth information (this is the case when used in
         python's StoreView)
     :return: a ProjectConfig object for the given project
     """
-    with sentry_sdk.push_scope() as scope:
+    with sentry_sdk.isolation_scope() as scope:
         scope.set_tag("project", project.id)
         with (
             sentry_sdk.start_transaction(name="get_project_config"),
             metrics.timer("relay.config.get_project_config.duration"),
         ):
-            return _get_project_config(project, full_config=full_config, project_keys=project_keys)
+            return _get_project_config(project, project_keys=project_keys)
 
 
 def get_dynamic_sampling_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
@@ -425,7 +422,7 @@ def _should_extract_abnormal_mechanism(project: Project) -> bool:
     )
 
 
-def _get_browser_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
+def _get_desktop_browser_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
     return [
         {
             "name": "Chrome",
@@ -681,6 +678,257 @@ def _get_browser_performance_profiles(organization: Organization) -> list[dict[s
     ]
 
 
+def _get_mobile_browser_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
+    return [
+        {
+            "name": "Chrome Mobile",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 1800.0,
+                    "p50": 3000.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 2500.0,
+                    "p50": 4000.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.15,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": False,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 800.0,
+                    "p50": 1800.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Chrome Mobile",
+            },
+        },
+        {
+            "name": "Firefox Mobile",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 1800.0,
+                    "p50": 3000.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 2500.0,
+                    "p50": 4000.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.0,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": False,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 800.0,
+                    "p50": 1800.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Firefox Mobile",
+            },
+        },
+        {
+            "name": "Safari Mobile",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 1800.0,
+                    "p50": 3000.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.0,
+                    "p10": 2500.0,
+                    "p50": 4000.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.0,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": False,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 800.0,
+                    "p50": 1800.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Mobile Safari",
+            },
+        },
+        {
+            "name": "Edge Mobile",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 1800.0,
+                    "p50": 3000.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 2500.0,
+                    "p50": 4000.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.15,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": False,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 800.0,
+                    "p50": 1800.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Edge Mobile",
+            },
+        },
+        {
+            "name": "Opera Mobile",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 1800.0,
+                    "p50": 3000.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 2500.0,
+                    "p50": 4000.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.15,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": False,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 800.0,
+                    "p50": 1800.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Opera Mobile",
+            },
+        },
+        {
+            "name": "Chrome Mobile INP",
+            "scoreComponents": [
+                {
+                    "measurement": "inp",
+                    "weight": 1.0,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "or",
+                "inner": [
+                    {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Chrome Mobile",
+                    },
+                ],
+            },
+        },
+        {
+            "name": "Edge Mobile INP",
+            "scoreComponents": [
+                {
+                    "measurement": "inp",
+                    "weight": 1.0,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Edge Mobile",
+            },
+        },
+        {
+            "name": "Opera Mobile INP",
+            "scoreComponents": [
+                {
+                    "measurement": "inp",
+                    "weight": 1.0,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Opera Mobile",
+            },
+        },
+    ]
+
+
 def _get_mobile_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
     if not features.has(
         "organizations:performance-calculate-mobile-perf-score-relay", organization
@@ -739,14 +987,14 @@ def _get_mobile_performance_profiles(organization: Organization) -> list[dict[st
 
 
 def _get_project_config(
-    project: Project, full_config: bool = True, project_keys: Iterable[ProjectKey] | None = None
+    project: Project, project_keys: Iterable[ProjectKey] | None = None
 ) -> ProjectConfig:
     if project.status != ObjectStatus.ACTIVE:
         return ProjectConfig(project, disabled=True)
 
-    public_keys = get_public_key_configs(project, full_config, project_keys=project_keys)
+    public_keys = get_public_key_configs(project_keys=project_keys)
 
-    with Hub.current.start_span(op="get_public_config"):
+    with sentry_sdk.start_span(op="get_public_config"):
         now = datetime.now(timezone.utc)
         cfg = {
             "disabled": False,
@@ -788,10 +1036,6 @@ def _get_project_config(
     if get_clusterer_meta(ClustererNamespace.TRANSACTIONS, project)["runs"] >= MIN_CLUSTERER_RUNS:
         config["txNameReady"] = True
 
-    if not full_config:
-        # This is all we need for external Relay processors
-        return ProjectConfig(project, **cfg)
-
     config["breakdownsV2"] = project.get_option("sentry:breakdowns")
 
     add_experimental_config(config, "metrics", get_metrics_config, project)
@@ -823,24 +1067,25 @@ def _get_project_config(
     }
 
     performance_score_profiles = [
-        *_get_browser_performance_profiles(project.organization),
+        *_get_desktop_browser_performance_profiles(project.organization),
+        *_get_mobile_browser_performance_profiles(project.organization),
         *_get_mobile_performance_profiles(project.organization),
     ]
     if performance_score_profiles:
         config["performanceScore"] = {"profiles": performance_score_profiles}
 
-    with Hub.current.start_span(op="get_filter_settings"):
+    with sentry_sdk.start_span(op="get_filter_settings"):
         if filter_settings := get_filter_settings(project):
             config["filterSettings"] = filter_settings
-    with Hub.current.start_span(op="get_grouping_config_dict_for_project"):
+    with sentry_sdk.start_span(op="get_grouping_config_dict_for_project"):
         grouping_config = get_grouping_config_dict_for_project(project)
         if grouping_config is not None:
             config["groupingConfig"] = grouping_config
-    with Hub.current.start_span(op="get_event_retention"):
+    with sentry_sdk.start_span(op="get_event_retention"):
         event_retention = quotas.backend.get_event_retention(project.organization)
         if event_retention is not None:
             config["eventRetention"] = event_retention
-    with Hub.current.start_span(op="get_all_quotas"):
+    with sentry_sdk.start_span(op="get_all_quotas"):
         if quotas_config := get_quotas(project, keys=project_keys):
             config["quotas"] = quotas_config
 

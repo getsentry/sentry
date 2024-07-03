@@ -8,11 +8,13 @@ import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';
 import {getInterval} from 'sentry/components/charts/utils';
 import * as Layout from 'sentry/components/layouts/thirds';
+import Link from 'sentry/components/links/link';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import Placeholder from 'sentry/components/placeholder';
 import type {ChangeData} from 'sentry/components/timeRangeSelector';
 import {TimeRangeSelector} from 'sentry/components/timeRangeSelector';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {RuleActionsCategories} from 'sentry/types/alerts';
@@ -28,6 +30,7 @@ import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDe
 import {getAlertRuleActionCategory} from 'sentry/views/alerts/rules/utils';
 import type {Incident} from 'sentry/views/alerts/types';
 import {AlertRuleStatus} from 'sentry/views/alerts/types';
+import {alertDetailsLink} from 'sentry/views/alerts/utils';
 
 import {isCrashFreeAlert} from '../utils/isCrashFreeAlert';
 import {isCustomMetricAlert} from '../utils/isCustomMetricAlert';
@@ -182,16 +185,33 @@ export default function MetricDetailsBody({
                   )}
             </Alert>
           )}
-          <StyledTimeRangeSelector
-            relative={timePeriod.period ?? ''}
-            start={(timePeriod.custom && timePeriod.start) || null}
-            end={(timePeriod.custom && timePeriod.end) || null}
-            onChange={handleTimePeriodChange}
-            relativeOptions={relativeOptions}
-            showAbsolute={false}
-            disallowArbitraryRelativeRanges
-            triggerLabel={relativeOptions[timePeriod.period ?? '']}
-          />
+          <StyledSubHeader>
+            <StyledTimeRangeSelector
+              relative={timePeriod.period ?? ''}
+              start={(timePeriod.custom && timePeriod.start) || null}
+              end={(timePeriod.custom && timePeriod.end) || null}
+              onChange={handleTimePeriodChange}
+              relativeOptions={relativeOptions}
+              showAbsolute={false}
+              disallowArbitraryRelativeRanges
+              triggerLabel={relativeOptions[timePeriod.period ?? '']}
+            />
+            {selectedIncident && (
+              <Tooltip
+                title={`Click to clear filters`}
+                isHoverable
+                containerDisplayMode="inline-flex"
+              >
+                <Link
+                  to={{
+                    pathname: alertDetailsLink(organization, selectedIncident),
+                  }}
+                >
+                  Remove filter on alert #{selectedIncident.identifier}
+                </Link>
+              </Tooltip>
+            )}
+          </StyledSubHeader>
 
           <ErrorMigrationWarning project={project} rule={rule} />
 
@@ -284,6 +304,12 @@ const ChartPanel = styled(Panel)`
   margin-top: ${space(2)};
 `;
 
-const StyledTimeRangeSelector = styled(TimeRangeSelector)`
+const StyledSubHeader = styled('div')`
   margin-bottom: ${space(2)};
+  display: flex;
+  align-items: center;
+`;
+
+const StyledTimeRangeSelector = styled(TimeRangeSelector)`
+  margin-right: ${space(1)};
 `;

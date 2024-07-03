@@ -371,10 +371,10 @@ def buffered_delete_old_primary_hash(
             old_primary_hashes.add(old_primary_hash)
             reprocessing_store.add_hash(project_id, group_id, old_primary_hash)
 
-    with sentry_sdk.configure_scope() as scope:
-        scope.set_tag("project_id", project_id)
-        scope.set_tag("old_group_id", group_id)
-        scope.set_tag("old_primary_hash", old_primary_hash)
+    scope = sentry_sdk.Scope.get_isolation_scope()
+    scope.set_tag("project_id", project_id)
+    scope.set_tag("old_group_id", group_id)
+    scope.set_tag("old_primary_hash", old_primary_hash)
 
     with sentry_sdk.start_span(
         op="sentry.reprocessing2.buffered_delete_old_primary_hash.flush_events"

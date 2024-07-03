@@ -6,6 +6,7 @@ import {Autofix} from 'sentry/components/events/autofix';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import {Resources} from 'sentry/components/events/interfaces/performance/resources';
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import {EntryType, type Event, type Group, type Project} from 'sentry/types';
 import {
@@ -21,17 +22,30 @@ type Props = {
   project: Project;
 };
 
+// Autofix requires the event to have stack trace frames in order to work correctly.
+function hasStacktraceWithFrames(event: Event) {
+  for (const entry of event.entries) {
+    if (entry.type === EntryType.EXCEPTION) {
+      if (entry.data.values?.some(value => value.stacktrace?.frames?.length)) {
+        return true;
+      }
+    }
+
+    if (entry.type === EntryType.THREADS) {
+      if (entry.data.values?.some(thread => thread.stacktrace?.frames?.length)) {
+        return true;
+      }
+    }
+  }
+
+  return false;
+}
+
 // This section provides users with resources and possible solutions on how to resolve an issue
 export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
   const organization = useOrganization();
   const config = getConfigForIssueType(group, project);
-
-  const hasStacktrace = event.entries.some(
-    entry =>
-      entry.type === EntryType.EXCEPTION ||
-      entry.type === EntryType.STACKTRACE ||
-      entry.type === EntryType.THREADS
-  );
+  const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
   // NOTE:  Autofix is for INTERNAL testing only for now.
   const displayAiAutofix =
@@ -39,7 +53,7 @@ export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
     organization.features.includes('issue-details-autofix-ui') &&
     !shouldShowCustomErrorResourceConfig(group, project) &&
     config.autofix &&
-    hasStacktrace;
+    hasStacktraceWithFrames(event);
   const displayAiSuggestedSolution =
     // Skip showing AI suggested solution if the issue has a custom resource
     organization.aiSuggestedSolution &&
@@ -47,7 +61,10 @@ export function ResourcesAndPossibleSolutions({event, project, group}: Props) {
     !shouldShowCustomErrorResourceConfig(group, project) &&
     !displayAiAutofix;
 
-  if (!config.resources && !(displayAiSuggestedSolution || displayAiAutofix)) {
+  if (
+    isSelfHostedErrorsOnly ||
+    (!config.resources && !(displayAiSuggestedSolution || displayAiAutofix))
+  ) {
     return null;
   }
 
