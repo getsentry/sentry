@@ -319,7 +319,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
             method="post",
             **rule,
         )
-        assert response.status_code == 400
+        assert response.status_code == 409
 
     @django_db_all
     @with_feature("organizations:custom-metrics-extraction-rule")

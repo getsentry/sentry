@@ -1,7 +1,7 @@
 import logging
 
 import sentry_sdk
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -116,11 +116,15 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                 )
 
             persisted_config = serialize(
-                configs,
-                request.user,
-                SpanAttributeExtractionRuleConfigSerializer(),
+                configs, request.user, SpanAttributeExtractionRuleConfigSerializer()
             )
             return Response(data=persisted_config, status=200)
+
+        except IntegrityError:
+            return Response(status=409, data={"detail": "Resource already exists."})
+
+        except KeyError as e:
+            return Response(status=400, data={"detail": f"Missing field in input data: {str(e)}"})
 
         except MetricsExtractionRuleValidationError as e:
             logger.warning("Failed to update extraction rule", exc_info=True)
@@ -183,6 +187,9 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
             )
 
             return Response(data=persisted_config, status=200)
+
+        except KeyError as e:
+            return Response(status=400, data={"detail": f"Missing field in input data: {str(e)}"})
 
         except MetricsExtractionRuleValidationError as e:
             logger.warning("Failed to update extraction rule", exc_info=True)
