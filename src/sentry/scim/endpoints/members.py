@@ -43,6 +43,7 @@ from sentry.apidocs.examples.scim_examples import SCIMExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.auth.providers.saml2.activedirectory.apps import ACTIVE_DIRECTORY_PROVIDER_NAME
+from sentry.auth.services.auth import auth_service
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.roles import organization_roles
 from sentry.signals import member_invited
@@ -50,7 +51,6 @@ from sentry.users.services.user.service import user_service
 from sentry.utils import json, metrics
 from sentry.utils.cursors import SCIMCursor
 
-from ...services.hybrid_cloud.auth import auth_service
 from .constants import (
     SCIM_400_INVALID_ORGROLE,
     SCIM_400_INVALID_PATCH,
