@@ -118,7 +118,7 @@ export const CHART_OPTIONS_DATA_TRANSFORM: SelectValue<ChartDataTransform>[] = [
   },
 ];
 
-const enum SeriesTypes {
+export const enum SeriesTypes {
   ACCEPTED = 'Accepted',
   DROPPED = 'Dropped',
   PROJECTED = 'Projected',

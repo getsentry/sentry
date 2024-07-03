@@ -32,7 +32,11 @@ import {
 } from './usageChart/utils';
 import type {UsageSeries, UsageStat} from './types';
 import type {ChartStats, UsageChartProps} from './usageChart';
-import UsageChart, {CHART_OPTIONS_DATA_TRANSFORM, ChartDataTransform} from './usageChart';
+import UsageChart, {
+  CHART_OPTIONS_DATA_TRANSFORM,
+  ChartDataTransform,
+  SeriesTypes,
+} from './usageChart';
 import UsageStatsPerMin from './usageStatsPerMin';
 import {formatUsageWithUnits, getFormatUsageOptions, isDisplayUtc} from './utils';
 
@@ -415,7 +419,7 @@ class UsageStatsOrganization<
             }
 
             chartSubLabels.push({
-              parentLabel: t('Filtered'),
+              parentLabel: SeriesTypes.FILTERED,
               label,
               data: [dataObject],
             });
@@ -445,7 +449,7 @@ class UsageStatsOrganization<
             }
 
             chartSubLabels.push({
-              parentLabel: t('Dropped'),
+              parentLabel: SeriesTypes.DROPPED,
               label,
               data: [dataObject],
             });
