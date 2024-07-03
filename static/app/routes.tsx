@@ -550,6 +550,10 @@ function buildRoutes() {
             () => import('sentry/views/settings/projectMetrics/projectMetricsDetails')
           )}
         />
+        <Route
+          path=":spanAttribute/edit/"
+          component={make(() => import('sentry/views/settings/projectMetrics'))}
+        />
       </Route>
       <Route
         path="replays/"
