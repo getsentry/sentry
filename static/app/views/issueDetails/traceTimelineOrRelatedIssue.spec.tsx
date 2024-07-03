@@ -207,7 +207,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
 
     // Instead of a timeline, we should see the other related issue
     expect(await screen.findByText('Slow DB Query')).toBeInTheDocument(); // The title
-    expect(await screen.findByText('/api/slow')).toBeInTheDocument(); // The subtitle/transaction
+    expect(await screen.findByText('/api/slow/')).toBeInTheDocument(); // The subtitle/transaction
     expect(
       await screen.findByText('One other issue appears in the same trace.')
     ).toBeInTheDocument();
