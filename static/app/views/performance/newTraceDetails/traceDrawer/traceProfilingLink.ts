@@ -1,4 +1,4 @@
-import type {Location,LocationDescriptor} from 'history';
+import type {Location, LocationDescriptor} from 'history';
 
 import type {EventTransaction} from 'sentry/types';
 import {generateContinuousProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
@@ -39,8 +39,7 @@ export function makeTraceContinuousProfilingLink(
 
   let start: Date | null = toDate(value.space[0]);
   let end: Date | null = toDate(value.space[0] + value.space[1]);
-  const profilerId: string | null =
-    transaction.contexts?.profile?.profiler_id ?? null;
+  const profilerId: string | null = transaction.contexts?.profile?.profiler_id ?? null;
 
   // End timestamp is required to generate a link
   if (end === null || profilerId === null) {
