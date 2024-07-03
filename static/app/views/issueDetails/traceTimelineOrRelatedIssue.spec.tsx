@@ -21,10 +21,11 @@ describe('TraceTimeline & TraceRelated Issue', () => {
   const organization = OrganizationFixture({
     features: ['global-views'],
   });
+  const firstEventTimestamp = '2024-01-24T09:09:01+00:00';
   // This creates the ApiException event
   const event = EventFixture({
     // This is used to determine the presence of seconds
-    dateCreated: '2024-01-24T09:09:01+00:00',
+    dateCreated: firstEventTimestamp,
     contexts: {
       trace: {
         // This is used to determine if we should attempt
@@ -39,7 +40,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
   const issuePlatformBody: TraceEventResponse = {
     data: [
       {
-        // In issuePlatform, the message stores the title and the transaction
+        // In issuePlatform, the message contains the title and the transaction
         message: '/api/slow/ Slow DB Query SELECT "sentry_monitorcheckin"."monitor_id"',
         timestamp: '2024-01-24T09:09:03+00:00',
         'issue.id': 1000,
@@ -54,7 +55,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
   };
   const mainError = {
     message: 'This is the message for the issue',
-    timestamp: '2024-01-24T09:09:01+00:00',
+    timestamp: firstEventTimestamp,
     'issue.id': event['issue.id'],
     project: project.slug,
     'project.name': project.name,
