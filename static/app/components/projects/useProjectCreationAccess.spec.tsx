@@ -34,9 +34,8 @@ describe('ProjectCreationAccess', function () {
       allowMemberProjectCreation: false,
     });
 
-    const result = useProjectCreationAccess{{organization: experiment_org})
-    expect(result.current.canCreateProject).toBeFalsy();
-  });
+    const result = useProjectCreationAccessorganization: experiment_org)
+    expect(result.current.canCreateProject).toBeFalsy(););
 
   it('fails for members if org does not have team-roles', function () {
     const no_team_role_org = OrganizationFixture({
