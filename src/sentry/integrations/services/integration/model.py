@@ -14,7 +14,7 @@ from sentry.integrations.base import (
     IntegrationInstallation,
     IntegrationProvider,
 )
-from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.users.services.user.model import RpcUser
 
 
 class RpcIntegration(RpcModel):

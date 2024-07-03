@@ -11,6 +11,7 @@ from django.conf import settings
 from django.test import override_settings
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.response import Response
+from slack_sdk.web import SlackResponse
 
 from sentry import audit_log
 from sentry.api.serializers import serialize
@@ -39,6 +40,7 @@ from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
 )
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -810,6 +812,34 @@ class AlertRuleDetailsPutEndpointTest(AlertRuleDetailsBase):
 class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
     method = "put"
 
+    def mock_conversations_list(self, channels):
+        return patch(
+            "slack_sdk.web.client.WebClient.conversations_list",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/conversations.list",
+                req_args={},
+                data={"ok": True, "channels": channels},
+                headers={},
+                status_code=200,
+            ),
+        )
+
+    def mock_conversations_info(self, channel):
+        return patch(
+            "slack_sdk.web.client.WebClient.conversations_info",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/conversations.info",
+                req_args={"channel": channel},
+                data={"ok": True, "channel": channel},
+                headers={},
+                status_code=200,
+            ),
+        )
+
     def _mock_slack_response(self, url: str, body: dict[str, Any], status: int = 200) -> None:
         responses.add(
             method=responses.GET,
@@ -930,6 +960,30 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
         assert stored_action["inputChannelId"] == str(channelID)
         assert stored_action["targetIdentifier"] == channelName
 
+    @override_options({"slack-sdk.valid_channel_id": True})
+    def test_create_slack_alert_with_name_and_channel_id_sdk(self):
+        """
+        The user specifies the Slack channel and channel ID (which match).
+        """
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        channelName = "my-channel"
+        # Specifying an inputChannelID will cause the validate_channel_id logic to be triggered
+        channelID = 123
+        channel = {"name": channelName}
+        with self.mock_conversations_info(channel):
+            with (
+                assume_test_silo_mode(SiloMode.REGION),
+                override_settings(SILO_MODE=SiloMode.REGION),
+            ):
+                resp = self._organization_alert_rule_api_call(channelName, channelID)
+
+            stored_action = resp.data["triggers"][0]["actions"][0]
+            assert stored_action["inputChannelId"] == str(channelID)
+            assert stored_action["targetIdentifier"] == channelName
+
     @responses.activate
     def test_create_slack_alert_with_mismatch_name_and_channel_id(self):
         """
@@ -960,6 +1014,37 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
                 )
             ]
         }
+
+    @override_options({"slack-sdk.valid_channel_id": True})
+    def test_create_slack_alert_with_mismatch_name_and_channel_id_sdk(self):
+        """
+        The user specifies the Slack channel and channel ID but they do not match.
+        """
+        self.create_member(
+            user=self.user, organization=self.organization, role="owner", teams=[self.team]
+        )
+        self.login_as(self.user)
+        otherChannel = "some-other-channel"
+        channelName = "my-channel"
+        # Specifying an inputChannelID will cause the validate_channel_id logic to be triggered
+        channelID = 123
+        channel = {"name": otherChannel}
+        with self.mock_conversations_info(channel):
+            with (
+                assume_test_silo_mode(SiloMode.REGION),
+                override_settings(SILO_MODE=SiloMode.REGION),
+            ):
+                resp = self._organization_alert_rule_api_call(channelName, channelID)
+
+            assert resp.status_code == 400
+            assert resp.data == {
+                "nonFieldErrors": [
+                    ErrorDetail(
+                        string=f"Received channel name {otherChannel} does not match inputted channel name {channelName}.",
+                        code="invalid",
+                    )
+                ]
+            }
 
     # An incorrect channelID will raise an ApiError in the Slack client
     @patch.object(SlackClient, "get", side_effect=ApiError(text="channel_not_found"))

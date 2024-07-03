@@ -550,6 +550,10 @@ function buildRoutes() {
             () => import('sentry/views/settings/projectMetrics/projectMetricsDetails')
           )}
         />
+        <Route
+          path=":spanAttribute/edit/"
+          component={make(() => import('sentry/views/settings/projectMetrics'))}
+        />
       </Route>
       <Route
         path="replays/"
@@ -1982,6 +1986,19 @@ function buildRoutes() {
         <Route
           path="flamegraph/"
           component={make(() => import('sentry/views/profiling/profileFlamechart'))}
+        />
+      </Route>
+      <Route
+        path="profile/:projectId/"
+        component={make(
+          () => import('sentry/views/profiling/continuousProfilesProvider')
+        )}
+      >
+        <Route
+          path="flamegraph/"
+          component={make(
+            () => import('sentry/views/profiling/continuousProfileFlamechart')
+          )}
         />
       </Route>
     </Route>

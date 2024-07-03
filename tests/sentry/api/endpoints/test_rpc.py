@@ -8,7 +8,7 @@ from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.hybridcloud.rpc.service import generate_request_signature
-from sentry.services.hybrid_cloud.organization import RpcUserOrganizationContext
+from sentry.organizations.services.organization import RpcUserOrganizationContext
 from sentry.testutils.cases import APITestCase
 
 

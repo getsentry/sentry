@@ -554,6 +554,27 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
 
         assert response.status_code == 400
 
+        rule = {
+            "metricsExtractionRules": [
+                {
+                    "spanAttribute": "my_span_attribute",
+                    "aggregates": ["count"],
+                    "unit": "none",
+                    "tags": ["tag1", "tag2", "tag3"],
+                    "conditions": [{"value": "new:condition"}],
+                }
+            ]
+        }
+
+        response = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            method="put",
+            **rule,
+        )
+
+        assert response.status_code == 200
+
         response = self.get_response(
             self.organization.slug,
             self.project.slug,
@@ -561,7 +582,9 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
             **rule,
         )
         assert response.status_code == 200
-        assert len(response.data[0]["conditions"]) == 2
+        assert len(response.data[0]["conditions"]) == 1
+        assert response.data[0]["conditions"][0]["value"] == "new:condition"
+        assert response.data[0]["conditions"][0]["id"] is not None
 
     @django_db_all
     @with_feature("organizations:custom-metrics-extraction-rule")

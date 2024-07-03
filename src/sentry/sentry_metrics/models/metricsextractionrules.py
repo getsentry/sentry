@@ -29,6 +29,9 @@ class SpanAttributeExtractionRuleCondition(DefaultFieldsModel):
     class Meta:
         app_label = "sentry"
         db_table = "sentry_spanattributeextractionrulecondition"
+        # The length of the entries in the auth_permission table were too long with the auto-generated verbose name,
+        # therefore we override it with a shorter string despite being less legible.
+        verbose_name = "SpanAttrCond"
 
     def generate_mris(self):
         mris = []
@@ -54,6 +57,9 @@ class SpanAttributeExtractionRuleConfig(DefaultFieldsModel):
         unique_together = ("project", "span_attribute")
         app_label = "sentry"
         db_table = "sentry_spanattributeextractionruleconfig"
+        # The length of the entries in the auth_permission table were too long with the auto-generated verbose name,
+        # therefore we override it with a shorter string despite being less legible.
+        verbose_name = "SpanAttrConfig"
 
     @classmethod
     def from_dict(

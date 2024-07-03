@@ -31,7 +31,7 @@ from sentry.utils.rust import RustInfoIntegration
 # Can't import models in utils because utils should be the bottom of the food chain
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
-    from sentry.services.hybrid_cloud.organization import RpcOrganization
+    from sentry.organizations.services.organization import RpcOrganization
 
 
 logger = logging.getLogger(__name__)

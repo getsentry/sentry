@@ -32,6 +32,7 @@ import {
   hasCustomMetricsExtractionRules,
   hasMetricAlertFeature,
 } from 'sentry/utils/metrics/features';
+import {parseMRI} from 'sentry/utils/metrics/mri';
 import {
   isMetricsQueryWidget,
   type MetricDisplayType,
@@ -151,8 +152,14 @@ export function MetricQueryContextMenu({
             organization,
           });
           Sentry.metrics.increment('ddm.widget.settings');
+
+          const {name, type} = parseMRI(metricsQuery.mri) ?? {};
+
+          const isVirtualMetric = type === 'v';
+
           if (
             !hasCustomMetricsExtractionRules(organization) ||
+            !isVirtualMetric ||
             isCustomMetric({mri: metricsQuery.mri})
           ) {
             navigateTo(
@@ -162,8 +169,7 @@ export function MetricQueryContextMenu({
               router
             );
           } else {
-            // TODO(telemetry-experience): As soon as the span-based-metrics data has an unique identifier, we should use it here
-            navigateTo(`/settings/projects/:projectId/metrics/`, router);
+            navigateTo(`/settings/projects/:projectId/metrics/${name}/edit/`, router);
           }
         },
       },
