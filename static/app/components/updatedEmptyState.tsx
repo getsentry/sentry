@@ -203,7 +203,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
             {extraConfigDescription ? (
               <GuidedSteps.Step
                 stepKey="extra-configuration-sentry"
-                title={extraConfigTitle || 'Upload Source Maps'}
+                title={extraConfigTitle || t('Upload Source Maps')}
               >
                 <div>
                   <div>
@@ -259,7 +259,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
               <GuidedSteps.Step stepKey="verify-sentry" title={t('Verify')}>
                 <div>
                   <DescriptionWrapper>{verifyDescription}</DescriptionWrapper>
-                  {verifyConfigutations.map((configuration, index) => (
+                  {verifyConfigutations?.map((configuration, index) => (
                     <div key={index}>
                       <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
                       <CodeSnippetWrapper>
