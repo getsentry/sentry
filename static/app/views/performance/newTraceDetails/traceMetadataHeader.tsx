@@ -156,7 +156,7 @@ function getInsightsModuleBreadcrumbs(location: Location, organization: Organiza
     label: t('Insights'),
   });
 
-  switch (location.query.referrer) {
+  switch (location.query.source) {
     case TraceViewSources.REQUESTS_MODULE:
       crumbs.push({
         label: t('Requests'),
@@ -299,7 +299,7 @@ function getTraceViewBreadcrumbs(
   organization: Organization,
   location: Location
 ): Crumb[] {
-  switch (location.query.referrer) {
+  switch (location.query.source) {
     case TraceViewSources.TRACES:
       return [
         {
