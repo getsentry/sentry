@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from collections.abc import Generator
 from contextlib import contextmanager
-from dataclasses import dataclass
+from dataclasses import asdict, dataclass
 from time import time
 from typing import ContextManager
 
@@ -128,6 +128,14 @@ class LeakyBucketRateLimiter:
                 finally:
                     pass
             else:
+                logging.info(
+                    "Rate limited",
+                    extra={
+                        "key": key,
+                        "redis_key": self.redis_key(key),
+                        **asdict(info),
+                    },
+                )
                 yield info
 
         return limit_context()
