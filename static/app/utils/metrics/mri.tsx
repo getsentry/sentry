@@ -81,7 +81,12 @@ export function toMRI({type, useCase, name, unit}: ParsedMRI): MRI {
 }
 
 export function formatMRI(mri: MRI): string {
-  return parseMRI(mri)?.name ?? mri;
+  const parsedMRI = parseMRI(mri);
+  if (parsedMRI.type !== 'v') {
+    return parsedMRI.name;
+  }
+
+  return parsedMRI.name.split('|')[0];
 }
 
 export function getUseCaseFromMRI(mri?: string): UseCase | undefined {

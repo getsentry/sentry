@@ -19,6 +19,7 @@ import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
 import {useVirtualizedMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
+import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 
@@ -37,6 +38,7 @@ export const QueryBuilder = memo(function QueryBuilder({
 }: QueryBuilderProps) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
+  const {getConditions, getVirtualMeta, resolveVirtualMRI} = useVirtualMetricsContext();
 
   const {
     data: meta,
@@ -45,12 +47,26 @@ export const QueryBuilder = memo(function QueryBuilder({
     refetch: refetchMeta,
   } = useVirtualizedMetricsMeta(pageFilters.selection);
 
-  const {data: tagsData = [], isLoading: tagsIsLoading} = useMetricsTags(
-    metricsQuery.mri,
-    {
-      projects: projectIds,
+  const resolvedMRI = useMemo(() => {
+    const type = parseMRI(metricsQuery.mri)?.type;
+    if (type !== 'v' || !metricsQuery.condition) {
+      return metricsQuery.mri;
     }
-  );
+    return resolveVirtualMRI(
+      metricsQuery.mri,
+      metricsQuery.condition,
+      metricsQuery.aggregation
+    ).mri;
+  }, [
+    metricsQuery.aggregation,
+    metricsQuery.condition,
+    metricsQuery.mri,
+    resolveVirtualMRI,
+  ]);
+
+  const {data: tagsData = [], isLoading: tagsIsLoading} = useMetricsTags(resolvedMRI, {
+    projects: projectIds,
+  });
 
   const groupByOptions = useMemo(() => {
     return uniqBy(tagsData, 'key').map(tag => ({
@@ -79,27 +95,37 @@ export const QueryBuilder = memo(function QueryBuilder({
         return;
       }
 
-      let queryChanges = {};
+      const queryChanges: Partial<MetricsQuery> = {
+        mri: mriValue,
+        groupBy: undefined,
+      };
 
       // If the type is the same, we can keep the current aggregate
-      if (currentMRI.type === newMRI.type) {
-        queryChanges = {
-          mri: mriValue,
-          groupBy: undefined,
-        };
+      if (currentMRI.type !== newMRI.type) {
+        queryChanges.aggregation = getDefaultAggregation(mriValue);
+      }
+
+      if (newMRI.type === 'v') {
+        const spanConditions = getConditions(mriValue);
+        const virtualMeta = getVirtualMeta(mriValue);
+        queryChanges.condition = spanConditions[0]?.id;
+        queryChanges.aggregation = virtualMeta.operations[0];
       } else {
-        queryChanges = {
-          mri: mriValue,
-          aggregation: getDefaultAggregation(mriValue),
-          groupBy: undefined,
-        };
+        queryChanges.condition = undefined;
       }
 
       trackAnalytics('ddm.widget.metric', {organization});
       incrementQueryMetric('ddm.widget.metric', queryChanges);
       onChange(queryChanges);
     },
-    [incrementQueryMetric, metricsQuery.mri, onChange, organization]
+    [
+      getConditions,
+      getVirtualMeta,
+      incrementQueryMetric,
+      metricsQuery.mri,
+      onChange,
+      organization,
+    ]
   );
 
   const handleOpChange = useCallback(
@@ -155,21 +181,38 @@ export const QueryBuilder = memo(function QueryBuilder({
   );
 
   const projectIdStrings = useMemo(() => projectIds.map(String), [projectIds]);
+  const spanConditions = getConditions(metricsQuery.mri);
 
   return (
     <QueryBuilderWrapper>
       <FlexBlock>
-        <GuideAnchor target="metrics_selector" position="bottom" disabled={index !== 0}>
-          <MRISelect
-            onChange={handleMRIChange}
-            onTagClick={handleMetricTagClick}
-            onOpenMenu={handleOpenMetricsMenu}
-            isLoading={isMetaLoading}
-            metricsMeta={meta}
-            projects={projectIds}
-            value={metricsQuery.mri}
-          />
-        </GuideAnchor>
+        <FlexBlock>
+          <GuideAnchor target="metrics_selector" position="bottom" disabled={index !== 0}>
+            <MRISelect
+              onChange={handleMRIChange}
+              onTagClick={handleMetricTagClick}
+              onOpenMenu={handleOpenMetricsMenu}
+              isLoading={isMetaLoading}
+              metricsMeta={meta}
+              projects={projectIds}
+              value={metricsQuery.mri}
+            />
+          </GuideAnchor>
+          {selectedMeta?.type === 'v' ? (
+            <CompactSelect
+              size="md"
+              triggerProps={{prefix: t('Query')}}
+              options={spanConditions.map(condition => ({
+                label: condition.value || t('All spans'),
+                value: condition.id,
+              }))}
+              value={metricsQuery.condition}
+              onChange={({value}) => {
+                onChange({condition: value});
+              }}
+            />
+          ) : null}
+        </FlexBlock>
         <FlexBlock>
           <GuideAnchor
             target="metrics_aggregate"

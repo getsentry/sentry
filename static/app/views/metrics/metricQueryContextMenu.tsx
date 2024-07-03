@@ -32,6 +32,7 @@ import {
   hasCustomMetricsExtractionRules,
   hasMetricAlertFeature,
 } from 'sentry/utils/metrics/features';
+import {parseMRI} from 'sentry/utils/metrics/mri';
 import {
   isMetricsQueryWidget,
   type MetricDisplayType,
@@ -69,6 +70,10 @@ export function MetricQueryContextMenu({
     displayType
   );
 
+  const parsedMRI = useMemo(() => {
+    return parseMRI(metricsQuery.mri);
+  }, [metricsQuery.mri]);
+
   // At least one query must remain
   const canDelete = widgets.filter(isMetricsQueryWidget).length > 1;
   const hasDashboardFeature = organization.features.includes('dashboards-edit');
@@ -91,7 +96,8 @@ export function MetricQueryContextMenu({
         leadingItems: [<IconSiren key="icon" />],
         key: 'add-alert',
         label: <CreateMetricAlertFeature>{t('Create Alert')}</CreateMetricAlertFeature>,
-        disabled: !createAlert || !hasMetricAlertFeature(organization),
+        disabled:
+          !createAlert || !hasMetricAlertFeature(organization) || parsedMRI.type === 'v',
         onAction: () => {
           trackAnalytics('ddm.create-alert', {
             organization,
@@ -126,7 +132,8 @@ export function MetricQueryContextMenu({
             <span>{t('Add to Dashboard')}</span>
           </Feature>
         ),
-        disabled: !createDashboardWidget || !hasDashboardFeature,
+        disabled:
+          !createDashboardWidget || !hasDashboardFeature || parsedMRI.type === 'v',
         onAction: () => {
           if (!organization.features.includes('dashboards-edit')) {
             return;
@@ -181,6 +188,7 @@ export function MetricQueryContextMenu({
     [
       createAlert,
       organization,
+      parsedMRI.type,
       createDashboardWidget,
       hasDashboardFeature,
       metricsQuery.mri,
