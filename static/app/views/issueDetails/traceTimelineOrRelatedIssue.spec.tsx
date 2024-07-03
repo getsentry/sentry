@@ -124,12 +124,10 @@ describe('TraceTimeline & TraceRelated Issue', () => {
       body: discoverBody,
       match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
-    const {container} = render(<TraceTimeline event={event} />, {
-      organization,
-    });
+    const {container} = render(<TraceTimeline event={event} />, {organization});
     await waitFor(() =>
       expect(useRouteAnalyticsParams).toHaveBeenCalledWith({
-        trace_timeline_status: 'shown',
+        trace_timeline_status: 'empty',
       })
     );
     expect(container).toBeEmptyDOMElement();
@@ -269,7 +267,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
 
     // We do not display the timeline because we only have 1 event
     expect(await screen.queryByLabelText('Current Event')).not.toBeInTheDocument();
-    expect(useRouteAnalyticsParams).toHaveBeenCalledTimes(0);
+    expect(useRouteAnalyticsParams).toHaveBeenCalledWith({});
   });
 
   it('trace timeline works for plans with no global-views feature', async () => {
