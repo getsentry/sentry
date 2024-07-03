@@ -237,12 +237,14 @@ const Subject = styled('div')`
   font-family: ${p => p.theme.text.familyMono};
   word-break: break-word;
 
-  @container (max-width: 350px) {
+  @container (width < 350px) {
     max-width: 200px;
   }
 `;
 
-const ValueSection = styled(Subject)<{hasEmptySubject: boolean; hasErrors: boolean}>`
+const ValueSection = styled('div')<{hasEmptySubject: boolean; hasErrors: boolean}>`
+  font-family: ${p => p.theme.text.familyMono};
+  word-break: break-word;
   color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};
   grid-column: ${p => (p.hasEmptySubject ? '1 / -1' : 'span 1')};
   display: grid;
