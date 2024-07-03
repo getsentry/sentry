@@ -474,6 +474,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 has_errors = False
                 has_transactions = False
 
+                # See if we can infer which dataset based on selected columns and query string.
                 if dataset_inferred_from_query is not None:
                     result = _data_fn(
                         SAVED_QUERY_DATASET_MAP[dataset_inferred_from_query],
@@ -494,6 +495,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
                     return result
 
+                # Unable to infer based on selected fields and query string, so run both queries.
                 else:
                     map = {}
                     with ThreadPoolExecutor(max_workers=3) as exe:

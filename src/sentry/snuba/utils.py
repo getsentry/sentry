@@ -119,7 +119,11 @@ def build_query_strings(
     )
 
 
-def dataset_split_decision_inferred_from_query(columns, query) -> DiscoverSavedQueryTypes | None:
+def dataset_split_decision_inferred_from_query(columns, query):
+    """
+    Infers split decision based on fields we know exclusively belong to one
+    dataset or the other. Biases towards Errors dataset.
+    """
     for field in ERROR_ONLY_FIELDS:
         if field in query:
             return DiscoverSavedQueryTypes.ERROR_EVENTS
