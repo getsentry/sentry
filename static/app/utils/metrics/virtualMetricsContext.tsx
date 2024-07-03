@@ -8,6 +8,8 @@ import type {
   MetricType,
   MRI,
 } from 'sentry/types/metrics';
+import {DEFAULT_MRI} from 'sentry/utils/metrics/mri';
+import type {MetricTag} from 'sentry/utils/metrics/types';
 import {useApiQueries} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSelectedProjects} from 'sentry/views/metrics/utils/useSelectedProjects';
@@ -19,6 +21,7 @@ interface MetricsExtractionRuleWithProject extends MetricsExtractionRule {
 
 const Context = createContext<{
   getConditions: (mri: MRI) => MetricsExtractionCondition[];
+  getTags: (mri: MRI) => MetricTag[];
   getVirtualMRI: (mri: MRI) => MRI | null;
   getVirtualMeta: (mri: MRI) => MetricMeta;
   isLoading: boolean;
@@ -33,6 +36,7 @@ const Context = createContext<{
     throw new Error('Not implemented');
   },
   getConditions: () => [],
+  getTags: () => [],
   resolveVirtualMRI: (mri, _, aggregation) => ({mri, aggregation}),
   isLoading: false,
 });
@@ -171,6 +175,14 @@ export function VirtualMetricsContextProvider({children}: Props) {
     [virtualMRIToRuleMap]
   );
 
+  const getTags = useCallback(
+    (mri: MRI): MetricTag[] => {
+      const rule = virtualMRIToRuleMap.get(mri);
+      return rule?.tags.map(tag => ({key: tag})) || [];
+    },
+    [virtualMRIToRuleMap]
+  );
+
   const resolveVirtualMRI = useCallback(
     (
       mri: MRI,
@@ -182,11 +194,11 @@ export function VirtualMetricsContextProvider({children}: Props) {
     } => {
       const rule = virtualMRIToRuleMap.get(mri);
       if (!rule) {
-        throw new Error('Rule not found');
+        return {mri: DEFAULT_MRI, aggregation: 'sum'};
       }
       const condition = rule.conditions.find(c => c.id === conditionId);
       if (!condition) {
-        throw new Error('Condition not found');
+        return {mri: DEFAULT_MRI, aggregation: 'sum'};
       }
 
       const metricType = aggregationToMetricType[aggregation];
@@ -205,10 +217,11 @@ export function VirtualMetricsContextProvider({children}: Props) {
       getVirtualMRI,
       getVirtualMeta,
       getConditions,
+      getTags,
       resolveVirtualMRI,
       isLoading,
     }),
-    [getVirtualMRI, getVirtualMeta, getConditions, resolveVirtualMRI, isLoading]
+    [getVirtualMRI, getVirtualMeta, getConditions, getTags, resolveVirtualMRI, isLoading]
   );
 
   return (
