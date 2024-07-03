@@ -2,22 +2,22 @@
 --
 -- Input:
 -- keys:
---  - redis_key (key to store the bucket state, should be unique per rate limit)
+--   * redis_key (key to store the bucket state, should be unique per rate limit)
 -- args:
---   - bucket_size (limit of drops in the bucket, effecitvely the max burst limit),
---   = drip_rate (number of drops leaking per second, effectively the sustained rate limit),
---
---   - current_time (current time according to the application server)
+--   * bucket_size (limit of drops in the bucket, effecitvely the max burst limit),
+--   * drip_rate (number of drops leaking per second, effectively the sustained rate limit),
+--   * current_time (current time according to the application server)
 --        ^^^ to understand why we pass this,
 --            read https://github.blog/2021-04-05-how-we-scaled-github-api-sharded-replicated-rate-limiter-redis/
---
 -- Output:
---   - nil if allowed
---   - time to wait in seconds if not allowed
+--   * nil if allowed
+--   * time to wait in seconds if not allowed
 --
 -- Key is a hash with schema:
--- - current_level: the current water level in the bucket
--- - last_drip: the last time we allowed a request
+--   * current_level: the current water level in the bucket
+--   * last_drip: the last time we allowed a request
+--
+
 
 
 local key = KEYS[1]
@@ -26,7 +26,7 @@ local drip_rate = tonumber(ARGV[2])
 local current_time = tonumber(ARGV[3])
 
 -- maximum time to live for the key in seconds, adding 2 seconds to account for any clock drift
--- doesn't need to live any longer, because if it's not accessed in that time, it's guaranteed to be empty
+-- if it's not accessed in that time, the bucket is guaranteed to be empty, so we can expire it
 local max_tll_seconds = math.ceil(bucket_size / drip_rate) + 2
 
 -- time of the last drip, as in last time we allowed a request
@@ -48,7 +48,8 @@ else
 end
 
 
-local elapsed_time = current_time - last_drip
+-- time elapsed since the last drip, in seconds, not allowing negative
+local elapsed_time = max(0, current_time - last_drip)
 -- bucket cannot be less than empty + we need to add one to the level to account for the new drop
 local new_level = math.max(0, current_level - elapsed_time * drip_rate) + 1
 -- check it the current request would overflow the bucket
