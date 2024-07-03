@@ -7,9 +7,9 @@ import displayRawContent, {
 } from 'sentry/components/events/interfaces/crashContent/stackTrace/rawContent';
 import type {StacktraceType} from 'sentry/types';
 
-describe('RawStacktraceContent', function () {
-  describe('getJavaFrame()', function () {
-    it('should render java frames', function () {
+describe('RawStacktraceContent', () => {
+  describe('getJavaFrame()', () => {
+    it('should render java frames', () => {
       expect(
         getJavaFrame(
           FrameFixture({
@@ -51,7 +51,7 @@ describe('RawStacktraceContent', function () {
     });
   });
 
-  describe('getJavaPreamble()', function () {
+  describe('getJavaPreamble()', () => {
     it('takes a type and value', () => {
       expect(
         getJavaPreamble(
@@ -77,7 +77,7 @@ describe('RawStacktraceContent', function () {
     });
   });
 
-  describe('render()', function () {
+  describe('render()', () => {
     const exception = ExceptionValueFixture({
       module: 'example.application',
       type: 'Error',
