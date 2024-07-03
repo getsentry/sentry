@@ -607,7 +607,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         activity = Activity.objects.get(
             group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
-        assert activity.data is not None
         assert activity.data["version"] == ""
         with assume_test_silo_mode(SiloMode.CONTROL):
             uo1.delete()
@@ -683,7 +682,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         activity = Activity.objects.get(
             group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
-        assert activity.data is not None
         assert activity.data["version"] == release.version
 
     def test_set_resolved_in_explicit_release(self):
@@ -724,7 +722,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         activity = Activity.objects.get(
             group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
-        assert activity.data is not None
         assert activity.data["version"] == release.version
 
     def test_set_resolved_in_next_release(self):
@@ -763,7 +760,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         activity = Activity.objects.get(
             group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
-        assert activity.data is not None
         assert activity.data["version"] == ""
 
     def test_set_resolved_in_next_release_legacy(self):
@@ -797,7 +793,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         activity = Activity.objects.get(
             group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
-        assert activity.data is not None
         assert activity.data["version"] == ""
 
     @with_feature("organizations:resolve-in-upcoming-release")
@@ -837,7 +832,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         activity = Activity.objects.get(
             group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
-        assert activity.data is not None
         assert activity.data["version"] == ""
 
     def test_upcoming_release_flag_validation(self):
@@ -912,7 +906,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         ).exists()
 
         activity = Activity.objects.get(group=group, type=ActivityType.SET_RESOLVED_IN_COMMIT.value)
-        assert activity.data is not None
         assert activity.data["commit"] == commit.id
 
     def test_set_resolved_in_explicit_commit_released(self):
@@ -952,7 +945,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         ).exists()
 
         activity = Activity.objects.get(group=group, type=ActivityType.SET_RESOLVED_IN_COMMIT.value)
-        assert activity.data is not None
         assert activity.data["commit"] == commit.id
 
         resolution = GroupResolution.objects.get(group=group)

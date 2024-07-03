@@ -467,7 +467,6 @@ class TestCommentWebhook(TestCase):
             user_id=self.user.id,
             data={"text": "hello world"},
         )
-        assert self.note.data is not None
         self.data = {
             "comment_id": self.note.id,
             "timestamp": self.note.datetime,

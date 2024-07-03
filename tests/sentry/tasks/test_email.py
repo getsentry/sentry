@@ -15,7 +15,6 @@ class ProcessInboundEmailTest(TestCase):
 
         activity = Activity.objects.get(group=group, type=ActivityType.NOTE.value)
         assert activity.user_id == self.user.id
-        assert activity.data is not None
         assert activity.data["text"] == "hello world!"
 
     def test_handle_unknown_address(self):
