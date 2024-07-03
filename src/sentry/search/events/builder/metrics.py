@@ -709,17 +709,10 @@ class MetricsQueryBuilder(BaseQueryBuilder):
 
         # Handle checks for existence
         if search_filter.operator in ("=", "!=") and search_filter.value.value == "":
-            if name in constants.METRICS_MAP:
-                if search_filter.operator == "!=":
-                    return None
-                else:
-                    raise IncompatibleMetricsQuery("!has isn't compatible with metrics queries")
+            if name in constants.METRICS_MAP and search_filter.operator == "!=":
+                return None
             else:
-                return Condition(
-                    Function("has", [Column("tags.key"), self.resolve_metric_index(name)]),
-                    Op.EQ if search_filter.operator == "!=" else Op.NEQ,
-                    1,
-                )
+                raise IncompatibleMetricsQuery("has isn't compatible with metrics queries")
 
         if name in ["organization_id", "org_id"]:
             raise IncompatibleMetricsQuery(f"{name} isn't compatible with metrics queries")

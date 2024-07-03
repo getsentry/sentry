@@ -294,6 +294,8 @@ class OrganizationEventsStatsMetricsEnhancedPerformanceEndpointTest(
         assert get_mep(
             "event.type:transaction OR transaction:foo_transaction"
         ), "boolean with mep filter"
+        assert get_mep("has:transaction.duration"), "has a tag in the metrics dataset"
+        assert not get_mep("has:device"), "has a tag not in the metrics dataset"
 
     def test_having_condition_with_preventing_aggregates(self):
         response = self.do_request(
