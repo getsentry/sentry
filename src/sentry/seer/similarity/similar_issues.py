@@ -204,6 +204,13 @@ def get_similarity_data_from_seer(
             # that we can't find, but again, we're okay with that because a group being missing
             # implies there's something wrong with our deletion logic, which is a problem to which
             # we want to pay attention.
+            #
+            # TODO: The deletion logic (tell Seer to delete hashes as soon as they're deleted on the
+            # Sentry side) comes with an inherent slight delay - the request to Seer happens async, and
+            # requests between services aren't instantaneous. It's therefore possible for us to land
+            # in a race condition, where Seer recommends a hash it doesn't know it's about to be
+            # asked to delete, and we come up empty because on the Sentry side the hash has already
+            # been deleted.
             metric_tags.update({"outcome": "error", "error": "SimilarGroupNotFoundError"})
             logger.warning(
                 "get_similarity_data_from_seer.parent_group_not_found",
