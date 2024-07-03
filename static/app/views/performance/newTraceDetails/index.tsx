@@ -895,7 +895,7 @@ export function TraceViewWaterfall(props: TraceViewWaterfallProps) {
   }, [tree, projects, props.organization]);
 
   useLayoutEffect(() => {
-    if (!tree.root.space || tree.type !== 'trace') {
+    if (tree.type !== 'trace') {
       return undefined;
     }
 
