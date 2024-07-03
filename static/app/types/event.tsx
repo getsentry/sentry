@@ -632,10 +632,12 @@ export interface ThreadPoolInfoContext {
 
 export enum ProfileContextKey {
   PROFILE_ID = 'profile_id',
+  PROFILER_ID = 'profiler_id',
 }
 
 export interface ProfileContext {
   [ProfileContextKey.PROFILE_ID]?: string;
+  [ProfileContextKey.PROFILER_ID]?: string;
 }
 
 export enum ReplayContextKey {
