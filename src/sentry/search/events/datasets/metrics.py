@@ -1812,7 +1812,7 @@ class MetricsDatasetConfig(DatasetConfig):
         if column in self.total_score_weights and self.total_score_weights[column] is not None:
             return Function("toFloat64", [self.total_score_weights[column]], alias)
 
-        total_query = builder.MetricsQueryBuilder(
+        total_query = metrics.MetricsQueryBuilder(
             dataset=self.builder.dataset,
             params={},
             snuba_params=self.builder.params,
