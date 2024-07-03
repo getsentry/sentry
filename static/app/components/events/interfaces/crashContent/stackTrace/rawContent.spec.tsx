@@ -122,39 +122,76 @@ describe('RawStacktraceContent', function () {
       );
     });
 
-    const data_with_non_in_app: StacktraceType = {
+    const inAppFrame = (fnName, line) =>
+      FrameFixture({
+        function: fnName,
+        module: 'example.application',
+        lineNo: line,
+        filename: 'application',
+        platform: undefined,
+      });
+    const systemFrame = (fnName, line) =>
+      FrameFixture({
+        function: fnName,
+        module: 'example.application',
+        lineNo: line,
+        filename: 'application',
+        platform: undefined,
+        inApp: false,
+      });
+
+    const onlyInAppFrames: StacktraceType = {
       hasSystemFrames: false,
       framesOmitted: null,
       registers: {},
-      frames: [
-        FrameFixture({
-          function: 'main',
-          module: 'example.application',
-          lineNo: 1,
-          filename: 'application',
-          platform: undefined,
-        }),
-        FrameFixture({
-          function: 'doThing',
-          module: 'example.application',
-          lineNo: 2,
-          filename: 'application',
-          platform: undefined,
-          inApp: false,
-        }),
-      ],
+      frames: [inAppFrame('main', 1), inAppFrame('doThing', 2)],
     };
 
-    it('renders non in-app frames example', () => {
-      expect(displayRawContent(data_with_non_in_app, 'python', exception)).toEqual(
-        `Error: an error occurred
+    const onlySystemFrames: StacktraceType = {
+      hasSystemFrames: false,
+      framesOmitted: null,
+      registers: {},
+      frames: [systemFrame('main', 1), systemFrame('doThing', 2)],
+    };
+
+    const mixedFrames: StacktraceType = {
+      hasSystemFrames: false,
+      framesOmitted: null,
+      registers: {},
+      frames: [inAppFrame('main', 1), systemFrame('doThing', 2)],
+    };
+
+    it.each([onlyInAppFrames, onlySystemFrames, mixedFrames])(
+      'renders all frames when similarity flag is off, in-app or not',
+      stacktrace => {
+        expect(displayRawContent(stacktrace, 'python', exception)).toEqual(
+          `Error: an error occurred
   File "application", line 1, in main
   File "application", line 2, in doThing`
-      );
-    });
+        );
+      }
+    );
 
-    it('renders no non in-app frames example with hasSimilarityEmbeddingsFeature', () => {
-      expect(displayRawContent(data_with_non_in_app, 'python', exception, true)).toEqual(
+    it.each([true, false])(
+      'renders system frames when no in-app frames exist, regardless of similarity feature',
+      similarityFeatureEnabled => {
+        expect(
+          displayRawContent(
+            onlySystemFrames,
+            'python',
+            exception,
+            similarityFeatureEnabled
+          )
+        ).toEqual(
+          `Error: an error occurred
+  File "application", line 1, in main
+  File "application", line 2, in doThing`
+        );
+      }
+    );
+
+    it('renders only in-app frames when they exist and hasSimilarityEmbeddingsFeature is on', () => {
+      expect(displayRawContent(mixedFrames, 'python', exception, true)).toEqual(
         `Error: an error occurred
   File "application", line 1, in main`
       );

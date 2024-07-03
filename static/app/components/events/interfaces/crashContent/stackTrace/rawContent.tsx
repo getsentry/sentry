@@ -170,16 +170,18 @@ export default function displayRawContent(
   exception?: ExceptionValue,
   hasSimilarityEmbeddingsFeature: boolean = false
 ) {
-  const frames: string[] = [];
+  const rawFrames = data?.frames || [];
 
-  (data?.frames ?? []).forEach((frame, frameIdx) => {
-    if (
-      !hasSimilarityEmbeddingsFeature ||
-      (frame.inApp && hasSimilarityEmbeddingsFeature)
-    ) {
-      frames.push(getFrame(frame, frameIdx, platform));
-    }
-  });
+  const hasInAppFrames = rawFrames.some(frame => frame.inApp);
+  const shouldFilterOutSystemFrames = hasSimilarityEmbeddingsFeature && hasInAppFrames;
+
+  const framesToUse = shouldFilterOutSystemFrames
+    ? rawFrames.filter(frame => frame.inApp)
+    : rawFrames;
+
+  const frames = framesToUse.map((frame, frameIdx) =>
+    getFrame(frame, frameIdx, platform)
+  );
 
   if (platform !== 'python') {
     frames.reverse();
