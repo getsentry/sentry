@@ -661,6 +661,14 @@ type SidebarNavigationItemHook = () => React.ComponentType<{
   id: string;
 }>;
 
+type InsightsUpsellHook = () => React.ComponentType<{
+  children: (opts: {
+    disabled: boolean;
+    upsellPage: React.ReactElement | null;
+  }) => React.ReactElement;
+  id: string;
+}>;
+
 /**
  * Invite Modal customization allows for a render-prop component to add
  * additional react elements into the modal, and add invite-send middleware.
