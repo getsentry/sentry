@@ -190,7 +190,7 @@ function TableView(props: TableViewProps) {
 
       let target;
 
-      if (dataRow.trace === null) {
+      if (dataRow.trace == null) {
         if (dataRow['event.type'] === 'transaction') {
           throw new Error(
             'Transaction event should always have a trace associated with it.'
@@ -198,7 +198,6 @@ function TableView(props: TableViewProps) {
         }
 
         const project = dataRow.project || dataRow['project.name'];
-
         target = {
           // NOTE: This uses a legacy redirect for project event to the issue group event link
           // This only works with dev-server or production.
@@ -322,7 +321,7 @@ function TableView(props: TableViewProps) {
     if (columnKey === 'id') {
       let target;
 
-      if (dataRow.trace === null) {
+      if (dataRow.trace == null) {
         if (dataRow['event.type'] === 'transaction') {
           throw new Error(
             'Transaction event should always have a trace associated with it.'
