@@ -143,9 +143,7 @@ export function MetricQueryContextMenu({
       {
         leadingItems: [<IconSettings key="icon" />],
         key: 'settings',
-        disabled: hasCustomMetricsExtractionRules(organization)
-          ? false
-          : !isCustomMetric({mri: metricsQuery.mri}),
+        disabled: !isCustomMetric({mri: metricsQuery.mri}),
         label: t('Metric Settings'),
         onAction: () => {
           trackAnalytics('ddm.widget.settings', {
