@@ -406,21 +406,20 @@ class UsageStatsOrganization<
           if (outcome === Outcome.FILTERED) {
             usageStats[i][outcome] += stat;
 
-            if (group.by.outcome === Outcome.FILTERED) {
-              if (existingSubLabel) {
-                existingSubLabel.data.push({
-                  ...dataObject,
-                  value: dataObject.value,
-                });
-                return;
-              }
-
-              chartSubLabels.push({
-                parentLabel: t('Filtered'),
-                label,
-                data: [dataObject],
+            if (existingSubLabel) {
+              existingSubLabel.data.push({
+                ...dataObject,
+                value: dataObject.value,
               });
+              return;
             }
+
+            chartSubLabels.push({
+              parentLabel: t('Filtered'),
+              label,
+              data: [dataObject],
+            });
+
             return;
           }
 
