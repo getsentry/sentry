@@ -14,7 +14,7 @@ from flagpole.conditions import (
 from sentry.runner.decorators import configuration
 
 valid_scopes = ["organization", "project"]
-hardcoded_segment_properties = {
+hardcoded_condition_properties = {
     "organization_id",
     "organization_slug",
     "organization_is-early-adopter",
@@ -33,7 +33,7 @@ def condition_wizard(display_sample_condition_properties: bool = False) -> Condi
     operator_kind = click.prompt("Operator type", type=condition_type_choices, show_choices=True)
     if display_sample_condition_properties:
         click.echo("Here are some example condition properties available:\n")
-        for property_name in hardcoded_segment_properties:
+        for property_name in hardcoded_condition_properties:
             click.echo(f"{property_name}")
         click.echo("")
 
@@ -60,7 +60,7 @@ def segment_wizard() -> list[Segment]:
     )
     segments = []
     while not done_creating_segments:
-        name = click.prompt("Name", type=str)
+        name = click.prompt("Name", type=str).strip()
         rollout_percentage = click.prompt("Rollout percentage", type=int, default=100)
         conditions = []
 
