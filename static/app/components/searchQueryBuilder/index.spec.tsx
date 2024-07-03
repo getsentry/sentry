@@ -312,6 +312,15 @@ describe('SearchQueryBuilder', function () {
       ).toBeInTheDocument();
     });
 
+    it('can search by key description', async function () {
+      render(<SearchQueryBuilder {...defaultProps} />);
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.keyboard('assignee');
+
+      // "assignee" is in the description of "assigned"
+      expect(await screen.findByRole('option', {name: 'assigned'})).toBeInTheDocument();
+    });
+
     it('can add a new token by clicking a key suggestion', async function () {
       render(<SearchQueryBuilder {...defaultProps} />);
 
@@ -925,23 +934,48 @@ describe('SearchQueryBuilder', function () {
         expect(within(valueButton).getByText('Chrome')).toBeInTheDocument();
       });
 
-      it('escapes values with spaces and reserved characters', async function () {
-        render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
-        await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
-        await userEvent.type(
-          screen.getByRole('combobox', {name: 'Add a search term'}),
-          'assigned:some" value{enter}'
+      it('collapses many selected options', function () {
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            initialQuery="browser.name:[one,two,three,four]"
+          />
         );
+
+        const valueButton = screen.getByRole('button', {
+          name: 'Edit value for filter: browser.name',
+        });
+        expect(within(valueButton).getByText('one')).toBeInTheDocument();
+        expect(within(valueButton).getByText('two')).toBeInTheDocument();
+        expect(within(valueButton).getByText('three')).toBeInTheDocument();
+        expect(within(valueButton).getByText('+1')).toBeInTheDocument();
+        expect(within(valueButton).queryByText('four')).not.toBeInTheDocument();
+        expect(within(valueButton).getAllByText('or')).toHaveLength(2);
+      });
+
+      it.each([
+        ['spaces', 'a b', '"a b"'],
+        ['quotes', 'a"b', '"a\\"b"'],
+        ['parens', 'foo()', '"foo()"'],
+      ])('tag values escape %s', async (_, value, expected) => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="browser.name:"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+        await userEvent.keyboard(`${value}{enter}`);
+
         // Value should be surrounded by quotes and escaped
-        expect(
-          await screen.findByRole('row', {name: 'assigned:"some\\" value"'})
-        ).toBeInTheDocument();
-        // Display text should be display the original value
-        expect(
-          within(
-            screen.getByRole('button', {name: 'Edit value for filter: assigned'})
-          ).getByText('some" value')
-        ).toBeInTheDocument();
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(`browser.name:${expected}`);
+        });
       });
 
       it('can replace a value with a new one', async function () {
@@ -1105,8 +1139,15 @@ describe('SearchQueryBuilder', function () {
         ).toBeInTheDocument();
       });
 
-      it('changes operator when selecting a relative date', async function () {
-        render(<SearchQueryBuilder {...defaultProps} initialQuery="age:>=2017-10-17" />);
+      it('can switch from after an absolute date to a relative one', async function () {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="foo age:>=2017-10-17"
+          />
+        );
         await userEvent.click(
           screen.getByRole('button', {name: 'Edit value for filter: age'})
         );
@@ -1120,7 +1161,38 @@ describe('SearchQueryBuilder', function () {
             screen.getByRole('button', {name: 'Edit operator for filter: age'})
           ).getByText('is after')
         ).toBeInTheDocument();
-        expect(await screen.findByRole('row', {name: 'age:-1h'})).toBeInTheDocument();
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith('foo age:-1h');
+        });
+      });
+
+      it('can switch from before an absolute date to a relative one', async function () {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="foo age:<=2017-10-17"
+          />
+        );
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: age'})
+        );
+        // Go back to relative date suggestions
+        await userEvent.click(await screen.findByRole('button', {name: 'Back'}));
+        await userEvent.click(await screen.findByRole('option', {name: '1 hour ago'}));
+
+        // Because relative dates only work with ":", should change the operator to "is before"
+        expect(
+          within(
+            screen.getByRole('button', {name: 'Edit operator for filter: age'})
+          ).getByText('is before')
+        ).toBeInTheDocument();
+
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith('foo age:+1h');
+        });
       });
 
       it('can set an absolute date', async function () {

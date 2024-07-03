@@ -12,6 +12,7 @@ import type {
   IssueCategoryConfigMapping,
   IssueTypeConfig,
 } from 'sentry/utils/issueTypeConfig/types';
+import uptimeConfig from 'sentry/utils/issueTypeConfig/uptimeConfig';
 
 type Config = Record<IssueCategory, IssueCategoryConfigMapping>;
 
@@ -48,7 +49,6 @@ const BASE_CONFIG: IssueTypeConfig = {
   evidence: {title: t('Evidence')},
   resources: null,
   usesIssuePlatform: true,
-  traceTimeline: true,
 };
 
 const issueTypeConfig: Config = {
@@ -57,6 +57,7 @@ const issueTypeConfig: Config = {
   [IssueCategory.PROFILE]: performanceConfig,
   [IssueCategory.CRON]: cronConfig,
   [IssueCategory.REPLAY]: replayConfig,
+  [IssueCategory.UPTIME]: uptimeConfig,
 };
 
 /**

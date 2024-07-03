@@ -20,10 +20,11 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
+from sentry.models.projecttemplate import ProjectTemplate
+from sentry.models.rule import Rule
 from sentry.models.user import User
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
-from sentry.services.hybrid_cloud.organization import RpcOrganization
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.organizations.services.organization import RpcOrganization
 from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -34,6 +35,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 # on a per-class method basis
 from sentry.types.activity import ActivityType
 from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
+from sentry.users.services.user import RpcUser
 
 
 class Fixtures:
@@ -165,6 +167,9 @@ class Fixtures:
             kwargs["teams"] = [self.team]
         return Factories.create_project(**kwargs)
 
+    def create_project_template(self, **kwargs) -> ProjectTemplate:
+        return Factories.create_project_template(**kwargs)
+
     def create_project_bookmark(self, project=None, *args, **kwargs):
         if project is None:
             project = self.project
@@ -183,7 +188,7 @@ class Fixtures:
         comparison_interval=None,
         *args,
         **kwargs,
-    ):
+    ) -> Rule:
         if project is None:
             project = self.project
         return Factories.create_project_rule(

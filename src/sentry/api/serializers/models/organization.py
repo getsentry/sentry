@@ -10,7 +10,7 @@ from rest_framework import serializers
 from sentry_relay.auth import PublicKey
 from sentry_relay.exceptions import RelayError
 
-from sentry import features, onboarding_tasks, quotas, roles
+from sentry import features, onboarding_tasks, options, quotas, roles
 from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.project import ProjectSerializerResponse
@@ -24,6 +24,7 @@ from sentry.api.serializers.models.team import TeamSerializerResponse
 from sentry.api.serializers.types import OrganizationSerializerResponse
 from sentry.api.utils import generate_organization_url, generate_region_url
 from sentry.auth.access import Access
+from sentry.auth.services.auth import RpcOrganizationAuthConfig, auth_service
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
     AI_SUGGESTED_SOLUTION,
@@ -61,9 +62,8 @@ from sentry.models.organizationonboardingtask import OrganizationOnboardingTask
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.auth import RpcOrganizationAuthConfig, auth_service
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.organizations.services.organization import RpcOrganizationSummary
+from sentry.users.services.user.service import user_service
 
 _ORGANIZATION_SCOPE_PREFIX = "organizations:"
 
@@ -303,6 +303,8 @@ class OrganizationSerializer(Serializer):
             feature_set.add("shared-issues")
         if "dynamic-sampling" not in feature_set and "mep-rollout-flag" in feature_set:
             feature_set.remove("mep-rollout-flag")
+        if options.get("performance.hide-metrics-ui") and "mep-rollout-flag" in feature_set:
+            feature_set.remove("mep-rollout-flag")
 
         return feature_set
 
@@ -348,6 +350,14 @@ class OrganizationSerializer(Serializer):
 
         if include_feature_flags:
             context["features"] = self.get_feature_set(obj, attrs, user, **kwargs)
+            context["extraOptions"] = {
+                "traces": {
+                    "spansExtractionDate": options.get("performance.traces.spans_extraction_date"),
+                    "checkSpanExtractionDate": options.get(
+                        "performance.traces.check_span_extraction_date"
+                    ),
+                }
+            }
 
         if "access" in kwargs:
             context["access"] = kwargs["access"].scopes

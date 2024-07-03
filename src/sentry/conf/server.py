@@ -399,6 +399,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.replays",
     "sentry.release_health",
     "sentry.search",
+    "sentry.sentry_metrics",
     "sentry.sentry_metrics.indexer.postgres.apps.Config",
     "sentry.snuba",
     "sentry.lang.java.apps.Config",
@@ -3188,6 +3189,7 @@ ACCESS_LOGS_EXCLUDE_PATHS = ("/api/0/internal/", "/api/0/relays/")
 
 VALIDATE_SUPERUSER_ACCESS_CATEGORY_AND_REASON = True
 DISABLE_SU_FORM_U2F_CHECK_FOR_LOCAL = False
+SUPERUSER_STAFF_EMAIL_SUFFIX: str | None = None
 
 # determines if we enable analytics or not
 ENABLE_ANALYTICS = False

@@ -29,7 +29,7 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
-import type {MRI} from 'sentry/types/metrics';
+import type {MetricAggregation, MRI} from 'sentry/types/metrics';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -183,18 +183,22 @@ export function Content() {
   return (
     <LayoutMain fullWidth>
       <PageFilterBar condensed>
-        <Tooltip
-          title={tct(
-            "Traces stem across multiple projects. You'll need to narrow down which projects you'd like to include per span.[br](ex. [code:project:javascript])",
-            {
-              br: <br />,
-              code: <Code />,
-            }
-          )}
-          position="bottom"
-        >
-          <ProjectPageFilter disabled projectOverride={ALL_PROJECTS} />
-        </Tooltip>
+        {organization.features.includes('performance-trace-explorer-enforce-projects') ? (
+          <ProjectPageFilter />
+        ) : (
+          <Tooltip
+            title={tct(
+              "Traces stem across multiple projects. You'll need to narrow down which projects you'd like to include per span.[br](ex. [code:project:javascript])",
+              {
+                br: <br />,
+                code: <Code />,
+              }
+            )}
+            position="bottom"
+          >
+            <ProjectPageFilter disabled projectOverride={ALL_PROJECTS} />
+          </Tooltip>
+        )}
         <EnvironmentPageFilter />
         <DatePageFilter defaultPeriod="2h" />
       </PageFilterBar>
@@ -207,7 +211,11 @@ export function Content() {
           {tct('The metric query [metricQuery] is filtering the results below.', {
             metricQuery: (
               <strong>
-                {getFormattedMQL({mri: mri as MRI, op: metricsOp, query: metricsQuery})}
+                {getFormattedMQL({
+                  mri: mri as MRI,
+                  aggregation: metricsOp as MetricAggregation,
+                  query: metricsQuery,
+                })}
               </strong>
             ),
           })}
@@ -746,6 +754,7 @@ function useTraceSpans<F extends string>({
 
   const endpointOptions = {
     query: {
+      project: selection.projects,
       environment: selection.environments,
       ...(datetime ?? normalizeDateTimeParams(selection.datetime)),
       field: fields,

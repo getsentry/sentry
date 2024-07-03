@@ -23,12 +23,12 @@ from sentry.search.utils import (
     parse_size,
     tokenize_query,
 )
-from sentry.services.hybrid_cloud.user.model import RpcUser
-from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.silo import control_silo_test
+from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.serial import serialize_rpc_user
+from sentry.users.services.user.service import user_service
 
 
 def test_get_numeric_field_value():

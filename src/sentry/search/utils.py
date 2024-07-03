@@ -20,10 +20,10 @@ from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.search.base import ANY
 from sentry.search.events.constants import MAX_PARAMETERS_IN_ARRAY
-from sentry.services.hybrid_cloud.user.model import RpcUser
-from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES
+from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.serial import serialize_rpc_user
+from sentry.users.services.user.service import user_service
 from sentry.utils.eventuser import KEYWORD_MAP, EventUser
 
 

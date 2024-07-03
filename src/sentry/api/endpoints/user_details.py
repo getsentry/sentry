@@ -27,9 +27,9 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
-from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.organization.model import RpcOrganizationDeleteState
-from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
+from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.model import RpcOrganizationDeleteState
+from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.dates import AVAILABLE_TIMEZONES
 
 audit_logger = logging.getLogger("sentry.audit.user")

@@ -15,11 +15,11 @@ from sentry.api.serializers import IntegrationSerializer, serialize
 from sentry.hybridcloud.rpc.pagination import RpcPaginationArgs
 from sentry.integrations.base import IntegrationFeatures
 from sentry.integrations.manager import default_manager as integrations
+from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.integration import RpcIntegration, integration_service
 
 
 class IntegrationIssueSerializer(IntegrationSerializer):

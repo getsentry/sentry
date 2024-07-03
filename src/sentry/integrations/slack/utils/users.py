@@ -6,12 +6,12 @@ from typing import Any
 
 from slack_sdk.errors import SlackApiError
 
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.integration import RpcIntegration
-from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.organizations.services.organization import RpcOrganization
 
 from ..utils import logger
 
@@ -76,6 +76,7 @@ def get_slack_user_list(
                 "integration_id": integration.id,
             },
         )
+        raise
 
 
 def get_slack_data_by_user(
