@@ -7,7 +7,8 @@ from snuba_sdk import Column, Condition, Function, Op, OrderBy
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.search.events import builder, constants, fields
+from sentry.search.events import constants, fields
+from sentry.search.events.builder import metrics
 from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.types import SelectType, WhereType
@@ -17,7 +18,7 @@ from sentry.snuba.referrer import Referrer
 class MetricsDatasetConfig(DatasetConfig):
     missing_function_error = IncompatibleMetricsQuery
 
-    def __init__(self, builder: builder.MetricsQueryBuilder):
+    def __init__(self, builder: metrics.MetricsQueryBuilder):
         self.builder = builder
         self.total_transaction_duration: float | None = None
 
@@ -1729,7 +1730,7 @@ class MetricsDatasetConfig(DatasetConfig):
         if self.total_transaction_duration is not None:
             return Function("toFloat64", [self.total_transaction_duration], alias)
 
-        total_query = builder.MetricsQueryBuilder(
+        total_query = metrics.MetricsQueryBuilder(
             dataset=self.builder.dataset,
             params={},
             snuba_params=self.builder.params,
