@@ -411,7 +411,7 @@ class ProjectTest(APITestCase, TestCase):
 
 class ProjectOptionsTests(TestCase):
     """
-    These tests validate that the project model well correctly merge the
+    These tests validate that the project model will correctly merge the
     options from the project and the project template.
 
     When returning getting options for a project the following hierarchy is used:
