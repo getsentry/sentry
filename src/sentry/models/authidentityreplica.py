@@ -1,3 +1,7 @@
+from __future__ import annotations
+
+from typing import Any
+
 from django.db import models
 from django.utils import timezone
 
@@ -17,7 +21,7 @@ class AuthIdentityReplica(Model):
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
     auth_provider_id = HybridCloudForeignKey("sentry.AuthProvider", on_delete="CASCADE")
     ident = models.CharField(max_length=128)
-    data = JSONField()
+    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
     last_verified = models.DateTimeField(default=timezone.now)
 
     # This represents the time at which this model was created, NOT the date_added of the original auth identity

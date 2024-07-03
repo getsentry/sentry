@@ -163,7 +163,7 @@ class OutboxCategory(IntEnum):
     def as_region_outbox(
         self,
         model: Any | None = None,
-        payload: Any | None = None,
+        payload: dict[str, Any] | None = None,
         shard_identifier: int | None = None,
         object_identifier: int | None = None,
         outbox: type[RegionOutboxBase] | None = None,
@@ -188,7 +188,7 @@ class OutboxCategory(IntEnum):
         self,
         region_names: Collection[str],
         model: Any | None = None,
-        payload: Any | None = None,
+        payload: dict[str, Any] | None = None,
         shard_identifier: int | None = None,
         object_identifier: int | None = None,
         outbox: type[ControlOutboxBase] | None = None,
@@ -504,7 +504,7 @@ class OutboxBase(Model):
     object_identifier = BoundedBigIntegerField(null=False)
 
     # payload is used for webhook payloads.
-    payload: models.Field[dict[str, Any], dict[str, Any]] = JSONField(null=True)
+    payload: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
 
     # The point at which this object was scheduled, used as a diff from scheduled_for to determine the intended delay.
     scheduled_from = models.DateTimeField(null=False, default=timezone.now)

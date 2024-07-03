@@ -162,7 +162,7 @@ class ReplicatedRegionModel(RegionOutboxProducingModel):
     class Meta:
         abstract = True
 
-    def payload_for_update(self) -> Mapping[str, Any] | None:
+    def payload_for_update(self) -> dict[str, Any] | None:
         """
         A custom json payload to be included in outboxes generated via creation, update, or deletion.
         Note that outboxes are COALESCED!  This means that when multiple updates are processed at once,
@@ -358,7 +358,7 @@ class ReplicatedControlModel(ControlOutboxProducingModel):
         # joins a new organization after the last outbox was processed is a special case that requires special handling.
         raise NotImplementedError
 
-    def payload_for_update(self) -> Mapping[str, Any] | None:
+    def payload_for_update(self) -> dict[str, Any] | None:
         """
         A custom json payload to be included in outboxes generated via creation, update, or deletion.
         Note that outboxes are COALESCED!  This means that when multiple updates are processed at once,

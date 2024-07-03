@@ -18,8 +18,10 @@ if TYPE_CHECKING:
 
 def validate_payload(outbox: ControlOutbox) -> bool:
     payload = outbox.payload
-    body: str = payload.get("body", None)
-    if not payload or not body:
+    if not payload:
+        return False
+    body = payload.get("body", None)
+    if not body:
         return False
 
     headers = payload.get("headers", None)

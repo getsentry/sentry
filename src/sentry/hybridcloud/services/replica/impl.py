@@ -195,7 +195,7 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
             auth_provider_id=auth_provider.id,
             provider=auth_provider.provider,
             organization_id=organization.id,
-            config=auth_provider.config,  # type: ignore[misc]
+            config=auth_provider.config,
             default_role=auth_provider.default_role,
             default_global_access=auth_provider.default_global_access,
             allow_unlinked=auth_provider.flags.allow_unlinked,
@@ -213,7 +213,7 @@ class DatabaseBackedRegionReplicaService(RegionReplicaService):
             user_id=auth_identity.user_id,
             auth_provider_id=auth_identity.auth_provider_id,
             ident=auth_identity.ident,
-            data=auth_identity.data,  # type: ignore[misc]
+            data=auth_identity.data,
             last_verified=auth_identity.last_verified,
         )
 
