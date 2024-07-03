@@ -208,6 +208,9 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     // Instead of a timeline, we should see the other related issue
     expect(await screen.findByText('Slow DB Query')).toBeInTheDocument();
     expect(
+      await screen.findByText('One other issue appears in the same trace.')
+    ).toBeInTheDocument();
+    expect(
       await screen.findByText('SELECT "sentry_monitorcheckin"."monitor_id"')
     ).toBeInTheDocument();
     expect(screen.queryByLabelText('Current Event')).not.toBeInTheDocument();
