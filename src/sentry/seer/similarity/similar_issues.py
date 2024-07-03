@@ -141,7 +141,7 @@ def get_similarity_data_from_seer(
     except (
         AttributeError,  # caused by a response with no data and therefore no `.decode` method
         UnicodeError,
-        JSONDecodeError,
+        JSONDecodeError,  # caused by Seer erroring out and sending back the error page HTML
     ) as e:
         logger.exception(
             "Failed to parse seer similar issues response",
