@@ -26,7 +26,7 @@ from sentry.utils.sdk import (
 def patch_isolation_scope():
     """
     Generates and yields new Scope object, and patches sentry.utils.sdk.Scope.get_isolation_scope to return the same
-    scope within the fixture.
+    scope within the context manager.
     """
     scope = Scope(ty=sentry_sdk.scope.ScopeType.ISOLATION)
     with patch("sentry.utils.sdk.Scope.get_isolation_scope") as mock_get_isolation_scope:
