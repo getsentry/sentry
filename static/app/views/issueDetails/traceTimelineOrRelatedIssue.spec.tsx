@@ -21,11 +21,10 @@ describe('TraceTimeline & TraceRelated Issue', () => {
   const organization = OrganizationFixture({
     features: ['global-views'],
   });
-  const firstEventTimestamp = '2024-01-24T09:09:01+00:00';
   // This creates the ApiException event
   const event = EventFixture({
     // This is used to determine the presence of seconds
-    dateCreated: firstEventTimestamp,
+    dateCreated: '2024-01-24T09:09:01+00:00',
     contexts: {
       trace: {
         // This is used to determine if we should attempt
@@ -40,7 +39,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
   const issuePlatformBody: TraceEventResponse = {
     data: [
       {
-        // In issuePlatform, we store the subtitle within the message
+        // In issuePlatform, the message stores the title and the transaction
         message: '/api/slow/ Slow DB Query SELECT "sentry_monitorcheckin"."monitor_id"',
         timestamp: '2024-01-24T09:09:03+00:00',
         'issue.id': 1000,
@@ -54,8 +53,8 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     meta: {fields: {}, units: {}},
   };
   const mainError = {
-    message: 'This is the subtitle of the issue',
-    timestamp: firstEventTimestamp,
+    message: 'This is the message for the issue',
+    timestamp: '2024-01-24T09:09:01+00:00',
     'issue.id': event['issue.id'],
     project: project.slug,
     'project.name': project.name,
@@ -206,12 +205,13 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     render(<TraceTimeLineOrRelatedIssue event={event} />, {organization});
 
     // Instead of a timeline, we should see the other related issue
-    expect(await screen.findByText('Slow DB Query')).toBeInTheDocument();
+    expect(await screen.findByText('Slow DB Query')).toBeInTheDocument(); // The title
+    expect(await screen.findByText('/api/slow')).toBeInTheDocument(); // The subtitle/transaction
     expect(
       await screen.findByText('One other issue appears in the same trace.')
     ).toBeInTheDocument();
     expect(
-      await screen.findByText('SELECT "sentry_monitorcheckin"."monitor_id"')
+      await screen.findByText('SELECT "sentry_monitorcheckin"."monitor_id"') // The message
     ).toBeInTheDocument();
     expect(screen.queryByLabelText('Current Event')).not.toBeInTheDocument();
 
