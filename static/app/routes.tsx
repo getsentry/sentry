@@ -1468,8 +1468,8 @@ function buildRoutes() {
         moduleBaseURL && (
           <Redirect
             key={moduleBaseURL}
-            from={`${moduleBaseURL}`}
-            to={`/${INSIGHTS_BASE_URL}/${moduleBaseURL}/`}
+            from={`${moduleBaseURL}/*`}
+            to={`/${INSIGHTS_BASE_URL}/${moduleBaseURL}/:splat`}
           />
         )
     )
