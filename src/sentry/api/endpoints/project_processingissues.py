@@ -5,10 +5,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
-from sentry.api.helpers.processing_issues import get_processing_issues
 from sentry.api.serializers import serialize
-from sentry.models.processingissue import ProcessingIssue
-from sentry.reprocessing import REPROCESSING_OPTION, trigger_reprocessing
 
 
 @region_silo_endpoint
@@ -22,7 +19,6 @@ class ProjectProcessingIssuesDiscardEndpoint(ProjectEndpoint):
         """
         This discards all open processing issues
         """
-        ProcessingIssue.objects.discard_all_processing_issue(project=project)
         return Response(status=200)
 
 
@@ -38,9 +34,16 @@ class ProjectProcessingIssuesEndpoint(ProjectEndpoint):
         """
         List a project's processing issues.
         """
-        data = get_processing_issues(
-            request.user, [project], include_detailed_issues=request.GET.get("detailed") == "1"
-        )[0]
+        data = {
+            "hasIssues": False,
+            "numIssues": 0,
+            "lastSeen": None,
+            "resolveableIssues": 0,
+            "hasMoreResolveableIssues": False,
+            "issuesProcessing": 0,
+            "project": project.slug,
+            "issues": [],
+        }
         return Response(serialize(data, request.user))
 
     def delete(self, request: Request, project) -> Response:
@@ -48,10 +51,4 @@ class ProjectProcessingIssuesEndpoint(ProjectEndpoint):
         This deletes all open processing issues and triggers reprocessing if
         the user disabled the checkbox
         """
-        # XXX: Why does this default to `True` here?
-        reprocessing_active = bool(project.get_option(REPROCESSING_OPTION, True))
-        if not reprocessing_active:
-            ProcessingIssue.objects.resolve_all_processing_issue(project=project)
-            trigger_reprocessing(project)
-            return Response(status=200)
         return Response(status=304)
