@@ -84,7 +84,7 @@ class MetricExtractionConfig(TypedDict):
 
     version: int
     metrics: list[MetricSpec]
-    extrapolation: NotRequired[MetricExtrapolationConfig]
+    extrapolate: NotRequired[MetricExtrapolationConfig]
 
 
 def get_max_widget_specs(organization: Organization) -> int:
@@ -131,7 +131,7 @@ def get_metric_extraction_config(
     }
 
     if extrapolation_config:
-        rv["extrapolation"] = extrapolation_config
+        rv["extrapolate"] = extrapolation_config
 
     return rv
 
