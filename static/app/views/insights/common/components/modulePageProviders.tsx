@@ -31,21 +31,21 @@ export function ModulePageProviders({moduleName, pageTitle, children, features}:
     .join(' — ');
 
   const defaultBody = (
-    <Feature features={features} organization={organization} renderDisabled={NoAccess}>
-      <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
-    </Feature>
+    <Layout.Page>
+      <Feature features={features} organization={organization} renderDisabled={NoAccess}>
+        <NoProjectMessage organization={organization}>{children}</NoProjectMessage>
+      </Feature>
+    </Layout.Page>
   );
 
   return (
     <PageFiltersContainer>
       <SentryDocumentTitle title={fullPageTitle} orgSlug={organization.slug}>
-        <Layout.Page>
-          <UpsellPageHook id={sidebarIdMap[moduleName]}>
-            {({disabled, upsellPage}) =>
-              disabled && upsellPage ? upsellPage : defaultBody
-            }
-          </UpsellPageHook>
-        </Layout.Page>
+        <UpsellPageHook id={sidebarIdMap[moduleName]}>
+          {({disabled, upsellPage}) =>
+            disabled && upsellPage ? upsellPage : defaultBody
+          }
+        </UpsellPageHook>
       </SentryDocumentTitle>
     </PageFiltersContainer>
   );
