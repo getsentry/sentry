@@ -1,5 +1,6 @@
 import styled from '@emotion/styled';
 
+import Tag from 'sentry/components/badge/tag';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import type {ColorConfig} from 'sentry/components/timeline';
 import {
@@ -18,7 +19,12 @@ import {
   IconWarning,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
-import {BreadcrumbType, type RawCrumb} from 'sentry/types/breadcrumbs';
+import {space} from 'sentry/styles/space';
+import {
+  BreadcrumbLevelType,
+  BreadcrumbType,
+  type RawCrumb,
+} from 'sentry/types/breadcrumbs';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
 export const BREADCRUMB_TIMESTAMP_PLACEHOLDER = '--';
@@ -67,15 +73,18 @@ export function getBreadcrumbFilters(crumbs: RawCrumb[]) {
     return crumbTypeSet;
   }, new Set<BreadcrumbType>());
 
-  const filters: SelectOption<string>[] = [...uniqueCrumbTypes].map(crumbType => ({
-    value: crumbType,
-    leadingItems: (
-      <Color colorConfig={getBreadcrumbColorConfig(crumbType)}>
-        <BreadcrumbIcon type={crumbType} />
-      </Color>
-    ),
-    label: toTitleCase(crumbType),
-  }));
+  const filters: SelectOption<string>[] = [...uniqueCrumbTypes].map(crumbType => {
+    const crumbFilter = getBreadcrumbFilter(crumbType);
+    return {
+      value: crumbFilter,
+      label: crumbFilter,
+      leadingItems: (
+        <Color colorConfig={getBreadcrumbColorConfig(crumbType)}>
+          <BreadcrumbIcon type={crumbType} />
+        </Color>
+      ),
+    };
+  });
 
   return filters;
 }
@@ -124,8 +133,38 @@ export function getBreadcrumbColorConfig(type?: BreadcrumbType): ColorConfig {
   }
 }
 
-export function BreadcrumbIcon(props: {type?: BreadcrumbType}) {
-  switch (props.type) {
+export function getBreadcrumbFilter(type?: BreadcrumbType) {
+  switch (type) {
+    case BreadcrumbType.USER:
+    case BreadcrumbType.UI:
+      return t('User Action');
+    case BreadcrumbType.NAVIGATION:
+      return t('Navigation');
+    case BreadcrumbType.DEBUG:
+      return t('Debug');
+    case BreadcrumbType.INFO:
+      return t('Info');
+    case BreadcrumbType.ERROR:
+      return t('Error');
+    case BreadcrumbType.HTTP:
+      return t('HTTP request');
+    case BreadcrumbType.WARNING:
+      return t('Warning');
+    case BreadcrumbType.QUERY:
+      return t('Query');
+    case BreadcrumbType.SYSTEM:
+      return t('System');
+    case BreadcrumbType.SESSION:
+      return t('Session');
+    case BreadcrumbType.TRANSACTION:
+      return t('Transaction');
+    default:
+      return t('Default');
+  }
+}
+
+export function BreadcrumbIcon({type}: {type?: BreadcrumbType}) {
+  switch (type) {
     case BreadcrumbType.USER:
       return <IconUser size="xs" />;
     case BreadcrumbType.UI:
@@ -154,3 +193,25 @@ export function BreadcrumbIcon(props: {type?: BreadcrumbType}) {
       return <IconTerminal size="xs" />;
   }
 }
+
+export function BreadcrumbTag({level}: {level: BreadcrumbLevelType}) {
+  switch (level) {
+    case BreadcrumbLevelType.ERROR:
+    case BreadcrumbLevelType.FATAL:
+      return <StyledTag type="error">{level}</StyledTag>;
+    case BreadcrumbLevelType.WARNING:
+      return <StyledTag type="warning">{level}</StyledTag>;
+    case BreadcrumbLevelType.DEBUG:
+    case BreadcrumbLevelType.INFO:
+    case BreadcrumbLevelType.LOG:
+      return <StyledTag type="highlight">{level}</StyledTag>;
+    case BreadcrumbLevelType.UNDEFINED:
+    default:
+      return null;
+  }
+}
+
+const StyledTag = styled(Tag)`
+  margin: 0 ${space(1)};
+  font-weight: normal;
+`;

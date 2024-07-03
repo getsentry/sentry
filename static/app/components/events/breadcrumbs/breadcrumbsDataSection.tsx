@@ -15,7 +15,10 @@ import {
   getSummaryBreadcrumbs,
 } from 'sentry/components/events/breadcrumbs/utils';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import {getVirtualCrumb} from 'sentry/components/events/interfaces/breadcrumbs/utils';
+import {
+  convertCrumbType,
+  getVirtualCrumb,
+} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import useDrawer from 'sentry/components/globalDrawer';
 import {IconClock, IconEllipsis, IconFilter, IconSearch, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -51,11 +54,15 @@ export default function BreadcrumbsDataSection({
       // Mapping of breadcrumb index -> breadcrumb meta
       const _meta: Record<number, any> =
         event._meta?.entries?.[breadcrumbEntryIndex]?.data?.values;
+      // Converts breadcrumbs into other types if sufficient data is present.
+      const convertedCrumbs = breadcrumbs.map(convertCrumbType);
 
       // The virtual crumb is a representation of this event, displayed alongside
       // the rest of the breadcrumbs for more additional context.
       const _virtualCrumb = getVirtualCrumb(event);
-      const _allCrumbs = _virtualCrumb ? [...breadcrumbs, _virtualCrumb] : breadcrumbs;
+      const _allCrumbs = _virtualCrumb
+        ? [...convertedCrumbs, _virtualCrumb]
+        : convertedCrumbs;
       return {
         allCrumbs: _allCrumbs,
         isEmpty: breadcrumbEntryIndex === -1 || breadcrumbs.length === 0,

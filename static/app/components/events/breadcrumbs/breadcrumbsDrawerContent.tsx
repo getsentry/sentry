@@ -14,6 +14,7 @@ import {
   BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
   BREADCRUMB_TIME_DISPLAY_OPTIONS,
   BreadcrumbTimeDisplay,
+  getBreadcrumbFilter,
   getBreadcrumbFilters,
 } from 'sentry/components/events/breadcrumbs/utils';
 import {
@@ -77,7 +78,7 @@ export function BreadcrumbsDrawerContent({
     const sortedCrumbs =
       sort === BreadcrumbSort.OLDEST ? allBreadcrumbs : [...allBreadcrumbs].reverse();
     const filteredCrumbs = sortedCrumbs.filter(bc =>
-      filterSet.size === 0 ? true : filterSet.has(bc.type)
+      filterSet.size === 0 ? true : filterSet.has(getBreadcrumbFilter(bc.type))
     );
     const searchedCrumbs = applyBreadcrumbSearch(search, filteredCrumbs);
     return searchedCrumbs;
