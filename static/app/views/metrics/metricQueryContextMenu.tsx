@@ -153,13 +153,13 @@ export function MetricQueryContextMenu({
           });
           Sentry.metrics.increment('ddm.widget.settings');
 
-          const {useCase, name} = parseMRI(metricsQuery.mri) ?? {};
+          const {name, type} = parseMRI(metricsQuery.mri) ?? {};
 
-          const isSpanBasedMetric = useCase === 'spans';
+          const isVirtualMetric = type === 'v';
 
           if (
             !hasCustomMetricsExtractionRules(organization) ||
-            !isSpanBasedMetric ||
+            !isVirtualMetric ||
             isCustomMetric({mri: metricsQuery.mri})
           ) {
             navigateTo(
