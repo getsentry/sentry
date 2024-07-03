@@ -7,7 +7,7 @@ import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {useProjectCreationAccess} from 'sentry/components/projects/useProjectCreationAccess';
+import {canCreateProject} from 'sentry/components/projects/canCreateProject';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import Accordion from 'sentry/components/replays/accordion';
 import ReplayUnsupportedAlert from 'sentry/components/replays/alerts/replayUnsupportedAlert';
@@ -46,7 +46,7 @@ export default function ReplayOnboardingPanel() {
   const pageFilters = usePageFilters();
   const projects = useProjects();
   const organization = useOrganization();
-  const {canCreateProject} = useProjectCreationAccess({organization});
+  const canUserCreateProject = canCreateProject(organization);
   const hasMobileReplays = organization.features.includes('session-replay-mobile-player');
 
   const supportedPlatforms = hasMobileReplays
@@ -74,7 +74,7 @@ export default function ReplayOnboardingPanel() {
   // disable "setup" if the current selected pageFilters are not supported
   const primaryActionDisabled =
     primaryAction === 'create'
-      ? !canCreateProject
+      ? !canUserCreateProject
       : allSelectedProjectsUnsupported && hasSelectedProjects;
 
   const breakpoints = preferences.collapsed

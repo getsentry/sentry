@@ -1,17 +1,13 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {renderHook} from 'sentry-test/reactTestingLibrary';
-
-import {useProjectCreationAccess} from './useProjectCreationAccess';
+import {canCreateProject} from './canCreateProject';
 
 describe('ProjectCreationAccess', function () {
   const organization = OrganizationFixture();
 
   it('passes project creation eligibility for org-manager', function () {
-    const {result} = renderHook(useProjectCreationAccess, {
-      initialProps: {organization},
-    });
-    expect(result.current.canCreateProject).toBeTruthy();
+    const result = canCreateProject(organization);
+    expect(result).toBeTruthy();
   });
 
   it('passes for members if org has team-roles', function () {
@@ -21,10 +17,8 @@ describe('ProjectCreationAccess', function () {
       allowMemberProjectCreation: true,
     });
 
-    const {result} = renderHook(useProjectCreationAccess, {
-      initialProps: {organization: experiment_org},
-    });
-    expect(result.current.canCreateProject).toBeTruthy();
+    const result = canCreateProject(experiment_org);
+    expect(result).toBeTruthy();
   });
 
   it('fails for members if org has team-roles but disabled allowMemberProjectCreation', function () {
@@ -34,8 +28,8 @@ describe('ProjectCreationAccess', function () {
       allowMemberProjectCreation: false,
     });
 
-    const result = useProjectCreationAccess({organization: experiment_org});
-    expect(result.current.canCreateProject).toBeFalsy();
+    const result = canCreateProject(experiment_org);
+    expect(result).toBeFalsy();
   });
 
   it('fails for members if org does not have team-roles', function () {
@@ -43,9 +37,7 @@ describe('ProjectCreationAccess', function () {
       access: ['org:read', 'team:read', 'project:read'],
     });
 
-    const {result} = renderHook(useProjectCreationAccess, {
-      initialProps: {organization: no_team_role_org},
-    });
-    expect(result.current.canCreateProject).toBeFalsy();
+    const result = canCreateProject(no_team_role_org);
+    expect(result).toBeFalsy();
   });
 });
