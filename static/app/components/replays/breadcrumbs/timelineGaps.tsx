@@ -2,6 +2,8 @@ import styled from '@emotion/styled';
 
 import * as Timeline from 'sentry/components/replays/breadcrumbs/timeline';
 import {getFramesByColumn} from 'sentry/components/replays/utils';
+import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
 import {
   isBackgroundFrame,
   isForegroundFrame,
@@ -64,15 +66,23 @@ export default function TimelineGaps({durationMs, frames, totalFrames, width}: P
   return (
     <Timeline.Columns totalColumns={totalColumns} remainder={0}>
       {gapCol.map(column => (
-        <Gap key={column} column={column} />
+        <Column key={column} column={column}>
+          <Tooltip title={t('App is suspended')} isHoverable containerDisplayMode="grid">
+            <Gap style={{width: `${markerWidth}px`}} />
+          </Tooltip>
+        </Column>
       ))}
     </Timeline.Columns>
   );
 }
 
-const Gap = styled(Timeline.Col)<{column: number}>`
+const Column = styled(Timeline.Col)<{column: number}>`
   grid-column: ${p => p.column};
-  background: ${p => p.theme.gray400};
   line-height: 14px;
+`;
+
+const Gap = styled('span')`
+  background: ${p => p.theme.gray400};
   opacity: 16%;
+  height: 20px;
 `;
