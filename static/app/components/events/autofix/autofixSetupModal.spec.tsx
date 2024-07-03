@@ -1,5 +1,6 @@
 import {ProjectFixture} from 'sentry-fixture/project';
 
+import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, renderGlobalModal, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import {openModal} from 'sentry/actionCreators/modal';
@@ -313,7 +314,7 @@ describe('AutofixSetupModal', function () {
     ).toBeInTheDocument();
   });
 
-  it('shows success text when steps are done', async function () {
+  it('shows codebase index button when every other step is done', async function () {
     MockApiClient.addMockResponse({
       url: '/issues/1/autofix/setup/',
       body: {
@@ -330,7 +331,15 @@ describe('AutofixSetupModal', function () {
             },
           ],
         },
-        codebaseIndexing: {ok: true},
+        codebaseIndexing: {ok: false},
+      },
+    });
+
+    MockApiClient.addMockResponse({
+      url: '/projects/org-slug/project-slug/autofix/codebase-index/create/',
+      method: 'POST',
+      body: {
+        success: true,
       },
     });
 
@@ -348,10 +357,59 @@ describe('AutofixSetupModal', function () {
     });
 
     expect(
-      await screen.findByText("You've successfully configured Autofix!")
+      await screen.findByText('Index Repositories & Enable Autofix')
     ).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', {name: "Let's go"}));
+    await userEvent.click(
+      screen.getByRole('button', {name: 'Index Repositories & Enable Autofix'})
+    );
+
+    expect(closeModal).toHaveBeenCalled();
+  });
+
+  it('does not show codebase index step if flag is present', async function () {
+    const {organization} = initializeOrg({
+      organization: {
+        features: ['autofix-disable-codebase-indexing'],
+      },
+    } as any);
+
+    MockApiClient.addMockResponse({
+      url: '/issues/1/autofix/setup/',
+      body: {
+        genAIConsent: {ok: true},
+        integration: {ok: true},
+        githubWriteIntegration: {
+          ok: false,
+          repos: [
+            {
+              provider: 'integrations:github',
+              repo: 'getsentry',
+              name: 'sentry',
+              external_id: '123',
+            },
+          ],
+        },
+        codebaseIndexing: {ok: true},
+      },
+    });
+
+    const closeModal = jest.fn();
+
+    renderGlobalModal({organization});
+
+    act(() => {
+      openModal(
+        modalProps => <AutofixSetupModal {...modalProps} groupId="1" projectId="1" />,
+        {
+          onClose: closeModal,
+        }
+      );
+    });
+
+    expect(await screen.findByText('Skip & Enable Autofix')).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole('button', {name: 'Skip & Enable Autofix'}));
 
     expect(closeModal).toHaveBeenCalled();
   });
