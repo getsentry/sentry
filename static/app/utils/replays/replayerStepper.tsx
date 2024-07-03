@@ -75,6 +75,7 @@ export default function replayerStepper<
     };
 
     const handlePause = () => {
+      console.log('handlePause', arguments);
       onVisitFrame(frameRef.frame!, collection, replayer);
       nextOrDone();
     };

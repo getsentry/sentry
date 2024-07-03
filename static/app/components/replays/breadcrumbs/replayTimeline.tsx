@@ -1,5 +1,6 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
+import {observer} from 'mobx-react';
 
 import Panel from 'sentry/components/panels/panel';
 import Placeholder from 'sentry/components/placeholder';
@@ -16,8 +17,9 @@ import {divide} from 'sentry/components/replays/utils';
 import toPercent from 'sentry/utils/number/toPercent';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
-export default function ReplayTimeline() {
-  const {replay, currentTime, timelineScale} = useReplayContext();
+const ReplayTimeline = observer(() => {
+  const {replay, timer, timelineScale} = useReplayContext();
+  const {currentTime} = timer!;
 
   const panelRef = useRef<HTMLDivElement>(null);
   const mouseTrackingProps = useTimelineScrubberMouseTracking(
@@ -76,7 +78,9 @@ export default function ReplayTimeline() {
       </Stacked>
     </VisiblePanel>
   );
-}
+});
+
+export default ReplayTimeline;
 
 const VisiblePanel = styled(Panel)`
   margin: 0;

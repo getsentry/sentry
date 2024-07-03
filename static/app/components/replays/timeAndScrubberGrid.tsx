@@ -1,5 +1,6 @@
 import {useRef} from 'react';
 import styled from '@emotion/styled';
+import {observer} from 'mobx-react';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
@@ -50,18 +51,23 @@ function TimelineSizeBar() {
   );
 }
 
+const CurrentTime = observer(() => {
+  const {timer} = useReplayContext();
+  return <Time style={{gridArea: 'currentTime'}}>{formatTime(timer?.currentTime)}</Time>;
+});
+
 function TimeAndScrubberGrid({
   isCompact = false,
   showZoom = false,
 }: TimeAndScrubberGridProps) {
-  const {currentTime, replay} = useReplayContext();
+  const {replay} = useReplayContext();
   const durationMs = replay?.getDurationMs();
   const elem = useRef<HTMLDivElement>(null);
   const mouseTrackingProps = useScrubberMouseTracking({elem});
 
   return (
     <Grid id="replay-timeline-player" isCompact={isCompact}>
-      <Time style={{gridArea: 'currentTime'}}>{formatTime(currentTime)}</Time>
+      <CurrentTime />
       <div style={{gridArea: 'timeline'}}>
         <ReplayTimeline />
       </div>

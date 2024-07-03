@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {observer} from 'mobx-react';
 
 import RangeSlider from 'sentry/components/forms/controls/rangeSlider';
 import SliderAndInputWrapper from 'sentry/components/forms/controls/rangeSlider/sliderAndInputWrapper';
@@ -16,13 +17,12 @@ type Props = {
   showZoomIndicators?: boolean;
 };
 
-function Scrubber({className, showZoomIndicators = false}: Props) {
-  const {replay, currentHoverTime, currentTime, setCurrentTime, timelineScale} =
-    useReplayContext();
+const Scrubber = observer(({className, showZoomIndicators = false}: Props) => {
+  const {replay, timer, timelineScale} = useReplayContext();
+  const {currentTime} = timer;
 
   const durationMs = replay?.getDurationMs() ?? 0;
   const percentComplete = divide(currentTime, durationMs);
-  const hoverPlace = divide(currentHoverTime || 0, durationMs);
 
   const initialTranslate = 0.5 / timelineScale;
 
@@ -56,16 +56,7 @@ function Scrubber({className, showZoomIndicators = false}: Props) {
         </Fragment>
       ) : null}
       <Meter>
-        {currentHoverTime ? (
-          <div>
-            <TimelineTooltip labelText={formatTime(currentHoverTime)} />
-            <MouseTrackingValue
-              style={{
-                width: toPercent(hoverPlace),
-              }}
-            />
-          </div>
-        ) : null}
+        <HoverTracker durationMs={durationMs} />
         <PlaybackTimeValue
           style={{
             width: toPercent(percentComplete),
@@ -73,20 +64,48 @@ function Scrubber({className, showZoomIndicators = false}: Props) {
         />
       </Meter>
       <RangeWrapper>
-        <Range
-          name="replay-timeline"
-          min={0}
-          max={durationMs}
-          value={Math.round(currentTime)}
-          onChange={value => setCurrentTime(value || 0)}
-          showLabel={false}
-          aria-label={t('Seek slider')}
-        />
+        <SeekSlider durationMs={durationMs} />
       </RangeWrapper>
     </Wrapper>
   );
-}
+});
 
+const HoverTracker = observer(({durationMs}) => {
+  const {timer} = useReplayContext();
+  const {currentHoverTime} = timer;
+  if (currentHoverTime === undefined) {
+    return null;
+  }
+
+  const hoverPlace = divide(currentHoverTime || 0, durationMs);
+  return (
+    <div>
+      <TimelineTooltip labelText={formatTime(currentHoverTime)} />
+      <MouseTrackingValue
+        style={{
+          width: toPercent(hoverPlace),
+        }}
+      />
+    </div>
+  );
+});
+
+const SeekSlider = observer(({durationMs}) => {
+  const {timer, setCurrentTime} = useReplayContext();
+  const {currentTime} = timer;
+
+  return (
+    <Range
+      name="replay-timeline"
+      min={0}
+      max={durationMs}
+      value={Math.round(currentTime)}
+      onChange={value => setCurrentTime(value || 0)}
+      showLabel={false}
+      aria-label={t('Seek slider')}
+    />
+  );
+});
 const Meter = styled(Progress.Meter)`
   background: ${p => p.theme.gray200};
 `;
