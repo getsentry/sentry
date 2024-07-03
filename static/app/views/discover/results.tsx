@@ -6,10 +6,7 @@ import type {Location} from 'history';
 import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 
-import {
-  updateSavedQuery,
-  updateSavedQueryVisit,
-} from 'sentry/actionCreators/discoverSavedQueries';
+import {updateSavedQueryVisit} from 'sentry/actionCreators/discoverSavedQueries';
 import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {fetchProjectsCount} from 'sentry/actionCreators/projects';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
@@ -304,22 +301,6 @@ export class Results extends Component<Props, State> {
       Sentry.captureException(err);
     }
   }
-
-  handleForcedDataset = () => {
-    const {api, organization, setSavedQuery} = this.props;
-    const {eventView} = this.state;
-
-    const newEventView = eventView.withQueryDataset(SavedQueryDatasets.ERRORS);
-    const query = newEventView.toNewQuery();
-
-    try {
-      updateSavedQuery(api, organization.slug, query).then((savedQuery: SavedQuery) => {
-        setSavedQuery(savedQuery);
-      });
-    } catch (err) {
-      Sentry.captureException(err);
-    }
-  };
 
   checkEventView() {
     const {eventView, splitDecision} = this.state;
@@ -744,16 +725,14 @@ export class Results extends Component<Props, State> {
                   isHomepage={isHomepage}
                   setTips={this.setTips}
                   setSplitDecision={(value?: SavedQueryDatasets) => {
-                    this.setSplitDecision(value);
                     if (
                       organization.features.includes(
                         'performance-discover-dataset-selector'
                       ) &&
-                      value === SavedQueryDatasets.DISCOVER &&
-                      savedQuery
+                      value !== SavedQueryDatasets.DISCOVER &&
+                      value !== savedQuery?.dataset
                     ) {
-                      this.setSplitDecision(SavedQueryDatasets.ERRORS);
-                      this.handleForcedDataset();
+                      this.setSplitDecision(value);
                       this.setState({showForcedDatasetAlert: true});
                     }
                   }}
