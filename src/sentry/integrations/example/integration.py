@@ -19,8 +19,8 @@ from sentry.mediators.plugins.migrator import Migrator
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import PipelineView
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service

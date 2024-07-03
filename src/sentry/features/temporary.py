@@ -323,8 +323,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:related-events", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable related issues feature
     manager.add("organizations:related-issues", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable related issues in issue details page
-    manager.add("organizations:related-issues-issue-details-page", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Metrics cardinality limiter in Relay
     manager.add("organizations:relay-cardinality-limiter", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable the release details performance section

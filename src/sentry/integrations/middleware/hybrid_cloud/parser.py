@@ -20,8 +20,8 @@ from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.models.integrations import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.outbox import WebhookProviderIdentifier
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.ratelimits import backend as ratelimiter
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloLimit, SiloMode
 from sentry.silo.client import RegionSiloClient, SiloClientError

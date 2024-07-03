@@ -387,7 +387,6 @@ def list_all_service_method_signatures() -> Iterable[RpcMethodSignature]:
     # Several packages contain RPC services in them.
     # This eventually could end up being sentry.*.services
     service_packages = (
-        "sentry.services.hybrid_cloud",
         "sentry.auth.services",
         "sentry.audit_log.services",
         "sentry.backup.services",
@@ -396,7 +395,10 @@ def list_all_service_method_signatures() -> Iterable[RpcMethodSignature]:
         "sentry.integrations.services",
         "sentry.issues.services",
         "sentry.notifications.services",
+        "sentry.organizations.services",
+        "sentry.projects.services",
         "sentry.sentry_apps.services",
+        "sentry.users.services",
     )
     for package_name in service_packages:
         package = importlib.import_module(package_name)

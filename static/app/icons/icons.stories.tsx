@@ -99,6 +99,13 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
+        id: 'wifi',
+        groups: ['product'],
+        keywords: ['internet'],
+        name: 'Wifi',
+        defaultProps: {},
+      },
+      {
         id: 'telescope',
         groups: ['product'],
         keywords: [],
@@ -1010,6 +1017,24 @@ const SECTIONS: TSection[] = [
         keywords: [],
         name: 'Zoom',
         defaultProps: {isZoomIn: true},
+      },
+      {
+        id: 'focus',
+        keywords: ['foreground'],
+        name: 'Focus',
+        defaultProps: {isFocused: true},
+      },
+      {
+        id: 'blur',
+        keywords: ['background'],
+        name: 'Focus',
+        defaultProps: {isFocused: false},
+      },
+      {
+        id: 'tap',
+        keywords: ['finger', 'hand', 'cursor'],
+        name: 'Tap',
+        defaultProps: {},
       },
     ],
   },

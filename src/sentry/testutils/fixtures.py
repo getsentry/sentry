@@ -20,10 +20,11 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
+from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.rule import Rule
 from sentry.models.user import User
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
-from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.organizations.services.organization import RpcOrganization
 from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -165,6 +166,9 @@ class Fixtures:
         if "teams" not in kwargs:
             kwargs["teams"] = [self.team]
         return Factories.create_project(**kwargs)
+
+    def create_project_template(self, **kwargs) -> ProjectTemplate:
+        return Factories.create_project_template(**kwargs)
 
     def create_project_bookmark(self, project=None, *args, **kwargs):
         if project is None:

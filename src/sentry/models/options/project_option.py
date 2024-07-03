@@ -152,6 +152,9 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
     def post_delete(self, instance: ProjectOption, **kwargs: Any) -> None:
         self.reload_cache(instance.project_id, "projectoption.post_delete")
 
+    def isset(self, project: Project, key: str) -> bool:
+        return self.get_value(project, key, default=Ellipsis) is not Ellipsis
+
 
 @region_silo_model
 class ProjectOption(Model):
