@@ -40,7 +40,6 @@ export interface MetricsQueryApiRequestQuery {
   name: string;
   alias?: string;
   // Conditions are used to identify virtual metrics
-
   condition?: number;
   groupBy?: string[];
   isQueryOnly?: boolean;
