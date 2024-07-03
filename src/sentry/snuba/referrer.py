@@ -74,6 +74,7 @@ class Referrer(Enum):
     API_DISCOVER_TOTAL_SUM_TRANSACTION_DURATION_FIELD_PRIMARY = (
         "api.discover.total-sum-transaction-duration-field.primary"
     )
+    API_DISCOVER_TOTAL_SCORE_WEIGHTS_FIELD = "api.discover.total-score-weights-field"
     API_DISCOVER_DAILY_CHART = "api.discover.daily-chart"
     API_DISCOVER_DAILYTOP5_CHART_FIND_TOPN = "api.discover.dailytop5-chart.find-topn"
     API_DISCOVER_DAILYTOP5_CHART = "api.discover.dailytop5-chart"
