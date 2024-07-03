@@ -17,6 +17,11 @@ import invariant from 'invariant';
 
 import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
 
+export type Dimensions = {
+  height: number;
+  width: number;
+};
+
 // These stub types should be coming from the sdk, but they're hard-coded until
 // the SDK updates to the latest version... once that happens delete this!
 // Needed for tests
@@ -93,6 +98,12 @@ export type OptionFrame = TOptionFrameEvent['data']['payload'];
 export type OptionFrameEvent = TOptionFrameEvent;
 export type RawSpanFrame = TRawSpanFrame;
 export type SpanFrameEvent = TSpanFrameEvent;
+
+export type CustomEvent<T = RecordingFrame> = T extends RecordingFrame & {
+  type: EventType.Custom;
+}
+  ? T
+  : never;
 
 export function isRecordingFrame(
   attachment: Record<string, any>
