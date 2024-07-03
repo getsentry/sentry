@@ -116,7 +116,7 @@ def get_changed_data(
     if rule_data.get("environment_id") and not rule_data_before.get("environment_id"):
         environment = None
         try:
-            environment = Environment.objects.get(id=rule_data.get("environment_id"))
+            environment = Environment.objects.get(id=rule_data["environment_id"])
         except Environment.DoesNotExist:
             pass
 
@@ -126,7 +126,7 @@ def get_changed_data(
     if rule_data_before.get("environment_id") and not rule_data.get("environment_id"):
         environment = None
         try:
-            environment = Environment.objects.get(id=rule_data.get("environment_id"))
+            environment = Environment.objects.get(id=rule_data_before["environment_id"])
         except Environment.DoesNotExist:
             pass
 
