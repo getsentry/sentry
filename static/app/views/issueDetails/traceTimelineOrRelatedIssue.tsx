@@ -15,7 +15,7 @@ export function TraceTimeLineOrRelatedIssue({event}: {event: Event}) {
   const {isLoading, oneOtherIssueEvent} = useTraceTimelineEvents({
     event,
   });
-  let params = {};
+  let params: Record<string, boolean> = {};
   if (!isLoading && oneOtherIssueEvent !== undefined) {
     params = {
       has_related_trace_issue: true,
