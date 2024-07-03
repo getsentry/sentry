@@ -409,7 +409,20 @@ class ProjectTest(APITestCase, TestCase):
         assert alert_rule.user_id is None
 
 
-class ProjectSettings(TestCase):
+class ProjectOptionsTests(TestCase):
+    """
+    These tests validate that the project model well correctly merge the
+    options from the project and the project template.
+
+    When returning getting options for a project the following hierarchy is used:
+    - Project
+    - Project Template
+    - Default
+
+    If a project has a template option set, it will override the default.
+    If a project has an option set, it will override the template option.
+    """
+
     def setUp(self):
         super().setUp()
         self.option_key = "sentry:test_data"
@@ -434,7 +447,7 @@ class ProjectSettings(TestCase):
         ProjectTemplateOption.objects.set_value(self.project_template, self.option_key, "test")
         assert self.project.get_option(self.option_key) == "test"
 
-    def test_get_option__overide_template(self):
+    def test_get_option__override_template(self):
         assert self.project.get_option(self.option_key) is None
         ProjectOption.objects.set_value(self.project, self.option_key, True)
         ProjectTemplateOption.objects.set_value(self.project_template, self.option_key, "test")
