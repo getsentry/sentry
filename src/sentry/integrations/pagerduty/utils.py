@@ -162,7 +162,7 @@ def send_incident_alert_notification(
                 "organization_id": organization_id,
             },
         )
-        return False
+        raise Http404
 
     org_integration_id: int | None = None
     if org_integration:
@@ -180,10 +180,11 @@ def send_incident_alert_notification(
         if org_integrations:
             org_integration = org_integrations[0]
 
-    if org_integration and action.target_identifier:
-        service = get_service(org_integration, action.target_identifier)
-
-    if service is None:
+    install = integration.get_installation(organization_id=organization_id)
+    assert isinstance(install, PagerDutyIntegration)
+    try:
+        client = install.get_keyring_client(str(action.target_identifier))
+    except ValueError:
         # service has been removed after rule creation
         logger.info(
             "fetch.fail.pagerduty_metric_alert",
@@ -195,13 +196,8 @@ def send_incident_alert_notification(
         )
         raise Http404
 
-    integration_key = service["integration_key"]
-    install = integration.get_installation(organization_id=organization_id)
-    assert isinstance(install, PagerDutyIntegration)
-
-    client = install.get_keyring_client(integration_key)
     attachment = build_incident_attachment(
-        incident, integration_key, new_status, metric_value, notification_uuid
+        incident, client.integration_key, new_status, metric_value, notification_uuid
     )
     attachment = attach_custom_severity(attachment, action, new_status)
 
