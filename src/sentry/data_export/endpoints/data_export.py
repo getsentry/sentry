@@ -13,7 +13,7 @@ from sentry.api.utils import get_date_range_from_params
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidParams, InvalidSearchQuery
 from sentry.models.environment import Environment
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.utils import metrics
@@ -103,7 +103,7 @@ class DataExportQuerySerializer(serializers.Serializer):
                 organization_id=organization.id,
             )
             try:
-                builder = QueryBuilder(
+                builder = DiscoverQueryBuilder(
                     SUPPORTED_DATASETS[dataset],
                     processor.params,
                     query=query_info["query"],

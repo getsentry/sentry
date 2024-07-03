@@ -1,5 +1,5 @@
+import sentry_sdk
 from sentry_kafka_schemas.schema_types.group_attributes_v1 import GroupAttributesSnapshot
-from sentry_sdk import Hub
 from snuba_sdk.legacy import json_to_snql
 
 from sentry.issues.attributes import (
@@ -32,7 +32,11 @@ class DatasetTest(SnubaTestCase, TestCase):
         request = json_to_snql(json_body, "group_attributes")
         request.validate()
         identity = lambda x: x
-        resp = _snuba_query(((request, identity, identity), Hub(Hub.current), {}, "test_api"))
+        isolation_scope = sentry_sdk.Scope.get_isolation_scope().fork()
+        current_scope = sentry_sdk.Scope.get_current_scope().fork()
+        resp = _snuba_query(
+            ((request, identity, identity), isolation_scope, current_scope, {}, "test_api")
+        )
         assert resp[0].status == 200
         stuff = json.loads(resp[0].data)
 
@@ -63,7 +67,11 @@ class DatasetTest(SnubaTestCase, TestCase):
         request = json_to_snql(json_body, "group_attributes")
         request.validate()
         identity = lambda x: x
-        resp = _snuba_query(((request, identity, identity), Hub(Hub.current), {}, "test_api"))
+        isolation_scope = sentry_sdk.Scope.get_isolation_scope().fork()
+        current_scope = sentry_sdk.Scope.get_current_scope().fork()
+        resp = _snuba_query(
+            ((request, identity, identity), isolation_scope, current_scope, {}, "test_api")
+        )
         assert resp[0].status == 200
         stuff = json.loads(resp[0].data)
 

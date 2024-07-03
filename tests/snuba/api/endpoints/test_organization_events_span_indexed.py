@@ -1,5 +1,7 @@
 import uuid
 
+import pytest
+
 from tests.snuba.api.endpoints.test_organization_events import OrganizationEventsEndpointTestBase
 
 
@@ -23,6 +25,7 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
             "organizations:starfish-view": True,
         }
 
+    @pytest.mark.querybuilder
     def test_simple(self):
         self.store_spans(
             [
@@ -373,3 +376,34 @@ class OrganizationEventsSpanIndexedEndpointTest(OrganizationEventsEndpointTestBa
         assert data[0]["measurements.messaging.message.body.size"] == 1024
         assert data[0]["measurements.messaging.message.retry.count"] == 2
         assert meta["dataset"] == "spansIndexed"
+
+    def test_tag_wildcards(self):
+        self.store_spans(
+            [
+                self.create_span(
+                    {"description": "foo", "tags": {"foo": "BaR"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+                self.create_span(
+                    {"description": "qux", "tags": {"foo": "QuX"}},
+                    start_ts=self.ten_mins_ago,
+                ),
+            ]
+        )
+
+        for query in [
+            "foo:b*",
+            "foo:*r",
+            "foo:*a*",
+            "foo:b*r",
+        ]:
+            response = self.do_request(
+                {
+                    "field": ["foo", "count()"],
+                    "query": query,
+                    "project": self.project.id,
+                    "dataset": "spansIndexed",
+                }
+            )
+            assert response.status_code == 200, response.content
+            assert response.data["data"] == [{"foo": "BaR", "count()": 1}]

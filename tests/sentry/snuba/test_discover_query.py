@@ -29,7 +29,7 @@ from sentry.utils.samples import load_data
 ARRAY_COLUMNS = ["measurements", "span_op_breakdowns"]
 
 
-class QueryIntegrationTest(SnubaTestCase, TestCase):
+class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
     def setUp(self):
         super().setUp()
         self.environment = self.create_environment(self.project, name="prod")

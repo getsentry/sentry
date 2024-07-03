@@ -30,7 +30,7 @@ def delete_replays(
 
     has_more = True
     while has_more:
-        query_results, has_more = query_replays_collection_paginated(
+        response = query_replays_collection_paginated(
             project_ids=[project_id],
             start=start_utc,
             end=end_utc,
@@ -41,8 +41,10 @@ def delete_replays(
             search_filters=search_filters,
             sort="started_at",
             organization=Organization.objects.filter(project__id=project_id).get(),
+            preferred_source="scalar",
         )
-        replays = list(generate_normalized_output(query_results))
+        replays = list(generate_normalized_output(response.response))
+        has_more = response.has_more
 
         # Exit early if no replays were found.
         if not replays:

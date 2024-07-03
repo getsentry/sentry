@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta, timezone
 
 import pytest
-from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
+from snuba_sdk import AliasedExpression, And, Column, Condition, Function, Op
 
 from sentry.search.events.builder import SpansIndexedQueryBuilder
 from sentry.snuba.dataset import Dataset
@@ -72,11 +72,22 @@ def test_field_alias(params, field, expected):
     assert expected in builder.columns
 
 
+def tags(key, column="tags"):
+    return Function("ifNull", [Column(f"{column}[{key}]"), ""])
+
+
+def has_tag(key, column="tags"):
+    return Condition(Function("has", [Column("tags.key"), key]), Op.EQ, 1)
+
+
 @pytest.mark.parametrize(
     ["condition", "expected"],
     [
         pytest.param(
-            "span.duration:1s", Condition(span_duration, Op.EQ, 1000), id="span.duration:1s"
+            "span.duration:1s",
+            Condition(span_duration, Op.EQ, 1000),
+            id="span.duration:1s",
+            marks=pytest.mark.querybuilder,
         ),
         pytest.param(
             "span.duration:>1s", Condition(span_duration, Op.GT, 1000), id="span.duration:>1s"
@@ -113,6 +124,190 @@ def test_field_alias(params, field, expected):
             Condition(Column("span_status"), Op.IN, [3, 5]),
             id="span.status:[invalid_argument,not_found]",
         ),
+        pytest.param(
+            "foo:*bar*",
+            And(
+                conditions=[
+                    Condition(Function("positionCaseInsensitive", [tags("foo"), "bar"]), Op.NEQ, 0),
+                    has_tag("foo"),
+                ],
+            ),
+            id="foo:*bar*",
+        ),
+        pytest.param(
+            "!foo:*bar*",
+            And(
+                conditions=[
+                    Condition(Function("positionCaseInsensitive", [tags("foo"), "bar"]), Op.EQ, 0),
+                    has_tag("foo"),
+                ],
+            ),
+            id="!foo:*bar*",
+        ),
+        pytest.param(
+            r"foo:Bar*",
+            And(
+                conditions=[
+                    Condition(
+                        Function("startsWith", [Function("lower", [tags("foo")]), "bar"]), Op.EQ, 1
+                    ),
+                    has_tag("foo"),
+                ],
+            ),
+            id=r"foo:Bar*",
+        ),
+        pytest.param(
+            r"!foo:Bar*",
+            And(
+                conditions=[
+                    Condition(
+                        Function("startsWith", [Function("lower", [tags("foo")]), "bar"]), Op.NEQ, 1
+                    ),
+                    has_tag("foo"),
+                ],
+            ),
+            id=r"!foo:Bar*",
+        ),
+        pytest.param(
+            r"foo:*Bar",
+            And(
+                conditions=[
+                    Condition(
+                        Function("endsWith", [Function("lower", [tags("foo")]), "bar"]), Op.EQ, 1
+                    ),
+                    has_tag("foo"),
+                ],
+            ),
+            id=r"foo:*Bar",
+        ),
+        pytest.param(
+            r"!foo:*Bar",
+            And(
+                conditions=[
+                    Condition(
+                        Function("endsWith", [Function("lower", [tags("foo")]), "bar"]), Op.NEQ, 1
+                    ),
+                    has_tag("foo"),
+                ],
+            ),
+            id=r"!foo:*Bar",
+        ),
+        pytest.param(
+            r"foo:*Bar\*",
+            And(
+                conditions=[
+                    Condition(
+                        Function("endsWith", [Function("lower", [tags("foo")]), "bar*"]), Op.EQ, 1
+                    ),
+                    has_tag("foo"),
+                ],
+            ),
+            id=r"foo:*Bar\*",
+        ),
+        pytest.param(
+            r"!foo:*Bar\*",
+            And(
+                conditions=[
+                    Condition(
+                        Function("endsWith", [Function("lower", [tags("foo")]), "bar*"]), Op.NEQ, 1
+                    ),
+                    has_tag("foo"),
+                ],
+            ),
+            id=r"!foo:*Bar\*",
+        ),
+        pytest.param(
+            r"foo:*b*a*r*",
+            And(
+                conditions=[
+                    Condition(Function("match", [tags("foo"), "(?i)^.*b.*a.*r.*$"]), Op.EQ, 1),
+                    has_tag("foo"),
+                ],
+            ),
+            id=r"foo:*b*a*r*",
+        ),
+        pytest.param(
+            r"!foo:*b*a*r*",
+            And(
+                conditions=[
+                    Condition(Function("match", [tags("foo"), "(?i)^.*b.*a.*r.*$"]), Op.NEQ, 1),
+                    has_tag("foo"),
+                ],
+            ),
+            id=r"!foo:*b*a*r*",
+        ),
+        pytest.param(
+            "message:*bar*",
+            Condition(
+                Function("positionCaseInsensitive", [Column("description"), "bar"]), Op.NEQ, 0
+            ),
+            id="message:*bar*",
+        ),
+        pytest.param(
+            "!message:*bar*",
+            Condition(
+                Function("positionCaseInsensitive", [Column("description"), "bar"]), Op.EQ, 0
+            ),
+            id="!message:*bar*",
+        ),
+        pytest.param(
+            r"message:Bar*",
+            Condition(
+                Function("startsWith", [Function("lower", [Column("description")]), "bar"]),
+                Op.EQ,
+                1,
+            ),
+            id=r"message:Bar*",
+        ),
+        pytest.param(
+            r"!message:Bar*",
+            Condition(
+                Function("startsWith", [Function("lower", [Column("description")]), "bar"]),
+                Op.NEQ,
+                1,
+            ),
+            id=r"!message:Bar*",
+        ),
+        pytest.param(
+            r"message:*Bar",
+            Condition(
+                Function("endsWith", [Function("lower", [Column("description")]), "bar"]), Op.EQ, 1
+            ),
+            id=r"message:*Bar",
+        ),
+        pytest.param(
+            r"!message:*Bar",
+            Condition(
+                Function("endsWith", [Function("lower", [Column("description")]), "bar"]), Op.NEQ, 1
+            ),
+            id=r"!message:*Bar",
+        ),
+        pytest.param(
+            r"message:*Bar\*",
+            Condition(
+                Function("endsWith", [Function("lower", [Column("description")]), "bar*"]), Op.EQ, 1
+            ),
+            id=r"message:*Bar\*",
+        ),
+        pytest.param(
+            r"!message:*Bar\*",
+            Condition(
+                Function("endsWith", [Function("lower", [Column("description")]), "bar*"]),
+                Op.NEQ,
+                1,
+            ),
+            id=r"!message:*Bar\*",
+        ),
+        pytest.param(
+            r"message:*b*a*r*",
+            Condition(Function("match", [Column("description"), "(?i).*b.*a.*r.*"]), Op.EQ, 1),
+            id=r"message:*b*a*r*",
+        ),
+        pytest.param(
+            r"!message:*b*a*r*",
+            Condition(Function("match", [Column("description"), "(?i).*b.*a.*r.*"]), Op.NEQ, 1),
+            id=r"!message:*b*a*r*",
+        ),
     ],
 )
 @django_db_all
@@ -142,7 +337,7 @@ def test_where_project(params):
 
 
 @pytest.mark.parametrize(
-    ["query", "result"],
+    ["query", "expected"],
     [
         pytest.param(
             "span.op:params test",
@@ -174,20 +369,29 @@ def test_where_project(params):
         pytest.param(
             "*testing*",
             Condition(
-                Function("match", [Column("description"), "(?i).*testing.*"]),
+                Function("positionCaseInsensitive", [Column("description"), "testing"]),
+                Op.NEQ,
+                0,
+            ),
+            id="*testing*",
+        ),
+        pytest.param(
+            "*test*ing*",
+            Condition(
+                Function("match", [Column("description"), "(?i).*test.*ing.*"]),
                 Op.EQ,
                 1,
             ),
-            id="*testing*",
+            id="*test*ing*",
         ),
     ],
 )
 @django_db_all
-def test_free_text_search(params, query, result):
+def test_free_text_search(params, query, expected):
     builder = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,
         params,
         query=query,
         selected_columns=["count"],
     )
-    assert result in builder.where
+    assert expected in builder.where

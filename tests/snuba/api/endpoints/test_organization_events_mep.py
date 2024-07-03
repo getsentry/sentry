@@ -412,6 +412,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
         assert response.status_code == 400, response.content
 
+    @pytest.mark.querybuilder
     def test_performance_homepage_query(self):
         self.store_transaction_metric(
             1,
@@ -2531,6 +2532,49 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert meta["dataset"] == "metrics"
         assert meta["fields"]["avg_if(transaction.duration, release, foo)"] == "duration"
 
+    def test_count_if(self):
+        self.store_transaction_metric(
+            100,
+            timestamp=self.min_ago,
+            tags={"release": "1.0.0"},
+        )
+        self.store_transaction_metric(
+            200,
+            timestamp=self.min_ago,
+            tags={"release": "1.0.0"},
+        )
+        self.store_transaction_metric(
+            10,
+            timestamp=self.min_ago,
+            tags={"release": "2.0.0"},
+        )
+
+        countIfRelease1 = "count_if(transaction.duration,release,1.0.0)"
+        countIfRelease2 = "count_if(transaction.duration,release,2.0.0)"
+
+        response = self.do_request(
+            {
+                "field": [
+                    countIfRelease1,
+                    countIfRelease2,
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "metrics",
+            }
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+
+        assert len(data) == 1
+        assert data[0][countIfRelease1] == 2
+        assert data[0][countIfRelease2] == 1
+
+        assert meta["dataset"] == "metrics"
+        assert meta["fields"][countIfRelease1] == "integer"
+        assert meta["fields"][countIfRelease2] == "integer"
+
     def test_device_class(self):
         self.store_transaction_metric(
             100,
@@ -2811,13 +2855,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
 
         self.store_transaction_metric(
-            0.00,
-            metric="measurements.score.total",
-            tags={"transaction": "foo_transaction"},
-            timestamp=self.min_ago,
-        )
-
-        self.store_transaction_metric(
             0.80,
             metric="measurements.score.inp",
             tags={"transaction": "foo_transaction"},
@@ -2836,19 +2873,18 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
             timestamp=self.min_ago,
         )
 
-        with self.feature({"organizations:starfish-browser-webvitals-score-computed-total": True}):
-            response = self.do_request(
-                {
-                    "field": [
-                        "transaction",
-                        "weighted_performance_score(measurements.score.ttfb)",
-                        "weighted_performance_score(measurements.score.inp)",
-                    ],
-                    "query": "event.type:transaction",
-                    "dataset": "metrics",
-                    "per_page": 50,
-                }
-            )
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "weighted_performance_score(measurements.score.ttfb)",
+                    "weighted_performance_score(measurements.score.inp)",
+                ],
+                "query": "event.type:transaction",
+                "dataset": "metrics",
+                "per_page": 50,
+            }
+        )
         assert response.status_code == 200, response.content
         assert len(response.data["data"]) == 1
         data = response.data["data"]
@@ -3483,6 +3519,10 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     @pytest.mark.xfail(reason="Not implemented")
     def test_avg_if(self):
         super().test_avg_if()
+
+    @pytest.mark.xfail(reason="Not implemented")
+    def test_count_if(self):
+        super().test_count_if()
 
     @pytest.mark.xfail(reason="Not implemented")
     def test_device_class(self):

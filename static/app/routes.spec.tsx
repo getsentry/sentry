@@ -75,7 +75,7 @@ function extractRoutes(rootRoute: any): Record<string, RouteComponent> {
 }
 
 describe('buildRoutes()', function () {
-  // Until customer-domains is mainlined and path
+  // Until customer-domains is enabled for single-tenant, self-hosted and path
   // based slug routes are removed we need to ensure
   // that each orgId route also has slugless path.
   test('orgId routes also have domain routes', function () {

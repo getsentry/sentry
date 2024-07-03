@@ -429,7 +429,7 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 ## Telemetry Experience
 /src/sentry/api/endpoints/organization_ddm.py                                    @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_ddm_meta.py                        @getsentry/telemetry-experience
-/src/sentry/api/endpoints/organization_metrics.py                                @getsentry/telemetry-experience
+/src/sentry/api/endpoints/organization_metric*                                   @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_metric*                            @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_sessions.py                               @getsentry/telemetry-experience
 /tests/snuba/api/endpoints/test_organization_sessions.py                         @getsentry/telemetry-experience
@@ -437,6 +437,8 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /tests/sentry/api/endpoints/test_projects_metrics_visibility.py                  @getsentry/telemetry-experience
 /src/sentry/api/endpoints/organization_onboarding*                               @getsentry/telemetry-experience
 /tests/sentry/api/endpoints/test_organization_onboarding*                        @getsentry/telemetry-experience
+/src/sentry/api/endpoints/project_metrics_extraction_rules*                      @getsentry/telemetry-experience
+/tests/sentry/api/endpoints/test_project_metrics_extraction_rules.py             @getsentry/telemetry-experience
 /src/sentry/dynamic_sampling/                                                    @getsentry/telemetry-experience
 /tests/sentry/dynamic_sampling/                                                  @getsentry/telemetry-experience
 /src/sentry/release_health/metrics_sessions_v2.py                                @getsentry/telemetry-experience
@@ -487,6 +489,7 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/middleware/ratelimit.py                         @getsentry/issues
 /src/sentry/middleware/access_log.py                        @getsentry/issues
 /src/sentry/ratelimits/                                     @getsentry/issues
+/src/sentry/seer/similarity/                                @getsentry/issues
 /src/sentry/tasks/auto_remove_inbox.py                      @getsentry/issues
 /src/sentry/tasks/auto_resolve_issues.py                    @getsentry/issues
 /src/sentry/tasks/codeowners/                               @getsentry/issues

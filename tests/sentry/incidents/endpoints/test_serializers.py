@@ -9,6 +9,8 @@ import responses
 from django.test import override_settings
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
+from slack_sdk.errors import SlackApiError
+from slack_sdk.web.slack_response import SlackResponse
 
 from sentry.auth.access import from_user
 from sentry.incidents.logic import (
@@ -33,16 +35,18 @@ from sentry.incidents.serializers import (
 )
 from sentry.integrations.opsgenie.utils import OPSGENIE_CUSTOM_PRIORITIES
 from sentry.integrations.pagerduty.utils import PAGERDUTY_CUSTOM_PRIORITIES
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.serial import serialize_integration
+from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.environment import Environment
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.app import app_service
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.integration.serial import serialize_integration
+from sentry.sentry_apps.services.app import app_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.utils import json
@@ -235,12 +239,13 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             {"aggregate": "count_unique(123, hello)"},
             {
                 "aggregate": [
-                    "Invalid Metric: count_unique(123, hello): expected at most 1 argument(s)"
+                    "Invalid Metric: count_unique(123, hello): expected at most 1 argument(s) but got 2 argument(s)"
                 ]
             },
         )
         self.run_fail_validation_test(
-            {"aggregate": "max()"}, {"aggregate": ["Invalid Metric: max(): expected 1 argument(s)"]}
+            {"aggregate": "max()"},
+            {"aggregate": ["Invalid Metric: max(): expected 1 argument(s) but got 0 argument(s)"]},
         )
         aggregate = "count_unique(tags[sentry:user])"
         base_params = self.valid_params.copy()
@@ -530,8 +535,8 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         self.run_fail_validation_test({"thresholdType": 50}, {"thresholdType": invalid_values})
 
     @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
-        return_value=("#", None, True),
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout_deprecated",
+        return_value=SlackChannelIdData("#", None, True),
     )
     def test_channel_timeout(self, mock_get_channel_id):
         trigger = {
@@ -559,8 +564,8 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         )
 
     @patch(
-        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout",
-        return_value=("#", None, True),
+        "sentry.integrations.slack.utils.channel.get_channel_id_with_timeout_deprecated",
+        return_value=SlackChannelIdData("#", None, True),
     )
     def test_invalid_team_with_channel_timeout(self, mock_get_channel_id):
         other_org = self.create_organization()
@@ -805,6 +810,34 @@ class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
 
 
 class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
+    def mock_conversations_list(self, channels):
+        return patch(
+            "slack_sdk.web.client.WebClient.conversations_list",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/conversations.list",
+                req_args={},
+                data={"ok": True, "channels": channels},
+                headers={},
+                status_code=200,
+            ),
+        )
+
+    def mock_conversations_info(self, channel):
+        return patch(
+            "slack_sdk.web.client.WebClient.conversations_info",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/conversations.info",
+                req_args={"channel": channel},
+                data={"ok": True, "channel": channel},
+                headers={},
+                status_code=200,
+            ),
+        )
+
     @cached_property
     def other_project(self):
         return self.create_project()
@@ -1094,6 +1127,41 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
         )
         assert len(alert_rule_trigger_actions) == 1
 
+    @override_options({"slack-sdk.valid_channel_id": True})
+    def test_valid_slack_channel_id_sdk(self):
+        """
+        Test that when a valid Slack channel ID is provided, we look up the channel name and validate it against the targetIdentifier.
+        """
+        base_params = self.valid_params.copy()
+        base_params.update(
+            {
+                "type": AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.SLACK
+                ).slug,
+                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                    AlertRuleTriggerAction.TargetType.SPECIFIC
+                ],
+                "targetIdentifier": "merp",
+                "integration": str(self.integration.id),
+            }
+        )
+        context = self.context.copy()
+        context.update({"input_channel_id": "CSVK0921"})
+
+        channel = {"name": "merp", "id": "CSVK0921"}
+
+        with self.mock_conversations_info(channel):
+            serializer = AlertRuleTriggerActionSerializer(context=context, data=base_params)
+            assert serializer.is_valid()
+
+            serializer.save()
+
+            # # Make sure the action was created.
+            alert_rule_trigger_actions = list(
+                AlertRuleTriggerAction.objects.filter(integration_id=self.integration.id)
+            )
+            assert len(alert_rule_trigger_actions) == 1
+
     @responses.activate
     def test_invalid_slack_channel_id(self):
         """
@@ -1129,6 +1197,40 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
             AlertRuleTriggerAction.objects.filter(integration_id=self.integration.id)
         )
         assert len(alert_rule_trigger_actions) == 0
+
+    @override_options({"slack-sdk.valid_channel_id": True})
+    def test_invalid_slack_channel_id_sdk(self):
+        """
+        Test that an invalid Slack channel ID is detected and blocks the action from being saved.
+        """
+        base_params = self.valid_params.copy()
+        base_params.update(
+            {
+                "type": AlertRuleTriggerAction.get_registered_type(
+                    AlertRuleTriggerAction.Type.SLACK
+                ).slug,
+                "targetType": ACTION_TARGET_TYPE_TO_STRING[
+                    AlertRuleTriggerAction.TargetType.SPECIFIC
+                ],
+                "targetIdentifier": "merp",
+                "integration": str(self.integration.id),
+            }
+        )
+        context = self.context.copy()
+        context.update({"input_channel_id": "M40W931"})
+
+        with patch(
+            "slack_sdk.web.client.WebClient.conversations_info",
+            side_effect=SlackApiError("", response={"ok": False, "error": "channel_not_found"}),
+        ):
+            serializer = AlertRuleTriggerActionSerializer(context=context, data=base_params)
+            assert not serializer.is_valid()
+
+            # # Make sure the action was not created.
+            alert_rule_trigger_actions = list(
+                AlertRuleTriggerAction.objects.filter(integration_id=self.integration.id)
+            )
+            assert len(alert_rule_trigger_actions) == 0
 
     @responses.activate
     def test_invalid_slack_channel_name(self):

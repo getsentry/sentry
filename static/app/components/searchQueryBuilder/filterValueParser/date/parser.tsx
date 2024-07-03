@@ -16,7 +16,7 @@ export function parseFilterValueDate(
   query: string
 ): TokenResult<Token.VALUE_ISO_8601_DATE | Token.VALUE_RELATIVE_DATE> | null {
   try {
-    return grammar.parse(query, {TokenConverter});
+    return grammar.parse(query, {TokenConverter, config: {parse: true}});
   } catch (e) {
     return null;
   }

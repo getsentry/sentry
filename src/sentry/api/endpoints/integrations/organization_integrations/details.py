@@ -20,7 +20,7 @@ from sentry.api.serializers.models.integration import OrganizationIntegrationSer
 from sentry.constants import ObjectStatus
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.scheduledeletion import ScheduledDeletion
-from sentry.services.hybrid_cloud.organization import RpcUserOrganizationContext
+from sentry.organizations.services.organization import RpcUserOrganizationContext
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.utils.audit import create_audit_entry
 from sentry.web.decorators import set_referrer_policy

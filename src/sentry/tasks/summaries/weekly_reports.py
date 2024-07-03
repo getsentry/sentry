@@ -3,7 +3,7 @@ from __future__ import annotations
 import heapq
 import logging
 import uuid
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from datetime import timedelta
 from functools import partial
@@ -22,7 +22,7 @@ from sentry.models.grouphistory import GroupHistoryStatus
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.notifications import notifications_service
+from sentry.notifications.services import notifications_service
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task, retry
@@ -452,7 +452,7 @@ def get_group_status_badge(group: Group) -> tuple[str, str, str]:
     return ("Ongoing", "rgba(219, 214, 225, 1)", "rgba(219, 214, 225, 1)")
 
 
-def render_template_context(ctx, user_id):
+def render_template_context(ctx, user_id: int | None) -> dict[str, Any] | None:
     # Serialize ctx for template, and calculate view parameters (like graph bar heights)
     # Fetch the list of projects associated with the user.
     # Projects owned by teams that the user has membership of.
@@ -748,7 +748,7 @@ def render_template_context(ctx, user_id):
 
 
 def prepare_template_context(
-    ctx: OrganizationReportContext, user_ids: list[int]
+    ctx: OrganizationReportContext, user_ids: Sequence[int | None]
 ) -> list[Mapping[str, Any]] | list:
     user_template_context_by_user_id_list = []
     for user_id in user_ids:

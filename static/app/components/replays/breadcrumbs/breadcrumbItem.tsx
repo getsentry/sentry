@@ -1,5 +1,5 @@
 import type {CSSProperties, MouseEvent} from 'react';
-import {isValidElement, memo} from 'react';
+import {isValidElement, memo, useCallback} from 'react';
 import styled from '@emotion/styled';
 import beautify from 'js-beautify';
 
@@ -13,13 +13,28 @@ import PanelItem from 'sentry/components/panels/panelItem';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
+import Timeline from 'sentry/components/timeline';
+import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
+import {getReplayDiffOffsetsFromFrame} from 'sentry/utils/replays/getDiffTimestamps';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
-import type {ErrorFrame, FeedbackFrame, ReplayFrame} from 'sentry/utils/replays/types';
-import {isErrorFrame, isFeedbackFrame} from 'sentry/utils/replays/types';
+import type ReplayReader from 'sentry/utils/replays/replayReader';
+import type {
+  ErrorFrame,
+  FeedbackFrame,
+  HydrationErrorFrame,
+  ReplayFrame,
+} from 'sentry/utils/replays/types';
+import {
+  isBreadcrumbFrame,
+  isErrorFrame,
+  isFeedbackFrame,
+  isHydrationErrorFrame,
+} from 'sentry/utils/replays/types';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
@@ -30,7 +45,6 @@ type MouseCallback = (frame: ReplayFrame, e: React.MouseEvent<HTMLElement>) => v
 const FRAMES_WITH_BUTTONS = ['replay.hydrate-error'];
 
 interface Props {
-  extraction: Extraction | undefined;
   frame: ReplayFrame;
   onClick: null | MouseCallback;
   onInspectorExpanded: (
@@ -43,6 +57,7 @@ interface Props {
   startTimestampMs: number;
   className?: string;
   expandPaths?: string[];
+  extraction?: Extraction;
   style?: CSSProperties;
 }
 
@@ -63,6 +78,79 @@ function BreadcrumbItem({
 
   const forceSpan = 'category' in frame && FRAMES_WITH_BUTTONS.includes(frame.category);
 
+  const renderDescription = useCallback(() => {
+    return typeof description === 'string' ||
+      (description !== undefined && isValidElement(description)) ? (
+      <Description title={description} showOnlyOnOverflow isHoverable>
+        {description}
+      </Description>
+    ) : (
+      <InspectorWrapper>
+        <ObjectInspector
+          data={description}
+          expandPaths={expandPaths}
+          onExpand={onInspectorExpanded}
+          theme={{
+            TREENODE_FONT_SIZE: '0.7rem',
+            ARROW_FONT_SIZE: '0.5rem',
+          }}
+        />
+      </InspectorWrapper>
+    );
+  }, [description, expandPaths, onInspectorExpanded]);
+
+  const renderComparisonButton = useCallback(() => {
+    return isBreadcrumbFrame(frame) && isHydrationErrorFrame(frame) ? (
+      <CrumbHydrationButton replay={replay} frame={frame} />
+    ) : null;
+  }, [frame, replay]);
+
+  const renderCodeSnippet = useCallback(() => {
+    return extraction?.html ? (
+      <CodeContainer>
+        <CodeSnippet language="html" hideCopyButton>
+          {beautify.html(extraction?.html, {indent_size: 2})}
+        </CodeSnippet>
+      </CodeContainer>
+    ) : null;
+  }, [extraction?.html]);
+
+  const renderIssueLink = useCallback(() => {
+    return isErrorFrame(frame) || isFeedbackFrame(frame) ? (
+      <CrumbErrorIssue frame={frame} />
+    ) : null;
+  }, [frame]);
+
+  const hasNewTimelineUI = useHasNewTimelineUI();
+  const timeString = new Date(frame.timestampMs).toISOString();
+  const startTimeString = new Date(startTimestampMs).toISOString();
+  if (hasNewTimelineUI) {
+    return (
+      <StyledTimelineItem
+        icon={icon}
+        title={title}
+        colorConfig={{primary: color, secondary: color}}
+        timeString={timeString}
+        renderTimestamp={(_ts, _sts) =>
+          formatReplayDuration(Math.abs(frame.timestampMs - startTimestampMs), false)
+        }
+        startTimeString={startTimeString}
+        data-is-error-frame={isErrorFrame(frame)}
+        style={style}
+        className={className}
+        onClick={e => onClick?.(frame, e)}
+        onMouseEnter={e => onMouseEnter(frame, e)}
+        onMouseLeave={e => onMouseLeave(frame, e)}
+      >
+        <ErrorBoundary mini>
+          {renderDescription()}
+          {renderComparisonButton()}
+          {renderCodeSnippet()}
+          {renderIssueLink()}
+        </ErrorBoundary>
+      </StyledTimelineItem>
+    );
+  }
   return (
     <CrumbItem
       data-is-error-frame={isErrorFrame(frame)}
@@ -76,7 +164,6 @@ function BreadcrumbItem({
       <IconWrapper color={color} hasOccurred>
         {icon}
       </IconWrapper>
-
       <ErrorBoundary mini>
         <CrumbDetails>
           <Flex column>
@@ -89,57 +176,37 @@ function BreadcrumbItem({
                 />
               ) : null}
             </TitleContainer>
-
-            {typeof description === 'string' ||
-            (description !== undefined && isValidElement(description)) ? (
-              <Description title={description} showOnlyOnOverflow isHoverable>
-                {description}
-              </Description>
-            ) : (
-              <InspectorWrapper>
-                <ObjectInspector
-                  data={description}
-                  expandPaths={expandPaths}
-                  onExpand={onInspectorExpanded}
-                  theme={{
-                    TREENODE_FONT_SIZE: '0.7rem',
-                    ARROW_FONT_SIZE: '0.5rem',
-                  }}
-                />
-              </InspectorWrapper>
-            )}
+            {renderDescription()}
           </Flex>
-
-          {'data' in frame && frame.data && 'mutations' in frame.data ? (
-            <div>
-              <OpenReplayComparisonButton
-                replay={replay}
-                leftTimestamp={frame.offsetMs}
-                rightTimestamp={
-                  (frame.data.mutations.next?.timestamp ?? 0) -
-                  (replay?.getReplay().started_at.getTime() ?? 0)
-                }
-                size="xs"
-              >
-                {t('Open Hydration Diff')}
-              </OpenReplayComparisonButton>
-            </div>
-          ) : null}
-
-          {extraction?.html ? (
-            <CodeContainer>
-              <CodeSnippet language="html" hideCopyButton>
-                {beautify.html(extraction?.html, {indent_size: 2})}
-              </CodeSnippet>
-            </CodeContainer>
-          ) : null}
-
-          {isErrorFrame(frame) || isFeedbackFrame(frame) ? (
-            <CrumbErrorIssue frame={frame} />
-          ) : null}
+          {renderComparisonButton()}
+          {renderCodeSnippet()}
+          {renderIssueLink()}
         </CrumbDetails>
       </ErrorBoundary>
     </CrumbItem>
+  );
+}
+
+function CrumbHydrationButton({
+  replay,
+  frame,
+}: {
+  frame: HydrationErrorFrame;
+  replay: ReplayReader | null;
+}) {
+  const {leftOffsetMs, rightOffsetMs} = getReplayDiffOffsetsFromFrame(replay, frame);
+
+  return (
+    <div>
+      <OpenReplayComparisonButton
+        replay={replay}
+        leftOffsetMs={leftOffsetMs}
+        rightOffsetMs={rightOffsetMs}
+        size="xs"
+      >
+        {t('Open Hydration Diff')}
+      </OpenReplayComparisonButton>
+    </div>
   );
 }
 
@@ -219,6 +286,31 @@ const Description = styled(Tooltip)`
   font-variant-numeric: tabular-nums;
   line-height: ${p => p.theme.text.lineHeightBody};
   color: ${p => p.theme.subText};
+`;
+
+const StyledTimelineItem = styled(Timeline.Item)`
+  width: 100%;
+  position: relative;
+  padding: ${space(0.5)} ${space(0.75)};
+  margin: 0;
+  &:hover {
+    background: ${p => p.theme.translucentSurface200};
+  }
+  cursor: pointer;
+  /* vertical line connecting items */
+  &:not(:last-child)::before {
+    content: '';
+    position: absolute;
+    left: 16.5px;
+    width: 1px;
+    top: -2px;
+    bottom: -9px;
+    background: ${p => p.theme.border};
+    z-index: 0;
+  }
+  &:first-child::before {
+    top: 4px;
+  }
 `;
 
 const CrumbItem = styled(PanelItem)<{isErrorFrame?: boolean}>`

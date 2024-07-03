@@ -7,7 +7,15 @@ from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from rest_framework.request import Request
 
-from sentry.integrations.slack.utils.notifications import send_slack_response
+from sentry import features
+from sentry.integrations.slack.metrics import (
+    SLACK_BOT_COMMAND_UNLINK_IDENTITY_FAILURE_DATADOG_METRIC,
+    SLACK_BOT_COMMAND_UNLINK_IDENTITY_SUCCESS_DATADOG_METRIC,
+)
+from sentry.integrations.slack.utils.notifications import (
+    respond_to_slack_command,
+    send_slack_response,
+)
 from sentry.integrations.slack.views import build_linking_url as base_build_linking_url
 from sentry.integrations.slack.views import never_cache, render_error_page
 from sentry.integrations.slack.views.types import IdentityParams
@@ -42,8 +50,8 @@ class SlackUnlinkIdentityView(BaseView):
     Django view for unlinking user from slack account. Deletes from Identity table.
     """
 
-    _METRICS_SUCCESS_KEY = "sentry.integrations.slack.unlink_identity_view.success"
-    _METRICS_FAILURE_KEY = "sentry.integrations.slack.unlink_identity_view.failure"
+    _METRICS_SUCCESS_KEY = SLACK_BOT_COMMAND_UNLINK_IDENTITY_SUCCESS_DATADOG_METRIC
+    _METRICS_FAILURE_KEY = SLACK_BOT_COMMAND_UNLINK_IDENTITY_FAILURE_DATADOG_METRIC
 
     @method_decorator(never_cache)
     def dispatch(self, request: HttpRequest, signed_params: str) -> HttpResponseBase:
@@ -100,6 +108,7 @@ class SlackUnlinkIdentityView(BaseView):
                 idp=kwargs["idp"],
                 slack_id=params_dict["slack_id"],
                 channel_id=params_dict["channel_id"],
+                response_url=params_dict.get("response_url"),
             )
         except KeyError as e:
             _logger.exception("slack.unlink.missing_params", extra={"error": str(e)})
@@ -120,12 +129,11 @@ class SlackUnlinkIdentityView(BaseView):
             )
             raise Http404
 
-        # TODO: We should use use the dataclass to send the slack response
-        send_slack_response(
-            params.integration, SUCCESS_UNLINKED_MESSAGE, params.__dict__, command="unlink"
-        )
+        if features.has("organizations:slack-sdk-link-commands", params.organization):
+            respond_to_slack_command(params, SUCCESS_UNLINKED_MESSAGE, command="link")
+        else:
+            send_slack_response(params, SUCCESS_UNLINKED_MESSAGE, command="unlink")
 
-        _logger.info("unlink_identity_success", extra={"slack_id": params.slack_id})
         metrics.incr(self._METRICS_SUCCESS_KEY + ".post.unlink_identity", sample_rate=1.0)
 
         return render_to_response(

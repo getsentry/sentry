@@ -14,7 +14,7 @@ from rest_framework.request import Request
 
 # Reexport sentry_sdk just in case we ever have to write another shim like we
 # did for raven
-from sentry_sdk import Scope, capture_exception, capture_message, configure_scope, push_scope
+from sentry_sdk import Scope, capture_exception, capture_message, configure_scope, isolation_scope
 from sentry_sdk.client import get_options
 from sentry_sdk.integrations.django.transactions import LEGACY_RESOLVER
 from sentry_sdk.transport import make_transport
@@ -31,7 +31,7 @@ from sentry.utils.rust import RustInfoIntegration
 # Can't import models in utils because utils should be the bottom of the food chain
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
-    from sentry.services.hybrid_cloud.organization import RpcOrganization
+    from sentry.organizations.services.organization import RpcOrganization
 
 
 logger = logging.getLogger(__name__)
@@ -76,7 +76,7 @@ SAMPLED_TASKS = {
     "sentry.tasks.derive_code_mappings.derive_code_mappings": settings.SAMPLED_DEFAULT_RATE,
     "sentry.monitors.tasks.clock_pulse": 1.0,
     "sentry.tasks.auto_enable_codecov": settings.SAMPLED_DEFAULT_RATE,
-    "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 1.0,
+    "sentry.dynamic_sampling.tasks.boost_low_volume_projects": 0.2,
     "sentry.dynamic_sampling.tasks.boost_low_volume_transactions": 0.2,
     "sentry.dynamic_sampling.tasks.recalibrate_orgs": 0.2,
     "sentry.dynamic_sampling.tasks.sliding_window_org": 0.2,
@@ -104,16 +104,16 @@ def is_current_event_safe():
     Tests the current stack for unsafe locations that would likely cause
     recursion if an attempt to send to Sentry was made.
     """
+    scope = Scope.get_isolation_scope()
 
-    with configure_scope() as scope:
-        # Scope was explicitly marked as unsafe
-        if scope._tags.get(UNSAFE_TAG):
-            return False
+    # Scope was explicitly marked as unsafe
+    if scope._tags.get(UNSAFE_TAG):
+        return False
 
-        project_id = scope._tags.get("processing_event_for_project")
+    project_id = scope._tags.get("processing_event_for_project")
 
-        if project_id and project_id == settings.SENTRY_PROJECT:
-            return False
+    if project_id and project_id == settings.SENTRY_PROJECT:
+        return False
 
     for filename in _current_stack_filenames():
         if filename.endswith(UNSAFE_FILES):
@@ -122,29 +122,19 @@ def is_current_event_safe():
     return True
 
 
-def mark_scope_as_unsafe():
-    """
-    Set the unsafe tag on the SDK scope for outgoing crashes and transactions.
-
-    Marking a scope explicitly as unsafe allows the recursion breaker to
-    decide early, before walking the stack and checking for unsafe files.
-    """
-    with configure_scope() as scope:
-        scope.set_tag(UNSAFE_TAG, True)
-
-
 def set_current_event_project(project_id):
     """
-    Set the current project on the SDK scope for outgoing crash reports.
+    Set the current project on the SDK isolation scope for outgoing crash reports.
 
     This is a dedicated function because it is also important for the recursion
     breaker to work. You really should set the project in every task that is
     relevant to event processing, or that task may crash ingesting
     sentry-internal errors, causing infinite recursion.
     """
-    with configure_scope() as scope:
-        scope.set_tag("processing_event_for_project", project_id)
-        scope.set_tag("project", project_id)
+    scope = Scope.get_isolation_scope()
+
+    scope.set_tag("processing_event_for_project", project_id)
+    scope.set_tag("project", project_id)
 
 
 def get_project_key():
@@ -222,13 +212,6 @@ def before_send_transaction(event: Event, _: Hint) -> Event | None:
         and event.get("transaction_info", {}).get("source") == "url"
     ):
         return None
-
-    # This code is added only for debugging purposes, as such, it should be removed once the investigation is done.
-    if event.get("transaction") in {
-        "sentry.dynamic_sampling.boost_low_volume_projects_of_org",
-        "sentry.dynamic_sampling.tasks.boost_low_volume_projects",
-    }:
-        logger.info("transaction_logged", extra=event)
 
     # Occasionally the span limit is hit and we drop spans from transactions, this helps find transactions where this occurs.
     num_of_spans = len(event["spans"])
@@ -497,44 +480,43 @@ def check_tag_for_scope_bleed(
     # force the string version to prevent false positives
     expected_value = str(expected_value)
 
-    with configure_scope() as scope:
-        current_value = scope._tags.get(tag_key)
+    scope = Scope.get_isolation_scope()
 
-        if not current_value:
-            return
+    current_value = scope._tags.get(tag_key)
 
-        # ensure we're comparing apples to apples
-        current_value = str(current_value)
+    if not current_value:
+        return
 
-        # There are times where we can only narrow down the current org to a list, for example if
-        # we've derived it from an integration, since integrations can be shared across multiple orgs.
-        if tag_key == "organization.slug" and current_value == "[multiple orgs]":
-            # Currently, we don't have access in this function to the underlying slug list
-            # corresponding to an incoming "[multiple orgs]" tag, so we can't check it against the
-            # current list. Regardless of whether the lists would match, it's currently not flagged
-            # as scope bleed. (Fortunately, that version of scope bleed should be a pretty rare case,
-            # since only ~3% of integrations belong to multiple orgs, making the chance of it
-            # happening twice around 0.1%.) So for now, just skip that case.
-            if expected_value != "[multiple orgs]":
-                # If we've now figured out which of that list is correct, don't count it as a mismatch.
-                # But if it currently is a list and `expected_value` is something *not* in that list,
-                # we're almost certainly dealing with scope bleed, so we should continue with our check.
-                current_org_list = scope._contexts.get("organization", {}).get(
-                    "multiple possible", []
-                )
-                if current_org_list and expected_value in current_org_list:
-                    return
+    # ensure we're comparing apples to apples
+    current_value = str(current_value)
 
-        if current_value != expected_value:
-            extra = {
-                f"previous_{tag_key}_tag": current_value,
-                f"new_{tag_key}_tag": expected_value,
-            }
-            if add_to_scope:
-                scope.set_tag("possible_mistag", True)
-                scope.set_tag(f"scope_bleed.{tag_key}", True)
-                merge_context_into_scope("scope_bleed", extra, scope)
-            logger.warning("Tag already set and different (%s).", tag_key, extra=extra)
+    # There are times where we can only narrow down the current org to a list, for example if
+    # we've derived it from an integration, since integrations can be shared across multiple orgs.
+    if tag_key == "organization.slug" and current_value == "[multiple orgs]":
+        # Currently, we don't have access in this function to the underlying slug list
+        # corresponding to an incoming "[multiple orgs]" tag, so we can't check it against the
+        # current list. Regardless of whether the lists would match, it's currently not flagged
+        # as scope bleed. (Fortunately, that version of scope bleed should be a pretty rare case,
+        # since only ~3% of integrations belong to multiple orgs, making the chance of it
+        # happening twice around 0.1%.) So for now, just skip that case.
+        if expected_value != "[multiple orgs]":
+            # If we've now figured out which of that list is correct, don't count it as a mismatch.
+            # But if it currently is a list and `expected_value` is something *not* in that list,
+            # we're almost certainly dealing with scope bleed, so we should continue with our check.
+            current_org_list = scope._contexts.get("organization", {}).get("multiple possible", [])
+            if current_org_list and expected_value in current_org_list:
+                return
+
+    if current_value != expected_value:
+        extra = {
+            f"previous_{tag_key}_tag": current_value,
+            f"new_{tag_key}_tag": expected_value,
+        }
+        if add_to_scope:
+            scope.set_tag("possible_mistag", True)
+            scope.set_tag(f"scope_bleed.{tag_key}", True)
+            merge_context_into_scope("scope_bleed", extra, scope)
+        logger.warning("Tag already set and different (%s).", tag_key, extra=extra)
 
 
 def get_transaction_name_from_request(request: Request) -> str:
@@ -619,11 +601,10 @@ def bind_organization_context(organization: Organization | RpcOrganization) -> N
     # Callable to bind additional context for the Sentry SDK
     helper = settings.SENTRY_ORGANIZATION_CONTEXT_HELPER
 
+    scope = Scope.get_isolation_scope()
+
     # XXX(dcramer): this is duplicated in organizationContext.jsx on the frontend
-    # fmt: off
-    with configure_scope() as scope, \
-         sentry_sdk.start_span(op="other", description="bind_organization_context"):
-        # fmt: on
+    with sentry_sdk.start_span(op="other", description="bind_organization_context"):
         # This can be used to find errors that may have been mistagged
         check_tag_for_scope_bleed("organization.slug", organization.slug)
 
@@ -664,24 +645,25 @@ def bind_ambiguous_org_context(
     if len(orgs) > 50:
         org_slugs = org_slugs[:49] + [f"... ({len(orgs) - 49} more)"]
 
-    with configure_scope() as scope:
-        # It's possible we've already set the org context with one of the orgs in our list,
-        # somewhere we could narrow it down to one org. In that case, we don't want to overwrite
-        # that specific data with this ambiguous data.
-        current_org_slug_tag = scope._tags.get("organization.slug")
-        if current_org_slug_tag and current_org_slug_tag in org_slugs:
-            return
+    scope = Scope.get_isolation_scope()
 
-        # It's also possible that the org seems already to be set but it's just a case of scope
-        # bleed. In that case, we want to test for that and proceed.
-        check_tag_for_scope_bleed("organization.slug", MULTIPLE_ORGS_TAG)
+    # It's possible we've already set the org context with one of the orgs in our list,
+    # somewhere we could narrow it down to one org. In that case, we don't want to overwrite
+    # that specific data with this ambiguous data.
+    current_org_slug_tag = scope._tags.get("organization.slug")
+    if current_org_slug_tag and current_org_slug_tag in org_slugs:
+        return
 
-        scope.set_tag("organization", MULTIPLE_ORGS_TAG)
-        scope.set_tag("organization.slug", MULTIPLE_ORGS_TAG)
+    # It's also possible that the org seems already to be set but it's just a case of scope
+    # bleed. In that case, we want to test for that and proceed.
+    check_tag_for_scope_bleed("organization.slug", MULTIPLE_ORGS_TAG)
 
-        scope.set_context(
-            "organization", {"multiple possible": org_slugs, "source": source or "unknown"}
-        )
+    scope.set_tag("organization", MULTIPLE_ORGS_TAG)
+    scope.set_tag("organization.slug", MULTIPLE_ORGS_TAG)
+
+    scope.set_context(
+        "organization", {"multiple possible": org_slugs, "source": source or "unknown"}
+    )
 
 
 def set_measurement(measurement_name, value, unit=None):
@@ -724,11 +706,11 @@ __all__ = (
     "get_project_key",
     "get_transaction_name_from_request",
     "is_current_event_safe",
+    "isolation_scope",
     "make_transport",
-    "mark_scope_as_unsafe",
     "merge_context_into_scope",
     "patch_transport_for_instrumentation",
-    "push_scope",
+    "isolation_scope",
     "set_current_event_project",
     "set_measurement",
     "traces_sampler",

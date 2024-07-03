@@ -1,5 +1,4 @@
-import type {MetricType} from 'sentry/types/metrics';
-import type {FormattingSupportedMetricUnit} from 'sentry/utils/metrics/formatters';
+import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import {
   type ApiQueryKey,
   getApiQueryData,
@@ -12,20 +11,25 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
-const getMetricsExtractionRulesEndpoint = (orgSlug: string, projectSlug: string) =>
-  [`/projects/${orgSlug}/${projectSlug}/metrics/extraction-rules/`] as const;
-
-export interface MetricsExtractionRule {
-  conditions: string[];
-  spanAttribute: string;
-  tags: string[];
-  type: MetricType;
-  unit: FormattingSupportedMetricUnit;
+/**
+ * Remove temporary ids from conditions before sending to the server
+ */
+function filterTempIds(rules: MetricsExtractionRule[]) {
+  return rules.map(rule => ({
+    ...rule,
+    conditions: rule.conditions.map(condition => ({
+      ...condition,
+      id: condition.id < 0 ? undefined : condition.id,
+    })),
+  }));
 }
+
+export const getMetricsExtractionRulesApiKey = (orgSlug: string, projectSlug: string) =>
+  [`/projects/${orgSlug}/${projectSlug}/metrics/extraction-rules/`] as const;
 
 export function useMetricsExtractionRules(orgSlug: string, projectSlug: string) {
   return useApiQuery<MetricsExtractionRule[]>(
-    getMetricsExtractionRulesEndpoint(orgSlug, projectSlug),
+    getMetricsExtractionRulesApiKey(orgSlug, projectSlug),
     {
       staleTime: 0,
       retry: false,
@@ -35,7 +39,7 @@ export function useMetricsExtractionRules(orgSlug: string, projectSlug: string) 
 
 // Rules are identified by the combination of span_attribute, type and unit
 function getRuleIdentifier(rule: MetricsExtractionRule) {
-  return rule.spanAttribute + rule.type + rule.unit;
+  return rule.spanAttribute + rule.unit;
 }
 
 function createOptimisticUpdate(
@@ -43,16 +47,20 @@ function createOptimisticUpdate(
   queryKey: ApiQueryKey,
   updater: (
     variables: {metricsExtractionRules: MetricsExtractionRule[]},
-    old: MetricsExtractionRule[]
-  ) => MetricsExtractionRule[]
+    old: MetricsExtractionRule[] | undefined
+  ) => MetricsExtractionRule[] | undefined
 ) {
   return function (variables: {metricsExtractionRules: MetricsExtractionRule[]}) {
     queryClient.cancelQueries(queryKey);
     const previous = getApiQueryData<MetricsExtractionRule[]>(queryClient, queryKey);
 
-    setApiQueryData<MetricsExtractionRule[]>(queryClient, queryKey, oldRules => {
-      return updater(variables, oldRules);
-    });
+    setApiQueryData<MetricsExtractionRule[] | undefined>(
+      queryClient,
+      queryKey,
+      oldRules => {
+        return updater(variables, oldRules);
+      }
+    );
 
     return {previous};
   };
@@ -73,7 +81,7 @@ function createRollback(queryClient: QueryClient, queryKey: ApiQueryKey) {
 export function useDeleteMetricsExtractionRules(orgSlug: string, projectSlug: string) {
   const api = useApi();
   const queryClient = useQueryClient();
-  const queryKey = getMetricsExtractionRulesEndpoint(orgSlug, projectSlug);
+  const queryKey = getMetricsExtractionRulesApiKey(orgSlug, projectSlug);
 
   return useMutation<
     MetricsExtractionRule[],
@@ -104,7 +112,7 @@ export function useDeleteMetricsExtractionRules(orgSlug: string, projectSlug: st
 export function useCreateMetricsExtractionRules(orgSlug: string, projectSlug: string) {
   const api = useApi();
   const queryClient = useQueryClient();
-  const queryKey = getMetricsExtractionRulesEndpoint(orgSlug, projectSlug);
+  const queryKey = getMetricsExtractionRulesApiKey(orgSlug, projectSlug);
 
   return useMutation<
     MetricsExtractionRule[],
@@ -115,14 +123,16 @@ export function useCreateMetricsExtractionRules(orgSlug: string, projectSlug: st
     data => {
       return api.requestPromise(queryKey[0], {
         method: 'POST',
-        data,
+        data: {
+          metricsExtractionRules: filterTempIds(data.metricsExtractionRules),
+        },
       });
     },
     {
       onMutate: createOptimisticUpdate(queryClient, queryKey, (variables, old) => {
         const newRules = variables.metricsExtractionRules;
         const existingKeys = new Set((old ?? []).map(getRuleIdentifier));
-        const copy = [...old];
+        const copy = old ? [...old] : [];
         newRules.forEach(rule => {
           if (!existingKeys.has(getRuleIdentifier(rule))) {
             copy.push(rule);
@@ -141,7 +151,7 @@ export function useCreateMetricsExtractionRules(orgSlug: string, projectSlug: st
 export function useUpdateMetricsExtractionRules(orgSlug: string, projectSlug: string) {
   const api = useApi();
   const queryClient = useQueryClient();
-  const queryKey = getMetricsExtractionRulesEndpoint(orgSlug, projectSlug);
+  const queryKey = getMetricsExtractionRulesApiKey(orgSlug, projectSlug);
 
   return useMutation<
     MetricsExtractionRule[],
@@ -152,7 +162,9 @@ export function useUpdateMetricsExtractionRules(orgSlug: string, projectSlug: st
     data => {
       return api.requestPromise(queryKey[0], {
         method: 'PUT',
-        data,
+        data: {
+          metricsExtractionRules: filterTempIds(data.metricsExtractionRules),
+        },
       });
     },
     {

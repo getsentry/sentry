@@ -63,11 +63,9 @@ class BaseGroupCounts(BaseMetricsTestCase, TestCase):
             last_event = self.store_event(data=data, project_id=proj_id, assert_no_errors=False)
 
             self.store_metric(
-                type="counter",
-                use_case_id=UseCaseID.ESCALATING_ISSUES,
                 org_id=last_event.project.organization_id,
                 project_id=last_event.project.id,
-                name=build_mri("event_ingested", "c", UseCaseID.ESCALATING_ISSUES, None),
+                mri=build_mri("event_ingested", "c", UseCaseID.ESCALATING_ISSUES, None),
                 value=1,
                 tags={"group": str(last_event.group_id)},
                 timestamp=data["timestamp"],
@@ -117,11 +115,9 @@ class HistoricGroupCounts(
             insert_time=timestamp,
         )
         self.store_metric(
-            type="counter",
-            use_case_id=UseCaseID.ESCALATING_ISSUES,
             org_id=profile_error_event.project.organization_id,
             project_id=profile_error_event.project.id,
-            name=build_mri("event_ingested", "c", UseCaseID.ESCALATING_ISSUES, None),
+            mri=build_mri("event_ingested", "c", UseCaseID.ESCALATING_ISSUES, None),
             value=1,
             tags={"group": str(profile_error_event.group_id)},
             timestamp=profile_error_event.data["timestamp"],
@@ -233,8 +229,8 @@ class HistoricGroupCounts(
         org_b = self.create_organization()
         proj_b = self.create_project(organization=org_b)
 
-        event1 = self._create_events_for_group(project_id=proj_a, hours_ago=1)
-        event_proj_org_b_1 = self._create_events_for_group(project_id=proj_b, hours_ago=1)
+        event1 = self._create_events_for_group(project_id=proj_a.id, hours_ago=1)
+        event_proj_org_b_1 = self._create_events_for_group(project_id=proj_b.id, hours_ago=1)
 
         # Since proj_org_b is created
         assert query_groups_past_counts(Group.objects.all()) == [

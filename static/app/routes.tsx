@@ -532,12 +532,13 @@ function buildRoutes() {
         component={make(() => import('sentry/views/settings/projectPerformance'))}
       />
       <Route path="metrics/" name={t('Metrics')}>
+        <Redirect from="extract-metric/" to="configure-metric/" />
         <IndexRoute
           component={make(() => import('sentry/views/settings/projectMetrics'))}
         />
         <Route
-          name={t('Extract Metric')}
-          path="extract-metric/"
+          name={t('Configure Metric')}
+          path="configure-metric/"
           component={make(
             () => import('sentry/views/settings/projectMetrics/extractMetric')
           )}
@@ -548,6 +549,10 @@ function buildRoutes() {
           component={make(
             () => import('sentry/views/settings/projectMetrics/projectMetricsDetails')
           )}
+        />
+        <Route
+          path=":spanAttribute/edit/"
+          component={make(() => import('sentry/views/settings/projectMetrics'))}
         />
       </Route>
       <Route
@@ -1981,6 +1986,19 @@ function buildRoutes() {
         <Route
           path="flamegraph/"
           component={make(() => import('sentry/views/profiling/profileFlamechart'))}
+        />
+      </Route>
+      <Route
+        path="profile/:projectId/"
+        component={make(
+          () => import('sentry/views/profiling/continuousProfilesProvider')
+        )}
+      >
+        <Route
+          path="flamegraph/"
+          component={make(
+            () => import('sentry/views/profiling/continuousProfileFlamechart')
+          )}
         />
       </Route>
     </Route>

@@ -7,9 +7,11 @@ from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
 from sentry.api.endpoints.organization_traces import process_breakdowns
+from sentry.search.events.constants import TIMEOUT_SPAN_ERROR_MESSAGE
 from sentry.snuba.metrics.naming_layer.mri import SpanMRI, TransactionMRI
 from sentry.testutils.cases import APITestCase, BaseSpansTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.options import override_options
 from sentry.utils.samples import load_data
 
 
@@ -22,7 +24,10 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
 
     def do_request(self, query, features=None, **kwargs):
         if features is None:
-            features = ["organizations:performance-trace-explorer"]
+            features = [
+                "organizations:performance-trace-explorer",
+                "organizations:performance-trace-explorer-enforce-projects",
+            ]
         with self.feature(features):
             return self.client.get(
                 reverse(self.view, kwargs={"organization_id_or_slug": self.organization.slug}),
@@ -81,7 +86,8 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
         tags = ["", "bar", "bar", "baz", "", "bar", "baz"]
         timestamps = []
 
-        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
+        # move this 3 days into the past to ensure less flakey tests
+        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0) - timedelta(days=3)
 
         trace_id_1 = uuid4().hex
         timestamps.append(now - timedelta(minutes=10))
@@ -114,7 +120,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
 
         trace_id_2 = uuid4().hex
         txn_id_2 = uuid4().hex
-        timestamps.append(now - timedelta(minutes=20))
+        timestamps.append(now - timedelta(days=1, minutes=20))
         self.double_write_segment(
             project_id=project_1.id,
             trace_id=trace_id_2,
@@ -127,7 +133,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
             sdk_name="sentry.javascript.node",
         )
         for i in range(5, 7):
-            timestamps.append(now - timedelta(minutes=19, seconds=55 - i))
+            timestamps.append(now - timedelta(days=1, minutes=19, seconds=55 - i))
             self.double_write_segment(
                 project_id=project_2.id,
                 trace_id=trace_id_2,
@@ -142,7 +148,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
                 sdk_name="sentry.javascript.node",
             )
 
-        timestamps.append(now - timedelta(minutes=19, seconds=59))
+        timestamps.append(now - timedelta(days=1, minutes=19, seconds=59))
         self.store_indexed_span(
             project_id=project_1.id,
             trace_id=trace_id_2,
@@ -156,7 +162,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
             op="http.client",
         )
 
-        timestamps.append(now - timedelta(minutes=19, seconds=40))
+        timestamps.append(now - timedelta(days=1, minutes=19, seconds=40))
         self.store_indexed_span(
             project_id=project_1.id,
             trace_id=trace_id_2,
@@ -170,7 +176,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
             op="db.sql",
         )
 
-        timestamps.append(now - timedelta(minutes=19, seconds=45))
+        timestamps.append(now - timedelta(days=1, minutes=19, seconds=45))
         self.store_indexed_span(
             project_id=project_1.id,
             trace_id=trace_id_2,
@@ -184,7 +190,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
             op="db.sql",
         )
 
-        timestamps.append(now - timedelta(minutes=20))
+        timestamps.append(now - timedelta(days=2, minutes=30))
         trace_id_3 = uuid4().hex
         self.double_write_segment(
             project_id=project_1.id,
@@ -223,7 +229,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
             sdk_name="sentry.javascript.remix",
         )
 
-        timestamps.append(now - timedelta(minutes=19, seconds=50))
+        timestamps.append(now - timedelta(days=2, minutes=29, seconds=50))
         self.double_write_segment(
             project_id=project_1.id,
             trace_id=trace_id_3,
@@ -246,7 +252,7 @@ class OrganizationTracesEndpointTestBase(BaseSpansTestCase, APITestCase):
         error_data["tags"] = [["transaction", "foo"]]
         self.store_event(error_data, project_id=project_1.id)
 
-        timestamps.append(now - timedelta(minutes=21, seconds=0))
+        timestamps.append(now - timedelta(days=1, minutes=21, seconds=0))
         self.store_indexed_span(
             project_id=project_1.id,
             trace_id=trace_id_2,
@@ -281,60 +287,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
     def test_no_project(self):
         response = self.do_request({})
         assert response.status_code == 404, response.data
-
-    def test_bad_params_missing_fields(self):
-        query = {
-            "project": [self.project.id],
-            "field": [],
-            "maxSpansPerTrace": 0,
-        }
-
-        response = self.do_request(query)
-        assert response.status_code == 400, response.data
-        assert response.data == {
-            "field": [
-                ErrorDetail(string="This field is required.", code="required"),
-            ],
-            "maxSpansPerTrace": [
-                ErrorDetail(
-                    string="Ensure this value is greater than or equal to 1.", code="min_value"
-                ),
-            ],
-        }
-
-    def test_bad_params_too_few_spans_per_trace(self):
-        query = {
-            "project": [self.project.id],
-            "field": ["id"],
-            "maxSpansPerTrace": 0,
-        }
-
-        response = self.do_request(query)
-        assert response.status_code == 400, response.data
-        assert response.data == {
-            "maxSpansPerTrace": [
-                ErrorDetail(
-                    string="Ensure this value is greater than or equal to 1.", code="min_value"
-                ),
-            ],
-        }
-
-    def test_bad_params_too_many_spans_per_trace(self):
-        query = {
-            "project": [self.project.id],
-            "field": ["id"],
-            "maxSpansPerTrace": 1000,
-        }
-
-        response = self.do_request(query)
-        assert response.status_code == 400, response.data
-        assert response.data == {
-            "maxSpansPerTrace": [
-                ErrorDetail(
-                    string="Ensure this value is less than or equal to 100.", code="max_value"
-                ),
-            ],
-        }
 
     def test_bad_params_too_many_per_page(self):
         query = {
@@ -418,7 +370,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         ) = self.create_mock_traces()
 
         query = {
-            "project": [project_2.id],
+            "project": [],
             "field": ["id", "parent_span", "span.duration"],
             "query": "foo:[bar, baz]",
             "suggestedQuery": "foo:baz span.duration:>0s",
@@ -432,19 +384,11 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         assert response.data["meta"] == {
             "dataset": "unknown",
             "datasetReason": "unchanged",
-            "fields": {
-                "id": "string",
-                "parent_span": "string",
-                "span.duration": "duration",
-            },
+            "fields": {},
             "isMetricsData": False,
             "isMetricsExtractedData": False,
             "tips": {},
-            "units": {
-                "id": None,
-                "parent_span": None,
-                "span.duration": "millisecond",
-            },
+            "units": {},
         }
 
         result_data = sorted(response.data["data"], key=lambda trace: trace["duration"])
@@ -462,30 +406,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "start": timestamps[0],
                 "end": timestamps[0] + 60_100,
                 "breakdowns": [],
-                "spans": [
-                    {
-                        "id": span_ids[3],
-                        "parent_span": span_ids[0],
-                        "span.duration": 30_003.0,
-                    },
-                    {
-                        "id": span_ids[2],
-                        "parent_span": span_ids[0],
-                        "span.duration": 30_002.0,
-                    },
-                    {
-                        "id": span_ids[1],
-                        "parent_span": span_ids[0],
-                        "span.duration": 30_001.0,
-                    },
-                ],
-                "suggestedSpans": [
-                    {
-                        "id": span_ids[3],
-                        "parent_span": span_ids[0],
-                        "span.duration": 30_003.0,
-                    },
-                ],
             },
             {
                 "trace": trace_id_2,
@@ -499,25 +419,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "start": timestamps[4],
                 "end": timestamps[4] + 90_123,
                 "breakdowns": [],
-                "spans": [
-                    {
-                        "id": span_ids[6],
-                        "parent_span": span_ids[4],
-                        "span.duration": 20_006.0,
-                    },
-                    {
-                        "id": span_ids[5],
-                        "parent_span": span_ids[4],
-                        "span.duration": 20_005.0,
-                    },
-                ],
-                "suggestedSpans": [
-                    {
-                        "id": span_ids[6],
-                        "parent_span": span_ids[4],
-                        "span.duration": 20_006.0,
-                    },
-                ],
             },
         ]
 
@@ -562,7 +463,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         timestamp = int(ts.timestamp() * 1000)
 
         query = {
-            "project": [project.id],
+            "project": [],
             "field": ["id", "parent_span", "span.duration"],
             "query": "",
             "maxSpansPerTrace": 3,
@@ -608,20 +509,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "numSpans": 2,
                 "matchingSpans": 2,
                 "project": project.slug,
-                "spans": [
-                    {
-                        "id": span_id_1,
-                        "parent_span": "00",
-                        "span.duration": 60000.0,
-                    },
-                    {
-                        "id": span_id_2,
-                        "parent_span": span_id_1,
-                        "span.duration": 15000.0,
-                    },
-                ],
                 "start": timestamp,
-                "suggestedSpans": [],
                 "trace": trace_id,
             },
         ]
@@ -651,7 +539,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         timestamp = int(ts.timestamp() * 1000)
 
         query = {
-            "project": [project.id],
+            "project": [],
             "field": ["id", "parent_span", "span.duration"],
             "query": "",
             "maxSpansPerTrace": 3,
@@ -685,15 +573,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                 "numSpans": 1,
                 "matchingSpans": 1,
                 "project": project.slug,
-                "spans": [
-                    {
-                        "id": span_id,
-                        "parent_span": parent_span_id,
-                        "span.duration": 60100.0,
-                    },
-                ],
                 "start": timestamp,
-                "suggestedSpans": [],
                 "trace": trace_id,
             },
         ]
@@ -717,159 +597,307 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             ["foo:bar span.duration:>10s", "foo:baz"],
             ["foo:[bar, baz]"],
         ]:
+            for features in [
+                None,  # use the default features
+                ["organizations:performance-trace-explorer"],
+            ]:
+                query = {
+                    # only query for project_2 but expect traces to start from project_1
+                    "project": [project_2.id],
+                    "field": ["id", "parent_span", "span.duration"],
+                    "query": q,
+                    "suggestedQuery": "foo:baz span.duration:>0s",
+                    "maxSpansPerTrace": 4,
+                    "sort": ["-span.duration"],
+                }
+
+                response = self.do_request(query, features=features)
+                assert response.status_code == 200, response.data
+
+                assert response.data["meta"] == {
+                    "dataset": "unknown",
+                    "datasetReason": "unchanged",
+                    "fields": {},
+                    "isMetricsData": False,
+                    "isMetricsExtractedData": False,
+                    "tips": {},
+                    "units": {},
+                }
+
+                result_data = sorted(response.data["data"], key=lambda trace: trace["duration"])
+
+                assert result_data == [
+                    {
+                        "trace": trace_id_1,
+                        "numErrors": 1,
+                        "numOccurrences": 0,
+                        "numSpans": 4,
+                        "matchingSpans": 3,
+                        "project": project_1.slug,
+                        "name": "foo",
+                        "duration": 60_100,
+                        "start": timestamps[0],
+                        "end": timestamps[0] + 60_100,
+                        "breakdowns": [
+                            {
+                                "project": project_1.slug,
+                                "sdkName": "sentry.javascript.node",
+                                "isRoot": False,
+                                "start": timestamps[0],
+                                "end": timestamps[0] + 60_100,
+                                "sliceStart": 0,
+                                "sliceEnd": 40,
+                                "sliceWidth": 40,
+                                "kind": "project",
+                                "duration": 60_100,
+                            },
+                            {
+                                "project": project_2.slug,
+                                "sdkName": "sentry.javascript.node",
+                                "isRoot": False,
+                                "start": timestamps[1] + 522,
+                                "end": timestamps[3] + 30_003 + 61,
+                                "sliceStart": 11,
+                                "sliceEnd": 32,
+                                "sliceWidth": 21,
+                                "kind": "project",
+                                "duration": timestamps[3] - timestamps[1] + 30_003,
+                            },
+                        ],
+                    },
+                    {
+                        "trace": trace_id_2,
+                        "numErrors": 0,
+                        "numOccurrences": 0,
+                        "numSpans": 6,
+                        "matchingSpans": 2,
+                        "project": project_1.slug,
+                        "name": "bar",
+                        "duration": 90_123,
+                        "start": timestamps[4],
+                        "end": timestamps[4] + 90_123,
+                        "breakdowns": [
+                            {
+                                "project": project_1.slug,
+                                "sdkName": "sentry.javascript.node",
+                                "isRoot": False,
+                                "start": timestamps[4],
+                                "end": timestamps[4] + 90_123,
+                                "sliceStart": 0,
+                                "sliceEnd": 40,
+                                "sliceWidth": 40,
+                                "kind": "project",
+                                "duration": 90_123,
+                            },
+                            {
+                                "project": project_2.slug,
+                                "sdkName": "sentry.javascript.node",
+                                "isRoot": False,
+                                "start": timestamps[5] - 988,
+                                "end": timestamps[6] + 20_006 + 536,
+                                "sliceStart": 4,
+                                "sliceEnd": 14,
+                                "sliceWidth": 10,
+                                "kind": "project",
+                                "duration": timestamps[6] - timestamps[5] + 20_006,
+                            },
+                        ],
+                    },
+                ]
+
+    def test_sorted(self):
+        (
+            _,
+            _,
+            trace_id_1,
+            trace_id_2,
+            trace_id_3,
+            _,
+            _,
+        ) = self.create_mock_traces()
+
+        for trace_ids in [
+            [trace_id_1, trace_id_2, trace_id_3],
+            [trace_id_1, trace_id_2],
+            [trace_id_1, trace_id_3],
+            [trace_id_2, trace_id_3],
+        ]:
             query = {
-                "project": [project_2.id],
-                "field": ["id", "parent_span", "span.duration"],
-                "query": q,
-                "suggestedQuery": "foo:baz span.duration:>0s",
-                "maxSpansPerTrace": 4,
-                "sort": ["-span.duration"],
+                "query": [f"trace:[{','.join(trace_ids)}]"],
+                "sort": "-timestamp",
             }
 
-            response = self.do_request(query)
+            response = self.do_request(
+                query,
+                features=[
+                    "organizations:performance-trace-explorer",
+                    "organizations:performance-trace-explorer-sorting",
+                ],
+            )
             assert response.status_code == 200, response.data
 
             assert response.data["meta"] == {
                 "dataset": "unknown",
                 "datasetReason": "unchanged",
-                "fields": {
-                    "id": "string",
-                    "parent_span": "string",
-                    "span.duration": "duration",
-                },
+                "fields": {},
                 "isMetricsData": False,
                 "isMetricsExtractedData": False,
                 "tips": {},
-                "units": {
-                    "id": None,
-                    "parent_span": None,
-                    "span.duration": "millisecond",
-                },
+                "units": {},
             }
 
-            result_data = sorted(response.data["data"], key=lambda trace: trace["duration"])
+            assert [row["trace"] for row in response.data["data"]] == trace_ids
 
-            assert result_data == [
-                {
-                    "trace": trace_id_1,
-                    "numErrors": 1,
-                    "numOccurrences": 0,
-                    "numSpans": 4,
-                    "matchingSpans": 3,
-                    "project": project_1.slug,
-                    "name": "foo",
-                    "duration": 60_100,
-                    "start": timestamps[0],
-                    "end": timestamps[0] + 60_100,
-                    "breakdowns": [
-                        {
-                            "project": project_1.slug,
-                            "sdkName": "sentry.javascript.node",
-                            "isRoot": False,
-                            "start": timestamps[0],
-                            "end": timestamps[0] + 60_100,
-                            "sliceStart": 0,
-                            "sliceEnd": 40,
-                            "sliceWidth": 40,
-                            "kind": "project",
-                            "duration": 60_100,
-                        },
-                        {
-                            "project": project_2.slug,
-                            "sdkName": "sentry.javascript.node",
-                            "isRoot": False,
-                            "start": timestamps[1] + 522,
-                            "end": timestamps[3] + 30_003 + 61,
-                            "sliceStart": 11,
-                            "sliceEnd": 32,
-                            "sliceWidth": 21,
-                            "kind": "project",
-                            "duration": timestamps[3] - timestamps[1] + 30_003,
-                        },
-                    ],
-                    "spans": [
-                        {
-                            "id": span_ids[3],
-                            "parent_span": span_ids[0],
-                            "span.duration": 30_003.0,
-                        },
-                        {
-                            "id": span_ids[2],
-                            "parent_span": span_ids[0],
-                            "span.duration": 30_002.0,
-                        },
-                        {
-                            "id": span_ids[1],
-                            "parent_span": span_ids[0],
-                            "span.duration": 30_001.0,
-                        },
-                    ],
-                    "suggestedSpans": [
-                        {
-                            "id": span_ids[3],
-                            "parent_span": span_ids[0],
-                            "span.duration": 30_003.0,
-                        },
-                    ],
-                },
-                {
-                    "trace": trace_id_2,
-                    "numErrors": 0,
-                    "numOccurrences": 0,
-                    "numSpans": 6,
-                    "matchingSpans": 2,
-                    "project": project_1.slug,
-                    "name": "bar",
-                    "duration": 90_123,
-                    "start": timestamps[4],
-                    "end": timestamps[4] + 90_123,
-                    "breakdowns": [
-                        {
-                            "project": project_1.slug,
-                            "sdkName": "sentry.javascript.node",
-                            "isRoot": False,
-                            "start": timestamps[4],
-                            "end": timestamps[4] + 90_123,
-                            "sliceStart": 0,
-                            "sliceEnd": 40,
-                            "sliceWidth": 40,
-                            "kind": "project",
-                            "duration": 90_123,
-                        },
-                        {
-                            "project": project_2.slug,
-                            "sdkName": "sentry.javascript.node",
-                            "isRoot": False,
-                            "start": timestamps[5] - 988,
-                            "end": timestamps[6] + 20_006 + 536,
-                            "sliceStart": 4,
-                            "sliceEnd": 14,
-                            "sliceWidth": 10,
-                            "kind": "project",
-                            "duration": timestamps[6] - timestamps[5] + 20_006,
-                        },
-                    ],
-                    "spans": [
-                        {
-                            "id": span_ids[6],
-                            "parent_span": span_ids[4],
-                            "span.duration": 20_006.0,
-                        },
-                        {
-                            "id": span_ids[5],
-                            "parent_span": span_ids[4],
-                            "span.duration": 20_005.0,
-                        },
-                    ],
-                    "suggestedSpans": [
-                        {
-                            "id": span_ids[6],
-                            "parent_span": span_ids[4],
-                            "span.duration": 20_006.0,
-                        },
-                    ],
-                },
-            ]
+    def test_sorted_by_trace_last_seen(self):
+        """
+        trace 1
+        [ span 1 - 70s       ]
+                          [ span 2 - 60s    ]
+
+        trace 2
+                 [ span 3 - 60s       ]
+
+        The query will match spans 1 and 3 using `foo:bar`, but the ordering
+        of the traces should be determined by spans 2 and 3. And since span 2
+        ends after span 3, trace 1 should come before trace 2 in the results.
+        """
+
+        trace_id_1 = uuid4().hex
+        trace_id_2 = uuid4().hex
+
+        span_ids = ["1" + uuid4().hex[:15] for _ in range(3)]
+
+        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
+
+        self.double_write_segment(
+            project_id=self.project.id,
+            trace_id=trace_id_1,
+            transaction_id=uuid4().hex,
+            span_id=span_ids[0],
+            timestamp=now - timedelta(days=1, minutes=1),
+            duration=70_000,
+            exclusive_time=70_000,
+            tags={"foo": "bar"},
+        )
+
+        self.double_write_segment(
+            project_id=self.project.id,
+            trace_id=trace_id_1,
+            transaction_id=uuid4().hex,
+            span_id=span_ids[1],
+            parent_span_id=span_ids[0],
+            timestamp=now - timedelta(days=1),
+            duration=60_000,
+            exclusive_time=60_000,
+        )
+
+        self.double_write_segment(
+            project_id=self.project.id,
+            trace_id=trace_id_2,
+            transaction_id=uuid4().hex,
+            span_id=span_ids[2],
+            timestamp=now - timedelta(days=1, seconds=30),
+            duration=60_000,
+            exclusive_time=60_000,
+            tags={"foo": "bar"},
+        )
+
+        for q in [
+            ["foo:bar"],
+            ["foo:bar", f"project:{self.project.slug}"],
+        ]:
+            query = {
+                "query": q,
+                "sort": "-timestamp",
+            }
+
+            response = self.do_request(
+                query,
+                features=[
+                    "organizations:performance-trace-explorer",
+                    "organizations:performance-trace-explorer-sorting",
+                ],
+            )
+            assert response.status_code == 200, response.data
+
+            assert response.data["meta"] == {
+                "dataset": "unknown",
+                "datasetReason": "unchanged",
+                "fields": {},
+                "isMetricsData": False,
+                "isMetricsExtractedData": False,
+                "tips": {},
+                "units": {},
+            }
+
+            assert [row["trace"] for row in response.data["data"]] == [trace_id_1, trace_id_2]
+
+    def test_sorted_early_exit(self):
+        (
+            _,
+            _,
+            trace_id_1,
+            trace_id_2,
+            trace_id_3,
+            _,
+            _,
+        ) = self.create_mock_traces()
+
+        trace_ids = [trace_id_1, trace_id_2, trace_id_3]
+        query = {
+            "query": [f"trace:[{','.join(trace_ids)}]"],
+            "sort": "-timestamp",
+            "per_page": 2,
+        }
+
+        response = self.do_request(
+            query,
+            features=[
+                "organizations:performance-trace-explorer",
+                "organizations:performance-trace-explorer-sorting",
+            ],
+        )
+        assert response.status_code == 200, response.data
+
+        assert response.data["meta"] == {
+            "dataset": "unknown",
+            "datasetReason": "unchanged",
+            "fields": {},
+            "isMetricsData": False,
+            "isMetricsExtractedData": False,
+            "tips": {},
+            "units": {},
+        }
+
+        # even though we searched for 3, it should exit after 2
+        assert [row["trace"] for row in response.data["data"]] == [trace_id_1, trace_id_2]
+
+    @override_options(
+        {
+            "performance.traces.trace-explorer-scan-max-block-size-hours": 1,
+            "performance.traces.trace-explorer-scan-max-batches": 1,
+            "performance.traces.trace-explorer-scan-max-parallel-queries": 1,
+        }
+    )
+    def test_sorted_timeout(self):
+        self.create_mock_traces()
+
+        query = {
+            "sort": "-timestamp",
+        }
+
+        response = self.do_request(
+            query,
+            features=[
+                "organizations:performance-trace-explorer",
+                "organizations:performance-trace-explorer-sorting",
+            ],
+        )
+        assert response.status_code == 400, response.data
+
+        assert response.data == {
+            "detail": ErrorDetail(string=TIMEOUT_SPAN_ERROR_MESSAGE, code="parse_error"),
+        }
 
     def test_matching_tag_metrics(self):
         (
@@ -902,7 +930,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                     "metricsMax": 50_000,
                     "metricsOp": op,
                     "metricsQuery": ["foo:qux"],
-                    "project": [project_1.id],
+                    "project": [],
                     "field": ["id", "parent_span", "span.duration"],
                     "suggestedQuery": ["foo:qux"],
                     "maxSpansPerTrace": 3,
@@ -955,22 +983,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                                 "duration": 10_000,
                             },
                         ],
-                        "spans": [
-                            {
-                                "id": span_ids[10],
-                                "parent_span": "00",
-                                "span.duration": 40_000.0,
-                            },
-                        ],
-                        "suggestedSpans": []
-                        if user_query
-                        else [
-                            {
-                                "id": span_ids[10],
-                                "parent_span": "00",
-                                "span.duration": 40_000.0,
-                            },
-                        ],
                     },
                 ], (mri, user_query)
 
@@ -1015,39 +1027,6 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                     },
                 }
 
-    def test_limit_by_span_condition(self):
-        (
-            project_1,
-            project_2,
-            trace_id_1,
-            trace_id_2,
-            _,
-            timestamps,
-            span_ids,
-        ) = self.create_mock_traces()
-
-        query = {
-            "project": [project_2.id],
-            "field": ["id", "parent_span", "span.duration", "foo"],
-            "query": ["foo:bar", "foo:baz"],
-            "suggestedQuery": "foo:baz span.duration:>0s",
-            "maxSpansPerTrace": 3,
-            "sort": ["foo", "-span.duration"],
-        }
-
-        response = self.do_request(query)
-        assert response.status_code == 200, response.data
-
-        spans = {
-            result["trace"]: {span["id"] for span in result["spans"]}
-            for result in response.data["data"]
-        }
-
-        assert spans == {
-            trace_id_1: {span_ids[2], span_ids[3]},
-            trace_id_2: {span_ids[5], span_ids[6]},
-        }
-
 
 class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
     view = "sentry-api-0-organization-trace-spans"
@@ -1070,7 +1049,10 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
             )
 
     def test_no_feature(self):
-        response = self.do_request(uuid4().hex, {}, features=[])
+        query = {
+            "project": [self.project.id],
+        }
+        response = self.do_request(uuid4().hex, query, features=[])
         assert response.status_code == 404, response.data
 
     def test_no_project(self):
@@ -1078,21 +1060,10 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
         assert response.status_code == 404, response.data
 
     def test_bad_params_missing_field(self):
-        (
-            _,
-            _,
-            trace_id,
-            _,
-            _,
-            _,
-            _,
-        ) = self.create_mock_traces()
-
         query = {
             "project": [self.project.id],
         }
-
-        response = self.do_request(trace_id, query)
+        response = self.do_request(uuid4().hex, query)
         assert response.status_code == 400, response.data
         assert response.data == {
             "field": [
@@ -1112,7 +1083,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
         ) = self.create_mock_traces()
 
         query = {
-            "project": [self.project.id],
+            "project": [],
             "field": ["id"],
             "sort": "id",
         }
@@ -1150,7 +1121,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
             ["foo:[bar, baz]"],
         ]:
             query = {
-                "project": [self.project.id],
+                "project": [],
                 "field": ["id"],
                 "sort": "id",
                 "query": user_query,
@@ -1204,7 +1175,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
                     "metricsMax": 50_000,
                     "metricsOp": op,
                     "metricsQuery": ["foo:qux"],
-                    "project": [self.project.id],
+                    "project": [],
                     "field": ["id"],
                     "sort": "id",
                 }
@@ -1317,7 +1288,7 @@ class OrganizationTracesStatsEndpointTest(OrganizationTracesEndpointTestBase):
             query = {
                 "yAxis": ["count()"],
                 "query": q,
-                "project": [project_1.id],
+                "project": [],
             }
 
             response = self.do_request(query)

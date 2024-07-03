@@ -47,6 +47,7 @@ class SlackClientDisable(TestCase):
     def tearDown(self):
         self.resp.__exit__(None, None, None)
 
+    @pytest.mark.skip("Feature is temporarily disabled")
     @responses.activate
     def test_fatal_and_disable_integration(self):
         """

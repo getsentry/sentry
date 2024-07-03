@@ -1,10 +1,10 @@
 import {EventType, type eventWithTime as TEventWithTime} from '@sentry-internal/rrweb';
 
 export type {serializedNodeWithId} from '@sentry-internal/rrweb-snapshot';
-export type {fullSnapshotEvent} from '@sentry-internal/rrweb';
+export type {fullSnapshotEvent, incrementalSnapshotEvent} from '@sentry-internal/rrweb';
 
 export {NodeType} from '@sentry-internal/rrweb-snapshot';
-export {EventType} from '@sentry-internal/rrweb';
+export {EventType, IncrementalSource} from '@sentry-internal/rrweb';
 
 import type {
   ReplayBreadcrumbFrame as TRawBreadcrumbFrame,
@@ -16,6 +16,24 @@ import type {
 import invariant from 'invariant';
 
 import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
+
+// These stub types should be coming from the sdk, but they're hard-coded until
+// the SDK updates to the latest version... once that happens delete this!
+// Needed for tests
+// TODO[ryan953]: Remove this once the SDK is exporting the type as part of ReplayBreadcrumbFrame
+export type RawHydrationErrorFrame = {
+  category: 'replay.hydrate-error';
+  timestamp: number;
+  type: string;
+  data?: {
+    url?: string;
+  };
+  message?: string;
+};
+
+// These stub types should be coming from the sdk, but they're hard-coded until
+// the SDK updates to the latest version... once that happens delete this!
+type StubBreadcrumbTypes = RawHydrationErrorFrame;
 
 // TODO: more types get added here
 type MobileBreadcrumbTypes =
@@ -55,6 +73,7 @@ type MobileBreadcrumbTypes =
  * because the mobile SDK does not send that property currently.
  */
 type ExtraBreadcrumbTypes =
+  | StubBreadcrumbTypes
   | MobileBreadcrumbTypes
   | {
       category: 'navigation';
@@ -143,13 +162,8 @@ export function isConsoleFrame(frame: BreadcrumbFrame): frame is ConsoleFrame {
   return false;
 }
 
-export function isLCPFrame(frame: SpanFrame): frame is WebVitalFrame {
-  return (
-    frame.op === 'largest-contentful-paint' ||
-    frame.op === 'cumulative-layout-shift' ||
-    frame.op === 'first-input-delay' ||
-    frame.op === 'interaction-to-next-paint'
-  );
+export function isWebVitalFrame(frame: SpanFrame): frame is WebVitalFrame {
+  return frame.op === 'web-vital';
 }
 
 export function isPaintFrame(frame: SpanFrame): frame is PaintFrame {
@@ -171,6 +185,20 @@ export function isDeadRageClick(frame: SlowClickFrame) {
 
 export function isRageClick(frame: MultiClickFrame) {
   return frame.data.clickCount >= 5;
+}
+
+export function isHydrationErrorFrame(
+  frame: BreadcrumbFrame
+): frame is HydrationErrorFrame {
+  return frame.category === 'replay.hydrate-error';
+}
+
+export function isBackgroundFrame(frame: ReplayFrame): frame is BreadcrumbFrame {
+  return frame && 'category' in frame && frame.category === 'app.background';
+}
+
+export function isForegroundFrame(frame: ReplayFrame): frame is BreadcrumbFrame {
+  return frame && 'category' in frame && frame.category === 'app.foreground';
 }
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
@@ -260,6 +288,19 @@ export type InputFrame = HydratedBreadcrumb<'ui.input'>;
 export type KeyboardEventFrame = HydratedBreadcrumb<'ui.keyDown'>;
 export type MultiClickFrame = HydratedBreadcrumb<'ui.multiClick'>;
 export type MutationFrame = HydratedBreadcrumb<'replay.mutations'>;
+export type HydrationErrorFrame = Overwrite<
+  HydratedBreadcrumb<'replay.hydrate-error'>,
+  {
+    data: {
+      description: string;
+      mutations: {
+        next: RecordingFrame | null;
+        prev: RecordingFrame | null;
+      };
+      url?: string;
+    };
+  }
+>;
 export type NavFrame = HydratedBreadcrumb<'navigation'>;
 export type SlowClickFrame = HydratedBreadcrumb<'ui.slowClickDetected'>;
 export type DeviceBatteryFrame = HydratedBreadcrumb<'device.battery'>;
@@ -318,7 +359,7 @@ export type ResourceFrame = HydratedSpan<
 // This list should match each of the operations used in `HydratedSpan` above
 // And any app-specific types that we hydrate (ie: replay.start & replay.end).
 export const SpanOps = [
-  'largest-contentful-paint',
+  'web-vital',
   'memory',
   'navigation.back_forward',
   'navigation.navigate',

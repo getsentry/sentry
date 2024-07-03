@@ -25,7 +25,7 @@ import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVita
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
-import {useTransactionWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/useTransactionWebVitalsQuery';
+import {useTransactionWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionWebVitalsScoresQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {
   Row,
@@ -66,7 +66,7 @@ export function WebVitalsDetailPanel({
   const projectScore = calculatePerformanceScoreFromStoredTableDataRow(
     projectScoresData?.data?.[0]
   );
-  const {data, isLoading} = useTransactionWebVitalsQuery({
+  const {data, isLoading} = useTransactionWebVitalsScoresQuery({
     limit: 100,
     webVital: webVital ?? 'total',
     ...(webVital
@@ -192,7 +192,7 @@ export function WebVitalsDetailPanel({
     }
     if (col.key === 'webVital') {
       let value: string | number = row[mapWebVitalToColumn(webVital)];
-      if (webVital && ['lcp', 'fcp', 'ttfb', 'fid', 'inp'].includes(webVital)) {
+      if (webVital && ['lcp', 'fcp', 'ttfb', 'inp'].includes(webVital)) {
         value = getFormattedDuration(value);
       } else if (webVital === 'cls') {
         value = value?.toFixed(2);
@@ -279,8 +279,6 @@ const mapWebVitalToColumn = (webVital?: WebVitals | null) => {
       return 'p75(measurements.cls)';
     case 'ttfb':
       return 'p75(measurements.ttfb)';
-    case 'fid':
-      return 'p75(measurements.fid)';
     case 'inp':
       return 'p75(measurements.inp)';
     default:
