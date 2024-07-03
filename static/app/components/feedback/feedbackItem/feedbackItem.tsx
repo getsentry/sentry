@@ -30,8 +30,8 @@ interface Props {
 export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
   const organization = useOrganization();
   const url =
-    eventData?.contexts.feedback?.url ??
-    eventData?.tags.find(tag => tag.key === 'url')?.value;
+    eventData?.contexts?.feedback?.url ??
+    eventData?.tags?.find(tag => tag.key === 'url')?.value;
   const crashReportId = eventData?.contexts?.feedback?.associated_event_id;
   const theme = useTheme();
 
@@ -47,7 +47,7 @@ export default function FeedbackItem({feedbackItem, eventData, tags}: Props) {
 
   const URL_NOT_FOUND = t('URL not found');
   const displayUrl =
-    eventData?.contexts.feedback || eventData?.tags ? url ?? URL_NOT_FOUND : '';
+    eventData?.contexts?.feedback || eventData?.tags ? url ?? URL_NOT_FOUND : '';
   const urlIsLink = displayUrl.length && displayUrl !== URL_NOT_FOUND;
 
   return (
