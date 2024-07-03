@@ -154,6 +154,7 @@ function parseQueryWidget(
   return {
     mri,
     aggregation: parseAggregation(widget) ?? getDefaultAggregation(mri),
+    condition: parseNumberParam(widget, 'condition'),
     query: parseStringParam(widget, 'query') ?? '',
     groupBy: parseArrayParam(widget, 'groupBy', entry =>
       typeof entry === 'string' ? entry : undefined

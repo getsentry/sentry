@@ -16,6 +16,7 @@ export function widgetToQuery(
         name: getQuerySymbol(widget.id),
         mri: widget.mri,
         aggregation: widget.aggregation,
+        condition: widget.condition,
         groupBy: widget.groupBy,
         query: widget.query,
         isQueryOnly: isQueryOnly || widget.isHidden,

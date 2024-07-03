@@ -29,6 +29,7 @@ export interface FocusedMetricsSeries {
 export interface MetricsQuery {
   aggregation: MetricAggregation;
   mri: MRI;
+  condition?: number;
   groupBy?: string[];
   query?: string;
 }
