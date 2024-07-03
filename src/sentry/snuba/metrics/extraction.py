@@ -42,7 +42,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
 from sentry.search.events import fields
-from sentry.search.events.builder import UnresolvedQuery
+from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.constants import DEFAULT_PROJECT_THRESHOLD, VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, parse_mri

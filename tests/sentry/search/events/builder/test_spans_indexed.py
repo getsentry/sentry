@@ -3,7 +3,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from snuba_sdk import AliasedExpression, And, Column, Condition, Function, Op
 
-from sentry.search.events.builder import SpansIndexedQueryBuilder
+from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all

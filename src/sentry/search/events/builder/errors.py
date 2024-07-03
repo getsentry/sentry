@@ -18,8 +18,7 @@ from snuba_sdk import (
 )
 
 from sentry.api.issue_search import convert_query_values, convert_status_value
-from sentry.search.events.builder import TimeseriesQueryBuilder
-from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder, TimeseriesQueryBuilder
 from sentry.search.events.filter import ParsedTerms
 from sentry.search.events.types import SelectType
 from sentry.snuba.entity_subscription import ENTITY_TIME_COLUMNS, get_entity_key_from_query_builder

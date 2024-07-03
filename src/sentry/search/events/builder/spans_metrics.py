@@ -1,7 +1,7 @@
 from snuba_sdk import Condition, Granularity
 
 from sentry.search.events import constants
-from sentry.search.events.builder import (
+from sentry.search.events.builder.metrics import (
     MetricsQueryBuilder,
     TimeseriesMetricQueryBuilder,
     TopMetricsQueryBuilder,
