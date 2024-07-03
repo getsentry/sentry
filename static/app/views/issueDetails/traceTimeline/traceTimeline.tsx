@@ -9,7 +9,6 @@ import type {Event} from 'sentry/types/event';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
-import {TraceIssueEvent} from './traceIssue';
 import {TraceTimelineEvents} from './traceTimelineEvents';
 import {useTraceTimelineEvents} from './useTraceTimelineEvents';
 
@@ -34,12 +33,8 @@ export function TraceTimeline({event}: TraceTimelineProps) {
     timelineStatus = 'no_trace_id';
   }
 
-  const showTraceRelatedIssue =
-    timelineStatus !== 'shown' && oneOtherIssueEvent !== undefined;
-
   useRouteAnalyticsParams({
     trace_timeline_status: timelineStatus,
-    has_related_trace_issue: showTraceRelatedIssue,
   });
 
   if (!hasTraceId) {
@@ -81,7 +76,6 @@ export function TraceTimeline({event}: TraceTimelineProps) {
           </TimelineWrapper>
         </Fragment>
       )}
-      {showTraceRelatedIssue && <TraceIssueEvent event={oneOtherIssueEvent} />}
     </ErrorBoundary>
   );
 }
