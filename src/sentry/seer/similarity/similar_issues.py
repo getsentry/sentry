@@ -37,6 +37,8 @@ def get_similarity_data_from_seer(
     Request similar issues data from seer and normalize the results. Returns similar groups
     sorted in order of descending similarity.
     """
+    project_id = similar_issues_request["project_id"]
+    request_hash = similar_issues_request["hash"]
     referrer = similar_issues_request.get("referrer")
     metric_tags: dict[str, str | int] = {"referrer": referrer} if referrer else {}
 
@@ -54,15 +56,15 @@ def get_similarity_data_from_seer(
     # TODO: This is temporary, to debug Seer being called on existing hashes during ingest
     if similar_issues_request.get("referrer") == "ingest":
         existing_grouphash = GroupHash.objects.filter(
-            hash=similar_issues_request["hash"], project_id=similar_issues_request["project_id"]
+            hash=request_hash, project_id=project_id
         ).first()
         if existing_grouphash and existing_grouphash.group_id:
             logger.warning(
                 "get_seer_similar_issues.hash_exists",
                 extra={
                     "event_id": similar_issues_request["event_id"],
-                    "project_id": similar_issues_request["project_id"],
-                    "hash": similar_issues_request["hash"],
+                    "project_id": project_id,
+                    "hash": request_hash,
                     "grouphash_id": existing_grouphash.id,
                     "group_id": existing_grouphash.group_id,
                     "referrer": similar_issues_request.get("referrer"),
@@ -77,8 +79,8 @@ def get_similarity_data_from_seer(
             "get_seer_similar_issues.empty_stacktrace",
             extra={
                 "event_id": similar_issues_request["event_id"],
-                "project_id": similar_issues_request["project_id"],
-                "hash": similar_issues_request["hash"],
+                "project_id": project_id,
+                "hash": request_hash,
                 "referrer": similar_issues_request.get("referrer"),
             },
         )
@@ -174,9 +176,7 @@ def get_similarity_data_from_seer(
 
     for raw_similar_issue_data in response_data:
         try:
-            normalized = SeerSimilarIssueData.from_raw(
-                similar_issues_request["project_id"], raw_similar_issue_data
-            )
+            normalized = SeerSimilarIssueData.from_raw(project_id, raw_similar_issue_data)
 
             if (
                 normalized.should_group
@@ -211,13 +211,15 @@ def get_similarity_data_from_seer(
             # in a race condition, where Seer recommends a hash it doesn't know it's about to be
             # asked to delete, and we come up empty because on the Sentry side the hash has already
             # been deleted.
+            parent_hash = raw_similar_issue_data.get("parent_hash")
+
             metric_tags.update({"outcome": "error", "error": "SimilarGroupNotFoundError"})
             logger.warning(
                 "get_similarity_data_from_seer.parent_group_not_found",
                 extra={
-                    "hash": similar_issues_request["hash"],
-                    "parent_hash": raw_similar_issue_data.get("parent_hash"),
-                    "project_id": similar_issues_request["project_id"],
+                    "hash": request_hash,
+                    "parent_hash": parent_hash,
+                    "project_id": project_id,
                 },
             )
 
