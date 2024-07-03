@@ -402,7 +402,7 @@ class SlackActionEndpoint(Endpoint):
 
         # XXX(CEO): the second you make a selection (without hitting Submit) it sends a slightly different request
         modal_payload = self.build_resolve_modal_payload(callback_id)
-        if not features.has("organizations:slack-sdk-action-view-open", group.project.organization):
+        if features.has("organizations:slack-sdk-action-view-open", group.project.organization):
             slack_client = SlackSdkClient(integration_id=slack_request.integration.id)
             try:
                 slack_client.views_open(
@@ -464,7 +464,7 @@ class SlackActionEndpoint(Endpoint):
             "trigger_id": slack_request.data["trigger_id"],
         }
 
-        if not features.has("organizations:slack-sdk-action-view-open", group.project.organization):
+        if features.has("organizations:slack-sdk-action-view-open", group.project.organization):
             slack_client = SlackSdkClient(integration_id=slack_request.integration.id)
             try:
                 slack_client.views_open(
