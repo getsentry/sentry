@@ -359,7 +359,6 @@ export function GroupEventActions({event, group, projectSlug}: GroupEventActions
 }
 
 export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarouselProps) {
-  const organization = useOrganization();
   const latencyThreshold = 30 * 60 * 1000; // 30 minutes
   const isOverLatencyThreshold =
     event.dateReceived &&
@@ -375,9 +374,6 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
   });
 
   const issueTypeConfig = getConfigForIssueType(group, group.project);
-  const isRelatedIssuesEnabled = organization.features.includes(
-    'related-issues-issue-details-page'
-  );
 
   return (
     <CarouselAndButtonsWrapper>
@@ -427,10 +423,7 @@ export function GroupEventCarousel({event, group, projectSlug}: GroupEventCarous
             )}
           </EventIdAndTimeContainer>
         </EventHeading>
-        {/* Once trace-related issues are GA, we will remove this */}
-        {issueTypeConfig.traceTimeline && !isRelatedIssuesEnabled ? (
-          <TraceLink event={event} />
-        ) : null}
+        {issueTypeConfig.traceTimeline && <TraceLink event={event} />}
       </div>
       <ActionsWrapper>
         <GroupEventActions event={event} group={group} projectSlug={projectSlug} />
