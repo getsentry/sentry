@@ -241,6 +241,7 @@ class GroupDetailsTest(APITestCase, SnubaTestCase):
         assert act_for_group[0].type == ActivityType.SET_PRIORITY.value
         assert act_for_group[-1].type == ActivityType.FIRST_SEEN.value
         assert act_for_group[0].user_id == self.user.id
+        assert act_for_group[0].data is not None
         assert act_for_group[0].data["priority"] == "high"
 
         get_response_after = self.client.get(url, format="json")

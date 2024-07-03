@@ -37,10 +37,10 @@ from sentry.models.grouplink import GroupLink
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox, outbox_context
 from sentry.models.team import Team
 from sentry.monitors.models import MonitorEnvironment, MonitorStatus
-from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.notifications.services import notifications_service
 from sentry.snuba.models import SnubaQuery
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 from sentry.utils.colors import get_hashed_color
 from sentry.utils.iterators import chunked
@@ -50,6 +50,7 @@ from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
 
 if TYPE_CHECKING:
     from sentry.models.options.project_option import ProjectOptionManager
+    from sentry.models.options.project_template_option import ProjectTemplateOptionManager
     from sentry.models.user import User
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
@@ -407,9 +408,19 @@ class Project(Model, PendingDeletionMixin):
 
         return ProjectOption.objects
 
+    @property
+    def template_manager(self) -> ProjectTemplateOptionManager:
+        from sentry.models.options.project_template_option import ProjectTemplateOption
+
+        return ProjectTemplateOption.objects
+
     def get_option(
         self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None
     ) -> Any:
+        # if the option is not set, check the template
+        if not self.option_manager.isset(self, key) and self.template is not None:
+            return self.template_manager.get_value(self.template, key, default, validate)
+
         return self.option_manager.get_value(self, key, default, validate)
 
     def update_option(self, key: str, value: Any) -> bool:

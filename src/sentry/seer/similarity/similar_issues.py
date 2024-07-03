@@ -1,6 +1,7 @@
 import logging
 
 from django.conf import settings
+from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry.conf.server import SEER_MAX_GROUPING_DISTANCE, SEER_SIMILAR_ISSUES_URL
 from sentry.models.grouphash import GroupHash
@@ -45,35 +46,69 @@ def get_similarity_data_from_seer(
         similar_issues_request,
         keep_keys=["event_id", "project_id", "message", "hash", "referrer"],
     )
-    logger_extra["_message"] = logger_extra.pop("message", None)
+    logger_extra["message_value"] = logger_extra.pop("message", None)
     logger.info(
         "get_seer_similar_issues.request",
         extra=logger_extra,
     )
-    # TODO: This is temporary, to debug Seer being called on existing hashes
-    existing_grouphash = GroupHash.objects.filter(
-        hash=similar_issues_request["hash"], project_id=similar_issues_request["project_id"]
-    ).first()
-    if existing_grouphash and existing_grouphash.group_id:
+    # TODO: This is temporary, to debug Seer being called on existing hashes during ingest
+    if similar_issues_request.get("referrer") == "ingest":
+        existing_grouphash = GroupHash.objects.filter(
+            hash=similar_issues_request["hash"], project_id=similar_issues_request["project_id"]
+        ).first()
+        if existing_grouphash and existing_grouphash.group_id:
+            logger.warning(
+                "get_seer_similar_issues.hash_exists",
+                extra={
+                    "event_id": similar_issues_request["event_id"],
+                    "project_id": similar_issues_request["project_id"],
+                    "hash": similar_issues_request["hash"],
+                    "grouphash_id": existing_grouphash.id,
+                    "group_id": existing_grouphash.group_id,
+                    "referrer": similar_issues_request.get("referrer"),
+                },
+            )
+    # TODO: This is temporary, to debug Seer being sent empty stacktraces (which will happen for
+    # ingest requests if the filter in `event_content_is_seer_eligible` for existence of frames
+    # isn't enough, or if the similar issues tab ever sends an empty stacktrace). If we want this
+    # check to become permanent, we should move it elsewhere.
+    if not similar_issues_request["stacktrace"]:
         logger.warning(
-            "get_seer_similar_issues.hash_exists",
+            "get_seer_similar_issues.empty_stacktrace",
             extra={
                 "event_id": similar_issues_request["event_id"],
                 "project_id": similar_issues_request["project_id"],
                 "hash": similar_issues_request["hash"],
-                "grouphash_id": existing_grouphash.id,
-                "group_id": existing_grouphash.group_id,
                 "referrer": similar_issues_request.get("referrer"),
             },
         )
+        metrics.incr(
+            "seer.similar_issues_request",
+            sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+            tags={
+                **metric_tags,
+                "outcome": "empty_stacktrace",
+            },
+        )
+        return []
 
-    response = make_signed_seer_api_request(
-        seer_grouping_connection_pool,
-        SEER_SIMILAR_ISSUES_URL,
-        json.dumps({"threshold": SEER_MAX_GROUPING_DISTANCE, **similar_issues_request}).encode(
-            "utf8"
-        ),
-    )
+    try:
+        response = make_signed_seer_api_request(
+            seer_grouping_connection_pool,
+            SEER_SIMILAR_ISSUES_URL,
+            json.dumps({"threshold": SEER_MAX_GROUPING_DISTANCE, **similar_issues_request}).encode(
+                "utf8"
+            ),
+        )
+    # See `SEER_GROUPING_TIMEOUT` in `sentry.conf.server`
+    except (TimeoutError, MaxRetryError) as e:
+        logger.warning("get_seer_similar_issues.request_error", extra=logger_extra)
+        metrics.incr(
+            "seer.similar_issues_request",
+            sample_rate=SIMILARITY_REQUEST_METRIC_SAMPLE_RATE,
+            tags={**metric_tags, "outcome": "error", "error": type(e).__name__},
+        )
+        return []
 
     metric_tags["response_status"] = response.status
 

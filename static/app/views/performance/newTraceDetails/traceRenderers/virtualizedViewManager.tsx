@@ -4,7 +4,10 @@ import * as qs from 'query-string';
 
 import getDuration from 'sentry/utils/duration/getDuration';
 import clamp from 'sentry/utils/number/clamp';
-import {requestAnimationTimeout} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+import {
+  cancelAnimationTimeout,
+  requestAnimationTimeout,
+} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import type {
   TraceTree,
   TraceTreeNode,
@@ -106,6 +109,7 @@ export class VirtualizedViewManager {
 
   timers: {
     onFovChange: {id: number} | null;
+    onListHorizontalScroll: {id: number} | null;
     onRowIntoView: number | null;
     onScrollEndSync: {id: number} | null;
     onWheelEnd: number | null;
@@ -113,6 +117,7 @@ export class VirtualizedViewManager {
   } = {
     onZoomIntoSpace: null,
     onWheelEnd: null,
+    onListHorizontalScroll: null,
     onRowIntoView: null,
     onScrollEndSync: null,
     onFovChange: null,
@@ -432,7 +437,6 @@ export class VirtualizedViewManager {
   onWheel(event: WheelEvent) {
     if (event.metaKey || event.ctrlKey) {
       event.preventDefault();
-
       // If this is the first zoom event, then read the clientX and offset it from the container element as offset
       // is relative to the **target element**. In subsequent events, we can use the offsetX property as
       // the pointer-events are going to be disabled and we will receive the correct offsetX value
@@ -593,7 +597,7 @@ export class VirtualizedViewManager {
     const start = performance.now();
     const rafCallback = (now: number) => {
       const elapsed = now - start;
-      if (elapsed > 200) {
+      if (elapsed > 100) {
         this.onWheelEnd();
       } else {
         this.timers.onWheelEnd = window.requestAnimationFrame(rafCallback);
@@ -604,6 +608,7 @@ export class VirtualizedViewManager {
   }
 
   onWheelStart() {
+    document.body.style.overscrollBehavior = 'none';
     for (let i = 0; i < this.columns.span_list.column_refs.length; i++) {
       const span_list = this.columns.span_list.column_refs[i];
       if (span_list?.children?.[0]) {
@@ -624,6 +629,7 @@ export class VirtualizedViewManager {
   }
 
   onWheelEnd() {
+    document.body.style.overscrollBehavior = '';
     this.timers.onWheelEnd = null;
 
     for (let i = 0; i < this.columns.span_list.column_refs.length; i++) {
@@ -713,6 +719,14 @@ export class VirtualizedViewManager {
     });
   }
 
+  onHorizontalScrollbarScrollStart(): void {
+    document.body.style.overscrollBehavior = 'none';
+  }
+
+  onHorizontalScrollbarScrollEnd(): void {
+    document.body.style.overscrollBehavior = '';
+  }
+
   onHorizontalScrollbarScroll(_event: Event) {
     if (!this.scrolling_source) {
       this.scrolling_source = 'fake scrollbar';
@@ -727,6 +741,10 @@ export class VirtualizedViewManager {
       return;
     }
 
+    if (!this.timers.onListHorizontalScroll) {
+      this.onHorizontalScrollbarScrollStart();
+    }
+
     this.enqueueOnScrollEndOutOfBoundsCheck();
     this.columns.list.translate[0] = this.clampRowTransform(-scrollLeft);
 
@@ -737,6 +755,16 @@ export class VirtualizedViewManager {
     for (const row of rows) {
       row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
     }
+
+    if (this.timers.onListHorizontalScroll) {
+      cancelAnimationTimeout(this.timers.onListHorizontalScroll);
+      this.timers.onListHorizontalScroll = null;
+    }
+
+    this.timers.onListHorizontalScroll = requestAnimationTimeout(() => {
+      this.onHorizontalScrollbarScrollEnd();
+      this.timers.onListHorizontalScroll = null;
+    }, 100);
   }
 
   onSyncedScrollbarScroll(event: WheelEvent) {
@@ -763,6 +791,10 @@ export class VirtualizedViewManager {
       this.timers.onRowIntoView = null;
     }
 
+    if (!this.timers.onListHorizontalScroll) {
+      this.onHorizontalScrollbarScrollStart();
+    }
+
     this.enqueueOnScrollEndOutOfBoundsCheck();
 
     const newTransform = this.clampRowTransform(
@@ -787,6 +819,16 @@ export class VirtualizedViewManager {
         this.columns.list.translate[0]
       );
     }
+
+    if (this.timers.onListHorizontalScroll) {
+      cancelAnimationTimeout(this.timers.onListHorizontalScroll);
+      this.timers.onListHorizontalScroll = null;
+    }
+
+    this.timers.onListHorizontalScroll = requestAnimationTimeout(() => {
+      this.onHorizontalScrollbarScrollEnd();
+      this.timers.onListHorizontalScroll = null;
+    }, 100);
   }
 
   clampRowTransform(transform: number): number {

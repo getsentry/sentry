@@ -42,7 +42,7 @@ from sentry.backup.imports import import_in_global_scope
 from sentry.backup.scopes import ExportScope
 from sentry.backup.validate import validate
 from sentry.db.models.paranoia import ParanoidModel
-from sentry.incidents.models.alert_rule import AlertRuleMonitorType
+from sentry.incidents.models.alert_rule import AlertRuleMonitorTypeInt
 from sentry.incidents.models.incident import (
     IncidentActivity,
     IncidentSnapshot,
@@ -102,6 +102,10 @@ from sentry.models.userrole import UserRole, UserRoleUser
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
 from sentry.nodestore.django.models import Node
 from sentry.sentry_apps.apps import SentryAppUpdater
+from sentry.sentry_metrics.models import (
+    SpanAttributeExtractionRuleCondition,
+    SpanAttributeExtractionRuleConfig,
+)
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase, TransactionTestCase
@@ -456,6 +460,19 @@ class ExhaustiveFixtures(Fixtures):
             sample_rate=0.5,
             query="environment:prod event.type:transaction",
         )
+        span_attribute_extraction_rule_config = SpanAttributeExtractionRuleConfig.objects.create(
+            project=project,
+            span_attribute="my_attribute",
+            created_by_id=owner.id,
+            unit="none",
+            tags=["tag1", "tag2"],
+            aggregates=["count", "sum", "avg", "min", "max", "p50", "p75", "p90", "p95", "p99"],
+        )
+        SpanAttributeExtractionRuleCondition.objects.create(
+            created_by_id=owner.id,
+            value="key:value",
+            config=span_attribute_extraction_rule_config,
+        )
 
         # Environment*
         self.create_environment(project=project)
@@ -485,7 +502,7 @@ class ExhaustiveFixtures(Fixtures):
         activated_alert = self.create_alert_rule(
             organization=org,
             projects=[project],
-            monitor_type=AlertRuleMonitorType.ACTIVATED,
+            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
             activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
         )
         self.create_alert_rule_activation(

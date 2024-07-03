@@ -20,7 +20,6 @@ from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.integrations.utils import get_redis_key
 from sentry.models.rule import Rule
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import ClientError
 from sentry.tasks.post_process import post_process_group
 from sentry.tasks.sentry_apps import (
@@ -41,6 +40,7 @@ from sentry.testutils.silo import assume_test_silo_mode_of, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.rules import RuleFuture
+from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.utils.http import absolute_uri
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
@@ -467,10 +467,11 @@ class TestCommentWebhook(TestCase):
             user_id=self.user.id,
             data={"text": "hello world"},
         )
+        assert self.note.data is not None
         self.data = {
             "comment_id": self.note.id,
             "timestamp": self.note.datetime,
-            "comment": self.note.data.get("text"),
+            "comment": self.note.data["text"],
             "project_slug": self.note.project.slug,
         }
 

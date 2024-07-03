@@ -6,7 +6,7 @@ from sentry.api.utils import default_start_end_dates
 from sentry.eventstore.models import GroupEvent
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -53,7 +53,7 @@ def trace_connected_issues(event: GroupEvent) -> tuple[list[int], dict[str, str]
     # XXX: Test without a list and validate the data type
     project_ids = list(Project.objects.filter(organization_id=org_id).values_list("id", flat=True))
     start, end = default_start_end_dates()  # Today to 90 days back
-    query = QueryBuilder(
+    query = DiscoverQueryBuilder(
         Dataset.Events,
         {"start": start, "end": end, "organization_id": org_id, "project_id": project_ids},
         query=f"trace:{event.trace_id}",

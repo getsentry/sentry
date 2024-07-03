@@ -44,8 +44,8 @@ class AggregateActivityScalar(ComputedBase):
 def aggregate_activity() -> Function:
     """Return a function which computes the duration of a replay."""
 
-    def sum_length_column(column_name: str) -> Function:
-        return Function("sum", parameters=[Function("length", parameters=[Column(column_name)])])
+    def sum_column(column_name: str) -> Function:
+        return Function("sum", parameters=[Column(column_name)])
 
     combined_weight_normalized = Function(
         "intDivOrZero",
@@ -53,10 +53,8 @@ def aggregate_activity() -> Function:
             Function(
                 "plus",
                 parameters=[
-                    # Error weight.
-                    Function("multiply", parameters=[sum_length_column("error_ids"), 25]),
-                    # Page visited weight.
-                    Function("multiply", parameters=[sum_length_column("urls"), 5]),
+                    Function("multiply", parameters=[sum_column("count_error_events"), 25]),
+                    Function("multiply", parameters=[sum_column("count_urls"), 5]),
                 ],
             ),
             10,

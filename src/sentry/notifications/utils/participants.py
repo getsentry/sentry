@@ -24,6 +24,7 @@ from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.team import Team
 from sentry.models.user import User
+from sentry.notifications.services import notifications_service
 from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,
@@ -31,11 +32,10 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.types.actor import Actor, ActorType
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
+from sentry.users.services.user_option import get_option_from_list, user_option_service
 from sentry.utils import json, metrics
 from sentry.utils.committers import AuthorCommitsSerialized, get_serialized_event_file_committers
 

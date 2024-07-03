@@ -23,6 +23,8 @@ from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
 
 from sentry import features, roles
+from sentry.auth.services.access.service import access_service
+from sentry.auth.services.auth import RpcAuthState, RpcMemberSsoState
 from sentry.auth.staff import is_active_staff
 from sentry.auth.superuser import get_superuser_scopes, is_active_superuser
 from sentry.auth.system import SystemToken, is_system_auth
@@ -34,13 +36,11 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.team import Team, TeamStatus
 from sentry.models.user import User
+from sentry.organizations.services.organization import RpcTeamMember, RpcUserOrganizationContext
+from sentry.organizations.services.organization.serial import summarize_member
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole, TeamRole
-from sentry.services.hybrid_cloud.access.service import access_service
-from sentry.services.hybrid_cloud.auth import RpcAuthState, RpcMemberSsoState
-from sentry.services.hybrid_cloud.organization import RpcTeamMember, RpcUserOrganizationContext
-from sentry.services.hybrid_cloud.organization.serial import summarize_member
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 
 
@@ -1070,7 +1070,7 @@ def _from_sentry_app(
 
 
 def _from_rpc_sentry_app(context: RpcUserOrganizationContext | None = None) -> Access:
-    from sentry.services.hybrid_cloud.app import app_service
+    from sentry.sentry_apps.services.app import app_service
 
     if not context or context.user_id is None:
         return NoAccess()

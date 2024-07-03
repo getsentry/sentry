@@ -1,12 +1,13 @@
 import {resetMockDate, setMockDate} from 'sentry-test/utils';
 
-import type {MetricsAggregate, MetricType, MRI} from 'sentry/types/metrics';
+import type {MetricAggregation, MetricType, MRI} from 'sentry/types/metrics';
 import {
   getAbsoluteDateTimeRange,
   getDateTimeParams,
-  getDefaultAggregate,
+  getDefaultAggregation,
   getFormattedMQL,
   getMetricsInterval,
+  isExtractedCustomMetric,
   isFormattedMQL,
 } from 'sentry/utils/metrics';
 import {DEFAULT_AGGREGATES} from 'sentry/utils/metrics/constants';
@@ -66,7 +67,7 @@ describe('getDateTimeParams', () => {
 describe('getFormattedMQL', () => {
   it('should format metric widget object into a string', () => {
     const result = getFormattedMQL({
-      op: 'avg',
+      aggregation: 'avg',
       mri: 'd:custom/sentry.process_profile.symbolicate.process@second',
       groupBy: ['result'],
       query: 'result:success',
@@ -79,13 +80,29 @@ describe('getFormattedMQL', () => {
 
   it('defaults to an empty string', () => {
     const result = getFormattedMQL({
-      op: '' as MetricsAggregate,
+      aggregation: '' as MetricAggregation,
       mri: 'd:custom/sentry.process_profile.symbolicate.process@second',
       groupBy: [],
       query: '',
     });
 
     expect(result).toEqual('');
+  });
+});
+
+describe('isExtractedCustomMetric', () => {
+  it('should return true if the metric name is prefixed', () => {
+    expect(isExtractedCustomMetric({mri: 'c:custom/span_attribute_123@none'})).toBe(true);
+    expect(isExtractedCustomMetric({mri: 's:custom/span_attribute_foo@none'})).toBe(true);
+    expect(isExtractedCustomMetric({mri: 'd:custom/span_attribute_bar@none'})).toBe(true);
+    expect(isExtractedCustomMetric({mri: 'g:custom/span_attribute_baz@none'})).toBe(true);
+  });
+
+  it('should return false if the metric name is not prefixed', () => {
+    expect(isExtractedCustomMetric({mri: 'c:custom/12span_attribute_@none'})).toBe(false);
+    expect(isExtractedCustomMetric({mri: 's:custom/foo@none'})).toBe(false);
+    expect(isExtractedCustomMetric({mri: 'd:custom/_span_attribute_@none'})).toBe(false);
+    expect(isExtractedCustomMetric({mri: 'g:custom/span_attributebaz@none'})).toBe(false);
   });
 });
 
@@ -158,17 +175,17 @@ describe('getAbsoluteDateTimeRange', () => {
   });
 });
 
-describe('getDefaultAggregate', () => {
+describe('getDefaultAggregation', () => {
   it.each(['c', 'd', 'g', 's'])(
-    'should give default aggregate - metric type %s',
+    'should give default aggregation - metric type %s',
     metricType => {
       const mri = `${metricType as MetricType}:custom/xyz@test` as MRI;
 
-      expect(getDefaultAggregate(mri)).toBe(DEFAULT_AGGREGATES[metricType]);
+      expect(getDefaultAggregation(mri)).toBe(DEFAULT_AGGREGATES[metricType]);
     }
   );
 
   it('should fallback to sum', () => {
-    expect(getDefaultAggregate('b:roken/MRI@none' as MRI)).toBe('sum');
+    expect(getDefaultAggregation('b:roken/MRI@none' as MRI)).toBe('sum');
   });
 });

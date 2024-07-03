@@ -1,6 +1,7 @@
 import {
   type ForwardedRef,
   forwardRef,
+  Fragment,
   type MouseEventHandler,
   type ReactNode,
   useCallback,
@@ -82,6 +83,7 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
   onFocus?: (e: React.FocusEvent<HTMLInputElement>) => void;
   onInputChange?: React.ChangeEventHandler<HTMLInputElement>;
   onKeyDown?: (e: KeyboardEvent) => void;
+  onKeyUp?: (e: KeyboardEvent) => void;
   onPaste?: (e: React.ClipboardEvent<HTMLInputElement>) => void;
   openOnFocus?: boolean;
   placeholder?: string;
@@ -90,6 +92,11 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
    * other elements.
    */
   shouldCloseOnInteractOutside?: (interactedElement: Element) => boolean;
+  /**
+   * Whether the menu should filter results based on the filterValue.
+   * Disable if the filtering should be handled by the caller.
+   */
+  shouldFilterResults?: boolean;
   tabIndex?: number;
 };
 
@@ -161,12 +168,14 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
   maxOptions,
   displayTabbedMenu,
   selectedSection,
+  shouldFilterResults,
 }: {
   filterValue: string;
   items: T[];
   selectedSection: Key | null;
   displayTabbedMenu?: boolean;
   maxOptions?: number;
+  shouldFilterResults?: boolean;
 }) {
   const hiddenOptions: Set<SelectKey> = useMemo(() => {
     if (displayTabbedMenu) {
@@ -185,8 +194,15 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
       return mergeSets(hiddenFromOtherSections, hiddenFromShownSection);
     }
 
-    return getHiddenOptions(items, filterValue, maxOptions);
-  }, [displayTabbedMenu, items, filterValue, maxOptions, selectedSection]);
+    return getHiddenOptions(items, shouldFilterResults ? filterValue : '', maxOptions);
+  }, [
+    displayTabbedMenu,
+    items,
+    shouldFilterResults,
+    filterValue,
+    maxOptions,
+    selectedSection,
+  ]);
 
   const disabledKeys: string[] = useMemo(
     () => [...getDisabledOptions(items), ...hiddenOptions].map(getEscapedKey),
@@ -290,41 +306,46 @@ function SectionedListBox<T extends SelectOptionOrSectionWithKey<string>>({
 
   return (
     <SectionedOverlay ref={popoverRef}>
-      <SectionedListBoxTabPane>
-        <ListBoxSectionButton
-          selected={selectedSection === null}
-          onClick={() => {
-            setSelectedSection(null);
-            state.selectionManager.setFocusedKey(null);
-          }}
-        >
-          {t('All')}
-        </ListBoxSectionButton>
-        {sections.map(node => (
-          <ListBoxSectionButton
-            key={node.key}
-            selected={selectedSection === node.key}
-            onClick={() => {
-              setSelectedSection(node.key);
-              state.selectionManager.setFocusedKey(null);
-            }}
-          >
-            {node.props.title}
-          </ListBoxSectionButton>
-        ))}
-      </SectionedListBoxTabPane>
-      <SectionedListBoxPane>
-        <ListBox
-          {...listBoxProps}
-          ref={listBoxRef}
-          listState={state}
-          hasSearch={!sectionHasHiddenOptions}
-          hiddenOptions={hiddenOptions}
-          keyDownHandler={() => true}
-          overlayIsOpen={isOpen}
-          size="sm"
-        />
-      </SectionedListBoxPane>
+      {isOpen ? (
+        <Fragment>
+          <SectionedListBoxTabPane>
+            <ListBoxSectionButton
+              selected={selectedSection === null}
+              onClick={() => {
+                setSelectedSection(null);
+                state.selectionManager.setFocusedKey(null);
+              }}
+            >
+              {t('All')}
+            </ListBoxSectionButton>
+            {sections.map(node => (
+              <ListBoxSectionButton
+                key={node.key}
+                selected={selectedSection === node.key}
+                onClick={() => {
+                  setSelectedSection(node.key);
+                  state.selectionManager.setFocusedKey(null);
+                }}
+              >
+                {node.props.title}
+              </ListBoxSectionButton>
+            ))}
+          </SectionedListBoxTabPane>
+          <SectionedListBoxPane>
+            <ListBox
+              {...listBoxProps}
+              ref={listBoxRef}
+              listState={state}
+              hasSearch={!sectionHasHiddenOptions}
+              hiddenOptions={hiddenOptions}
+              keyDownHandler={() => true}
+              overlayIsOpen={isOpen}
+              showSectionHeaders={!selectedSection}
+              size="sm"
+            />
+          </SectionedListBoxPane>
+        </Fragment>
+      ) : null}
     </SectionedOverlay>
   );
 }
@@ -392,6 +413,7 @@ function OverlayContent({
           hiddenOptions={hiddenOptions}
           keyDownHandler={() => true}
           overlayIsOpen={isOpen}
+          showSectionHeaders={!filterValue}
           size="sm"
         />
       )}
@@ -412,12 +434,14 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     inputLabel,
     onExit,
     onKeyDown,
+    onKeyUp,
     onInputChange,
     autoFocus,
     openOnFocus,
     onFocus,
     tabIndex = -1,
     maxOptions,
+    shouldFilterResults = true,
     shouldCloseOnInteractOutside,
     onPaste,
     displayTabbedMenu,
@@ -438,6 +462,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     maxOptions,
     displayTabbedMenu,
     selectedSection,
+    shouldFilterResults,
   });
 
   const onSelectionChange = useCallback(
@@ -507,9 +532,17 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
             return;
         }
       },
+      onKeyUp,
     },
     state
   );
+
+  const previousInputValue = usePrevious(inputValue);
+  useEffect(() => {
+    if (inputValue !== previousInputValue) {
+      state.selectionManager.setFocusedKey(null);
+    }
+  }, [inputValue, previousInputValue, state.selectionManager]);
 
   const totalOptions = items.reduce(
     (acc, item) => acc + (itemIsSection(item) ? item.options.length : 1),
@@ -535,7 +568,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     type: 'listbox',
     isOpen,
     position: 'bottom-start',
-    offset: [0, 8],
+    offset: [-12, 8],
     isKeyboardDismissDisabled: true,
     shouldCloseOnBlur: true,
     shouldCloseOnInteractOutside: el => {

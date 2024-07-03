@@ -36,7 +36,7 @@ import {
   getEquationAliasIndex,
   isEquationAlias,
 } from 'sentry/utils/discover/fields';
-import {DisplayModes, TOP_N} from 'sentry/utils/discover/types';
+import {type DiscoverDatasets, DisplayModes, TOP_N} from 'sentry/utils/discover/types';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import ViewReplayLink from 'sentry/utils/discover/viewReplayLink';
 import {getShortEventId} from 'sentry/utils/events';
@@ -80,6 +80,7 @@ export type TableViewProps = {
 
   title: string;
   customMeasurements?: CustomMeasurementCollection;
+  dataset?: DiscoverDatasets;
   isHomepage?: boolean;
   spanOperationBreakdownKeys?: string[];
 };
@@ -188,13 +189,24 @@ function TableView(props: TableViewProps) {
       }
 
       let target;
-      if (dataRow['event.type'] === 'transaction') {
-        if (dataRow.trace === null) {
+
+      if (dataRow.trace === null || dataRow.trace === undefined) {
+        if (dataRow['event.type'] === 'transaction') {
           throw new Error(
             'Transaction event should always have a trace associated with it.'
           );
         }
 
+        const project = dataRow.project || dataRow['project.name'];
+        target = {
+          // NOTE: This uses a legacy redirect for project event to the issue group event link
+          // This only works with dev-server or production.
+          pathname: normalizeUrl(
+            `/${organization.slug}/${project}/events/${dataRow.id}/`
+          ),
+          query: {...location.query, referrer: 'discover-events-table'},
+        };
+      } else {
         target = generateLinkToEventInTraceView({
           traceSlug: dataRow.trace,
           eventId: dataRow.id,
@@ -207,14 +219,6 @@ function TableView(props: TableViewProps) {
           type: 'discover',
           source: TraceViewSources.DISCOVER,
         });
-      } else {
-        const project = dataRow.project || dataRow['project.name'];
-
-        target = {
-          // NOTE: This uses a legacy redirect for project event to the issue group event link
-          pathname: `/${organization.slug}/${project}/events/${dataRow.id}/`,
-          query: {...location.query, referrer: 'discover-events-table'},
-        };
       }
 
       const eventIdLink = (
@@ -317,13 +321,24 @@ function TableView(props: TableViewProps) {
     if (columnKey === 'id') {
       let target;
 
-      if (dataRow['event.type'] === 'transaction') {
-        if (dataRow.trace === null) {
+      if (dataRow.trace === null || dataRow.trace === undefined) {
+        if (dataRow['event.type'] === 'transaction') {
           throw new Error(
             'Transaction event should always have a trace associated with it.'
           );
         }
 
+        const project = dataRow.project || dataRow['project.name'];
+
+        target = {
+          // NOTE: This uses a legacy redirect for project event to the issue group event link.
+          // This only works with dev-server or production.
+          pathname: normalizeUrl(
+            `/${organization.slug}/${project}/events/${dataRow.id}/`
+          ),
+          query: {...location.query, referrer: 'discover-events-table'},
+        };
+      } else {
         target = generateLinkToEventInTraceView({
           traceSlug: dataRow.trace?.toString(),
           eventId: dataRow.id,
@@ -336,14 +351,6 @@ function TableView(props: TableViewProps) {
           type: 'discover',
           source: TraceViewSources.DISCOVER,
         });
-      } else {
-        const project = dataRow.project || dataRow['project.name'];
-
-        target = {
-          // NOTE: This uses a legacy redirect for project event to the issue group event link
-          pathname: `/${organization.slug}/${project}/events/${dataRow.id}/`,
-          query: {...location.query, referrer: 'discover-events-table'},
-        };
       }
 
       const idLink = (
@@ -496,6 +503,7 @@ function TableView(props: TableViewProps) {
       measurementKeys,
       spanOperationBreakdownKeys,
       customMeasurements,
+      dataset,
     } = props;
 
     openModal(
@@ -508,6 +516,7 @@ function TableView(props: TableViewProps) {
           columns={eventView.getColumns().map(col => col.column)}
           onApply={handleUpdateColumns}
           customMeasurements={customMeasurements}
+          dataset={dataset}
         />
       ),
       {modalCss, closeEvents: 'escape-key'}

@@ -89,9 +89,9 @@ function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
     // in ReplayContext creating a new Replayer
     // instance before events are hydrated. This
     // resulted in the `recording(Start/End)Frame`
-    // as the only two events when we instanciated
+    // as the only two events when we instantiated
     // Replayer and the rrweb Replayer requires all
-    // events to be present when instanciated.
+    // events to be present when instantiated.
     if (!isFetching) {
       setRoot(viewEl.current);
     }

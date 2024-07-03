@@ -76,7 +76,7 @@ def handle_message(
     :param message:
     :return:
     """
-    with sentry_sdk.push_scope() as scope:
+    with sentry_sdk.isolation_scope() as scope:
         try:
             with metrics.timer(
                 "snuba_query_subscriber.parse_message_value", tags={"dataset": dataset}

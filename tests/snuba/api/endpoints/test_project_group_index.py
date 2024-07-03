@@ -163,7 +163,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
         group2 = self.create_group(last_seen=timezone.now())
 
         self.login_as(user=self.user)
-        response = self.client.get(self.path, format="json")
+        response = self.client.get(self.path + "?query=is:unresolved", format="json")
         assert response.status_code == 200
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group2.id)
@@ -318,7 +318,7 @@ class GroupListTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
 
-        response = self.client.get(self.path, format="json")
+        response = self.client.get(self.path + "?query=is:unresolved", format="json")
         assert len(response.data) == 1
         assert response.data[0]["id"] == str(group.id)
 
@@ -376,7 +376,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
 
         self.login_as(user=self.user)
         response = self.client.put(
-            f"{self.path}?status=unresolved", data={"status": "resolved"}, format="json"
+            f"{self.path}?status=unresolved&query=is:unresolved",
+            data={"status": "resolved"},
+            format="json",
         )
         assert response.status_code == 200, response.data
         assert response.data == {"status": "resolved", "statusDetails": {}, "inbox": None}
@@ -421,7 +423,9 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert len(response.data) == 100
 
         response = self.client.put(
-            f"{self.path}?status=unresolved", data={"status": "resolved"}, format="json"
+            f"{self.path}?status=unresolved&query=is:unresolved",
+            data={"status": "resolved"},
+            format="json",
         )
         assert response.status_code == 200, response.data
 
@@ -472,7 +476,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         with self.tasks():
             with self.feature({"organizations:integrations-issue-sync": True}):
                 response = self.client.put(
-                    f"{self.path}?status=unresolved",
+                    f"{self.path}?status=unresolved&query=is:unresolved",
                     data={"status": "resolved"},
                     format="json",
                 )
@@ -603,6 +607,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         activity = Activity.objects.get(
             group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
+        assert activity.data is not None
         assert activity.data["version"] == ""
         with assume_test_silo_mode(SiloMode.CONTROL):
             uo1.delete()
@@ -678,6 +683,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         activity = Activity.objects.get(
             group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
+        assert activity.data is not None
         assert activity.data["version"] == release.version
 
     def test_set_resolved_in_explicit_release(self):
@@ -718,6 +724,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         activity = Activity.objects.get(
             group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
+        assert activity.data is not None
         assert activity.data["version"] == release.version
 
     def test_set_resolved_in_next_release(self):
@@ -756,6 +763,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         activity = Activity.objects.get(
             group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
+        assert activity.data is not None
         assert activity.data["version"] == ""
 
     def test_set_resolved_in_next_release_legacy(self):
@@ -789,6 +797,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         activity = Activity.objects.get(
             group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
+        assert activity.data is not None
         assert activity.data["version"] == ""
 
     @with_feature("organizations:resolve-in-upcoming-release")
@@ -828,6 +837,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         activity = Activity.objects.get(
             group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
+        assert activity.data is not None
         assert activity.data["version"] == ""
 
     def test_upcoming_release_flag_validation(self):
@@ -902,6 +912,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         ).exists()
 
         activity = Activity.objects.get(group=group, type=ActivityType.SET_RESOLVED_IN_COMMIT.value)
+        assert activity.data is not None
         assert activity.data["commit"] == commit.id
 
     def test_set_resolved_in_explicit_commit_released(self):
@@ -941,6 +952,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         ).exists()
 
         activity = Activity.objects.get(group=group, type=ActivityType.SET_RESOLVED_IN_COMMIT.value)
+        assert activity.data is not None
         assert activity.data["commit"] == commit.id
 
         resolution = GroupResolution.objects.get(group=group)
@@ -1074,6 +1086,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert snooze.user_count is None
         assert snooze.user_window is None
         assert snooze.window is None
+        assert snooze.state is not None
         assert snooze.state["times_seen"] == 1
 
         assert response.data["status"] == "ignored"
@@ -1115,6 +1128,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert snooze.user_count == 10
         assert snooze.user_window is None
         assert snooze.window is None
+        assert snooze.state is not None
         assert snooze.state["users_seen"] == 10
 
         assert response.data["status"] == "ignored"

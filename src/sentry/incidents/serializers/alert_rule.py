@@ -28,7 +28,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import (
     AlertRule,
-    AlertRuleMonitorType,
+    AlertRuleMonitorTypeInt,
     AlertRuleThresholdType,
     AlertRuleTrigger,
 )
@@ -205,7 +205,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
         ):
             raise serializers.ValidationError("Invalid monitor type")
 
-        return AlertRuleMonitorType(monitor_type)
+        return AlertRuleMonitorTypeInt(monitor_type)
 
     def validate_activation_condition(self, activation_condition):
         if activation_condition is None:

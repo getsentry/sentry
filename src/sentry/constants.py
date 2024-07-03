@@ -615,9 +615,10 @@ class InsightModules(Enum):
 # each span filter takes in a span object and returns whether
 # the span belongs in the corresponding insight module
 INSIGHT_MODULE_SPAN_FILTERS = {
-    InsightModules.HTTP: lambda span: span.get("op") == "http.client"
-    and span.get("module") == "http",
-    InsightModules.DB: lambda span: span.get("module") == "db" and "description" in span.keys(),
+    InsightModules.HTTP: lambda span: span.get("sentry_tags", {}).get("category") == "http"
+    and span.get("op") == "http.client",
+    InsightModules.DB: lambda span: span.get("sentry_tags", {}).get("category") == "db"
+    and "description" in span.keys(),
     InsightModules.ASSETS: lambda span: span.get("op")
     in ["resource.script", "resource.css", "resource.font", "resource.img"],
     InsightModules.APP_START: lambda span: span.get("op").startswith("app.start."),
@@ -682,7 +683,7 @@ AI_SUGGESTED_SOLUTION = True
 GITHUB_COMMENT_BOT_DEFAULT = True
 ISSUE_ALERTS_THREAD_DEFAULT = True
 METRIC_ALERTS_THREAD_DEFAULT = True
-METRICS_ACTIVATE_PERCENTILES_DEFAULT = False
+METRICS_ACTIVATE_PERCENTILES_DEFAULT = True
 METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT = False
 DATA_CONSENT_DEFAULT = False
 EXTRAPOLATE_METRICS_DEFAULT = False

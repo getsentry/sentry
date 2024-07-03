@@ -19,7 +19,7 @@ from sentry.api.invite_helper import (
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
-from sentry.services.hybrid_cloud.organization import (
+from sentry.organizations.services.organization import (
     RpcUserInviteContext,
     RpcUserOrganizationContext,
     organization_service,

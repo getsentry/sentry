@@ -1,5 +1,4 @@
 from unittest.mock import patch
-from urllib.parse import parse_qs
 from uuid import uuid4
 
 import orjson
@@ -7,12 +6,12 @@ import pytest
 import responses
 
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTriggerAction
+from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.slack.sdk_client import SLACK_DATADOG_METRIC
 from sentry.integrations.slack.utils import RedisRuleStatus
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.rule import Rule
 from sentry.receivers.rules import DEFAULT_RULE_LABEL, DEFAULT_RULE_LABEL_NEW
-from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.tasks.integrations.slack import (
     find_channel_id_for_alert_rule,
     find_channel_id_for_rule,
@@ -399,46 +398,6 @@ class SlackTasksTest(TestCase):
         assert trigger_action.target_identifier == "chan-id"
         assert AlertRule.objects.get(id=alert_rule.id)
 
-    @responses.activate
-    def test_post_message_success(self):
-        responses.add(
-            responses.POST,
-            "https://slack.com/api/chat.postMessage",
-            json={"ok": True},
-            status=200,
-        )
-        with self.tasks():
-            post_message.apply_async(
-                kwargs={
-                    "integration_id": self.integration.id,
-                    "payload": {"key": ["val"]},
-                    "log_error_message": "my_message",
-                    "log_params": {"log_key": "log_value"},
-                }
-            )
-        data = parse_qs(responses.calls[0].request.body)
-        assert data == {"key": ["val"]}
-
-    @responses.activate
-    def test_post_message_failure(self):
-        responses.add(
-            responses.POST,
-            "https://slack.com/api/chat.postMessage",
-            json={"ok": False, "error": "my_error"},
-            status=200,
-        )
-        with self.tasks():
-            post_message.apply_async(
-                kwargs={
-                    "integration_id": self.integration.id,
-                    "payload": {"key": ["val"]},
-                    "log_error_message": "my_message",
-                    "log_params": {"log_key": "log_value"},
-                }
-            )
-        data = parse_qs(responses.calls[0].request.body)
-        assert data == {"key": ["val"]}
-
     @patch("sentry.integrations.slack.sdk_client.metrics")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
     @responses.activate
@@ -473,7 +432,12 @@ class SlackTasksTest(TestCase):
             post_message.apply_async(
                 kwargs={
                     "integration_id": self.integration.id,
-                    "payload": {"blocks": ["hello"], "text": "text", "channel": "channel"},
+                    "payload": {
+                        "blocks": ["hello"],
+                        "text": "text",
+                        "channel": "channel",
+                        "callback_id": "123",
+                    },
                     "log_error_message": "my_message",
                     "log_params": {"log_key": "log_value"},
                     "has_sdk_flag": True,

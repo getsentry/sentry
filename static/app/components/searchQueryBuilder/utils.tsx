@@ -22,6 +22,8 @@ import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 
 export const INTERFACE_TYPE_LOCALSTORAGE_KEY = 'search-query-builder-interface';
 
+const SHOULD_ESCAPE_REGEX = /[\s"()]/;
+
 function getSearchConfigFromKeys(keys: TagCollection): Partial<SearchConfig> {
   const config = {
     booleanKeys: new Set<string>(),
@@ -154,10 +156,12 @@ export function getValidOpsForFilter(
 }
 
 export function escapeTagValue(value: string): string {
-  // Wrap in quotes if there is a space
-  return value.includes(' ') || value.includes('"')
-    ? `"${escapeDoubleQuotes(value)}"`
-    : value;
+  if (!value) {
+    return '';
+  }
+
+  // Wrap in quotes if there is a space or parens
+  return SHOULD_ESCAPE_REGEX.test(value) ? `"${escapeDoubleQuotes(value)}"` : value;
 }
 
 export function unescapeTagValue(value: string): string {
@@ -166,8 +170,13 @@ export function unescapeTagValue(value: string): string {
 
 export function formatFilterValue(token: TokenResult<Token.FILTER>['value']): string {
   switch (token.type) {
-    case Token.VALUE_TEXT:
-      return unescapeTagValue(token.value);
+    case Token.VALUE_TEXT: {
+      if (!token.value) {
+        return token.text;
+      }
+
+      return token.quoted ? unescapeTagValue(token.value) : token.text;
+    }
     case Token.VALUE_RELATIVE_DATE:
       return t('%s', `${token.value}${token.unit} ago`);
     default:

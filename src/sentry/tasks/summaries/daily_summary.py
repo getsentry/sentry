@@ -19,9 +19,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.models.release import Release
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.notifications.notifications.daily_summary import DailySummaryNotification
-from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.services.hybrid_cloud.user_option import user_option_service
+from sentry.notifications.services import notifications_service
 from sentry.silo.base import SiloMode
 from sentry.snuba.referrer import Referrer
 from sentry.tasks.base import instrumented_task, retry
@@ -41,6 +39,8 @@ from sentry.tasks.summaries.utils import (
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
+from sentry.users.services.user.service import user_service
+from sentry.users.services.user_option import user_option_service
 from sentry.utils import json
 from sentry.utils.dates import to_datetime
 from sentry.utils.outcomes import Outcome
