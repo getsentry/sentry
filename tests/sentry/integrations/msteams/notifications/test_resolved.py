@@ -82,6 +82,7 @@ class MSTeamsResolvedNotificationTest(MSTeamsActivityNotificationTest):
         body = args[1]["body"]
         assert 4 == len(body)
 
+        assert notification.activity.data is not None
         release_name = notification.activity.data["version"]
         assert (
             f"Issue marked as resolved in {release_name} by {self.user.get_display_name()}"

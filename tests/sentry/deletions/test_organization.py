@@ -254,7 +254,7 @@ class DeleteOrganizationTest(TransactionTestCase, HybridCloudTestMixin):
         other = self.create_organization(name="other", owner=self.user)
         other_project = self.create_project(organization=other, name="other project")
 
-        query = DiscoverSavedQuery.objects.create(organization=org, name="test query", query="{}")
+        query = DiscoverSavedQuery.objects.create(organization=org, name="test query", query={})
         # Make a cross-org project reference. This can happen when an account was
         # merged in the past and we didn't update the discover queries.
         query_project = DiscoverSavedQueryProject.objects.create(

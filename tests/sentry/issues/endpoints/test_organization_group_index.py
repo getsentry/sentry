@@ -4112,6 +4112,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         activity = Activity.objects.get(
             group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
+        assert activity.data is not None
         assert activity.data["version"] == ""
         with assume_test_silo_mode(SiloMode.CONTROL):
             uo1.delete()
@@ -4178,7 +4179,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             ident=grp_resolution.id,
         )
 
-        assert "current_release_version" in activity.data
+        assert activity.data is not None
         assert activity.data["current_release_version"] == release_2.version
 
     def test_in_non_semver_projects_group_resolution_stores_current_release_version(self) -> None:
@@ -4328,6 +4329,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
             ident=grp_resolution.id,
         )
+        assert activity.data is not None
         assert activity.data["version"] == release_2.version
 
     def test_selective_status_update(self) -> None:
@@ -4397,6 +4399,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         activity = Activity.objects.get(
             group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
+        assert activity.data is not None
         assert activity.data["version"] == release.version
         assert GroupHistory.objects.filter(
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_RELEASE
@@ -4438,6 +4441,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         activity = Activity.objects.get(
             group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
+        assert activity.data is not None
         assert activity.data["version"] == release.version
 
     def test_in_semver_projects_set_resolved_in_explicit_release(self) -> None:
@@ -4482,6 +4486,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         activity = Activity.objects.get(
             group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
+        assert activity.data is not None
         assert activity.data["version"] == release_1.version
 
         assert GroupResolution.has_resolution(group=group, release=release_2)
@@ -4519,6 +4524,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         activity = Activity.objects.get(
             group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
+        assert activity.data is not None
         assert activity.data["version"] == ""
 
     def test_set_resolved_in_next_release_legacy(self) -> None:
@@ -4556,6 +4562,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         activity = Activity.objects.get(
             group=group, type=ActivityType.SET_RESOLVED_IN_RELEASE.value
         )
+        assert activity.data is not None
         assert activity.data["version"] == ""
 
     def test_set_resolved_in_explicit_commit_unreleased(self) -> None:
@@ -4588,6 +4595,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         ).exists()
 
         activity = Activity.objects.get(group=group, type=ActivityType.SET_RESOLVED_IN_COMMIT.value)
+        assert activity.data is not None
         assert activity.data["commit"] == commit.id
         assert GroupHistory.objects.filter(
             group=group, status=GroupHistoryStatus.SET_RESOLVED_IN_COMMIT
@@ -4626,6 +4634,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         ).exists()
 
         activity = Activity.objects.get(group=group, type=ActivityType.SET_RESOLVED_IN_COMMIT.value)
+        assert activity.data is not None
         assert activity.data["commit"] == commit.id
 
         resolution = GroupResolution.objects.get(group=group)
@@ -4759,6 +4768,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert snooze.user_count is None
         assert snooze.user_window is None
         assert snooze.window is None
+        assert snooze.state is not None
         assert snooze.state["times_seen"] == 1
 
         assert response.data["status"] == "ignored"
@@ -4797,6 +4807,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert snooze.user_count == 10
         assert snooze.user_window is None
         assert snooze.window is None
+        assert snooze.state is not None
         assert snooze.state["users_seen"] == 10
 
         assert response.data["status"] == "ignored"

@@ -52,6 +52,7 @@ class GroupNoteTest(APITestCase):
             data={"text": "This looks bad :)"},
             datetime=now - datetime.timedelta(days=70),
         )
+        assert note1.data is not None
         note2 = Activity.objects.create(
             group=group1,
             project=project1,
@@ -60,6 +61,7 @@ class GroupNoteTest(APITestCase):
             data={"text": "Yeah we should probably look into this"},
             datetime=now - datetime.timedelta(days=66),
         )
+        assert note2.data is not None
 
         project2 = self.create_project()
         group2 = self.create_group(project2)
@@ -72,6 +74,7 @@ class GroupNoteTest(APITestCase):
             data={"text": "I have been a good Sentry :)"},
             datetime=now - datetime.timedelta(days=90),
         )
+        assert note3.data is not None
         note4 = Activity.objects.create(
             group=group2,
             project=project2,
@@ -80,6 +83,7 @@ class GroupNoteTest(APITestCase):
             data={"text": "You have been a bad user :)"},
             datetime=now - datetime.timedelta(days=88),
         )
+        assert note4.data is not None
 
         with self.tasks():
             merge_groups([group1.id], group2.id)

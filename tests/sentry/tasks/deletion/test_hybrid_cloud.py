@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 from operator import itemgetter
+from typing import NotRequired, TypedDict
 from unittest.mock import patch
 
 import pytest
@@ -9,9 +12,12 @@ from sentry.backup.scopes import RelocationScope
 from sentry.db.models import Model, region_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.discover.models import DiscoverSavedQuery
+from sentry.models.group import Group
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration import Integration
+from sentry.models.organization import Organization
 from sentry.models.outbox import ControlOutbox, OutboxScope, outbox_context
+from sentry.models.project import Project
 from sentry.models.savedsearch import SavedSearch
 from sentry.models.tombstone import RegionTombstone
 from sentry.models.user import User
@@ -293,11 +299,34 @@ def test_set_null_deletion_behavior(task_runner):
     assert saved_query.created_by_id is None
 
 
+class _IdParams(TypedDict):
+    id: NotRequired[int]
+
+
+class _CrossDbDeletionData(TypedDict):
+    user: User
+    organization: Organization
+    project: Project
+    monitor: Monitor
+    group: Group
+    saved_query: DiscoverSavedQuery
+
+
 def setup_cross_db_deletion_data(
     desired_user_id: int | None = None,
     desired_monitor_id: int | None = None,
-):
-    user = Factories.create_user(id=desired_user_id)
+) -> _CrossDbDeletionData:
+    if desired_user_id is not None:
+        user_params: _IdParams = {"id": desired_user_id}
+    else:
+        user_params = {}
+
+    if desired_monitor_id is not None:
+        monitor_params = {"id": desired_monitor_id}
+    else:
+        monitor_params = {}
+
+    user = Factories.create_user(**user_params)
     organization = Factories.create_organization(owner=user, name="Delete Me")
     project = Factories.create_project(organization=organization)
     group = Factories.create_group(project=project)
@@ -308,7 +337,7 @@ def setup_cross_db_deletion_data(
             created_by_id=user.id,
         )
         monitor = Monitor.objects.create(
-            id=desired_monitor_id,
+            **monitor_params,
             organization_id=organization.id,
             project_id=project.id,
             slug="test-monitor",
@@ -334,7 +363,7 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
         super().setUp()
         reset_watermarks()
 
-    def assert_monitors_unchanged(self, unaffected_data: list[dict]):
+    def assert_monitors_unchanged(self, unaffected_data: list[_CrossDbDeletionData]) -> None:
         for u_data in unaffected_data:
             u_user, u_monitor = itemgetter("user", "monitor")(u_data)
             queried_monitor = Monitor.objects.get(id=u_monitor.id)
@@ -343,12 +372,12 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
             assert u_monitor.owner_user_id == queried_monitor.owner_user_id
             assert u_monitor.owner_user_id == u_user.id
 
-    def assert_monitors_user_ids_null(self, monitors: list[Monitor]):
+    def assert_monitors_user_ids_null(self, monitors: list[Monitor]) -> None:
         for monitor in monitors:
             monitor.refresh_from_db()
             assert monitor.owner_user_id is None
 
-    def run_hybrid_cloud_fk_jobs(self):
+    def run_hybrid_cloud_fk_jobs(self) -> None:
         with override_options({"hybrid_cloud.allow_cross_db_tombstones": True}):
             with BurstTaskRunner() as burst:
                 schedule_hybrid_cloud_foreign_key_jobs()
@@ -514,7 +543,7 @@ class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
                 )
             )
 
-        bounds_with_expected_results = [
+        bounds_with_expected_results_tests = [
             (
                 {"low": 0, "up": in_order_tombstones[1].id},
                 [cascade_data[0]["monitor"].id, cascade_data[1]["monitor"].id],
@@ -541,7 +570,7 @@ class TestGetIdsForTombstoneCascadeCrossDbTombstoneWatermarking(TestCase):
             ),
         ]
 
-        for bounds, bounds_with_expected_results in bounds_with_expected_results:
+        for bounds, bounds_with_expected_results in bounds_with_expected_results_tests:
             monitor_owner_field = Monitor._meta.get_field("owner_user_id")
 
             ids, oldest_obj = get_ids_cross_db_for_tombstone_watermark(
@@ -670,7 +699,7 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
                 user = data["user"]
                 User.objects.get(id=user.id).delete()
 
-        bounds_with_expected_results = [
+        bounds_with_expected_results_tests = [
             # Get batch containing first 2 monitors
             (
                 {"low": 0, "up": cascade_data[1]["monitor"].id},
@@ -702,7 +731,7 @@ class TestGetIdsForTombstoneCascadeCrossDbRowWatermarking(TestCase):
             ),
         ]
 
-        for bounds, bounds_with_expected_results in bounds_with_expected_results:
+        for bounds, bounds_with_expected_results in bounds_with_expected_results_tests:
             monitor_owner_field = Monitor._meta.get_field("owner_user_id")
 
             ids, oldest_obj = get_ids_cross_db_for_row_watermark(

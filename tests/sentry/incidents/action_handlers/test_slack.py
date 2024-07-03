@@ -103,6 +103,7 @@ class SlackActionHandlerTest(FireTest):
         assert NotificationMessage.objects.all().count() == 1
         msg = NotificationMessage.objects.all()[0]
         assert msg.error_code == 200
+        assert msg.error_details is not None
         assert msg.error_details["data"] == {"ok": False, "error": "invalid_auth"}
 
         mock_metrics.incr.assert_called_with(
