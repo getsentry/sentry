@@ -28,7 +28,7 @@ const getSdkSetupSnippet = () => `
 ${getImportInstrumentSnippet('esm')}
 
 // All other imports below
-${getSentryImportSnippet('node', 'esm')}
+${getSentryImportSnippet('nestjs', 'esm')}
 import { BaseExceptionFilter, HttpAdapterHost, NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 
@@ -54,8 +54,10 @@ const onboarding: OnboardingConfig = {
   install: params => [
     {
       type: StepType.INSTALL,
-      description: t('Add the Sentry Node SDK as a dependency:'),
-      configurations: getInstallConfig(params),
+      description: t('Add the Sentry NestJS SDK as a dependency:'),
+      configurations: getInstallConfig(params, {
+        basePackage: '@sentry/nestjs',
+      }),
     },
   ],
   configure: params => [
@@ -76,7 +78,7 @@ const onboarding: OnboardingConfig = {
               value: 'javascript',
               language: 'javascript',
               filename: 'instrument.(js|ts)',
-              code: getSdkInitSnippet(params, 'node', 'esm'),
+              code: getSdkInitSnippet(params, 'nestjs', 'esm'),
             },
           ],
         },
@@ -88,7 +90,7 @@ const onboarding: OnboardingConfig = {
               code2: <code />,
               code3: <code />,
               docs: (
-                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/koa/install/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/javascript/guides/nestjs/install/" />
               ),
             }
           ),
@@ -105,7 +107,7 @@ const onboarding: OnboardingConfig = {
       ],
     },
     getUploadSourceMapsStep({
-      guideLink: 'https://docs.sentry.io/platforms/javascript/guides/hapi/sourcemaps/',
+      guideLink: 'https://docs.sentry.io/platforms/javascript/guides/nestjs/sourcemaps/',
       ...params,
     }),
   ],
@@ -169,7 +171,7 @@ const crashReportOnboarding: OnboardingConfig = {
     {
       type: StepType.CONFIGURE,
       description: getCrashReportModalConfigDescription({
-        link: 'https://docs.sentry.io/platforms/javascript/guides/hapi/user-feedback/configuration/#crash-report-modal',
+        link: 'https://docs.sentry.io/platforms/javascript/guides/nestjs/user-feedback/configuration/#crash-report-modal',
       }),
     },
   ],

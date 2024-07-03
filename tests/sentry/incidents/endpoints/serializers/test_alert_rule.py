@@ -15,10 +15,10 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.rule import Rule
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.types.actor import Actor
+from sentry.users.services.user.service import user_service
 
 NOT_SET = object()
 

@@ -754,6 +754,14 @@ class Columns(Enum):
         issue_platform_name="profile_id",
         alias="profile.id",
     )
+    PROFILE_PROFILER_ID = Column(
+        group_name="events.contexts[profile.profiler_id]",
+        event_name="contexts[profile.profiler_id]",
+        transaction_name="contexts[profile.profiler_id]",
+        discover_name="contexts[profile.profiler_id]",
+        issue_platform_name="contexts[profile.profiler_id]",
+        alias="profile.profiler_id",
+    )
 
     REPLAY_ID = Column(
         group_name=None,

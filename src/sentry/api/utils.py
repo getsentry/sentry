@@ -31,15 +31,15 @@ from sentry.models.apikey import is_api_key_auth
 from sentry.models.apitoken import is_api_token_auth
 from sentry.models.organization import Organization
 from sentry.models.orgauthtoken import is_org_auth_token_auth
-from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
-from sentry.search.events.types import ParamsType
-from sentry.search.utils import InvalidQuery, parse_datetime_string
-from sentry.services.hybrid_cloud.organization import (
+from sentry.organizations.services.organization import (
     RpcOrganization,
     RpcOrganizationMember,
     RpcUserOrganizationContext,
     organization_service,
 )
+from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
+from sentry.search.events.types import ParamsType
+from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.silo.base import SiloMode
 from sentry.types.region import get_local_region
 from sentry.utils.dates import parse_stats_period

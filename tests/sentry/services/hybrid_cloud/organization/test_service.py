@@ -1,5 +1,5 @@
 from sentry.models.organization import Organization, OrganizationStatus
-from sentry.services.hybrid_cloud.organization.service import organization_service
+from sentry.organizations.services.organization.service import organization_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of
 

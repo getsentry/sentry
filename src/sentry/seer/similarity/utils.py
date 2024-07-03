@@ -1,12 +1,13 @@
 import logging
-from typing import Any
+from typing import Any, TypeVar
 
 from sentry.eventstore.models import Event
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)
 
-MAX_FRAME_COUNT = 50
+MAX_FRAME_COUNT = 30
+FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
 SEER_ELIGIBLE_PLATFORMS = frozenset(["python", "javascript", "node"])
 
 
@@ -35,12 +36,15 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
 
     frame_count = 0
     stacktrace_str = ""
+    found_non_snipped_context_line = False
+    result_parts = []
+
     for exception in reversed(exceptions):
         if exception.get("id") not in ["exception", "threads"] or not exception.get("contributes"):
             continue
 
-        # For each exception, extract its type, value, and up to 50 stacktrace frames
-        exc_type, exc_value, frame_str = "", "", ""
+        # For each exception, extract its type, value, and up to 30 stacktrace frames
+        exc_type, exc_value, frame_strings = "", "", []
         for exception_value in exception.get("values", []):
             if exception_value.get("id") == "type":
                 exc_type = _get_value_if_exists(exception_value)
@@ -52,12 +56,10 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
                     for frame in exception_value["values"]
                     if frame.get("id") == "frame" and frame.get("contributes")
                 ]
-                num_frames = len(contributing_frames)
-                if frame_count + num_frames > MAX_FRAME_COUNT:
-                    remaining_frame_count = MAX_FRAME_COUNT - frame_count
-                    contributing_frames = contributing_frames[-remaining_frame_count:]
-                    num_frames = remaining_frame_count
-                frame_count += num_frames
+                contributing_frames = _discard_excess_frames(
+                    contributing_frames, MAX_FRAME_COUNT, frame_count
+                )
+                frame_count += len(contributing_frames)
 
                 for frame in contributing_frames:
                     frame_dict = {"filename": "", "function": "", "context-line": ""}
@@ -65,14 +67,31 @@ def get_stacktrace_string(data: dict[str, Any]) -> str:
                         if frame_values.get("id") in frame_dict:
                             frame_dict[frame_values["id"]] = _get_value_if_exists(frame_values)
 
-                    frame_str += f'  File "{frame_dict["filename"]}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
+                    if not _is_snipped_context_line(frame_dict["context-line"]):
+                        found_non_snipped_context_line = True
 
+                    frame_strings.append(
+                        f'  File "{frame_dict["filename"]}", function {frame_dict["function"]}\n    {frame_dict["context-line"]}\n'
+                    )
         # Only exceptions have the type and value properties, so we don't need to handle the threads
         # case here
-        if exception.get("id") == "exception":
-            stacktrace_str += f"{exc_type}: {exc_value}\n"
-        if frame_str:
-            stacktrace_str += frame_str
+        header = f"{exc_type}: {exc_value}\n" if exception["id"] == "exception" else ""
+
+        result_parts.append((header, frame_strings))
+
+    final_frame_count = 0
+
+    for header, frame_strings in result_parts:
+        # For performance reasons, if the entire stacktrace is made of minified frames, restrict the
+        # result to include only the first 20 frames, since minified frames are significantly more
+        # token-dense than non-minified ones
+        if not found_non_snipped_context_line:
+            frame_strings = _discard_excess_frames(
+                frame_strings, FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT, final_frame_count
+            )
+            final_frame_count += len(frame_strings)
+
+        stacktrace_str += header + "".join(frame_strings)
 
     return stacktrace_str.strip()
 
@@ -102,3 +121,26 @@ def filter_null_from_event_title(title: str) -> str:
     Filter out null bytes from event title so that it can be saved in records table.
     """
     return title.replace("\x00", "")
+
+
+T = TypeVar("T", dict[str, Any], str)
+
+
+def _discard_excess_frames(frames: list[T], max_frames: int, current_frame_count: int) -> list[T]:
+    if current_frame_count >= max_frames:
+        return []
+
+    # If adding in all of the new frames would put us over the limit, truncate the list
+    if current_frame_count + len(frames) > max_frames:
+        remaining_frames_allowed = max_frames - current_frame_count
+        # Pull from the end of the list, since those frames are the most recent
+        frames = frames[-remaining_frames_allowed:]
+
+    return frames
+
+
+def _is_snipped_context_line(context_line: str) -> bool:
+    # This check is implicitly restricted to JS (and friends) events by the fact that the `{snip]`
+    # is only added in the JS processor. See
+    # https://github.com/getsentry/sentry/blob/d077a5bb7e13a5927794b35d9ae667a4f181feb7/src/sentry/lang/javascript/utils.py#L72-L77.
+    return context_line.startswith("{snip}") and context_line.endswith("{snip}")

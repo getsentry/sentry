@@ -6,9 +6,10 @@ import SliderAndInputWrapper from 'sentry/components/forms/controls/rangeSlider/
 import TimelineTooltip from 'sentry/components/replays/breadcrumbs/replayTimelineTooltip';
 import * as Progress from 'sentry/components/replays/progress';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {divide, formatTime} from 'sentry/components/replays/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
+import divide from 'sentry/utils/number/divide';
 import toPercent from 'sentry/utils/number/toPercent';
 import useTimelineScale from 'sentry/utils/replays/hooks/useTimelineScale';
 
@@ -59,7 +60,7 @@ function Scrubber({className, showZoomIndicators = false}: Props) {
       <Meter>
         {currentHoverTime ? (
           <div>
-            <TimelineTooltip labelText={formatTime(currentHoverTime)} />
+            <TimelineTooltip labelText={formatReplayDuration(currentHoverTime)} />
             <MouseTrackingValue
               style={{
                 width: toPercent(hoverPlace),

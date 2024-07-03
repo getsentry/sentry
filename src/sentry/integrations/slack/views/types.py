@@ -2,7 +2,7 @@ from dataclasses import dataclass
 
 from sentry.models.identity import IdentityProvider
 from sentry.models.integrations.integration import Integration
-from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.organizations.services.organization import RpcOrganization
 
 
 @dataclass(frozen=True)

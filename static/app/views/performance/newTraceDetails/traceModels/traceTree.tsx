@@ -1531,7 +1531,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
   profiles: TraceTree.Profile[] = [];
 
   multiplier: number;
-  space: [number, number] | null = null;
+  space: [number, number] = [0, 0];
 
   private unit = 'milliseconds' as const;
   private _depth: number | undefined;
@@ -1545,7 +1545,13 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     this.metadata = metadata;
     this.multiplier = this.unit === 'milliseconds' ? 1e3 : 1;
 
-    if (value && 'timestamp' in value && 'start_timestamp' in value) {
+    if (
+      value &&
+      'timestamp' in value &&
+      'start_timestamp' in value &&
+      typeof value.timestamp === 'number' &&
+      typeof value.start_timestamp === 'number'
+    ) {
       this.space = [
         value.start_timestamp * this.multiplier,
         (value.timestamp - value.start_timestamp) * this.multiplier,
@@ -1635,6 +1641,7 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     clone.expanded = this.expanded;
     clone.zoomedIn = this.zoomedIn;
     clone.canFetch = this.canFetch;
+    clone.fetchStatus = this.fetchStatus;
     clone.space = this.space;
     clone.metadata = this.metadata;
 

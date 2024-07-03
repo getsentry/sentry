@@ -7,7 +7,7 @@ from django.core.cache import cache
 from django.utils.translation import gettext_lazy as _
 
 from sentry import options
-from sentry.services.hybrid_cloud.project_key import ProjectKeyRole, project_key_service
+from sentry.projects.services.project_key import ProjectKeyRole, project_key_service
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.tasks.release_registry import LAYER_INDEX_CACHE_KEY
 

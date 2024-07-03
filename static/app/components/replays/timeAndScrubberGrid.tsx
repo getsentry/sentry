@@ -7,10 +7,10 @@ import ReplayTimeline from 'sentry/components/replays/breadcrumbs/replayTimeline
 import {PlayerScrubber} from 'sentry/components/replays/player/scrubber';
 import useScrubberMouseTracking from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {formatTime} from 'sentry/components/replays/utils';
 import {IconAdd, IconSubtract} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
 import useTimelineScale, {
   TimelineScaleContextProvider,
 } from 'sentry/utils/replays/hooks/useTimelineScale';
@@ -27,7 +27,7 @@ function TimelineSizeBar() {
   const maxScale = durationMs ? Math.ceil(durationMs / 60000) : 10;
 
   return (
-    <ButtonBar gap={space(0.5)}>
+    <ButtonBar gap={0.5}>
       <Button
         size="xs"
         title={t('Zoom out')}
@@ -54,7 +54,7 @@ function TimelineSizeBar() {
   );
 }
 
-function TimeAndScrubberGrid({
+export default function TimeAndScrubberGrid({
   isCompact = false,
   showZoom = false,
 }: TimeAndScrubberGridProps) {
@@ -67,7 +67,7 @@ function TimeAndScrubberGrid({
     <TimelineScaleContextProvider>
       <Grid id="replay-timeline-player" isCompact={isCompact}>
         <Numeric style={{gridArea: 'currentTime', paddingInline: space(1.5)}}>
-          {formatTime(currentTime)}
+          {formatReplayDuration(currentTime)}
         </Numeric>
         <div style={{gridArea: 'timeline'}}>
           <ReplayTimeline />
@@ -79,7 +79,7 @@ function TimeAndScrubberGrid({
           <PlayerScrubber showZoomIndicators={showZoom} />
         </StyledScrubber>
         <Numeric style={{gridArea: 'duration', paddingInline: space(1.5)}}>
-          {durationMs ? formatTime(durationMs) : '--:--'}
+          {durationMs ? formatReplayDuration(durationMs) : '--:--'}
         </Numeric>
       </Grid>
     </TimelineScaleContextProvider>
@@ -117,5 +117,3 @@ const Numeric = styled('span')`
   font-variant-numeric: tabular-nums;
   font-weight: ${p => p.theme.fontWeightBold};
 `;
-
-export default TimeAndScrubberGrid;

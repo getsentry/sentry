@@ -100,7 +100,7 @@ class BuildEventDataForOccurrenceTest(UptimeTestCase):
             "fingerprint": fingerprint,
             "platform": "other",
             "project_id": settings.UPTIME_POC_PROJECT_ID,
-            "received": datetime.datetime.now(),
+            "received": datetime.datetime.now().replace(microsecond=0),
             "sdk": None,
             "tags": {"subscription_id": result["subscription_id"]},
             "timestamp": occurrence.detection_time.isoformat(),

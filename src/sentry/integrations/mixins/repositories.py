@@ -4,7 +4,6 @@ from collections.abc import Collection, Mapping, Sequence
 from typing import Any
 
 import sentry_sdk
-from sentry_sdk import configure_scope
 
 from sentry.auth.exceptions import IdentityNotValid
 from sentry.integrations.services.integration import integration_service
@@ -82,16 +81,16 @@ class RepositoryMixin:
         If no file was found return `None`, and re-raise for non-"Not Found"
         errors, like 403 "Account Suspended".
         """
-        with configure_scope() as scope:
-            scope.set_tag("stacktrace_link.tried_version", False)
-            if version:
-                scope.set_tag("stacktrace_link.tried_version", True)
-                source_url = self.check_file(repo, filepath, version)
-                if source_url:
-                    scope.set_tag("stacktrace_link.used_version", True)
-                    return source_url
-            scope.set_tag("stacktrace_link.used_version", False)
-            source_url = self.check_file(repo, filepath, default)
+        scope = sentry_sdk.Scope.get_isolation_scope()
+        scope.set_tag("stacktrace_link.tried_version", False)
+        if version:
+            scope.set_tag("stacktrace_link.tried_version", True)
+            source_url = self.check_file(repo, filepath, version)
+            if source_url:
+                scope.set_tag("stacktrace_link.used_version", True)
+                return source_url
+        scope.set_tag("stacktrace_link.used_version", False)
+        source_url = self.check_file(repo, filepath, default)
 
         return source_url
 
