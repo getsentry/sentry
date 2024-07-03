@@ -212,7 +212,10 @@ class AlertRuleSerializer(Serializer):
             )
         }
         for rule_activity in rule_activities:
-            rpc_user = user_by_user_id.get(rule_activity.user_id)
+            if rule_activity.user_id is not None:
+                rpc_user = user_by_user_id.get(rule_activity.user_id)
+            else:
+                rpc_user = None
             if rpc_user:
                 created_by = dict(
                     id=rpc_user.id, name=rpc_user.get_display_name(), email=rpc_user.email
