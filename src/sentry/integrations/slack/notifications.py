@@ -50,11 +50,12 @@ class SlackNotifyBasicMixin(NotifyBasicMixin):
             try:
                 client.chat_postMessage(channel=channel_id, text=message)
             except SlackApiError as e:
-                message = str(e)
+                error = str(e)
+                message = error.split("\n")[0]
                 if "Expired url" not in message and "channel_not_found" not in message:
                     logger.exception(
                         "slack.slash-response.error",
-                        extra={"error": message},
+                        extra={"error": error},
                     )
 
 
