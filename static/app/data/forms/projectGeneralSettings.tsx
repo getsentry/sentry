@@ -66,7 +66,7 @@ export const fields: Record<string, Field> = {
     saveOnBlur: false,
     saveMessageAlertType: 'warning',
     saveMessage: t(
-      'Changing a project's name will also change the project slug. This can break your build scripts! Please proceed carefully.'
+      "Changing a project's name will also change the project slug. This can break your build scripts! Please proceed carefully."
     ),
   },
 
