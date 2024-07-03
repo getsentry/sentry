@@ -59,9 +59,7 @@ class ProjectOptionsManager:
         return project.get_option(key, default=Ellipsis) is not Ellipsis
 
     def get(self, project, key, default=None, validate=None):
-        from sentry.models.options.project_option import ProjectOption
-
-        return ProjectOption.objects.get_value(project, key, default, validate=validate)
+        return project.get_option(key, default=default, validate=validate)
 
     def delete(self, project, key):
         from sentry.models.options.project_option import ProjectOption
