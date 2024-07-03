@@ -204,6 +204,7 @@ const CardPanel = styled(Panel)`
   column-gap: ${space(1.5)};
   grid-template-columns: minmax(100px, auto) 1fr;
   font-size: ${p => p.theme.fontSizeSmall};
+  container-type: inline-size;
 `;
 
 const Title = styled('div')`
@@ -235,6 +236,10 @@ const Subject = styled('div')`
   grid-column: span 1;
   font-family: ${p => p.theme.text.familyMono};
   word-break: break-word;
+
+  @container (max-width: 350px) {
+    max-width: 200px;
+  }
 `;
 
 const ValueSection = styled(Subject)<{hasEmptySubject: boolean; hasErrors: boolean}>`
