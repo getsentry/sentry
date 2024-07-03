@@ -15,7 +15,6 @@ import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconGoogle} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -99,7 +98,6 @@ export function WebVitalsLandingPage() {
               <DatePageFilter />
             </PageFilterBar>
             <BrowserTypeSelector />
-            <IconGoogle />
           </TopMenuContainer>
 
           {onboardingProject && (
