@@ -2,9 +2,9 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
-import {Sql} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/data/sql';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import Timeline from 'sentry/components/timeline';
+import {space} from 'sentry/styles/space';
 import {
   BreadcrumbMessageFormat,
   BreadcrumbType,
@@ -15,6 +15,7 @@ import {
 } from 'sentry/types/breadcrumbs';
 import {defined} from 'sentry/utils';
 import {isUrl} from 'sentry/utils/string/isUrl';
+import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
 interface BreadcrumbsItemContentProps {
   breadcrumb: RawCrumb;
@@ -119,10 +120,19 @@ function SQLCrumbContent({
 }: {
   breadcrumb: BreadcrumbTypeDefault | BreadcrumbTypeNavigation;
 }) {
+  const tokens = usePrismTokens({code: breadcrumb?.message ?? '', language: 'sql'});
   return (
     <Timeline.Data>
-      <LightenTextColor>
-        <Sql breadcrumb={breadcrumb} searchTerm="" />
+      <LightenTextColor className="language-sql">
+        {tokens.map((line, i) => (
+          <div key={i}>
+            {line.map((token, j) => (
+              <span key={j} className={token.className}>
+                {token.children}
+              </span>
+            ))}
+          </div>
+        ))}
       </LightenTextColor>
     </Timeline.Data>
   );
@@ -153,8 +163,11 @@ const Link = styled('a')`
   word-break: break-all;
 `;
 
-const LightenTextColor = styled('div')`
-  .token {
+const LightenTextColor = styled('pre')`
+  margin: 0;
+  &.language-sql {
     color: ${p => p.theme.subText};
+    padding: ${space(0.25)} 0;
+    font-size: ${p => p.theme.fontSizeSmall};
   }
 `;
