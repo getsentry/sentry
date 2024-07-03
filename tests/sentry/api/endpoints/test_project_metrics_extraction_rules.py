@@ -36,7 +36,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         response = self.send_put_request(token, self.endpoint)
         assert response.status_code != 403
 
-    @django_db_all
+    @django_db_all(reset_sequences=True)
     @with_feature("organizations:custom-metrics-extraction-rule")
     def test_create_new_extraction_rule(self):
         new_rule = {
