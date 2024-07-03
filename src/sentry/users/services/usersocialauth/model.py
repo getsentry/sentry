@@ -6,6 +6,7 @@
 from typing import Any, TypedDict
 
 from sentry.hybridcloud.rpc import RpcModel
+from social_auth.backends import BaseAuth
 from social_auth.utils import get_backend, tokens
 
 
@@ -16,11 +17,11 @@ class RpcUserSocialAuth(RpcModel):
     uid: str
     extra_data: dict[str, Any]
 
-    def get_backend(self):
+    def get_backend(self) -> type[BaseAuth] | None:
         return get_backend(instance=self)
 
     @property
-    def tokens(self):
+    def tokens(self) -> dict[str, Any]:
         return tokens(instance=self)
 
 

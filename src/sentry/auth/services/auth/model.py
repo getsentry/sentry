@@ -16,6 +16,8 @@ from sentry.users.services.user import RpcUser
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
 
+    from sentry.auth.provider import Provider
+
 
 class RpcApiKey(RpcModel):
     id: int = -1
@@ -197,10 +199,10 @@ class RpcAuthProvider(RpcModel):
     def __hash__(self) -> int:
         return hash((self.id, self.organization_id, self.provider))
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, Any]:
         return {"provider": self.provider, "config": self.config}
 
-    def get_provider(self):
+    def get_provider(self) -> "Provider":
         from sentry.auth import manager
 
         return manager.get(self.provider, **self.config)
