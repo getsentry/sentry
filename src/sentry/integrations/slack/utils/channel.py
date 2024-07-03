@@ -181,13 +181,14 @@ def check_user_with_timeout(
         "channel_name": name,
     }
 
-    # Get each user from a page from the Slack API
-    user_generator = (
-        user
-        for page in get_slack_user_list(integration, organization=None, kwargs=payload)
-        for user in page
-    )
     try:
+        # Get each user from a page from the Slack API
+        user_generator = (
+            user
+            for page in get_slack_user_list(integration, organization=None, kwargs=payload)
+            for user in page
+        )
+
         for user in user_generator:
             # The "name" field is unique (this is the username for users)
             # so we return immediately if we find a match.

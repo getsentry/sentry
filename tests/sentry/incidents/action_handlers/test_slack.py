@@ -1,7 +1,9 @@
 from unittest.mock import patch
 
 import orjson
+import pytest
 import responses
+from slack_sdk.web.slack_response import SlackResponse
 
 from sentry.constants import ObjectStatus
 from sentry.incidents.action_handlers import SlackActionHandler
@@ -23,6 +25,38 @@ from . import FireTest
 
 @freeze_time()
 class SlackActionHandlerTest(FireTest):
+    @pytest.fixture(autouse=True)
+    def mock_chat_postEphemeral(self):
+        with patch(
+            "slack_sdk.web.client.WebClient.chat_scheduleMessage",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/chat.scheduleMessage",
+                req_args={},
+                data={"ok": True, "channel": "chan-id", "scheduled_message_id": "Q1298393284"},
+                headers={},
+                status_code=200,
+            ),
+        ) as self.mock_schedule:
+            yield
+
+    @pytest.fixture(autouse=True)
+    def mock_chat_unfurl(self):
+        with patch(
+            "slack_sdk.web.client.WebClient.chat_deleteScheduledMessage",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/chat.deleteScheduledMessage",
+                req_args={},
+                data={"ok": True},
+                headers={},
+                status_code=200,
+            ),
+        ) as self.mock_delete:
+            yield
+
     @responses.activate
     def setUp(self):
         token = "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"

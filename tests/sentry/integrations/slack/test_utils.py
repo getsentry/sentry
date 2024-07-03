@@ -1,8 +1,8 @@
 from unittest.mock import patch
 
 import orjson
+import pytest
 import responses
-from slack_sdk.web.slack_response import SlackResponse
 
 from sentry.integrations.slack.sdk_client import SLACK_DATADOG_METRIC
 from sentry.integrations.slack.utils import get_channel_id
@@ -11,6 +11,7 @@ from sentry.integrations.slack.utils.channel import (
     MEMBER_PREFIX,
     SlackChannelIdData,
 )
+from sentry.shared_integrations.exceptions import ApiRateLimitedError, DuplicateDisplayNameError
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.skips import requires_snuba
@@ -51,6 +52,42 @@ class GetChannelIdTest(TestCase):
             ],
             "response_metadata": {"next_cursor": ""},
         }
+
+    def patch_mock_list(self, list_type, channels, result_name="channels"):
+        return patch(
+            "slack_sdk.web.client.WebClient.%s_list" % list_type,
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/%s.list" % list_type,
+                req_args={},
+                data={"ok": True, result_name: channels},
+                headers={},
+                status_code=200,
+            ),
+        )
+
+    def patch_msg_response(self, channel_id, result_name="channel"):
+        if channel_id == "channel_not_found":
+            bodydict = {"ok": False, "error": "channel_not_found"}
+        else:
+            bodydict = {
+                "ok": True,
+                result_name: channel_id,
+                "scheduled_message_id": "Q1298393284",
+            }
+        return patch(
+            "slack_sdk.web.client.WebClient.chat_scheduleMessage",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/chat.scheduleMessage",
+                req_args={},
+                data=bodydict,
+                headers={},
+                status_code=200,
+            ),
+        )
 
     def tearDown(self):
         self.resp.__exit__(None, None, None)
@@ -125,16 +162,14 @@ class GetChannelIdTest(TestCase):
         )
 
     def test_valid_member_selected(self):
-        self.add_msg_response("channel_not_found")
-        self.add_list_response(
-            "users",
-            [
-                {"name": "first-morty", "id": "m", "profile": {"display_name": "Morty"}},
-                {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
-                {"name": "better_morty", "id": "bm", "profile": {"display_name": "Morty"}},
-            ],
-            result_name="members",
-        )
+        response_list = [
+            {"name": "first-morty", "id": "m", "profile": {"display_name": "Morty"}},
+            {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
+            {"name": "better_morty", "id": "bm", "profile": {"display_name": "Morty"}},
+        ]
+
+        with self.patch_msg_response("channel_not_found"):
+            with self.patch_mock_list("users", response_list, "members"):
         self.run_valid_test("@first-morty", MEMBER_PREFIX, "m", False)
 
     @with_feature("organizations:slack-sdk-get-channel-id")
@@ -147,19 +182,17 @@ class GetChannelIdTest(TestCase):
 
         with self.patch_msg_response("channel_not_found"):
             with self.patch_mock_list("users", response_list, "members"):
-                self.run_valid_test("@first-morty", MEMBER_PREFIX, "m", False)
+                        self.run_valid_test("@first-morty", MEMBER_PREFIX, "m", False)
 
     def test_valid_member_selected_display_name(self):
-        self.add_msg_response("channel_not_found")
-        self.add_list_response(
-            "users",
-            [
-                {"name": "first-morty", "id": "m", "profile": {"display_name": "Morty"}},
-                {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
-                {"name": "better_morty", "id": "bm", "profile": {"display_name": "Morty"}},
-            ],
-            result_name="members",
-        )
+        response_list = [
+            {"name": "first-morty", "id": "m", "profile": {"display_name": "Morty"}},
+            {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
+            {"name": "better_morty", "id": "bm", "profile": {"display_name": "Morty"}},
+        ]
+
+        with self.patch_msg_response("channel_not_found"):
+            with self.patch_mock_list("users", response_list, "members"):
         self.run_valid_test("@Jimbob", MEMBER_PREFIX, "o-u", False)
 
     @with_feature("organizations:slack-sdk-get-channel-id")
@@ -172,19 +205,17 @@ class GetChannelIdTest(TestCase):
 
         with self.patch_msg_response("channel_not_found"):
             with self.patch_mock_list("users", response_list, "members"):
-                self.run_valid_test("@Jimbob", MEMBER_PREFIX, "o-u", False)
+                        self.run_valid_test("@Jimbob", MEMBER_PREFIX, "o-u", False)
 
     def test_invalid_member_selected_display_name(self):
-        self.add_msg_response("channel_not_found")
-        self.add_list_response(
-            "users",
-            [
-                {"name": "first-morty", "id": "m", "profile": {"display_name": "Morty"}},
-                {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
-                {"name": "better_morty", "id": "bm", "profile": {"display_name": "Morty"}},
-            ],
-            result_name="members",
-        )
+        response_list = [
+            {"name": "first-morty", "id": "m", "profile": {"display_name": "Morty"}},
+            {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
+            {"name": "better_morty", "id": "bm", "profile": {"display_name": "Morty"}},
+        ]
+
+        with self.patch_msg_response("channel_not_found"):
+            with self.patch_mock_list("users", response_list, "members"):
         with pytest.raises(DuplicateDisplayNameError):
             get_channel_id(self.organization, self.integration, "@Morty")
 
@@ -198,8 +229,8 @@ class GetChannelIdTest(TestCase):
 
         with self.patch_msg_response("channel_not_found"):
             with self.patch_mock_list("users", response_list, "members"):
-                with pytest.raises(DuplicateDisplayNameError):
-                    get_channel_id(self.organization, self.integration, "@Morty")
+                        with pytest.raises(DuplicateDisplayNameError):
+                            get_channel_id(self.organization, self.integration, "@Morty")
 
     def test_invalid_channel_selected(self):
         self.add_msg_response("channel_not_found")
@@ -219,7 +250,7 @@ class GetChannelIdTest(TestCase):
                 get_channel_id(self.organization, self.integration, "@fake-user").channel_id is None
             )
 
-    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    @patch("slack_sdk.web.client.WebClient.users_list")
     def test_rate_limiting(self, mock_api_call):
         """Should handle 429 from Slack when searching for users"""
         self.add_msg_response("channel_not_found")
