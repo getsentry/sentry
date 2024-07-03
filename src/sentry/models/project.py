@@ -417,14 +417,11 @@ class Project(Model, PendingDeletionMixin):
     def get_option(
         self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None
     ) -> Any:
-        # don't pass the default, we need to check the template if it doesn't exist
-        option = self.option_manager.get_value(self, key, default, validate)
-
-        if option == default and self.template is not None:
+        # if the option is not set, check the template
+        if not self.option_manager.isset(self, key) and self.template is not None:
             return self.template_manager.get_value(self.template, key, default, validate)
 
-        # check if the option is set, if not return the default
-        return default if option is None else option
+        return self.option_manager.get_value(self, key, default, validate)
 
     def update_option(self, key: str, value: Any) -> bool:
         projectoptions.update_rev_for_option(self)
