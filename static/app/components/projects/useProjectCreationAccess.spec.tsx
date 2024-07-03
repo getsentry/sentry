@@ -34,9 +34,7 @@ describe('ProjectCreationAccess', function () {
       allowMemberProjectCreation: false,
     });
 
-    const {result} = renderHook(useProjectCreationAccess, {
-      initialProps: {organization: experiment_org},
-    });
+    const result = useProjectCreationAccess{{organization: experiment_org})
     expect(result.current.canCreateProject).toBeFalsy();
   });
 
