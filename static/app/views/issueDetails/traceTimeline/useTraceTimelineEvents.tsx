@@ -17,11 +17,11 @@ interface BaseEvent {
   transaction: string;
 }
 
-export interface TimelineDiscoverEvent extends BaseEvent {
+interface TimelineDiscoverEvent extends BaseEvent {}
+interface TimelineIssuePlatformEvent extends BaseEvent {
   'event.type': string;
   'stack.function': string[];
 }
-interface TimelineIssuePlatformEvent extends BaseEvent {}
 
 export type TimelineEvent = TimelineDiscoverEvent | TimelineIssuePlatformEvent;
 
