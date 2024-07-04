@@ -11,6 +11,10 @@ describe('ContextCard', function () {
   const group = GroupFixture();
   const project = ProjectFixture();
   it('renders the card with formatted context data', function () {
+    // This test fails without the mock below, because a nested component uses @container query
+    // that is not supported by the version of jsdom currently used by jest.
+    jest.spyOn(console, 'error').mockImplementation(jest.fn());
+
     const event = EventFixture();
     const alias = 'Things in my Vicinity';
     const simpleContext = {

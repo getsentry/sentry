@@ -349,6 +349,10 @@ describe('groupEventDetails', () => {
   });
 
   it('redirects on switching to an invalid environment selection for event', async function () {
+    // This test fails without the mock below, because a nested component uses @container query
+    // that is not supported by the version of jsdom currently used by jest.
+    jest.spyOn(console, 'error').mockImplementation();
+
     const props = makeDefaultMockData();
     mockGroupApis(props.organization, props.project, props.group, props.event);
 
