@@ -77,7 +77,7 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                     project_id=project.id, trigger="span_attribute_extraction_configs"
                 )
 
-        return Response(status=204)
+            return Response(status=204)
 
     def get(self, request: Request, project: Project) -> Response:
         """GET extraction rules for project. Returns 200 and a list of extraction rules on success."""
@@ -148,7 +148,7 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                 SpanAttributeExtractionRuleConfigSerializer(),
             )
 
-        return Response(data=persisted_config, status=200)
+            return Response(data=persisted_config, status=200)
 
 
 def validate_number_of_extracted_metrics(project: Project):
