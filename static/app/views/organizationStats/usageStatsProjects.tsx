@@ -58,6 +58,7 @@ export enum SortBy {
   FILTERED = 'filtered',
   DROPPED = 'dropped',
   INVALID = 'invalid',
+  DISCARDED = 'discarded',
   RATE_LIMITED = 'rate_limited',
 }
 
@@ -159,6 +160,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
       case SortBy.ACCEPTED:
       case SortBy.FILTERED:
       case SortBy.DROPPED:
+      case SortBy.DISCARDED:
         return {key, direction};
       default:
         return {key: SortBy.ACCEPTED, direction: -1};
@@ -248,6 +250,13 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
         align: 'right',
         direction: getArrowDirection(SortBy.FILTERED),
         onClick: () => this.handleChangeSort(SortBy.FILTERED),
+      },
+      {
+        key: SortBy.DISCARDED,
+        title: t('Discarded'),
+        align: 'right',
+        direction: getArrowDirection(SortBy.DISCARDED),
+        onClick: () => this.handleChangeSort(SortBy.DISCARDED),
       },
       {
         key: SortBy.DROPPED,
@@ -346,6 +355,7 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
         [SortBy.TOTAL]: 0,
         [SortBy.ACCEPTED]: 0,
         [SortBy.FILTERED]: 0,
+        [SortBy.DISCARDED]: 0,
         [SortBy.DROPPED]: 0,
       };
 
@@ -368,9 +378,15 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
           stats[projectId].total += group.totals['sum(quantity)'];
         }
 
+        if (outcome === Outcome.CLIENT_DISCARD) {
+          stats[projectId][SortBy.DISCARDED] += group.totals['sum(quantity)'];
+        }
+
         if (outcome === Outcome.ACCEPTED || outcome === Outcome.FILTERED) {
           stats[projectId][outcome] += group.totals['sum(quantity)'];
-        } else if (
+        }
+
+        if (
           outcome === Outcome.RATE_LIMITED ||
           outcome === Outcome.CARDINALITY_LIMITED ||
           outcome === Outcome.INVALID ||

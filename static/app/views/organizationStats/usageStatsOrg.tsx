@@ -130,6 +130,7 @@ class UsageStatsOrganization<
   get chartData(): {
     cardStats: {
       accepted?: string;
+      discarded?: string;
       dropped?: string;
       filtered?: string;
       total?: string;
@@ -267,7 +268,7 @@ class UsageStatsOrganization<
 
   get cardMetadata() {
     const {dataCategory, dataCategoryName, organization, projectIds, router} = this.props;
-    const {total, accepted, dropped, filtered} = this.chartData.cardStats;
+    const {total, accepted, dropped, discarded, filtered} = this.chartData.cardStats;
 
     const navigateToInboundFilterSettings = (event: ReactMouseEvent) => {
       event.preventDefault();
@@ -309,6 +310,14 @@ class UsageStatsOrganization<
         ),
         score: filtered,
       },
+      discarded: {
+        title: tct('Discarded [dataCategory]', {dataCategory: dataCategoryName}),
+        help: tct(
+          'Discarded [dataCategory] were already discarded on the client side due to the sampling configuration in the SDK or other factors',
+          {dataCategory}
+        ),
+        score: discarded,
+      },
       dropped: {
         title: tct('Dropped [dataCategory]', {dataCategory: dataCategoryName}),
         help: tct(
@@ -324,6 +333,7 @@ class UsageStatsOrganization<
   mapSeriesToChart(orgStats?: UsageSeries): {
     cardStats: {
       accepted?: string;
+      discarded?: string;
       dropped?: string;
       filtered?: string;
       total?: string;
@@ -337,12 +347,14 @@ class UsageStatsOrganization<
       accepted: undefined,
       dropped: undefined,
       filtered: undefined,
+      discarded: undefined,
     };
     const chartStats: ChartStats = {
       accepted: [],
       dropped: [],
       projected: [],
       filtered: [],
+      discarded: [],
     };
     const chartSubLabels: TooltipSubLabel[] = [];
 
@@ -362,6 +374,7 @@ class UsageStatsOrganization<
           total: 0,
           accepted: 0,
           filtered: 0,
+          discarded: 0,
           dropped: {total: 0},
         };
       });
@@ -371,10 +384,10 @@ class UsageStatsOrganization<
         total: 0,
         [Outcome.ACCEPTED]: 0,
         [Outcome.FILTERED]: 0,
+        [Outcome.CLIENT_DISCARD]: 0,
         [Outcome.DROPPED]: 0,
         [Outcome.INVALID]: 0, // Combined with dropped later
         [Outcome.RATE_LIMITED]: 0, // Combined with dropped later
-        [Outcome.CLIENT_DISCARD]: 0, // Not exposed yet
         [Outcome.CARDINALITY_LIMITED]: 0, // Combined with dropped later
       };
 
@@ -427,6 +440,24 @@ class UsageStatsOrganization<
             return;
           }
 
+          if (outcome === Outcome.CLIENT_DISCARD) {
+            usageStats[i].discarded += stat;
+
+            if (existingSubLabel) {
+              existingSubLabel.data.push({
+                ...dataObject,
+                value: dataObject.value,
+              });
+              return;
+            }
+
+            chartSubLabels.push({
+              parentLabel: SeriesTypes.DISCARDED,
+              label,
+              data: [dataObject],
+            });
+          }
+
           if (outcome === Outcome.ACCEPTED) {
             usageStats[i][outcome] += stat;
             return;
@@ -463,7 +494,7 @@ class UsageStatsOrganization<
       count[Outcome.DROPPED] += count[Outcome.CARDINALITY_LIMITED];
 
       usageStats.forEach(stat => {
-        stat.total = stat.accepted + stat.filtered + stat.dropped.total;
+        stat.total = stat.accepted + stat.filtered + stat.discarded + stat.dropped.total;
 
         // Chart Data
         (chartStats.accepted as any[]).push({value: [stat.date, stat.accepted]});
@@ -471,6 +502,7 @@ class UsageStatsOrganization<
           value: [stat.date, stat.dropped.total],
         } as any);
         (chartStats.filtered as any[])?.push({value: [stat.date, stat.filtered]});
+        (chartStats.discarded as any[])?.push({value: [stat.date, stat.discarded]});
       });
 
       return {
@@ -487,6 +519,11 @@ class UsageStatsOrganization<
           ),
           filtered: formatUsageWithUnits(
             count[Outcome.FILTERED],
+            dataCategory,
+            getFormatUsageOptions(dataCategory)
+          ),
+          discarded: formatUsageWithUnits(
+            count[Outcome.CLIENT_DISCARD],
             dataCategory,
             getFormatUsageOptions(dataCategory)
           ),
@@ -617,7 +654,7 @@ const PageGrid = styled('div')`
     grid-template-columns: repeat(2, 1fr);
   }
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
   }
 `;
 

@@ -41,6 +41,7 @@ const COLOR_ATTACHMENTS = Color(commonTheme.dataCategory.attachments)
 
 const COLOR_DROPPED = commonTheme.red300;
 const COLOR_FILTERED = commonTheme.pink100;
+const COLOR_DISCARDED = commonTheme.yellow300;
 
 export type CategoryOption = {
   /**
@@ -123,6 +124,7 @@ export const enum SeriesTypes {
   DROPPED = 'Dropped',
   PROJECTED = 'Projected',
   FILTERED = 'Filtered',
+  DISCARDED = 'Discarded',
 }
 
 export type UsageChartProps = {
@@ -228,6 +230,7 @@ export type ChartStats = {
   accepted: NonNullable<BarSeriesOption['data']>;
   dropped: NonNullable<BarSeriesOption['data']>;
   projected: NonNullable<BarSeriesOption['data']>;
+  discarded?: NonNullable<BarSeriesOption['data']>;
   filtered?: NonNullable<BarSeriesOption['data']>;
   onDemand?: NonNullable<BarSeriesOption['data']>;
   reserved?: NonNullable<BarSeriesOption['data']>;
@@ -331,14 +334,32 @@ function chartColors(theme: Theme, dataCategory: UsageChartProps['dataCategory']
   const COLOR_PROJECTED = theme.chartOther;
 
   if (dataCategory === DATA_CATEGORY_INFO.error.plural) {
-    return [COLOR_ERRORS, COLOR_FILTERED, COLOR_DROPPED, COLOR_PROJECTED];
+    return [
+      COLOR_ERRORS,
+      COLOR_FILTERED,
+      COLOR_DISCARDED,
+      COLOR_DROPPED,
+      COLOR_PROJECTED,
+    ];
   }
 
   if (dataCategory === DATA_CATEGORY_INFO.attachment.plural) {
-    return [COLOR_ATTACHMENTS, COLOR_FILTERED, COLOR_DROPPED, COLOR_PROJECTED];
+    return [
+      COLOR_ATTACHMENTS,
+      COLOR_FILTERED,
+      COLOR_DISCARDED,
+      COLOR_DROPPED,
+      COLOR_PROJECTED,
+    ];
   }
 
-  return [COLOR_TRANSACTIONS, COLOR_FILTERED, COLOR_DROPPED, COLOR_PROJECTED];
+  return [
+    COLOR_TRANSACTIONS,
+    COLOR_FILTERED,
+    COLOR_DISCARDED,
+    COLOR_DROPPED,
+    COLOR_PROJECTED,
+  ];
 }
 
 function UsageChartBody({
@@ -419,6 +440,12 @@ function UsageChartBody({
       });
     }
 
+    if (chartData.discarded && chartData.discarded.length > 0) {
+      legend.push({
+        name: SeriesTypes.DISCARDED,
+      });
+    }
+
     if (chartData.dropped.length > 0) {
       legend.push({
         name: SeriesTypes.DROPPED,
@@ -457,6 +484,13 @@ function UsageChartBody({
     barSeries({
       name: SeriesTypes.FILTERED,
       data: chartData.filtered,
+      barMinHeight: 1,
+      stack: 'usage',
+      legendHoverLink: false,
+    }),
+    barSeries({
+      name: SeriesTypes.DISCARDED,
+      data: chartData.discarded,
       barMinHeight: 1,
       stack: 'usage',
       legendHoverLink: false,
