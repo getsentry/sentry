@@ -2155,16 +2155,7 @@ def test_get_span_attribute_metrics(default_project: Project) -> None:
         assert sorted(config["metrics"], key=lambda x: x["mri"]) == [
             {
                 "category": "span",
-                "condition": {
-                    "inner": [
-                        {"name": "span.data.bar", "op": "eq", "value": "baz"},
-                        {
-                            "inner": {"name": "span.duration", "op": "eq", "value": None},
-                            "op": "not",
-                        },
-                    ],
-                    "op": "and",
-                },
+                "condition": {"name": "span.data.bar", "op": "eq", "value": "baz"},
                 "field": None,
                 "mri": "c:custom/span_attribute_1@none",
                 "tags": [
@@ -2174,16 +2165,7 @@ def test_get_span_attribute_metrics(default_project: Project) -> None:
             },
             {
                 "category": "span",
-                "condition": {
-                    "inner": [
-                        {"name": "span.data.abc", "op": "eq", "value": "xyz"},
-                        {
-                            "inner": {"name": "span.duration", "op": "eq", "value": None},
-                            "op": "not",
-                        },
-                    ],
-                    "op": "and",
-                },
+                "condition": {"name": "span.data.abc", "op": "eq", "value": "xyz"},
                 "field": None,
                 "mri": "c:custom/span_attribute_2@none",
                 "tags": [
