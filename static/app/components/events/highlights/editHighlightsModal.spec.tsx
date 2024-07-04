@@ -83,10 +83,6 @@ describe('EditHighlightsModal', function () {
   });
 
   it('should renders with basic functions', async function () {
-    // This test fails without the mock below, because a nested component uses @container query
-    // that is not supported by the version of jsdom currently used by jest.
-    jest.spyOn(console, 'error').mockImplementation();
-
     renderModal({highlightContext: {}, highlightTags: []});
     renderGlobalModal();
     expect(screen.getByText('Edit Event Highlights')).toBeInTheDocument();

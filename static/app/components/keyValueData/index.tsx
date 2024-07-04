@@ -198,13 +198,12 @@ export function Container({children}: {children: React.ReactNode}) {
   );
 }
 
-const CardPanel = styled(Panel)`
+export const CardPanel = styled(Panel)`
   padding: ${space(0.75)};
   display: grid;
   column-gap: ${space(1.5)};
   grid-template-columns: minmax(100px, auto) 1fr;
   font-size: ${p => p.theme.fontSizeSmall};
-  container-type: inline-size;
 `;
 
 const Title = styled('div')`
@@ -232,14 +231,10 @@ const ContentWrapper = styled('div')<{hasErrors: boolean}>`
   }
 `;
 
-const Subject = styled('div')`
+export const Subject = styled('div')`
   grid-column: span 1;
   font-family: ${p => p.theme.text.familyMono};
   word-break: break-word;
-
-  @container (width < 350px) {
-    max-width: 200px;
-  }
 `;
 
 const ValueSection = styled('div')<{hasEmptySubject: boolean; hasErrors: boolean}>`
