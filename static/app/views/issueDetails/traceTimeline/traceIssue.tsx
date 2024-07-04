@@ -19,7 +19,7 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
   const organization = useOrganization();
   const project = useProjectFromSlug({organization, projectSlug: event['project.name']});
   const issueId = event['issue.id'];
-  const {title, subtitle} = getTitleSubtitle(event);
+  const {title, subtitle, message} = getTitleSubtitleMessage(event);
   const avatarSize = parseInt(space(4), 10);
 
   const referrer = 'issue_details.related_trace_issue';
@@ -59,26 +59,29 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
         <TraceIssueDetailsContainer>
           <NoOverflowDiv>
             <TraceIssueEventTitle>{title}</TraceIssueEventTitle>
-            <TraceIssueEventTransaction>{event.transaction}</TraceIssueEventTransaction>
+            <TraceIssueEventSubtitle>{subtitle}</TraceIssueEventSubtitle>
           </NoOverflowDiv>
-          <NoOverflowDiv>{subtitle}</NoOverflowDiv>
+          <NoOverflowDiv>{message}</NoOverflowDiv>
         </TraceIssueDetailsContainer>
       </TraceIssueLinkContainer>
     </Fragment>
   );
 }
 
-function getTitleSubtitle(event: TimelineEvent) {
+function getTitleSubtitleMessage(event: TimelineEvent) {
   let title;
-  let subtitle;
+  // XXX: This is not fully correct but it will make this first PR easier to review
+  const subtitle = event.transaction;
+  let message = event.message;
   if (event['event.type'] === 'error') {
     title = event.title.split(':')[0];
-    subtitle = event.message;
   } else {
     title = event.title;
-    subtitle = event.message.replace(event.transaction, '').replace(title, '');
+    // It is suspected that this value is calculated somewhere in Relay
+    // and we deconstruct it here to match what the Issue details page shows
+    message = event.message.replace(event.transaction, '').replace(title, '');
   }
-  return {title, subtitle};
+  return {title, subtitle, message};
 }
 
 const TraceIssueLinkContainer = styled(Link)`
@@ -123,6 +126,6 @@ const TraceIssueEventTitle = styled('span')`
   margin-right: ${space(1)};
 `;
 
-const TraceIssueEventTransaction = styled('span')`
+const TraceIssueEventSubtitle = styled('span')`
   color: ${p => p.theme.subText};
 `;

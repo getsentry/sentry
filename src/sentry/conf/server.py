@@ -1310,8 +1310,8 @@ BGTASKS = {
     },
 }
 
-# Sentry logs to two major places: stdout, and it's internal project.
-# To disable logging to the internal project, add a logger who's only
+# Sentry logs to two major places: stdout, and its internal project.
+# To disable logging to the internal project, add a logger whose only
 # handler is 'console' and disable propagating upwards.
 # Additionally, Sentry has the ability to override logger levels by
 # providing the cli with -l/--loglevel or the SENTRY_LOG_LEVEL env var.
@@ -1450,7 +1450,6 @@ SENTRY_EARLY_FEATURES = {
     "organizations:gitlab-disable-on-broken": "Enable disabling gitlab integrations when broken is detected",
     "organizations:grouping-stacktrace-ui": "Enable experimental new version of stacktrace component where additional data related to grouping is shown on each frame",
     "organizations:grouping-title-ui": "Enable tweaks to group title in relation to hierarchical grouping.",
-    "organizations:issue-details-tag-improvements": "Enable tag improvements in the issue details page",
     "organizations:mobile-cpu-memory-in-transactions": "Display CPU and memory metrics in transactions with profiles",
     "organizations:performance-metrics-backed-transaction-summary": "Enable metrics-backed transaction summary view",
     "organizations:performance-new-trends": "Enable new trends",

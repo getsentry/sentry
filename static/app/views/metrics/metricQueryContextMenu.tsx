@@ -20,7 +20,7 @@ import {
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {isCustomMeasurement, isCustomMetric} from 'sentry/utils/metrics';
+import {isCustomMeasurement, isCustomMetric, isVirtualMetric} from 'sentry/utils/metrics';
 import {
   convertToDashboardWidget,
   encodeWidgetQuery,
@@ -28,7 +28,7 @@ import {
   getWidgetQuery,
 } from 'sentry/utils/metrics/dashboard';
 import {hasCustomMetrics, hasMetricAlertFeature} from 'sentry/utils/metrics/features';
-import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
+import {formatMRI} from 'sentry/utils/metrics/mri';
 import {
   isMetricsQueryWidget,
   type MetricDisplayType,
@@ -70,10 +70,6 @@ export function MetricQueryContextMenu({
     displayType
   );
 
-  const parsedMRI = useMemo(() => {
-    return parseMRI(metricsQuery.mri);
-  }, [metricsQuery.mri]);
-
   // At least one query must remain
   const canDelete = widgets.filter(isMetricsQueryWidget).length > 1;
   const hasDashboardFeature = organization.features.includes('dashboards-edit');
@@ -97,7 +93,9 @@ export function MetricQueryContextMenu({
         key: 'add-alert',
         label: <CreateMetricAlertFeature>{t('Create Alert')}</CreateMetricAlertFeature>,
         disabled:
-          !createAlert || !hasMetricAlertFeature(organization) || parsedMRI.type === 'v',
+          !createAlert ||
+          !hasMetricAlertFeature(organization) ||
+          isVirtualMetric(metricsQuery),
         onAction: () => {
           trackAnalytics('ddm.create-alert', {
             organization,
@@ -132,8 +130,7 @@ export function MetricQueryContextMenu({
             <span>{t('Add to Dashboard')}</span>
           </Feature>
         ),
-        disabled:
-          !createDashboardWidget || !hasDashboardFeature || parsedMRI.type === 'v',
+        disabled: !createDashboardWidget || !hasDashboardFeature,
         onAction: () => {
           if (!organization.features.includes('dashboards-edit')) {
             return;
@@ -157,10 +154,7 @@ export function MetricQueryContextMenu({
           });
           Sentry.metrics.increment('ddm.widget.settings');
 
-          const {type} = parseMRI(metricsQuery.mri) ?? {};
-          const isVirtualMetric = type === 'v';
-
-          if (!isVirtualMetric) {
+          if (!isVirtualMetric(metricsQuery)) {
             navigateTo(
               `/settings/projects/:projectId/metrics/${encodeURIComponent(
                 metricsQuery.mri
@@ -193,10 +187,9 @@ export function MetricQueryContextMenu({
     [
       createAlert,
       organization,
-      parsedMRI.type,
       createDashboardWidget,
       hasDashboardFeature,
-      metricsQuery.mri,
+      metricsQuery,
       canDelete,
       duplicateWidget,
       widgetIndex,
@@ -249,6 +242,7 @@ export function useCreateDashboardWidget(
   displayType?: MetricDisplayType
 ) {
   const router = useRouter();
+  const {resolveVirtualMRI} = useVirtualMetricsContext();
   const {selection} = usePageFilters();
 
   return useMemo(() => {
@@ -260,7 +254,18 @@ export function useCreateDashboardWidget(
       return undefined;
     }
 
-    const widgetQuery = getWidgetQuery(metricsQuery);
+    const queryCopy = {...metricsQuery};
+    if (isVirtualMetric(metricsQuery) && metricsQuery.condition) {
+      const {mri, aggregation} = resolveVirtualMRI(
+        metricsQuery.mri,
+        metricsQuery.condition,
+        metricsQuery.aggregation
+      );
+      queryCopy.mri = mri;
+      queryCopy.aggregation = aggregation;
+    }
+
+    const widgetQuery = getWidgetQuery(queryCopy);
     const urlWidgetQuery = encodeWidgetQuery(widgetQuery);
     const widgetAsQueryParams = getWidgetAsQueryParams(
       selection,
@@ -272,12 +277,12 @@ export function useCreateDashboardWidget(
       openAddToDashboardModal({
         organization,
         selection,
-        widget: convertToDashboardWidget([metricsQuery], displayType),
+        widget: convertToDashboardWidget([queryCopy], displayType),
         router,
         widgetAsQueryParams,
         location: router.location,
         actions: ['add-and-open-dashboard', 'add-and-stay-on-current-page'],
         allowCreateNewDashboard: false,
       });
-  }, [metricsQuery, selection, displayType, organization, router]);
+  }, [metricsQuery, selection, displayType, resolveVirtualMRI, organization, router]);
 }
