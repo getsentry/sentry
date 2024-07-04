@@ -388,11 +388,15 @@ function TraceRow({defaultExpanded, trace}: {defaultExpanded; trace: TraceResult
       <StyledPanelItem align="left" overflow>
         <Description>
           <ProjectBadgeWrapper>
-            {traceProjects.length > 0 ? (
-              <ProjectsRenderer projectSlugs={traceProjects} />
-            ) : trace.project ? (
-              <ProjectsRenderer projectSlugs={[trace.project]} />
-            ) : null}
+            <ProjectsRenderer
+              projectSlugs={
+                traceProjects.length > 0
+                  ? traceProjects
+                  : trace.project
+                    ? [trace.project]
+                    : []
+              }
+            />
           </ProjectBadgeWrapper>
           {trace.name ? (
             <WrappingText>{trace.name}</WrappingText>

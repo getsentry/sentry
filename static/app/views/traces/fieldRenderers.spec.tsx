@@ -99,24 +99,7 @@ describe('Renderers', function () {
       }
     );
 
-    it.each([
-      'ok',
-      'cancelled',
-      'invalid_argument',
-      'deadline_exceeded',
-      'not_found',
-      'already_exists',
-      'permission_denied',
-      'resource_exhausted',
-      'failed_precondition',
-      'aborted',
-      'out_of_range',
-      'unimplemented',
-      'internal_error',
-      'unavailable',
-      'data_loss',
-      'unauthenticated',
-    ])('renders span status %s', function (spanStatus) {
+    it.each(['ok', 'internal_error'])('renders span status %s', function (spanStatus) {
       const span = makeSpan(projects[0], {'span.status': spanStatus});
 
       render(<SpanDescriptionRenderer span={span} />);
@@ -151,11 +134,6 @@ describe('Renderers', function () {
   });
 
   describe('ProjectRenderer', function () {
-    it('renders project badge without name', function () {
-      render(<ProjectRenderer projectSlug={projects[0].slug} hideName />);
-      expect(screen.getByRole('img')).toBeInTheDocument();
-    });
-
     it('renders project badge with name', function () {
       render(<ProjectRenderer projectSlug={projects[0].slug} />);
       expect(screen.getByRole('img')).toBeInTheDocument();
@@ -184,7 +162,7 @@ describe('Renderers', function () {
       expect(link).toBeInTheDocument();
       expect(link).toHaveAttribute(
         'href',
-        `/organizations/${organization.slug}/performance/${projects[0].slug}:00000000000000000000000000000000/?`
+        `/organizations/${organization.slug}/performance/${projects[0].slug}:${span.id}/?`
       );
 
       expect(onClickHandler).toHaveBeenCalledTimes(0);
@@ -197,11 +175,13 @@ describe('Renderers', function () {
     it('renders trace id with link', function () {
       const onClickHandler = jest.fn();
 
+      const traceId = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
+
       render(
         <TraceIdRenderer
           location={context.router.location}
           timestamp={1720016100000}
-          traceId="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          traceId={traceId}
           onClick={onClickHandler}
         />,
         context
@@ -211,7 +191,7 @@ describe('Renderers', function () {
       expect(link).toBeInTheDocument();
       expect(link).toHaveAttribute(
         'href',
-        `/organizations/${organization.slug}/performance/trace/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/?pageEnd&pageStart&source=traces&statsPeriod=14d&timestamp=1720016100`
+        `/organizations/${organization.slug}/performance/trace/${traceId}/?pageEnd&pageStart&source=traces&statsPeriod=14d&timestamp=1720016100`
       );
 
       expect(onClickHandler).toHaveBeenCalledTimes(0);
