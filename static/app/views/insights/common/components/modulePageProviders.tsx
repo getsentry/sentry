@@ -41,7 +41,7 @@ export function ModulePageProviders({moduleName, pageTitle, children, features}:
   return (
     <PageFiltersContainer>
       <SentryDocumentTitle title={fullPageTitle} orgSlug={organization.slug}>
-        {/* TODO - conditionally renter the upsell page when implemented */}
+        {/* TODO - conditionally render the upsell page when implemented */}
         <UpsellPageHook moduleName={moduleName}>{() => defaultBody}</UpsellPageHook>
       </SentryDocumentTitle>
     </PageFiltersContainer>
