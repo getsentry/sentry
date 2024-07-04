@@ -13,6 +13,7 @@ import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItem
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import type {Group} from 'sentry/types/group';
 import type {UseExperiment} from 'sentry/utils/useExperiment';
+import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
 import type {StatusToggleButtonProps} from 'sentry/views/monitors/components/statusToggleButton';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
@@ -668,7 +669,7 @@ type InsightsUpsellHook = () => React.ComponentType<{
     disabled: boolean;
     upsellPage: React.ReactElement | null;
   }) => React.ReactElement;
-  id: string;
+  moduleName: TitleableModuleNames;
 }>;
 
 /**

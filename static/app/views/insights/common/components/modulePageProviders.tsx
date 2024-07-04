@@ -42,25 +42,12 @@ export function ModulePageProviders({moduleName, pageTitle, children, features}:
   return (
     <PageFiltersContainer>
       <SentryDocumentTitle title={fullPageTitle} orgSlug={organization.slug}>
-        <UpsellPageHook id={sidebarIdMap[moduleName]}>{() => defaultBody}</UpsellPageHook>
+        {/* TODO - conditionally renter the upsell page when implemented */}
+        <UpsellPageHook moduleName={moduleName}>{() => defaultBody}</UpsellPageHook>
       </SentryDocumentTitle>
     </PageFiltersContainer>
   );
 }
-
-// This matches ids in the sidebar items and in the hook in getsentry
-export const sidebarIdMap: Record<TitleableModuleNames, string> = {
-  ai: 'llm-monitoring',
-  'mobile-ui': 'performance-mobile-ui',
-  cache: 'performance-cache',
-  db: 'performance-database',
-  http: 'performance-http',
-  resource: 'performance-browser-resources',
-  screen_load: 'performance-mobile-screens',
-  app_start: 'performance-mobile-app-startup',
-  vital: 'performance-webvitals',
-  queue: 'performance-queues',
-};
 
 export const UpsellPageHook = HookOrDefault({
   hookName: 'insights:upsell-page',
