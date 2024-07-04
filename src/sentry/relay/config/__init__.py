@@ -13,15 +13,6 @@ from sentry import features, killswitches, options, quotas, utils
 from sentry.constants import HEALTH_CHECK_GLOBS, ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.dynamic_sampling import generate_rules
-from sentry.dynamic_sampling.rules.utils import (
-    Condition,
-    EqCondition,
-    GlobCondition,
-    GtCondition,
-    GteCondition,
-    LtCondition,
-    LteCondition,
-)
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
@@ -52,6 +43,7 @@ from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo
 
+from .generic_filters import get_generic_project_filters
 from .measurements import CUSTOM_MEASUREMENT_LIMIT
 
 #: These features will be listed in the project config.
@@ -188,8 +180,11 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         filter_settings["csp"] = {"disallowedSources": csp_disallowed_sources}
 
     try:
-        generic_filters = _get_generic_project_filters()
-    except Exception:
+        # At the end we compute the generic project filters, which are inbound filters expressible with a conditional
+        # DSL that Relay understands.
+        generic_filters = get_generic_project_filters()
+    except Exception as e:
+        sentry_sdk.capture_exception(e)
         logger.exception(
             "Exception while building Relay project config: error building generic filters"
         )
@@ -198,33 +193,6 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
             filter_settings["generic"] = generic_filters
 
     return filter_settings
-
-
-class GenericFilter(TypedDict):
-    id: str
-    isEnabled: bool
-    condition: (
-        Condition
-        | EqCondition
-        | GteCondition
-        | GtCondition
-        | LteCondition
-        | LtCondition
-        | GlobCondition
-        | None
-    )
-
-
-class GenericFiltersConfig(TypedDict):
-    version: int
-    filters: Sequence[GenericFilter]
-
-
-def _get_generic_project_filters() -> GenericFiltersConfig:
-    return {
-        "version": 1,
-        "filters": [],
-    }
 
 
 def get_quotas(project: Project, keys: Iterable[ProjectKey] | None = None) -> list[str]:
