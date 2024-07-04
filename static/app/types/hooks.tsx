@@ -662,7 +662,7 @@ type SidebarNavigationItemHook = () => React.ComponentType<{
 
 /**
  * Insights upsell hook takes in a insights module name
- * and (if applicable) passes in the module specific upsell page as props to its children.
+ * and renders either the applicable upsell page or the children inside the hook.
  */
 type InsightsUpsellHook = {
   children: React.ReactNode;
