@@ -10,14 +10,9 @@ import type {
 } from 'sentry/types/metrics';
 import {DEFAULT_MRI, parseMRI} from 'sentry/utils/metrics/mri';
 import type {MetricTag} from 'sentry/utils/metrics/types';
-import {useApiQueries} from 'sentry/utils/queryClient';
+import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useSelectedProjects} from 'sentry/views/metrics/utils/useSelectedProjects';
-import {getMetricsExtractionRulesApiKey} from 'sentry/views/settings/projectMetrics/utils/api';
-
-interface MetricsExtractionRuleWithProject extends MetricsExtractionRule {
-  projectId: number;
-}
+import usePageFilters from 'sentry/utils/usePageFilters';
 
 const Context = createContext<{
   getConditions: (mri: MRI) => MetricsExtractionCondition[];
@@ -60,13 +55,11 @@ interface Props {
   children: React.ReactNode;
 }
 
-function createVirtualMRI(rule: MetricsExtractionRuleWithProject): MRI {
+function createVirtualMRI(rule: MetricsExtractionRule): MRI {
   return `v:custom/${rule.spanAttribute}|${rule.projectId}@${rule.unit}`;
 }
 
-export function createMRIToVirtualMap(
-  rules: MetricsExtractionRuleWithProject[]
-): Map<MRI, MRI> {
+export function createMRIToVirtualMap(rules: MetricsExtractionRule[]): Map<MRI, MRI> {
   const mriMap = new Map<MRI, MRI>();
   for (const rule of rules) {
     for (const condition of rule.conditions) {
@@ -91,44 +84,33 @@ const aggregationToMetricType: Record<MetricAggregation, MetricType> = {
   p99: 'd',
 };
 
+const getMetricsExtractionRulesApiKey = (orgSlug: string, projects: number[]) =>
+  [
+    `/organizations/${orgSlug}/metrics/extraction-rules/`,
+    {
+      query: {
+        project: projects,
+      },
+    },
+  ] as const;
+
+const EMPTY_ARRAY: never[] = [];
+
 export function VirtualMetricsContextProvider({children}: Props) {
   const organization = useOrganization();
-  const projects = useSelectedProjects();
+  const {selection} = usePageFilters();
 
   // TODO: support querying multiple projects in the API
-  const requests = useApiQueries<MetricsExtractionRule[]>(
-    projects.map(project =>
-      getMetricsExtractionRulesApiKey(organization.slug, project.slug)
-    ),
+  const {isLoading, data = EMPTY_ARRAY} = useApiQuery<MetricsExtractionRule[]>(
+    getMetricsExtractionRulesApiKey(organization.slug, selection.projects),
     {staleTime: 0}
-  );
-
-  const {isLoading, data} = useMemo(
-    () =>
-      requests.reduce(
-        (acc, request, index) => {
-          acc.isLoading ||= request.isLoading;
-          const rules = (request.data ?? []).map(rule => ({
-            ...rule,
-            projectId: Number(projects[index].id),
-          }));
-          acc.data = acc.data.concat(rules);
-
-          return acc;
-        },
-        {
-          isLoading: false,
-          data: [] as MetricsExtractionRuleWithProject[],
-        }
-      ),
-    [projects, requests]
   );
 
   const mriToVirtualMap = useMemo(() => createMRIToVirtualMap(data), [data]);
 
   const virtualMRIToRuleMap = useMemo(
     () =>
-      new Map<MRI, MetricsExtractionRuleWithProject>(
+      new Map<MRI, MetricsExtractionRule>(
         data.map(rule => [createVirtualMRI(rule), rule])
       ),
     [data]
