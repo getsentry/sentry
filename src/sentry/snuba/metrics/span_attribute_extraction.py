@@ -149,7 +149,7 @@ def _get_rule_condition(
 
 def _get_counter_rule_condition(
     extraction_rule: MetricsExtractionRule, parsed_conditions: Sequence[QueryToken]
-) -> RuleCondition:
+) -> RuleCondition | None:
     is_top_level = extraction_rule.span_attribute in _TOP_LEVEL_SPAN_ATTRIBUTES
 
     if not parsed_conditions:
