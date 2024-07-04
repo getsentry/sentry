@@ -135,6 +135,7 @@ from sentry.models.useremail import UserEmail
 from sentry.models.userpermission import UserPermission
 from sentry.models.userreport import UserReport
 from sentry.models.userrole import UserRole
+from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
@@ -143,8 +144,6 @@ from sentry.sentry_apps.installations import (
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.sentry_apps.services.hook import hook_service
 from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
-from sentry.services.hybrid_cloud.organization import RpcOrganization
-from sentry.services.hybrid_cloud.organization.model import RpcUserOrganizationContext
 from sentry.signals import project_created
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset

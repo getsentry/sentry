@@ -12,8 +12,8 @@ from sentry.api.serializers.models.metrics_extraction_rules import (
     SpanAttributeExtractionRuleConfigSerializer,
 )
 from sentry.models.organization import Organization
+from sentry.organizations.services.organization import RpcOrganization
 from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
-from sentry.services.hybrid_cloud.organization import RpcOrganization
 
 
 @region_silo_endpoint
