@@ -48,8 +48,8 @@ export interface Organization extends OrganizationSummary {
   allowJoinRequests: boolean;
   allowSharedIssues: boolean;
   attachmentsRole: string;
+  /** @deprecated use orgRoleList instead. */
   availableRoles: {id: string; name: string}[];
-  // Deprecated, use orgRoleList
   dataScrubber: boolean;
   dataScrubberDefaults: boolean;
   debugFilesRole: string;
