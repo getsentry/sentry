@@ -1,6 +1,5 @@
-from collections.abc import Sequence
 from datetime import datetime
-from typing import Any, TypedDict, Union
+from typing import Any, TypedDict
 
 from snuba_sdk import (
     And,
@@ -192,12 +191,18 @@ def get_profiles_with_function(
     return {"profile_ids": extract_profile_ids()}
 
 
+class IntervalMetadata(TypedDict):
+    start: str
+    end: str
+    active_thread_id: str
+
+
 def get_spans_from_group(
     organization_id: int,
     project_id: int,
     params: ParamsType,
     span_group: str,
-) -> dict:
+) -> dict[str, list[IntervalMetadata]]:
     query = Query(
         match=Entity(EntityKey.Spans.value),
         select=[
@@ -254,7 +259,7 @@ def get_spans_from_group(
         request,
         referrer=Referrer.API_PROFILING_PROFILE_FLAMEGRAPH.value,
     )["data"]
-    spans = {}
+    spans: dict[str, list[IntervalMetadata]] = {}
     for row in data:
         if row["profiler_id"] in spans:
             spans[row["profiler_id"]].append(
@@ -276,15 +281,12 @@ def get_spans_from_group(
 
 
 class SpanMetadata(TypedDict):
-    profiler_id: list[StartEnd]
-
-
-ConditionGroup = Sequence[Union[BooleanCondition, Condition]]
+    profiler_id: list[IntervalMetadata]
 
 
 def get_chunk_snuba_conditions_from_spans_metadata(
-    spans: dict[str : list[StartEnd]],
-) -> ConditionGroup:
+    spans: dict[str, list[IntervalMetadata]],
+) -> list[BooleanCondition | Condition]:
     cond = []
     for profiler_id, intervals in spans.items():
         chunk_range_cond = []
@@ -307,14 +309,14 @@ def get_chunk_snuba_conditions_from_spans_metadata(
                 ]
             )
         )
-        return [Or(cond)] if len(cond) >= 2 else cond
+    return [Or(cond)] if len(cond) >= 2 else cond
 
 
 def get_chunks_from_spans_metadata(
     organization_id: int,
     project_id: int,
-    spans: dict[str : list[StartEnd]],
-) -> list[dict]:
+    spans: dict[str, list[IntervalMetadata]],
+) -> list[dict[str, Any]]:
     query = Query(
         match=Storage(StorageKey.ProfileChunks.value),
         select=[
@@ -355,3 +357,4 @@ def get_chunks_from_spans_metadata(
                 "span_intervals": intervals,
             }
         )
+    return chunks
