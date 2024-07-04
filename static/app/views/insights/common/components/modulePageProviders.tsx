@@ -41,18 +41,13 @@ export function ModulePageProviders({moduleName, pageTitle, children, features}:
   return (
     <PageFiltersContainer>
       <SentryDocumentTitle title={fullPageTitle} orgSlug={organization.slug}>
-        {/* TODO - conditionally render the upsell page when implemented */}
-        <UpsellPageHook moduleName={moduleName}>{() => defaultBody}</UpsellPageHook>
+        <UpsellPageHook moduleName={moduleName}>{defaultBody}</UpsellPageHook>
       </SentryDocumentTitle>
     </PageFiltersContainer>
   );
 }
 
 export const UpsellPageHook = HookOrDefault({
-  hookName: 'insights:upsell-page',
-  defaultComponent: ({children}) =>
-    children({
-      disabled: false,
-      upsellPage: null,
-    }),
+  hookName: 'component:insights-upsell-page',
+  defaultComponent: ({children}) => children,
 });

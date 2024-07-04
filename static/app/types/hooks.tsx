@@ -204,6 +204,7 @@ export type ComponentHooks = {
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
+  'component:insights-upsell-page': () => React.ComponentType<InsightsUpsellHook>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:monitor-status-toggle': () => React.ComponentType<StatusToggleButtonProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
@@ -232,7 +233,6 @@ export type ComponentHooks = {
  * These are very similar to the component wrapping hooks
  */
 export type CustomizationHooks = {
-  'insights:upsell-page': InsightsUpsellHook;
   'integrations:feature-gates': IntegrationsFeatureGatesHook;
   'member-invite-button:customization': InviteButtonCustomizationHook;
   'member-invite-modal:customization': InviteModalCustomizationHook;
@@ -664,13 +664,10 @@ type SidebarNavigationItemHook = () => React.ComponentType<{
  * Insights upsell hook takes in a insights sidebar item id
  * and (if applicable) passes in the module specific upsell page as props to its children.
  */
-type InsightsUpsellHook = () => React.ComponentType<{
-  children: (opts: {
-    disabled: boolean;
-    upsellPage: React.ReactElement | null;
-  }) => React.ReactElement;
+type InsightsUpsellHook = {
+  children: React.ReactNode;
   moduleName: TitleableModuleNames;
-}>;
+};
 
 /**
  * Invite Modal customization allows for a render-prop component to add
