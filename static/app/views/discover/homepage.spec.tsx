@@ -580,8 +580,7 @@ describe('Discover > Homepage', () => {
 
     expect(screen.getAllByTestId('grid-head-cell').length).toEqual(1);
     screen.getByText('event.type:error');
-    screen.getByText('Dataset');
-    screen.getByText('Errors');
+    expect(screen.getByRole('button', {name: 'Dataset Errors'})).toBeInTheDocument();
     expect(
       screen.getByText(
         "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to Errors. Edit as you see fit."

@@ -1556,5 +1556,98 @@ describe('Results', function () {
 
       expect(screen.queryByText('Save Changes')).not.toBeInTheDocument();
     });
+
+    it('calls events endpoint with the right dataset', async function () {
+      const organization = OrganizationFixture({
+        features: [
+          'discover-basic',
+          'discover-query',
+          'performance-discover-dataset-selector',
+        ],
+      });
+
+      const {router} = initializeOrg({
+        organization,
+        router: {
+          location: {query: {id: '1'}},
+        },
+      });
+
+      ProjectsStore.loadInitialData([ProjectFixture()]);
+
+      const mockRequests = renderMockRequests();
+
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/discover/saved/1/',
+        method: 'GET',
+        statusCode: 200,
+        body: {
+          id: '1',
+          name: 'new',
+          projects: [],
+          version: 2,
+          expired: false,
+          dateCreated: '2021-04-08T17:53:25.195782Z',
+          dateUpdated: '2021-04-09T12:13:18.567264Z',
+          createdBy: {
+            id: '2',
+          },
+          environment: [],
+          fields: ['title', 'event.type', 'project', 'user.display', 'timestamp'],
+          widths: ['-1', '-1', '-1', '-1', '-1'],
+          range: '24h',
+          orderby: '-user.display',
+          queryDataset: 'error-events',
+        },
+      });
+
+      render(
+        <Results
+          organization={organization}
+          location={router.location}
+          router={router}
+          loading={false}
+          setSavedQuery={jest.fn()}
+        />,
+        {
+          router: router,
+          organization,
+        }
+      );
+
+      await waitFor(() => {
+        expect(mockRequests.measurementsMetaMock).toHaveBeenCalled();
+      });
+      expect(mockRequests.eventsResultsMock).toHaveBeenCalledTimes(1);
+
+      expect(screen.getByRole('button', {name: 'Dataset Errors'})).toBeInTheDocument();
+
+      expect(mockRequests.eventsStatsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            dataset: 'errors',
+          }),
+        })
+      );
+
+      expect(mockRequests.eventsResultsMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            dataset: 'errors',
+          }),
+        })
+      );
+
+      expect(mockRequests.eventsMetaMock).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-meta/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            dataset: 'errors',
+          }),
+        })
+      );
+    });
   });
 });
