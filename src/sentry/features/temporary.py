@@ -86,8 +86,10 @@ def register_temporary_features(manager: FeatureManager):
     # Delightful Developer Metrics (DDM):
     # Enables experimental WIP custom metrics related features
     manager.add("organizations:custom-metrics-experimental", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enables custom metrics extraction rule endpoint
+    # Enables generation of custom metrics extraction rules
     manager.add("organizations:custom-metrics-extraction-rule", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
+    # Enables UI for creation of custom metrics extraction rules
+    manager.add("organizations:custom-metrics-extraction-rule-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enables metrics extrapolation feature
     manager.add("organizations:metrics-extrapolation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable the default alert at project creation to be the high priority alert
