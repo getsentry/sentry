@@ -6,6 +6,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {BrowserType} from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
 import type {
   TransactionSampleRowWithScore,
   WebVitals,
@@ -16,9 +17,11 @@ import {
 } from 'sentry/views/insights/browser/webVitals/types';
 import {mapWebVitalToOrderBy} from 'sentry/views/insights/browser/webVitals/utils/mapWebVitalToOrderBy';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 
 type Props = {
   transaction: string;
+  browserType?: BrowserType;
   enabled?: boolean;
   limit?: number;
   orderBy?: WebVitals | null;
@@ -37,6 +40,7 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
   withProfiles,
   sortName,
   webVital,
+  browserType,
 }: Props) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -56,6 +60,9 @@ export const useTransactionSamplesWebVitalsScoresQuery = ({
   ]).addStringFilter(`transaction:"${transaction}"`);
   if (query) {
     mutableSearch.addStringMultiFilter(query);
+  }
+  if (browserType !== undefined && browserType !== BrowserType.ALL) {
+    mutableSearch.addFilterValue(SpanIndexedField.BROWSER_NAME, browserType);
   }
 
   const eventView = EventView.fromNewQueryWithPageFilters(

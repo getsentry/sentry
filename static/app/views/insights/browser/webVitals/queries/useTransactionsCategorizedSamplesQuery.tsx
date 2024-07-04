@@ -1,3 +1,4 @@
+import type {BrowserType} from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
 import {useTransactionSamplesWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionSamplesWebVitalsScoresQuery';
 import type {
   TransactionSampleRowWithScore,
@@ -9,6 +10,7 @@ import {
 } from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 
 type Props = {
+  browserType: BrowserType;
   enabled: boolean;
   transaction: string;
   webVital: WebVitals | null;
@@ -18,6 +20,7 @@ export function useTransactionsCategorizedSamplesQuery({
   transaction,
   webVital,
   enabled,
+  browserType,
 }: Props) {
   const {data: goodData, isLoading: isGoodTransactionWebVitalsQueryLoading} =
     useTransactionSamplesWebVitalsScoresQuery({
@@ -30,6 +33,7 @@ export function useTransactionsCategorizedSamplesQuery({
       withProfiles: true,
       sortName: 'webVitalSort',
       webVital: webVital ?? undefined,
+      browserType,
     });
 
   const {data: mehData, isLoading: isMehTransactionWebVitalsQueryLoading} =
@@ -43,6 +47,7 @@ export function useTransactionsCategorizedSamplesQuery({
       withProfiles: true,
       sortName: 'webVitalSort',
       webVital: webVital ?? undefined,
+      browserType,
     });
 
   const {data: poorData, isLoading: isPoorTransactionWebVitalsQueryLoading} =
@@ -56,6 +61,7 @@ export function useTransactionsCategorizedSamplesQuery({
       withProfiles: true,
       sortName: 'webVitalSort',
       webVital: webVital ?? undefined,
+      browserType,
     });
 
   const data = [...goodData, ...mehData, ...poorData];

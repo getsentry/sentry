@@ -1,8 +1,10 @@
 import type {Sort} from 'sentry/utils/discover/fields';
+import type {BrowserType} from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
 import {useTransactionWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionWebVitalsScoresQuery';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 
 type Props = {
+  browserType?: BrowserType;
   defaultSort?: Sort;
   enabled?: boolean;
   limit?: number;
@@ -22,6 +24,7 @@ export const useTransactionWebVitalsQuery = ({
   enabled,
   query,
   shouldEscapeFilters = true,
+  browserType,
 }: Props) => {
   const storedScoresResult = useTransactionWebVitalsScoresQuery({
     limit,
@@ -32,6 +35,7 @@ export const useTransactionWebVitalsQuery = ({
     webVital,
     query,
     shouldEscapeFilters,
+    browserType,
   });
   return storedScoresResult;
 };

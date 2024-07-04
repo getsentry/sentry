@@ -1,3 +1,4 @@
+import type {BrowserType} from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
 import {useInpSpanSamplesWebVitalsQuery} from 'sentry/views/insights/browser/webVitals/queries/useInpSpanSamplesWebVitalsQuery';
 import type {InteractionSpanSampleRowWithScore} from 'sentry/views/insights/browser/webVitals/types';
 import {
@@ -6,11 +7,16 @@ import {
 } from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 
 type Props = {
+  browserType: BrowserType;
   enabled: boolean;
   transaction: string;
 };
 
-export function useInteractionsCategorizedSamplesQuery({transaction, enabled}: Props) {
+export function useInteractionsCategorizedSamplesQuery({
+  transaction,
+  enabled,
+  browserType,
+}: Props) {
   const {data: goodData, isFetching: isGoodDataLoading} = useInpSpanSamplesWebVitalsQuery(
     {
       transaction,
@@ -19,6 +25,7 @@ export function useInteractionsCategorizedSamplesQuery({transaction, enabled}: P
       filters: {
         'measurements.inp': `<${PERFORMANCE_SCORE_P90S.inp}`,
       },
+      browserType,
     }
   );
   const {data: mehData, isFetching: isMehDataLoading} = useInpSpanSamplesWebVitalsQuery({
@@ -31,6 +38,7 @@ export function useInteractionsCategorizedSamplesQuery({transaction, enabled}: P
         `<${PERFORMANCE_SCORE_MEDIANS.inp}`,
       ],
     },
+    browserType,
   });
   const {data: poorData, isFetching: isBadDataLoading} = useInpSpanSamplesWebVitalsQuery({
     transaction,
@@ -39,6 +47,7 @@ export function useInteractionsCategorizedSamplesQuery({transaction, enabled}: P
     filters: {
       'measurements.inp': `>=${PERFORMANCE_SCORE_MEDIANS.inp}`,
     },
+    browserType,
   });
 
   const data = [...goodData, ...mehData, ...poorData];

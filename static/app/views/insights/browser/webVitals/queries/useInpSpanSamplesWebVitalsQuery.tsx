@@ -1,4 +1,5 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import {BrowserType} from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
 import {
   DEFAULT_INDEXED_INTERACTION_SORT,
   type InteractionSpanSampleRowWithScore,
@@ -14,8 +15,10 @@ export function useInpSpanSamplesWebVitalsQuery({
   enabled,
   filters = {},
   sortName,
+  browserType,
 }: {
   limit: number;
+  browserType?: BrowserType;
   enabled?: boolean;
   filters?: {[key: string]: string[] | string | number | undefined};
   sortName?: string;
@@ -27,18 +30,24 @@ export function useInpSpanSamplesWebVitalsQuery({
     defaultSort: DEFAULT_INDEXED_INTERACTION_SORT,
     sortableFields: filteredSortableFields as unknown as string[],
   });
+
+  const mutableSearch = MutableSearch.fromQueryObject({
+    has: 'message',
+    [`!${SpanIndexedField.SPAN_DESCRIPTION}`]: '<unknown>',
+    'span.op': 'ui.interaction.click',
+    'measurements.score.weight.inp': '>0',
+    ...filters,
+  });
+  if (transaction !== undefined) {
+    mutableSearch.addFilterValue(SpanIndexedField.ORIGIN_TRANSACTION, transaction);
+  }
+  if (browserType !== undefined && browserType !== BrowserType.ALL) {
+    mutableSearch.addFilterValue(SpanIndexedField.BROWSER_NAME, browserType);
+  }
+
   const {data, isLoading, ...rest} = useSpansIndexed(
     {
-      search: MutableSearch.fromQueryObject({
-        has: 'message',
-        [`!${SpanIndexedField.SPAN_DESCRIPTION}`]: '<unknown>',
-        'span.op': 'ui.interaction.click',
-        'measurements.score.weight.inp': '>0',
-        ...(transaction !== undefined
-          ? {[SpanIndexedField.ORIGIN_TRANSACTION]: transaction}
-          : {}),
-        ...filters,
-      }),
+      search: mutableSearch,
       sorts: [sort],
       fields: [
         SpanIndexedField.INP,

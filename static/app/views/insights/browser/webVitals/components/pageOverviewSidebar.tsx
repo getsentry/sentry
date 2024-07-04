@@ -16,6 +16,7 @@ import {getPeriod} from 'sentry/utils/duration/getPeriod';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
+import type {BrowserType} from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
 import {MiniAggregateWaterfall} from 'sentry/views/insights/browser/webVitals/components/miniAggregateWaterfall';
 import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
@@ -27,6 +28,7 @@ const CHART_HEIGHTS = 100;
 
 type Props = {
   transaction: string;
+  browserType?: BrowserType;
   projectScore?: ProjectScore;
   projectScoreIsLoading?: boolean;
   search?: string;
@@ -36,6 +38,7 @@ export function PageOverviewSidebar({
   projectScore,
   transaction,
   projectScoreIsLoading,
+  browserType,
 }: Props) {
   const theme = useTheme();
   const router = useRouter();
@@ -58,6 +61,7 @@ export function PageOverviewSidebar({
   const {data, isLoading: isLoading} = useProjectRawWebVitalsValuesTimeseriesQuery({
     transaction,
     datetime: doubledDatetime,
+    browserType,
   });
 
   const {countDiff, currentSeries, currentCount, initialCount} = processSeriesData(
