@@ -1,9 +1,11 @@
+import logging
+
 import sentry_sdk
-from django.db import router, transaction
+from django.db import IntegrityError, router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features
+from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -20,6 +22,12 @@ from sentry.sentry_metrics.models import (
     SpanAttributeExtractionRuleConfig,
 )
 from sentry.tasks.relay import schedule_invalidate_project_config
+
+logger = logging.getLogger("sentry.metric_extraction_rules")
+
+
+class MetricsExtractionRuleValidationError(ValueError):
+    pass
 
 
 @region_silo_endpoint
@@ -66,11 +74,7 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
         if not self.has_feature(project.organization, request):
             return Response(status=404)
 
-        try:
-            configs = SpanAttributeExtractionRuleConfig.objects.filter(project=project)
-
-        except Exception as e:
-            return Response(status=500, data={"detail": str(e)})
+        configs = SpanAttributeExtractionRuleConfig.objects.filter(project=project)
 
         # TODO(metrics): do real pagination using the database
         return self.paginate(
@@ -104,22 +108,31 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                     configs.append(
                         SpanAttributeExtractionRuleConfig.from_dict(obj, request.user.id, project)
                     )
+
+                validate_number_of_extracted_metrics(project)
+
                 schedule_invalidate_project_config(
                     project_id=project.id, trigger="span_attribute_extraction_configs"
                 )
 
-        except Exception:
-            sentry_sdk.capture_exception()
-            return Response(
-                status=400,
+            persisted_config = serialize(
+                configs, request.user, SpanAttributeExtractionRuleConfigSerializer()
             )
+            return Response(data=persisted_config, status=200)
 
-        persisted_config = serialize(
-            configs,
-            request.user,
-            SpanAttributeExtractionRuleConfigSerializer(),
-        )
-        return Response(data=persisted_config, status=200)
+        except IntegrityError:
+            return Response(status=409, data={"detail": "Resource already exists."})
+
+        except KeyError as e:
+            return Response(status=400, data={"detail": f"Missing field in input data: {str(e)}"})
+
+        except MetricsExtractionRuleValidationError as e:
+            logger.warning("Failed to update extraction rule", exc_info=True)
+            return Response(status=400, data={"detail": str(e)})
+
+        except Exception:
+            logger.exception("Failed to update extraction rule")
+            return Response(status=400)
 
     def put(self, request: Request, project: Project) -> Response:
         """PUT to modify an existing extraction rule."""
@@ -160,18 +173,41 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                                 "created_by_id": request.user.id,
                             },
                         )
+
+                validate_number_of_extracted_metrics(project)
+
                 schedule_invalidate_project_config(
                     project_id=project.id, trigger="span_attribute_extraction_configs"
                 )
 
+            persisted_config = serialize(
+                configs,
+                request.user,
+                SpanAttributeExtractionRuleConfigSerializer(),
+            )
+
+            return Response(data=persisted_config, status=200)
+
+        except KeyError as e:
+            return Response(status=400, data={"detail": f"Missing field in input data: {str(e)}"})
+
+        except MetricsExtractionRuleValidationError as e:
+            logger.warning("Failed to update extraction rule", exc_info=True)
+            return Response(status=400, data={"detail": str(e)})
+
         except Exception:
-            sentry_sdk.capture_exception()
-            return Response(status=400)
+            logger.exception("Failed to update extraction rule")
+            return Response(status=400, data={"detail": "Failed to update extraction rule."})
 
-        persisted_config = serialize(
-            configs,
-            request.user,
-            SpanAttributeExtractionRuleConfigSerializer(),
+
+def validate_number_of_extracted_metrics(project: Project):
+    all_configs = SpanAttributeExtractionRuleConfig.objects.filter(project=project)
+
+    total_metrics = sum(config.number_of_extracted_metrics for config in all_configs)
+
+    max_specs = options.get("metric_extraction.max_span_attribute_specs")
+
+    if total_metrics > max_specs:
+        raise MetricsExtractionRuleValidationError(
+            f"Total number of rules exceeds the limit of {max_specs}."
         )
-
-        return Response(data=persisted_config, status=200)

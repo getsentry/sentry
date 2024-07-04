@@ -260,6 +260,7 @@ class UsageStatsOrganization<
       usageStats: chartStats,
       chartTooltip: {
         subLabels: chartSubLabels,
+        skipZeroValuedSubLabels: true,
       },
     } as UsageChartProps;
 

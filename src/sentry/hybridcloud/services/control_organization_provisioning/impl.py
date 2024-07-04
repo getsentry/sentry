@@ -41,7 +41,7 @@ def create_post_provision_outbox(
         shard_identifier=org_id,
         category=OutboxCategory.POST_ORGANIZATION_PROVISION,
         object_identifier=org_id,
-        payload=provisioning_options.post_provision_options.json(),
+        payload=provisioning_options.post_provision_options.dict(),
     )
 
 
@@ -50,7 +50,7 @@ def create_organization_provisioning_outbox(
     region_name: str,
     org_provision_payload: OrganizationProvisioningOptions | None,
 ) -> ControlOutbox:
-    payload = org_provision_payload.json() if org_provision_payload is not None else None
+    payload = org_provision_payload.dict() if org_provision_payload is not None else None
     return ControlOutbox(
         region_name=region_name,
         shard_scope=OutboxScope.PROVISION_SCOPE,

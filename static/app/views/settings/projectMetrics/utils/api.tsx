@@ -24,12 +24,12 @@ function filterTempIds(rules: MetricsExtractionRule[]) {
   }));
 }
 
-const getMetricsExtractionRulesEndpoint = (orgSlug: string, projectSlug: string) =>
+export const getMetricsExtractionRulesApiKey = (orgSlug: string, projectSlug: string) =>
   [`/projects/${orgSlug}/${projectSlug}/metrics/extraction-rules/`] as const;
 
 export function useMetricsExtractionRules(orgSlug: string, projectSlug: string) {
   return useApiQuery<MetricsExtractionRule[]>(
-    getMetricsExtractionRulesEndpoint(orgSlug, projectSlug),
+    getMetricsExtractionRulesApiKey(orgSlug, projectSlug),
     {
       staleTime: 0,
       retry: false,
@@ -81,7 +81,7 @@ function createRollback(queryClient: QueryClient, queryKey: ApiQueryKey) {
 export function useDeleteMetricsExtractionRules(orgSlug: string, projectSlug: string) {
   const api = useApi();
   const queryClient = useQueryClient();
-  const queryKey = getMetricsExtractionRulesEndpoint(orgSlug, projectSlug);
+  const queryKey = getMetricsExtractionRulesApiKey(orgSlug, projectSlug);
 
   return useMutation<
     MetricsExtractionRule[],
@@ -112,7 +112,7 @@ export function useDeleteMetricsExtractionRules(orgSlug: string, projectSlug: st
 export function useCreateMetricsExtractionRules(orgSlug: string, projectSlug: string) {
   const api = useApi();
   const queryClient = useQueryClient();
-  const queryKey = getMetricsExtractionRulesEndpoint(orgSlug, projectSlug);
+  const queryKey = getMetricsExtractionRulesApiKey(orgSlug, projectSlug);
 
   return useMutation<
     MetricsExtractionRule[],
@@ -151,7 +151,7 @@ export function useCreateMetricsExtractionRules(orgSlug: string, projectSlug: st
 export function useUpdateMetricsExtractionRules(orgSlug: string, projectSlug: string) {
   const api = useApi();
   const queryClient = useQueryClient();
-  const queryKey = getMetricsExtractionRulesEndpoint(orgSlug, projectSlug);
+  const queryKey = getMetricsExtractionRulesApiKey(orgSlug, projectSlug);
 
   return useMutation<
     MetricsExtractionRule[],
