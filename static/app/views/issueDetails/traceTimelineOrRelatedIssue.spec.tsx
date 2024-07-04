@@ -63,7 +63,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     'project.name': project.name,
     title: event.title,
     id: event.id,
-    transaction: 'not-being-tested',
+    transaction: 'important.task',
     'event.type': event.type,
     'stack.function': ['important.task', 'task.run'],
   };
@@ -76,9 +76,22 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     'project.name': project.name,
     title: 'WorkerLostError: ', // The code handles the colon and extra space in the title
     id: '12345',
-    // This is a case where the culprit is available while the transaction is not
-    transaction: '',
+    transaction: 'foo',
     'event.type': event.type,
+    'stack.function': [],
+  };
+
+  const defaultEvent = {
+    culprit: '/api/0/organizations/{organization_id_or_slug}/issues/',
+    'error.value': [],
+    timestamp: '2024-01-24T09:09:03+00:00',
+    'issue.id': 8888,
+    project: project.slug,
+    'project.name': project.name,
+    title: 'Query from referrer search.group_index is throttled',
+    id: '12345',
+    transaction: '/api/0/organizations/{organization_id_or_slug}/issues/',
+    'event.type': 'default',
     'stack.function': [],
   };
   const discoverBody: TraceEventResponse = {
@@ -264,6 +277,33 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     ).toBeInTheDocument();
     // The message from the last error value
     expect(await screen.findByText('The last error value')).toBeInTheDocument();
+  });
+
+  it('trace-related: check title, subtitle for default event', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: emptyBody,
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform', project: -1})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: [defaultEvent]},
+      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
+    });
+    // Used to determine the project badge
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+
+    render(<TraceTimeLineOrRelatedIssue event={event} />, {organization});
+
+    // Check title, subtitle and message of default event
+    expect(await screen.findByText(defaultEvent.title)).toBeInTheDocument();
+    // The subtitle is empty for default events
+    expect(await screen.getByTestId('subtitle-span')).toHaveTextContent('');
+    // The message is the culprit
+    expect(await screen.findByText(defaultEvent.culprit)).toBeInTheDocument();
   });
 
   it('skips the timeline and shows NO related issues (only 1 issue)', async () => {

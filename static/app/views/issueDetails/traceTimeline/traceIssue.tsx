@@ -60,7 +60,9 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
         <TraceIssueDetailsContainer>
           <NoOverflowDiv>
             <TraceIssueEventTitle>{title}</TraceIssueEventTitle>
-            <TraceIssueEventSubtitle>{subtitle}</TraceIssueEventSubtitle>
+            <TraceIssueEventSubtitle data-test-id="subtitle-span">
+              {subtitle}
+            </TraceIssueEventSubtitle>
           </NoOverflowDiv>
           <NoOverflowDiv>{message}</NoOverflowDiv>
         </TraceIssueDetailsContainer>
@@ -80,8 +82,7 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
 // however, we currently don't support it and it is extremely slow
 function getTitleSubtitleMessage(event: TimelineEvent) {
   let title;
-  // culprit is what getTitle() from utils.events uses rather than the transaction
-  const subtitle = event.culprit || '';
+  let subtitle = event.culprit || '';
   let message;
   try {
     title = event.title.trimEnd();
@@ -89,7 +90,14 @@ function getTitleSubtitleMessage(event: TimelineEvent) {
       if (title[title.length - 1] !== ':') {
         title = event.title.split(':')[0];
       }
+      // https://github.com/getsentry/sentry/blob/f08644a004f9980d48f93dec2d7cfc9eeecd9a9e/static/app/utils/events.tsx#L48-L50
+      // It uses metadata.value which could differ depending on what error.value is used in the event manager
       message = event['error.value'][event['error.value'].length - 1];
+    } else if (event['event.type'] === 'default') {
+      // https://github.com/getsentry/sentry/blob/f08644a004f9980d48f93dec2d7cfc9eeecd9a9e/static/app/utils/events.tsx#L179-L184
+      subtitle = '';
+      // https://github.com/getsentry/sentry/blob/f08644a004f9980d48f93dec2d7cfc9eeecd9a9e/static/app/utils/events.tsx#L59-L60
+      message = event.culprit || '';
     } else {
       const issuePlatformEvent = event as TimelineIssuePlatformEvent;
       // It is suspected that this value is calculated somewhere in Relay
