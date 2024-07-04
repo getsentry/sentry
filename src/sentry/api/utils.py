@@ -294,7 +294,6 @@ def generate_region_url(region_name: str | None = None) -> str:
     region_url_template: str | None = options.get("system.region-api-url-template")
     if region_name is None and SiloMode.get_current_mode() == SiloMode.REGION:
         region_name = get_local_region().name
-    # TODO(hybridcloud) Remove this once the silo split is complete.
     if (
         region_name is None
         and SiloMode.get_current_mode() == SiloMode.MONOLITH

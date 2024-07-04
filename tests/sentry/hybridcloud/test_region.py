@@ -4,7 +4,6 @@ from django.test import override_settings
 from sentry.hybridcloud.rpc.resolvers import (
     ByOrganizationId,
     ByOrganizationIdAttribute,
-    ByOrganizationObject,
     ByOrganizationSlug,
     RequireSingleOrganization,
 )
@@ -26,12 +25,6 @@ class RegionResolutionTest(TestCase):
     def setUp(self) -> None:
         self.target_region = _TEST_REGIONS[0]
         self.organization = self.create_organization(region=self.target_region)
-
-    def test_by_organization_object(self) -> None:
-        region_resolution = ByOrganizationObject()
-        arguments = {"organization": self.organization}
-        actual_region = region_resolution.resolve(arguments)
-        assert actual_region == self.target_region
 
     def test_by_organization_id(self) -> None:
         region_resolution = ByOrganizationId()
