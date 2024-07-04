@@ -58,6 +58,7 @@ export function MetricsExtractionRuleEditModal({
         aggregates: data.aggregates.flatMap(explodeAggregateGroup),
         unit: 'none',
         conditions: data.conditions,
+        projectId: parseInt(project.id, 10),
       };
 
       updateExtractionRuleMutation.mutate(
@@ -81,7 +82,7 @@ export function MetricsExtractionRuleEditModal({
       );
       onSubmitSuccess(data);
     },
-    [closeModal, updateExtractionRuleMutation]
+    [closeModal, project.id, updateExtractionRuleMutation]
   );
 
   return (
