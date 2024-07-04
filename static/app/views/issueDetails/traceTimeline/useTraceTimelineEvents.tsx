@@ -19,6 +19,7 @@ interface BaseEvent {
 }
 
 interface TimelineDiscoverEvent extends BaseEvent {
+  'error.value': string[];
   'event.type': string;
   'stack.function': string[];
 }
@@ -108,6 +109,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
             'event.type',
             'stack.function',
             'culprit', // Used for the subtitle
+            'error.value', // Used for the message
           ],
           per_page: 100,
           query: `trace:${traceId}`,

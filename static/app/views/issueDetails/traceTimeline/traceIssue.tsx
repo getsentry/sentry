@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
@@ -78,22 +79,23 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
 // would need to change it to only return the metadata for the issue.
 function getTitleSubtitleMessage(event: TimelineEvent) {
   let title = event.title;
-  // culprit is what getTitle() from utils.events uses for the subtitle
-  const subtitle = event.culprit || '';
   let message = event.message;
-  if (event['event.type'] === 'error') {
-    // getTitle() from utils.events can either use `metadata.title` (custom title; normally empty) or
-    // `metadata.type`. We can't support a customTitle via the events endpoint.
-    // Reversed logic from backend:
-    // https://github.com/getsentry/sentry/blob/8be60023c8c56b1889a6cc692d857ead7e5b89e2/src/sentry/eventtypes/error.py#L86-L90
-    // An event stores the title as "error.type: truncated error.value"
-    // We could query error.type and error.value but those are arrays in the events endpoint.
-    title = event.title.split(':')[0];
-  } else {
-    // It is suspected that this value is calculated somewhere in Relay
-    // and we deconstruct it here to match what the Issue details page shows
-    message = event.message.replace(event.transaction, '').replace(title, '');
+  // culprit is what getTitle() from utils.events uses rather than the transaction
+  const subtitle = event.culprit || '';
+  try {
+    if (event['event.type'] === 'error') {
+      title = event.title.split(':')[0];
+      message = event['error.value'][event['error.value'].length - 1];
+    } else {
+      // It is suspected that this value is calculated somewhere in Relay
+      // and we deconstruct it here to match what the Issue details page shows
+      message = event.message.replace(event.transaction, '').replace(title, '');
+    }
+  } catch (error) {
+    // If we fail, report it so we can figure it out
+    Sentry.captureException(error);
   }
+
   return {title, subtitle, message};
 }
 

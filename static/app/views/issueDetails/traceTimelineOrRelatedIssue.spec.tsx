@@ -55,28 +55,31 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     meta: {fields: {}, units: {}},
   };
   const mainError = {
-    message: 'This is the message for the issue',
+    title: event.title,
     culprit: '/api/foo/', // Used for subtitle
+    message: '',
+    transaction: 'not-being-tested',
+    'error.value': [],
     timestamp: firstEventTimestamp,
     'issue.id': event['issue.id'],
     project: project.slug,
     'project.name': project.name,
-    title: event.title,
     id: event.id,
-    transaction: 'important.task',
     'event.type': event.type,
     'stack.function': ['important.task', 'task.run'],
   };
   const secondError = {
-    message: 'Message of the second issue',
-    culprit: '/api/foo/', // Used for subtitle
+    title: 'WorkerLostError: ', // XXX: The colon is not being handled in the code
+    culprit: 'billiard.pool in mark_as_worker_lost', // Used for subtitle
+    message: 'Some other error message',
+    // This is a case where the culprit is available while the transaction is not
+    transaction: '',
+    'error.value': ['some-other-error-value', 'The error message used for the issue'],
     timestamp: '2024-01-24T09:09:04+00:00',
     'issue.id': 9999,
     project: project.slug,
     'project.name': project.name,
-    title: 'someTitle',
     id: '12345',
-    transaction: 'foo',
     'event.type': event.type,
   };
   const discoverBody: TraceEventResponse = {
@@ -232,6 +235,41 @@ describe('TraceTimeline & TraceRelated Issue', () => {
         organization: organization,
       }
     );
+  });
+
+  it('trace-related: check title, subtitle for error event', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: emptyBody,
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform', project: -1})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: [secondError]},
+      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
+    });
+    // Used to determine the project badge
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+
+    render(<TraceTimeLineOrRelatedIssue event={event} />, {organization});
+
+    // Check title, subtitle and message of error event
+    // XXX: Follow up PR to handle the colon missing
+    expect(await screen.findByText('WorkerLostError')).toBeInTheDocument();
+    expect(
+      await screen.findByText('billiard.pool in mark_as_worker_lost')
+    ).toBeInTheDocument();
+    expect(
+      // The message value is not found in the page
+      await screen.queryByText('Task handler raised error:')
+    ).not.toBeInTheDocument();
+    expect(
+      // The message value is not found in the page
+      await screen.findByText('The error message used for the issue')
+    ).toBeInTheDocument();
   });
 
   it('skips the timeline and shows NO related issues (only 1 issue)', async () => {
