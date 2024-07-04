@@ -30,6 +30,7 @@ const Context = createContext<{
     conditionId: number,
     aggregation: MetricAggregation
   ) => {aggregation: MetricAggregation; mri: MRI};
+  virtualMeta: MetricMeta[];
 }>({
   getVirtualMRI: () => null,
   getVirtualMeta: () => {
@@ -38,6 +39,7 @@ const Context = createContext<{
   getConditions: () => [],
   getTags: () => [],
   resolveVirtualMRI: (mri, _, aggregation) => ({mri, aggregation}),
+  virtualMeta: [],
   isLoading: false,
 });
 
@@ -65,17 +67,6 @@ export function createMRIToVirtualMap(
     }
   }
   return mriMap;
-}
-
-export function createSpanAttributeProjectIdMap(
-  rules: MetricsExtractionRuleWithProject[]
-): Map<string, number[]> {
-  const map = new Map<string, number[]>();
-  for (const rule of rules) {
-    const projectIds = map.get(rule.spanAttribute) ?? [];
-    map.set(rule.spanAttribute, [...projectIds, rule.projectId]);
-  }
-  return map;
 }
 
 const aggregationToMetricType: Record<MetricAggregation, MetricType> = {
@@ -125,13 +116,10 @@ export function VirtualMetricsContextProvider({children}: Props) {
   );
 
   const mriToVirtualMap = useMemo(() => createMRIToVirtualMap(data), [data]);
-  const spanAttributeProjectIdMap = useMemo(
-    () => createSpanAttributeProjectIdMap(data),
-    [data]
-  );
+
   const virtualMRIToRuleMap = useMemo(
     () =>
-      new Map<MRI, MetricsExtractionRule>(
+      new Map<MRI, MetricsExtractionRuleWithProject>(
         data.map(rule => [createVirtualMRI(rule), rule])
       ),
     [data]
@@ -161,10 +149,10 @@ export function VirtualMetricsContextProvider({children}: Props) {
         blockingStatus: [],
         mri: mri,
         operations: rule.aggregates,
-        projectIds: spanAttributeProjectIdMap.get(rule.spanAttribute) ?? [],
+        projectIds: [rule.projectId],
       };
     },
-    [virtualMRIToRuleMap, spanAttributeProjectIdMap]
+    [virtualMRIToRuleMap]
   );
 
   const getConditions = useCallback(
@@ -212,6 +200,11 @@ export function VirtualMetricsContextProvider({children}: Props) {
     [virtualMRIToRuleMap]
   );
 
+  const virtualMeta = useMemo(
+    () => Array.from(virtualMRIToRuleMap.keys()).map(getVirtualMeta),
+    [getVirtualMeta, virtualMRIToRuleMap]
+  );
+
   const contextValue = useMemo(
     () => ({
       getVirtualMRI,
@@ -219,9 +212,18 @@ export function VirtualMetricsContextProvider({children}: Props) {
       getConditions,
       getTags,
       resolveVirtualMRI,
+      virtualMeta,
       isLoading,
     }),
-    [getVirtualMRI, getVirtualMeta, getConditions, getTags, resolveVirtualMRI, isLoading]
+    [
+      getVirtualMRI,
+      getVirtualMeta,
+      getConditions,
+      getTags,
+      resolveVirtualMRI,
+      virtualMeta,
+      isLoading,
+    ]
   );
 
   return (
