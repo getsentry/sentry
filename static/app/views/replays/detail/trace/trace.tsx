@@ -17,6 +17,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {TraceViewWaterfall} from 'sentry/views/performance/newTraceDetails';
 import {useReplayTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useReplayTraceMeta';
+import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {loadTraceViewPreferences} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
@@ -32,6 +33,8 @@ import {
   useTransactionData,
 } from 'sentry/views/replays/detail/trace/replayTransactionContext';
 import type {ReplayRecord} from 'sentry/views/replays/types';
+
+import {useReplayTraces} from './useReplayTraces';
 
 function TracesNotFound({performanceActive}: {performanceActive: boolean}) {
   // We want to send the 'trace_status' data if the project actively uses and has access to the performance monitoring.
@@ -95,11 +98,7 @@ const DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES: TracePreferencesState = {
   },
 };
 
-type Props = {
-  replayRecord: undefined | ReplayRecord;
-};
-
-function Trace({replayRecord}: Props) {
+function Trace({replayRecord}: {replayRecord: undefined | ReplayRecord}) {
   const organization = useOrganization();
   const {projects} = useProjects();
   const {
@@ -107,22 +106,6 @@ function Trace({replayRecord}: Props) {
     eventView,
   } = useTransactionData();
 
-  const metaResults = useReplayTraceMeta(replayRecord);
-  const preferences = useMemo(
-    () =>
-      loadTraceViewPreferences('replay-trace-view-preferences') ||
-      DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES,
-    []
-  );
-
-  const traceSplitResults = useMemo(() => {
-    return {
-      transactions: traces ?? [],
-      orphan_errors: orphanErrors ?? [],
-    };
-  }, [traces, orphanErrors]);
-
-  const rootEvent = useTraceRootEvent(traceSplitResults);
   useFetchTransactions();
 
   if (errors.length) {
@@ -155,29 +138,6 @@ function Trace({replayRecord}: Props) {
     return <TracesNotFound performanceActive={performanceActive} />;
   }
 
-  if (organization.features.includes('replay-trace-view-v1')) {
-    return (
-      <TraceStateProvider
-        initialPreferences={preferences}
-        preferencesStorageKey="replay-trace-view-preferences"
-      >
-        <TraceViewWaterfallWrapper>
-          <TraceViewWaterfall
-            traceSlug="Replay"
-            status={errors.length > 0 ? 'error' : isFetching ? 'loading' : 'success'}
-            trace={traceSplitResults}
-            organization={organization}
-            traceEventView={eventView}
-            metaResults={metaResults}
-            rootEvent={rootEvent}
-            source="replay"
-            replayRecord={replayRecord}
-          />
-        </TraceViewWaterfallWrapper>
-      </TraceStateProvider>
-    );
-  }
-
   return (
     <TraceFound
       performanceActive={performanceActive}
@@ -186,6 +146,88 @@ function Trace({replayRecord}: Props) {
       traces={traces ?? []}
       orphanErrors={orphanErrors}
     />
+  );
+}
+
+export function NewTraceView({replayRecord}: {replayRecord: undefined | ReplayRecord}) {
+  const organization = useOrganization();
+  const {projects} = useProjects();
+  const {eventView, indexComplete, indexError, replayTraces} = useReplayTraces({
+    replayRecord,
+  });
+
+  const firstTrace = replayTraces?.[0];
+  const trace = useTrace({
+    traceSlug: firstTrace?.traceSlug,
+    timestamp: firstTrace?.timestamp,
+  });
+  const rootEvent = useTraceRootEvent(trace.data ?? null);
+  const metaResults = useReplayTraceMeta(replayRecord);
+
+  const preferences = useMemo(
+    () =>
+      loadTraceViewPreferences('replay-trace-view-preferences') ||
+      DEFAULT_REPLAY_TRACE_VIEW_PREFERENCES,
+    []
+  );
+
+  const otherReplayTraces = useMemo(() => {
+    if (!replayTraces) {
+      return [];
+    }
+    return replayTraces.slice(1);
+  }, [replayTraces]);
+
+  if (indexError) {
+    // Same style as <EmptyStateWarning>
+    return (
+      <BorderedSection>
+        <EmptyState withIcon={false}>
+          <IconSad legacySize="54px" />
+          <p>{t('Unable to retrieve traces')}</p>
+        </EmptyState>
+      </BorderedSection>
+    );
+  }
+
+  if (!replayRecord || !indexComplete || !replayTraces || !eventView) {
+    // Show the blank screen until we start fetching, thats when you get a spinner
+    return (
+      <StyledPlaceholder height="100%">
+        {!indexComplete ? <Loading /> : null}
+      </StyledPlaceholder>
+    );
+  }
+
+  const project = projects.find(p => p.id === replayRecord.project_id);
+  const hasPerformance = project?.firstTransactionEvent === true;
+  const performanceActive =
+    organization.features.includes('performance-view') && hasPerformance;
+
+  if (replayTraces.length === 0) {
+    return <TracesNotFound performanceActive={performanceActive} />;
+  }
+
+  return (
+    <TraceStateProvider
+      initialPreferences={preferences}
+      preferencesStorageKey="replay-trace-view-preferences"
+    >
+      <TraceViewWaterfallWrapper>
+        <TraceViewWaterfall
+          traceSlug={undefined}
+          trace={trace.data ?? null}
+          status={trace.status}
+          rootEvent={rootEvent}
+          replayTraces={otherReplayTraces}
+          organization={organization}
+          traceEventView={eventView}
+          metaResults={metaResults}
+          source="replay"
+          replayRecord={replayRecord}
+        />
+      </TraceViewWaterfallWrapper>
+    </TraceStateProvider>
   );
 }
 
