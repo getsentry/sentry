@@ -9,6 +9,7 @@ from django.views import View
 from slack_sdk import WebClient
 from slack_sdk.errors import SlackApiError
 
+from sentry import features as sentry_features
 from sentry.identity.pipeline import IdentityProviderPipeline
 from sentry.integrations.base import (
     FeatureDescription,
@@ -17,6 +18,7 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
+from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.models.integrations.integration import Integration
 from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView
@@ -71,7 +73,9 @@ metadata = IntegrationMetadata(
 
 
 class SlackIntegration(SlackNotifyBasicMixin, IntegrationInstallation):
-    def get_client(self) -> SlackClient:
+    def get_client(self) -> SlackClient | SlackSdkClient:
+        if sentry_features.has("organizations:slack-sdk-notify-mixin", self.organization):
+            return SlackSdkClient(integration_id=self.model.id)
         return SlackClient(integration_id=self.model.id)
 
     def get_config_data(self) -> Mapping[str, str]:

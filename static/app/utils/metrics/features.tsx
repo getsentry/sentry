@@ -14,7 +14,10 @@ export function hasMetricAlertFeature(organization: Organization) {
 }
 
 export function hasCustomMetricsExtractionRules(organization: Organization) {
-  return organization.features.includes('custom-metrics-extraction-rule');
+  return (
+    organization.features.includes('custom-metrics-extraction-rule') &&
+    organization.features.includes('custom-metrics-extraction-rule-ui')
+  );
 }
 
 export function hasMetricsExtrapolationFeature(organization: Organization) {

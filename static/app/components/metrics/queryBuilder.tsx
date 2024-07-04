@@ -67,9 +67,12 @@ export const QueryBuilder = memo(function QueryBuilder({
     resolveVirtualMRI,
   ]);
 
-  const {data: tagsData = [], isLoading: tagsIsLoading} = useMetricsTags(resolvedMRI, {
-    projects: projectIds,
-  });
+  const {data: tagsData = [], isLoading: tagsIsLoading} = useMetricsTags(
+    metricsQuery.mri,
+    {
+      projects: projectIds,
+    }
+  );
 
   const groupByOptions = useMemo(() => {
     return uniqBy(tagsData, 'key').map(tag => ({
@@ -317,7 +320,7 @@ function QueryFooter({mri, closeOverlay}) {
       <InfoWrapper>
         <Tooltip
           title={t(
-            'Ideally, you can visualize span data by any property you want. However, our infrastructure has limits as well, and we kindly ask that you define in advance what you want to see.'
+            'Ideally, you can visualize span data by any property you want. However, our infrastructure has limits as well, so pretty please define in advance what you want to see.'
           )}
           skipWrapper
         >
