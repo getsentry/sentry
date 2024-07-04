@@ -40,7 +40,7 @@ interface Props extends Omit<FormProps, 'onSubmit'> {
   ) => void;
 }
 
-const KNOWN_NUMERIC_FIELDS = new Set([
+const HIGH_CARDINALITY_TAGS = new Set([
   SpanIndexedField.SPAN_DURATION,
   SpanIndexedField.SPAN_SELF_TIME,
   SpanIndexedField.PROJECT_ID,
@@ -194,7 +194,7 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
     return allAttributeOptions
       .filter(
         // We don't want to suggest numeric fields as tags as they would explode cardinality
-        option => !KNOWN_NUMERIC_FIELDS.has(option as SpanIndexedField)
+        option => !HIGH_CARDINALITY_TAGS.has(option as SpanIndexedField)
       )
       .map(option => ({
         label: option,
