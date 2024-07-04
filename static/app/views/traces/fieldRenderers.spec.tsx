@@ -145,6 +145,7 @@ describe('Renderers', function () {
     it('renders span id with link', function () {
       const onClickHandler = jest.fn();
 
+      const traceId = 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa';
       const span = makeSpan(projects[0]);
 
       render(
@@ -152,17 +153,18 @@ describe('Renderers', function () {
           projectSlug={span.project}
           spanId={span.id}
           timestamp={span.timestamp}
-          traceId="aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+          traceId={traceId}
           transactionId={span['transaction.id']}
           onClick={onClickHandler}
-        />
+        />,
+        context
       );
 
       const link = screen.getByText('11111111');
       expect(link).toBeInTheDocument();
       expect(link).toHaveAttribute(
         'href',
-        `/organizations/${organization.slug}/performance/${projects[0].slug}:${span.id}/?`
+        `/organizations/${organization.slug}/performance/trace/${traceId}/?eventId=${span['transaction.id']}&node=span-${span.id}&node=txn-${span['transaction.id']}&source=traces&statsPeriod=14d&timestamp=1720016100`
       );
 
       expect(onClickHandler).toHaveBeenCalledTimes(0);
