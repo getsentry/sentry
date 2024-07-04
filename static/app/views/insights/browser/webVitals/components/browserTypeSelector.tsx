@@ -5,8 +5,8 @@ import ContextIcon from 'sentry/components/events/contexts/contextIcon';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import decodeBrowserType from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
 // TODO: include both "Google Chrome" and "Chrome" when filtering by Chrome browser
@@ -58,7 +58,7 @@ const browserOptions = [
 export default function BrowserTypeSelector() {
   const location = useLocation();
 
-  const value = decodeScalar(location.query[SpanIndexedField.BROWSER_NAME]) ?? '';
+  const value = decodeBrowserType(location.query[SpanIndexedField.BROWSER_NAME]);
 
   return (
     <CompactSelect
