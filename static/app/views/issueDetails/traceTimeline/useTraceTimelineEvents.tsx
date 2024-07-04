@@ -17,7 +17,7 @@ interface BaseEvent {
   transaction: string;
 }
 
-interface TimelineDiscoverEvent extends BaseEvent {
+export interface TimelineDiscoverEvent extends BaseEvent {
   culprit: string; // Used for default events
   'event.type': string;
   'stack.function': string[];
