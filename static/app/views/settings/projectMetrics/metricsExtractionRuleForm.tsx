@@ -52,6 +52,7 @@ const KNOWN_NUMERIC_FIELDS = new Set([
   SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
   SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY,
   SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
+  SpanIndexedField.TRANSACTION_ID,
 ]);
 
 const AGGREGATE_OPTIONS: {label: string; value: AggregateGroup}[] = [
@@ -159,16 +160,19 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
     return copy;
   }, [tags]);
 
-  const attributeOptions = useMemo(() => {
+  const allAttributeOptions = useMemo(() => {
     let keys = Object.keys(supportedTags);
-    const disabledKeys = new Set(extractionRules?.map(rule => rule.spanAttribute) || []);
-
     if (customAttributes.length) {
       keys = [...new Set(keys.concat(customAttributes))];
     }
+    return keys;
+  }, [customAttributes, supportedTags]);
+
+  const attributeOptions = useMemo(() => {
+    const disabledKeys = new Set(extractionRules?.map(rule => rule.spanAttribute) || []);
 
     return (
-      keys
+      allAttributeOptions
         .map(key => ({
           label: key,
           value: key,
@@ -184,14 +188,19 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
         // Sort disabled attributes to bottom
         .sort((a, b) => Number(a.disabled) - Number(b.disabled))
     );
-  }, [customAttributes, supportedTags, extractionRules]);
+  }, [allAttributeOptions, extractionRules]);
 
   const tagOptions = useMemo(() => {
-    return attributeOptions.filter(
-      // We don't want to suggest numeric fields as tags as they would explode cardinality
-      option => !KNOWN_NUMERIC_FIELDS.has(option.value as SpanIndexedField)
-    );
-  }, [attributeOptions]);
+    return allAttributeOptions
+      .filter(
+        // We don't want to suggest numeric fields as tags as they would explode cardinality
+        option => !KNOWN_NUMERIC_FIELDS.has(option as SpanIndexedField)
+      )
+      .map(option => ({
+        label: option,
+        value: option,
+      }));
+  }, [allAttributeOptions]);
 
   const handleSubmit = useCallback(
     (
