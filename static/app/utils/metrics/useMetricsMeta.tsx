@@ -75,11 +75,8 @@ export const useVirtualizedMetricsMeta = (
   isRefetching: boolean;
   refetch: () => void;
 } => {
-  const {
-    getVirtualMRI,
-    getVirtualMeta,
-    isLoading: isVirtualMetricsContextLoading,
-  } = useVirtualMetricsContext();
+  const {virtualMeta, isLoading: isVirtualMetricsContextLoading} =
+    useVirtualMetricsContext();
 
   const {data, isLoading, isRefetching, refetch} = useMetricsMeta(
     pageFilters,
@@ -89,28 +86,13 @@ export const useVirtualizedMetricsMeta = (
   );
 
   const newMeta = useMemo(() => {
-    const virtualMetrics = new Set<MRI>();
-    // Filter all extracted custom metrics and map them to virtual metrics
+    // Filter all extracted custom metrics and mix them in from the virtual context
     const otherMetrics = data.filter(meta => {
-      if (!isExtractedCustomMetric(meta)) {
-        return true;
-      }
-
-      const virtualMRI = getVirtualMRI(meta.mri);
-      // If there is no virtual MRI, we don't want to show this metric
-      if (!virtualMRI) {
-        return false;
-      }
-
-      virtualMetrics.add(virtualMRI);
-      return false;
+      return !isExtractedCustomMetric(meta);
     });
 
-    // Add virtual metrics to the list and sort the array again
-    const virtualMeta = Array.from(virtualMetrics).map(mri => getVirtualMeta(mri));
-
     return sortMeta([...otherMetrics, ...virtualMeta]);
-  }, [data, getVirtualMRI, getVirtualMeta]);
+  }, [data, virtualMeta]);
 
   return {
     data: newMeta,
