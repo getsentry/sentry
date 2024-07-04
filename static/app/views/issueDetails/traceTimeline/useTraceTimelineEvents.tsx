@@ -7,6 +7,7 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface BaseEvent {
+  culprit: string; // Used for default events & subtitles
   id: string;
   'issue.id': number;
   message: string;
@@ -17,12 +18,12 @@ interface BaseEvent {
   transaction: string;
 }
 
-export interface TimelineDiscoverEvent extends BaseEvent {
-  culprit: string; // Used for default events
+interface TimelineDiscoverEvent extends BaseEvent {
+  'error.value': string[];
   'event.type': string;
   'stack.function': string[];
 }
-export interface TimelineIssuePlatformEvent extends BaseEvent {}
+interface TimelineIssuePlatformEvent extends BaseEvent {}
 
 export type TimelineEvent = TimelineDiscoverEvent | TimelineIssuePlatformEvent;
 
@@ -61,9 +62,17 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
       `/organizations/${organization.slug}/events/`,
       {
         query: {
-          // Get performance issues
+          // Get issue platform issues
           dataset: DiscoverDatasets.ISSUE_PLATFORM,
-          field: ['message', 'title', 'project', 'timestamp', 'issue.id', 'transaction'],
+          field: [
+            'message',
+            'title',
+            'project',
+            'timestamp',
+            'issue.id',
+            'transaction',
+            'culprit', // Used for the subtitle
+          ],
           per_page: 100,
           query: `trace:${traceId}`,
           referrer: 'api.issues.issue_events',
@@ -99,7 +108,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
             'transaction',
             'event.type',
             'stack.function',
-            'culprit', // Used for default events
+            'culprit', // Used for default events and subtitles
           ],
           per_page: 100,
           query: `trace:${traceId}`,
@@ -146,6 +155,10 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
         timestamp: event.dateCreated!,
         title: event.title,
         transaction: '',
+        culprit: event.culprit,
+        'event.type': event['eventID.type'],
+        'stack.function': event['stack.function'],
+        'error.value': event['error.value'],
       });
     }
     const timestamps = events.map(e => new Date(e.timestamp).getTime());

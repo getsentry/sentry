@@ -49,14 +49,12 @@ describe('TraceTimeline & TraceRelated Issue', () => {
         title: 'Slow DB Query',
         id: 'abc',
         transaction: '/api/slow/',
-        culprit: '/api/slow/',
       },
     ],
     meta: {fields: {}, units: {}},
   };
   const mainError = {
     message: 'This is the message for the issue',
-    culprit: 'n/a',
     timestamp: firstEventTimestamp,
     'issue.id': event['issue.id'],
     project: project.slug,
@@ -69,8 +67,6 @@ describe('TraceTimeline & TraceRelated Issue', () => {
   };
   const secondError = {
     message: 'Message of the second issue',
-    culprit: 'billiard.pool in foo', // Used for subtitle
-    'error.value': ['some-other-error-value', 'The last error value'],
     timestamp: '2024-01-24T09:09:04+00:00',
     'issue.id': 9999,
     project: project.slug,
@@ -79,17 +75,6 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     id: '12345',
     transaction: 'foo',
     'event.type': event.type,
-  };
-  const defaultEvent = {
-    culprit: '/api/0/organizations/{organization_id_or_slug}/issues/',
-    timestamp: '2024-01-24T09:09:03+00:00',
-    'issue.id': 8888,
-    project: project.slug,
-    'project.name': project.name,
-    title: 'Query from referrer search.group_index is throttled',
-    id: '12345',
-    transaction: '/api/0/organizations/{organization_id_or_slug}/issues/',
-    'event.type': 'default', // Instead of an error
   };
   const discoverBody: TraceEventResponse = {
     data: [mainError],
@@ -266,37 +251,9 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     render(<TraceTimeLineOrRelatedIssue event={event} />, {organization});
 
     // Check title, subtitle and message of error event
-    expect(await screen.findByText('WorkerLostError:')).toBeInTheDocument();
-    expect(await screen.findByText('billiard.pool in foo')).toBeInTheDocument();
-    // The message from the last error value
-    expect(await screen.findByText('The last error value')).toBeInTheDocument();
-  });
-
-  it('trace-related: check title, subtitle for default event', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: emptyBody,
-      match: [MockApiClient.matchQuery({dataset: 'issuePlatform', project: -1})],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: {data: [defaultEvent]},
-      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
-    });
-    // Used to determine the project badge
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/projects/`,
-      body: [],
-    });
-
-    render(<TraceTimeLineOrRelatedIssue event={event} />, {organization});
-
-    // Check title, subtitle and message of default event
-    expect(await screen.findByText(defaultEvent.title)).toBeInTheDocument();
-    // The subtitle is empty for default events
-    expect(await screen.getByTestId('subtitle-span')).toHaveTextContent('');
-    // The message is the culprit
-    expect(await screen.findByText(defaultEvent.culprit)).toBeInTheDocument();
+    expect(await screen.findByText('someTitle')).toBeInTheDocument();
+    expect(await screen.findByText('foo')).toBeInTheDocument();
+    expect(await screen.findByText('Message of the second issue')).toBeInTheDocument();
   });
 
   it('skips the timeline and shows NO related issues (only 1 issue)', async () => {

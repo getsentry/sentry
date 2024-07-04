@@ -10,7 +10,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 
-import type {TimelineDiscoverEvent, TimelineEvent} from './useTraceTimelineEvents';
+import type {TimelineEvent} from './useTraceTimelineEvents';
 
 interface TraceIssueEventProps {
   event: TimelineEvent;
@@ -82,8 +82,8 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
 // however, we currently don't support it and it is extremely slow
 function getTitleSubtitleMessage(event: TimelineEvent) {
   let title;
-  // XXX: This is not fully correct but it will make following PRs easier to review
-  let subtitle = event.transaction;
+  // This is closer to what getTitle() does
+  let subtitle = event.culprit || '';
   let message = event.message;
   try {
     title = event.title.trimEnd();
@@ -91,12 +91,14 @@ function getTitleSubtitleMessage(event: TimelineEvent) {
       if (title[title.length - 1] !== ':') {
         title = event.title.split(':')[0];
       }
+      // https://github.com/getsentry/sentry/blob/f08644a004f9980d48f93dec2d7cfc9eeecd9a9e/static/app/utils/events.tsx#L48-L50
+      // It uses metadata.value which could differ depending on what error.value is used in the event manager
+      message = event['error.value'][event['error.value'].length - 1];
     } else if (event['event.type'] === 'default') {
       // https://github.com/getsentry/sentry/blob/f08644a004f9980d48f93dec2d7cfc9eeecd9a9e/static/app/utils/events.tsx#L179-L184
       subtitle = '';
       // https://github.com/getsentry/sentry/blob/f08644a004f9980d48f93dec2d7cfc9eeecd9a9e/static/app/utils/events.tsx#L59-L60
-      const errorEvent = event as TimelineDiscoverEvent;
-      message = errorEvent.culprit || '';
+      message = event.culprit || '';
     } else {
       // It is suspected that this value is calculated somewhere in Relay
       // and we deconstruct it here to match what the Issue details page shows
