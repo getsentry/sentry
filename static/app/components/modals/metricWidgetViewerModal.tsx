@@ -280,6 +280,8 @@ function MetricWidgetViewerModal({
     closeModal();
   }, [userHasModified, closeModal]);
 
+  const {mri, aggregation, query, condition} = metricQueries[0];
+
   return (
     <Fragment>
       <OrganizationContext.Provider value={organization}>
@@ -311,7 +313,12 @@ function MetricWidgetViewerModal({
             onOrderChange={handleOrderChange}
             interval={widget.interval}
           />
-          <MetricDetails mri={metricQueries[0].mri} query={metricQueries[0].query} />
+          <MetricDetails
+            mri={mri}
+            aggregation={aggregation}
+            condition={condition}
+            query={query}
+          />
         </Body>
         <Footer>
           <ButtonBar gap={1}>
