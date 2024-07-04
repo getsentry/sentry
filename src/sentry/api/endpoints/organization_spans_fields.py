@@ -11,7 +11,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
-from sentry.api.paginator import SequencePaginator
+from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
 from sentry.models.organization import Organization
@@ -94,7 +94,7 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
         except NoProjects:
             return self.paginate(
                 request=request,
-                paginator=SequencePaginator([]),
+                paginator=ChainPaginator([]),
             )
 
         max_span_tags = options.get("performance.spans-tags-key.max")
@@ -121,12 +121,10 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
 
             results = builder.process_results(builder.run_query(Referrer.API_SPANS_TAG_KEYS.value))
 
-        paginator = SequencePaginator(
-            [
-                # TODO: prepend the list of sentry defined fields here
-                (row["array_join(tags.key)"], TagKey(row["array_join(tags.key)"]))
-                for row in results["data"]
-            ],
+        results["data"].sort(key=lambda row: row["array_join(tags.key)"])
+
+        paginator = ChainPaginator(
+            [[TagKey(row["array_join(tags.key)"]) for row in results["data"]]],
             max_limit=max_span_tags,
         )
 
@@ -158,7 +156,7 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
         except NoProjects:
             return self.paginate(
                 request=request,
-                paginator=SequencePaginator([]),
+                paginator=ChainPaginator([]),
             )
 
         sentry_sdk.set_tag("query.tag_key", key)
@@ -174,10 +172,9 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
         )
         tag_values = executor.execute()
 
-        paginator = SequencePaginator(
-            [(tag_value.value, tag_value) for tag_value in tag_values],
-            max_limit=max_span_tag_values,
-        )
+        tag_values.sort(key=lambda tag: tag.value)
+
+        paginator = ChainPaginator([tag_values], max_limit=max_span_tag_values)
 
         return self.paginate(
             request=request,
