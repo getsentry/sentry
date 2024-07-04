@@ -69,17 +69,18 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
   );
 }
 
-// This function tries to imitate getTitle() from utils.events
-// In that module, the data comes from the issues/ endpoint while here
-// we grab the data from the events/ endpoint. A larger effort is
+// This function tries to imitate what getTitle() from utils.events does.
+// In that module, the data comes from the issues endpoint while in here
+// we grab the data from the events endpoint. A larger effort is
 // required in order to use that function directly since the data between
-// the two endpoint is slightly different. We would need
-// to grab the metadata for the issue from the issues endpoint (which requires work).
-// At this moment, the issues endpoint is extremely slow and we
-// would need to change it to only return the metadata for the issue.
+// the two endpoint is slightly different.
+// For instance, the events endpoint could include a _metadata dict with
+// the title, subtitle and message.
+// We could also make another call to the issues endpoint  to fetch the metadata,
+// however, we currently don't support it and it is extremely slow
 function getTitleSubtitleMessage(event: TimelineEvent) {
   let title = event.title.trimEnd();
-  let message = event.message;
+  let message;
   // culprit is what getTitle() from utils.events uses rather than the transaction
   const subtitle = event.culprit || '';
   try {
