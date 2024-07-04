@@ -1,7 +1,25 @@
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
+import EventView from 'sentry/utils/discover/eventView';
 import {DatasetSelector} from 'sentry/views/discover/savedQuery/datasetSelector';
+
+const EVENT_VIEW_CONSTRUCTOR_PROPS = {
+  createdBy: undefined,
+  end: undefined,
+  environment: [],
+  fields: [],
+  name: undefined,
+  project: [],
+  query: '',
+  start: undefined,
+  team: [],
+  sorts: [],
+  statsPeriod: undefined,
+  topEvents: undefined,
+  id: undefined,
+  display: undefined,
+};
 
 describe('Discover DatasetSelector', function () {
   const {router} = initializeOrg({
@@ -9,18 +27,26 @@ describe('Discover DatasetSelector', function () {
   });
 
   it('renders selector and options', async function () {
-    render(<DatasetSelector isHomepage={false} savedQuery={undefined} />, {
-      router,
-    });
+    const eventView = new EventView(EVENT_VIEW_CONSTRUCTOR_PROPS);
+    render(
+      <DatasetSelector isHomepage={false} savedQuery={undefined} eventView={eventView} />,
+      {
+        router,
+      }
+    );
     await userEvent.click(screen.getByText('Dataset'));
     const menuOptions = await screen.findAllByRole('option');
     expect(menuOptions.map(e => e.textContent)).toEqual(['Errors', 'Transactions']);
   });
 
   it('pushes new event view', async function () {
-    render(<DatasetSelector isHomepage={false} savedQuery={undefined} />, {
-      router,
-    });
+    const eventView = new EventView(EVENT_VIEW_CONSTRUCTOR_PROPS);
+    render(
+      <DatasetSelector isHomepage={false} savedQuery={undefined} eventView={eventView} />,
+      {
+        router,
+      }
+    );
     await userEvent.click(screen.getByText('Dataset'));
     await userEvent.click(screen.getByRole('option', {name: 'Transactions'}));
     expect(router.push).toHaveBeenCalledWith(

@@ -266,15 +266,33 @@ export function getSavedQueryDataset(
   return (savedQuery?.queryDataset ?? SavedQueryDatasets.DISCOVER) as SavedQueryDatasets;
 }
 
-export function getDatasetFromSavedQueryDataset(
-  queryDataset: SavedQueryDatasets
-): DiscoverDatasets {
-  switch (queryDataset) {
+export function getDatasetFromLocationOrSavedQueryDataset(
+  location: Location | undefined,
+  queryDataset: SavedQueryDatasets | undefined
+): DiscoverDatasets | undefined {
+  const dataset = decodeScalar(location?.query?.dataset);
+  if (dataset) {
+    return dataset as DiscoverDatasets;
+  }
+  const savedQueryDataset = decodeScalar(location?.query?.queryDataset) ?? queryDataset;
+  switch (savedQueryDataset) {
     case SavedQueryDatasets.ERRORS:
       return DiscoverDatasets.ERRORS;
     case SavedQueryDatasets.TRANSACTIONS:
       return DiscoverDatasets.TRANSACTIONS;
-    default:
+    case SavedQueryDatasets.DISCOVER:
       return DiscoverDatasets.DISCOVER;
+    default:
+      return undefined;
   }
+}
+
+export function getSavedQueryWithDataset(savedQuery: SavedQuery): SavedQuery {
+  return {
+    ...savedQuery,
+    dataset: getDatasetFromLocationOrSavedQueryDataset(
+      undefined,
+      savedQuery?.queryDataset
+    ),
+  } as SavedQuery;
 }

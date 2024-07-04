@@ -43,7 +43,6 @@ import {CustomMeasurementsProvider} from 'sentry/utils/customMeasurements/custom
 import EventView, {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {formatTagKey, generateAggregateFields} from 'sentry/utils/discover/fields';
 import {
-  DiscoverDatasets,
   DisplayModes,
   MULTI_Y_AXIS_SUPPORTED_DISPLAY_MODES,
   SavedQueryDatasets,
@@ -56,9 +55,11 @@ import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {DATASET_LABEL_MAP} from 'sentry/views/discover/savedQuery/datasetSelector';
 import {
-  getDatasetFromSavedQueryDataset,
+  getDatasetFromLocationOrSavedQueryDataset,
   getSavedQueryDataset,
+  getSavedQueryWithDataset,
 } from 'sentry/views/discover/savedQuery/utils';
 
 import {addRoutePerformanceContext} from '../performance/utils';
@@ -94,6 +95,7 @@ type State = {
   totalValues: null | number;
   loadingForcedDataset?: boolean;
   savedQuery?: SavedQuery;
+  savedQueryDataset?: SavedQueryDatasets;
   showForcedDatasetAlert?: boolean;
   showMetricsAlert?: boolean;
   showUnparameterizedBanner?: boolean;
@@ -132,6 +134,11 @@ export class Results extends Component<Props, State> {
     eventView: EventView.fromSavedQueryOrLocation(
       this.props.savedQuery,
       this.props.location
+    ),
+    savedQueryDataset: getSavedQueryDataset(
+      this.props.location,
+      this.props.savedQuery,
+      undefined
     ),
     error: '',
     errorCode: 200,
@@ -588,7 +595,7 @@ export class Results extends Component<Props, State> {
         >
           {tct(
             "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to [splitDecision]. Edit as you see fit.",
-            {splitDecision: this.state.splitDecision}
+            {splitDecision: DATASET_LABEL_MAP[this.state.splitDecision]}
           )}
         </Alert>
       );
@@ -618,7 +625,15 @@ export class Results extends Component<Props, State> {
   };
 
   setSplitDecision = (value?: SavedQueryDatasets) => {
-    this.setState({splitDecision: value});
+    const {eventView} = this.state;
+    const newEventView = eventView.withDataset(
+      getDatasetFromLocationOrSavedQueryDataset(undefined, value)
+    );
+    this.setState({
+      splitDecision: value,
+      savedQueryDataset: value,
+      eventView: newEventView,
+    });
   };
 
   render() {
@@ -641,9 +656,6 @@ export class Results extends Component<Props, State> {
     const query = eventView.query;
     const title = this.getDocumentTitle();
     const yAxisArray = getYAxis(location, eventView, savedQuery);
-
-    const queryDataset = getSavedQueryDataset(location, savedQuery, splitDecision);
-    const dataset = getDatasetFromSavedQueryDataset(queryDataset);
 
     if (!eventView.isValid()) {
       return <LoadingIndicator />;
@@ -686,7 +698,7 @@ export class Results extends Component<Props, State> {
                       onSearch={this.handleSearch}
                       maxQueryLength={MAX_QUERY_LENGTH}
                       customMeasurements={contextValue?.customMeasurements ?? undefined}
-                      dataset={dataset}
+                      dataset={eventView.dataset}
                     />
                   )}
                 </CustomMeasurementsContext.Consumer>
@@ -740,8 +752,8 @@ export class Results extends Component<Props, State> {
                     organization.features.includes(
                       'performance-discover-dataset-selector'
                     )
-                      ? dataset
-                      : DiscoverDatasets.DISCOVER
+                      ? eventView.dataset
+                      : undefined
                   }
                 />
               </Layout.Main>
@@ -823,10 +835,14 @@ class SavedQueryAPI extends DeprecatedAsyncComponent<Props, SavedQueryState> {
 
   renderBody(): React.ReactNode {
     const {savedQuery, loading} = this.state;
+    let savedQueryWithDataset = savedQuery;
+    if (savedQuery) {
+      savedQueryWithDataset = getSavedQueryWithDataset(savedQuery);
+    }
     return (
       <Results
         {...this.props}
-        savedQuery={savedQuery ?? undefined}
+        savedQuery={savedQueryWithDataset ?? undefined}
         loading={loading}
         setSavedQuery={this.setSavedQuery}
       />

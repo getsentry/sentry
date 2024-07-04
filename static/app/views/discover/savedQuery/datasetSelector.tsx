@@ -7,9 +7,18 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {DEFAULT_EVENT_VIEW_MAP} from 'sentry/views/discover/data';
-import {getSavedQueryDataset} from 'sentry/views/discover/savedQuery/utils';
+import {
+  getDatasetFromLocationOrSavedQueryDataset,
+  getSavedQueryDataset,
+} from 'sentry/views/discover/savedQuery/utils';
 
 export const DATASET_PARAM = 'queryDataset';
+
+export const DATASET_LABEL_MAP = {
+  [SavedQueryDatasets.ERRORS]: t('Errors'),
+  [SavedQueryDatasets.TRANSACTIONS]: t('Transactions'),
+  [SavedQueryDatasets.DISCOVER]: t('Unknown'),
+};
 
 type Props = {
   eventView: EventView;
@@ -27,12 +36,21 @@ export function DatasetSelector(props: Props) {
   const value = getSavedQueryDataset(location, savedQuery, splitDecision);
 
   const options = [
-    {value: SavedQueryDatasets.ERRORS, label: t('Errors')},
-    {value: SavedQueryDatasets.TRANSACTIONS, label: t('Transactions')},
+    {
+      value: SavedQueryDatasets.ERRORS,
+      label: DATASET_LABEL_MAP[SavedQueryDatasets.ERRORS],
+    },
+    {
+      value: SavedQueryDatasets.TRANSACTIONS,
+      label: DATASET_LABEL_MAP[SavedQueryDatasets.TRANSACTIONS],
+    },
   ];
 
   if (value === 'discover') {
-    options.push({value: SavedQueryDatasets.DISCOVER, label: t('Unknown')});
+    options.push({
+      value: SavedQueryDatasets.DISCOVER,
+      label: DATASET_LABEL_MAP[SavedQueryDatasets.DISCOVER],
+    });
   }
 
   return (
@@ -43,7 +61,9 @@ export function DatasetSelector(props: Props) {
       onChange={newValue => {
         let nextEventView: EventView;
         if (eventView.id) {
-          nextEventView = eventView.withQueryDataset(newValue.value);
+          nextEventView = eventView.withDataset(
+            getDatasetFromLocationOrSavedQueryDataset(undefined, newValue.value)
+          );
         } else {
           const query = DEFAULT_EVENT_VIEW_MAP[newValue.value];
           nextEventView = EventView.fromNewQueryWithLocation(query, location);
