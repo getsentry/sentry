@@ -251,7 +251,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     render(<TraceTimeLineOrRelatedIssue event={event} />, {organization});
 
     // Check title, subtitle and message of error event
-    expect(await screen.findByText('someTitle')).toBeInTheDocument();
+    expect(await screen.findByText('WorkerLostError:')).toBeInTheDocument();
     expect(await screen.findByText('foo')).toBeInTheDocument();
     expect(await screen.findByText('Message of the second issue')).toBeInTheDocument();
   });

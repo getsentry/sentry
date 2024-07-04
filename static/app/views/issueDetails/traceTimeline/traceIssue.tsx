@@ -80,7 +80,7 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
 // however, we currently don't support it and it is extremely slow
 function getTitleSubtitleMessage(event: TimelineEvent) {
   let title;
-  // XXX: This is not fully correct but it will make this first PR easier to review
+  // XXX: This is not fully correct but it will make following PRs easier to review
   const subtitle = event.transaction;
   let message = event.message;
   try {
