@@ -10,7 +10,6 @@ interface BaseEvent {
   culprit: string; // Used for subtitle
   id: string;
   'issue.id': number;
-  message: string;
   project: string;
   'project.name': string;
   timestamp: string;
@@ -23,7 +22,9 @@ interface TimelineDiscoverEvent extends BaseEvent {
   'event.type': string;
   'stack.function': string[];
 }
-interface TimelineIssuePlatformEvent extends BaseEvent {}
+interface TimelineIssuePlatformEvent extends BaseEvent {
+  message: string; // Used for the message
+}
 
 export type TimelineEvent = TimelineDiscoverEvent | TimelineIssuePlatformEvent;
 
@@ -62,10 +63,10 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
       `/organizations/${organization.slug}/events/`,
       {
         query: {
-          // Get performance issues
+          // Get issue platform issues
           dataset: DiscoverDatasets.ISSUE_PLATFORM,
           field: [
-            'message',
+            'message', // Used for the message
             'title',
             'project',
             'timestamp',
@@ -100,7 +101,6 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
           // Other events
           dataset: DiscoverDatasets.DISCOVER,
           field: [
-            'message',
             'title',
             'project',
             'timestamp',
