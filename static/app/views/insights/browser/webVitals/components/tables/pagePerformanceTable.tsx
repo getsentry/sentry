@@ -32,8 +32,9 @@ import {useTransactionWebVitalsScoresQuery} from 'sentry/views/insights/browser/
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {RowWithScoreAndOpportunity} from 'sentry/views/insights/browser/webVitals/types';
 import {SORTABLE_FIELDS} from 'sentry/views/insights/browser/webVitals/types';
+import decodeBrowserType from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
-import {ModuleName} from 'sentry/views/insights/types';
+import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
 
 type Column = GridColumnHeader<keyof RowWithScoreAndOpportunity>;
 
@@ -68,6 +69,7 @@ export function PagePerformanceTable() {
   const columnOrder = COLUMN_ORDER;
 
   const query = decodeScalar(location.query.query, '');
+  const browserType = decodeBrowserType(location.query[SpanIndexedField.BROWSER_NAME]);
 
   const project = useMemo(
     () => projects.find(p => p.id === String(location.query.project)),
@@ -76,7 +78,7 @@ export function PagePerformanceTable() {
 
   const sort = useWebVitalsSort({defaultSort: DEFAULT_SORT});
   const {data: projectScoresData, isLoading: isProjectScoresLoading} =
-    useProjectWebVitalsScoresQuery();
+    useProjectWebVitalsScoresQuery({browserType});
 
   const {
     data,
@@ -87,6 +89,7 @@ export function PagePerformanceTable() {
     transaction: query !== '' ? `*${escapeFilterValue(query)}*` : undefined,
     defaultSort: DEFAULT_SORT,
     shouldEscapeFilters: false,
+    browserType,
   });
 
   const scoreCount = projectScoresData?.data?.[0]?.[

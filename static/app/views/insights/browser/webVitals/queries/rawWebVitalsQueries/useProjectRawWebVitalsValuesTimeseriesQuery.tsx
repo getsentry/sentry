@@ -10,9 +10,12 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {BrowserType} from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 
 type Props = {
+  browserType?: BrowserType;
   datetime?: PageFilters['datetime'];
   transaction?: string | null;
 };
@@ -20,6 +23,7 @@ type Props = {
 export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
   transaction,
   datetime,
+  browserType,
 }: Props) => {
   const pageFilters = usePageFilters();
   const location = useLocation();
@@ -27,6 +31,9 @@ export const useProjectRawWebVitalsValuesTimeseriesQuery = ({
   const search = new MutableSearch([]);
   if (transaction) {
     search.addFilterValue('transaction', transaction);
+  }
+  if (browserType !== undefined && browserType !== BrowserType.ALL) {
+    search.addFilterValue(SpanIndexedField.BROWSER_NAME, browserType);
   }
   const projectTimeSeriesEventView = EventView.fromNewQueryWithPageFilters(
     {

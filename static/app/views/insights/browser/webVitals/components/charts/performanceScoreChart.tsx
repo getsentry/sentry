@@ -9,6 +9,7 @@ import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import type {BrowserType} from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
 import {PerformanceScoreBreakdownChart} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreBreakdownChart';
 import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webVitals/components/performanceScoreRingWithTooltips';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
@@ -18,6 +19,7 @@ import type {
 } from 'sentry/views/insights/browser/webVitals/types';
 
 type Props = {
+  browserType?: BrowserType;
   isProjectScoreLoading?: boolean;
   projectScore?: ProjectScore;
   transaction?: string;
@@ -31,6 +33,7 @@ export function PerformanceScoreChart({
   webVital,
   transaction,
   isProjectScoreLoading,
+  browserType,
 }: Props) {
   const theme = useTheme();
   const pageFilters = usePageFilters();
@@ -94,7 +97,10 @@ export function PerformanceScoreChart({
           </EmptyStateWarning>
         )}
       </PerformanceScoreLabelContainer>
-      <PerformanceScoreBreakdownChart transaction={transaction} />
+      <PerformanceScoreBreakdownChart
+        transaction={transaction}
+        browserType={browserType}
+      />
     </Flex>
   );
 }
