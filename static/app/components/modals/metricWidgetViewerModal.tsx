@@ -15,6 +15,7 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getMetricsUrl} from 'sentry/utils/metrics';
 import {toDisplayType} from 'sentry/utils/metrics/dashboard';
+import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
 import {parseMRI} from 'sentry/utils/metrics/mri';
 import {MetricExpressionType} from 'sentry/utils/metrics/types';
 import {
@@ -335,10 +336,12 @@ function MetricWidgetViewerModal({
 }
 
 function WrappedMetricWidgetViewerModal(props: Props) {
-  return (
+  return hasCustomMetricsExtractionRules(props.organization) ? (
     <VirtualMetricsContextProvider>
       <MetricWidgetViewerModal {...props} />
     </VirtualMetricsContextProvider>
+  ) : (
+    <MetricWidgetViewerModal {...props} />
   );
 }
 
