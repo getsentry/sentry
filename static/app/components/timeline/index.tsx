@@ -149,6 +149,7 @@ const Title = styled('p')`
   text-transform: capitalize;
   text-align: left;
   grid-column: span 1;
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const Timestamp = styled('p')`
@@ -169,10 +170,13 @@ const Content = styled('div')`
   grid-column: span 2;
   color: ${p => p.theme.subText};
   margin: ${space(0.25)} 0 0;
+  font-size: ${p => p.theme.fontSizeSmall};
+  word-wrap: break-word;
 `;
 
 export const Text = styled('div')`
   text-align: left;
+  font-size: ${p => p.theme.fontSizeSmall};
   &:only-child {
     margin-top: 0;
   }

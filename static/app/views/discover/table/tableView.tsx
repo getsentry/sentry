@@ -189,13 +189,24 @@ function TableView(props: TableViewProps) {
       }
 
       let target;
-      if (dataRow['event.type'] === 'transaction') {
-        if (dataRow.trace === null) {
+
+      if (dataRow.trace === null || dataRow.trace === undefined) {
+        if (dataRow['event.type'] === 'transaction') {
           throw new Error(
             'Transaction event should always have a trace associated with it.'
           );
         }
 
+        const project = dataRow.project || dataRow['project.name'];
+        target = {
+          // NOTE: This uses a legacy redirect for project event to the issue group event link
+          // This only works with dev-server or production.
+          pathname: normalizeUrl(
+            `/${organization.slug}/${project}/events/${dataRow.id}/`
+          ),
+          query: {...location.query, referrer: 'discover-events-table'},
+        };
+      } else {
         target = generateLinkToEventInTraceView({
           traceSlug: dataRow.trace,
           eventId: dataRow.id,
@@ -208,14 +219,6 @@ function TableView(props: TableViewProps) {
           type: 'discover',
           source: TraceViewSources.DISCOVER,
         });
-      } else {
-        const project = dataRow.project || dataRow['project.name'];
-
-        target = {
-          // NOTE: This uses a legacy redirect for project event to the issue group event link
-          pathname: `/${organization.slug}/${project}/events/${dataRow.id}/`,
-          query: {...location.query, referrer: 'discover-events-table'},
-        };
       }
 
       const eventIdLink = (
@@ -318,13 +321,24 @@ function TableView(props: TableViewProps) {
     if (columnKey === 'id') {
       let target;
 
-      if (dataRow['event.type'] === 'transaction') {
-        if (dataRow.trace === null) {
+      if (dataRow.trace === null || dataRow.trace === undefined) {
+        if (dataRow['event.type'] === 'transaction') {
           throw new Error(
             'Transaction event should always have a trace associated with it.'
           );
         }
 
+        const project = dataRow.project || dataRow['project.name'];
+
+        target = {
+          // NOTE: This uses a legacy redirect for project event to the issue group event link.
+          // This only works with dev-server or production.
+          pathname: normalizeUrl(
+            `/${organization.slug}/${project}/events/${dataRow.id}/`
+          ),
+          query: {...location.query, referrer: 'discover-events-table'},
+        };
+      } else {
         target = generateLinkToEventInTraceView({
           traceSlug: dataRow.trace?.toString(),
           eventId: dataRow.id,
@@ -337,14 +351,6 @@ function TableView(props: TableViewProps) {
           type: 'discover',
           source: TraceViewSources.DISCOVER,
         });
-      } else {
-        const project = dataRow.project || dataRow['project.name'];
-
-        target = {
-          // NOTE: This uses a legacy redirect for project event to the issue group event link
-          pathname: `/${organization.slug}/${project}/events/${dataRow.id}/`,
-          query: {...location.query, referrer: 'discover-events-table'},
-        };
       }
 
       const idLink = (

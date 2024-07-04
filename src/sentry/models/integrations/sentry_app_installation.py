@@ -225,7 +225,7 @@ class SentryAppInstallation(ReplicatedControlModel, ParanoidModel):
                     for ob in ApiToken(id=api_token_id, user_id=user_id).outboxes_for_update():
                         ob.save()
 
-    def payload_for_update(self) -> Mapping[str, Any] | None:
+    def payload_for_update(self) -> dict[str, Any] | None:
         from sentry.models.apitoken import ApiToken
 
         try:

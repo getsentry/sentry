@@ -64,7 +64,7 @@ class RpcTeam(RpcModel):
     def class_name(self) -> str:
         return "Team"
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "slug": self.slug,
@@ -175,7 +175,7 @@ class RpcOrganizationMappingFlags(RpcModel):
 
 
 class RpcOrganizationFlags(RpcOrganizationMappingFlags):
-    def as_int(self):
+    def as_int(self) -> int:
         # Must maintain the same order as the ORM's `Organization.flags` fields
         return flags_to_bits(
             self.allow_joinleave,
@@ -250,7 +250,7 @@ class RpcOrganization(RpcOrganizationSummary):
     date_added: datetime = Field(default_factory=timezone.now)
     _default_owner_id: int | None = None
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, Any]:
         return {
             "id": self.id,
             "slug": self.slug,
@@ -278,7 +278,7 @@ class RpcOrganization(RpcOrganizationSummary):
         )
 
     @property
-    def default_owner_id(self):
+    def default_owner_id(self) -> int | None:
         """
         Similar to get_default_owner but won't raise a key error
         if there is no owner.

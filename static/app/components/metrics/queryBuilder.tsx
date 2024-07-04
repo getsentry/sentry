@@ -3,24 +3,28 @@ import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
+import {Button} from 'sentry/components/button';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {MetricSearchBar} from 'sentry/components/metrics/metricSearchBar';
 import {MRISelect} from 'sentry/components/metrics/mriSelect';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconWarning} from 'sentry/icons';
+import {IconAdd, IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MRI} from 'sentry/types/metrics';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDefaultAggregation, isAllowedAggregation} from 'sentry/utils/metrics';
-import {parseMRI} from 'sentry/utils/metrics/mri';
+import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
 import {useVirtualizedMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
+import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
+import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {useSelectedProjects} from 'sentry/views/metrics/utils/useSelectedProjects';
 
 type QueryBuilderProps = {
   index: number;
@@ -37,6 +41,7 @@ export const QueryBuilder = memo(function QueryBuilder({
 }: QueryBuilderProps) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
+  const {getConditions, getVirtualMeta, resolveVirtualMRI} = useVirtualMetricsContext();
 
   const {
     data: meta,
@@ -44,6 +49,23 @@ export const QueryBuilder = memo(function QueryBuilder({
     isRefetching: isMetaRefetching,
     refetch: refetchMeta,
   } = useVirtualizedMetricsMeta(pageFilters.selection);
+
+  const resolvedMRI = useMemo(() => {
+    const type = parseMRI(metricsQuery.mri)?.type;
+    if (type !== 'v' || !metricsQuery.condition) {
+      return metricsQuery.mri;
+    }
+    return resolveVirtualMRI(
+      metricsQuery.mri,
+      metricsQuery.condition,
+      metricsQuery.aggregation
+    ).mri;
+  }, [
+    metricsQuery.aggregation,
+    metricsQuery.condition,
+    metricsQuery.mri,
+    resolveVirtualMRI,
+  ]);
 
   const {data: tagsData = [], isLoading: tagsIsLoading} = useMetricsTags(
     metricsQuery.mri,
@@ -79,27 +101,37 @@ export const QueryBuilder = memo(function QueryBuilder({
         return;
       }
 
-      let queryChanges = {};
+      const queryChanges: Partial<MetricsQuery> = {
+        mri: mriValue,
+        groupBy: undefined,
+      };
 
       // If the type is the same, we can keep the current aggregate
-      if (currentMRI.type === newMRI.type) {
-        queryChanges = {
-          mri: mriValue,
-          groupBy: undefined,
-        };
+      if (currentMRI.type !== newMRI.type) {
+        queryChanges.aggregation = getDefaultAggregation(mriValue);
+      }
+
+      if (newMRI.type === 'v') {
+        const spanConditions = getConditions(mriValue);
+        const virtualMeta = getVirtualMeta(mriValue);
+        queryChanges.condition = spanConditions[0]?.id;
+        queryChanges.aggregation = virtualMeta.operations[0];
       } else {
-        queryChanges = {
-          mri: mriValue,
-          aggregation: getDefaultAggregation(mriValue),
-          groupBy: undefined,
-        };
+        queryChanges.condition = undefined;
       }
 
       trackAnalytics('ddm.widget.metric', {organization});
       incrementQueryMetric('ddm.widget.metric', queryChanges);
       onChange(queryChanges);
     },
-    [incrementQueryMetric, metricsQuery.mri, onChange, organization]
+    [
+      getConditions,
+      getVirtualMeta,
+      incrementQueryMetric,
+      metricsQuery.mri,
+      onChange,
+      organization,
+    ]
   );
 
   const handleOpChange = useCallback(
@@ -155,21 +187,48 @@ export const QueryBuilder = memo(function QueryBuilder({
   );
 
   const projectIdStrings = useMemo(() => projectIds.map(String), [projectIds]);
+  const spanConditions = getConditions(metricsQuery.mri);
 
   return (
     <QueryBuilderWrapper>
       <FlexBlock>
-        <GuideAnchor target="metrics_selector" position="bottom" disabled={index !== 0}>
-          <MRISelect
-            onChange={handleMRIChange}
-            onTagClick={handleMetricTagClick}
-            onOpenMenu={handleOpenMetricsMenu}
-            isLoading={isMetaLoading}
-            metricsMeta={meta}
-            projects={projectIds}
-            value={metricsQuery.mri}
-          />
-        </GuideAnchor>
+        <FlexBlock>
+          <GuideAnchor target="metrics_selector" position="bottom" disabled={index !== 0}>
+            <MRISelect
+              onChange={handleMRIChange}
+              onTagClick={handleMetricTagClick}
+              onOpenMenu={handleOpenMetricsMenu}
+              isLoading={isMetaLoading}
+              metricsMeta={meta}
+              projects={projectIds}
+              value={metricsQuery.mri}
+            />
+          </GuideAnchor>
+          {selectedMeta?.type === 'v' ? (
+            <CompactSelect
+              size="md"
+              triggerProps={{prefix: t('Query')}}
+              options={spanConditions.map(condition => ({
+                label: condition.value ? (
+                  <Tooltip showOnlyOnOverflow title={condition.value} skipWrapper>
+                    <QueryLabel>{condition.value}</QueryLabel>
+                  </Tooltip>
+                ) : (
+                  t('All spans')
+                ),
+                textValue: condition.value || t('All spans'),
+                value: condition.id,
+              }))}
+              value={metricsQuery.condition}
+              onChange={({value}) => {
+                onChange({condition: value});
+              }}
+              menuFooter={({closeOverlay}) => (
+                <QueryFooter mri={metricsQuery.mri} closeOverlay={closeOverlay} />
+              )}
+            />
+          ) : null}
+        </FlexBlock>
         <FlexBlock>
           <GuideAnchor
             target="metrics_aggregate"
@@ -211,7 +270,7 @@ export const QueryBuilder = memo(function QueryBuilder({
       </FlexBlock>
       <SearchBarWrapper>
         <MetricSearchBar
-          mri={metricsQuery.mri}
+          mri={resolvedMRI}
           disabled={!metricsQuery.mri}
           onChange={handleQueryChange}
           query={metricsQuery.query}
@@ -232,6 +291,44 @@ function TagWarningIcon() {
         <IconWarning size="xs" color="warning" />
       </Tooltip>
     </TooltipIconWrapper>
+  );
+}
+
+function QueryFooter({mri, closeOverlay}) {
+  const {getVirtualMeta} = useVirtualMetricsContext();
+  const selectedProjects = useSelectedProjects();
+  const navigate = useNavigate();
+
+  const metricMeta = getVirtualMeta(mri);
+  const project = selectedProjects.find(p => p.id === String(metricMeta.projectIds[0]));
+
+  if (!project) {
+    return null;
+  }
+  return (
+    <QueryFooterWrapper>
+      <Button
+        size="xs"
+        icon={<IconAdd isCircled />}
+        onClick={() => {
+          closeOverlay();
+          navigate(`/settings/projects/${project.slug}/metrics/${formatMRI(mri)}/edit`);
+        }}
+      >
+        {t('Add Query')}
+      </Button>
+      <InfoWrapper>
+        <Tooltip
+          title={t(
+            'Ideally, you can visualize span data by any property you want. However, our infrastructure has limits as well, so pretty please define in advance what you want to see.'
+          )}
+          skipWrapper
+        >
+          <IconInfo size="xs" />
+        </Tooltip>
+        {t('What are queries?')}
+      </InfoWrapper>
+    </QueryFooterWrapper>
   );
 }
 
@@ -263,4 +360,25 @@ const AggregationSelect = styled(CompactSelect)`
 const SearchBarWrapper = styled('div')`
   flex: 1;
   min-width: 200px;
+`;
+
+const QueryLabel = styled('code')`
+  padding-left: 0;
+  max-width: 350px;
+  ${p => p.theme.overflowEllipsis}
+`;
+
+const InfoWrapper = styled('div')`
+  display: flex;
+  align-items: center;
+  gap: ${space(0.5)};
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  color: ${p => p.theme.subText};
+`;
+
+const QueryFooterWrapper = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  min-width: 250px;
 `;
