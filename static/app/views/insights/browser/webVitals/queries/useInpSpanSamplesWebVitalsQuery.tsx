@@ -1,10 +1,10 @@
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
-import {BrowserType} from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
 import {
   DEFAULT_INDEXED_INTERACTION_SORT,
   type InteractionSpanSampleRowWithScore,
   SORTABLE_INDEXED_INTERACTION_FIELDS,
 } from 'sentry/views/insights/browser/webVitals/types';
+import {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
 import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanIndexedField} from 'sentry/views/insights/types';
