@@ -71,7 +71,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     'issue.id': 9999,
     project: project.slug,
     'project.name': project.name,
-    title: 'someTitle',
+    title: 'WorkerLostError: ', // The code handles the colon and extra space in the title
     id: '12345',
     transaction: 'foo',
     'event.type': event.type,
@@ -231,6 +231,31 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     );
   });
 
+  it('trace-related: check title, subtitle for error event', async () => {
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: emptyBody,
+      match: [MockApiClient.matchQuery({dataset: 'issuePlatform', project: -1})],
+    });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/events/`,
+      body: {data: [secondError]},
+      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
+    });
+    // Used to determine the project badge
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [],
+    });
+
+    render(<TraceTimeLineOrRelatedIssue event={event} />, {organization});
+
+    // Check title, subtitle and message of error event
+    expect(await screen.findByText('someTitle')).toBeInTheDocument();
+    expect(await screen.findByText('foo')).toBeInTheDocument();
+    expect(await screen.findByText('Message of the second issue')).toBeInTheDocument();
+  });
+
   it('skips the timeline and shows NO related issues (only 1 issue)', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -287,9 +312,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     });
 
     render(<TraceTimeLineOrRelatedIssue event={event} />, {
-      organization: OrganizationFixture({
-        features: [],
-      }),
+      organization: OrganizationFixture({features: []}), // No global-views feature
     });
     expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
   });
