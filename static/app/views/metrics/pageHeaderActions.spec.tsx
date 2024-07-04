@@ -29,7 +29,10 @@ describe('Metrics Page Header Actions', function () {
         <PageHeaderActions showAddMetricButton addCustomMetric={() => jest.fn()} />,
         {
           organization: OrganizationFixture({
-            features: ['custom-metrics-extraction-rule'],
+            features: [
+              'custom-metrics-extraction-rule',
+              'custom-metrics-extraction-rule-ui',
+            ],
           }),
         }
       );
