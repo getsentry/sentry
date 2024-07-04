@@ -93,7 +93,10 @@ class ResultsHeader extends Component<Props, State> {
     const {api, organization} = this.props;
     this.setState({loading: true});
     fetchHomepageQuery(api, organization.slug).then(homepageQuery => {
-      this.setState({homepageQuery, loading: false});
+      this.setState({
+        homepageQuery: getSavedQueryWithDataset(homepageQuery),
+        loading: false,
+      });
     });
   }
 

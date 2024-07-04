@@ -648,12 +648,12 @@ describe('Results', function () {
 
       expect(screen.getByRole('link', {name: 'timestamp'})).toHaveAttribute(
         'href',
-        'undefined?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&queryDataset=discover&sort=-timestamp&statsPeriod=24h&topEvents=5'
+        'undefined?dataset=discover&field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-timestamp&statsPeriod=24h&topEvents=5'
       );
 
       expect(screen.getByRole('link', {name: 'project'})).toHaveAttribute(
         'href',
-        'undefined?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&queryDataset=discover&sort=-project&statsPeriod=24h&topEvents=5'
+        'undefined?dataset=discover&field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-project&statsPeriod=24h&topEvents=5'
       );
 
       // NOTE: This uses a legacy redirect for project event to the issue group event link
@@ -664,12 +664,12 @@ describe('Results', function () {
 
       expect(screen.getByRole('link', {name: 'user.display'})).toHaveAttribute(
         'href',
-        'undefined?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&queryDataset=discover&sort=user.display&statsPeriod=24h&topEvents=5'
+        'undefined?dataset=discover&field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=user.display&statsPeriod=24h&topEvents=5'
       );
 
       expect(screen.getByRole('link', {name: 'title'})).toHaveAttribute(
         'href',
-        'undefined?field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&queryDataset=discover&sort=-title&statsPeriod=24h&topEvents=5'
+        'undefined?dataset=discover&field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&query=&sort=-title&statsPeriod=24h&topEvents=5'
       );
     });
 
@@ -714,7 +714,7 @@ describe('Results', function () {
 
       expect(screen.getByRole('link', {name: 'timestamp'})).toHaveAttribute(
         'href',
-        'undefined?environment=production&field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&project=2&query=&queryDataset=discover&sort=-timestamp&statsPeriod=7d&topEvents=5'
+        'undefined?dataset=discover&environment=production&field=title&field=event.type&field=project&field=user.display&field=timestamp&id=1&name=new&project=2&query=&sort=-timestamp&statsPeriod=7d&topEvents=5'
       );
     });
 
