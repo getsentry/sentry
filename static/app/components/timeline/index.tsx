@@ -1,4 +1,5 @@
 import {type CSSProperties, useRef} from 'react';
+import {forwardRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -32,18 +33,21 @@ export interface TimelineItemProps {
   style?: CSSProperties;
 }
 
-export function Item({
-  title,
-  children,
-  icon,
-  timeString,
-  colorConfig = {primary: 'gray300', secondary: 'gray200'},
-  startTimeString,
-  renderTimestamp,
-  isActive = false,
-  style,
-  ...props
-}: TimelineItemProps) {
+export const Item = forwardRef(function _Item(
+  {
+    title,
+    children,
+    icon,
+    timeString,
+    colorConfig = {primary: 'gray300', secondary: 'gray200'},
+    startTimeString,
+    renderTimestamp,
+    isActive = false,
+    style,
+    ...props
+  }: TimelineItemProps,
+  ref: React.ForwardedRef<HTMLDivElement>
+) {
   const theme = useTheme();
   const placeholderTime = useRef(new Date().toTimeString()).current;
   const {primary, secondary} = colorConfig;
@@ -63,6 +67,7 @@ export function Item({
         borderBottom: `1px solid ${isActive ? theme[secondary] : 'transparent'}`,
         ...style,
       }}
+      ref={ref}
       {...props}
     >
       <IconWrapper
@@ -91,29 +96,7 @@ export function Item({
       </Content>
     </Row>
   );
-}
-
-interface GroupProps {
-  children: React.ReactNode;
-}
-
-export function Container({children}: GroupProps) {
-  return <Wrapper>{children}</Wrapper>;
-}
-
-const Wrapper = styled('div')`
-  position: relative;
-  /* vertical line connecting items */
-  &::before {
-    content: '';
-    position: absolute;
-    left: 10.5px;
-    width: 1px;
-    top: 0;
-    bottom: 0;
-    background: ${p => p.theme.border};
-  }
-`;
+});
 
 const Row = styled('div')`
   position: relative;
@@ -192,6 +175,20 @@ export const Data = styled('div')`
   position: relative;
   &:only-child {
     margin-top: 0;
+  }
+`;
+
+export const Container = styled('div')`
+  position: relative;
+  /* vertical line connecting items */
+  &::before {
+    content: '';
+    position: absolute;
+    left: 10.5px;
+    width: 1px;
+    top: 0;
+    bottom: 0;
+    background: ${p => p.theme.border};
   }
 `;
 

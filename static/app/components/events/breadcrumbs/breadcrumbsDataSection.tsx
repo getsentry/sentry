@@ -115,6 +115,8 @@ export default function BreadcrumbsDataSection({
     </ButtonBar>
   );
 
+  const hasViewAll = summaryCrumbs.length !== enhancedCrumbs.length;
+
   return (
     <EventDataSection
       key="breadcrumbs"
@@ -127,8 +129,10 @@ export default function BreadcrumbsDataSection({
         <BreadcrumbsTimeline
           breadcrumbs={summaryCrumbs}
           startTimeString={startTimeString}
+          // We want the timeline to appear connected to the 'View All' button
+          showLastLine={hasViewAll}
         />
-        {summaryCrumbs.length !== enhancedCrumbs.length && (
+        {hasViewAll && (
           <ViewAllContainer>
             <VerticalEllipsis />
             <div>
