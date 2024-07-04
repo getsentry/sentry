@@ -48,12 +48,13 @@ export function WidgetDetails() {
     return <MetricDetails onRowHover={handleSampleRowHover} focusArea={focusArea} />;
   }
 
-  const {mri, aggregation, query, focusedSeries} = selectedWidget;
+  const {mri, aggregation, query, condition, focusedSeries} = selectedWidget;
 
   return (
     <MetricDetails
       mri={mri}
       aggregation={aggregation}
+      condition={condition}
       query={query}
       focusedSeries={focusedSeries}
       onRowHover={handleSampleRowHover}
@@ -66,6 +67,7 @@ export function WidgetDetails() {
 
 interface MetricDetailsProps {
   aggregation?: MetricAggregation;
+  condition?: number;
   focusArea?: FocusAreaProps;
   focusedSeries?: FocusedMetricsSeries[];
   hasPerformanceMetrics?: boolean;
@@ -80,6 +82,7 @@ interface MetricDetailsProps {
 export function MetricDetails({
   mri,
   aggregation,
+  condition,
   query,
   focusedSeries,
   onRowHover,
@@ -118,7 +121,7 @@ export function MetricDetails({
             min: selectionRange?.min,
             op: aggregation,
             query: queryWithFocusedSeries,
-            mri,
+            mri: mri,
           }
         : undefined,
     query: {
@@ -152,6 +155,7 @@ export function MetricDetails({
               mri={mri}
               onRowHover={onRowHover}
               aggregation={aggregation}
+              condition={condition}
               query={queryWithFocusedSeries}
               setMetricsSamples={setMetricsSamples}
               hasPerformance={hasPerformanceMetrics}
@@ -162,6 +166,7 @@ export function MetricDetails({
               mri={mri}
               onRowHover={onRowHover}
               aggregation={aggregation}
+              condition={condition}
               query={queryWithFocusedSeries}
               setMetricsSamples={setMetricsSamples}
               hasPerformance={hasPerformanceMetrics}
