@@ -93,7 +93,6 @@ type State = {
   showTags: boolean;
   tips: string[];
   totalValues: null | number;
-  loadingForcedDataset?: boolean;
   savedQuery?: SavedQuery;
   savedQueryDataset?: SavedQueryDatasets;
   showForcedDatasetAlert?: boolean;
@@ -146,7 +145,6 @@ export class Results extends Component<Props, State> {
     showTags: readShowTagsState(),
     needConfirmation: false,
     confirmedQuery: false,
-    loadingForcedDataset: false,
     tips: [],
   };
 
