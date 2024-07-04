@@ -82,7 +82,11 @@ class ResultsHeader extends Component<Props, State> {
       this.setState({loading: true});
       fetchSavedQuery(api, organization.slug, eventView.id).then(savedQuery => {
         this.setState({
-          savedQuery: getSavedQueryWithDataset(savedQuery),
+          savedQuery: organization.features.includes(
+            'performance-discover-dataset-selector'
+          )
+            ? getSavedQueryWithDataset(savedQuery)
+            : savedQuery,
           loading: false,
         });
       });
@@ -94,7 +98,11 @@ class ResultsHeader extends Component<Props, State> {
     this.setState({loading: true});
     fetchHomepageQuery(api, organization.slug).then(homepageQuery => {
       this.setState({
-        homepageQuery: getSavedQueryWithDataset(homepageQuery),
+        homepageQuery: organization.features.includes(
+          'performance-discover-dataset-selector'
+        )
+          ? getSavedQueryWithDataset(homepageQuery)
+          : homepageQuery,
         loading: false,
       });
     });

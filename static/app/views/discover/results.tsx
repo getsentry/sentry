@@ -832,9 +832,13 @@ class SavedQueryAPI extends DeprecatedAsyncComponent<Props, SavedQueryState> {
   };
 
   renderBody(): React.ReactNode {
+    const {organization} = this.props;
     const {savedQuery, loading} = this.state;
     let savedQueryWithDataset = savedQuery;
-    if (savedQuery) {
+    if (
+      organization.features.includes('performance-discover-dataset-selector') &&
+      savedQuery
+    ) {
       savedQueryWithDataset = getSavedQueryWithDataset(savedQuery);
     }
     return (
