@@ -149,6 +149,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
       events.push({
         id: event.id,
         culprit: event.culprit,
+        'error.value': event['errors.value'] ?? [],
         'issue.id': Number(event.groupID),
         message: event.message,
         project: event.projectID,
