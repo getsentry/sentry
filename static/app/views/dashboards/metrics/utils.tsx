@@ -2,7 +2,8 @@ import {useMemo} from 'react';
 
 import {getEquationSymbol} from 'sentry/components/metrics/equationSymbol';
 import {getQuerySymbol} from 'sentry/components/metrics/querySymbol';
-import {unescapeMetricsFormula} from 'sentry/utils/metrics';
+import type {MetricAggregation, MRI} from 'sentry/types/metrics';
+import {isExtractedCustomMetric, unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {NO_QUERY_ID} from 'sentry/utils/metrics/constants';
 import {formatMRIField, MRIToField, parseField} from 'sentry/utils/metrics/mri';
 import {MetricDisplayType, MetricExpressionType} from 'sentry/utils/metrics/types';
@@ -80,7 +81,15 @@ function fillMissingExpressionIds(
 
 export function getMetricQueries(
   widget: Widget,
-  dashboardFilters?: DashboardFilters
+  dashboardFilters: DashboardFilters | undefined,
+  getVirtualMRIQuery: (
+    mri: MRI,
+    aggregation: MetricAggregation
+  ) => {
+    aggregation: MetricAggregation;
+    conditionId: number;
+    mri: MRI;
+  } | null
 ): DashboardMetricsQuery[] {
   const usedIds = new Set<number>();
   const indizesWithoutId: number[] = [];
@@ -102,12 +111,25 @@ export function getMetricQueries(
       return null;
     }
 
+    let mri = parsed.mri;
+    let condition: number | undefined = undefined;
+    let aggregation = parsed.aggregation;
+    if (isExtractedCustomMetric({mri})) {
+      const resolved = getVirtualMRIQuery(mri, aggregation);
+      if (resolved) {
+        aggregation = resolved.aggregation;
+        mri = resolved.mri;
+        condition = resolved.conditionId;
+      }
+    }
+
     const orderBy = query.orderby ? query.orderby : undefined;
     return {
       id: id,
       type: MetricExpressionType.QUERY,
-      mri: parsed.mri,
-      aggregation: parsed.aggregation,
+      condition: condition,
+      mri: mri,
+      aggregation: aggregation,
       query: extendQuery(query.conditions, dashboardFilters),
       groupBy: query.columns,
       orderBy: orderBy === 'asc' || orderBy === 'desc' ? orderBy : undefined,
@@ -155,9 +177,20 @@ export function getMetricEquations(widget: Widget): DashboardMetricsEquation[] {
 
 export function getMetricExpressions(
   widget: Widget,
-  dashboardFilters?: DashboardFilters
+  dashboardFilters: DashboardFilters | undefined,
+  getVirtualMRIQuery: (
+    mri: MRI,
+    aggregation: MetricAggregation
+  ) => {
+    aggregation: MetricAggregation;
+    conditionId: number;
+    mri: MRI;
+  } | null
 ): DashboardMetricsExpression[] {
-  return [...getMetricQueries(widget, dashboardFilters), ...getMetricEquations(widget)];
+  return [
+    ...getMetricQueries(widget, dashboardFilters, getVirtualMRIQuery),
+    ...getMetricEquations(widget),
+  ];
 }
 
 export function useGenerateExpressionId(expressions: DashboardMetricsExpression[]) {

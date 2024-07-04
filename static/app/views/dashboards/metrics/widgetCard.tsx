@@ -15,6 +15,7 @@ import type {Organization} from 'sentry/types/organization';
 import {parseMRI} from 'sentry/utils/metrics/mri';
 import {MetricExpressionType} from 'sentry/utils/metrics/types';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
+import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import {MetricBigNumberContainer} from 'sentry/views/dashboards/metrics/bigNumber';
 import {MetricChartContainer} from 'sentry/views/dashboards/metrics/chart';
 import {MetricTableContainer} from 'sentry/views/dashboards/metrics/table';
@@ -64,18 +65,23 @@ export function MetricWidgetCard({
   renderErrorMessage,
   showContextMenu = true,
 }: Props) {
+  const {getVirtualMRIQuery} = useVirtualMetricsContext();
+
   const metricQueries = useMemo(
-    () => expressionsToApiQueries(getMetricExpressions(widget, dashboardFilters)),
-    [widget, dashboardFilters]
+    () =>
+      expressionsToApiQueries(
+        getMetricExpressions(widget, dashboardFilters, getVirtualMRIQuery)
+      ),
+    [widget, dashboardFilters, getVirtualMRIQuery]
   );
   const hasSetMetric = useMemo(
     () =>
-      getMetricExpressions(widget, dashboardFilters).some(
+      getMetricExpressions(widget, dashboardFilters, getVirtualMRIQuery).some(
         expression =>
           expression.type === MetricExpressionType.QUERY &&
           parseMRI(expression.mri)!.type === 's'
       ),
-    [widget, dashboardFilters]
+    [widget, dashboardFilters, getVirtualMRIQuery]
   );
 
   const widgetMQL = useMemo(() => getWidgetTitle(metricQueries), [metricQueries]);

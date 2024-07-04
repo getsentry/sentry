@@ -8,7 +8,7 @@ import type {
   MetricType,
   MRI,
 } from 'sentry/types/metrics';
-import {DEFAULT_MRI} from 'sentry/utils/metrics/mri';
+import {DEFAULT_MRI, parseMRI} from 'sentry/utils/metrics/mri';
 import type {MetricTag} from 'sentry/utils/metrics/types';
 import {useApiQueries} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -23,6 +23,14 @@ const Context = createContext<{
   getConditions: (mri: MRI) => MetricsExtractionCondition[];
   getTags: (mri: MRI) => MetricTag[];
   getVirtualMRI: (mri: MRI) => MRI | null;
+  getVirtualMRIQuery: (
+    mri: MRI,
+    aggregation: MetricAggregation
+  ) => {
+    aggregation: MetricAggregation;
+    conditionId: number;
+    mri: MRI;
+  } | null;
   getVirtualMeta: (mri: MRI) => MetricMeta;
   isLoading: boolean;
   resolveVirtualMRI: (
@@ -38,6 +46,7 @@ const Context = createContext<{
   },
   getConditions: () => [],
   getTags: () => [],
+  getVirtualMRIQuery: () => null,
   resolveVirtualMRI: (mri, _, aggregation) => ({mri, aggregation}),
   virtualMeta: [],
   isLoading: false,
@@ -200,6 +209,39 @@ export function VirtualMetricsContextProvider({children}: Props) {
     [virtualMRIToRuleMap]
   );
 
+  const getVirtualMRIQuery = useCallback(
+    (
+      mri: MRI,
+      aggregation: MetricAggregation
+    ): {
+      aggregation: MetricAggregation;
+      conditionId: number;
+      mri: MRI;
+    } | null => {
+      const virtualMRI = getVirtualMRI(mri);
+      if (!virtualMRI) {
+        return null;
+      }
+
+      const rule = virtualMRIToRuleMap.get(virtualMRI);
+      if (!rule) {
+        return null;
+      }
+
+      const condition = rule.conditions.find(c => c.mris.includes(mri));
+      if (!condition) {
+        return null;
+      }
+
+      return {
+        mri: virtualMRI,
+        conditionId: condition.id,
+        aggregation: parseMRI(mri).type === 'c' ? 'count' : aggregation,
+      };
+    },
+    [getVirtualMRI, virtualMRIToRuleMap]
+  );
+
   const virtualMeta = useMemo(
     () => Array.from(virtualMRIToRuleMap.keys()).map(getVirtualMeta),
     [getVirtualMeta, virtualMRIToRuleMap]
@@ -211,6 +253,7 @@ export function VirtualMetricsContextProvider({children}: Props) {
       getVirtualMeta,
       getConditions,
       getTags,
+      getVirtualMRIQuery,
       resolveVirtualMRI,
       virtualMeta,
       isLoading,
@@ -220,6 +263,7 @@ export function VirtualMetricsContextProvider({children}: Props) {
       getVirtualMeta,
       getConditions,
       getTags,
+      getVirtualMRIQuery,
       resolveVirtualMRI,
       virtualMeta,
       isLoading,

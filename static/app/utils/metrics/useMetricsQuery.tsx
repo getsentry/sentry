@@ -185,6 +185,7 @@ export function useMetricsQuery(
           return query;
         }
         const {type} = parseMRI(query.mri);
+
         if (type !== 'v' || !query.condition) {
           return query;
         }
