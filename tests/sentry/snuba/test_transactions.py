@@ -71,14 +71,21 @@ class TransactionQueryIntegrationTest(SnubaTestCase, TestCase):
         assert len(data) == 1
         assert data[0] == {"transaction": "a" * 32}
 
-    def test_error_query(self):
-        with pytest.raises(InvalidSearchQuery):
-            transactions.query(
-                selected_columns=["id"],
-                query="event.type:error",
-                params=self.params,
-                referrer="test_transactions_query",
-            )
+    def test_error_event_type_query(self):
+        results = transactions.query(
+            selected_columns=["count()", "any(transaction)", "any(user.id)"],
+            query="event.type:error",
+            params={
+                "start": before_now(minutes=5),
+                "end": before_now(seconds=1),
+                "project_id": [self.project.id],
+            },
+            referrer="discover",
+            use_aggregate_conditions=True,
+        )
+
+        data = results["data"]
+        assert data[0]["count"] == 0
 
     def test_any_function(self):
         results = transactions.query(
