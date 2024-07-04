@@ -26,6 +26,7 @@ RELAY_OPTIONS: list[str] = [
     "relay.span-extraction.sample-rate",
     "relay.force_full_normalization",
     "relay.disable_normalization.processing",
+    "relay.compute-metrics-summaries.sample-rate",
 ]
 
 
