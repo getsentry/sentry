@@ -1099,6 +1099,11 @@ register("relay.force_full_normalization", default=False, flags=FLAG_AUTOMATOR_M
 # Controls whether processing relays should skip normalization.
 register("relay.disable_normalization.processing", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
+# Controls the sample rate of metrics summaries computation in Relay.
+register(
+    "relay.compute-metrics-summaries.sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
+)
+
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
