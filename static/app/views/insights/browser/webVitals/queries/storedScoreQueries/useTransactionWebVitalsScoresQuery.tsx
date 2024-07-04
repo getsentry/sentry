@@ -42,6 +42,14 @@ export const useTransactionWebVitalsScoresQuery = ({
   const shouldUseStaticWeights = useStaticWeightsSetting();
 
   const sort = useWebVitalsSort({sortName, defaultSort});
+  if (sort !== undefined && shouldUseStaticWeights) {
+    if (sort.field === 'avg(measurements.score.total)') {
+      sort.field = 'performance_score(measurements.score.total)';
+    }
+    if (sort.field === 'opportunity_score(measurements.score.total)') {
+      sort.field = 'total_opportunity_score()';
+    }
+  }
 
   const search = new MutableSearch([
     'avg(measurements.score.total):>=0',
