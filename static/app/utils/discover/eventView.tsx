@@ -43,6 +43,7 @@ import {
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import {getSavedQueryDatasetFromLocationOrDataset} from 'sentry/views/discover/savedQuery/utils';
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {decodeColumnOrder} from 'sentry/views/discover/utils';
@@ -596,6 +597,13 @@ class EventView {
       // if query is an empty string, then it cannot be saved, so we omit it
       // from the payload
       delete newQuery.query;
+    }
+
+    if (this.dataset) {
+      newQuery.queryDataset = getSavedQueryDatasetFromLocationOrDataset(
+        undefined,
+        this.dataset
+      );
     }
 
     return newQuery;

@@ -1547,6 +1547,14 @@ describe('Results', function () {
       expect(
         screen.getByRole('button', {name: 'Dataset Transactions'})
       ).toBeInTheDocument();
+
+      expect(
+        screen.getByText(
+          "We're splitting our datasets up to make it a bit easier to digest. We defaulted this query to Transactions. Edit as you see fit."
+        )
+      ).toBeInTheDocument();
+
+      expect(screen.queryByText('Save Changes')).not.toBeInTheDocument();
     });
   });
 });

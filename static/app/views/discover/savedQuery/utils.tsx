@@ -252,11 +252,11 @@ export function displayModeToDisplayType(displayMode: DisplayModes): DisplayType
 }
 
 export function getSavedQueryDataset(
-  location: Location,
+  location: Location | undefined,
   savedQuery: SavedQuery | undefined,
   splitDecision?: SavedQueryDatasets
 ): SavedQueryDatasets {
-  const dataset = decodeScalar(location.query[DATASET_PARAM]);
+  const dataset = decodeScalar(location?.query?.[DATASET_PARAM]);
   if (dataset) {
     return dataset as SavedQueryDatasets;
   }
@@ -264,6 +264,16 @@ export function getSavedQueryDataset(
     return splitDecision;
   }
   return (savedQuery?.queryDataset ?? SavedQueryDatasets.DISCOVER) as SavedQueryDatasets;
+}
+
+export function getSavedQueryWithDataset(savedQuery: SavedQuery): SavedQuery {
+  return {
+    ...savedQuery,
+    dataset: getDatasetFromLocationOrSavedQueryDataset(
+      undefined,
+      savedQuery?.queryDataset
+    ),
+  } as SavedQuery;
 }
 
 export function getDatasetFromLocationOrSavedQueryDataset(
@@ -287,12 +297,23 @@ export function getDatasetFromLocationOrSavedQueryDataset(
   }
 }
 
-export function getSavedQueryWithDataset(savedQuery: SavedQuery): SavedQuery {
-  return {
-    ...savedQuery,
-    dataset: getDatasetFromLocationOrSavedQueryDataset(
-      undefined,
-      savedQuery?.queryDataset
-    ),
-  } as SavedQuery;
+export function getSavedQueryDatasetFromLocationOrDataset(
+  location: Location | undefined,
+  dataset: DiscoverDatasets | undefined
+): SavedQueryDatasets | undefined {
+  const savedQueryDataset = decodeScalar(location?.query?.queryDataset);
+  if (savedQueryDataset) {
+    return savedQueryDataset as SavedQueryDatasets;
+  }
+  const discoverDataset = decodeScalar(location?.query?.dataset) ?? dataset;
+  switch (discoverDataset) {
+    case DiscoverDatasets.ERRORS:
+      return SavedQueryDatasets.ERRORS;
+    case DiscoverDatasets.TRANSACTIONS:
+      return SavedQueryDatasets.TRANSACTIONS;
+    case DiscoverDatasets.DISCOVER:
+      return SavedQueryDatasets.DISCOVER;
+    default:
+      return undefined;
+  }
 }
