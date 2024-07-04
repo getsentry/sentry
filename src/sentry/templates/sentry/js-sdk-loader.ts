@@ -188,7 +188,7 @@ declare const __LOADER__IS_LAZY__: any;
     const __sentry = _window.__SENTRY__;
 
     // If this is set, it means a v8 SDK is already loaded
-    const version = __sentry.version;
+    const version = typeof __sentry !== 'undefined' && __sentry.version;
     if (version) {
       return !!__sentry[version];
     }

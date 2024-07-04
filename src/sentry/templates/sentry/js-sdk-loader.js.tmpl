@@ -136,7 +136,7 @@
     function sdkIsLoaded() {
         var __sentry = _window.__SENTRY__;
         // If this is set, it means a v8 SDK is already loaded
-        var version = __sentry.version;
+        var version = typeof __sentry !== 'undefined' && __sentry.version;
         if (version) {
             return !!__sentry[version];
         }
