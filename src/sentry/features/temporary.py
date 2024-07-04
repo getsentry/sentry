@@ -142,8 +142,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:issue-details-autofix-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enables a toggle for entering the new issue details UI
     manager.add("organizations:issue-details-new-experience-toggle", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable tag improvements in the issue details page
-    manager.add("organizations:issue-details-tag-improvements", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Whether to allow issue only search on the issue list
     manager.add("organizations:issue-search-allow-postgres-only-search", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Whether to make a side/parallel query against events -> group_attributes when searching issues
