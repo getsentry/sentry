@@ -32,6 +32,7 @@ import {useTransactionWebVitalsScoresQuery} from 'sentry/views/insights/browser/
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {RowWithScoreAndOpportunity} from 'sentry/views/insights/browser/webVitals/types';
 import {SORTABLE_FIELDS} from 'sentry/views/insights/browser/webVitals/types';
+import {useStaticWeightsSetting} from 'sentry/views/insights/browser/webVitals/utils/useStaticWeightsSetting';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -64,6 +65,7 @@ export function PagePerformanceTable() {
   const location = useLocation();
   const organization = useOrganization();
   const {projects} = useProjects();
+  const shouldUseStaticWeights = useStaticWeightsSetting();
 
   const columnOrder = COLUMN_ORDER;
 
@@ -96,7 +98,8 @@ export function PagePerformanceTable() {
   const tableData: RowWithScoreAndOpportunity[] = data.map(row => ({
     ...row,
     opportunity:
-      (((row as RowWithScoreAndOpportunity).opportunity ?? 0) * 100) / scoreCount,
+      (((row as RowWithScoreAndOpportunity).opportunity ?? 0) * 100) /
+      (shouldUseStaticWeights ? 1 : scoreCount), // static weight keys are already normalized
   }));
   const getFormattedDuration = (value: number) => {
     return getDuration(value, value < 1 ? 0 : 2, true);
