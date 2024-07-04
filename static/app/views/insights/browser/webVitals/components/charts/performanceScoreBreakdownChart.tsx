@@ -10,11 +10,12 @@ import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/p
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {
-  type UnweightedWebVitalsScoreBreakdown,
   useProjectWebVitalsScoresTimeseriesQuery,
   type WebVitalsScoreBreakdown,
 } from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
+import {applyStaticWeightsToTimeseries} from 'sentry/views/insights/browser/webVitals/utils/applyStaticWeightsToTimeseries';
 import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
+import {useStaticWeightsSetting} from 'sentry/views/insights/browser/webVitals/utils/useStaticWeightsSetting';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 
 type Props = {
@@ -62,24 +63,27 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
   const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
   const chartSeriesOrder = ORDER;
 
+  const shouldUseStaticWeights = useStaticWeightsSetting();
+
+  const weightedTimeseriesData = shouldUseStaticWeights
+    ? applyStaticWeightsToTimeseries(timeseriesData)
+    : timeseriesData;
+
   const weightedTimeseries = formatTimeSeriesResultsToChartData(
-    timeseriesData,
+    weightedTimeseriesData,
     segmentColors,
     false,
     chartSeriesOrder
   );
 
-  const storedScores = timeseriesData as WebVitalsScoreBreakdown &
-    UnweightedWebVitalsScoreBreakdown;
-
   const unweightedTimeseries = formatTimeSeriesResultsToChartData(
     {
-      lcp: storedScores.unweightedLcp,
-      fcp: storedScores.unweightedFcp,
-      cls: storedScores.unweightedCls,
-      ttfb: storedScores.unweightedTtfb,
-      inp: storedScores.unweightedInp,
-      total: storedScores.total,
+      lcp: timeseriesData.unweightedLcp,
+      fcp: timeseriesData.unweightedFcp,
+      cls: timeseriesData.unweightedCls,
+      ttfb: timeseriesData.unweightedTtfb,
+      inp: timeseriesData.unweightedInp,
+      total: timeseriesData.total,
     },
     segmentColors,
     false,
@@ -87,8 +91,9 @@ export function PerformanceScoreBreakdownChart({transaction}: Props) {
   );
 
   const weightsSeries = weightedTimeseries[0].data.map(({name}) => {
-    const value =
-      projectScore !== undefined
+    const value = shouldUseStaticWeights
+      ? PERFORMANCE_SCORE_WEIGHTS
+      : projectScore !== undefined
         ? {
             lcp: projectScore.lcpWeight,
             fcp: projectScore.fcpWeight,
