@@ -28,7 +28,11 @@ class VstsExtensionConfigurationView(IntegrationExtensionConfigurationView):
         return bool(re.match(pattern, account_name))
 
     def map_params_to_state(self, params):
+        for param in ["targetId", "targetName"]:
+            if param not in params:
+                raise ValueError(f"Missing required {param} parameter")
+
         if not self._is_valid_account_name(params["targetName"]):
-            raise ValueError("Invalid targetName")
+            raise ValueError("Invalid targetName parameter")
 
         return {"accountId": params["targetId"], "accountName": params["targetName"]}
