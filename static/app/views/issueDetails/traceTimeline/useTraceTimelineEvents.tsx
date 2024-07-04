@@ -18,6 +18,7 @@ interface BaseEvent {
 }
 
 interface TimelineDiscoverEvent extends BaseEvent {
+  culprit: string; // Used for default events
   'event.type': string;
   'stack.function': string[];
 }
@@ -98,6 +99,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
             'transaction',
             'event.type',
             'stack.function',
+            'culprit', // Used for default events
           ],
           per_page: 100,
           query: `trace:${traceId}`,

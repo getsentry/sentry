@@ -10,7 +10,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 
-import type {TimelineEvent} from './useTraceTimelineEvents';
+import type {TimelineDiscoverEvent, TimelineEvent} from './useTraceTimelineEvents';
 
 interface TraceIssueEventProps {
   event: TimelineEvent;
@@ -60,7 +60,9 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
         <TraceIssueDetailsContainer>
           <NoOverflowDiv>
             <TraceIssueEventTitle>{title}</TraceIssueEventTitle>
-            <TraceIssueEventSubtitle>{subtitle}</TraceIssueEventSubtitle>
+            <TraceIssueEventSubtitle data-test-id="subtitle-span">
+              {subtitle}
+            </TraceIssueEventSubtitle>
           </NoOverflowDiv>
           <NoOverflowDiv>{message}</NoOverflowDiv>
         </TraceIssueDetailsContainer>
@@ -81,7 +83,7 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
 function getTitleSubtitleMessage(event: TimelineEvent) {
   let title;
   // XXX: This is not fully correct but it will make following PRs easier to review
-  const subtitle = event.transaction;
+  let subtitle = event.transaction;
   let message = event.message;
   try {
     title = event.title.trimEnd();
@@ -89,6 +91,12 @@ function getTitleSubtitleMessage(event: TimelineEvent) {
       if (title[title.length - 1] !== ':') {
         title = event.title.split(':')[0];
       }
+    } else if (event['event.type'] === 'default') {
+      // https://github.com/getsentry/sentry/blob/f08644a004f9980d48f93dec2d7cfc9eeecd9a9e/static/app/utils/events.tsx#L179-L184
+      subtitle = '';
+      // https://github.com/getsentry/sentry/blob/f08644a004f9980d48f93dec2d7cfc9eeecd9a9e/static/app/utils/events.tsx#L59-L60
+      const errorEvent = event as TimelineDiscoverEvent;
+      message = errorEvent.culprit || '';
     } else {
       // It is suspected that this value is calculated somewhere in Relay
       // and we deconstruct it here to match what the Issue details page shows
