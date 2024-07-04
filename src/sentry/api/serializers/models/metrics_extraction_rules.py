@@ -30,6 +30,7 @@ class SpanAttributeExtractionRuleConfigSerializer(Serializer):
             "unit": obj.unit,
             "tags": list(obj.tags),
             "conditions": self._serialize_conditions(obj),
+            "projectId": obj.project_id,
         }
 
     def _serialize_conditions(self, obj: SpanAttributeExtractionRuleConfig) -> list[dict[str, Any]]:
