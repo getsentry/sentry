@@ -8,7 +8,7 @@ import traceback
 from collections.abc import Generator, Mapping, MutableMapping
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Literal, overload
+from typing import Any, Literal, cast, overload
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -38,7 +38,7 @@ from sentry.organizations.services.organization import (
     organization_service,
 )
 from sentry.search.events.constants import TIMEOUT_ERROR_MESSAGE
-from sentry.search.events.types import ParamsType
+from sentry.search.events.types import ParamsType, SnubaParams
 from sentry.search.utils import InvalidQuery, parse_datetime_string
 from sentry.silo.base import SiloMode
 from sentry.types.region import get_local_region
@@ -468,7 +468,7 @@ def handle_query_errors() -> Generator[None, None, None]:
 
 def update_snuba_params_with_timestamp(
     request: HttpRequest,
-    params: MutableMapping[str, Any] | ParamsType,
+    params: MutableMapping[str, Any] | SnubaParams | ParamsType,
     timestamp_key: str = "timestamp",
 ) -> None:
     """In some views we only want to query snuba data around a single event or trace. In these cases the frontend can
@@ -476,7 +476,11 @@ def update_snuba_params_with_timestamp(
     faster than the default 7d or 14d queries"""
     # during the transition this is optional but it will become required for the trace view
     sentry_sdk.set_tag("trace_view.used_timestamp", timestamp_key in request.GET)
-    if timestamp_key in request.GET and "start" in params and "end" in params:
+    if isinstance(params, SnubaParams):
+        has_dates = params.start is not None and params.end is not None
+    else:
+        has_dates = "start" in params and "end" in params
+    if timestamp_key in request.GET and has_dates:
         example_timestamp = parse_datetime_string(request.GET[timestamp_key])
         # While possible, the majority of traces shouldn't take more than a week
         # Starting with 3d for now, but potentially something we can increase if this becomes a problem
@@ -486,5 +490,13 @@ def update_snuba_params_with_timestamp(
         example_end = example_timestamp + timedelta(days=time_buffer)
         # If timestamp is being passed it should always overwrite the statsperiod or start & end
         # the client should just not pass a timestamp if we need to overwrite this logic for any reason
-        params["start"] = max(params["start"], example_start)
-        params["end"] = min(params["end"], example_end)
+        if isinstance(params, SnubaParams):
+            # Typing gets mad that start is optional still but has_dates has checked it
+            params.start = cast(datetime.datetime, params.start)
+            params.end = cast(datetime.datetime, params.end)
+
+            params.start = max(params.start, example_start)
+            params.end = min(params.end, example_end)
+        else:
+            params["start"] = max(params["start"], example_start)
+            params["end"] = min(params["end"], example_end)
