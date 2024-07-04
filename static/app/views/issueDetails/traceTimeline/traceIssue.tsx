@@ -78,13 +78,15 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
 // At this moment, the issues endpoint is extremely slow and we
 // would need to change it to only return the metadata for the issue.
 function getTitleSubtitleMessage(event: TimelineEvent) {
-  let title = event.title;
+  let title = event.title.trimEnd();
   let message = event.message;
   // culprit is what getTitle() from utils.events uses rather than the transaction
   const subtitle = event.culprit || '';
   try {
     if (event['event.type'] === 'error') {
-      title = event.title.split(':')[0];
+      if (title[title.length - 1] !== ':') {
+        title = event.title.split(':')[0];
+      }
       message = event['error.value'][event['error.value'].length - 1];
     } else {
       // It is suspected that this value is calculated somewhere in Relay

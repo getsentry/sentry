@@ -69,7 +69,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     'stack.function': ['important.task', 'task.run'],
   };
   const secondError = {
-    title: 'WorkerLostError: ', // XXX: The colon is not being handled in the code
+    title: 'WorkerLostError: ', // The code handles the colon and extra space in the title
     culprit: 'billiard.pool in mark_as_worker_lost', // Used for subtitle
     message: 'Some other error message',
     // This is a case where the culprit is available while the transaction is not
@@ -257,8 +257,8 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     render(<TraceTimeLineOrRelatedIssue event={event} />, {organization});
 
     // Check title, subtitle and message of error event
-    // XXX: Follow up PR to handle the colon missing
-    expect(await screen.findByText('WorkerLostError')).toBeInTheDocument();
+    // Some errors have a colon in the title and we should preserve it
+    expect(await screen.findByText('WorkerLostError:')).toBeInTheDocument();
     expect(
       await screen.findByText('billiard.pool in mark_as_worker_lost')
     ).toBeInTheDocument();
