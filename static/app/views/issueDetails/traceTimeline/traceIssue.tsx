@@ -10,7 +10,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 
-import type {TimelineEvent} from './useTraceTimelineEvents';
+import type {TimelineEvent, TimelineIssuePlatformEvent} from './useTraceTimelineEvents';
 
 interface TraceIssueEventProps {
   event: TimelineEvent;
@@ -79,20 +79,24 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
 // We could also make another call to the issues endpoint  to fetch the metadata,
 // however, we currently don't support it and it is extremely slow
 function getTitleSubtitleMessage(event: TimelineEvent) {
-  let title = event.title.trimEnd();
-  let message;
+  let title;
   // culprit is what getTitle() from utils.events uses rather than the transaction
   const subtitle = event.culprit || '';
+  let message;
   try {
+    title = event.title.trimEnd();
     if (event['event.type'] === 'error') {
       if (title[title.length - 1] !== ':') {
         title = event.title.split(':')[0];
       }
       message = event['error.value'][event['error.value'].length - 1];
     } else {
+      const issuePlatformEvent = event as TimelineIssuePlatformEvent;
       // It is suspected that this value is calculated somewhere in Relay
       // and we deconstruct it here to match what the Issue details page shows
-      message = event.message.replace(event.transaction, '').replace(title, '');
+      message = issuePlatformEvent.message
+        .replace(event.transaction, '')
+        .replace(title, '');
     }
   } catch (error) {
     // If we fail, report it so we can figure it out
