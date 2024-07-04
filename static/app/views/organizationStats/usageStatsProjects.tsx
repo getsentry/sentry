@@ -252,18 +252,18 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
         onClick: () => this.handleChangeSort(SortBy.FILTERED),
       },
       {
-        key: SortBy.DISCARDED,
-        title: t('Discarded'),
-        align: 'right',
-        direction: getArrowDirection(SortBy.DISCARDED),
-        onClick: () => this.handleChangeSort(SortBy.DISCARDED),
-      },
-      {
         key: SortBy.DROPPED,
         title: t('Dropped'),
         align: 'right',
         direction: getArrowDirection(SortBy.DROPPED),
         onClick: () => this.handleChangeSort(SortBy.DROPPED),
+      },
+      {
+        key: SortBy.DISCARDED,
+        title: t('Discarded'),
+        align: 'right',
+        direction: getArrowDirection(SortBy.DISCARDED),
+        onClick: () => this.handleChangeSort(SortBy.DISCARDED),
       },
     ]
       .map(h => {

@@ -258,7 +258,7 @@ export function getFormatter({
           ];
 
           for (const subLabel of filteredSubLabels) {
-            const serieValue = subLabel.data[serie.dataIndex].value;
+            const serieValue = subLabel.data[serie.dataIndex]?.value ?? 0;
 
             if (skipZeroValuedSubLabels && serieValue === 0) {
               continue;

@@ -337,8 +337,8 @@ function chartColors(theme: Theme, dataCategory: UsageChartProps['dataCategory']
     return [
       COLOR_ERRORS,
       COLOR_FILTERED,
-      COLOR_DISCARDED,
       COLOR_DROPPED,
+      COLOR_DISCARDED,
       COLOR_PROJECTED,
     ];
   }
@@ -347,8 +347,8 @@ function chartColors(theme: Theme, dataCategory: UsageChartProps['dataCategory']
     return [
       COLOR_ATTACHMENTS,
       COLOR_FILTERED,
-      COLOR_DISCARDED,
       COLOR_DROPPED,
+      COLOR_DISCARDED,
       COLOR_PROJECTED,
     ];
   }
@@ -356,8 +356,8 @@ function chartColors(theme: Theme, dataCategory: UsageChartProps['dataCategory']
   return [
     COLOR_TRANSACTIONS,
     COLOR_FILTERED,
-    COLOR_DISCARDED,
     COLOR_DROPPED,
+    COLOR_DISCARDED,
     COLOR_PROJECTED,
   ];
 }
@@ -440,15 +440,15 @@ function UsageChartBody({
       });
     }
 
-    if (chartData.discarded && chartData.discarded.length > 0) {
-      legend.push({
-        name: SeriesTypes.DISCARDED,
-      });
-    }
-
     if (chartData.dropped.length > 0) {
       legend.push({
         name: SeriesTypes.DROPPED,
+      });
+    }
+
+    if (chartData.discarded && chartData.discarded.length > 0) {
+      legend.push({
+        name: SeriesTypes.DISCARDED,
       });
     }
 
@@ -489,15 +489,15 @@ function UsageChartBody({
       legendHoverLink: false,
     }),
     barSeries({
-      name: SeriesTypes.DISCARDED,
-      data: chartData.discarded,
-      barMinHeight: 1,
+      name: SeriesTypes.DROPPED,
+      data: chartData.dropped,
       stack: 'usage',
       legendHoverLink: false,
     }),
     barSeries({
-      name: SeriesTypes.DROPPED,
-      data: chartData.dropped,
+      name: SeriesTypes.DISCARDED,
+      data: chartData.discarded,
+      barMinHeight: 1,
       stack: 'usage',
       legendHoverLink: false,
     }),

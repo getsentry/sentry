@@ -311,14 +311,6 @@ class UsageStatsOrganization<
         ),
         score: filtered,
       },
-      discarded: {
-        title: tct('Discarded [dataCategory]', {dataCategory: dataCategoryName}),
-        help: tct(
-          'Discarded [dataCategory] were already discarded on the client side due to the sampling configuration in the SDK or other factors',
-          {dataCategory}
-        ),
-        score: discarded,
-      },
       dropped: {
         title: tct('Dropped [dataCategory]', {dataCategory: dataCategoryName}),
         help: tct(
@@ -326,6 +318,14 @@ class UsageStatsOrganization<
           {dataCategory}
         ),
         score: dropped,
+      },
+      discarded: {
+        title: tct('Discarded [dataCategory]', {dataCategory: dataCategoryName}),
+        help: tct(
+          'Discarded [dataCategory] were already discarded on the client side due to the sampling configuration in the SDK or other factors',
+          {dataCategory}
+        ),
+        score: discarded,
       },
     };
     return cardMetadata;
@@ -523,13 +523,13 @@ class UsageStatsOrganization<
             dataCategory,
             getFormatUsageOptions(dataCategory)
           ),
-          discarded: formatUsageWithUnits(
-            count[Outcome.CLIENT_DISCARD],
+          dropped: formatUsageWithUnits(
+            count[Outcome.DROPPED],
             dataCategory,
             getFormatUsageOptions(dataCategory)
           ),
-          dropped: formatUsageWithUnits(
-            count[Outcome.DROPPED],
+          discarded: formatUsageWithUnits(
+            count[Outcome.CLIENT_DISCARD],
             dataCategory,
             getFormatUsageOptions(dataCategory)
           ),
