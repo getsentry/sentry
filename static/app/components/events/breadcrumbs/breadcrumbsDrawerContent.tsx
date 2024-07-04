@@ -14,8 +14,8 @@ import {
   BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
   BREADCRUMB_TIME_DISPLAY_OPTIONS,
   BreadcrumbTimeDisplay,
-  getBreadcrumbFilter,
-  getBreadcrumbFilters,
+  type EnhancedCrumb,
+  getBreadcrumbFilterOptions,
 } from 'sentry/components/events/breadcrumbs/utils';
 import {
   BREADCRUMB_SORT_LOCALSTORAGE_KEY,
@@ -26,7 +26,6 @@ import {InputGroup} from 'sentry/components/inputGroup';
 import {IconClock, IconFilter, IconSearch, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {RawCrumb} from 'sentry/types/breadcrumbs';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
@@ -39,23 +38,18 @@ export const enum BreadcrumbControlOptions {
 }
 
 interface BreadcrumbsDrawerContentProps {
-  /**
-   * Assumes crumbs are sorted from oldest to newest.
-   */
-  allBreadcrumbs: RawCrumb[];
+  breadcrumbs: EnhancedCrumb[];
   event: Event;
   group: Group;
   project: Project;
   focusControl?: BreadcrumbControlOptions;
-  meta?: Record<string, any>;
 }
 
 export function BreadcrumbsDrawerContent({
   event,
   group,
   project,
-  allBreadcrumbs,
-  meta,
+  breadcrumbs,
   focusControl,
 }: BreadcrumbsDrawerContentProps) {
   const theme = useTheme();
@@ -70,24 +64,24 @@ export function BreadcrumbsDrawerContent({
     BreadcrumbTimeDisplay.RELATIVE
   );
   const filterOptions = useMemo(
-    () => getBreadcrumbFilters(allBreadcrumbs),
-    [allBreadcrumbs]
+    () => getBreadcrumbFilterOptions(breadcrumbs),
+    [breadcrumbs]
   );
 
   const displayCrumbs = useMemo(() => {
     const sortedCrumbs =
-      sort === BreadcrumbSort.OLDEST ? allBreadcrumbs : [...allBreadcrumbs].reverse();
-    const filteredCrumbs = sortedCrumbs.filter(bc =>
-      filterSet.size === 0 ? true : filterSet.has(getBreadcrumbFilter(bc.type))
+      sort === BreadcrumbSort.OLDEST ? breadcrumbs : [...breadcrumbs].reverse();
+    const filteredCrumbs = sortedCrumbs.filter(ec =>
+      filterSet.size === 0 ? true : filterSet.has(ec.filter)
     );
     const searchedCrumbs = applyBreadcrumbSearch(search, filteredCrumbs);
     return searchedCrumbs;
-  }, [allBreadcrumbs, sort, filterSet, search]);
+  }, [breadcrumbs, sort, filterSet, search]);
 
   const startTimeString = useMemo(
     () =>
       timeDisplay === BreadcrumbTimeDisplay.RELATIVE
-        ? displayCrumbs?.at(0)?.timestamp
+        ? displayCrumbs?.at(0)?.breadcrumb?.timestamp
         : undefined,
     [displayCrumbs, timeDisplay]
   );
@@ -210,7 +204,6 @@ export function BreadcrumbsDrawerContent({
         ) : (
           <BreadcrumbsTimeline
             breadcrumbs={displayCrumbs}
-            meta={meta}
             startTimeString={startTimeString}
             fullyExpanded
           />

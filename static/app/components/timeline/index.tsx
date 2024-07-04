@@ -59,7 +59,6 @@ export function Item({
   return (
     <Row
       color={secondary}
-      hasLowerBorder={isActive}
       style={{
         borderBottom: `1px solid ${isActive ? theme[secondary] : 'transparent'}`,
         ...style,
@@ -83,7 +82,13 @@ export function Item({
       <Spacer
         style={{borderLeft: `1px solid ${isActive ? theme.border : 'transparent'}`}}
       />
-      <Content>{children}</Content>
+      <Content
+        style={{
+          marginBottom: `${isActive ? space(1) : 0}`,
+        }}
+      >
+        {children}
+      </Content>
     </Row>
   );
 }
@@ -110,7 +115,7 @@ const Wrapper = styled('div')`
   }
 `;
 
-const Row = styled('div')<{hasLowerBorder: boolean}>`
+const Row = styled('div')`
   position: relative;
   color: ${p => p.theme.subText};
   display: grid;
@@ -124,10 +129,6 @@ const Row = styled('div')<{hasLowerBorder: boolean}>`
   &:last-child {
     margin-bottom: 0;
     background: ${p => p.theme.background};
-  }
-  &:last-child > :last-child,
-  &:first-child > :last-child {
-    margin-bottom: ${p => (p.hasLowerBorder ? space(1) : 0)};
   }
 `;
 
@@ -145,7 +146,6 @@ const IconWrapper = styled('div')`
 
 const Title = styled('div')`
   font-weight: bold;
-  text-transform: capitalize;
   text-align: left;
   grid-column: span 1;
   font-size: ${p => p.theme.fontSizeMedium};

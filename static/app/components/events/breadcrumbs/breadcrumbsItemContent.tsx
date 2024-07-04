@@ -2,6 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
+import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import Timeline from 'sentry/components/timeline';
 import {space} from 'sentry/styles/space';
@@ -85,19 +86,20 @@ function HTTPCrumbContent({
   meta?: Record<string, any>;
 }) {
   const {method, url, status_code: statusCode, ...otherData} = breadcrumb?.data ?? {};
+  const isValidUrl = !meta && defined(url) && isUrl(url);
   return (
     <Fragment>
       {children}
       <Timeline.Text>
-        {method && `${method}: `}
-        {url && isUrl(url) ? (
+        {defined(method) && `${method}: `}
+        {isValidUrl ? (
           <Link onClick={() => openNavigateToExternalLinkModal({linkText: url})}>
             {url}
           </Link>
         ) : (
-          url
+          <AnnotatedText value={url} meta={meta?.data?.url?.['']} />
         )}
-        {` [${statusCode}]`}
+        {defined(statusCode) && ` [${statusCode}]`}
       </Timeline.Text>
       {Object.keys(otherData).length > 0 ? (
         <Timeline.Data>

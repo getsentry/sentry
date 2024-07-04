@@ -12,18 +12,15 @@ import BreadcrumbsTimeline from 'sentry/components/events/breadcrumbs/breadcrumb
 import {
   BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
   BreadcrumbTimeDisplay,
+  getEnhancedBreadcrumbs,
   getSummaryBreadcrumbs,
 } from 'sentry/components/events/breadcrumbs/utils';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import {
-  convertCrumbType,
-  getVirtualCrumb,
-} from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import useDrawer from 'sentry/components/globalDrawer';
 import {IconClock, IconEllipsis, IconFilter, IconSearch, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {EntryType, type Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -46,35 +43,18 @@ export default function BreadcrumbsDataSection({
     BreadcrumbTimeDisplay.RELATIVE
   );
 
-  const {allCrumbs, isEmpty, meta, summaryCrumbs, startTimeString, virtualCrumb} =
-    useMemo(() => {
-      const breadcrumbEntryIndex =
-        event.entries?.findIndex(entry => entry.type === EntryType.BREADCRUMBS) ?? -1;
-      const breadcrumbs = event.entries?.[breadcrumbEntryIndex]?.data?.values ?? [];
-      // Mapping of breadcrumb index -> breadcrumb meta
-      const _meta: Record<number, any> =
-        event._meta?.entries?.[breadcrumbEntryIndex]?.data?.values;
-      // Converts breadcrumbs into other types if sufficient data is present.
-      const convertedCrumbs = breadcrumbs.map(convertCrumbType);
-
-      // The virtual crumb is a representation of this event, displayed alongside
-      // the rest of the breadcrumbs for more additional context.
-      const _virtualCrumb = getVirtualCrumb(event);
-      const _allCrumbs = _virtualCrumb
-        ? [...convertedCrumbs, _virtualCrumb]
-        : convertedCrumbs;
-      return {
-        allCrumbs: _allCrumbs,
-        isEmpty: breadcrumbEntryIndex === -1 || breadcrumbs.length === 0,
-        meta: _meta,
-        summaryCrumbs: getSummaryBreadcrumbs(_allCrumbs),
-        startTimeString:
-          timeDisplay === BreadcrumbTimeDisplay.RELATIVE
-            ? _allCrumbs?.at(-1)?.timestamp
-            : undefined,
-        virtualCrumb: _virtualCrumb,
-      };
-    }, [event, timeDisplay]);
+  const enhancedCrumbs = useMemo(() => getEnhancedBreadcrumbs(event), [event]);
+  const summaryCrumbs = useMemo(
+    () => getSummaryBreadcrumbs(enhancedCrumbs),
+    [enhancedCrumbs]
+  );
+  const startTimeString = useMemo(
+    () =>
+      timeDisplay === BreadcrumbTimeDisplay.RELATIVE
+        ? enhancedCrumbs?.at(-1)?.breadcrumb?.timestamp
+        : undefined,
+    [enhancedCrumbs, timeDisplay]
+  );
 
   const onViewAllBreadcrumbs = useCallback(
     (focusControl?: BreadcrumbControlOptions) => {
@@ -82,8 +62,7 @@ export default function BreadcrumbsDataSection({
         ({Body}) => (
           <Body>
             <BreadcrumbsDrawerContent
-              allBreadcrumbs={allCrumbs}
-              meta={meta}
+              breadcrumbs={enhancedCrumbs}
               group={group}
               event={event}
               project={project}
@@ -94,10 +73,10 @@ export default function BreadcrumbsDataSection({
         {ariaLabel: 'breadcrumb drawer'}
       );
     },
-    [allCrumbs, meta, group, event, project, openDrawer]
+    [group, event, project, openDrawer, enhancedCrumbs]
   );
 
-  if (isEmpty) {
+  if (enhancedCrumbs.length === 0) {
     return null;
   }
 
@@ -147,11 +126,9 @@ export default function BreadcrumbsDataSection({
       <ErrorBoundary mini message={t('There was an error loading the event breadcrumbs')}>
         <BreadcrumbsTimeline
           breadcrumbs={summaryCrumbs}
-          virtualCrumbIndex={virtualCrumb ? 0 : undefined}
-          meta={meta}
           startTimeString={startTimeString}
         />
-        {summaryCrumbs.length !== allCrumbs.length && (
+        {summaryCrumbs.length !== enhancedCrumbs.length && (
           <ViewAllContainer>
             <VerticalEllipsis />
             <div>
