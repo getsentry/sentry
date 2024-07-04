@@ -1078,6 +1078,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert snooze.user_count is None
         assert snooze.user_window is None
         assert snooze.window is None
+        assert snooze.state is not None
         assert snooze.state["times_seen"] == 1
 
         assert response.data["status"] == "ignored"
@@ -1119,6 +1120,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert snooze.user_count == 10
         assert snooze.user_window is None
         assert snooze.window is None
+        assert snooze.state is not None
         assert snooze.state["users_seen"] == 10
 
         assert response.data["status"] == "ignored"

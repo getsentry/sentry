@@ -32,6 +32,7 @@ import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashC
 import {CronTimelineSection} from 'sentry/components/events/interfaces/crons/cronTimelineSection';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
+import {UptimeDataSection} from 'sentry/components/events/interfaces/uptime/uptimeDataSection';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {DataSection} from 'sentry/components/events/styles';
@@ -41,17 +42,11 @@ import LazyLoad from 'sentry/components/lazyLoad';
 import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  type EntryException,
-  type Event,
-  EventOrGroupType,
-  type Group,
-  IssueCategory,
-  IssueType,
-  type Project,
-} from 'sentry/types';
-import type {EventTransaction} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
+import type {EntryException, Event, EventTransaction} from 'sentry/types/event';
+import {EntryType, EventOrGroupType} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import {IssueCategory, IssueType} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {shouldShowCustomErrorResourceConfig} from 'sentry/utils/issueTypeConfig';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
@@ -165,6 +160,9 @@ function DefaultGroupEventDetailsContent({
           organization={organization}
         />
       ) : null}
+      {group.issueCategory === IssueCategory.UPTIME && (
+        <UptimeDataSection group={group} />
+      )}
       {group.issueCategory === IssueCategory.CRON && (
         <CronTimelineSection
           event={event}
@@ -217,7 +215,7 @@ function DefaultGroupEventDetailsContent({
       <GroupEventEntry entryType={EntryType.EXPECTSTAPLE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.TEMPLATE} {...eventEntryProps} />
       {hasNewTimelineUI ? (
-        <BreadcrumbsDataSection event={event} />
+        <BreadcrumbsDataSection event={event} group={group} project={project} />
       ) : (
         <GroupEventEntry entryType={EntryType.BREADCRUMBS} {...eventEntryProps} />
       )}
