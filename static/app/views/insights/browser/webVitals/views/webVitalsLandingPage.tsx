@@ -20,7 +20,6 @@ import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import BrowserTypeSelector from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
 import {PerformanceScoreChart} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {PagePerformanceTable} from 'sentry/views/insights/browser/webVitals/components/tables/pagePerformanceTable';
 import WebVitalMeters from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
@@ -97,7 +96,8 @@ export function WebVitalsLandingPage() {
               <EnvironmentPageFilter />
               <DatePageFilter />
             </PageFilterBar>
-            <BrowserTypeSelector />
+            {/* TODO: add browser selector once changes are made to both webVitalsLandingPage and webVitalsDetail */}
+            {/* <BrowserTypeSelector /> */}
           </TopMenuContainer>
 
           {onboardingProject && (
