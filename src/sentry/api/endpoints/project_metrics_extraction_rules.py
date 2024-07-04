@@ -1,8 +1,7 @@
-import functools
 import logging
-from collections.abc import Callable
+from collections.abc import Generator
+from contextlib import contextmanager
 
-import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -12,6 +11,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import ProjectEndpoint
+from sentry.api.exceptions import BadRequest, ConflictError
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.metrics_extraction_rules import (
@@ -33,34 +33,17 @@ class MetricsExtractionRuleValidationError(ValueError):
     pass
 
 
-def handle_exceptions(fn: Callable):
-    """Decorator for Endpoint methods that checks for presence of the feature flag, catches known exceptions to return the correct response status code, and logs unknown exceptions to sentry."""
-
-    @functools.wraps(fn)
-    def inner(self, request: Request, project: Project):
-        if not features.has(
-            "organizations:custom-metrics-extraction-rule", project.organization, actor=request.user
-        ):
-            return Response(status=404)
-
-        try:
-            return fn(self, request, project)
-
-        except IntegrityError:
-            return Response(status=409, data={"detail": "Resource already exists."})
-
-        except KeyError as e:
-            return Response(status=400, data={"detail": f"Missing field in input data: {str(e)}"})
-
-        except MetricsExtractionRuleValidationError as e:
-            logger.warning("Failed to update extraction rule", exc_info=True)
-            return Response(status=400, data={"detail": str(e)})
-
-        except Exception as e:
-            sentry_sdk.capture_exception()
-            return Response(status=400, data={"detail": str(e)})
-
-    return inner
+@contextmanager
+def handle_exceptions() -> Generator[None, None, None]:
+    try:
+        yield
+    except IntegrityError:
+        raise ConflictError(detail="Resource already exists.")
+    except KeyError as e:
+        raise BadRequest(detail=f"Missing field in input data: {str(e)}")
+    except MetricsExtractionRuleValidationError as e:
+        logger.warning("Failed to update extraction rule", exc_info=True)
+        raise BadRequest(detail=str(e))
 
 
 @region_silo_endpoint
@@ -73,41 +56,54 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
 
-    @handle_exceptions
+    def has_feature(self, organization, request):
+        return features.has(
+            "organizations:custom-metrics-extraction-rule", organization, actor=request.user
+        )
+
     def delete(self, request: Request, project: Project) -> Response:
         """DELETE an extraction rule in a project. Returns 204 No Data on success."""
+        if not self.has_feature(project.organization, request):
+            return Response(status=404)
+
         config_update = request.data.get("metricsExtractionRules") or []
         if len(config_update) == 0:
             return Response(status=204)
 
-        with transaction.atomic(router.db_for_write(SpanAttributeExtractionRuleConfig)):
-            delete_extraction_rule_config(project, config_update)
-            schedule_invalidate_project_config(
-                project_id=project.id, trigger="span_attribute_extraction_configs"
-            )
+        with handle_exceptions():
+            with transaction.atomic(router.db_for_write(SpanAttributeExtractionRuleConfig)):
+                delete_extraction_rule_config(project, config_update)
+                schedule_invalidate_project_config(
+                    project_id=project.id, trigger="span_attribute_extraction_configs"
+                )
 
         return Response(status=204)
 
-    @handle_exceptions
     def get(self, request: Request, project: Project) -> Response:
         """GET extraction rules for project. Returns 200 and a list of extraction rules on success."""
-        configs = SpanAttributeExtractionRuleConfig.objects.filter(project=project)
+        if not self.has_feature(project.organization, request):
+            return Response(status=404)
 
-        return self.paginate(
-            request,
-            queryset=configs,
-            paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(
-                x, user=request.user, serializer=SpanAttributeExtractionRuleConfigSerializer()
-            ),
-            default_per_page=1000,
-            max_per_page=1000,
-            max_limit=1000,  # overrides default max_limit of 100 when creating paginator object
-        )
+        with handle_exceptions():
+            configs = SpanAttributeExtractionRuleConfig.objects.filter(project=project)
 
-    @handle_exceptions
+            return self.paginate(
+                request,
+                queryset=configs,
+                paginator_cls=OffsetPaginator,
+                on_results=lambda x: serialize(
+                    x, user=request.user, serializer=SpanAttributeExtractionRuleConfigSerializer()
+                ),
+                default_per_page=1000,
+                max_per_page=1000,
+                max_limit=1000,  # overrides default max_limit of 100 when creating paginator object
+            )
+
     def post(self, request: Request, project: Project) -> Response:
         """POST an extraction rule to create a resource."""
+        if not self.has_feature(project.organization, request):
+            return Response(status=404)
+
         config_update = request.data.get("metricsExtractionRules")
 
         if not config_update:
@@ -115,37 +111,42 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                 status=400,
                 data={"detail": "Please specify the metric extraction rule to be created."},
             )
-        with transaction.atomic(router.db_for_write(SpanAttributeExtractionRuleConfig)):
-            configs = create_extraction_rule_config(request, project, config_update)
-            validate_number_of_extracted_metrics(project)
-            schedule_invalidate_project_config(
-                project_id=project.id, trigger="span_attribute_extraction_configs"
+
+        with handle_exceptions():
+            with transaction.atomic(router.db_for_write(SpanAttributeExtractionRuleConfig)):
+                configs = create_extraction_rule_config(request, project, config_update)
+                validate_number_of_extracted_metrics(project)
+                schedule_invalidate_project_config(
+                    project_id=project.id, trigger="span_attribute_extraction_configs"
+                )
+
+            persisted_config = serialize(
+                configs, request.user, SpanAttributeExtractionRuleConfigSerializer()
             )
+            return Response(data=persisted_config, status=200)
 
-        persisted_config = serialize(
-            configs, request.user, SpanAttributeExtractionRuleConfigSerializer()
-        )
-        return Response(data=persisted_config, status=200)
-
-    @handle_exceptions
     def put(self, request: Request, project: Project) -> Response:
         """PUT to modify an existing extraction rule."""
+        if not self.has_feature(project.organization, request):
+            return Response(status=404)
+
         config_update = request.data.get("metricsExtractionRules")
         if not config_update:
             return Response(status=200)
 
-        with transaction.atomic(router.db_for_write(SpanAttributeExtractionRuleConfig)):
-            configs = update_extraction_rule_config(request, project, config_update)
-            validate_number_of_extracted_metrics(project)
-            schedule_invalidate_project_config(
-                project_id=project.id, trigger="span_attribute_extraction_configs"
-            )
+        with handle_exceptions():
+            with transaction.atomic(router.db_for_write(SpanAttributeExtractionRuleConfig)):
+                configs = update_extraction_rule_config(request, project, config_update)
+                validate_number_of_extracted_metrics(project)
+                schedule_invalidate_project_config(
+                    project_id=project.id, trigger="span_attribute_extraction_configs"
+                )
 
-        persisted_config = serialize(
-            configs,
-            request.user,
-            SpanAttributeExtractionRuleConfigSerializer(),
-        )
+            persisted_config = serialize(
+                configs,
+                request.user,
+                SpanAttributeExtractionRuleConfigSerializer(),
+            )
 
         return Response(data=persisted_config, status=200)
 
