@@ -32,6 +32,7 @@ describe('TraceLink', () => {
         title: 'Slow DB Query',
         id: 'abc',
         transaction: '/api/slow/',
+        culprit: '/api/slow/',
       },
     ],
     meta: {fields: {}, units: {}},
@@ -39,7 +40,6 @@ describe('TraceLink', () => {
   const discoverBody: TraceEventResponse = {
     data: [
       {
-        message: 'This is the subtitle of the issue',
         timestamp: '2024-01-23T22:11:42+00:00',
         'issue.id': 4909507143,
         project: project.slug,
@@ -48,6 +48,9 @@ describe('TraceLink', () => {
         id: event.id,
         transaction: 'important.task',
         'event.type': 'error',
+        culprit: 'foo',
+        'error.value': [],
+        'stack.function': [],
       },
     ],
     meta: {fields: {}, units: {}},
