@@ -197,12 +197,18 @@ def _create_in_snuba(subscription: QuerySubscription) -> str:
         )
         span.set_tag("dataset", subscription.snuba_query.dataset)
 
-        snuba_query = subscription.snuba_query
+        snuba_query: SnubaQuery = subscription.snuba_query
         entity_subscription = get_entity_subscription_from_snuba_query(
             snuba_query,
             subscription.project.organization_id,
         )
         query_string = build_query_strings(subscription, snuba_query).query_string
+
+        if "transaction.duration" in snuba_query.aggregate:
+            snuba_query.aggregate + f"{{{query_string}}}"
+            # timestamp start and end conditions
+            # project_id, org_id, use_case_id filters
+
         snql_query = entity_subscription.build_query_builder(
             query=query_string,
             project_ids=[subscription.project_id],
