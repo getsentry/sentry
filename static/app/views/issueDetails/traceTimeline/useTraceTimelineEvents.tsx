@@ -22,7 +22,7 @@ interface TimelineDiscoverEvent extends BaseEvent {
   'event.type': string;
   'stack.function': string[];
 }
-interface TimelineIssuePlatformEvent extends BaseEvent {
+export interface TimelineIssuePlatformEvent extends BaseEvent {
   message: string; // Used for the message
 }
 

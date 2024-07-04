@@ -102,7 +102,6 @@ function getTitleSubtitleMessage(event: TimelineEvent) {
     // If we fail, report it so we can figure it out
     Sentry.captureException(error);
   }
-
   return {title, subtitle, message};
 }
 
