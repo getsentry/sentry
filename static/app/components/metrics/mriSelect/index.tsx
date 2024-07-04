@@ -10,6 +10,7 @@ import type {MetricMeta, MRI} from 'sentry/types/metrics';
 import {type Fuse, useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {
   isCustomMetric,
+  isExtractedCustomMetric,
   isSpanDuration,
   isSpanMeasurement,
   isTransactionDuration,
@@ -214,6 +215,7 @@ export const MRISelect = memo(function MRISelect({
       displayedMetrics.map<ComboBoxOption<MRI>>(metric => {
         const parsedMRI = parseMRI(metric.mri);
         const isDuplicateWithDifferentUnit = metricsWithDuplicateNames.has(metric.mri);
+        const isUnresolvedExtractedMetric = isExtractedCustomMetric(metric);
         const showProjectBadge = hasExtractionRules && selectedProjects.length > 1;
         const projectToShow =
           selectedProjects.length > 1 && metric.projectIds.length === 1
@@ -243,7 +245,9 @@ export const MRISelect = memo(function MRISelect({
         if (parsedMRI.useCase === 'custom' && !mriMode) {
           trailingItems.push(
             <CustomMetricInfoText key="text">
-              {parsedMRI.type === 'v' || !hasExtractionRules
+              {parsedMRI.type === 'v' ||
+              !hasExtractionRules ||
+              isUnresolvedExtractedMetric
                 ? t('Custom')
                 : t('Deprecated')}
             </CustomMetricInfoText>
@@ -252,9 +256,12 @@ export const MRISelect = memo(function MRISelect({
         return {
           label: mriMode
             ? metric.mri
-            : middleEllipsis(formatMRI(metric.mri) ?? '', 46, /\.|-|_/),
+            : isUnresolvedExtractedMetric
+              ? t('Deleted Metric')
+              : middleEllipsis(formatMRI(metric.mri) ?? '', 46, /\.|-|_/),
           value: metric.mri,
           leadingItems: [projectBadge],
+          disabled: isUnresolvedExtractedMetric,
           details:
             metric.projectIds.length > 0 ? (
               <MetricListItemDetails
