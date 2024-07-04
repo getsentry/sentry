@@ -22,7 +22,11 @@ import type {
   MRI,
 } from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
-import {getDefaultAggregation, getMetricsUrl} from 'sentry/utils/metrics';
+import {
+  getDefaultAggregation,
+  getMetricsUrl,
+  isExtractedCustomMetric,
+} from 'sentry/utils/metrics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
 import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
@@ -46,7 +50,9 @@ function flattenMetricsSummary(
       keyof MetricsSummary,
       MetricsSummary[keyof MetricsSummary],
     ][]
-  ).flatMap(([mri, items]) => (items || []).map(item => ({item, mri})));
+  )
+    .flatMap(([mri, items]) => (items || []).map(item => ({item, mri})))
+    .filter(entry => !isExtractedCustomMetric(entry));
 }
 
 function tagToQuery(tagKey: string, tagValue: string) {
