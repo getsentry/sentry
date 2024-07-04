@@ -39,9 +39,10 @@ describe('BreadcrumbsDrawerContent', function () {
     ).toBeInTheDocument();
 
     // Contents
-    for (const {message, category} of MOCK_BREADCRUMBS) {
-      expect(drawerScreen.getByText(message)).toBeInTheDocument();
+    for (const {category, level, message} of MOCK_BREADCRUMBS) {
       expect(drawerScreen.getByText(category)).toBeInTheDocument();
+      expect(drawerScreen.getByText(level)).toBeInTheDocument();
+      expect(drawerScreen.getByText(message)).toBeInTheDocument();
     }
     expect(drawerScreen.getAllByText('-1min')).toHaveLength(MOCK_BREADCRUMBS.length);
   });
