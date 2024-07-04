@@ -11,7 +11,7 @@ from sentry.models.authenticator import Authenticator
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.useremail import UserEmail
-from sentry.services.hybrid_cloud.organization.serial import serialize_member
+from sentry.organizations.services.organization.serial import serialize_member
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase

@@ -28,7 +28,7 @@ from sentry.models.user import User
 from sentry.models.useremail import UserEmail
 from sentry.models.userpermission import UserPermission
 from sentry.models.userrole import UserRoleUser
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.users.services.user import RpcUser
 from sentry.utils.avatar import get_gravatar_url
 

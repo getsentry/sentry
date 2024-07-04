@@ -12,7 +12,7 @@ from sentry.users.services.user import RpcUser
 if TYPE_CHECKING:
     from sentry.models.team import Team
     from sentry.models.user import User
-    from sentry.services.hybrid_cloud.organization import RpcTeam
+    from sentry.organizations.services.organization import RpcTeam
 
 
 class ActorType(str, Enum):
@@ -77,7 +77,7 @@ class Actor(RpcModel):
         """
         from sentry.models.team import Team
         from sentry.models.user import User
-        from sentry.services.hybrid_cloud.organization import RpcTeam
+        from sentry.organizations.services.organization import RpcTeam
 
         result: list["Actor"] = []
         grouped_by_type: MutableMapping[str, list[int]] = defaultdict(list)
@@ -116,7 +116,7 @@ class Actor(RpcModel):
         """
         from sentry.models.team import Team
         from sentry.models.user import User
-        from sentry.services.hybrid_cloud.organization import RpcTeam
+        from sentry.organizations.services.organization import RpcTeam
 
         if isinstance(obj, cls):
             return obj

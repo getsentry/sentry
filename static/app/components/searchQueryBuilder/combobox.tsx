@@ -92,6 +92,11 @@ type SearchQueryBuilderComboboxProps<T extends SelectOptionOrSectionWithKey<stri
    * other elements.
    */
   shouldCloseOnInteractOutside?: (interactedElement: Element) => boolean;
+  /**
+   * Whether the menu should filter results based on the filterValue.
+   * Disable if the filtering should be handled by the caller.
+   */
+  shouldFilterResults?: boolean;
   tabIndex?: number;
 };
 
@@ -163,12 +168,14 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
   maxOptions,
   displayTabbedMenu,
   selectedSection,
+  shouldFilterResults,
 }: {
   filterValue: string;
   items: T[];
   selectedSection: Key | null;
   displayTabbedMenu?: boolean;
   maxOptions?: number;
+  shouldFilterResults?: boolean;
 }) {
   const hiddenOptions: Set<SelectKey> = useMemo(() => {
     if (displayTabbedMenu) {
@@ -187,8 +194,15 @@ function useHiddenItems<T extends SelectOptionOrSectionWithKey<string>>({
       return mergeSets(hiddenFromOtherSections, hiddenFromShownSection);
     }
 
-    return getHiddenOptions(items, filterValue, maxOptions);
-  }, [displayTabbedMenu, items, filterValue, maxOptions, selectedSection]);
+    return getHiddenOptions(items, shouldFilterResults ? filterValue : '', maxOptions);
+  }, [
+    displayTabbedMenu,
+    items,
+    shouldFilterResults,
+    filterValue,
+    maxOptions,
+    selectedSection,
+  ]);
 
   const disabledKeys: string[] = useMemo(
     () => [...getDisabledOptions(items), ...hiddenOptions].map(getEscapedKey),
@@ -427,6 +441,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     onFocus,
     tabIndex = -1,
     maxOptions,
+    shouldFilterResults = true,
     shouldCloseOnInteractOutside,
     onPaste,
     displayTabbedMenu,
@@ -447,6 +462,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
     maxOptions,
     displayTabbedMenu,
     selectedSection,
+    shouldFilterResults,
   });
 
   const onSelectionChange = useCallback(

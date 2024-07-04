@@ -44,7 +44,7 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.models.outbox import ControlOutboxBase, OutboxCategory, outbox_context
-from sentry.services.hybrid_cloud.organization import RpcRegionUser, organization_service
+from sentry.organizations.services.organization import RpcRegionUser, organization_service
 from sentry.types.region import find_all_region_names, find_regions_for_user
 from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri

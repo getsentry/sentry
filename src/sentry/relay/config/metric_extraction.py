@@ -31,7 +31,7 @@ from sentry.models.transaction_threshold import (
 )
 from sentry.relay.config.experimental import TimeChecker
 from sentry.search.events import fields
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
 from sentry.snuba.dataset import Dataset
@@ -74,11 +74,17 @@ class HighCardinalityWidgetException(Exception):
     pass
 
 
+class MetricExtrapolationConfig(TypedDict):
+    include: NotRequired[list[str]]
+    exclude: NotRequired[list[str]]
+
+
 class MetricExtractionConfig(TypedDict):
     """Configuration for generic extraction of metrics from all data categories."""
 
     version: int
     metrics: list[MetricSpec]
+    extrapolate: NotRequired[MetricExtrapolationConfig]
 
 
 def get_max_widget_specs(organization: Organization) -> int:
@@ -112,14 +118,39 @@ def get_metric_extraction_config(
         span_attr_specs = _generate_span_attribute_specs(project)
     with sentry_sdk.start_span(op="merge_metric_specs"):
         metric_specs = _merge_metric_specs(alert_specs, widget_specs, span_attr_specs)
+    with sentry_sdk.start_span(op="get_extrapolation_config"):
+        extrapolation_config = get_extrapolation_config(project)
     timeout.check()
 
     if not metric_specs:
         return None
 
-    return {
+    rv: MetricExtractionConfig = {
         "version": _METRIC_EXTRACTION_VERSION,
         "metrics": metric_specs,
+    }
+
+    if extrapolation_config:
+        rv["extrapolate"] = extrapolation_config
+
+    return rv
+
+
+def get_extrapolation_config(project: Project) -> MetricExtrapolationConfig | None:
+    if not features.has("organizations:metrics-extrapolation", project.organization):
+        return None
+
+    enabled = project.get_option("sentry:extrapolate_metrics", None)
+    if enabled is None:
+        enabled = project.organization.get_option("sentry:extrapolate_metrics", False)
+    if not enabled:
+        return None
+
+    # Extrapolation applies to extracted metrics. This enables extrapolation for
+    # the entire `custom` namespace, but this does not extrapolate old custom
+    # metrics sent from the SDK directly.
+    return {
+        "include": ["?:custom/*"],
     }
 
 
@@ -682,7 +713,7 @@ def _is_widget_query_low_cardinality(widget_query: DashboardWidgetQuery, project
         if not fields.is_function(column)
     ]
 
-    query_builder = QueryBuilder(
+    query_builder = DiscoverQueryBuilder(
         dataset=Dataset.Discover,
         params=params,
         selected_columns=unique_columns,

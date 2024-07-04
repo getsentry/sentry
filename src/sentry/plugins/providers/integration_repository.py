@@ -20,7 +20,7 @@ from sentry.integrations.services.repository.model import RpcCreateRepository
 from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.organization.model import RpcOrganization
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.signals import repo_linked
 from sentry.users.services.user.serial import serialize_rpc_user

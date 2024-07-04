@@ -51,7 +51,9 @@ export function MetricListItemDetails({
   const router = useRouter();
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const isCustomMetric = parseMRI(metric.mri)?.useCase === 'custom';
+  const parsedMRI = parseMRI(metric.mri);
+  const isCustomMetric = parsedMRI.useCase === 'custom';
+  const isVirtualMetric = parsedMRI.type === 'v';
 
   const [showAllTags, setShowAllTags] = useState(false);
   const [showAllProjects, setShowAllProjects] = useState(false);
@@ -147,7 +149,11 @@ export function MetricListItemDetails({
           (firstMetricProject ? (
             <LinkButton
               size="xs"
-              to={`/settings/projects/${firstMetricProject.slug}/metrics/${encodeURIComponent(metric.mri)}`}
+              to={
+                isVirtualMetric
+                  ? `/settings/projects/${firstMetricProject.slug}/metrics/${formatMRI(metric.mri)}/edit`
+                  : `/settings/projects/${firstMetricProject.slug}/metrics/${encodeURIComponent(metric.mri)}`
+              }
               aria-label={t('Open metric settings')}
               icon={<IconSettings />}
               borderless
@@ -180,8 +186,12 @@ export function MetricListItemDetails({
             </Button>
           )}
         </DetailsValue>
-        <DetailsLabel>{t('Type')}</DetailsLabel>
-        <DetailsValue>{getReadableMetricType(metric.type)}</DetailsValue>
+        {!isVirtualMetric ? (
+          <Fragment>
+            <DetailsLabel>{t('Type')}</DetailsLabel>
+            <DetailsValue>{getReadableMetricType(metric.type)}</DetailsValue>
+          </Fragment>
+        ) : null}
         <DetailsLabel>{t('Unit')}</DetailsLabel>
         <DetailsValue>{metric.unit}</DetailsValue>
         <DetailsLabel>{t('Tags')}</DetailsLabel>

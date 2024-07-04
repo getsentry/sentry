@@ -2,10 +2,10 @@ import type {MouseEvent} from 'react';
 import styled from '@emotion/styled';
 
 import {DateTime} from 'sentry/components/dateTime';
-import {showPlayerTime} from 'sentry/components/replays/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconPlay} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
+import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
 
 type Props = {
   startTimestampMs: number;
@@ -30,7 +30,10 @@ function TimestampButton({
         className={className}
       >
         <IconPlay size="xs" />
-        {showPlayerTime(timestampMs, startTimestampMs, format === 'mm:ss.SSS')}
+        {formatReplayDuration(
+          Math.abs(new Date(timestampMs).getTime() - startTimestampMs),
+          format === 'mm:ss.SSS'
+        )}
       </StyledButton>
     </Tooltip>
   );

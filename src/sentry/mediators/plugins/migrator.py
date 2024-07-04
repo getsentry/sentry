@@ -5,8 +5,8 @@ from sentry.integrations.services.repository import repository_service
 from sentry.integrations.services.repository.model import RpcRepository
 from sentry.mediators.mediator import Mediator
 from sentry.mediators.param import Param
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.base import plugins
-from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 
 
 class Migrator(Mediator):
