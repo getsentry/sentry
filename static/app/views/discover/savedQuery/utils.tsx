@@ -266,7 +266,12 @@ export function getSavedQueryDataset(
   return (savedQuery?.queryDataset ?? SavedQueryDatasets.DISCOVER) as SavedQueryDatasets;
 }
 
-export function getSavedQueryWithDataset(savedQuery: SavedQuery): SavedQuery {
+export function getSavedQueryWithDataset(
+  savedQuery?: SavedQuery
+): SavedQuery | undefined {
+  if (!savedQuery) {
+    return undefined;
+  }
   return {
     ...savedQuery,
     dataset: getDatasetFromLocationOrSavedQueryDataset(
