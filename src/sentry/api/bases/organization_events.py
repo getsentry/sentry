@@ -234,32 +234,31 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
 
         return use_on_demand_metrics, on_demand_metric_type
 
-    def get_split_decision(self, has_errors, has_transactions_data):
+    def save_dashboard_widget_split_decision(
+        self, widget, dataset_inferred_from_query, has_errors, has_transactions_data
+    ):
         """This can be removed once the discover dataset has been fully split"""
-        if has_errors and not has_transactions_data:
+        if dataset_inferred_from_query:
+            decision = dataset_inferred_from_query
+            sentry_sdk.set_tag("discover.split_reason", "inferred_from_query")
+        elif has_errors and not has_transactions_data:
             decision = DashboardWidgetTypes.ERROR_EVENTS
+            sentry_sdk.set_tag("discover.split_reason", "query_result")
         elif not has_errors and has_transactions_data:
             decision = DashboardWidgetTypes.TRANSACTION_LIKE
-        elif has_errors and has_transactions_data:
-            decision = DashboardWidgetTypes.DISCOVER
+            sentry_sdk.set_tag("discover.split_reason", "query_result")
         else:
             # In the case that neither side has data, we do not need to split this yet and can make multiple queries to check each time.
             # This will help newly created widgets or infrequent count widgets that shouldn't be prematurely assigned a side.
             decision = None
-        sentry_sdk.set_tag("split_decision", decision)
-        return decision
+            sentry_sdk.set_tag("discover.split_reason", "default")
 
-    def save_split_decision(self, widget, has_errors, has_transactions_data):
-        """This can be removed once the discover dataset has been fully split"""
-        new_discover_widget_split = self.get_split_decision(has_errors, has_transactions_data)
-        if (
-            new_discover_widget_split is not None
-            and widget.discover_widget_split != new_discover_widget_split
-        ):
-            widget.discover_widget_split = new_discover_widget_split
+        sentry_sdk.set_tag("discover.split_decision", decision)
+        if widget.discover_widget_split != decision:
+            widget.discover_widget_split = decision
             widget.save()
 
-        return new_discover_widget_split
+        return decision
 
     def save_discover_saved_query_split_decision(
         self, query, dataset_inferred_from_query, has_errors, has_transactions_data
