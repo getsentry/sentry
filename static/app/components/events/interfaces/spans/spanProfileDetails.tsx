@@ -151,6 +151,7 @@ export function SpanProfileDetails({
       query: {
         tid: String(profile.threadId),
         spanId: span.span_id,
+        sorting: 'call order',
       },
     });
 
