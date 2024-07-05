@@ -109,7 +109,7 @@ class HomepageQueryAPI extends DeprecatedAsyncComponent<Props, HomepageQueryStat
 
   renderBody(): React.ReactNode {
     const {savedQuery, loading} = this.state;
-    const {organization} = this.state;
+    const {organization} = this.props;
     let savedQueryWithDataset = savedQuery;
     if (
       organization.features.includes('performance-discover-dataset-selector') &&
