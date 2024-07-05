@@ -44,7 +44,7 @@ describe('Discover DatasetSelector', function () {
     ]);
   });
 
-  it('pushes new deafult event view if not a saved query', async function () {
+  it('pushes new dafault event view if not a saved query', async function () {
     const eventView = new EventView(EVENT_VIEW_CONSTRUCTOR_PROPS);
     render(
       <DatasetSelector isHomepage={false} savedQuery={undefined} eventView={eventView} />,
