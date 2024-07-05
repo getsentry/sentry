@@ -90,6 +90,7 @@ def backfill_seer_grouping_records_for_project(
             "backfill_seer_grouping_records.project_does_not_exist",
             extra={"current_project_id": current_project_id},
         )
+        assert last_processed_project_index_input is not None
         call_next_backfill(
             last_processed_group_index=None,
             project_id=current_project_id,
