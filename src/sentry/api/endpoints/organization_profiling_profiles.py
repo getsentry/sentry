@@ -62,7 +62,7 @@ class OrganizationProfilingFiltersEndpoint(OrganizationProfilingBaseEndpoint):
 @region_silo_endpoint
 class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint):
     def get(self, request: Request, organization: Organization) -> HttpResponse:
-        if not features.has("organizations:continuous-profiling", organization, actor=request.user):
+        if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
 
         params = self.get_snuba_params(request, organization)
@@ -103,7 +103,7 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
 @region_silo_endpoint
 class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
     def get(self, request: Request, organization: Organization) -> HttpResponse:
-        if not features.has("organizations:profiling", organization, actor=request.user):
+        if not features.has("organizations:continuous-profiling", organization, actor=request.user):
             return Response(status=404)
 
         params = self.get_snuba_params(request, organization)
