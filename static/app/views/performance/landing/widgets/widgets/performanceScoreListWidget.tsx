@@ -107,7 +107,8 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
         'count_scores(measurements.score.total)'
       ] as number;
       const opportunity = scoreCount
-        ? (((listItem as RowWithScoreAndOpportunity).opportunity ?? 0) * 100) / scoreCount
+        ? (((listItem as RowWithScoreAndOpportunity).opportunity ?? 0) * 100) /
+          (shouldUseStaticWeights ? 1 : scoreCount) // static weight keys are already normalized
         : 0;
       return (
         <Fragment key={i}>
