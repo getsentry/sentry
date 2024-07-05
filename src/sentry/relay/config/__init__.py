@@ -351,6 +351,10 @@ def get_project_config(
 
 
 def get_dynamic_sampling_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
+    if options.get("dynamic-sampling.config.killswitch"):
+        # This killswitch will cause extra load, and should only be used for AM1->AM2 migration.
+        return None
+
     if features.has("organizations:dynamic-sampling", project.organization):
         return {"version": 2, "rules": generate_rules(project)}
 
