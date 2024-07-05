@@ -146,6 +146,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
     const hasCurrentEvent = events.some(e => e.id === event.id);
     if (!hasCurrentEvent) {
       events.push({
+        culprit: event.culprit,
         id: event.id,
         'issue.id': Number(event.groupID),
         message: event.message,
@@ -155,10 +156,6 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
         timestamp: event.dateCreated!,
         title: event.title,
         transaction: '',
-        culprit: event.culprit,
-        'event.type': event['eventID.type'],
-        'stack.function': event['stack.function'],
-        'error.value': event['error.value'],
       });
     }
     const timestamps = events.map(e => new Date(e.timestamp).getTime());
