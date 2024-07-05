@@ -89,8 +89,9 @@ function getTitleSubtitleMessage(event: TimelineEvent) {
       if (title[title.length - 1] !== ':') {
         title = event.title.split(':')[0];
       }
-      // https://github.com/getsentry/sentry/blob/f08644a004f9980d48f93dec2d7cfc9eeecd9a9e/static/app/utils/events.tsx#L48-L50
       // It uses metadata.value which could differ depending on what error.value is used in the event manager
+      // TODO: Add support for chained exceptions since we grab the value from the first stack trace
+      // https://github.com/getsentry/sentry/blob/a221f399d2b4190f2631fcca311bdb5b3748838b/src/sentry/eventtypes/error.py#L115-L134
       message = event['error.value'][event['error.value'].length - 1];
     } else if (event['event.type'] === 'default') {
       // See getTitle() and getMessage() in sentry/utils/events.tsx

@@ -109,6 +109,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
             'event.type',
             'stack.function',
             'culprit', // Used for default events and subtitles
+            'error.value', // Used for message for error events
           ],
           per_page: 100,
           query: `trace:${traceId}`,
