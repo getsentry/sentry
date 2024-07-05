@@ -13,15 +13,6 @@ from sentry import features, killswitches, options, quotas, utils
 from sentry.constants import HEALTH_CHECK_GLOBS, ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.dynamic_sampling import generate_rules
-from sentry.dynamic_sampling.rules.utils import (
-    Condition,
-    EqCondition,
-    GlobCondition,
-    GtCondition,
-    GteCondition,
-    LtCondition,
-    LteCondition,
-)
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
@@ -53,8 +44,9 @@ from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo
 
 from .measurements import CUSTOM_MEASUREMENT_LIMIT
+from .types.rule_condition import RuleCondition
 
-#: These features will be listed in the project config.
+# These features will be listed in the project config.
 #
 # NOTE: These features must be sorted or the tests will fail!
 EXPOSABLE_FEATURES = [
@@ -203,16 +195,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
 class GenericFilter(TypedDict):
     id: str
     isEnabled: bool
-    condition: (
-        Condition
-        | EqCondition
-        | GteCondition
-        | GtCondition
-        | LteCondition
-        | LtCondition
-        | GlobCondition
-        | None
-    )
+    condition: RuleCondition
 
 
 class GenericFiltersConfig(TypedDict):

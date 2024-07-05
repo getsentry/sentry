@@ -7,18 +7,7 @@ from collections import defaultdict
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import Enum
-from typing import (
-    Any,
-    Literal,
-    NamedTuple,
-    NotRequired,
-    Optional,
-    Self,
-    TypedDict,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import Any, Literal, NamedTuple, NotRequired, Optional, Self, TypedDict, TypeVar, cast
 
 import sentry_sdk
 from django.utils.functional import cached_property
@@ -41,6 +30,7 @@ from sentry.features.rollout import in_random_rollout
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
+from sentry.relay.config.types import RuleCondition
 from sentry.search.events import fields
 from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.constants import DEFAULT_PROJECT_THRESHOLD, VITAL_THRESHOLDS
@@ -117,9 +107,8 @@ class OnDemandMetricSpecVersioning:
 CUSTOM_ALERT_METRIC_NAME = "transactions/on_demand"
 QUERY_HASH_KEY = "query_hash"
 
-# Base type for conditions to evaluate on payloads.
-# TODO: Streamline with dynamic sampling.
-RuleCondition = Union["LogicalRuleCondition", "ComparingRuleCondition", "NotRuleCondition"]
+# Comparison operators used by Relay.
+CompareOp = Literal["eq", "gt", "gte", "lt", "lte", "glob"]
 
 # There are some search tokens that are exclusive to searching errors, thus, we need
 # to treat the query as not on-demand.
@@ -334,36 +323,11 @@ _IGNORED_METRIC_CONDITION = [
     "event.type=transaction",
 ]
 
-# Operators used in ``ComparingRuleCondition``.
-CompareOp = Literal["eq", "gt", "gte", "lt", "lte", "glob"]
-
 Variables = dict[str, Any]
 
 query_builder = UnresolvedQuery(
     dataset=Dataset.Transactions, params={}
 )  # Workaround to get all updated discover functions instead of using the deprecated events fields.
-
-
-class ComparingRuleCondition(TypedDict):
-    """RuleCondition that compares a named field to a reference value."""
-
-    op: CompareOp
-    name: str
-    value: Any
-
-
-class LogicalRuleCondition(TypedDict):
-    """RuleCondition that applies a logical operator to a sequence of conditions."""
-
-    op: Literal["and", "or"]
-    inner: list[RuleCondition]
-
-
-class NotRuleCondition(TypedDict):
-    """RuleCondition that negates an inner condition."""
-
-    op: Literal["not"]
-    inner: RuleCondition
 
 
 class TagSpec(TypedDict):
