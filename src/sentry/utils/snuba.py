@@ -893,7 +893,7 @@ def raw_snql_query(
     # other functions do here. It does not add any automatic conditions, format
     # results, nothing. Use at your own risk.
     return bulk_snuba_queries(
-        requests=[request], referrer=referrer, query_source=query_source, use_cache=use_cache
+        requests=[request], referrer=referrer, use_cache=use_cache, query_source=query_source
     )[0]
 
 
@@ -906,16 +906,37 @@ def bulk_snuba_queries(
     ) = None,  # TODO: @athena Make this field required after updated all the callsites
 ) -> ResultSet:
     """
-    The main entrypoint to running queries in Snuba. This function accepts
-    Requests for either MQL or SnQL queries and runs them on the appropriate endpoint.
+    Alias for `concurrent_snuba_queries` to use the same referrer for every request.
     """
 
     metrics.incr("snql.sdk.api", tags={"referrer": referrer or "unknown"})
+
+    return concurrent_snuba_queries(
+        [(request, referrer) for request in requests],
+        use_cache=use_cache,
+        query_source=query_source,
+    )
+
+
+def concurrent_snuba_queries(
+    requests_with_referrers: list[tuple[Request, str]],
+    use_cache: bool = False,
+    query_source: (
+        QuerySource | None
+    ) = None,  # TODO: @athena Make this field required after updated all the callsites
+) -> ResultSet:
+    """
+    The main entrypoint to running queries in Snuba. This function accepts
+    Requests for either MQL or SnQL queries and runs them on the appropriate endpoint.
+
+    Every request is paired with a referrer to be used for that request.
+    """
+
     if "consistent" in OVERRIDE_OPTIONS:
-        for request in requests:
+        for request, _ in requests_with_referrers:
             request.flags.consistent = OVERRIDE_OPTIONS["consistent"]
 
-    for request in requests:
+    for request, referrer in requests_with_referrers:
         if referrer or query_source:
             request.tenant_ids = request.tenant_ids or dict()
             if referrer:
@@ -930,7 +951,7 @@ def bulk_snuba_queries(
             forward=lambda x: x,
             reverse=lambda x: x,
         )
-        for request in requests
+        for request, referrer in requests_with_referrers
     ]
     return _apply_cache_and_build_results(snuba_requests, use_cache=use_cache)
 
