@@ -6,7 +6,7 @@ from django.conf import settings
 from rediscluster import RedisCluster
 
 from sentry.models.dynamicsampling import CUSTOM_RULE_START
-from sentry.relay.config.types import RuleCondition
+from sentry.relay.types import RuleCondition
 from sentry.utils import redis
 
 BOOSTED_RELEASES_LIMIT = 10
