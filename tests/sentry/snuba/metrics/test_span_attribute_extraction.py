@@ -170,6 +170,22 @@ def test_counter_extends_conditions():
     }
 
 
+def test_span_duration_counter_not_extends_conditions():
+    rule = MetricsExtractionRule(
+        span_attribute="span.duration", type="c", unit="none", tags=set(), condition="abc:xyz", id=1
+    )
+
+    metric_spec = convert_to_metric_spec(rule)
+
+    assert not metric_spec["field"]
+    assert metric_spec["mri"] == "c:custom/span_attribute_1@none"
+    assert metric_spec["condition"] == {
+        "op": "eq",
+        "name": "span.data.abc",
+        "value": "xyz",
+    }
+
+
 def test_empty_conditions():
     rule = MetricsExtractionRule(
         span_attribute="foobar", type="d", unit="none", tags=set(), condition="", id=1

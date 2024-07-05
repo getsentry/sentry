@@ -83,6 +83,11 @@ class IntegrationExtensionConfigurationView(BaseView):
                     try:
                         pipeline = self.init_pipeline(request, organization, request.GET.dict())
                         return pipeline.current_step()
+                    except ValueError as e:
+                        return self.respond(
+                            "sentry/pipeline-error.html",
+                            {"error": e},
+                        )
                     except SignatureExpired:
                         return self.respond(
                             "sentry/pipeline-error.html",

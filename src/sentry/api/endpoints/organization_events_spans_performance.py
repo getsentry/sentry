@@ -23,9 +23,8 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.utils import handle_query_errors
 from sentry.discover.arithmetic import is_equation, strip_equation
 from sentry.models.organization import Organization
-from sentry.search.events.builder import TimeseriesQueryBuilder
 from sentry.search.events.builder.base import BaseQueryBuilder
-from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder, TimeseriesQueryBuilder
 from sentry.search.events.datasets.discover import DiscoverDatasetConfig
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.snuba import discover

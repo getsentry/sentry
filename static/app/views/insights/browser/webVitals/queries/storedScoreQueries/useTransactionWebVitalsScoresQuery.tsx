@@ -6,6 +6,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import {BrowserType} from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
 import type {
@@ -13,8 +14,10 @@ import type {
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 
 type Props = {
+  browserType?: BrowserType;
   defaultSort?: Sort;
   enabled?: boolean;
   limit?: number;
@@ -34,6 +37,7 @@ export const useTransactionWebVitalsScoresQuery = ({
   webVital = 'total',
   query,
   shouldEscapeFilters = true,
+  browserType,
 }: Props) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -47,6 +51,9 @@ export const useTransactionWebVitalsScoresQuery = ({
   ]);
   if (transaction) {
     search.addFilterValue('transaction', transaction, shouldEscapeFilters);
+  }
+  if (browserType !== undefined && browserType !== BrowserType.ALL) {
+    search.addFilterValue(SpanIndexedField.BROWSER_NAME, browserType);
   }
   const eventView = EventView.fromNewQueryWithPageFilters(
     {

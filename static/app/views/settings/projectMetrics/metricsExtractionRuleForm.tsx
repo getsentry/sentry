@@ -40,7 +40,7 @@ interface Props extends Omit<FormProps, 'onSubmit'> {
   ) => void;
 }
 
-const KNOWN_NUMERIC_FIELDS = new Set([
+const HIGH_CARDINALITY_TAGS = new Set([
   SpanIndexedField.SPAN_DURATION,
   SpanIndexedField.SPAN_SELF_TIME,
   SpanIndexedField.PROJECT_ID,
@@ -52,6 +52,7 @@ const KNOWN_NUMERIC_FIELDS = new Set([
   SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
   SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY,
   SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
+  SpanIndexedField.TRANSACTION_ID,
 ]);
 
 const AGGREGATE_OPTIONS: {label: string; value: AggregateGroup}[] = [
@@ -159,16 +160,19 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
     return copy;
   }, [tags]);
 
-  const attributeOptions = useMemo(() => {
+  const allAttributeOptions = useMemo(() => {
     let keys = Object.keys(supportedTags);
-    const disabledKeys = new Set(extractionRules?.map(rule => rule.spanAttribute) || []);
-
     if (customAttributes.length) {
       keys = [...new Set(keys.concat(customAttributes))];
     }
+    return keys;
+  }, [customAttributes, supportedTags]);
+
+  const attributeOptions = useMemo(() => {
+    const disabledKeys = new Set(extractionRules?.map(rule => rule.spanAttribute) || []);
 
     return (
-      keys
+      allAttributeOptions
         .map(key => ({
           label: key,
           value: key,
@@ -184,14 +188,19 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
         // Sort disabled attributes to bottom
         .sort((a, b) => Number(a.disabled) - Number(b.disabled))
     );
-  }, [customAttributes, supportedTags, extractionRules]);
+  }, [allAttributeOptions, extractionRules]);
 
   const tagOptions = useMemo(() => {
-    return attributeOptions.filter(
-      // We don't want to suggest numeric fields as tags as they would explode cardinality
-      option => !KNOWN_NUMERIC_FIELDS.has(option.value as SpanIndexedField)
-    );
-  }, [attributeOptions]);
+    return allAttributeOptions
+      .filter(
+        // We don't want to suggest numeric fields as tags as they would explode cardinality
+        option => !HIGH_CARDINALITY_TAGS.has(option as SpanIndexedField)
+      )
+      .map(option => ({
+        label: option,
+        value: option,
+      }));
+  }, [allAttributeOptions]);
 
   const handleSubmit = useCallback(
     (
@@ -294,8 +303,10 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                   <ConditionsWrapper hasDelete={value.length > 1}>
                     {conditions.map((condition, index) => (
                       <Fragment key={condition.id}>
-                        <SearchWrapper hasPrefix={index !== 0}>
-                          {index !== 0 && <ConditionLetter>{t('or')}</ConditionLetter>}
+                        <SearchWrapper hasPrefix={conditions.length > 1}>
+                          {conditions.length > 1 && (
+                            <ConditionSymbol>{index + 1}</ConditionSymbol>
+                          )}
                           <SearchBar
                             {...SPAN_SEARCH_CONFIG}
                             searchSource="metrics-extraction"
@@ -329,6 +340,7 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                   </ConditionsWrapper>
                   <ConditionsButtonBar>
                     <Button
+                      size="sm"
                       onClick={() => onChange([...conditions, createCondition()], {})}
                       icon={<IconAdd />}
                     >
@@ -346,7 +358,9 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
 }
 
 const ConditionsWrapper = styled('div')<{hasDelete: boolean}>`
+  padding: ${space(1)} 0;
   display: grid;
+  align-items: center;
   gap: ${space(1)};
   ${p =>
     p.hasDelete
@@ -361,6 +375,7 @@ const ConditionsWrapper = styled('div')<{hasDelete: boolean}>`
 const SearchWrapper = styled('div')<{hasPrefix: boolean}>`
   display: grid;
   gap: ${space(1)};
+  align-items: center;
   ${p =>
     p.hasPrefix
       ? `
@@ -371,17 +386,17 @@ const SearchWrapper = styled('div')<{hasPrefix: boolean}>`
   `}
 `;
 
-const ConditionLetter = styled('div')`
+const ConditionSymbol = styled('div')`
   background-color: ${p => p.theme.purple100};
-  border-radius: ${p => p.theme.borderRadius};
-  text-align: center;
-  padding: 0 ${space(2)};
   color: ${p => p.theme.purple400};
-  white-space: nowrap;
-  font-weight: ${p => p.theme.fontWeightBold};
+  text-align: center;
   align-content: center;
+  height: ${space(3)};
+  width: ${space(3)};
+  border-radius: 50%;
 `;
 
 const ConditionsButtonBar = styled('div')`
   margin-top: ${space(1)};
+  height: ${space(3)};
 `;

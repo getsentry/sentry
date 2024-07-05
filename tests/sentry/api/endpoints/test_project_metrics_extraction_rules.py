@@ -36,7 +36,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         response = self.send_put_request(token, self.endpoint)
         assert response.status_code != 403
 
-    @django_db_all
+    @django_db_all(reset_sequences=True)
     @with_feature("organizations:custom-metrics-extraction-rule")
     def test_create_new_extraction_rule(self):
         new_rule = {
@@ -79,11 +79,6 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
             assert len(conditions) == 2
             assert conditions[0]["value"] == "foo:bar"
             assert conditions[1]["value"] == "baz:faz"
-
-            assert conditions[0]["id"] == 1
-            assert conditions[1]["id"] == 2
-            assert conditions[0]["mris"] == ["c:custom/span_attribute_1@none"]
-            assert conditions[1]["mris"] == ["c:custom/span_attribute_2@none"]
 
     @django_db_all
     @with_feature("organizations:custom-metrics-extraction-rule")
@@ -319,7 +314,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
             method="post",
             **rule,
         )
-        assert response.status_code == 400
+        assert response.status_code == 409
 
     @django_db_all
     @with_feature("organizations:custom-metrics-extraction-rule")

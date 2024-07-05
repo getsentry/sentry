@@ -15,6 +15,7 @@ from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.builder.metrics import AlertMetricsQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.sentry_metrics.utils import (
@@ -166,7 +167,7 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
         params: ParamsType | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
     ) -> BaseQueryBuilder:
-        from sentry.search.events.builder import ErrorsQueryBuilder
+        from sentry.search.events.builder.errors import ErrorsQueryBuilder
 
         if params is None:
             params = {}
@@ -290,7 +291,6 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         params: ParamsType | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
     ) -> BaseQueryBuilder:
-        from sentry.search.events.builder import AlertMetricsQueryBuilder
 
         if params is None:
             params = {}

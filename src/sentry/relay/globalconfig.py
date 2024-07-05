@@ -24,6 +24,7 @@ RELAY_OPTIONS: list[str] = [
     "relay.metric-stats.rollout-rate",
     "feedback.ingest-topic.rollout-rate",
     "relay.span-extraction.sample-rate",
+    "relay.compute-metrics-summaries.sample-rate",
 ]
 
 

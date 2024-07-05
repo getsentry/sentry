@@ -35,7 +35,11 @@ jest.mock('sentry/views/metrics/queries');
 
 describe('Metrics Layout', function () {
   const organization = OrganizationFixture({
-    features: ['custom-metrics', 'custom-metrics-extraction-rule'],
+    features: [
+      'custom-metrics',
+      'custom-metrics-extraction-rule',
+      'custom-metrics-extraction-rule-ui',
+    ],
   });
 
   it("already using performance and don't have old custom metrics", async function () {
