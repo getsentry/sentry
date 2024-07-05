@@ -23,7 +23,7 @@ from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.exceptions import InvalidParams
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
-from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
+from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance, transactions
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import dataset_split_decision_inferred_from_query, get_dataset
@@ -420,7 +420,13 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     has_errors = False
                     error_results = None
 
-                original_results = _data_fn(scopedDataset, offset, limit, scoped_query)
+                original_results = _data_fn(
+                    scopedDataset,
+                    offset,
+                    limit,
+                    scoped_query,
+                    fallback_to_transactions=save_discover_dataset_decision,
+                )
                 if original_results.get("data"):
                     dataset_meta = original_results.get("data").get("meta", {})
                 else:
@@ -435,12 +441,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 if has_errors and has_other_data and not using_metrics:
                     # In the case that the original request was not using the metrics dataset, we cannot be certain that other data is solely transactions.
                     sentry_sdk.set_tag("third_split_query", True)
-                    transactions_only_query = (
-                        f"({scoped_query}) AND event.type:transaction"
-                        if scoped_query
-                        else "event.type:transaction"
-                    )
-                    transaction_results = _data_fn(discover, offset, limit, transactions_only_query)
+                    transaction_results = _data_fn(transactions, offset, limit, scoped_query)
                     has_transactions = len(transaction_results["data"]) > 0
 
                 decision = self.save_split_decision(widget, has_errors, has_transactions)
