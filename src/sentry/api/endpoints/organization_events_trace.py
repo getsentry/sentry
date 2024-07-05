@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import abc
 import logging
 from collections import defaultdict, deque
 from collections.abc import Callable, Iterable, Mapping, Sequence
@@ -1100,6 +1101,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
             )
         )
 
+    @abc.abstractmethod
     def serialize(
         self,
         limit: int,
@@ -1111,7 +1113,7 @@ class OrganizationEventsTraceEndpointBase(OrganizationEventsV2EndpointBase):
         detailed: bool = False,
         use_spans: bool = False,
     ) -> Any:
-        pass
+        raise NotImplementedError
 
 
 @region_silo_endpoint
@@ -1362,7 +1364,7 @@ class OrganizationEventsTraceEndpoint(OrganizationEventsTraceEndpointBase):
             return results
 
         # Code past here is deprecated, but must continue to exist until sentry installs in every possible environment
-        # are able to support storing span data
+        # are storing span data, since that's the only way serialize_with_spans will work
         event_id_to_nodestore_event = self.nodestore_event_map(transactions)
         parent_map = self.construct_parent_map(transactions)
         error_map = self.construct_error_map(errors)
