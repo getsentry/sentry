@@ -230,7 +230,7 @@ def get_spans_from_group(
                         "indexOf",
                         parameters=[
                             Column("sentry_tags.key"),
-                            "active_thread_id",
+                            "thread.id",
                         ],
                     ),
                 ],
@@ -264,7 +264,7 @@ def get_spans_from_group(
         if row["profiler_id"] in spans:
             spans[row["profiler_id"]].append(
                 {
-                    "active_thread_id": row["group"],
+                    "active_thread_id": row["active_thread_id"],
                     "start": row["start_timestamp_precise"],
                     "end": row["end_timestamp_precise"],
                 }
@@ -272,7 +272,7 @@ def get_spans_from_group(
         else:
             spans[row["profiler_id"]] = [
                 {
-                    "active_thread_id": row["group"],
+                    "active_thread_id": row["active_thread_id"],
                     "start": row["start_timestamp_precise"],
                     "end": row["end_timestamp_precise"],
                 }
