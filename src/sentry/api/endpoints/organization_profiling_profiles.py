@@ -65,7 +65,7 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
         if not features.has("organizations:continuous-profiling", organization, actor=request.user):
             return Response(status=404)
 
-        params = self.get_snuba_params(request, organization, check_global_views=False)
+        params = self.get_snuba_params(request, organization)
         project_ids = params["project_id"]
         if len(project_ids) > 1:
             raise ParseError(detail="You cannot get a flamegraph from multiple projects.")
@@ -106,7 +106,7 @@ class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
 
-        params = self.get_snuba_params(request, organization, check_global_views=False)
+        params = self.get_snuba_params(request, organization)
 
         project_ids = params.get("project_id")
         if project_ids is None or len(project_ids) != 1:
@@ -133,7 +133,7 @@ class OrganizationProfilingChunksFlamegraphEndpoint(OrganizationProfilingBaseEnd
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
 
-        params = self.get_snuba_params(request, organization, check_global_views=False)
+        params = self.get_snuba_params(request, organization)
 
         project_ids = params.get("project_id")
         if project_ids is None or len(project_ids) != 1:
