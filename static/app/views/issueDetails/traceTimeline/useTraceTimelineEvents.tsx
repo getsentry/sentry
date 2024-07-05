@@ -17,12 +17,12 @@ interface BaseEvent {
   transaction: string;
 }
 
-export interface TimelineDiscoverEvent extends BaseEvent {
+interface TimelineIssuePlatformEvent extends BaseEvent {}
+interface TimelineDiscoverEvent extends BaseEvent {
   culprit: string; // Used for default events
   'event.type': string;
   'stack.function': string[];
 }
-export interface TimelineIssuePlatformEvent extends BaseEvent {}
 
 export type TimelineEvent = TimelineDiscoverEvent | TimelineIssuePlatformEvent;
 

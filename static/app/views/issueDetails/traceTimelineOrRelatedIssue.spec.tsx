@@ -8,6 +8,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 
+import {getTitleSubtitleMessage} from './traceTimeline/traceIssue';
 import {TraceTimeline} from './traceTimeline/traceTimeline';
 import type {TraceEventResponse} from './traceTimeline/useTraceTimelineEvents';
 import {TraceTimeLineOrRelatedIssue} from './traceTimelineOrRelatedIssue';
@@ -73,21 +74,10 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     'issue.id': 9999,
     project: project.slug,
     'project.name': project.name,
-    title: 'WorkerLostError: ', // The code handles the colon and extra space in the title
+    title: 'someTitle',
     id: '12345',
     transaction: 'foo',
     'event.type': event.type,
-  };
-  const defaultEvent = {
-    culprit: '/api/0/organizations/{organization_id_or_slug}/issues/',
-    timestamp: '2024-01-24T09:09:03+00:00',
-    'issue.id': 8888,
-    project: project.slug,
-    'project.name': project.name,
-    title: 'Query from referrer search.group_index is throttled',
-    id: '12345',
-    transaction: '/api/0/organizations/{organization_id_or_slug}/issues/',
-    'event.type': 'default', // Instead of an error
   };
   const discoverBody: TraceEventResponse = {
     data: [mainError],
@@ -244,58 +234,6 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     );
   });
 
-  it('trace-related: check title, subtitle for error event', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: emptyBody,
-      match: [MockApiClient.matchQuery({dataset: 'issuePlatform', project: -1})],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: {data: [secondError]},
-      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
-    });
-    // Used to determine the project badge
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/projects/`,
-      body: [],
-    });
-
-    render(<TraceTimeLineOrRelatedIssue event={event} />, {organization});
-
-    // Check title, subtitle and message of error event
-    expect(await screen.findByText('WorkerLostError:')).toBeInTheDocument();
-    expect(await screen.findByText('foo')).toBeInTheDocument();
-    expect(await screen.findByText('Message of the second issue')).toBeInTheDocument();
-  });
-
-  it('trace-related: check title, subtitle for default event', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: emptyBody,
-      match: [MockApiClient.matchQuery({dataset: 'issuePlatform', project: -1})],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: {data: [defaultEvent]},
-      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
-    });
-    // Used to determine the project badge
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/projects/`,
-      body: [],
-    });
-
-    render(<TraceTimeLineOrRelatedIssue event={event} />, {organization});
-
-    // Check title, subtitle and message of default event
-    expect(await screen.findByText(defaultEvent.title)).toBeInTheDocument();
-    // The subtitle is empty for default events
-    expect(await screen.getByTestId('subtitle-span')).toHaveTextContent('');
-    // The message is the culprit
-    expect(await screen.findByText(defaultEvent.culprit)).toBeInTheDocument();
-  });
-
   it('skips the timeline and shows NO related issues (only 1 issue)', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -392,5 +330,87 @@ describe('TraceTimeline & TraceRelated Issue', () => {
       }),
     });
     expect(await screen.findByText('Slow DB Query')).toBeInTheDocument();
+  });
+});
+
+function createEvent({
+  culprit,
+  message,
+  title,
+  transaction,
+  event_type = 'error',
+}: {
+  culprit: string;
+  message: string;
+  title: string;
+  transaction: string;
+  event_type?: string;
+}) {
+  return {
+    culprit: culprit,
+    message: message,
+    timestamp: '2024-01-24T09:09:04+00:00',
+    'issue.id': 9999,
+    project: 'foo',
+    'project.name': 'bar',
+    title: title,
+    id: '12345',
+    transaction: transaction,
+    'event.type': event_type,
+  };
+}
+
+describe('getTitleSubtitleMessage()', () => {
+  it('error event', () => {
+    expect(
+      getTitleSubtitleMessage(
+        createEvent({
+          message: 'Message of the second issue',
+          title:
+            'ClientError: 404 Client Error: for url: https://api.clickup.com/sentry/webhook',
+          culprit: 'n/a',
+          transaction: 'foo',
+        })
+      )
+    ).toEqual({
+      title: 'ClientError', // The colon and remainder of string are removed
+      subtitle: 'foo',
+      message: 'Message of the second issue',
+    });
+  });
+
+  it('error event: It keeps the colon', () => {
+    expect(
+      getTitleSubtitleMessage(
+        createEvent({
+          message: 'Message of the second issue',
+          title: 'WorkerLostError: ',
+          culprit: 'n/a',
+          transaction: 'foo',
+        })
+      )
+    ).toEqual({
+      title: 'WorkerLostError:', // The colon is kept
+      subtitle: 'foo',
+      message: 'Message of the second issue',
+    });
+  });
+
+  it('default event', () => {
+    expect(
+      getTitleSubtitleMessage(
+        createEvent({
+          message: 'n/a',
+          title: 'Query from referrer search.group_index is throttled',
+          culprit: '/api/0/organizations/{organization_id_or_slug}/issues/',
+          event_type: 'default',
+          transaction: 'n/a',
+        })
+      )
+    ).toEqual({
+      title: 'Query from referrer search.group_index is throttled',
+      subtitle: '',
+      message: '/api/0/organizations/{organization_id_or_slug}/issues/',
+    });
   });
 });
