@@ -13,7 +13,7 @@ import {
 
 export const METRICS_DOCS_URL = 'https://docs.sentry.io/product/metrics/';
 
-export const DEFAULT_METRICS_CARDINALITY_LIMIT = 1;
+export const DEFAULT_METRICS_CARDINALITY_LIMIT = 140000;
 
 export const metricDisplayTypeOptions = [
   {
