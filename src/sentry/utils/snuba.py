@@ -849,13 +849,12 @@ def raw_query(
 
 
 Translator = Callable[[Any], Any]
-RequestQueryBody = tuple[Request, Translator, Translator]
 
 
 @dataclasses.dataclass(frozen=True)
 class SnubaRequest:
-    referrer: str | None  # this should use the referrer class
     request: Request
+    referrer: str | None  # this should use the referrer class
     forward: Translator
     reverse: Translator
 
@@ -924,8 +923,16 @@ def bulk_snuba_queries(
             if query_source:
                 request.tenant_ids["query_source"] = query_source.value
 
-    params = [(request, lambda x: x, lambda x: x) for request in requests]
-    return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
+    snuba_requests = [
+        SnubaRequest(
+            request=request,
+            referrer=referrer,
+            forward=lambda x: x,
+            reverse=lambda x: x,
+        )
+        for request in requests
+    ]
+    return _apply_cache_and_build_results(snuba_requests, use_cache=use_cache)
 
 
 # TODO: This is the endpoint that accepts legacy (non-SnQL/MQL queries)
@@ -940,11 +947,16 @@ def bulk_raw_query(
     will be converted to SnQL queries before being sent to Snuba.
     """
     params = [_prepare_query_params(param, referrer) for param in snuba_param_list]
-    request_bodies = [
-        (json_to_snql(query, query["dataset"]), forward, reverse)
+    snuba_requests = [
+        SnubaRequest(
+            request=json_to_snql(query, query["dataset"]),
+            referrer=referrer,
+            forward=forward,
+            reverse=reverse,
+        )
         for query, forward, reverse in params
     ]
-    return _apply_cache_and_build_results(request_bodies, referrer=referrer, use_cache=use_cache)
+    return _apply_cache_and_build_results(snuba_requests, use_cache=use_cache)
 
 
 def get_cache_key(query: Request) -> str:
@@ -958,8 +970,7 @@ def get_cache_key(query: Request) -> str:
 
 
 def _apply_cache_and_build_results(
-    snuba_param_list: Sequence[RequestQueryBody],
-    referrer: str | None = None,
+    snuba_requests: Sequence[SnubaRequest],
     use_cache: bool | None = False,
 ) -> ResultSet:
     parent_api: str = "<missing>"
@@ -969,19 +980,13 @@ def _apply_cache_and_build_results(
 
     # Store the original position of the query so that we can maintain the order
     snuba_requests_list: list[tuple[int, SnubaRequest]] = []
-    for i, (request, forward, reverse) in enumerate(snuba_param_list):
-        request.parent_api = parent_api
-        snuba_request = SnubaRequest(
-            referrer=referrer,
-            request=request,
-            forward=forward,
-            reverse=reverse,
-        )
+    for i, snuba_request in enumerate(snuba_requests):
+        snuba_request.request.parent_api = parent_api
         snuba_requests_list.append((i, snuba_request))
 
     results = []
 
-    to_query: list[tuple[int, RequestQueryBody, str | None]] = []
+    to_query: list[tuple[int, SnubaRequest, str | None]] = []
 
     if use_cache:
         cache_keys = [
@@ -990,7 +995,7 @@ def _apply_cache_and_build_results(
         cache_data = cache.get_many(cache_keys)
         for (query_pos, snuba_request), cache_key in zip(snuba_requests_list, cache_keys):
             cached_result = cache_data.get(cache_key)
-            metric_tags = {"referrer": referrer} if referrer else None
+            metric_tags = {"referrer": snuba_request.referrer} if snuba_request.referrer else None
             if cached_result is None:
                 metrics.incr("snuba.query_cache.miss", tags=metric_tags)
                 to_query.append((query_pos, snuba_request, cache_key))
