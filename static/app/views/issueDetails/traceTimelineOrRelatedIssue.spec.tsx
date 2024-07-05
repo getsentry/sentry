@@ -336,8 +336,8 @@ describe('TraceTimeline & TraceRelated Issue', () => {
 });
 
 function createEvent({
-  title,
   culprit,
+  title,
   error_value,
   event_type = 'error',
 }: {
@@ -346,8 +346,7 @@ function createEvent({
   error_value?: string[];
   event_type?: string;
 }) {
-  let event;
-  event = {
+  const event = {
     message: 'message',
     culprit: culprit,
     timestamp: '2024-01-24T09:09:04+00:00',
@@ -356,7 +355,7 @@ function createEvent({
     'project.name': 'bar',
     title: title,
     id: '12345',
-    transaction: 'foo',
+    transaction: 'n/a',
     'event.type': event_type,
   };
   if (error_value) {
@@ -370,9 +369,9 @@ describe('getTitleSubtitleMessage()', () => {
     expect(
       getTitleSubtitleMessage(
         createEvent({
+          culprit: '/api/0/sentry-app-installations/{uuid}/',
           title:
             'ClientError: 404 Client Error: for url: https://api.clickup.com/sentry/webhook',
-          culprit: '/api/0/sentry-app-installations/{uuid}/',
           error_value: [
             '404 Client Error: for url: https://api.clickup.com/sentry/webhook',
           ],
@@ -389,13 +388,13 @@ describe('getTitleSubtitleMessage()', () => {
     expect(
       getTitleSubtitleMessage(
         createEvent({
-          title: 'WorkerLostError: ',
           culprit: 'billiard.pool in foo',
+          title: 'WorkerLostError: ',
           error_value: ['some-other-error-value', 'The last error value'],
         })
       )
     ).toEqual({
-      title: 'WorkerLostError:',
+      title: 'WorkerLostError:', // The colon is kept
       subtitle: 'billiard.pool in foo',
       message: 'The last error value',
     });
@@ -421,8 +420,8 @@ describe('getTitleSubtitleMessage()', () => {
     expect(
       getTitleSubtitleMessage(
         createEvent({
-          title: 'Query from referrer search.group_index is throttled',
           culprit: '/api/0/organizations/{organization_id_or_slug}/issues/',
+          title: 'Query from referrer search.group_index is throttled',
           event_type: 'default',
         })
       )
