@@ -252,13 +252,13 @@ def get_spans_from_group(
         app_id="default",
         query=query,
         tenant_ids={
-            "referrer": Referrer.API_PROFILING_PROFILE_FLAMEGRAPH.value,
+            "referrer": Referrer.API_PROFILING_FLAMEGRAPH_SPANS_WITH_GROUP.value,
             "organization_id": organization_id,
         },
     )
     data = raw_snql_query(
         request,
-        referrer=Referrer.API_PROFILING_PROFILE_FLAMEGRAPH.value,
+        referrer=Referrer.API_PROFILING_FLAMEGRAPH_SPANS_WITH_GROUP.value,
     )["data"]
     spans: dict[str, list[IntervalMetadata]] = defaultdict(list)
     for row in data:
@@ -325,13 +325,13 @@ def get_chunks_from_spans_metadata(
         app_id="default",
         query=query,
         tenant_ids={
-            "referrer": Referrer.API_PROFILING_PROFILE_FLAMEGRAPH.value,
+            "referrer": Referrer.API_PROFILING_FLAMEGRAPH_CHUNKS_FROM_SPANS.value,
             "organization_id": organization_id,
         },
     )
     data = raw_snql_query(
         request,
-        referrer=Referrer.API_PROFILING_PROFILE_FLAMEGRAPH.value,
+        referrer=Referrer.API_PROFILING_FLAMEGRAPH_CHUNKS_FROM_SPANS.value,
     )["data"]
     chunks = []
     for row in data:
