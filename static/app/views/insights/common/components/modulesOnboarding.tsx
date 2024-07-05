@@ -113,7 +113,7 @@ function ModulePreview({moduleName}: ModulePreviewProps) {
           <SupportedSdkList>
             {emptyStateContent.supportedSdks.map(sdk => (
               <SupportedSdkIconContainer key={sdk}>
-                <PlatformIcon platform={sdk} format="sm" />
+                <PlatformIcon platform={sdk} size={'25px'} />
               </SupportedSdkIconContainer>
             ))}
           </SupportedSdkList>
@@ -179,19 +179,19 @@ const SupportedSdkContainer = styled('div')`
   color: ${p => p.theme.gray300};
 `;
 
+const SupportedSdkList = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+`;
+
 const SupportedSdkIconContainer = styled('div')`
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: ${p => p.theme.gray200};
-  width: 30px;
-  height: 30px;
+  background-color: ${p => p.theme.gray100};
+  width: 42px;
+  height: 42px;
   border-radius: 3px;
-`;
-
-const SupportedSdkList = styled('div')`
-  display: flex;
-  gap: ${space(1)};
 `;
 
 const ValueProp = styled('div')`
