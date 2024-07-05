@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useId, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -40,7 +40,7 @@ interface Props extends Omit<FormProps, 'onSubmit'> {
   ) => void;
 }
 
-const KNOWN_NUMERIC_FIELDS = new Set([
+const HIGH_CARDINALITY_TAGS = new Set([
   SpanIndexedField.SPAN_DURATION,
   SpanIndexedField.SPAN_SELF_TIME,
   SpanIndexedField.PROJECT_ID,
@@ -52,6 +52,7 @@ const KNOWN_NUMERIC_FIELDS = new Set([
   SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
   SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY,
   SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
+  SpanIndexedField.TRANSACTION_ID,
 ]);
 
 const AGGREGATE_OPTIONS: {label: string; value: AggregateGroup}[] = [
@@ -159,16 +160,19 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
     return copy;
   }, [tags]);
 
-  const attributeOptions = useMemo(() => {
+  const allAttributeOptions = useMemo(() => {
     let keys = Object.keys(supportedTags);
-    const disabledKeys = new Set(extractionRules?.map(rule => rule.spanAttribute) || []);
-
     if (customAttributes.length) {
       keys = [...new Set(keys.concat(customAttributes))];
     }
+    return keys;
+  }, [customAttributes, supportedTags]);
+
+  const attributeOptions = useMemo(() => {
+    const disabledKeys = new Set(extractionRules?.map(rule => rule.spanAttribute) || []);
 
     return (
-      keys
+      allAttributeOptions
         .map(key => ({
           label: key,
           value: key,
@@ -184,14 +188,19 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
         // Sort disabled attributes to bottom
         .sort((a, b) => Number(a.disabled) - Number(b.disabled))
     );
-  }, [customAttributes, supportedTags, extractionRules]);
+  }, [allAttributeOptions, extractionRules]);
 
   const tagOptions = useMemo(() => {
-    return attributeOptions.filter(
-      // We don't want to suggest numeric fields as tags as they would explode cardinality
-      option => !KNOWN_NUMERIC_FIELDS.has(option.value as SpanIndexedField)
-    );
-  }, [attributeOptions]);
+    return allAttributeOptions
+      .filter(
+        // We don't want to suggest numeric fields as tags as they would explode cardinality
+        option => !HIGH_CARDINALITY_TAGS.has(option as SpanIndexedField)
+      )
+      .map(option => ({
+        label: option,
+        value: option,
+      }));
+  }, [allAttributeOptions]);
 
   const handleSubmit = useCallback(
     (
@@ -298,13 +307,18 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                           {conditions.length > 1 && (
                             <ConditionSymbol>{index + 1}</ConditionSymbol>
                           )}
-                          <SearchBar
+                          <SearchBarWithId
                             {...SPAN_SEARCH_CONFIG}
                             searchSource="metrics-extraction"
                             query={condition.value}
                             onSearch={(queryString: string) =>
                               handleChange(queryString, index)
                             }
+                            onClose={(queryString: string, {validSearch}) => {
+                              if (validSearch) {
+                                handleChange(queryString, index);
+                              }
+                            }}
                             placeholder={t('Search for span attributes')}
                             organization={organization}
                             metricAlert={false}
@@ -312,9 +326,6 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                             dataset={DiscoverDatasets.SPANS_INDEXED}
                             projectIds={[parseInt(project.id, 10)]}
                             hasRecentSearches={false}
-                            onBlur={(queryString: string) =>
-                              handleChange(queryString, index)
-                            }
                             savedSearchType={undefined}
                             useFormWrapper={false}
                           />
@@ -346,6 +357,11 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
       )}
     </Form>
   );
+}
+
+function SearchBarWithId(props: React.ComponentProps<typeof SearchBar>) {
+  const id = useId();
+  return <SearchBar id={id} {...props} />;
 }
 
 const ConditionsWrapper = styled('div')<{hasDelete: boolean}>`
