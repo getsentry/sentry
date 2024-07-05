@@ -1,4 +1,4 @@
-from typing import Any, cast
+from typing import cast
 
 import sentry_sdk
 from rest_framework.request import Request
@@ -14,9 +14,6 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.api.paginator import ChainPaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
-from sentry.models.organization import Organization
-from sentry.models.project import Project
-from sentry.organizations.services.organization import RpcOrganization
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
@@ -26,61 +23,14 @@ from sentry.tagstore.types import TagKey, TagValue
 
 
 class OrganizationSpansFieldsEndpointBase(OrganizationEventsV2EndpointBase):
-    def get_snuba_dataclass(
-        self, request: Request, organization: Organization, check_global_views: bool = True
-    ) -> tuple[SnubaParams, dict[str, Any]]:
-        # Disables the global views check so that this endpoint is allowed to do
-        # cross project queries if requested.
-
-        "We are reverting this decision to allow cross project searches"
-        if features.has(
-            "organizations:performance-trace-explorer-enforce-projects",
-            organization,
-            actor=request.user,
-        ):
-            return super().get_snuba_dataclass(
-                request, organization, check_global_views=check_global_views
-            )
-
-        return super().get_snuba_dataclass(request, organization, check_global_views=False)
-
-    def get_projects(  # type: ignore[override]
-        self,
-        request: Request,
-        organization: Organization | RpcOrganization,
-        project_ids: set[int] | None = None,
-        project_slugs: set[str] | None = None,
-        include_all_accessible: bool = True,
-    ) -> list[Project]:
-        "We are reverting this decision to allow cross project searches"
-        if features.has(
-            "organizations:performance-trace-explorer-enforce-projects",
-            organization,
-            actor=request.user,
-        ):
-            return super().get_projects(
-                request,
-                organization,
-                project_ids=project_ids,
-                project_slugs=project_slugs,
-                include_all_accessible=include_all_accessible,
-            )
-
-        return super().get_projects(
-            request,
-            organization,
-            project_ids={-1},
-            project_slugs=None,
-            include_all_accessible=True,
-        )
-
-
-@region_silo_endpoint
-class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.PERFORMANCE
+
+
+@region_silo_endpoint
+class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
     snuba_methods = ["GET"]
 
     def get(self, request: Request, organization) -> Response:
@@ -139,10 +89,6 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
 
 @region_silo_endpoint
 class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
-    publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
-    }
-    owner = ApiOwner.PERFORMANCE
     snuba_methods = ["GET"]
 
     def get(self, request: Request, organization, key: str) -> Response:
