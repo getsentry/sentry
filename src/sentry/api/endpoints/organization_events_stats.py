@@ -416,7 +416,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         )
                         has_transactions = self.check_if_results_have_data(transaction_results)
 
-                    decision = self.save_split_decision(widget, has_errors, has_transactions)
+                    # TODO: Port over logic for interpreting split decision
+                    decision = self.save_dashboard_widget_split_decision(
+                        widget, None, has_errors, has_transactions
+                    )
 
                     if decision == DashboardWidgetTypes.DISCOVER:
                         # The user needs to be warned to split in this case.

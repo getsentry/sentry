@@ -250,7 +250,7 @@ class OrganizationEventsV2EndpointBase(OrganizationEventsEndpointBase):
         else:
             # In the case that neither side has data, we do not need to split this yet and can make multiple queries to check each time.
             # This will help newly created widgets or infrequent count widgets that shouldn't be prematurely assigned a side.
-            decision = None
+            decision = DashboardWidgetTypes.DISCOVER
             sentry_sdk.set_tag("discover.split_reason", "default")
 
         sentry_sdk.set_tag("discover.split_decision", decision)
