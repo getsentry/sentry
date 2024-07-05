@@ -115,7 +115,7 @@ describe('OrganizationStats', function () {
       UsageStatsOrg: {
         statsPeriod: DEFAULT_STATS_PERIOD,
         interval: '1h',
-        groupBy: ['category', 'outcome', 'reason'],
+        groupBy: ['category', 'outcome'],
         project: [-1],
         field: ['sum(quantity)'],
       },
@@ -314,7 +314,7 @@ describe('OrganizationStats', function () {
         query: {
           statsPeriod: DEFAULT_STATS_PERIOD,
           interval: '1h',
-          groupBy: ['category', 'outcome', 'reason'],
+          groupBy: ['category', 'outcome'],
           project: selectedProjects,
           field: ['sum(quantity)'],
         },
@@ -355,7 +355,7 @@ describe('OrganizationStats', function () {
         query: {
           statsPeriod: DEFAULT_STATS_PERIOD,
           interval: '1h',
-          groupBy: ['category', 'outcome', 'reason'],
+          groupBy: ['category', 'outcome'],
           project: selectedProject,
           field: ['sum(quantity)'],
         },
