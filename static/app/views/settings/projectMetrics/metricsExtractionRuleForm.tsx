@@ -56,6 +56,7 @@ const HIGH_CARDINALITY_TAGS = new Set([
   SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY,
   SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
   SpanIndexedField.TRANSACTION_ID,
+  SpanIndexedField.ID,
 ]);
 
 const AGGREGATE_OPTIONS: {label: string; value: AggregateGroup}[] = [
