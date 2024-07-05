@@ -29,8 +29,8 @@ class DatasetTest(SnubaTestCase, TestCase):
         }
         request = json_to_snql(json_body, "group_attributes")
         request.validate()
-        stuff = raw_snql_query(request)
-        assert len(stuff["data"]) == 0
+        result = raw_snql_query(request)
+        assert len(result["data"]) == 0
 
     def test_insert_then_query(self) -> None:
         project = self.create_project()
@@ -56,5 +56,5 @@ class DatasetTest(SnubaTestCase, TestCase):
         }
         request = json_to_snql(json_body, "group_attributes")
         request.validate()
-        stuff = raw_snql_query(request)
-        assert len(stuff["data"]) == 1
+        result = raw_snql_query(request)
+        assert len(result["data"]) == 1

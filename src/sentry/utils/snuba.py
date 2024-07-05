@@ -854,7 +854,7 @@ Translator = Callable[[Any], Any]
 @dataclasses.dataclass(frozen=True)
 class SnubaRequest:
     request: Request
-    referrer: str | None  # this should use the referrer class
+    referrer: str | None  # TODO: this should use the referrer Enum
     forward: Translator
     reverse: Translator
 

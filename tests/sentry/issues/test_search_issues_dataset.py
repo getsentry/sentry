@@ -28,5 +28,5 @@ class DatasetTest(SnubaTestCase, TestCase):
         }
         request = json_to_snql(json_body, "search_issues")
         request.validate()
-        stuff = raw_snql_query(request)
-        assert len(stuff["data"]) == 0
+        result = raw_snql_query(request)
+        assert len(result["data"]) == 0

@@ -235,7 +235,7 @@ class PostUpdateLogGroupAttributesChangedTest(TestCase):
             }
             request = json_to_snql(json_body, "group_attributes")
             request.validate()
-            stuff = raw_snql_query(request)
-            assert stuff["data"] == [
+            result = raw_snql_query(request)
+            assert result["data"] == [
                 {"project_id": g.project_id, "group_id": g.id, **snuba_fields} for g in groups
             ]
