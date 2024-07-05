@@ -9,8 +9,6 @@ import type {Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import {GroupEventCarousel} from 'sentry/views/issueDetails/groupEventCarousel';
 
-import {TraceTimeLineOrRelatedIssue} from './traceTimelineOrRelatedIssue';
-
 type GroupEventHeaderProps = {
   event: Event;
   group: Group;
@@ -23,7 +21,6 @@ function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {
   return (
     <StyledDataSection>
       <GroupEventCarousel group={group} event={event} projectSlug={project.slug} />
-      <TraceTimeLineOrRelatedIssue event={event} />
       <StyledGlobalAppStoreConnectUpdateAlert
         project={project}
         organization={organization}
