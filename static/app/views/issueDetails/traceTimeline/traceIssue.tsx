@@ -81,22 +81,20 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
 // We could also make another call to the issues endpoint  to fetch the metadata,
 // however, we currently don't support it and it is extremely slow
 function getTitleSubtitleMessage(event: TimelineEvent) {
-  let title;
+  let title = event.title.trimEnd();
   // XXX: This is not fully correct but it will make following PRs easier to review
   let subtitle = event.transaction;
   let message = event.message;
   try {
-    title = event.title.trimEnd();
     if (event['event.type'] === 'error') {
       if (title[title.length - 1] !== ':') {
         title = event.title.split(':')[0];
       }
     } else if (event['event.type'] === 'default') {
-      // https://github.com/getsentry/sentry/blob/f08644a004f9980d48f93dec2d7cfc9eeecd9a9e/static/app/utils/events.tsx#L179-L184
+      // See getTitle() and getMessage() in sentry/utils/events.tsx
       subtitle = '';
-      // https://github.com/getsentry/sentry/blob/f08644a004f9980d48f93dec2d7cfc9eeecd9a9e/static/app/utils/events.tsx#L59-L60
       const errorEvent = event as TimelineDiscoverEvent;
-      message = errorEvent.culprit || '';
+      message = errorEvent.culprit;
     } else {
       // It is suspected that this value is calculated somewhere in Relay
       // and we deconstruct it here to match what the Issue details page shows
