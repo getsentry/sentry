@@ -3,7 +3,7 @@ import {t} from 'sentry/locale';
 export const MODULE_TITLE = t('Queues');
 export const BASE_URL = 'queues';
 export const DATA_TYPE = t('Queue');
-export const DATA_TYPE_PLURAL = MODULE_TITLE;
+export const DATA_TYPE_PLURAL = t('Queues');
 
 export const CHART_HEIGHT = 160;
 
