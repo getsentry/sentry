@@ -43,7 +43,7 @@ def execute(function: Callable[..., T], daemon=True):
 @functools.total_ordering
 class PriorityTask(NamedTuple, Generic[T]):
     priority: int
-    item: tuple[Callable[[], T], sentry_sdk.Scope, sentry_sdk.Scope, Future[T]]
+    item: tuple[sentry_sdk.Scope, sentry_sdk.Scope, Callable[[], T], Future[T]]
 
     def __eq__(self, b):
         return self.priority == b.priority
@@ -197,7 +197,7 @@ class ThreadedExecutor(Executor[T]):
         queue = self.__queue
         while True:
             priority, item = queue.get(True)
-            function, thread_isolation_scope, thread_current_scope, future = item
+            thread_isolation_scope, thread_current_scope, function, future = item
             with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope):
                 with sentry_sdk.scope.use_scope(thread_current_scope):
                     if not future.set_running_or_notify_cancel():
@@ -241,9 +241,9 @@ class ThreadedExecutor(Executor[T]):
         task = PriorityTask(
             priority,
             (
-                callable,
                 sentry_sdk.Scope.get_isolation_scope().fork(),
                 sentry_sdk.Scope.get_current_scope().fork(),
+                callable,
                 future,
             ),
         )
