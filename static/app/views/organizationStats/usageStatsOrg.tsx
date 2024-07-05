@@ -4,11 +4,9 @@ import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
-import startCase from 'lodash/startCase';
 import moment from 'moment';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
-import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip';
 import OptionSelector from 'sentry/components/charts/optionSelector';
 import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
@@ -32,11 +30,7 @@ import {
 } from './usageChart/utils';
 import type {UsageSeries, UsageStat} from './types';
 import type {ChartStats, UsageChartProps} from './usageChart';
-import UsageChart, {
-  CHART_OPTIONS_DATA_TRANSFORM,
-  ChartDataTransform,
-  SeriesTypes,
-} from './usageChart';
+import UsageChart, {CHART_OPTIONS_DATA_TRANSFORM, ChartDataTransform} from './usageChart';
 import UsageStatsPerMin from './usageStatsPerMin';
 import {formatUsageWithUnits, getFormatUsageOptions, isDisplayUtc} from './utils';
 
@@ -121,7 +115,7 @@ class UsageStatsOrganization<
     return {
       ...queryDatetime,
       interval: getSeriesApiInterval(dataDatetime),
-      groupBy: ['category', 'outcome', 'reason'],
+      groupBy: ['category', 'outcome'],
       project: projectIds,
       field: ['sum(quantity)'],
     };
@@ -142,7 +136,6 @@ class UsageStatsOrganization<
     chartDateTimezoneDisplay: string;
     chartDateUtc: boolean;
     chartStats: ChartStats;
-    chartSubLabels: TooltipSubLabel[];
     chartTransform: ChartDataTransform;
     dataError?: Error;
   } {
@@ -239,7 +232,6 @@ class UsageStatsOrganization<
       chartDateEnd,
       chartDateUtc,
       chartTransform,
-      chartSubLabels,
     } = this.chartData;
 
     const hasError = error || !!dataError;
@@ -257,10 +249,6 @@ class UsageStatsOrganization<
       usageDateShowUtc: chartDateUtc,
       usageDateInterval: chartDateInterval,
       usageStats: chartStats,
-      chartTooltip: {
-        subLabels: chartSubLabels,
-        skipZeroValuedSubLabels: true,
-      },
     } as UsageChartProps;
 
     return chartProps;
@@ -330,7 +318,6 @@ class UsageStatsOrganization<
       total?: string;
     };
     chartStats: ChartStats;
-    chartSubLabels: TooltipSubLabel[];
     dataError?: Error;
   } {
     const cardStats = {
@@ -345,10 +332,9 @@ class UsageStatsOrganization<
       projected: [],
       filtered: [],
     };
-    const chartSubLabels: TooltipSubLabel[] = [];
 
     if (!orgStats) {
-      return {cardStats, chartStats, chartSubLabels};
+      return {cardStats, chartStats};
     }
 
     try {
@@ -397,63 +383,20 @@ class UsageStatsOrganization<
         count[outcome] += group.totals['sum(quantity)'];
 
         group.series['sum(quantity)'].forEach((stat, i) => {
-          const dataObject = {
-            name: orgStats.intervals[i],
-            value: stat,
-          };
-
-          const reason = String(group.by.reason ?? '');
-          const label = startCase(reason.replace(/-|_/g, ' '));
-          const existingSubLabel = chartSubLabels.find(
-            subLabel => subLabel.label === label
-          );
-
-          if (outcome === Outcome.FILTERED) {
-            usageStats[i][outcome] += stat;
-
-            if (existingSubLabel) {
-              existingSubLabel.data.push({
-                ...dataObject,
-                value: dataObject.value,
-              });
+          switch (outcome) {
+            case Outcome.ACCEPTED:
+            case Outcome.FILTERED:
+              usageStats[i][outcome] += stat;
               return;
-            }
-
-            chartSubLabels.push({
-              parentLabel: SeriesTypes.FILTERED,
-              label,
-              data: [dataObject],
-            });
-
-            return;
-          }
-
-          if (outcome === Outcome.ACCEPTED) {
-            usageStats[i][outcome] += stat;
-            return;
-          }
-
-          if (
-            outcome === Outcome.DROPPED ||
-            outcome === Outcome.RATE_LIMITED ||
-            outcome === Outcome.CARDINALITY_LIMITED ||
-            outcome === Outcome.INVALID
-          ) {
-            usageStats[i].dropped.total += stat;
-
-            if (existingSubLabel) {
-              existingSubLabel.data.push({
-                ...dataObject,
-                value: dataObject.value,
-              });
+            case Outcome.DROPPED:
+            case Outcome.RATE_LIMITED:
+            case Outcome.CARDINALITY_LIMITED:
+            case Outcome.INVALID:
+              usageStats[i].dropped.total += stat;
+              // TODO: add client discards to dropped?
               return;
-            }
-
-            chartSubLabels.push({
-              parentLabel: SeriesTypes.DROPPED,
-              label,
-              data: [dataObject],
-            });
+            default:
+              return;
           }
         });
       });
@@ -498,7 +441,6 @@ class UsageStatsOrganization<
           ),
         },
         chartStats,
-        chartSubLabels,
       };
     } catch (err) {
       Sentry.withScope(scope => {
@@ -510,7 +452,6 @@ class UsageStatsOrganization<
       return {
         cardStats,
         chartStats,
-        chartSubLabels,
         dataError: new Error('Failed to parse stats data'),
       };
     }
