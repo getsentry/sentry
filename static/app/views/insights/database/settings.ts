@@ -13,7 +13,7 @@ import {type Aggregate, ModuleName} from 'sentry/views/insights/types';
 
 export const MODULE_TITLE = t('Queries');
 export const DATA_TYPE = t('Query');
-export const DATA_TYPE_PLURAL = t('Queries');
+export const DATA_TYPE_PLURAL = MODULE_TITLE;
 export const BASE_URL = 'database';
 
 export const BASE_FILTERS = {
