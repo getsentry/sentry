@@ -16,7 +16,7 @@ class EqConditionOptions(TypedDict):
     ignoreCase: bool
 
 
-# Equality condition: checks if a field equals a specific value
+# Equality condition
 class EqCondition(TypedDict):
     op: Literal["eq"]
     name: str
@@ -53,6 +53,8 @@ class LtCondition(TypedDict):
 
 
 # Glob pattern matching condition
+#
+# Glob matching is done in Relay with the following crate: https://docs.rs/globset/latest/globset
 class GlobCondition(TypedDict):
     op: Literal["glob"]
     name: str
