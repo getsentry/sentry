@@ -112,14 +112,14 @@ class UsageTable extends Component<Props> {
           getFormatUsageOptions(dataCategory.plural)
         )}
       </CellStat>,
-      <CellStat key={4}>
+      <CellStat key={5}>
         {formatUsageWithUnits(
           dropped,
           dataCategory.plural,
           getFormatUsageOptions(dataCategory.plural)
         )}
       </CellStat>,
-      <CellStat key={5}>
+      <CellStat key={6}>
         <ButtonBar gap={1}>
           <Button
             icon={<IconGraph type="bar" />}
