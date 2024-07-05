@@ -365,10 +365,10 @@ describe('getTitleSubtitleMessage()', () => {
     expect(
       getTitleSubtitleMessage(
         createEvent({
-          message: 'Message of the second issue',
+          culprit: 'n/a',
           title:
             'ClientError: 404 Client Error: for url: https://api.clickup.com/sentry/webhook',
-          culprit: 'n/a',
+          message: 'Message of the second issue',
           transaction: 'foo',
         })
       )
@@ -383,9 +383,9 @@ describe('getTitleSubtitleMessage()', () => {
     expect(
       getTitleSubtitleMessage(
         createEvent({
-          message: 'Message of the second issue',
-          title: 'WorkerLostError: ',
           culprit: 'n/a',
+          title: 'WorkerLostError: ',
+          message: 'Message of the second issue',
           transaction: 'foo',
         })
       )
@@ -400,11 +400,11 @@ describe('getTitleSubtitleMessage()', () => {
     expect(
       getTitleSubtitleMessage(
         createEvent({
+          culprit: '/api/0/organizations/{organization_id_or_slug}/issues/',
           message: 'n/a',
           title: 'Query from referrer search.group_index is throttled',
-          culprit: '/api/0/organizations/{organization_id_or_slug}/issues/',
-          event_type: 'default',
           transaction: 'n/a',
+          event_type: 'default',
         })
       )
     ).toEqual({
