@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {PlatformIcon, type PlatformIcons} from 'platformicons';
+import {PlatformIcon} from 'platformicons';
+import type {PLATFORM_TO_ICON} from 'platformicons/build/platformIcon';
 
 import appStartPreviewImg from 'sentry-images/insights/module-upsells/insights-app-starts-module-charts.svg';
 import assetsPreviewImg from 'sentry-images/insights/module-upsells/insights-assets-module-charts.svg';
@@ -30,6 +31,8 @@ import {
   MODULE_PRODUCT_DOC_LINKS,
 } from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
+
+type PlatformIcons = keyof typeof PLATFORM_TO_ICON;
 
 export function ModulesOnboarding({
   children,
