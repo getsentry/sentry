@@ -36,9 +36,9 @@ export default function BreadcrumbsTimeline({
     count: breadcrumbs.length,
     getScrollElement: () => containerRef.current,
     estimateSize: () => 35,
-    debug: true,
     // Must match rendered item margins.
     gap: 8,
+    overscan: 10,
   });
 
   if (!breadcrumbs.length) {
@@ -80,12 +80,7 @@ export default function BreadcrumbsTimeline({
   });
 
   return (
-    <Timeline.Container
-      ref={containerRef}
-      style={{
-        height: virtualizer.getTotalSize(),
-      }}
-    >
+    <Timeline.Container ref={containerRef} style={{height: virtualizer.getTotalSize()}}>
       {items}
     </Timeline.Container>
   );
