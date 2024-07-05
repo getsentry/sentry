@@ -445,6 +445,9 @@ export class VideoReplayer {
   }
 
   protected setVideoTime(video: HTMLVideoElement, timeMs: number) {
+    // If 'ended' is true, the current time will be overwritten to 0 after hitting play.
+    // This ensures that ended is reset to false so current time doesn't get overwritten
+    video.currentTime = 0;
     // Needs to be in seconds
     video.currentTime = timeMs / 1000;
   }
