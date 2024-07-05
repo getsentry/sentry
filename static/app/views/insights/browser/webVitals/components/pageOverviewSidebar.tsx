@@ -21,12 +21,14 @@ import PerformanceScoreRingWithTooltips from 'sentry/views/insights/browser/webV
 import {useProjectRawWebVitalsValuesTimeseriesQuery} from 'sentry/views/insights/browser/webVitals/queries/rawWebVitalsQueries/useProjectRawWebVitalsValuesTimeseriesQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {ProjectScore} from 'sentry/views/insights/browser/webVitals/types';
+import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
 const CHART_HEIGHTS = 100;
 
 type Props = {
   transaction: string;
+  browserType?: BrowserType;
   projectScore?: ProjectScore;
   projectScoreIsLoading?: boolean;
   search?: string;
@@ -36,6 +38,7 @@ export function PageOverviewSidebar({
   projectScore,
   transaction,
   projectScoreIsLoading,
+  browserType,
 }: Props) {
   const theme = useTheme();
   const router = useRouter();
@@ -58,6 +61,7 @@ export function PageOverviewSidebar({
   const {data, isLoading: isLoading} = useProjectRawWebVitalsValuesTimeseriesQuery({
     transaction,
     datetime: doubledDatetime,
+    browserType,
   });
 
   const {countDiff, currentSeries, currentCount, initialCount} = processSeriesData(
