@@ -10,7 +10,7 @@ from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.search.events.types import ParamsType
-from sentry.snuba import discover
+from sentry.snuba import discover, transactions
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics_performance import histogram_query as metrics_histogram_query
 from sentry.snuba.metrics_performance import query as metrics_query
@@ -40,6 +40,7 @@ def query(
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type=None,
+    fallback_to_transactions: bool | None = False,
 ):
     metrics_compatible = not equations
     dataset_reason = discover.DEFAULT_DATASET_REASON
@@ -82,8 +83,13 @@ def query(
 
     # Either metrics failed, or this isn't a query we can enhance with metrics
     if not metrics_compatible:
-        sentry_sdk.set_tag("performance.dataset", "discover")
-        results = discover.query(
+        dataset = discover
+        if fallback_to_transactions:
+            dataset = transactions
+            sentry_sdk.set_tag("performance.dataset", "transactions")
+        else:
+            sentry_sdk.set_tag("performance.dataset", "discover")
+        results = dataset.query(
             selected_columns,
             query,
             params,
@@ -123,6 +129,7 @@ def timeseries_query(
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type=None,
+    fallback_to_transactions: bool | None = False,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -157,8 +164,14 @@ def timeseries_query(
 
     # This isn't a query we can enhance with metrics
     if not metrics_compatible:
-        sentry_sdk.set_tag("performance.dataset", "discover")
-        return discover.timeseries_query(
+        dataset = discover
+        if fallback_to_transactions:
+            dataset = transactions
+            sentry_sdk.set_tag("performance.dataset", "transactions")
+        else:
+            sentry_sdk.set_tag("performance.dataset", "discover")
+
+        return dataset.timeseries_query(
             selected_columns,
             query,
             params,
@@ -199,6 +212,7 @@ def top_events_timeseries(
     functions_acl: list[str] | None = None,
     on_demand_metrics_enabled: bool | None = False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    fallback_to_transactions: bool | None = False,
 ) -> SnubaTSResult | dict[str, Any]:
     metrics_compatible = False
     equations, _ = categorize_columns(selected_columns)
@@ -236,8 +250,14 @@ def top_events_timeseries(
 
     # This isn't a query we can enhance with metrics
     if not metrics_compatible:
-        sentry_sdk.set_tag("performance.dataset", "discover")
-        return discover.top_events_timeseries(
+        dataset = discover
+        if fallback_to_transactions:
+            dataset = transactions
+            sentry_sdk.set_tag("performance.dataset", "transactions")
+        else:
+            sentry_sdk.set_tag("performance.dataset", "discover")
+
+        return dataset.top_events_timeseries(
             timeseries_columns,
             selected_columns,
             user_query,

@@ -348,7 +348,9 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         elif referrer not in ALLOWED_EVENTS_REFERRERS:
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
-        def _data_fn(scopedDataset, offset, limit, query) -> dict[str, Any]:
+        def _data_fn(
+            scopedDataset, offset, limit, query, fallback_to_transactions=False
+        ) -> dict[str, Any]:
             return scopedDataset.query(
                 selected_columns=self.get_field_list(organization, request),
                 query=query,
@@ -369,6 +371,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
+                fallback_to_transactions=fallback_to_transactions,
             )
 
         @sentry_sdk.tracing.trace
