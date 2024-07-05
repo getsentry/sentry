@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useId, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -307,13 +307,18 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                           {conditions.length > 1 && (
                             <ConditionSymbol>{index + 1}</ConditionSymbol>
                           )}
-                          <SearchBar
+                          <SearchBarWithId
                             {...SPAN_SEARCH_CONFIG}
                             searchSource="metrics-extraction"
                             query={condition.value}
                             onSearch={(queryString: string) =>
                               handleChange(queryString, index)
                             }
+                            onClose={(queryString: string, {validSearch}) => {
+                              if (validSearch) {
+                                handleChange(queryString, index);
+                              }
+                            }}
                             placeholder={t('Search for span attributes')}
                             organization={organization}
                             metricAlert={false}
@@ -321,9 +326,6 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                             dataset={DiscoverDatasets.SPANS_INDEXED}
                             projectIds={[parseInt(project.id, 10)]}
                             hasRecentSearches={false}
-                            onBlur={(queryString: string) =>
-                              handleChange(queryString, index)
-                            }
                             savedSearchType={undefined}
                             useFormWrapper={false}
                           />
@@ -355,6 +357,11 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
       )}
     </Form>
   );
+}
+
+function SearchBarWithId(props: React.ComponentProps<typeof SearchBar>) {
+  const id = useId();
+  return <SearchBar id={id} {...props} />;
 }
 
 const ConditionsWrapper = styled('div')<{hasDelete: boolean}>`

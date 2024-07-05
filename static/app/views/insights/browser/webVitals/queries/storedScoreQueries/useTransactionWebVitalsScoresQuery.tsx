@@ -13,6 +13,7 @@ import type {
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
 import {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {useStaticWeightsSetting} from 'sentry/views/insights/browser/webVitals/utils/useStaticWeightsSetting';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
@@ -42,8 +43,17 @@ export const useTransactionWebVitalsScoresQuery = ({
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
+  const shouldUseStaticWeights = useStaticWeightsSetting();
 
   const sort = useWebVitalsSort({sortName, defaultSort});
+  if (sort !== undefined && shouldUseStaticWeights) {
+    if (sort.field === 'avg(measurements.score.total)') {
+      sort.field = 'performance_score(measurements.score.total)';
+    }
+    if (sort.field === 'opportunity_score(measurements.score.total)') {
+      sort.field = 'total_opportunity_score()';
+    }
+  }
 
   const search = new MutableSearch([
     'avg(measurements.score.total):>=0',
@@ -68,13 +78,16 @@ export const useTransactionWebVitalsScoresQuery = ({
           ? [`performance_score(measurements.score.${webVital})`]
           : []),
         `opportunity_score(measurements.score.${webVital})`,
-        'avg(measurements.score.total)',
+        ...(shouldUseStaticWeights
+          ? ['performance_score(measurements.score.total)']
+          : ['avg(measurements.score.total)']),
         'count()',
         `count_scores(measurements.score.lcp)`,
         `count_scores(measurements.score.fcp)`,
         `count_scores(measurements.score.cls)`,
         `count_scores(measurements.score.inp)`,
         `count_scores(measurements.score.ttfb)`,
+        'total_opportunity_score()',
       ],
       name: 'Web Vitals',
       query: [DEFAULT_QUERY_FILTER, search.formatString()].join(' ').trim(),
@@ -101,6 +114,14 @@ export const useTransactionWebVitalsScoresQuery = ({
   const tableData: RowWithScoreAndOpportunity[] =
     !isLoading && data?.data.length
       ? data.data.map(row => {
+          // Map back performance score key so we don't have to handle both keys in the UI
+          if (
+            shouldUseStaticWeights &&
+            row['performance_score(measurements.score.total)'] !== undefined
+          ) {
+            row['avg(measurements.score.total)'] =
+              row['performance_score(measurements.score.total)'];
+          }
           const {totalScore, clsScore, fcpScore, lcpScore, ttfbScore, inpScore} =
             calculatePerformanceScoreFromStoredTableDataRow(row);
           return {
@@ -132,8 +153,11 @@ export const useTransactionWebVitalsScoresQuery = ({
             lcpScore: lcpScore ?? 0,
             ttfbScore: ttfbScore ?? 0,
             inpScore: inpScore ?? 0,
+            // Map back opportunity score key so we don't have to handle both keys in the UI
             opportunity: row[
-              `opportunity_score(measurements.score.${webVital})`
+              shouldUseStaticWeights && webVital === 'total'
+                ? 'total_opportunity_score()'
+                : `opportunity_score(measurements.score.${webVital})`
             ] as number,
           };
         })
