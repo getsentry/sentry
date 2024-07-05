@@ -2,6 +2,7 @@ from collections.abc import Sequence
 from datetime import timedelta
 from unittest.mock import patch
 
+import pytest
 from django.utils import timezone
 from snuba_sdk.legacy import json_to_snql
 
@@ -17,6 +18,7 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
+from sentry.testutils.skips import requires_snuba
 from sentry.types.group import GroupSubStatus
 from sentry.utils.snuba import raw_snql_query
 
@@ -182,6 +184,9 @@ class PostSaveLogGroupAttributesChangedTest(TestCase):
             send_snapshot_values.assert_called_with(None, self.group, False)
 
 
+@pytest.mark.snuba
+@requires_snuba
+@pytest.mark.usefixtures("reset_snuba")
 class PostUpdateLogGroupAttributesChangedTest(TestCase):
     def setUp(self) -> None:
         super().setUp()
@@ -226,7 +231,7 @@ class PostUpdateLogGroupAttributesChangedTest(TestCase):
                 "conditions": [
                     ["project_id", "IN", [groups[0].project_id]],
                 ],
-                "order_by": ["group_id"],
+                "orderby": ["group_id"],
                 "consistent": True,
                 "tenant_ids": {
                     "referrer": "group_attributes",
