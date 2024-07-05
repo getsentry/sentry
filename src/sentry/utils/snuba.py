@@ -906,20 +906,20 @@ def bulk_snuba_queries(
     ) = None,  # TODO: @athena Make this field required after updated all the callsites
 ) -> ResultSet:
     """
-    Alias for `concurrent_snuba_queries` to use the same referrer for every request.
+    Alias for `bulk_snuba_queries_with_referrers` that uses the same referrer for every request.
     """
 
     metrics.incr("snql.sdk.api", tags={"referrer": referrer or "unknown"})
 
-    return concurrent_snuba_queries(
+    return bulk_snuba_queries_with_referrers(
         [(request, referrer) for request in requests],
         use_cache=use_cache,
         query_source=query_source,
     )
 
 
-def concurrent_snuba_queries(
-    requests_with_referrers: list[tuple[Request, str]],
+def bulk_snuba_queries_with_referrers(
+    requests_with_referrers: list[tuple[Request, str | None]],
     use_cache: bool = False,
     query_source: (
         QuerySource | None
