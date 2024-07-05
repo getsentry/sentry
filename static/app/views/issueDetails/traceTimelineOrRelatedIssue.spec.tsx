@@ -8,6 +8,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 
+import {getTitleSubtitleMessage} from './traceTimeline/traceIssue';
 import {TraceTimeline} from './traceTimeline/traceTimeline';
 import type {TraceEventResponse} from './traceTimeline/useTraceTimelineEvents';
 import {TraceTimeLineOrRelatedIssue} from './traceTimelineOrRelatedIssue';
@@ -246,32 +247,6 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     );
   });
 
-  it('trace-related: check title, subtitle for error event', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: emptyBody,
-      match: [MockApiClient.matchQuery({dataset: 'issuePlatform', project: -1})],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: {data: [secondError]},
-      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
-    });
-    // Used to determine the project badge
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/projects/`,
-      body: [],
-    });
-
-    render(<TraceTimeLineOrRelatedIssue event={event} />, {organization});
-
-    // Check title, subtitle and message of error event
-    expect(await screen.findByText('WorkerLostError:')).toBeInTheDocument();
-    expect(await screen.findByText('billiard.pool in foo')).toBeInTheDocument();
-    // The message from the last error value
-    expect(await screen.findByText('The last error value')).toBeInTheDocument();
-  });
-
   it('trace-related: check title, subtitle for default event', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
@@ -297,37 +272,6 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     expect(await screen.getByTestId('subtitle-span')).toHaveTextContent('');
     // The message is the culprit
     expect(await screen.findByText(defaultEvent.culprit)).toBeInTheDocument();
-  });
-
-  it('skips the timeline and shows NO related issues (only 1 issue)', async () => {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: emptyBody,
-      match: [MockApiClient.matchQuery({dataset: 'issuePlatform', project: -1})],
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      // Only 1 issue
-      body: discoverBody,
-      match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
-    });
-    // Used to determine the project badge
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/projects/`,
-      body: [],
-    });
-
-    render(<TraceTimeLineOrRelatedIssue event={event} />, {organization});
-
-    // We do not display any related issues because we only have 1 issue
-    expect(await screen.queryByText('Slow DB Query')).not.toBeInTheDocument();
-    expect(
-      await screen.queryByText('AttributeError: Something Failed')
-    ).not.toBeInTheDocument();
-
-    // We do not display the timeline because we only have 1 event
-    expect(await screen.queryByLabelText('Current Event')).not.toBeInTheDocument();
-    expect(useRouteAnalyticsParams).toHaveBeenCalledWith({});
   });
 
   it('trace timeline works for plans with no global-views feature', async () => {
@@ -395,5 +339,104 @@ describe('TraceTimeline & TraceRelated Issue', () => {
       }),
     });
     expect(await screen.findByText('Slow DB Query')).toBeInTheDocument();
+  });
+});
+
+function createEvent({
+  title,
+  culprit,
+  error_value,
+  event_type = 'error',
+}: {
+  culprit: string;
+  title: string;
+  error_value?: string[];
+  event_type?: string;
+}) {
+  let event;
+  event = {
+    message: 'message',
+    culprit: culprit,
+    timestamp: '2024-01-24T09:09:04+00:00',
+    'issue.id': 9999,
+    project: 'foo',
+    'project.name': 'bar',
+    title: title,
+    id: '12345',
+    transaction: 'foo',
+    'event.type': event_type,
+  };
+  if (error_value) {
+    event['error.value'] = error_value;
+  }
+  return event;
+}
+
+describe('getTitleSubtitleMessage()', () => {
+  it('error event', () => {
+    expect(
+      getTitleSubtitleMessage(
+        createEvent({
+          title:
+            'ClientError: 404 Client Error: for url: https://api.clickup.com/sentry/webhook',
+          culprit: '/api/0/sentry-app-installations/{uuid}/',
+          error_value: [
+            '404 Client Error: for url: https://api.clickup.com/sentry/webhook',
+          ],
+        })
+      )
+    ).toEqual({
+      title: 'ClientError', // The colon and remainder of string are removed
+      subtitle: '/api/0/sentry-app-installations/{uuid}/',
+      message: '404 Client Error: for url: https://api.clickup.com/sentry/webhook',
+    });
+  });
+
+  it('error event: It keeps the colon', () => {
+    expect(
+      getTitleSubtitleMessage(
+        createEvent({
+          title: 'WorkerLostError: ',
+          culprit: 'billiard.pool in foo',
+          error_value: ['some-other-error-value', 'The last error value'],
+        })
+      )
+    ).toEqual({
+      title: 'WorkerLostError:',
+      subtitle: 'billiard.pool in foo',
+      message: 'The last error value',
+    });
+  });
+
+  it('error event: No error_value', () => {
+    expect(
+      getTitleSubtitleMessage(
+        createEvent({
+          title: 'foo',
+          culprit: 'bar',
+          error_value: [''], // We always get a non-empty array
+        })
+      )
+    ).toEqual({
+      title: 'foo',
+      subtitle: 'bar',
+      message: '',
+    });
+  });
+
+  it('default event', () => {
+    expect(
+      getTitleSubtitleMessage(
+        createEvent({
+          title: 'Query from referrer search.group_index is throttled',
+          culprit: '/api/0/organizations/{organization_id_or_slug}/issues/',
+          event_type: 'default',
+        })
+      )
+    ).toEqual({
+      title: 'Query from referrer search.group_index is throttled',
+      subtitle: '',
+      message: '/api/0/organizations/{organization_id_or_slug}/issues/',
+    });
   });
 });

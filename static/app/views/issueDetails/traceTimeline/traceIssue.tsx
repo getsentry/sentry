@@ -80,7 +80,7 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
 // the title, subtitle and message.
 // We could also make another call to the issues endpoint  to fetch the metadata,
 // however, we currently don't support it and it is extremely slow
-function getTitleSubtitleMessage(event: TimelineEvent) {
+export function getTitleSubtitleMessage(event: TimelineEvent) {
   let title = event.title.trimEnd();
   let subtitle = event.culprit;
   let message = event.message;
