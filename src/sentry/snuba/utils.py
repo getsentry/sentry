@@ -119,26 +119,26 @@ def build_query_strings(
     )
 
 
-def dataset_split_decision_inferred_from_query(columns, query):
+def dataset_split_decision_inferred_from_query(columns, query, enum=DiscoverSavedQueryTypes):
     """
     Infers split decision based on fields we know exclusively belong to one
     dataset or the other. Biases towards Errors dataset.
     """
     for field in ERROR_ONLY_FIELDS:
         if field in query:
-            return DiscoverSavedQueryTypes.ERROR_EVENTS
+            return enum.ERROR_EVENTS
 
     for field in TRANSACTION_ONLY_FIELDS:
         if field in query:
-            return DiscoverSavedQueryTypes.TRANSACTION_LIKE
+            return enum.TRANSACTION_LIKE
 
     for column in columns:
         for field in ERROR_ONLY_FIELDS:
             if field in column:
-                return DiscoverSavedQueryTypes.ERROR_EVENTS
+                return enum.ERROR_EVENTS
 
         for field in TRANSACTION_ONLY_FIELDS:
             if field in column:
-                return DiscoverSavedQueryTypes.TRANSACTION_LIKE
+                return enum.TRANSACTION_LIKE
 
     return None

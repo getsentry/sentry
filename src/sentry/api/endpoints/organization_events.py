@@ -383,8 +383,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         ):
             try:
                 dataset_inferred_from_query = dataset_split_decision_inferred_from_query(
-                    self.get_field_list(organization, request),
-                    scoped_query,
+                    self.get_field_list(organization, request), scoped_query, type_enum
                 )
                 has_errors = False
                 has_transactions = False
