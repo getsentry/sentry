@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import dataclasses
 import functools
 import logging
 import os
@@ -13,7 +14,7 @@ from contextlib import contextmanager
 from copy import deepcopy
 from datetime import datetime, timedelta, timezone
 from hashlib import sha1
-from typing import Any, Union
+from typing import Any
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -847,9 +848,31 @@ def raw_query(
     return bulk_raw_query([snuba_params], referrer=referrer, use_cache=use_cache)[0]
 
 
-SnubaQuery = Union[Request, MutableMapping[str, Any]]
 Translator = Callable[[Any], Any]
-RequestQueryBody = tuple[Request, Translator, Translator]
+
+
+@dataclasses.dataclass(frozen=True)
+class SnubaRequest:
+    request: Request
+    referrer: str | None  # TODO: this should use the referrer Enum
+    forward: Translator
+    reverse: Translator
+
+    def __post_init__(self) -> None:
+        self.validate()
+
+    def validate(self):
+        if self.referrer:
+            validate_referrer(self.referrer)
+
+    @property
+    def headers(self) -> Mapping[str, str]:
+        headers: MutableMapping[str, str] = {}
+        if self.referrer:
+            headers["referer"] = self.referrer
+        return headers
+
+
 LegacyQueryBody = tuple[MutableMapping[str, Any], Translator, Translator]
 # TODO: Would be nice to make this a concrete structure
 ResultSet = list[Mapping[str, Any]]
@@ -900,8 +923,16 @@ def bulk_snuba_queries(
             if query_source:
                 request.tenant_ids["query_source"] = query_source.value
 
-    params = [(request, lambda x: x, lambda x: x) for request in requests]
-    return _apply_cache_and_build_results(params, referrer=referrer, use_cache=use_cache)
+    snuba_requests = [
+        SnubaRequest(
+            request=request,
+            referrer=referrer,
+            forward=lambda x: x,
+            reverse=lambda x: x,
+        )
+        for request in requests
+    ]
+    return _apply_cache_and_build_results(snuba_requests, use_cache=use_cache)
 
 
 # TODO: This is the endpoint that accepts legacy (non-SnQL/MQL queries)
@@ -916,14 +947,19 @@ def bulk_raw_query(
     will be converted to SnQL queries before being sent to Snuba.
     """
     params = [_prepare_query_params(param, referrer) for param in snuba_param_list]
-    request_bodies = [
-        (json_to_snql(query, query["dataset"]), forward, reverse)
+    snuba_requests = [
+        SnubaRequest(
+            request=json_to_snql(query, query["dataset"]),
+            referrer=referrer,
+            forward=forward,
+            reverse=reverse,
+        )
         for query, forward, reverse in params
     ]
-    return _apply_cache_and_build_results(request_bodies, referrer=referrer, use_cache=use_cache)
+    return _apply_cache_and_build_results(snuba_requests, use_cache=use_cache)
 
 
-def get_cache_key(query: SnubaQuery) -> str:
+def get_cache_key(query: Request) -> str:
     if isinstance(query, Request):
         hashable = str(query)
     else:
@@ -934,38 +970,44 @@ def get_cache_key(query: SnubaQuery) -> str:
 
 
 def _apply_cache_and_build_results(
-    snuba_param_list: Sequence[RequestQueryBody],
-    referrer: str | None = None,
+    snuba_requests: Sequence[SnubaRequest],
     use_cache: bool | None = False,
 ) -> ResultSet:
-    headers = {}
-    validate_referrer(referrer)
-    if referrer:
-        headers["referer"] = referrer
+    parent_api: str = "<missing>"
+    scope = sentry_sdk.Scope.get_current_scope()
+    if scope.transaction:
+        parent_api = scope.transaction.name
 
     # Store the original position of the query so that we can maintain the order
-    query_param_list = list(enumerate(snuba_param_list))
+    snuba_requests_list: list[tuple[int, SnubaRequest]] = []
+    for i, snuba_request in enumerate(snuba_requests):
+        snuba_request.request.parent_api = parent_api
+        snuba_requests_list.append((i, snuba_request))
 
     results = []
 
+    to_query: list[tuple[int, SnubaRequest, str | None]] = []
+
     if use_cache:
-        cache_keys = [get_cache_key(query_params[0]) for _, query_params in query_param_list]
+        cache_keys = [
+            get_cache_key(snuba_request.request) for _, snuba_request in snuba_requests_list
+        ]
         cache_data = cache.get_many(cache_keys)
-        to_query: list[tuple[int, RequestQueryBody, str | None]] = []
-        for (query_pos, query_params), cache_key in zip(query_param_list, cache_keys):
+        for (query_pos, snuba_request), cache_key in zip(snuba_requests_list, cache_keys):
             cached_result = cache_data.get(cache_key)
-            metric_tags = {"referrer": referrer} if referrer else None
+            metric_tags = {"referrer": snuba_request.referrer} if snuba_request.referrer else None
             if cached_result is None:
                 metrics.incr("snuba.query_cache.miss", tags=metric_tags)
-                to_query.append((query_pos, query_params, cache_key))
+                to_query.append((query_pos, snuba_request, cache_key))
             else:
                 metrics.incr("snuba.query_cache.hit", tags=metric_tags)
                 results.append((query_pos, json.loads(cached_result)))
     else:
-        to_query = [(query_pos, query_params, None) for query_pos, query_params in query_param_list]
+        for query_pos, snuba_request in snuba_requests_list:
+            to_query.append((query_pos, snuba_request, None))
 
     if to_query:
-        query_results = _bulk_snuba_query([item[1] for item in to_query], headers)
+        query_results = _bulk_snuba_query([item[1] for item in to_query])
         for result, (query_pos, _, opt_cache_key) in zip(query_results, to_query):
             if opt_cache_key:
                 cache.set(
@@ -979,40 +1021,23 @@ def _apply_cache_and_build_results(
     return [result[1] for result in results]
 
 
-def _bulk_snuba_query(
-    snuba_param_list: Sequence[RequestQueryBody],
-    headers: Mapping[str, str],
-) -> ResultSet:
-    query_referrer = headers.get("referer", "<unknown>")
+def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
+    snuba_requests_list = list(snuba_requests)
 
-    with sentry_sdk.start_span(
-        op="snuba_query",
-        description=query_referrer,
-    ) as span:
-        span.set_tag("snuba.num_queries", len(snuba_param_list))
-        # We set both span + sdk level, this is cause 1 txn/error might query snuba more than once
-        # but we still want to know a general sense of how referrers impact performance
-        span.set_tag("query.referrer", query_referrer)
-        sentry_sdk.set_tag("query.referrer", query_referrer)
+    with sentry_sdk.start_span(op="snuba_query") as span:
+        span.set_tag("snuba.num_queries", len(snuba_requests_list))
 
-        parent_api: str = "<missing>"
-        scope = sentry_sdk.Scope.get_current_scope()
-        if scope.transaction:
-            parent_api = scope.transaction.name
-
-        if len(snuba_param_list) > 1:
+        if len(snuba_requests_list) > 1:
             query_results = list(
                 _query_thread_pool.map(
                     _snuba_query,
                     [
                         (
-                            params,
                             sentry_sdk.Scope.get_isolation_scope().fork(),
                             sentry_sdk.Scope.get_current_scope().fork(),
-                            headers,
-                            parent_api,
+                            snuba_request,
                         )
-                        for params in snuba_param_list
+                        for snuba_request in snuba_requests_list
                     ],
                 )
             )
@@ -1021,32 +1046,28 @@ def _bulk_snuba_query(
             query_results = [
                 _snuba_query(
                     (
-                        snuba_param_list[0],
                         sentry_sdk.Scope.get_isolation_scope().fork(),
                         sentry_sdk.Scope.get_current_scope().fork(),
-                        headers,
-                        parent_api,
+                        snuba_requests_list[0],
                     )
                 )
             ]
 
         results = []
         for index, item in enumerate(query_results):
-            response, _, reverse = item
+            referrer, response, _, reverse = item
             try:
                 body = json.loads(response.data)
                 if SNUBA_INFO:
                     if "sql" in body:
                         log_snuba_info(
                             "{}.sql:\n {}".format(
-                                headers.get("referer", "<unknown>"),
+                                referrer,
                                 sqlparse.format(body["sql"], reindent_aligned=True),
                             )
                         )
                     if "error" in body:
-                        log_snuba_info(
-                            "{}.err: {}".format(headers.get("referer", "<unknown>"), body["error"])
-                        )
+                        log_snuba_info("{}.err: {}".format(referrer, body["error"]))
             except ValueError:
                 if response.status != 200:
                     logger.exception(
@@ -1070,18 +1091,18 @@ def _bulk_snuba_query(
                     "throttled_by" in quota_allowance_summary
                     and quota_allowance_summary["throttled_by"]
                 ):
-                    metrics.incr("snuba.client.query.throttle", tags={"referrer": query_referrer})
+                    metrics.incr("snuba.client.query.throttle", tags={"referrer": referrer})
                     if random.random() < 0.01:
                         logger.warning("Query is throttled", extra={"response.data": response.data})
                         sentry_sdk.capture_message(
-                            f"Query from referrer {query_referrer} is throttled", level="info"
+                            f"Query from referrer {referrer} is throttled", level="info"
                         )
 
             if response.status != 200:
-                _log_request_query(snuba_param_list[index][0])
+                _log_request_query(snuba_requests_list[index].request)
                 metrics.incr(
                     "snuba.client.api.error",
-                    tags={"status_code": response.status, "referrer": query_referrer},
+                    tags={"status_code": response.status, "referrer": referrer},
                 )
                 if body.get("error"):
                     error = body["error"]
@@ -1119,37 +1140,50 @@ def _log_request_query(req: Request) -> None:
     )
 
 
-RawResult = tuple[urllib3.response.HTTPResponse, Callable[[Any], Any], Callable[[Any], Any]]
+RawResult = tuple[str, urllib3.response.HTTPResponse, Translator, Translator]
 
 
 def _snuba_query(
     params: tuple[
-        RequestQueryBody,
         sentry_sdk.Scope,
         sentry_sdk.Scope,
-        Mapping[str, str],
-        str,
+        SnubaRequest,
     ],
 ) -> RawResult:
     # Eventually we can get rid of this wrapper, but for now it's cleaner to unwrap
     # the params here than in the calling function. (bc of thread .map)
-    query_body, thread_isolation_scope, thread_current_scope, headers, parent_api = params
+    thread_isolation_scope, thread_current_scope, snuba_request = params
     with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope):
         with sentry_sdk.scope.use_scope(thread_current_scope):
-            request, forward, reverse = query_body
-            request.parent_api = parent_api
+            headers = snuba_request.headers
+            request = snuba_request.request
             try:
                 referrer = headers.get("referer", "unknown")
+
                 if SNUBA_INFO:
                     import pprint
 
                     log_snuba_info(f"{referrer}.body:\n {pprint.pformat(request.to_dict())}")
                     request.flags.debug = True
 
-                if isinstance(request.query, MetricsQuery):
-                    return _raw_mql_query(request, headers), forward, reverse
+                # We set both span + sdk level, this is cause 1 txn/error might query snuba more than once
+                # but we still want to know a general sense of how referrers impact performance
+                sentry_sdk.set_tag("query.referrer", referrer)
 
-                return _raw_snql_query(request, headers), forward, reverse
+                if isinstance(request.query, MetricsQuery):
+                    return (
+                        referrer,
+                        _raw_mql_query(request, headers),
+                        snuba_request.forward,
+                        snuba_request.reverse,
+                    )
+
+                return (
+                    referrer,
+                    _raw_snql_query(request, headers),
+                    snuba_request.forward,
+                    snuba_request.reverse,
+                )
             except urllib3.exceptions.HTTPError as err:
                 raise SnubaError(err)
 
@@ -1158,6 +1192,7 @@ def _raw_mql_query(request: Request, headers: Mapping[str, str]) -> urllib3.resp
     # Enter hub such that http spans are properly nested
     with timer("mql_query"):
         referrer = headers.get("referer", "unknown")
+
         # TODO: This can be changed back to just `serialize` after we remove SnQL support for MetricsQuery
         serialized_req = request.serialize()
         with sentry_sdk.start_span(op="snuba_mql.validation", description=referrer) as span:
@@ -1175,6 +1210,7 @@ def _raw_snql_query(request: Request, headers: Mapping[str, str]) -> urllib3.res
     # Enter hub such that http spans are properly nested
     with timer("snql_query"):
         referrer = headers.get("referer", "<unknown>")
+
         serialized_req = request.serialize()
         with sentry_sdk.start_span(op="snuba_snql.validation", description=referrer) as span:
             span.set_tag("snuba.referrer", referrer)
