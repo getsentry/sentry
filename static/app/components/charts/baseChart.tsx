@@ -112,6 +112,10 @@ interface TooltipOption
     seriesParams?: TooltipComponentFormatterCallback<any>
   ) => string;
   /**
+   * If true does not display sublabels with a value of 0.
+   */
+  skipZeroValuedSubLabels?: boolean;
+  /**
    * Array containing data that is used to display indented sublabels.
    */
   subLabels?: TooltipSubLabel[];
