@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections import namedtuple
 from collections.abc import Mapping, Sequence
 from copy import deepcopy
@@ -114,7 +116,7 @@ class SnubaParams:
             return (self.end - self.start).total_seconds()
         return None
 
-    def copy(self) -> "SnubaParams":
+    def copy(self) -> SnubaParams:
         return deepcopy(self)
 
 

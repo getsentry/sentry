@@ -8,7 +8,7 @@ import traceback
 from collections.abc import Generator, Mapping, MutableMapping
 from contextlib import contextmanager
 from datetime import timedelta
-from typing import Any, Literal, cast, overload
+from typing import Any, Literal, overload
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -492,8 +492,8 @@ def update_snuba_params_with_timestamp(
         # the client should just not pass a timestamp if we need to overwrite this logic for any reason
         if isinstance(params, SnubaParams):
             # Typing gets mad that start is optional still but has_dates has checked it
-            params.start = cast(datetime.datetime, params.start)
-            params.end = cast(datetime.datetime, params.end)
+            assert params.start is not None
+            assert params.end is not None
 
             params.start = max(params.start, example_start)
             params.end = min(params.end, example_end)

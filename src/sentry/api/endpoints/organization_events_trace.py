@@ -491,7 +491,6 @@ def create_transaction_params(
     snuba_params: SnubaParams,
 ) -> SnubaParams:
     """Can't use the transaction params for errors since traces can be errors only"""
-    transaction_params = snuba_params.copy()
     query_metadata = options.get("performance.traces.query_timestamp_projects")
     sentry_sdk.set_tag("trace_view.queried_timestamp_projects", query_metadata)
     if not query_metadata:
@@ -535,6 +534,7 @@ def create_transaction_params(
     project_ids = list(project_id_set)
     # Reusing this option for now
     time_buffer = options.get("performance.traces.span_query_timebuffer_hours")
+    transaction_params = snuba_params.copy()
     if min_timestamp:
         transaction_params.start = min_timestamp - timedelta(hours=time_buffer)
     if max_timestamp:
