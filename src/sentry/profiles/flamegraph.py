@@ -1,3 +1,4 @@
+from collections import defaultdict
 from datetime import datetime
 from typing import Any, TypedDict
 
@@ -259,24 +260,16 @@ def get_spans_from_group(
         request,
         referrer=Referrer.API_PROFILING_PROFILE_FLAMEGRAPH.value,
     )["data"]
-    spans: dict[str, list[IntervalMetadata]] = {}
+    spans: dict[str, list[IntervalMetadata]] = defaultdict(list)
     for row in data:
-        if row["profiler_id"] in spans:
-            spans[row["profiler_id"]].append(
-                {
-                    "active_thread_id": row["active_thread_id"],
-                    "start": row["start_timestamp_precise"],
-                    "end": row["end_timestamp_precise"],
-                }
-            )
-        else:
-            spans[row["profiler_id"]] = [
-                {
-                    "active_thread_id": row["active_thread_id"],
-                    "start": row["start_timestamp_precise"],
-                    "end": row["end_timestamp_precise"],
-                }
-            ]
+        spans[row["profiler_id"]].append(
+            {
+                "active_thread_id": row["active_thread_id"],
+                "start": row["start_timestamp_precise"],
+                "end": row["end_timestamp_precise"],
+            }
+        )
+
     return spans
 
 
