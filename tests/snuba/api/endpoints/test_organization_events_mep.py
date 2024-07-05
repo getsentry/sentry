@@ -3458,6 +3458,51 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
         assert response.status_code == 400, response.content
 
+    def test_mep_uses_transactions_dataset_when_fallback_is_specified(self):
+        """
+        Tests that the transactions dataset will only be used when a dashboard request is made
+        with a dashboardWidgetId.
+        """
+        _, widget, __ = create_widget(["count()"], "", self.project, discover_widget_split=None)
+        self.store_transaction_metric(
+            33,
+            metric="measurements.datacenter_memory",
+            internal_metric="d:transactions/measurements.datacenter_memory@petabyte",
+            entity="metrics_distributions",
+            tags={"transaction": "foo_transaction"},
+            timestamp=self.min_ago,
+        )
+        transaction_data = load_data("transaction", timestamp=self.min_ago)
+        transaction_data["measurements"]["datacenter_memory"] = {
+            "value": 33,
+            "unit": "petabyte",
+        }
+        self.store_event(transaction_data, self.project.id)
+
+        response = self.do_request(
+            {
+                "field": [
+                    "transaction",
+                    "measurements.datacenter_memory",
+                    # Equations are not supported, forces a fallback from metrics
+                    "equation|measurements.datacenter_memory / 3",
+                ],
+                "query": "",
+                "dataset": "metricsEnhanced",
+                "dashboardWidgetId": widget.id,
+            },
+            features={**self.features, "organizations:performance-discover-dataset-selector": True},
+        )
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert len(data) == 1
+        assert data[0]["measurements.datacenter_memory"] == 33
+        assert data[0]["equation|measurements.datacenter_memory / 3"] == 11
+
+        meta = response.data["meta"]
+        assert not meta["isMetricsData"]
+        # TODO: Assert that this is hitting the transactions dataset
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetrics(
     MetricsEnhancedPerformanceTestCase
