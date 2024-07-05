@@ -449,6 +449,7 @@ from .endpoints.organization_processingissues import OrganizationProcessingIssue
 from .endpoints.organization_profiling_functions import OrganizationProfilingFunctionTrendsEndpoint
 from .endpoints.organization_profiling_profiles import (
     OrganizationProfilingChunksEndpoint,
+    OrganizationProfilingChunksFlamegraphEndpoint,
     OrganizationProfilingFiltersEndpoint,
     OrganizationProfilingFlamegraphEndpoint,
 )
@@ -2113,6 +2114,11 @@ ORGANIZATION_URLS = [
                     r"^flamegraph/$",
                     OrganizationProfilingFlamegraphEndpoint.as_view(),
                     name="sentry-api-0-organization-profiling-flamegraph",
+                ),
+                re_path(
+                    r"^chunks-flamegraph/$",
+                    OrganizationProfilingChunksFlamegraphEndpoint.as_view(),
+                    name="sentry-api-0-organization-profiling-chunks-flamegraph",
                 ),
                 re_path(
                     r"^function-trends/$",
