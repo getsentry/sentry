@@ -16,6 +16,7 @@ interface ContextData {
   keys: TagCollection;
   parsedQuery: ParseResult | null;
   query: string;
+  wrapperRef: React.RefObject<HTMLDivElement>;
   onSearch?: (query: string) => void;
 }
 
@@ -32,4 +33,5 @@ export const SearchQueryBuilerContext = createContext<ContextData>({
   dispatch: () => {},
   parsedQuery: null,
   onSearch: () => {},
+  wrapperRef: {current: null},
 });
