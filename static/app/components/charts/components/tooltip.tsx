@@ -264,6 +264,10 @@ export function getFormatter({
               continue;
             }
 
+            if (skipZeroValuedSubLabels && serieValue === 0) {
+              continue;
+            }
+
             labelWithSubLabels.push(
               `<div><span class="tooltip-label tooltip-label-indent"><strong>${
                 subLabel.label
