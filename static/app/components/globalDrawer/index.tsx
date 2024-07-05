@@ -104,7 +104,7 @@ export function GlobalDrawer({children}) {
 
   // Close the drawer when escape is pressed and options allow it.
   const handleEscapePress = useCallback(() => {
-    if (currentDrawerConfig?.options?.closeOnOutsideClick ?? true) {
+    if (currentDrawerConfig?.options?.closeOnEscapeKeypress ?? true) {
       handleClose();
     }
   }, [currentDrawerConfig, handleClose]);
