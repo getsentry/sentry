@@ -25,6 +25,7 @@ import {
 } from 'sentry/utils/metrics/types';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
+import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -235,6 +236,7 @@ const useDefaultQuery = () => {
 export function MetricsContextProvider({children}: {children: React.ReactNode}) {
   const router = useRouter();
   const updateQuery = useUpdateQuery();
+  const {getVirtualMRI} = useVirtualMetricsContext();
   const {multiChartMode} = useLocationQuery({fields: {multiChartMode: decodeInteger}});
   const pageFilters = usePageFilters();
   const {data: metaCustom, isLoading: isMetaCustomLoading} = useMetricsMeta(
@@ -246,12 +248,14 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
     ['transactions', 'spans']
   );
   const isMultiChartMode = multiChartMode === 1;
+  const firstCustomMetric =
+    metaCustom[0]?.mri && (getVirtualMRI(metaCustom[0]?.mri) ?? metaCustom[0]?.mri);
 
   const {setDefaultQuery, isDefaultQuery} = useDefaultQuery();
 
   const [selectedWidgetIndex, setSelectedWidgetIndex] = useState(0);
   const {widgets, updateWidget, addWidget, removeWidget, duplicateWidget, setWidgets} =
-    useMetricWidgets(metaCustom[0]?.mri);
+    useMetricWidgets(firstCustomMetric);
 
   const [metricsSamples, setMetricsSamples] = useState<
     MetricsSamplesResults<Field>['data'] | undefined
