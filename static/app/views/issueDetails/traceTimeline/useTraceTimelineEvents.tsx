@@ -18,12 +18,12 @@ interface BaseEvent {
   transaction: string;
 }
 
+interface TimelineIssuePlatformEvent extends BaseEvent {}
 interface TimelineDiscoverEvent extends BaseEvent {
   'error.value': string[]; // Used for message for error events
   'event.type': string;
   'stack.function': string[];
 }
-interface TimelineIssuePlatformEvent extends BaseEvent {}
 
 export type TimelineEvent = TimelineDiscoverEvent | TimelineIssuePlatformEvent;
 

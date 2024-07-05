@@ -76,21 +76,10 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     'issue.id': 9999,
     project: project.slug,
     'project.name': project.name,
-    title: 'WorkerLostError: ', // The code handles the colon and extra space in the title
+    title: 'someTitle',
     id: '12345',
     transaction: 'foo',
     'event.type': event.type,
-  };
-  const defaultEvent = {
-    culprit: '/api/0/organizations/{organization_id_or_slug}/issues/',
-    timestamp: '2024-01-24T09:09:03+00:00',
-    'issue.id': 8888,
-    project: project.slug,
-    'project.name': project.name,
-    title: 'Query from referrer search.group_index is throttled',
-    id: '12345',
-    transaction: '/api/0/organizations/{organization_id_or_slug}/issues/',
-    'event.type': 'default', // Instead of an error
   };
   const discoverBody: TraceEventResponse = {
     data: [mainError],
@@ -247,7 +236,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     );
   });
 
-  it('trace-related: check title, subtitle for default event', async () => {
+  it('skips the timeline and shows NO related issues (only 1 issue)', async () => {
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: emptyBody,
@@ -255,7 +244,8 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     });
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
-      body: {data: [defaultEvent]},
+      // Only 1 issue
+      body: discoverBody,
       match: [MockApiClient.matchQuery({dataset: 'discover', project: -1})],
     });
     // Used to determine the project badge
@@ -266,12 +256,15 @@ describe('TraceTimeline & TraceRelated Issue', () => {
 
     render(<TraceTimeLineOrRelatedIssue event={event} />, {organization});
 
-    // Check title, subtitle and message of default event
-    expect(await screen.findByText(defaultEvent.title)).toBeInTheDocument();
-    // The subtitle is empty for default events
-    expect(await screen.getByTestId('subtitle-span')).toHaveTextContent('');
-    // The message is the culprit
-    expect(await screen.findByText(defaultEvent.culprit)).toBeInTheDocument();
+    // We do not display any related issues because we only have 1 issue
+    expect(await screen.queryByText('Slow DB Query')).not.toBeInTheDocument();
+    expect(
+      await screen.queryByText('AttributeError: Something Failed')
+    ).not.toBeInTheDocument();
+
+    // We do not display the timeline because we only have 1 event
+    expect(await screen.queryByLabelText('Current Event')).not.toBeInTheDocument();
+    expect(useRouteAnalyticsParams).toHaveBeenCalledWith({});
   });
 
   it('trace timeline works for plans with no global-views feature', async () => {
