@@ -344,8 +344,8 @@ def get_chunks_from_spans_metadata(
     for row in data:
         intervals = [
             {
-                "start": int(datetime.fromisoformat(el["start"]).timestamp() * 10**9),
-                "end": int(datetime.fromisoformat(el["end"]).timestamp() * 10**9),
+                "start": str(int(datetime.fromisoformat(el["start"]).timestamp() * 10**9)),
+                "end": str(int(datetime.fromisoformat(el["end"]).timestamp() * 10**9)),
                 "active_thread_id": el["active_thread_id"],
             }
             for el in spans[row["profiler_id"]]
