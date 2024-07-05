@@ -19,7 +19,7 @@ interface BaseEvent {
 }
 
 interface TimelineDiscoverEvent extends BaseEvent {
-  'error.value': string[];
+  'error.value': string[]; // Used for message for error events
   'event.type': string;
   'stack.function': string[];
 }
