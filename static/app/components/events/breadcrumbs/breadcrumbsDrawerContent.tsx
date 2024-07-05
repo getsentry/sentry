@@ -29,7 +29,9 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export const enum BreadcrumbControlOptions {
   SEARCH = 'search',
@@ -52,6 +54,7 @@ export function BreadcrumbsDrawerContent({
   breadcrumbs,
   focusControl,
 }: BreadcrumbsDrawerContentProps) {
+  const organization = useOrganization();
   const theme = useTheme();
   const [search, setSearch] = useState('');
   const [filterSet, setFilterSet] = useState(new Set<string>());
@@ -92,7 +95,13 @@ export function BreadcrumbsDrawerContent({
         <SearchInput
           size="xs"
           value={search}
-          onChange={e => setSearch(e.target.value)}
+          onChange={e => {
+            setSearch(e.target.value);
+            trackAnalytics('breadcrumbs.drawer.action', {
+              control: BreadcrumbControlOptions.SEARCH,
+              organization,
+            });
+          }}
           autoFocus={focusControl === BreadcrumbControlOptions.SEARCH}
           aria-label={t('Search All Breadcrumbs')}
         />
@@ -105,6 +114,10 @@ export function BreadcrumbsDrawerContent({
         onChange={options => {
           const newFilters = options.map(({value}) => value);
           setFilterSet(new Set(newFilters));
+          trackAnalytics('breadcrumbs.drawer.action', {
+            control: BreadcrumbControlOptions.FILTER,
+            organization,
+          });
         }}
         multiple
         options={filterOptions}
@@ -139,7 +152,14 @@ export function BreadcrumbsDrawerContent({
             {...props}
           />
         )}
-        onChange={selectedOption => setSort(selectedOption.value)}
+        onChange={selectedOption => {
+          setSort(selectedOption.value);
+          trackAnalytics('breadcrumbs.drawer.action', {
+            control: BreadcrumbControlOptions.SORT,
+            value: selectedOption.value,
+            organization,
+          });
+        }}
         value={sort}
         options={BREADCRUMB_SORT_OPTIONS}
       />
@@ -156,7 +176,14 @@ export function BreadcrumbsDrawerContent({
             {...props}
           />
         )}
-        onChange={selectedOption => setTimeDisplay(selectedOption.value)}
+        onChange={selectedOption => {
+          setTimeDisplay(selectedOption.value);
+          trackAnalytics('breadcrumbs.drawer.action', {
+            control: 'time_display',
+            value: selectedOption.value,
+            organization,
+          });
+        }}
         value={timeDisplay}
         options={BREADCRUMB_TIME_DISPLAY_OPTIONS}
       >
@@ -196,6 +223,10 @@ export function BreadcrumbsDrawerContent({
               onClick={() => {
                 setFilterSet(new Set());
                 setSearch('');
+                trackAnalytics('breadcrumbs.drawer.action', {
+                  control: 'clear_filters',
+                  organization,
+                });
               }}
             >
               {t('Clear Filters?')}

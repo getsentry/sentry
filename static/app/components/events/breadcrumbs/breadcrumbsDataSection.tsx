@@ -23,7 +23,9 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface BreadcrumbsDataSectionProps {
   event: Event;
@@ -37,6 +39,7 @@ export default function BreadcrumbsDataSection({
   project,
 }: BreadcrumbsDataSectionProps) {
   const {openDrawer} = useDrawer();
+  const organization = useOrganization();
   // Use the local storage preferences, but allow the drawer to do updates
   const [timeDisplay, setTimeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
     BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
@@ -58,6 +61,10 @@ export default function BreadcrumbsDataSection({
 
   const onViewAllBreadcrumbs = useCallback(
     (focusControl?: BreadcrumbControlOptions) => {
+      trackAnalytics('breadcrumbs.issue_details.drawer_opened', {
+        control: focusControl ?? 'view all',
+        organization,
+      });
       openDrawer(
         ({Body}) => (
           <Body>
@@ -73,7 +80,7 @@ export default function BreadcrumbsDataSection({
         {ariaLabel: 'breadcrumb drawer'}
       );
     },
-    [group, event, project, openDrawer, enhancedCrumbs]
+    [group, event, project, openDrawer, enhancedCrumbs, organization]
   );
 
   if (enhancedCrumbs.length === 0) {
@@ -103,13 +110,17 @@ export default function BreadcrumbsDataSection({
       <Button
         aria-label={t('Change Time Format for Breadcrumbs')}
         icon={<IconClock size="xs" />}
-        onClick={() =>
-          setTimeDisplay(
+        onClick={() => {
+          const nextTimeDisplay =
             timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE
               ? BreadcrumbTimeDisplay.RELATIVE
-              : BreadcrumbTimeDisplay.ABSOLUTE
-          )
-        }
+              : BreadcrumbTimeDisplay.ABSOLUTE;
+          setTimeDisplay(nextTimeDisplay);
+          trackAnalytics('breadcrumbs.issue_details.change_time_display', {
+            value: nextTimeDisplay,
+            organization,
+          });
+        }}
         size="xs"
       />
     </ButtonBar>
