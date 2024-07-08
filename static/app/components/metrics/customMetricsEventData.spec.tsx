@@ -77,6 +77,10 @@ describe('CustomMetricsEventData', () => {
   });
 
   it('renders (all information)', () => {
+    // This test fails without the mock below, because a nested component uses @container query
+    // that is not supported by the version of jsdom currently used by jest.
+    jest.spyOn(console, 'error').mockImplementation();
+
     const metricsSummary: MetricsSummary = {
       'd:custom/my.metric@second': [
         {

@@ -16,8 +16,8 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.actor import Actor, ActorType
+from sentry.users.services.user.service import user_service
 
 
 class DatabaseBackedNotificationsService(NotificationsService):

@@ -2,7 +2,7 @@ import type {Query} from 'history';
 
 import type {SpanSlug} from 'sentry/utils/performance/suspectSpans/types';
 
-export function generateSpanDetailsRoute({
+function generateSpanDetailsRoute({
   orgSlug,
   spanSlug,
 }: {
@@ -52,7 +52,7 @@ export function generateQuerySummaryRoute({
   group: string;
   orgSlug: string;
 }): string {
-  return `/organizations/${orgSlug}/performance/database/spans/span/${group}/`;
+  return `/organizations/${orgSlug}/insights/database/spans/span/${group}/`;
 }
 
 export function querySummaryRouteWithQuery({

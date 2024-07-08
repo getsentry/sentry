@@ -13,6 +13,7 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricMeta} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
+import {isExtractedCustomMetric} from 'sentry/utils/metrics';
 import {DEFAULT_METRICS_CARDINALITY_LIMIT} from 'sentry/utils/metrics/constants';
 import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
@@ -49,7 +50,7 @@ export function CustomMetricsTable({project}: Props) {
   );
 
   const metricsCardinality = useMetricsCardinality({
-    project,
+    projects: [parseInt(project.id, 10)],
   });
 
   const isLoading = metricsMeta.isLoading || metricsCardinality.isLoading;
@@ -59,11 +60,14 @@ export function CustomMetricsTable({project}: Props) {
       return [];
     }
 
+    // Do not show internal extracted metrics in this table
+    const filteredMeta = metricsMeta.data.filter(meta => !isExtractedCustomMetric(meta));
+
     if (!metricsCardinality.data) {
-      return metricsMeta.data.map(meta => ({...meta, cardinality: 0}));
+      return filteredMeta.map(meta => ({...meta, cardinality: 0}));
     }
 
-    return metricsMeta.data
+    return filteredMeta
       .map(({mri, ...rest}) => {
         return {
           mri,
@@ -147,6 +151,7 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
   const blockMetricMutation = useBlockMetric(project);
   const {hasAccess} = useAccess({access: ['project:write'], project});
   const cardinalityLimit =
+    // Retrive limit from BE
     project.relayCustomMetricCardinalityLimit ?? DEFAULT_METRICS_CARDINALITY_LIMIT;
 
   return (

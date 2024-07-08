@@ -37,8 +37,8 @@ from sentry.search.utils import (
     parse_substatus_value,
     parse_user_value,
 )
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES, GroupSubStatus, PriorityLevel
+from sentry.users.services.user import RpcUser
 
 is_filter_translation = {
     "assigned": ("unassigned", False),
