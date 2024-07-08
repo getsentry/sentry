@@ -1,6 +1,8 @@
 import {useMemo} from 'react';
 
+import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import type {Organization} from 'sentry/types/organization';
+import coaleseIssueStatsPeriodQuery from 'sentry/utils/feedback/coaleseIssueStatsPeriodQuery';
 import {useApiQuery, type UseApiQueryResult} from 'sentry/utils/queryClient';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import type RequestError from 'sentry/utils/requestError/requestError';
@@ -26,6 +28,7 @@ export default function useMailboxCounts({
 }: Props): UseApiQueryResult<HookReturnType, RequestError> {
   const location = useLocation();
   const locationQuery = decodeScalar(location.query.query, '');
+  const {listHeadTime} = useFeedbackQueryKeys();
 
   // We should fetch the counts while taking the query into account
   const MAILBOX: Record<keyof HookReturnType, keyof ApiReturnType> = {
@@ -43,15 +46,29 @@ export default function useMailboxCounts({
       field: decodeList,
       project: decodeList,
       query: mailboxQuery,
-      queryReferrer: 'feedback_list_page',
+      queryReferrer: 'feedback_mailbox_count',
       start: decodeScalar,
       statsPeriod: decodeScalar,
       utc: decodeScalar,
     },
   });
 
+  const queryViewWithStatsPeriod = useMemo(
+    () =>
+      coaleseIssueStatsPeriodQuery({
+        defaultStatsPeriod: '0d',
+        listHeadTime,
+        prefetch: false,
+        queryView,
+      }),
+    [listHeadTime, queryView]
+  );
+
   const result = useApiQuery<ApiReturnType>(
-    [`/organizations/${organization.slug}/issues-count/`, {query: queryView}],
+    [
+      `/organizations/${organization.slug}/issues-count/`,
+      {query: queryViewWithStatsPeriod},
+    ],
     {
       staleTime: 1_000,
       refetchInterval: 30_000,
