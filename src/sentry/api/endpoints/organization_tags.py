@@ -10,8 +10,13 @@ from sentry.api.bases import NoProjects
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
+from sentry.snuba.dataset import Dataset
 from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import set_measurement
+
+
+class InvalidDatasetParam(Exception):
+    pass
 
 
 @region_silo_endpoint
@@ -27,6 +32,9 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
         except NoProjects:
             return Response([])
 
+        if request.GET.get("dataset") and request.GET.get("dataset") not in Dataset:
+            raise InvalidDatasetParam()
+
         with sentry_sdk.start_span(op="tagstore", description="get_tag_keys_for_projects"):
             with handle_query_errors():
                 results = tagstore.backend.get_tag_keys_for_projects(
@@ -35,6 +43,7 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
                     filter_params["start"],
                     filter_params["end"],
                     use_cache=request.GET.get("use_cache", "0") == "1",
+                    dataset=Dataset(request.GET.get("dataset", "events")),
                     # Defaults to True, because the frontend caches these tags globally
                     include_transactions=request.GET.get("include_transactions", "1") == "1",
                     tenant_ids={"organization_id": organization.id},

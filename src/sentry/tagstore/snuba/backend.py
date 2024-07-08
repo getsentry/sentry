@@ -250,6 +250,7 @@ class SnubaTagStorage(TagStorage):
         use_cache=False,
         include_transactions=False,
         denylist=None,
+        dataset: Dataset = Dataset.Events,
         **kwargs,
     ):
         """Query snuba for tag keys based on projects
@@ -272,9 +273,11 @@ class SnubaTagStorage(TagStorage):
         if end is None:
             end = default_end
 
-        dataset = Dataset.Events
+        # If include_transactions is true, then the dataset parameter
+        # will be overwritten with Discover.
         if include_transactions:
             dataset = Dataset.Discover
+
         conditions = []
         aggregations = [["count()", "", "count"]]
 
@@ -428,6 +431,7 @@ class SnubaTagStorage(TagStorage):
         environments,
         start,
         end,
+        dataset: Dataset = Dataset.Events,
         status=TagKeyStatus.ACTIVE,
         use_cache: bool = False,
         include_transactions: bool = False,
@@ -450,6 +454,7 @@ class SnubaTagStorage(TagStorage):
             environments,
             start,
             end,
+            dataset=dataset,
             include_values_seen=False,
             use_cache=use_cache,
             include_transactions=include_transactions,
