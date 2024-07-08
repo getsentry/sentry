@@ -35,7 +35,7 @@ class RegionRelocationExportService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from sentry.services.hybrid_cloud.relocation_export.impl import (
+        from sentry.relocation.services.relocation_export.impl import (
             DBBackedRelocationExportService,
         )
 
@@ -97,7 +97,7 @@ class ControlRelocationExportService(RpcService):
 
     @classmethod
     def get_local_implementation(cls) -> RpcService:
-        from sentry.services.hybrid_cloud.relocation_export.impl import (
+        from sentry.relocation.services.relocation_export.impl import (
             ProxyingRelocationExportService,
         )
 
