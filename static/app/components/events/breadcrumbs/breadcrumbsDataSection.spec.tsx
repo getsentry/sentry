@@ -10,6 +10,19 @@ import {
 } from 'sentry/components/events/breadcrumbs/testUtils';
 import {EntryType} from 'sentry/types';
 
+// Needed to mock useVirtualizer lists.
+jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation(() => ({
+  x: 0,
+  y: 0,
+  width: 0,
+  height: 30,
+  left: 0,
+  top: 0,
+  right: 0,
+  bottom: 0,
+  toJSON: jest.fn(),
+}));
+
 describe('BreadcrumbsDataSection', function () {
   it('renders a summary of breadcrumbs with a button to view them all', async function () {
     render(<BreadcrumbsDataSection {...MOCK_DATA_SECTION_PROPS} />);
