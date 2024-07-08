@@ -56,6 +56,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
   };
   const mainError = {
     message: 'This is the message for the issue',
+    culprit: 'n/a',
     timestamp: firstEventTimestamp,
     'issue.id': event['issue.id'],
     project: project.slug,
@@ -68,6 +69,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
   };
   const secondError = {
     message: 'Message of the second issue',
+    culprit: 'n/a',
     timestamp: '2024-01-24T09:09:04+00:00',
     'issue.id': 9999,
     project: project.slug,
@@ -332,17 +334,20 @@ describe('TraceTimeline & TraceRelated Issue', () => {
 });
 
 function createEvent({
+  culprit,
   message,
   title,
   transaction,
   event_type = 'error',
 }: {
+  culprit: string;
   message: string;
   title: string;
   transaction: string;
   event_type?: string;
 }) {
   return {
+    culprit: culprit,
     message: message,
     timestamp: '2024-01-24T09:09:04+00:00',
     'issue.id': 9999,
@@ -360,6 +365,7 @@ describe('getTitleSubtitleMessage()', () => {
     expect(
       getTitleSubtitleMessage(
         createEvent({
+          culprit: 'n/a',
           title:
             'ClientError: 404 Client Error: for url: https://api.clickup.com/sentry/webhook',
           message: 'Message of the second issue',
@@ -377,6 +383,7 @@ describe('getTitleSubtitleMessage()', () => {
     expect(
       getTitleSubtitleMessage(
         createEvent({
+          culprit: 'n/a',
           title: 'WorkerLostError: ',
           message: 'Message of the second issue',
           transaction: 'foo',
@@ -386,6 +393,24 @@ describe('getTitleSubtitleMessage()', () => {
       title: 'WorkerLostError:', // The colon is kept
       subtitle: 'foo',
       message: 'Message of the second issue',
+    });
+  });
+
+  it('default event', () => {
+    expect(
+      getTitleSubtitleMessage(
+        createEvent({
+          culprit: '/api/0/organizations/{organization_id_or_slug}/issues/',
+          message: 'n/a',
+          title: 'Query from referrer search.group_index is throttled',
+          transaction: 'n/a',
+          event_type: 'default',
+        })
+      )
+    ).toEqual({
+      title: 'Query from referrer search.group_index is throttled',
+      subtitle: '',
+      message: '/api/0/organizations/{organization_id_or_slug}/issues/',
     });
   });
 });
