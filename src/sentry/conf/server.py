@@ -2474,9 +2474,6 @@ SENTRY_MAX_SERIALIZED_FILE_SIZE = 5000000
 # Max file size for avatar photo uploads
 SENTRY_MAX_AVATAR_SIZE = 5000000
 
-# The maximum age of raw events before they are deleted
-SENTRY_RAW_EVENT_MAX_AGE_DAYS = 10
-
 # statuspage.io support
 STATUS_PAGE_ID: str | None = None
 STATUS_PAGE_API_HOST = "statuspage.io"
