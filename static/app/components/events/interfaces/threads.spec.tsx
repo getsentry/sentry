@@ -222,7 +222,6 @@ describe('Threads', function () {
         data: event.entries[1].data as React.ComponentProps<typeof Threads>['data'],
         event,
         groupingCurrentLevel: 0,
-        hasHierarchicalGrouping: true,
         projectSlug: project.slug,
       };
 
@@ -874,7 +873,6 @@ describe('Threads', function () {
         data: event.entries[1].data as React.ComponentProps<typeof Threads>['data'],
         event,
         groupingCurrentLevel: 0,
-        hasHierarchicalGrouping: true,
         projectSlug: project.slug,
       };
 
