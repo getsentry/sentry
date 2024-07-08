@@ -41,7 +41,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils.iterators import chunked
 from sentry.utils.numbers import clip
 from sentry.utils.sdk import set_measurement
-from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
+from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries, bulk_snuba_queries_with_referrers
 
 MAX_SNUBA_RESULTS = 10_000
 
@@ -375,13 +375,13 @@ class TracesExecutor:
                 trace_ids,
             )
 
-            all_raw_results = bulk_snuba_queries(
-                [query.get_snql_query() for query in all_queries],
-                Referrer.API_TRACE_EXPLORER_TRACES_META.value,
+            all_raw_results = bulk_snuba_queries_with_referrers(
+                [(query.get_snql_query(), referrer.value) for query, referrer in all_queries]
             )
 
             all_results = [
-                query.process_results(result) for query, result in zip(all_queries, all_raw_results)
+                query.process_results(result)
+                for (query, _), result in zip(all_queries, all_raw_results)
             ]
 
             # the order of these results is defined by the order
@@ -728,39 +728,37 @@ class TracesExecutor:
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
-    ) -> list[BaseQueryBuilder]:
-        traces_metas_query = self.get_traces_metas_query(
+    ) -> list[tuple[BaseQueryBuilder, Referrer]]:
+        traces_metas_query_with_referrer = self.get_traces_metas_query(
             params,
             snuba_params,
             trace_ids,
         )
 
-        traces_errors_query = self.get_traces_errors_query(
+        traces_errors_query_with_referrer = self.get_traces_errors_query(
             params,
             snuba_params,
             trace_ids,
         )
 
-        traces_occurrences_query = self.get_traces_occurrences_query(
+        traces_occurrences_query_with_referrer = self.get_traces_occurrences_query(
             params,
             snuba_params,
             trace_ids,
         )
 
-        traces_breakdown_projects_query = self.get_traces_breakdown_projects_query(
+        traces_breakdown_projects_query_with_referrer = self.get_traces_breakdown_projects_query(
             params,
             snuba_params,
             trace_ids,
         )
 
-        queries = [
-            traces_metas_query,
-            traces_errors_query,
-            traces_occurrences_query,
-            traces_breakdown_projects_query,
+        return [
+            traces_metas_query_with_referrer,
+            traces_errors_query_with_referrer,
+            traces_occurrences_query_with_referrer,
+            traces_breakdown_projects_query_with_referrer,
         ]
-
-        return queries
 
     def process_final_results(
         self,
@@ -859,7 +857,7 @@ class TracesExecutor:
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
-    ) -> BaseQueryBuilder:
+    ) -> tuple[BaseQueryBuilder, Referrer]:
         query = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             params,
@@ -896,14 +894,14 @@ class TracesExecutor:
             ]
         )
 
-        return query
+        return query, Referrer.API_TRACE_EXPLORER_TRACES_BREAKDOWNS
 
     def get_traces_metas_query(
         self,
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
-    ) -> BaseQueryBuilder:
+    ) -> tuple[BaseQueryBuilder, Referrer]:
         query = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             params,
@@ -964,14 +962,14 @@ class TracesExecutor:
         if options.get("performance.traces.trace-explorer-skip-floating-spans"):
             query.add_conditions([Condition(Column("transaction_id"), Op.IS_NOT_NULL, None)])
 
-        return query
+        return query, Referrer.API_TRACE_EXPLORER_TRACES_META
 
     def get_traces_errors_query(
         self,
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
-    ) -> BaseQueryBuilder:
+    ) -> tuple[BaseQueryBuilder, Referrer]:
         query = DiscoverQueryBuilder(
             Dataset.Events,
             params,
@@ -995,14 +993,14 @@ class TracesExecutor:
             ]
         )
 
-        return query
+        return query, Referrer.API_TRACE_EXPLORER_TRACES_ERRORS
 
     def get_traces_occurrences_query(
         self,
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
-    ) -> BaseQueryBuilder:
+    ) -> tuple[BaseQueryBuilder, Referrer]:
         query = DiscoverQueryBuilder(
             Dataset.IssuePlatform,
             params,
@@ -1026,7 +1024,7 @@ class TracesExecutor:
             ]
         )
 
-        return query
+        return query, Referrer.API_TRACE_EXPLORER_TRACES_OCCURRENCES
 
 
 class OrderedTracesExecutor:

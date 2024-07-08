@@ -578,6 +578,44 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             },
         ]
 
+    def test_use_separate_referrers(self):
+        from sentry.api.endpoints.organization_traces import TracesExecutor
+        from sentry.snuba.referrer import Referrer
+        from sentry.utils.snuba import _snuba_query
+
+        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
+        start = now - timedelta(days=2)
+        end = now - timedelta(days=1)
+        trace_id = uuid4().hex
+
+        with (
+            patch.object(
+                TracesExecutor,
+                "get_traces_matching_conditions",
+                return_value=(start, end, trace_id),
+            ),
+            patch("sentry.utils.snuba._snuba_query", wraps=_snuba_query) as mock_snuba_query,
+        ):
+            query = {
+                "project": [self.project.id],
+                "field": ["id", "parent_span", "span.duration"],
+                "sort": ["-span.duration"],
+            }
+
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+
+            actual_referrers = {
+                call[0][0][2].headers["referer"] for call in mock_snuba_query.call_args_list
+            }
+
+        assert {
+            Referrer.API_TRACE_EXPLORER_TRACES_BREAKDOWNS.value,
+            Referrer.API_TRACE_EXPLORER_TRACES_META.value,
+            Referrer.API_TRACE_EXPLORER_TRACES_ERRORS.value,
+            Referrer.API_TRACE_EXPLORER_TRACES_OCCURRENCES.value,
+        } == actual_referrers
+
     def test_matching_tag(self):
         (
             project_1,
