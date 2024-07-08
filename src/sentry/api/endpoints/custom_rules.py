@@ -21,7 +21,8 @@ from sentry.models.dynamicsampling import (
 )
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.snuba.metrics.extraction import RuleCondition, SearchQueryConverter, parse_search_query
+from sentry.relay.types import RuleCondition
+from sentry.snuba.metrics.extraction import SearchQueryConverter, parse_search_query
 from sentry.tasks.relay import schedule_invalidate_project_config
 from sentry.utils.dates import parse_stats_period
 

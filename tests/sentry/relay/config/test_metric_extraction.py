@@ -18,6 +18,7 @@ from sentry.relay.config.metric_extraction import (
     get_current_widget_specs,
     get_metric_extraction_config,
 )
+from sentry.relay.types import RuleCondition
 from sentry.search.events.constants import VITAL_THRESHOLDS
 from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
 from sentry.snuba.dataset import Dataset
@@ -25,7 +26,6 @@ from sentry.snuba.metrics.extraction import (
     MetricSpec,
     MetricSpecType,
     OnDemandMetricSpec,
-    RuleCondition,
     SpecVersion,
     TagSpec,
     _deep_sorted,
