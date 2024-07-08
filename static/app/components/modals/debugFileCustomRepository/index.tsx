@@ -9,27 +9,15 @@ import Form from 'sentry/components/forms/form';
 import HookOrDefault from 'sentry/components/hookOrDefault';
 import {getDebugSourceName} from 'sentry/data/debugFileSources';
 import {t, tct} from 'sentry/locale';
-import type {AppStoreConnectStatusData} from 'sentry/types/debugFiles';
 import {CustomRepoType} from 'sentry/types/debugFiles';
 import type {Organization} from 'sentry/types/organization';
-import {useParams} from 'sentry/utils/useParams';
 
-import AppStoreConnect from './appStoreConnect';
 import Http from './http';
 import {getFinalData, getFormFieldsAndInitialData} from './utils';
 
-type AppStoreConnectInitialData = React.ComponentProps<
-  typeof AppStoreConnect
->['initialData'];
-
 type HttpInitialData = React.ComponentProps<typeof Http>['initialData'];
 
-type RouteParams = {
-  projectId: string;
-};
-
 type Props = {
-  appStoreConnectSourcesQuantity: number;
   /**
    * Callback invoked with the updated config value.
    */
@@ -39,18 +27,11 @@ type Props = {
    * Type of this source.
    */
   sourceType: CustomRepoType;
-
-  appStoreConnectStatusData?: AppStoreConnectStatusData;
   /**
    * The sourceConfig. May be empty to create a new one.
    */
   sourceConfig?: Record<string, any>;
 } & Pick<ModalRenderProps, 'Header' | 'Body' | 'Footer' | 'closeModal' | 'CloseButton'>;
-
-const HookedAppStoreConnectMultiple = HookOrDefault({
-  hookName: 'component:disabled-app-store-connect-multiple',
-  defaultComponent: ({children}) => <Fragment>{children}</Fragment>,
-});
 
 const HookedCustomSymbolSources = HookOrDefault({
   hookName: 'component:disabled-custom-symbol-sources',
@@ -65,12 +46,9 @@ function DebugFileCustomRepository({
   onSave,
   sourceConfig,
   sourceType,
-  appStoreConnectStatusData,
   closeModal,
   organization,
-  appStoreConnectSourcesQuantity,
 }: Props) {
-  const {projectId: projectSlug} = useParams<RouteParams>();
   function handleSave(data?: Record<string, any>) {
     if (!data) {
       closeModal();
@@ -81,46 +59,6 @@ function DebugFileCustomRepository({
     onSave({...getFinalData(sourceType, data), type: sourceType}).then(() => {
       closeModal();
     });
-  }
-
-  if (sourceType === CustomRepoType.APP_STORE_CONNECT) {
-    return (
-      <Feature organization={organization} features="app-store-connect-multiple">
-        {({hasFeature, features}) => {
-          if (
-            hasFeature ||
-            (appStoreConnectSourcesQuantity === 1 && sourceConfig) ||
-            appStoreConnectSourcesQuantity === 0
-          ) {
-            return (
-              <AppStoreConnect
-                Header={Header}
-                Body={Body}
-                Footer={Footer}
-                orgSlug={organization.slug}
-                projectSlug={projectSlug}
-                onSubmit={handleSave}
-                initialData={sourceConfig as AppStoreConnectInitialData}
-                appStoreConnectStatusData={appStoreConnectStatusData}
-              />
-            );
-          }
-
-          return (
-            <Fragment>
-              <CloseButton />
-              <HookedAppStoreConnectMultiple organization={organization}>
-                <FeatureDisabled
-                  features={features}
-                  featureName={t('App Store Connect Multiple')}
-                  hideHelpToggle
-                />
-              </HookedAppStoreConnectMultiple>
-            </Fragment>
-          );
-        }}
-      </Feature>
-    );
   }
 
   return (
