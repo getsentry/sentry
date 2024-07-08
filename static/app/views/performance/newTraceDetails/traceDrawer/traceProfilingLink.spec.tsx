@@ -1,5 +1,4 @@
 import type {LocationDescriptor} from 'history';
-import {TransactionEventFixture} from 'sentry-fixture/event';
 
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';

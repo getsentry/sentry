@@ -1,6 +1,5 @@
 import type {Location, LocationDescriptor} from 'history';
 
-import type {EventTransaction} from 'sentry/types';
 import {generateContinuousProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import type {
   TraceTree,
