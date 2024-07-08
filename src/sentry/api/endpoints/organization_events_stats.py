@@ -113,7 +113,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
     }
     sunba_methods = ["GET"]
 
-    def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
+    def get_features(
+        self, organization: Organization, request: Request
+    ) -> Mapping[str, bool | None]:
         feature_names = [
             "organizations:performance-chart-interpolation",
             "organizations:performance-use-metrics",
@@ -390,10 +392,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         comparison_delta,
                     )
                     has_other_data = self.check_if_results_have_data(original_results)
-                    if isinstance(original_results, SnubaTSResult):
-                        dataset_meta = original_results.data.get("meta", {})
-                    else:
-                        dataset_meta = list(original_results.values())[0].data.get("meta", {})
+                    dataset_meta = original_results.data.get("meta", {})
 
                     using_metrics = dataset_meta.get("isMetricsData", False) or dataset_meta.get(
                         "isMetricsExtractedData", False
