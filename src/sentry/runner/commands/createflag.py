@@ -13,7 +13,7 @@ from flagpole.conditions import (
 )
 from sentry.runner.decorators import configuration
 
-valid_scopes = ["organization", "project"]
+valid_scopes = ["organizations", "projects"]
 hardcoded_condition_properties = {
     "organization_id",
     "organization_slug",
@@ -30,7 +30,6 @@ condition_type_choices = click.Choice([op.value for op in ConditionOperatorKind]
 
 
 def condition_wizard(display_sample_condition_properties: bool = False) -> ConditionBase:
-    operator_kind = click.prompt("Operator type", type=condition_type_choices, show_choices=True)
     if display_sample_condition_properties:
         click.echo("Here are some example condition properties available:\n")
         for property_name in hardcoded_condition_properties:
@@ -38,6 +37,8 @@ def condition_wizard(display_sample_condition_properties: bool = False) -> Condi
         click.echo("")
 
     property_name = click.prompt("Context property name", type=str)
+    operator_kind = click.prompt("Operator type", type=condition_type_choices, show_choices=True)
+
     if operator_kind == ConditionOperatorKind.IN:
         return InCondition(value=[], property=property_name)
     elif operator_kind == ConditionOperatorKind.NOT_IN:
@@ -92,7 +93,7 @@ def segment_wizard() -> list[Segment]:
 @click.option(
     "--scope",
     default=None,
-    help="The feature's scope. Must be either 'project' or 'organization'",
+    help="The feature's scope. Must be either 'organizations' or 'projects'",
 )
 @click.option("--owner", default=None, help="The team name or email address of the feature owner.")
 @configuration
@@ -102,30 +103,34 @@ def createflag(
     scope: str | None,
     owner: str | None,
 ) -> None:
+    """Create a new Flagpole feature flag."""
+
     try:
+        if not name:
+            name = click.prompt("Feature name", type=str)
+
+        assert name, "Feature must have a non-empty string for 'name'"
+        name = name.strip().lower().replace(" ", "-")
+
         if not owner:
             entered_owner = click.prompt("Owner (team name or email address)", type=str)
             owner = entered_owner.strip()
 
-        if not name:
-            name = click.prompt("Feature name", type=str)
-
-        assert name, "Feature must have a non-empty string as a name"
-        name = name.strip().lower().replace(" ", "-")
+        assert owner, "Feature must have a non-empty string for 'owner'"
 
         if not scope:
             scope = click.prompt(
                 "Feature scope",
                 type=feature_scopes_choices,
-                default="organization",
+                default="organizations",
                 show_choices=True,
             )
 
-        assert scope, "A feature scope must be provided"
+        assert scope, "A feature scope must be provided."
         scope = scope.lower().strip()
         if scope not in valid_scopes:
             raise click.ClickException(
-                f"Scope must be either 'organization' or 'project', received '{scope}'"
+                f"Scope must be either 'organizations' or 'projects', received '{scope}'"
             )
 
         segments = []
