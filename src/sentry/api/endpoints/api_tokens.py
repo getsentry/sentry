@@ -21,6 +21,8 @@ from sentry.models.outbox import outbox_context
 from sentry.security.utils import capture_security_activity
 from sentry.types.token import AuthTokenType
 
+ALLOWED_FIELDS = ["name", "tokenId"]
+
 
 class ApiTokenNameSerializer(serializers.Serializer):
     name = CharField(max_length=255, allow_blank=True, required=False)
@@ -103,33 +105,10 @@ class ApiTokensEndpoint(Endpoint):
         return Response(serializer.errors, status=400)
 
     @method_decorator(never_cache)
-    def delete(self, request: Request):
-        user_id = self._get_appropriate_user_id(request=request)
-        token_id = request.data.get("tokenId", None)
-        # Account for token_id being 0, which can be considered valid
-        if token_id is None:
-            return Response({"tokenId": token_id}, status=400)
-
-        with outbox_context(transaction.atomic(router.db_for_write(ApiToken)), flush=False):
-            token_to_delete: ApiToken | None = ApiToken.objects.filter(
-                id=token_id, application__isnull=True, user_id=user_id
-            ).first()
-
-            if token_to_delete is None:
-                return Response({"tokenId": token_id, "userId": user_id}, status=400)
-
-            token_to_delete.delete()
-
-        analytics.record("api_token.deleted", user_id=request.user.id)
-
-        return Response(status=204)
-
-    @method_decorator(never_cache)
     def put(self, request: Request) -> Response:
         keys = list(request.data.keys())
-        allowed_fields = ["name", "tokenId"]
 
-       if any(key not in allowed_fields for key in keys):
+        if any(key not in ALLOWED_FIELDS for key in keys):
             return Response(
                 {"error": "Only auth token name can be edited after creation"}, status=403
             )
@@ -158,3 +137,25 @@ class ApiTokensEndpoint(Endpoint):
 
             return Response(status=204)
         return Response(serializer.errors, status=400)
+
+    @method_decorator(never_cache)
+    def delete(self, request: Request):
+        user_id = self._get_appropriate_user_id(request=request)
+        token_id = request.data.get("tokenId", None)
+        # Account for token_id being 0, which can be considered valid
+        if token_id is None:
+            return Response({"tokenId": token_id}, status=400)
+
+        with outbox_context(transaction.atomic(router.db_for_write(ApiToken)), flush=False):
+            token_to_delete: ApiToken | None = ApiToken.objects.filter(
+                id=token_id, application__isnull=True, user_id=user_id
+            ).first()
+
+            if token_to_delete is None:
+                return Response({"tokenId": token_id, "userId": user_id}, status=400)
+
+            token_to_delete.delete()
+
+        analytics.record("api_token.deleted", user_id=request.user.id)
+
+        return Response(status=204)
