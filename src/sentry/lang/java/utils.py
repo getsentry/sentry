@@ -6,9 +6,7 @@ from typing import Any
 import orjson
 import sentry_sdk
 
-from sentry import options
 from sentry.attachments import CachedAttachment, attachment_cache
-from sentry.features.rollout import in_random_rollout, in_rollout_group
 from sentry.ingest.consumer.processors import CACHE_TIMEOUT
 from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.models.debugfile import ProjectDebugFile
@@ -139,18 +137,6 @@ def deobfuscate_view_hierarchy(data):
     deobfuscation_template(data, "proguard", _deobfuscate_view_hierarchy)
 
 
-SYMBOLICATOR_PROGUARD_PROJECTS_OPTION = "symbolicator.proguard-processing-projects"
-SYMBOLICATOR_PROGUARD_SAMPLE_RATE_OPTION = "symbolicator.proguard-processing-sample-rate"
-SYMBOLICATOR_PROGUARD_AB_TEST_OPTION = "symbolicator.proguard-processing-ab-test"
-
-
-def should_use_symbolicator_for_proguard(project_id: int) -> bool:
-    if project_id in options.get(SYMBOLICATOR_PROGUARD_PROJECTS_OPTION, []):
-        return True
-
-    return in_rollout_group(SYMBOLICATOR_PROGUARD_SAMPLE_RATE_OPTION, project_id)
-
-
 def is_jvm_event(data: Any, stacktraces: list[StacktraceInfo]) -> bool:
     """Returns whether `data` is a JVM event, based on its platform, images, and
     the supplied stacktraces."""
@@ -174,7 +160,3 @@ def is_jvm_event(data: Any, stacktraces: list[StacktraceInfo]) -> bool:
             return True
 
     return False
-
-
-def do_proguard_processing_ab_test() -> bool:
-    return in_random_rollout(SYMBOLICATOR_PROGUARD_AB_TEST_OPTION)
