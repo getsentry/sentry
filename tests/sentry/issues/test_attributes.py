@@ -2,7 +2,6 @@ from collections.abc import Sequence
 from datetime import timedelta
 from unittest.mock import patch
 
-import sentry_sdk
 from django.utils import timezone
 from snuba_sdk.legacy import json_to_snql
 
@@ -19,8 +18,7 @@ from sentry.models.groupowner import GroupOwner, GroupOwnerType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import override_options
 from sentry.types.group import GroupSubStatus
-from sentry.utils import json
-from sentry.utils.snuba import _snuba_query
+from sentry.utils.snuba import raw_snql_query
 
 
 class GroupAttributesTest(TestCase):
@@ -237,14 +235,7 @@ class PostUpdateLogGroupAttributesChangedTest(TestCase):
             }
             request = json_to_snql(json_body, "group_attributes")
             request.validate()
-            identity = lambda x: x
-            isolation_scope = sentry_sdk.Scope.get_isolation_scope().fork()
-            current_scope = sentry_sdk.Scope.get_current_scope().fork()
-            resp = _snuba_query(
-                ((request, identity, identity), isolation_scope, current_scope, {}, "test_api")
-            )
-            assert resp[0].status == 200
-            stuff = json.loads(resp[0].data)
-            assert stuff["data"] == [
+            result = raw_snql_query(request)
+            assert result["data"] == [
                 {"project_id": g.project_id, "group_id": g.id, **snuba_fields} for g in groups
             ]
