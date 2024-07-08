@@ -383,7 +383,7 @@ class SlackActionEndpoint(Endpoint):
             "callback_id": callback_id,
         }
 
-    def build_format_options(self, options: dict[str, str]) -> list[dict[str, dict[str, str]]]:
+    def build_format_options(self, options: dict[str, str]) -> list[dict[str, Any]]:
         return [
             {
                 "text": {
