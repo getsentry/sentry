@@ -8,6 +8,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface BaseEvent {
   culprit: string; // Used for default events & subtitles
+  'event.type': string;
   id: string;
   'issue.id': number;
   message: string;
@@ -18,11 +19,13 @@ interface BaseEvent {
   transaction: string;
 }
 
-interface TimelineIssuePlatformEvent extends BaseEvent {}
+interface TimelineIssuePlatformEvent extends BaseEvent {
+  'event.type': 'transaction';
+}
 interface TimelineDiscoverEvent extends BaseEvent {
   'error.value': string[]; // Used for message for error events
-  'event.type': string;
-  'stack.function': string[];
+  'event.type': 'error' | 'default';
+  'stack.function': string[]; // This will have data when this is an error event
 }
 
 export type TimelineEvent = TimelineDiscoverEvent | TimelineIssuePlatformEvent;
@@ -72,6 +75,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
             'issue.id',
             'transaction',
             'culprit', // Used for the subtitle
+            'event.type', // This is useful for typing TimelineEvent
           ],
           per_page: 100,
           query: `trace:${traceId}`,
@@ -157,6 +161,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
         timestamp: event.dateCreated!,
         title: event.title,
         transaction: '',
+        'event.type': event['event.type'],
       });
     }
     const timestamps = events.map(e => new Date(e.timestamp).getTime());

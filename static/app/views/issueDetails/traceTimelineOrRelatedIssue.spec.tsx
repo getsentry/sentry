@@ -10,7 +10,11 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 
 import {getTitleSubtitleMessage} from './traceTimeline/traceIssue';
 import {TraceTimeline} from './traceTimeline/traceTimeline';
-import type {TraceEventResponse} from './traceTimeline/useTraceTimelineEvents';
+import type {
+  TimelineDiscoverEvent,
+  TimelineEvent,
+  TraceEventResponse,
+} from './traceTimeline/useTraceTimelineEvents';
 import {TraceTimeLineOrRelatedIssue} from './traceTimelineOrRelatedIssue';
 
 jest.mock('sentry/utils/routeAnalytics/useRouteAnalyticsParams');
@@ -51,11 +55,12 @@ describe('TraceTimeline & TraceRelated Issue', () => {
         id: 'abc',
         transaction: '/api/slow/',
         culprit: '/api/slow/',
+        'event.type': 'transaction',
       },
     ],
     meta: {fields: {}, units: {}},
   };
-  const mainError = {
+  const mainError: TimelineDiscoverEvent = {
     message: 'This is the message for the issue',
     culprit: 'n/a',
     timestamp: firstEventTimestamp,
@@ -65,10 +70,10 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     title: event.title,
     id: event.id,
     transaction: 'important.task',
-    'event.type': event.type,
+    'event.type': 'error',
     'stack.function': ['important.task', 'task.run'],
   };
-  const secondError = {
+  const secondError: TimelineDiscoverEvent = {
     message: 'Message of the second issue',
     culprit: 'billiard.pool in foo', // Used for subtitle
     'error.value': ['some-other-error-value', 'The last error value'],
@@ -79,7 +84,8 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     title: 'someTitle',
     id: '12345',
     transaction: 'foo',
-    'event.type': event.type,
+    'event.type': 'error',
+    'stack.function': ['foo', 'bar'],
   };
   const discoverBody: TraceEventResponse = {
     data: [mainError],
@@ -340,12 +346,14 @@ function createEvent({
   title,
   error_value,
   event_type = 'error',
+  stack_function = [],
 }: {
   culprit: string;
   title: string;
   error_value?: string[];
-  event_type?: string;
-}) {
+  event_type?: 'error' | 'default' | 'transaction';
+  stack_function?: string[];
+}): TimelineEvent {
   const event = {
     message: 'message',
     culprit: culprit,
@@ -360,6 +368,9 @@ function createEvent({
   };
   if (error_value) {
     event['error.value'] = error_value;
+  }
+  if (event_type === 'error' || event_type === 'default') {
+    event['stack.function'] = stack_function;
   }
   return event;
 }
