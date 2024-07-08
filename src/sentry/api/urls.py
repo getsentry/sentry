@@ -445,7 +445,6 @@ from .endpoints.organization_onboarding_continuation_email import (
 )
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
-from .endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
 from .endpoints.organization_profiling_functions import OrganizationProfilingFunctionTrendsEndpoint
 from .endpoints.organization_profiling_profiles import (
     OrganizationProfilingChunksEndpoint,
@@ -547,10 +546,6 @@ from .endpoints.project_performance_issue_settings import ProjectPerformanceIssu
 from .endpoints.project_platforms import ProjectPlatformsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
 from .endpoints.project_plugins import ProjectPluginsEndpoint
-from .endpoints.project_processingissues import (
-    ProjectProcessingIssuesDiscardEndpoint,
-    ProjectProcessingIssuesEndpoint,
-)
 from .endpoints.project_profiling_profile import (
     ProjectProfilingEventEndpoint,
     ProjectProfilingProfileEndpoint,
@@ -567,7 +562,6 @@ from .endpoints.project_release_stats import ProjectReleaseStatsEndpoint
 from .endpoints.project_releases import ProjectReleasesEndpoint
 from .endpoints.project_releases_token import ProjectReleasesTokenEndpoint
 from .endpoints.project_repo_path_parsing import ProjectRepoPathParsingEndpoint
-from .endpoints.project_reprocessing import ProjectReprocessingEndpoint
 from .endpoints.project_rule_actions import ProjectRuleActionsEndpoint
 from .endpoints.project_rule_details import ProjectRuleDetailsEndpoint
 from .endpoints.project_rule_enable import ProjectRuleEnableEndpoint
@@ -1771,11 +1765,6 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-onboarding-continuation-email",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/processingissues/$",
-        OrganizationProcessingIssuesEndpoint.as_view(),
-        name="sentry-api-0-organization-processing-issues",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/projects/$",
         OrganizationProjectsEndpoint.as_view(),
         name="sentry-api-0-organization-projects",
@@ -2636,21 +2625,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/user-stats/$",
         ProjectUserStatsEndpoint.as_view(),
         name="sentry-api-0-project-userstats",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/processingissues/$",
-        ProjectProcessingIssuesEndpoint.as_view(),
-        name="sentry-api-0-project-processing-issues",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/reprocessing/$",
-        ProjectReprocessingEndpoint.as_view(),
-        name="sentry-api-0-project-reprocessing",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/processingissues/discard/$",
-        ProjectProcessingIssuesDiscardEndpoint.as_view(),
-        name="sentry-api-0-project-discard-processing-issues",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/ownership/$",
