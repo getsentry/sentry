@@ -73,6 +73,6 @@ export function useLoadGettingStarted({
     isError: projectKeys.isError,
     docs: module === 'none' ? null : module?.default ?? null,
     dsn: projectKeys.data?.[0]?.dsn.public,
-    cdn: projectKeys.data?.[0].dsn.cdn,
+    cdn: projectKeys.data?.[0]?.dsn.cdn,
   };
 }
