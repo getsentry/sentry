@@ -127,7 +127,9 @@ class ApiTokensEndpoint(Endpoint):
     @method_decorator(never_cache)
     def put(self, request: Request) -> Response:
         if "scopes" in request.data:
-            return Response(status=403)
+            return Response(
+                {"error": "Auth token scopes cannot be edited after creation"}, status=403
+            )
 
         serializer = ApiTokenNameSerializer(data=request.data)
 
