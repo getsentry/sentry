@@ -8,6 +8,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 
+import {getTitleSubtitleMessage} from './traceTimeline/traceIssue';
 import {TraceTimeline} from './traceTimeline/traceTimeline';
 import type {TraceEventResponse} from './traceTimeline/useTraceTimelineEvents';
 import {TraceTimeLineOrRelatedIssue} from './traceTimelineOrRelatedIssue';
@@ -287,9 +288,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     });
 
     render(<TraceTimeLineOrRelatedIssue event={event} />, {
-      organization: OrganizationFixture({
-        features: [],
-      }),
+      organization: OrganizationFixture({features: []}), // No global-views feature
     });
     expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
   });
@@ -329,5 +328,64 @@ describe('TraceTimeline & TraceRelated Issue', () => {
       }),
     });
     expect(await screen.findByText('Slow DB Query')).toBeInTheDocument();
+  });
+});
+
+function createEvent({
+  message,
+  title,
+  transaction,
+  event_type = 'error',
+}: {
+  message: string;
+  title: string;
+  transaction: string;
+  event_type?: string;
+}) {
+  return {
+    message: message,
+    timestamp: '2024-01-24T09:09:04+00:00',
+    'issue.id': 9999,
+    project: 'foo',
+    'project.name': 'bar',
+    title: title,
+    id: '12345',
+    transaction: transaction,
+    'event.type': event_type,
+  };
+}
+
+describe('getTitleSubtitleMessage()', () => {
+  it('error event', () => {
+    expect(
+      getTitleSubtitleMessage(
+        createEvent({
+          title:
+            'ClientError: 404 Client Error: for url: https://api.clickup.com/sentry/webhook',
+          message: 'Message of the second issue',
+          transaction: 'foo',
+        })
+      )
+    ).toEqual({
+      title: 'ClientError', // The colon and remainder of string are removed
+      subtitle: 'foo',
+      message: 'Message of the second issue',
+    });
+  });
+
+  it('error event: It keeps the colon', () => {
+    expect(
+      getTitleSubtitleMessage(
+        createEvent({
+          title: 'WorkerLostError: ',
+          message: 'Message of the second issue',
+          transaction: 'foo',
+        })
+      )
+    ).toEqual({
+      title: 'WorkerLostError:', // The colon is kept
+      subtitle: 'foo',
+      message: 'Message of the second issue',
+    });
   });
 });
