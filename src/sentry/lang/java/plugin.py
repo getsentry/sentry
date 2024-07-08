@@ -165,12 +165,6 @@ class JavaSourceLookupStacktraceProcessor(StacktraceProcessor):
         for archive in self._archives:
             archive.close()
 
-        # Symbolicator/Python A/B testing
-        try:
-            self.perform_ab_test()
-        except Exception as e:
-            sentry_sdk.capture_exception(e)
-
     def handles_frame(self, frame, stacktrace_info):
         key = self._deep_freeze(frame)
         self._proguard_processor_handles_frame[key] = self.proguard_processor.handles_frame(
