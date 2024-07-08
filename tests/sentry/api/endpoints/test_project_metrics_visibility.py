@@ -27,7 +27,7 @@ class ProjectMetricsVisibilityEndpointTestCase(APITestCase):
         assert response.status_code == 403
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            token = ApiToken.objects.create(user=self.user, scope_list=["project:write"])
+            token = ApiToken.objects.create(user=self.user, scope_list=["project:read"])
 
         response = self.send_put_request(token, self.endpoint)
         assert response.status_code != 403

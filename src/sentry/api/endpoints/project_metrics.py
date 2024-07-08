@@ -9,7 +9,7 @@ from sentry import audit_log
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import ProjectEndpoint
+from sentry.api.bases import ProjectEndpoint, ProjectMetricsPermission
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.metrics_blocking import MetricBlockingSerializer
 from sentry.exceptions import InvalidParams
@@ -53,6 +53,7 @@ class MetricOperationType(Enum):
 class ProjectMetricsVisibilityEndpoint(ProjectEndpoint):
     publish_status = {"PUT": ApiPublishStatus.EXPERIMENTAL}
     owner = ApiOwner.TELEMETRY_EXPERIENCE
+    permission_classes = (ProjectMetricsPermission,)
 
     def _get_sanitized_tags(self, request: Request) -> Sequence[str]:
         tags = request.data.get("tags")
