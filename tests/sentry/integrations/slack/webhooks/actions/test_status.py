@@ -5,6 +5,7 @@ import responses
 from django.db import router
 from django.urls import reverse
 from slack_sdk.errors import SlackApiError
+from slack_sdk.models.views import View
 from slack_sdk.web import SlackResponse
 
 from sentry.integrations.slack.views.link_identity import build_linking_url
@@ -210,11 +211,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.content == b""
 
         trigger_id = self.mock_view.call_args.kwargs["trigger_id"]
-        view = self.mock_view.call_args.kwargs["view"]
+        view: View = self.mock_view.call_args.kwargs["view"]
 
         assert trigger_id == self.trigger_id
 
-        private_metadata = orjson.loads(view["private_metadata"])
+        private_metadata = orjson.loads(view.private_metadata)
         assert int(private_metadata["issue"]) == self.group.id
         assert private_metadata["orig_response_url"] == self.response_url
 
@@ -308,11 +309,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.content == b""
 
         trigger_id = self.mock_view.call_args.kwargs["trigger_id"]
-        view = self.mock_view.call_args.kwargs["view"]
+        view: View = self.mock_view.call_args.kwargs["view"]
 
         assert trigger_id == self.trigger_id
 
-        private_metadata = orjson.loads(view["private_metadata"])
+        private_metadata = orjson.loads(view.private_metadata)
         assert int(private_metadata["issue"]) == self.group.id
         assert private_metadata["orig_response_url"] == self.response_url
 
@@ -1382,11 +1383,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.content == b""
 
         trigger_id = mock_views_open.call_args.kwargs["trigger_id"]
-        view = mock_views_open.call_args.kwargs["view"]
+        view: View = mock_views_open.call_args.kwargs["view"]
 
         assert trigger_id == self.trigger_id
 
-        private_metadata = orjson.loads(view["private_metadata"])
+        private_metadata = orjson.loads(view.private_metadata)
         assert int(private_metadata["issue"]) == self.group.id
         assert private_metadata["orig_response_url"] == self.response_url
 
@@ -1661,11 +1662,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.content == b""
 
         trigger_id = mock_views_open.call_args.kwargs["trigger_id"]
-        view = mock_views_open.call_args.kwargs["view"]
+        view: View = mock_views_open.call_args.kwargs["view"]
 
         assert trigger_id == self.trigger_id
 
-        private_metadata = orjson.loads(view["private_metadata"])
+        private_metadata = orjson.loads(view.private_metadata)
         assert int(private_metadata["issue"]) == self.group.id
         assert private_metadata["orig_response_url"] == self.response_url
 
@@ -1725,11 +1726,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.content == b""
 
         trigger_id = mock_open_view.call_args.kwargs["trigger_id"]
-        view = mock_open_view.call_args.kwargs["view"]
+        view: View = mock_open_view.call_args.kwargs["view"]
 
         assert trigger_id == self.trigger_id
 
-        private_metadata = orjson.loads(view["private_metadata"])
+        private_metadata = orjson.loads(view.private_metadata)
         assert int(private_metadata["issue"]) == self.group.id
         assert private_metadata["orig_response_url"] == self.response_url
 
@@ -1930,11 +1931,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.content == b""
 
         trigger_id = mock_open_view.call_args.kwargs["trigger_id"]
-        view = mock_open_view.call_args.kwargs["view"]
+        view: View = mock_open_view.call_args.kwargs["view"]
 
         assert trigger_id == self.trigger_id
 
-        private_metadata = orjson.loads(view["private_metadata"])
+        private_metadata = orjson.loads(view.private_metadata)
         assert int(private_metadata["issue"]) == self.group.id
         assert private_metadata["orig_response_url"] == self.response_url
 

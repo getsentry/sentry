@@ -338,50 +338,6 @@ class SlackActionEndpoint(Endpoint):
             "callback_id": callback_id,
         }
 
-    def build_resolve_modal_payload(self, callback_id) -> View:
-        formatted_resolve_options = []
-        for text, value in RESOLVE_OPTIONS.items():
-            formatted_resolve_options.append(
-                {
-                    "text": {
-                        "type": "plain_text",
-                        "text": text,
-                        "emoji": True,
-                    },
-                    "value": value,
-                }
-            )
-
-        return View(
-            **{
-                "type": "modal",
-                "title": {"type": "plain_text", "text": "Resolve Issue"},
-                "blocks": [
-                    {
-                        "type": "section",
-                        "text": {"type": "mrkdwn", "text": "Resolve"},
-                        "accessory": {
-                            "type": "static_select",
-                            "initial_option": {
-                                "text": {
-                                    "type": "plain_text",
-                                    "text": "Immediately",
-                                    "emoji": True,
-                                },
-                                "value": "resolved",
-                            },
-                            "options": formatted_resolve_options,
-                            "action_id": "static_select-action",
-                        },
-                    }
-                ],
-                "close": {"type": "plain_text", "text": "Cancel"},
-                "submit": {"type": "plain_text", "text": "Resolve"},
-                "private_metadata": callback_id,
-                "callback_id": callback_id,
-            }
-        )
-
     def build_archive_modal_payload_deprecated(self, callback_id) -> dict[str, Any]:
         formatted_archive_options = []
         for text, value in ARCHIVE_OPTIONS.items():
@@ -427,51 +383,76 @@ class SlackActionEndpoint(Endpoint):
             "callback_id": callback_id,
         }
 
-    def build_archive_modal_payload(self, callback_id) -> View:
-        formatted_archive_options = []
-        for text, value in ARCHIVE_OPTIONS.items():
-            formatted_archive_options.append(
-                {
-                    "text": {
-                        "type": "plain_text",
-                        "text": text,
-                        "emoji": True,
-                    },
-                    "value": value,
-                }
-            )
+    def build_format_options(self, options: dict[str, str]) -> list[dict[str, dict[str, str]]]:
+        return [
+            {
+                "text": {
+                    "type": "plain_text",
+                    "text": text,
+                    "emoji": True,
+                },
+                "value": value,
+            }
+            for text, value in options.items()
+        ]
+
+    def build_modal_payload(
+        self,
+        title: str,
+        action_text: str,
+        options: dict[str, str],
+        initial_option_text: str,
+        initial_option_value: str,
+        callback_id: str,
+    ) -> View:
+        formatted_options = self.build_format_options(options)
 
         return View(
-            **{
-                "type": "modal",
-                "title": {"type": "plain_text", "text": "Archive Issue"},
-                "blocks": [
-                    {
-                        "type": "section",
-                        "text": {
-                            "type": "mrkdwn",
-                            "text": "Archive",
-                        },
-                        "accessory": {
-                            "type": "static_select",
-                            "initial_option": {
-                                "text": {
-                                    "type": "plain_text",
-                                    "text": "Until escalating",
-                                    "emoji": True,
-                                },
-                                "value": "ignored:archived_until_escalating",
+            type="modal",
+            title={"type": "plain_text", "text": f"{title} Issue"},
+            blocks=[
+                {
+                    "type": "section",
+                    "text": {"type": "mrkdwn", "text": action_text},
+                    "accessory": {
+                        "type": "static_select",
+                        "initial_option": {
+                            "text": {
+                                "type": "plain_text",
+                                "text": initial_option_text,
+                                "emoji": True,
                             },
-                            "options": formatted_archive_options,
-                            "action_id": "static_select-action",
+                            "value": initial_option_value,
                         },
-                    }
-                ],
-                "close": {"type": "plain_text", "text": "Cancel"},
-                "submit": {"type": "plain_text", "text": "Archive"},
-                "private_metadata": callback_id,
-                "callback_id": callback_id,
-            }
+                        "options": formatted_options,
+                        "action_id": "static_select-action",
+                    },
+                }
+            ],
+            close={"type": "plain_text", "text": "Cancel"},
+            submit={"type": "plain_text", "text": title},
+            private_metadata=callback_id,
+            callback_id=callback_id,
+        )
+
+    def build_resolve_modal_payload(self, callback_id: str) -> View:
+        return self.build_modal_payload(
+            title="Resolve",
+            action_text="Resolve",
+            options=RESOLVE_OPTIONS,
+            initial_option_text="Immediately",
+            initial_option_value="resolved",
+            callback_id=callback_id,
+        )
+
+    def build_archive_modal_payload(self, callback_id: str) -> View:
+        return self.build_modal_payload(
+            title="Archive",
+            action_text="Archive",
+            options=ARCHIVE_OPTIONS,
+            initial_option_text="Until escalating",
+            initial_option_value="ignored:archived_until_escalating",
+            callback_id=callback_id,
         )
 
     def open_resolve_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:
@@ -492,7 +473,7 @@ class SlackActionEndpoint(Endpoint):
         callback_id = orjson.dumps(callback_id).decode()
 
         # XXX(CEO): the second you make a selection (without hitting Submit) it sends a slightly different request
-        if features.has("organizations:slack-sdk-action-view-open", group.project.organization):
+        if not features.has("organizations:slack-sdk-action-view-open", group.project.organization):
             modal_payload = self.build_resolve_modal_payload(callback_id)
             slack_client = SlackSdkClient(integration_id=slack_request.integration.id)
             try:
@@ -550,7 +531,7 @@ class SlackActionEndpoint(Endpoint):
             callback_id["channel_id"] = slack_request.data["channel"]["id"]
         callback_id = orjson.dumps(callback_id).decode()
 
-        if features.has("organizations:slack-sdk-action-view-open", group.project.organization):
+        if not features.has("organizations:slack-sdk-action-view-open", group.project.organization):
             modal_payload = self.build_archive_modal_payload(callback_id)
             slack_client = SlackSdkClient(integration_id=slack_request.integration.id)
             try:
