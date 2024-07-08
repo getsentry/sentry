@@ -11,18 +11,17 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.groupsearchview import (
-    GroupSearchViewSerializer,
-    GroupSearchViewSerializerResponse,
+from sentry.api.serializers.models.groupsearchview import GroupSearchViewSerializer
+from sentry.api.serializers.rest_framework.groupsearchview import (
+    GroupSearchViewValidator,
+    GroupSearchViewValidatorResponse,
 )
-from sentry.api.serializers.rest_framework.groupsearchview import GroupSearchViewValidator
 from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.organization import Organization
 from sentry.models.savedsearch import SortOptions
 
-DEFAULT_VIEWS: list[GroupSearchViewSerializerResponse] = [
+DEFAULT_VIEWS: list[GroupSearchViewValidatorResponse] = [
     {
-        "id": None,
         "name": "Prioritized",
         "query": "is:unresolved issue.priority:[high, medium]",
         "querySort": SortOptions.DATE.value,
@@ -113,7 +112,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
 
 
 def bulk_update_views(
-    org: Organization, user_id: int, views: list[GroupSearchViewSerializerResponse]
+    org: Organization, user_id: int, views: list[GroupSearchViewValidatorResponse]
 ) -> None:
 
     existing_view_ids = [view["id"] for view in views if "id" in view]
@@ -127,13 +126,13 @@ def bulk_update_views(
             _update_existing_view(view, position=idx)
 
 
-def _delete_missing_views(org: Organization, user_id: int, view_ids_to_keep: list[int]) -> None:
+def _delete_missing_views(org: Organization, user_id: int, view_ids_to_keep: list[str]) -> None:
     GroupSearchView.objects.filter(organization=org, user_id=user_id).exclude(
         id__in=view_ids_to_keep
     ).delete()
 
 
-def _update_existing_view(view: GroupSearchViewSerializerResponse, position: int) -> None:
+def _update_existing_view(view: GroupSearchViewValidatorResponse, position: int) -> None:
     GroupSearchView.objects.get(id=view["id"]).update(
         name=view["name"],
         query=view["query"],
@@ -143,7 +142,7 @@ def _update_existing_view(view: GroupSearchViewSerializerResponse, position: int
 
 
 def _create_view(
-    org: Organization, user_id: int, view: GroupSearchViewSerializerResponse, position: int
+    org: Organization, user_id: int, view: GroupSearchViewValidatorResponse, position: int
 ) -> None:
     GroupSearchView.objects.create(
         organization=org,
