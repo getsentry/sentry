@@ -39,8 +39,8 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.rule import Rule
 from sentry.notifications.services import notifications_service
 from sentry.notifications.utils.actions import BlockKitMessageAction, MessageAction
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.shared_integrations.exceptions import ApiError
+from sentry.users.services.user import RpcUser
 
 from ..utils import logger
 
@@ -566,57 +566,20 @@ class SlackActionEndpoint(Endpoint):
                 try:
                     private_metadata = orjson.loads(view.private_metadata)
                     webhook_client = WebhookClient(private_metadata["orig_response_url"])
-                    webhook_client.send(blocks=json_blocks)
+                    webhook_client.send(
+                        blocks=json_blocks, delete_original=False, replace_original=True
+                    )
                     logger.info(
                         "slack.webhook.view_submission.success",
-                        extra={"integration_id": slack_request.integration.id},
+                        extra={
+                            "integration_id": slack_request.integration.id,
+                            "blocks": json_blocks,
+                        },
                     )
                 except SlackApiError as e:
                     logger.error(
                         "slack.webhook.view_submission.response-error", extra={"error": str(e)}
                     )
-
-            return self.respond()
-
-        # Handle status dialog submission
-        if (
-            slack_request.type == "dialog_submission"
-            and "resolve_type" in slack_request.data["submission"]
-        ):
-            logger.info("slack.action.dialog_submission", extra={"data": slack_request.data})
-
-            # Masquerade a status action
-            action = MessageAction(
-                name="status",
-                value=slack_request.data["submission"]["resolve_type"],
-            )
-
-            try:
-                self.on_status(request, identity_user, group, action)
-            except client.ApiError as error:
-                return self.api_error(
-                    slack_request, group, identity_user, error, "dialog_submission"
-                )
-
-            attachment = SlackIssuesMessageBuilder(
-                group,
-                identity=identity,
-                actions=[action],
-                tags=original_tags_from_request,
-                rules=[rule] if rule else None,
-            ).build()
-            body = self.construct_reply(
-                attachment, is_message=slack_request.callback_data["is_message"]
-            )
-
-            # use the original response_url to update the link attachment
-            slack_client = SlackClient(integration_id=slack_request.integration.id)
-            try:
-                slack_client.post(
-                    slack_request.callback_data["orig_response_url"], data=body, json=True
-                )
-            except ApiError as e:
-                logger.error("slack.action.response-error", extra={"error": str(e)})
 
             return self.respond()
 
@@ -687,10 +650,12 @@ class SlackActionEndpoint(Endpoint):
             json_blocks = orjson.dumps(response.get("blocks")).decode()
             webhook_client = WebhookClient(response_url)
             try:
-                webhook_client.send(blocks=json_blocks)
+                webhook_client.send(
+                    blocks=json_blocks, delete_original=False, replace_original=True
+                )
                 logger.info(
                     "slack.webhook.update_status.success",
-                    extra={"integration_id": slack_request.integration.id},
+                    extra={"integration_id": slack_request.integration.id, "blocks": json_blocks},
                 )
             except SlackApiError as e:
                 logger.error("slack.webhook.update_status.response-error", extra={"error": str(e)})

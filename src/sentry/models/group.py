@@ -64,7 +64,7 @@ if TYPE_CHECKING:
     from sentry.integrations.services.integration import RpcIntegration
     from sentry.models.environment import Environment
     from sentry.models.team import Team
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
 

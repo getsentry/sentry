@@ -39,9 +39,9 @@ def dsym_download(project_id: int, config_id: str) -> None:
 
 def inner_dsym_download(project_id: int, config_id: str) -> None:
     """Downloads the dSYMs from App Store Connect and stores them in the Project's debug files."""
-    with sdk.configure_scope() as scope:
-        scope.set_tag("project", project_id)
-        scope.set_tag("config_id", config_id)
+    scope = sdk.Scope.get_isolation_scope()
+    scope.set_tag("project", project_id)
+    scope.set_tag("config_id", config_id)
 
     project = Project.objects.get(pk=project_id)
     config = appconnect.AppStoreConnectConfig.from_project_config(project, config_id)
@@ -54,8 +54,9 @@ def inner_dsym_download(project_id: int, config_id: str) -> None:
         return
 
     for i, (build, build_state) in enumerate(builds):
-        with sdk.configure_scope() as scope:
-            scope.set_context("dsym_downloads", {"total": len(builds), "completed": i})
+        sdk.Scope.get_isolation_scope().set_context(
+            "dsym_downloads", {"total": len(builds), "completed": i}
+        )
         with tempfile.NamedTemporaryFile() as dsyms_zip:
             try:
                 client.download_dsyms(build, pathlib.Path(dsyms_zip.name))

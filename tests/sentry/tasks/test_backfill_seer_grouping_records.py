@@ -475,6 +475,9 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
+    @override_options(
+        {"similarity.backfill_seer_threads": 2, "similarity.backfill_seer_chunk_size": 10}
+    )
     def test_backfill_seer_grouping_records_success_cohorts_simple(
         self, mock_post_bulk_grouping_records, mock_logger
     ):
@@ -540,6 +543,64 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "reached the end of the project list",
                 extra={
                     "cohort_name": [self.project.id, project2.id],
+                    "last_processed_project_index": None,
+                },
+            ),
+        ]
+        assert mock_logger.info.call_args_list == expected_call_args_list
+
+    @with_feature("projects:similarity-embeddings-backfill")
+    @patch("sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project.logger")
+    @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
+    @override_options(
+        {"similarity.backfill_seer_threads": 2, "similarity.backfill_seer_chunk_size": 10}
+    )
+    def test_backfill_seer_grouping_records_success_cohorts_project_does_not_exist(
+        self, mock_post_bulk_grouping_records, mock_logger
+    ):
+        """
+        Test that the metadata is set for all groups showing that the record has been created.
+        """
+        mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
+
+        with TaskRunner():
+            backfill_seer_grouping_records_for_project(
+                current_project_id=99999999999999,
+                last_processed_group_index_input=None,
+                cohort=[99999999999999, self.project.id],
+                last_processed_project_index_input=0,
+            )
+
+        expected_call_args_list = [
+            call(
+                "backfill_seer_grouping_records",
+                extra={
+                    "current_project_id": 99999999999999,
+                    "last_processed_group_index": None,
+                    "cohort": [99999999999999, self.project.id],
+                    "last_processed_project_index": 0,
+                    "only_delete": False,
+                },
+            ),
+            call(
+                "backfill_seer_grouping_records.project_does_not_exist",
+                extra={"current_project_id": 99999999999999},
+            ),
+            call(
+                "backfill_seer_grouping_records",
+                extra={
+                    "current_project_id": self.project.id,
+                    "last_processed_group_index": None,
+                    "cohort": [99999999999999, self.project.id],
+                    "last_processed_project_index": 1,
+                    "only_delete": False,
+                },
+            ),
+            call("about to call next backfill", extra={"project_id": self.project.id}),
+            call(
+                "reached the end of the project list",
+                extra={
+                    "cohort_name": [99999999999999, self.project.id],
                     "last_processed_project_index": None,
                 },
             ),

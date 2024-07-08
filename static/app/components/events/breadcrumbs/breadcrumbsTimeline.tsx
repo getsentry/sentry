@@ -1,85 +1,94 @@
+import {Fragment, useRef} from 'react';
+import styled from '@emotion/styled';
+import {useVirtualizer} from '@tanstack/react-virtual';
+
+import BreadcrumbsItemContent from 'sentry/components/events/breadcrumbs/breadcrumbsItemContent';
 import {
   BREADCRUMB_TIMESTAMP_PLACEHOLDER,
-  BreadcrumbIcon,
-  BreadcrumbTimeDisplay,
-  getBreadcrumbColorConfig,
-  getBreadcrumbTitle,
+  type EnhancedCrumb,
 } from 'sentry/components/events/breadcrumbs/utils';
-import {BreadcrumbSort} from 'sentry/components/events/interfaces/breadcrumbs';
-import {convertCrumbType} from 'sentry/components/events/interfaces/breadcrumbs/utils';
-import {StructuredData} from 'sentry/components/structuredEventData';
-import Timeline from 'sentry/components/timeline';
-import type {RawCrumb} from 'sentry/types/breadcrumbs';
+import Timeline, {type TimelineItemProps} from 'sentry/components/timeline';
+import {t} from 'sentry/locale';
 import {defined} from 'sentry/utils';
 
 interface BreadcrumbsTimelineProps {
-  breadcrumbs: RawCrumb[];
-  meta?: Record<string, any>;
-  sort?: BreadcrumbSort;
-  timeDisplay?: BreadcrumbTimeDisplay;
-  virtualCrumbIndex?: number;
+  breadcrumbs: EnhancedCrumb[];
+  /**
+   * Fully expands the contents of the breadcrumb's data payload.
+   */
+  fullyExpanded?: boolean;
+  /**
+   * Shows the line after the last breadcrumbs icon.
+   * Useful for connecting timeline to components rendered after it.
+   */
+  showLastLine?: boolean;
+  startTimeString?: TimelineItemProps['startTimeString'];
 }
+
 export default function BreadcrumbsTimeline({
   breadcrumbs,
-  virtualCrumbIndex,
-  sort = BreadcrumbSort.NEWEST,
-  timeDisplay = BreadcrumbTimeDisplay.RELATIVE,
-  meta = {},
+  startTimeString,
+  fullyExpanded = false,
+  showLastLine = false,
 }: BreadcrumbsTimelineProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const virtualizer = useVirtualizer({
+    count: breadcrumbs.length,
+    getScrollElement: () => containerRef.current,
+    estimateSize: () => 35,
+    // Must match rendered item margins.
+    gap: 8,
+    overscan: 10,
+  });
+
   if (!breadcrumbs.length) {
     return null;
   }
 
-  const startTimestamp =
-    timeDisplay === BreadcrumbTimeDisplay.RELATIVE
-      ? breadcrumbs?.at(-1)?.timestamp
-      : undefined;
-  const items = breadcrumbs.map((breadcrumb, i) => {
-    const bc = convertCrumbType(breadcrumb);
-    const bcMeta = meta[i];
-    const isVirtualCrumb = defined(virtualCrumbIndex) && i === virtualCrumbIndex;
+  const virtualItems = virtualizer.getVirtualItems();
+  const items = virtualItems.map(virtualizedRow => {
+    const {breadcrumb, raw, title, meta, iconComponent, colorConfig, levelComponent} =
+      breadcrumbs[virtualizedRow.index];
+    const isVirtualCrumb = !defined(raw);
     return (
       <Timeline.Item
-        key={i}
-        title={getBreadcrumbTitle(bc.category)}
-        colorConfig={getBreadcrumbColorConfig(bc.type)}
-        icon={<BreadcrumbIcon type={bc.type} />}
-        timeString={bc.timestamp ?? BREADCRUMB_TIMESTAMP_PLACEHOLDER}
-        startTimeString={startTimestamp}
+        key={virtualizedRow.key}
+        ref={virtualizer.measureElement}
+        title={
+          <Fragment>
+            {title}
+            {isVirtualCrumb && <Subtitle> - {t('This event')}</Subtitle>}
+            {levelComponent}
+          </Fragment>
+        }
+        colorConfig={colorConfig}
+        icon={iconComponent}
+        timeString={breadcrumb.timestamp ?? BREADCRUMB_TIMESTAMP_PLACEHOLDER}
+        startTimeString={startTimeString}
         // XXX: Only the virtual crumb can be marked as active for breadcrumbs
         isActive={isVirtualCrumb ?? false}
+        style={showLastLine ? {background: 'transparent'} : {}}
+        data-index={virtualizedRow.index}
       >
-        {defined(bc.message) && (
-          <Timeline.Text>
-            <StructuredData
-              value={bc.message}
-              depth={0}
-              maxDefaultDepth={1}
-              meta={bcMeta?.message}
-              withAnnotatedText
-              withOnlyFormattedText
-            />
-          </Timeline.Text>
-        )}
-        {defined(bc.data) && (
-          <Timeline.Data>
-            <StructuredData
-              value={bc.data}
-              depth={0}
-              maxDefaultDepth={1}
-              meta={bcMeta?.data}
-              withAnnotatedText
-              withOnlyFormattedText
-            />
-          </Timeline.Data>
-        )}
+        <BreadcrumbsItemContent
+          breadcrumb={breadcrumb}
+          meta={meta}
+          fullyExpanded={fullyExpanded}
+        />
       </Timeline.Item>
     );
   });
 
   return (
-    <Timeline.Container>
-      {sort === BreadcrumbSort.NEWEST ? items.reverse() : items}
+    <Timeline.Container ref={containerRef} style={{height: virtualizer.getTotalSize()}}>
+      {items}
     </Timeline.Container>
   );
 }
+
+const Subtitle = styled('p')`
+  margin: 0;
+  font-weight: normal;
+  font-size: ${p => p.theme.fontSizeSmall};
+  display: inline;
+`;

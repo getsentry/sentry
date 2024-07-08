@@ -1,6 +1,7 @@
 import useLoadGettingStarted from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import type {Organization} from 'sentry/types/organization';
 import type {PlatformIntegration, ProjectKey} from 'sentry/types/project';
+import {getPlatformPath} from 'sentry/utils/gettingStartedDocs/getPlatformPath';
 import {useApiQuery} from 'sentry/utils/queryClient';
 
 function useLoadReplayOnboardingDoc({
@@ -12,12 +13,7 @@ function useLoadReplayOnboardingDoc({
   platform: PlatformIntegration;
   projectSlug: string;
 }) {
-  const platformPath =
-    platform?.type === 'framework'
-      ? platform?.id === 'capacitor'
-        ? `capacitor/capacitor`
-        : platform?.id.replace(`${platform.language}-`, `${platform.language}/`)
-      : `${platform?.language}/${platform?.id}`;
+  const platformPath = getPlatformPath(platform);
 
   const {
     data: projectKeys,

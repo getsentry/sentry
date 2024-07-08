@@ -20,6 +20,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import clamp from 'sentry/utils/number/clamp';
 import type useInitialOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useRAF from 'sentry/utils/replays/hooks/useRAF';
+import {replayPlayerTimestampEmitter} from 'sentry/utils/replays/replayPlayerTimestampEmitter';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -32,40 +33,6 @@ type Dimensions = {height: number; width: number};
 type RootElem = null | HTMLDivElement;
 
 type HighlightCallbacks = ReturnType<typeof useReplayHighlighting>;
-
-type ReplayPlayerTimestampChangeEvent = {
-  currentHoverTime: number | undefined;
-  currentTime: number;
-};
-type ReplayPlayerListener = (arg: ReplayPlayerTimestampChangeEvent) => void;
-
-class ReplayPlayerTimestampEmitter {
-  private listeners: {[key: string]: Set<ReplayPlayerListener>} = {};
-
-  on(event: 'replay timestamp change', handler: ReplayPlayerListener): void {
-    if (!this.listeners[event]) {
-      this.listeners[event] = new Set();
-    }
-    this.listeners[event].add(handler);
-  }
-
-  emit(event: 'replay timestamp change', arg: ReplayPlayerTimestampChangeEvent): void {
-    const handlers = this.listeners[event] || [];
-    handlers.forEach(handler => handler(arg));
-  }
-
-  off(event: 'replay timestamp change', handler: ReplayPlayerListener): void {
-    const handlers = this.listeners[event];
-
-    if (!handlers) {
-      return;
-    }
-
-    handlers.delete?.(handler);
-  }
-}
-
-export const replayPlayerTimestampEmitter = new ReplayPlayerTimestampEmitter();
 
 // Important: Don't allow context Consumers to access `Replayer` directly.
 // It has state that, when changed, will not trigger a react render.
@@ -172,19 +139,9 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   setSpeed: (speed: number) => void;
 
   /**
-   * Set the timeline width to the specific scale, starting at 1x and growing larger
-   */
-  setTimelineScale: (size: number) => void;
-
-  /**
    * The speed for normal playback
    */
   speed: number;
-
-  /**
-   * Scale of the timeline width, starts from 1x and increases by 1x
-   */
-  timelineScale: number;
 
   /**
    * Start or stop playback
@@ -222,9 +179,7 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   setCurrentTime: () => {},
   setRoot: () => {},
   setSpeed: () => {},
-  setTimelineScale: () => {},
   speed: 1,
-  timelineScale: 1,
   togglePlayPause: () => {},
   toggleSkipInactive: () => {},
 });
@@ -308,7 +263,6 @@ export function Provider({
   const [isVideoBuffering, setVideoBuffering] = useState(false);
   const playTimer = useRef<number | undefined>(undefined);
   const didApplyInitialOffset = useRef(false);
-  const [timelineScale, setTimelineScale] = useState(1);
   const [rootEl, setRoot] = useState<HTMLDivElement | null>(null);
 
   const durationMs = replay?.getDurationMs() ?? 0;
@@ -754,9 +708,7 @@ export function Provider({
         setCurrentHoverTime,
         setCurrentTime,
         setSpeed,
-        setTimelineScale,
         speed,
-        timelineScale,
         togglePlayPause,
         toggleSkipInactive,
         ...value,

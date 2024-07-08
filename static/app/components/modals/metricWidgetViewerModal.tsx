@@ -15,7 +15,13 @@ import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {getMetricsUrl} from 'sentry/utils/metrics';
 import {toDisplayType} from 'sentry/utils/metrics/dashboard';
+import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
+import {parseMRI} from 'sentry/utils/metrics/mri';
 import {MetricExpressionType} from 'sentry/utils/metrics/types';
+import {
+  useVirtualMetricsContext,
+  VirtualMetricsContextProvider,
+} from 'sentry/utils/metrics/virtualMetricsContext';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {
   DashboardMetricsEquation,
@@ -49,10 +55,11 @@ function MetricWidgetViewerModal({
   dashboardFilters,
 }: Props) {
   const {selection} = usePageFilters();
+  const {resolveVirtualMRI, getVirtualMRIQuery} = useVirtualMetricsContext();
   const [userHasModified, setUserHasModified] = useState(false);
   const [displayType, setDisplayType] = useState(widget.displayType);
   const [metricQueries, setMetricQueries] = useState<DashboardMetricsQuery[]>(() =>
-    getMetricQueries(widget, dashboardFilters)
+    getMetricQueries(widget, dashboardFilters, getVirtualMRIQuery)
   );
   const [metricEquations, setMetricEquations] = useState<DashboardMetricsEquation[]>(() =>
     getMetricEquations(widget)
@@ -218,8 +225,27 @@ function MetricWidgetViewerModal({
   );
 
   const handleSubmit = useCallback(() => {
+    const resolvedQueries = metricQueries.map(query => {
+      const {type} = parseMRI(query.mri);
+      if (type !== 'v' || !query.condition) {
+        return query;
+      }
+
+      const {mri, aggregation} = resolveVirtualMRI(
+        query.mri,
+        query.condition,
+        query.aggregation
+      );
+
+      return {
+        ...query,
+        mri,
+        aggregation,
+      };
+    });
+
     const convertedWidget = expressionsToWidget(
-      [...metricQueries, ...filteredEquations],
+      [...resolvedQueries, ...filteredEquations],
       title.edited,
       toDisplayType(displayType),
       widget.interval
@@ -232,9 +258,10 @@ function MetricWidgetViewerModal({
     filteredEquations,
     title.edited,
     displayType,
+    widget,
     onMetricWidgetEdit,
     closeModal,
-    widget,
+    resolveVirtualMRI,
   ]);
 
   const handleDisplayTypeChange = useCallback((type: DisplayType) => {
@@ -252,6 +279,8 @@ function MetricWidgetViewerModal({
     }
     closeModal();
   }, [userHasModified, closeModal]);
+
+  const {mri, aggregation, query, condition} = metricQueries[0];
 
   return (
     <Fragment>
@@ -284,7 +313,12 @@ function MetricWidgetViewerModal({
             onOrderChange={handleOrderChange}
             interval={widget.interval}
           />
-          <MetricDetails mri={metricQueries[0].mri} query={metricQueries[0].query} />
+          <MetricDetails
+            mri={mri}
+            aggregation={aggregation}
+            condition={condition}
+            query={query}
+          />
         </Body>
         <Footer>
           <ButtonBar gap={1}>
@@ -308,7 +342,17 @@ function MetricWidgetViewerModal({
   );
 }
 
-export default MetricWidgetViewerModal;
+function WrappedMetricWidgetViewerModal(props: Props) {
+  return hasCustomMetricsExtractionRules(props.organization) ? (
+    <VirtualMetricsContextProvider>
+      <MetricWidgetViewerModal {...props} />
+    </VirtualMetricsContextProvider>
+  ) : (
+    <MetricWidgetViewerModal {...props} />
+  );
+}
+
+export default WrappedMetricWidgetViewerModal;
 
 export const modalCss = css`
   width: 100%;

@@ -11,7 +11,7 @@ from sentry.mediators.external_issues.issue_link_creator import IssueLinkCreator
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
+from sentry.users.services.user.serial import serialize_rpc_user
 
 
 def _extract_lazy_object(lo):

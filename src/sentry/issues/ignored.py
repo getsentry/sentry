@@ -15,12 +15,12 @@ from sentry.models.groupinbox import GroupInboxRemoveAction, remove_group_from_i
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.project import Project
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import issue_archived
 from sentry.snuba.referrer import Referrer
 from sentry.types.group import GroupSubStatus
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.serial import serialize_generic_user
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)

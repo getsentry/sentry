@@ -1,5 +1,8 @@
+from __future__ import annotations
+
 from collections import namedtuple
 from collections.abc import Mapping, Sequence
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from typing import Any, NotRequired, Optional, TypedDict, Union
@@ -15,7 +18,7 @@ from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.users.services.user import RpcUser
 
 WhereType = Union[Condition, BooleanCondition]
 
@@ -112,6 +115,9 @@ class SnubaParams:
         if self.start and self.end:
             return (self.end - self.start).total_seconds()
         return None
+
+    def copy(self) -> SnubaParams:
+        return deepcopy(self)
 
 
 @dataclass

@@ -9,15 +9,18 @@ import {
 } from 'sentry/components/replays/breadcrumbs/gridlines';
 import ReplayTimelineEvents from 'sentry/components/replays/breadcrumbs/replayTimelineEvents';
 import Stacked from 'sentry/components/replays/breadcrumbs/stacked';
+import TimelineGaps from 'sentry/components/replays/breadcrumbs/timelineGaps';
 import {TimelineScrubber} from 'sentry/components/replays/player/scrubber';
 import {useTimelineScrubberMouseTracking} from 'sentry/components/replays/player/useScrubberMouseTracking';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {divide} from 'sentry/components/replays/utils';
+import divide from 'sentry/utils/number/divide';
 import toPercent from 'sentry/utils/number/toPercent';
+import useTimelineScale from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useDimensions} from 'sentry/utils/useDimensions';
 
 export default function ReplayTimeline() {
-  const {replay, currentTime, timelineScale} = useReplayContext();
+  const {replay, currentTime} = useReplayContext();
+  const [timelineScale] = useTimelineScale();
 
   const panelRef = useRef<HTMLDivElement>(null);
   const mouseTrackingProps = useTimelineScrubberMouseTracking(
@@ -35,6 +38,7 @@ export default function ReplayTimeline() {
   const durationMs = replay.getDurationMs();
   const startTimestampMs = replay.getStartTimestampMs();
   const chapterFrames = replay.getChapterFrames();
+  const appFrames = replay.getAppFrames();
 
   // timeline is in the middle
   const initialTranslate = 0.5 / timelineScale;
@@ -65,6 +69,12 @@ export default function ReplayTimeline() {
         <MinorGridlines durationMs={durationMs} width={width} />
         <MajorGridlines durationMs={durationMs} width={width} />
         <TimelineScrubber />
+        <TimelineGaps
+          durationMs={durationMs}
+          frames={appFrames}
+          totalFrames={chapterFrames.length}
+          width={width}
+        />
         <TimelineEventsContainer>
           <ReplayTimelineEvents
             durationMs={durationMs}
