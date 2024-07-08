@@ -40,7 +40,7 @@ export function makeTraceContinuousProfilingLink(
   let end: Date | null = toDate(value.space[0] + value.space[1]);
 
   // End timestamp is required to generate a link
-  if (end === null || profilerId === null) {
+  if (end === null || typeof profilerId !== 'string' || profilerId === '') {
     return null;
   }
 
