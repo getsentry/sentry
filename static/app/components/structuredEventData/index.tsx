@@ -90,7 +90,9 @@ function LinkHint({meta, value}: {value: string; meta?: Record<any, any>}) {
 }
 
 export function StructuredData({
-  config,
+  config = {
+    isNull = (value) => value === null
+  },
   depth,
   value = null,
   maxDefaultDepth,
@@ -111,6 +113,7 @@ export function StructuredData({
   value?: any;
   withOnlyFormattedText?: boolean;
 }) {
+
   let i = 0;
 
   const formattedObjectKey = objectKey ? (
@@ -131,14 +134,33 @@ export function StructuredData({
     );
   }
 
-  if (config?.isNull?.(value) || value === null) {
-    const nullValue = config?.renderNull?.(value) ?? String(value);
+
+  config.isNull = confg.isNull || (value) => value === null;
+  config.isBoolean = confg.isBoolean || (value) => typeof value === 'boolean';
+  config.renderNull = config.renderNull || (value) => String(value);
+  config.renderBoolean = config.renderBoolean || (value) => String(value);
+
+
+  props.customTypes = {
+    isReplayNodeHighlight: renderHighlight
+  }
+  config.types = {
+    isNull: renderNull,
+    ...customTypes
+  };
+  const indexForType = Object.keys(config.types).findIndex(isChecker => isChecker(value));
+  const renderedValue = config.types[indexForType].render(value);
+
+
+  // if (config?.isNull?.(value) || value === null) {
+  // if (config.isNull(value)) {
+    const nullValue = config.renderNull(value)
 
     return (
       <Wrapper>
         <ValueNull data-test-id="value-null">
           <AnnotatedValue
-            value={nullValue}
+            value={renderedValue}
             meta={meta}
             withAnnotatedText={withAnnotatedText}
             withOnlyFormattedText={withOnlyFormattedText}
@@ -146,7 +168,7 @@ export function StructuredData({
         </ValueNull>
       </Wrapper>
     );
-  }
+  // }
 
   if (config?.isBoolean?.(value) || value === true || value === false) {
     const booleanValue = config?.renderBoolean?.(value) ?? String(value);
