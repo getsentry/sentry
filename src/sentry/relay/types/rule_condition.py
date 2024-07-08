@@ -14,70 +14,81 @@ from typing import Literal, NotRequired, TypedDict, Union
 Value = str | float | int | list[str] | list[float] | list[int]
 
 
-# Options specific to the equality condition
 class EqConditionOptions(TypedDict):
+    """Options specific to the equality condition"""
+
     ignoreCase: bool
 
 
-# Equality condition
 class EqCondition(TypedDict):
+    """Equality condition"""
+
     op: Literal["eq"]
     name: str
     value: Value | None
     options: NotRequired[EqConditionOptions]
 
 
-# Greater than or equal condition
 class GteCondition(TypedDict):
+    """Greater than or equal condition"""
+
     op: Literal["gte"]
     name: str
     value: Value | None
 
 
-# Greater than condition
 class GtCondition(TypedDict):
+    """Greater than condition"""
+
     op: Literal["gt"]
     name: str
     value: Value | None
 
 
-# Less than or equal condition
 class LteCondition(TypedDict):
+    """Less than or equal condition"""
+
     op: Literal["lte"]
     name: str
     value: Value | None
 
 
-# Less than condition
 class LtCondition(TypedDict):
+    """Less than condition"""
+
     op: Literal["lt"]
     name: str
     value: Value | None
 
 
-# Glob pattern matching condition
-#
-# Glob matching is done in Relay with the following crate: https://docs.rs/globset/latest/globset
 class GlobCondition(TypedDict):
+    """Glob pattern matching condition
+
+    Glob matching is done in Relay with the following crate: https://docs.rs/globset/latest/globset
+    """
+
     op: Literal["glob"]
     name: str
     value: list[str]
 
 
-# Condition for iterating over a list and applying a nested condition
 class ForLoopCondition(TypedDict):
+    """Condition for iterating over a list and applying a nested condition"""
+
     op: Literal["any", "all"]
     inner: "RuleCondition"
 
 
-# Compound condition for combining multiple conditions with boolean operators
 class BooleanCondition(TypedDict):
+    """Compound condition for combining multiple conditions with boolean operators"""
+
     op: Literal["and", "or"]
     inner: list["RuleCondition"]
 
 
-# Compound condition that negates the inner rule
 class NotCondition(TypedDict):
+    """Compound condition that negates the inner rule"""
+
     op: Literal["not"]
     inner: "RuleCondition"
 
