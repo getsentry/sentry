@@ -1072,7 +1072,7 @@ export class VirtualizedViewManager {
       this.view.trace_view
     );
     const time_at_100 =
-      tracePhysicalToView[0] * (100 * window.devicePixelRatio) +
+      tracePhysicalToView[0] * (110 * window.devicePixelRatio) +
       tracePhysicalToView[6] -
       this.view.trace_view.x;
 

@@ -20,6 +20,7 @@ import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
+import BrowserTypeSelector from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
 import {PerformanceScoreChart} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {PagePerformanceTable} from 'sentry/views/insights/browser/webVitals/components/tables/pagePerformanceTable';
 import WebVitalMeters from 'sentry/views/insights/browser/webVitals/components/webVitalMeters';
@@ -33,11 +34,12 @@ import {
   MODULE_TITLE,
 } from 'sentry/views/insights/browser/webVitals/settings';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
+import decodeBrowserType from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
-import {ModuleName} from 'sentry/views/insights/types';
+import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
 import Onboarding from 'sentry/views/performance/onboarding';
 
 export function WebVitalsLandingPage() {
@@ -51,9 +53,11 @@ export function WebVitalsLandingPage() {
     webVital: (location.query.webVital as WebVitals) ?? null,
   });
 
-  const {data: projectData, isLoading} = useProjectRawWebVitalsQuery({});
+  const browserType = decodeBrowserType(location.query[SpanIndexedField.BROWSER_NAME]);
+
+  const {data: projectData, isLoading} = useProjectRawWebVitalsQuery({browserType});
   const {data: projectScores, isLoading: isProjectScoresLoading} =
-    useProjectWebVitalsScoresQuery();
+    useProjectWebVitalsScoresQuery({browserType});
 
   const projectScore =
     isProjectScoresLoading || isLoading
@@ -93,6 +97,7 @@ export function WebVitalsLandingPage() {
               <EnvironmentPageFilter />
               <DatePageFilter />
             </PageFilterBar>
+            <BrowserTypeSelector />
           </TopMenuContainer>
 
           {onboardingProject && (
@@ -107,6 +112,7 @@ export function WebVitalsLandingPage() {
                   projectScore={projectScore}
                   isProjectScoreLoading={isLoading || isProjectScoresLoading}
                   webVital={state.webVital}
+                  browserType={browserType}
                 />
               </PerformanceScoreChartContainer>
               <WebVitalMetersContainer>
@@ -174,6 +180,7 @@ export default PageWithProviders;
 
 const TopMenuContainer = styled('div')`
   display: flex;
+  gap: ${space(2)};
 `;
 
 const PerformanceScoreChartContainer = styled('div')`

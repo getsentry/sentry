@@ -8,6 +8,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 
+import {getTitleSubtitleMessage} from './traceTimeline/traceIssue';
 import {TraceTimeline} from './traceTimeline/traceTimeline';
 import type {TraceEventResponse} from './traceTimeline/useTraceTimelineEvents';
 import {TraceTimeLineOrRelatedIssue} from './traceTimelineOrRelatedIssue';
@@ -40,7 +41,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
   const issuePlatformBody: TraceEventResponse = {
     data: [
       {
-        // In issuePlatform, we store the subtitle within the message
+        // In issuePlatform, the message contains the title and the transaction
         message: '/api/slow/ Slow DB Query SELECT "sentry_monitorcheckin"."monitor_id"',
         timestamp: '2024-01-24T09:09:03+00:00',
         'issue.id': 1000,
@@ -54,7 +55,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     meta: {fields: {}, units: {}},
   };
   const mainError = {
-    message: 'This is the subtitle of the issue',
+    message: 'This is the message for the issue',
     timestamp: firstEventTimestamp,
     'issue.id': event['issue.id'],
     project: project.slug,
@@ -206,12 +207,13 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     render(<TraceTimeLineOrRelatedIssue event={event} />, {organization});
 
     // Instead of a timeline, we should see the other related issue
-    expect(await screen.findByText('Slow DB Query')).toBeInTheDocument();
+    expect(await screen.findByText('Slow DB Query')).toBeInTheDocument(); // The title
+    expect(await screen.findByText('/api/slow/')).toBeInTheDocument(); // The subtitle/transaction
     expect(
       await screen.findByText('One other issue appears in the same trace.')
     ).toBeInTheDocument();
     expect(
-      await screen.findByText('SELECT "sentry_monitorcheckin"."monitor_id"')
+      await screen.findByText('SELECT "sentry_monitorcheckin"."monitor_id"') // The message
     ).toBeInTheDocument();
     expect(screen.queryByLabelText('Current Event')).not.toBeInTheDocument();
 
@@ -286,9 +288,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     });
 
     render(<TraceTimeLineOrRelatedIssue event={event} />, {
-      organization: OrganizationFixture({
-        features: [],
-      }),
+      organization: OrganizationFixture({features: []}), // No global-views feature
     });
     expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
   });
@@ -328,5 +328,64 @@ describe('TraceTimeline & TraceRelated Issue', () => {
       }),
     });
     expect(await screen.findByText('Slow DB Query')).toBeInTheDocument();
+  });
+});
+
+function createEvent({
+  message,
+  title,
+  transaction,
+  event_type = 'error',
+}: {
+  message: string;
+  title: string;
+  transaction: string;
+  event_type?: string;
+}) {
+  return {
+    message: message,
+    timestamp: '2024-01-24T09:09:04+00:00',
+    'issue.id': 9999,
+    project: 'foo',
+    'project.name': 'bar',
+    title: title,
+    id: '12345',
+    transaction: transaction,
+    'event.type': event_type,
+  };
+}
+
+describe('getTitleSubtitleMessage()', () => {
+  it('error event', () => {
+    expect(
+      getTitleSubtitleMessage(
+        createEvent({
+          title:
+            'ClientError: 404 Client Error: for url: https://api.clickup.com/sentry/webhook',
+          message: 'Message of the second issue',
+          transaction: 'foo',
+        })
+      )
+    ).toEqual({
+      title: 'ClientError', // The colon and remainder of string are removed
+      subtitle: 'foo',
+      message: 'Message of the second issue',
+    });
+  });
+
+  it('error event: It keeps the colon', () => {
+    expect(
+      getTitleSubtitleMessage(
+        createEvent({
+          title: 'WorkerLostError: ',
+          message: 'Message of the second issue',
+          transaction: 'foo',
+        })
+      )
+    ).toEqual({
+      title: 'WorkerLostError:', // The colon is kept
+      subtitle: 'foo',
+      message: 'Message of the second issue',
+    });
   });
 });

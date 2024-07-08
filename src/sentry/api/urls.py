@@ -426,6 +426,9 @@ from .endpoints.organization_member_unreleased_commits import (
 )
 from .endpoints.organization_metrics_code_locations import OrganizationMetricsCodeLocationsEndpoint
 from .endpoints.organization_metrics_details import OrganizationMetricsDetailsEndpoint
+from .endpoints.organization_metrics_extraction_rules import (
+    OrganizationMetricsExtractionRulesEndpoint,
+)
 from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
     OrganizationMetricsCompatibilitySums,
@@ -446,6 +449,7 @@ from .endpoints.organization_processingissues import OrganizationProcessingIssue
 from .endpoints.organization_profiling_functions import OrganizationProfilingFunctionTrendsEndpoint
 from .endpoints.organization_profiling_profiles import (
     OrganizationProfilingChunksEndpoint,
+    OrganizationProfilingChunksFlamegraphEndpoint,
     OrganizationProfilingFiltersEndpoint,
     OrganizationProfilingFlamegraphEndpoint,
 )
@@ -505,13 +509,6 @@ from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
 from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleConditionsEndpoint
-from .endpoints.project_app_store_connect_credentials import (
-    AppStoreConnectAppsEndpoint,
-    AppStoreConnectCreateCredentialsEndpoint,
-    AppStoreConnectRefreshEndpoint,
-    AppStoreConnectStatusEndpoint,
-    AppStoreConnectUpdateCredentialsEndpoint,
-)
 from .endpoints.project_artifact_bundle_file_details import ProjectArtifactBundleFileDetailsEndpoint
 from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesEndpoint
 from .endpoints.project_autofix_codebase_index_status import (
@@ -1499,6 +1496,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-metrics-compatibility-sums",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/metrics/extraction-rules/$",
+        OrganizationMetricsExtractionRulesEndpoint.as_view(),
+        name="sentry-api-0-organization-metrics-extraction-rules",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/missing-members/$",
         OrganizationMissingMembersEndpoint.as_view(),
         name="sentry-api-0-organization-missing-members",
@@ -2105,6 +2107,11 @@ ORGANIZATION_URLS = [
                     r"^flamegraph/$",
                     OrganizationProfilingFlamegraphEndpoint.as_view(),
                     name="sentry-api-0-organization-profiling-flamegraph",
+                ),
+                re_path(
+                    r"^chunks-flamegraph/$",
+                    OrganizationProfilingChunksFlamegraphEndpoint.as_view(),
+                    name="sentry-api-0-organization-profiling-chunks-flamegraph",
                 ),
                 re_path(
                     r"^function-trends/$",
@@ -2726,31 +2733,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/grouping-configs/$",
         ProjectGroupingConfigsEndpoint.as_view(),
         name="sentry-api-0-project-grouping-configs",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/appstoreconnect/$",
-        AppStoreConnectCreateCredentialsEndpoint.as_view(),
-        name="sentry-api-0-project-appstoreconnect-credentials-create",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/appstoreconnect/apps/$",
-        AppStoreConnectAppsEndpoint.as_view(),
-        name="sentry-api-0-project-appstoreconnect-apps",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/appstoreconnect/status/$",
-        AppStoreConnectStatusEndpoint.as_view(),
-        name="sentry-api-0-project-appstoreconnect-status",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/$",
-        AppStoreConnectUpdateCredentialsEndpoint.as_view(),
-        name="sentry-api-0-project-appstoreconnect-credentials-update",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/refresh/$",
-        AppStoreConnectRefreshEndpoint.as_view(),
-        name="sentry-api-0-project-appstoreconnect-refresh",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/profiling/profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
