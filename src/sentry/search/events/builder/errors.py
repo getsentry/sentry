@@ -18,7 +18,7 @@ from snuba_sdk import (
 )
 
 from sentry.api.issue_search import convert_query_values, convert_status_value
-from sentry.search.events.builder import QueryBuilder, TimeseriesQueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder, TimeseriesQueryBuilder
 from sentry.search.events.filter import ParsedTerms
 from sentry.search.events.types import SelectType
 from sentry.snuba.entity_subscription import ENTITY_TIME_COLUMNS, get_entity_key_from_query_builder
@@ -105,7 +105,7 @@ class ErrorsQueryBuilderMixin:
         return Column(resolved_column, entity=entity)
 
 
-class ErrorsQueryBuilder(ErrorsQueryBuilderMixin, QueryBuilder):
+class ErrorsQueryBuilder(ErrorsQueryBuilderMixin, DiscoverQueryBuilder):
     def get_snql_query(self) -> Request:
         self.validate_having_clause()
         return Request(

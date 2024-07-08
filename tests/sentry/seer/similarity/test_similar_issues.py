@@ -31,7 +31,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
             "hash": "11212012123120120415201309082013",
             "project_id": self.project.id,
             "stacktrace": "<stringified stacktrace>",
-            "message": "Charlie didn't bring the ball back",
+            "message": "FailedToFetchError('Charlie didn't bring the ball back')",
             "exception_type": "FailedToFetchError",
         }
 
@@ -184,7 +184,7 @@ class GetSimilarityDataFromSeerTest(TestCase):
                     "event_id": "12312012041520130908201311212012",
                     "hash": "11212012123120120415201309082013",
                     "project_id": self.project.id,
-                    "_message": "Charlie didn't bring the ball back",
+                    "message_value": "FailedToFetchError('Charlie didn't bring the ball back')",
                 },
             )
             mock_metrics_incr.assert_any_call(

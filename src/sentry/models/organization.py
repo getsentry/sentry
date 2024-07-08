@@ -26,14 +26,14 @@ from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.outboxes import ReplicatedRegionModel
 from sentry.db.models.utils import slugify_instance
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
+from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.locks import locks
 from sentry.models.outbox import OutboxCategory
 from sentry.notifications.services import notifications_service
 from sentry.roles.manager import Role
-from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
-from sentry.services.hybrid_cloud.user import RpcUser, RpcUserProfile
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.organization import OrganizationAbsoluteUrlMixin
+from sentry.users.services.user import RpcUser, RpcUserProfile
+from sentry.users.services.user.service import user_service
 from sentry.utils.http import is_using_customer_domain
 from sentry.utils.retries import TimedRetryPolicy
 from sentry.utils.snowflake import generate_snowflake_id, save_with_snowflake_id, snowflake_id_model
@@ -49,6 +49,7 @@ class OrganizationStatus(IntEnum):
     ACTIVE = 0
     PENDING_DELETION = 1
     DELETION_IN_PROGRESS = 2
+    RELOCATION_PENDING_APPROVAL = 3
 
     # alias for OrganizationStatus.ACTIVE
     VISIBLE = 0
@@ -78,6 +79,7 @@ OrganizationStatus_labels = {
     OrganizationStatus.ACTIVE: "active",
     OrganizationStatus.PENDING_DELETION: "pending deletion",
     OrganizationStatus.DELETION_IN_PROGRESS: "deletion in progress",
+    OrganizationStatus.RELOCATION_PENDING_APPROVAL: "relocation pending approval",
 }
 
 
@@ -256,10 +258,10 @@ class Organization(ReplicatedRegionModel, OrganizationAbsoluteUrlMixin):
         return super().delete(**kwargs)
 
     def handle_async_replication(self, shard_identifier: int) -> None:
-        from sentry.services.hybrid_cloud.organization_mapping.serial import (
+        from sentry.hybridcloud.services.organization_mapping.serial import (
             update_organization_mapping_from_instance,
         )
-        from sentry.services.hybrid_cloud.organization_mapping.service import (
+        from sentry.hybridcloud.services.organization_mapping.service import (
             organization_mapping_service,
         )
         from sentry.types.region import get_local_region

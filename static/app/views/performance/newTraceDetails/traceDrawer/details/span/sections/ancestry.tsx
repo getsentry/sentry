@@ -22,7 +22,6 @@ import {assert} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {generateEventSlug} from 'sentry/utils/discover/urls';
-import type {TraceFullDetailed} from 'sentry/utils/performance/quickTrace/types';
 import type {
   TraceTree,
   TraceTreeNode,
@@ -44,7 +43,7 @@ function SpanChild({
   organization,
   location,
 }: {
-  childTransaction: TraceTreeNode<TraceFullDetailed>;
+  childTransaction: TraceTreeNode<TraceTree.Transaction>;
   location: Location;
   organization: Organization;
 }) {

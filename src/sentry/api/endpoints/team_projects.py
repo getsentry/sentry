@@ -159,10 +159,19 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         """
         Create a new project bound to a team.
         """
+        from sentry.api.endpoints.organization_projects_experiment import (
+            DISABLED_FEATURE_ERROR_STRING,
+        )
+
         serializer = ProjectPostSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        if (
+            team.organization.flags.disable_member_project_creation
+            and not request.access.has_scope("org:write")
+        ):
+            return Response({"detail": DISABLED_FEATURE_ERROR_STRING}, status=403)
 
         result = serializer.validated_data
         with transaction.atomic(router.db_for_write(Project)):

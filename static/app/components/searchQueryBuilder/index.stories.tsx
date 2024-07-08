@@ -74,6 +74,7 @@ export default storyBook(SearchQueryBuilder, story => {
             initialQuery="browser.name:Firefox assigned:me custom_tag_name:123"
             filterKeySections={FITLER_KEY_SECTIONS}
             getTagValues={getTagValues}
+            searchSource="storybook"
           />
         </MinHeightSizingWindow>
       </Fragment>

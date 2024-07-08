@@ -7,11 +7,11 @@ from rest_framework import serializers
 from sentry.api.serializers.rest_framework.base import CamelSnakeModelSerializer
 from sentry.api.serializers.rest_framework.project import ProjectField
 from sentry.constants import SentryAppInstallationStatus
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.utils.channel import get_channel_id, validate_channel_id
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.notificationaction import ActionService, ActionTarget, NotificationAction
 from sentry.models.project import Project
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils.strings import oxfordize_list
 
 

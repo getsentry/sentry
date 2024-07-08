@@ -4,7 +4,10 @@ import * as qs from 'query-string';
 
 import getDuration from 'sentry/utils/duration/getDuration';
 import clamp from 'sentry/utils/number/clamp';
-import {requestAnimationTimeout} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
+import {
+  cancelAnimationTimeout,
+  requestAnimationTimeout,
+} from 'sentry/utils/profiling/hooks/useVirtualizedTree/virtualizedTreeUtils';
 import type {
   TraceTree,
   TraceTreeNode,
@@ -106,6 +109,7 @@ export class VirtualizedViewManager {
 
   timers: {
     onFovChange: {id: number} | null;
+    onListHorizontalScroll: {id: number} | null;
     onRowIntoView: number | null;
     onScrollEndSync: {id: number} | null;
     onWheelEnd: number | null;
@@ -113,6 +117,7 @@ export class VirtualizedViewManager {
   } = {
     onZoomIntoSpace: null,
     onWheelEnd: null,
+    onListHorizontalScroll: null,
     onRowIntoView: null,
     onScrollEndSync: null,
     onFovChange: null,
@@ -714,6 +719,14 @@ export class VirtualizedViewManager {
     });
   }
 
+  onHorizontalScrollbarScrollStart(): void {
+    document.body.style.overscrollBehavior = 'none';
+  }
+
+  onHorizontalScrollbarScrollEnd(): void {
+    document.body.style.overscrollBehavior = '';
+  }
+
   onHorizontalScrollbarScroll(_event: Event) {
     if (!this.scrolling_source) {
       this.scrolling_source = 'fake scrollbar';
@@ -728,6 +741,10 @@ export class VirtualizedViewManager {
       return;
     }
 
+    if (!this.timers.onListHorizontalScroll) {
+      this.onHorizontalScrollbarScrollStart();
+    }
+
     this.enqueueOnScrollEndOutOfBoundsCheck();
     this.columns.list.translate[0] = this.clampRowTransform(-scrollLeft);
 
@@ -738,6 +755,16 @@ export class VirtualizedViewManager {
     for (const row of rows) {
       row.style.transform = `translateX(${this.columns.list.translate[0]}px)`;
     }
+
+    if (this.timers.onListHorizontalScroll) {
+      cancelAnimationTimeout(this.timers.onListHorizontalScroll);
+      this.timers.onListHorizontalScroll = null;
+    }
+
+    this.timers.onListHorizontalScroll = requestAnimationTimeout(() => {
+      this.onHorizontalScrollbarScrollEnd();
+      this.timers.onListHorizontalScroll = null;
+    }, 100);
   }
 
   onSyncedScrollbarScroll(event: WheelEvent) {
@@ -764,6 +791,10 @@ export class VirtualizedViewManager {
       this.timers.onRowIntoView = null;
     }
 
+    if (!this.timers.onListHorizontalScroll) {
+      this.onHorizontalScrollbarScrollStart();
+    }
+
     this.enqueueOnScrollEndOutOfBoundsCheck();
 
     const newTransform = this.clampRowTransform(
@@ -788,6 +819,16 @@ export class VirtualizedViewManager {
         this.columns.list.translate[0]
       );
     }
+
+    if (this.timers.onListHorizontalScroll) {
+      cancelAnimationTimeout(this.timers.onListHorizontalScroll);
+      this.timers.onListHorizontalScroll = null;
+    }
+
+    this.timers.onListHorizontalScroll = requestAnimationTimeout(() => {
+      this.onHorizontalScrollbarScrollEnd();
+      this.timers.onListHorizontalScroll = null;
+    }, 100);
   }
 
   clampRowTransform(transform: number): number {
@@ -1031,7 +1072,7 @@ export class VirtualizedViewManager {
       this.view.trace_view
     );
     const time_at_100 =
-      tracePhysicalToView[0] * (100 * window.devicePixelRatio) +
+      tracePhysicalToView[0] * (110 * window.devicePixelRatio) +
       tracePhysicalToView[6] -
       this.view.trace_view.x;
 

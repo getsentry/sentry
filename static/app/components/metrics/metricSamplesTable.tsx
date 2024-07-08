@@ -23,22 +23,24 @@ import {IconProfiling} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DateString, PageFilters} from 'sentry/types/core';
-import type {MRI, ParsedMRI} from 'sentry/types/metrics';
+import type {MetricAggregation, MRI} from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {Container, FieldDateTime, NumberContainer} from 'sentry/utils/discover/styles';
 import {generateLinkToEventInTraceView} from 'sentry/utils/discover/urls';
 import {getShortEventId} from 'sentry/utils/events';
+import {isVirtualMetric} from 'sentry/utils/metrics';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
-import {parseMRI} from 'sentry/utils/metrics/mri';
+import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
 import {
   type Field as SelectedField,
-  getSummaryValueForOp,
+  getSummaryValueForAggregation,
   type MetricsSamplesResults,
   type ResultField,
   type Summary,
   useMetricsSamples,
 } from 'sentry/utils/metrics/useMetricsSamples';
+import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import {generateProfileFlamechartRoute} from 'sentry/utils/profiling/routes';
 import Projects from 'sentry/utils/projects';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -68,11 +70,12 @@ const fields: SelectedField[] = [
 export type Field = (typeof fields)[number];
 
 interface MetricsSamplesTableProps {
+  aggregation?: MetricAggregation;
+  condition?: number;
   focusArea?: SelectionRange;
   hasPerformance?: boolean;
   mri?: MRI;
   onRowHover?: (sampleId?: string) => void;
-  op?: string;
   query?: string;
   setMetricsSamples?: React.Dispatch<
     React.SetStateAction<MetricsSamplesResults<Field>['data'] | undefined>
@@ -148,13 +151,23 @@ export function MetricSamplesTable({
   focusArea,
   mri,
   onRowHover,
-  op,
+  aggregation,
+  condition,
   query,
   setMetricsSamples,
   sortKey = 'sort',
   hasPerformance = true,
 }: MetricsSamplesTableProps) {
   const location = useLocation();
+  const {resolveVirtualMRI} = useVirtualMetricsContext();
+
+  let resolvedMRI = mri;
+  let resolvedAggregation = aggregation;
+  if (mri && isVirtualMetric({mri}) && condition && aggregation) {
+    const resolved = resolveVirtualMRI(mri, condition, aggregation);
+    resolvedMRI = resolved.mri;
+    resolvedAggregation = resolved.aggregation;
+  }
 
   const enabled = defined(mri);
 
@@ -188,14 +201,14 @@ export function MetricSamplesTable({
     }
 
     if (OPTIONALLY_SORTABLE_COLUMNS.has(key as ResultField)) {
-      const column = getColumnForMRI(parsedMRI);
+      const column = getColumnForMRI(mri);
       if (column.key === key) {
         return {key, direction};
       }
     }
 
     return undefined;
-  }, [location.query, parsedMRI, sortKey]);
+  }, [location.query, mri, sortKey]);
 
   const sortQuery = useMemo(() => {
     if (!defined(currentSort)) {
@@ -211,8 +224,8 @@ export function MetricSamplesTable({
     datetime,
     max: focusArea?.max,
     min: focusArea?.min,
-    mri,
-    op,
+    mri: resolvedMRI,
+    aggregation: resolvedAggregation,
     query,
     referrer: 'api.organization.metrics-samples',
     enabled,
@@ -288,8 +301,8 @@ export function MetricSamplesTable({
   }, [currentSort, location]);
 
   const _renderBodyCell = useMemo(
-    () => renderBodyCell(op, parsedMRI?.unit),
-    [op, parsedMRI?.unit]
+    () => renderBodyCell(aggregation, parsedMRI?.unit),
+    [aggregation, parsedMRI?.unit]
   );
 
   const wrapperRef = useRef<HTMLDivElement>(null);
@@ -335,7 +348,7 @@ export function MetricSamplesTable({
         isLoading={enabled && result.isLoading}
         error={enabled && result.isError && supportedMRI}
         data={result.data?.data ?? []}
-        columnOrder={getColumnOrder(parsedMRI)}
+        columnOrder={getColumnOrder(mri)}
         columnSortBy={[]}
         grid={{
           renderBodyCell: _renderBodyCell,
@@ -348,20 +361,25 @@ export function MetricSamplesTable({
   );
 }
 
-function getColumnForMRI(parsedMRI?: ParsedMRI | null): GridColumnOrder<ResultField> {
+function getColumnForMRI(mri?: MRI): GridColumnOrder<ResultField> {
+  const parsedMRI = parseMRI(mri);
   return parsedMRI?.useCase === 'spans' && parsedMRI?.name === 'span.self_time'
     ? {key: 'span.self_time', width: COL_WIDTH_UNDEFINED, name: 'Self Time'}
     : parsedMRI?.useCase === 'transactions' && parsedMRI?.name === 'transaction.duration'
       ? {key: 'span.duration', width: COL_WIDTH_UNDEFINED, name: 'Duration'}
-      : {key: 'summary', width: COL_WIDTH_UNDEFINED, name: parsedMRI?.name ?? 'Summary'};
+      : {
+          key: 'summary',
+          width: COL_WIDTH_UNDEFINED,
+          name: mri ? formatMRI(mri) : 'Summary',
+        };
 }
 
-function getColumnOrder(parsedMRI?: ParsedMRI | null): GridColumnOrder<ResultField>[] {
+function getColumnOrder(mri?: MRI): GridColumnOrder<ResultField>[] {
   const orders: (GridColumnOrder<ResultField> | undefined)[] = [
     {key: 'id', width: COL_WIDTH_UNDEFINED, name: 'Span ID'},
     {key: 'span.description', width: COL_WIDTH_UNDEFINED, name: 'Description'},
     {key: 'span.op', width: COL_WIDTH_UNDEFINED, name: 'Operation'},
-    getColumnForMRI(parsedMRI),
+    getColumnForMRI(mri),
     {key: 'timestamp', width: COL_WIDTH_UNDEFINED, name: 'Timestamp'},
     {key: 'profile.id', width: COL_WIDTH_UNDEFINED, name: 'Profile'},
   ];
@@ -409,7 +427,7 @@ function renderHeadCell(
   };
 }
 
-function renderBodyCell(op?: string, unit?: string) {
+function renderBodyCell(aggregation?: MetricAggregation, unit?: string) {
   return function (
     col: GridColumnOrder<ResultField>,
     dataRow: MetricsSamplesResults<SelectedField>['data'][number]
@@ -443,7 +461,13 @@ function renderBodyCell(op?: string, unit?: string) {
     }
 
     if (col.key === 'summary') {
-      return <SummaryRenderer summary={dataRow.summary} op={op} unit={unit} />;
+      return (
+        <SummaryRenderer
+          summary={dataRow.summary}
+          aggregation={aggregation}
+          unit={unit}
+        />
+      );
     }
 
     if (col.key === 'timestamp') {
@@ -638,17 +662,17 @@ function DurationRenderer({duration}: {duration: number}) {
 
 function SummaryRenderer({
   summary,
-  op,
+  aggregation,
   unit,
 }: {
   summary: Summary;
-  op?: string;
+  aggregation?: MetricAggregation;
   unit?: string;
 }) {
-  const value = getSummaryValueForOp(summary, op);
+  const value = getSummaryValueForAggregation(summary, aggregation);
 
   // if the op is `count`, then the unit does not apply
-  unit = op === 'count' ? '' : unit;
+  unit = aggregation === 'count' ? '' : unit;
 
   return (
     <NumberContainer>{formatMetricUsingUnit(value ?? null, unit ?? '')}</NumberContainer>

@@ -442,7 +442,7 @@ def backfill_source(source, original_sources_by_id):
         if secret in source and source[secret] == {"hidden-secret": True}:
             secret_value = safe.get_path(original_sources_by_id, source["id"], secret)
             if secret_value is None:
-                with sentry_sdk.push_scope():
+                with sentry_sdk.isolation_scope():
                     sentry_sdk.set_tag("missing_secret", secret)
                     sentry_sdk.set_tag("source_id", source["id"])
                     sentry_sdk.capture_message(
