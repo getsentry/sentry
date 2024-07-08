@@ -41,7 +41,7 @@ def produce_config_removal(subscription_id: UUID):
         subscription_id.bytes,
         # Typically None is not allowed for the arroyo payload, but in this
         # case None produces a null value aka a tombstone.
-        None, # type: ignore[arg-type]
+        None,  # type: ignore[arg-type]
         [],
     )
     _configs_producer.produce(ArroyoTopic(topic), payload)
