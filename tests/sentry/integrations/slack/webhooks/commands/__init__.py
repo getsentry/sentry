@@ -42,7 +42,7 @@ class SlackCommandsTest(APITestCase, TestCase):
             )
         self.login_as(self.user)
 
-    def send_slack_message(self, command: str, **kwargs: Any) -> Mapping[str, str]:
+    def send_slack_message(self, command: str, **kwargs: Any) -> dict[str, str]:
         response = self.get_slack_response(
             {
                 "text": command,

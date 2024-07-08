@@ -4,46 +4,11 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-from slack_sdk.errors import SlackApiError
-
-from sentry.integrations.slack.metrics import (
-    SLACK_NOTIFY_RECIPIENT_FAILURE_DATADOG_METRIC,
-    SLACK_NOTIFY_RECIPIENT_SUCCESS_DATADOG_METRIC,
-)
-from sentry.integrations.slack.sdk_client import SlackSdkClient
+from sentry.integrations.slack.service import SlackService
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics
 
 logger = logging.getLogger("sentry.integrations.slack.tasks")
-
-
-def _send_message_to_slack_channel(
-    integration_id: int,
-    payload: Mapping[str, Any],
-    log_error_message: str,
-    log_params: Mapping[str, Any],
-    has_sdk_flag: bool | None = True,  # TODO: remove all these
-) -> None:
-    client = SlackSdkClient(integration_id=integration_id)
-    try:
-        client.chat_postMessage(
-            blocks=str(payload.get("blocks", "")),
-            text=str(payload.get("text", "")),
-            channel=str(payload.get("channel", "")),
-            unfurl_links=False,
-            unfurl_media=False,
-            callback_id=str(payload.get("callback_id", "")),
-        )
-        metrics.incr(SLACK_NOTIFY_RECIPIENT_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
-    except SlackApiError as e:
-        extra = {"error": str(e), **log_params}
-        logger.info(log_error_message, extra=extra)
-        metrics.incr(
-            SLACK_NOTIFY_RECIPIENT_FAILURE_DATADOG_METRIC,
-            sample_rate=1.0,
-            tags={"ok": e.response.get("ok", False), "status": e.response.status_code},
-        )
 
 
 # TODO: add retry logic
@@ -58,9 +23,9 @@ def post_message(
     payload: Mapping[str, Any],
     log_error_message: str,
     log_params: Mapping[str, Any],
-    has_sdk_flag: bool | None = True,
 ) -> None:
-    _send_message_to_slack_channel(
+    service = SlackService.default()
+    service.send_message_to_slack_channel(
         integration_id=integration_id,
         payload=payload,
         log_error_message=log_error_message,
@@ -80,9 +45,9 @@ def post_message_control(
     payload: Mapping[str, Any],
     log_error_message: str,
     log_params: Mapping[str, Any],
-    has_sdk_flag: bool | None = True,
 ) -> None:
-    _send_message_to_slack_channel(
+    service = SlackService.default()
+    service.send_message_to_slack_channel(
         integration_id=integration_id,
         payload=payload,
         log_error_message=log_error_message,
