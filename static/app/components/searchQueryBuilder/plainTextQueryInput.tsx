@@ -18,7 +18,7 @@ interface PlainTextQueryInputProps {
 
 export function PlainTextQueryInput({label}: PlainTextQueryInputProps) {
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const {query, parsedQuery, dispatch, onSearch} = useSearchQueryBuilder();
+  const {query, parsedQuery, dispatch, handleSearch} = useSearchQueryBuilder();
   const [cursorPosition, setCursorPosition] = useState(0);
 
   const setCursorPositionOnEvent = (event: SyntheticEvent<HTMLTextAreaElement>) => {
@@ -43,10 +43,10 @@ export function PlainTextQueryInput({label}: PlainTextQueryInputProps) {
 
       if (e.key === 'Enter') {
         e.preventDefault();
-        onSearch?.(query);
+        handleSearch(query);
       }
     },
-    [onSearch, query]
+    [handleSearch, query]
   );
 
   return (

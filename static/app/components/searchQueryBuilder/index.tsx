@@ -13,12 +13,13 @@ import {
   type FilterKeySection,
   QueryInterfaceType,
 } from 'sentry/components/searchQueryBuilder/types';
+import {useHandleSearch} from 'sentry/components/searchQueryBuilder/useHandleSearch';
 import {useQueryBuilderState} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Tag} from 'sentry/types';
+import type {SavedSearchType, Tag} from 'sentry/types/group';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 
@@ -26,6 +27,10 @@ interface SearchQueryBuilderProps {
   filterKeySections: FilterKeySection[];
   getTagValues: (key: Tag, query: string) => Promise<string[]>;
   initialQuery: string;
+  /**
+   * Indicates the usage of the search bar for analytics
+   */
+  searchSource: string;
   className?: string;
   label?: string;
   onBlur?: (query: string) => void;
@@ -38,10 +43,11 @@ interface SearchQueryBuilderProps {
    */
   onSearch?: (query: string) => void;
   queryInterface?: QueryInterfaceType;
+  savedSearchType?: SavedSearchType;
 }
 
 function ActionButtons() {
-  const {dispatch, onSearch} = useSearchQueryBuilder();
+  const {dispatch, handleSearch} = useSearchQueryBuilder();
 
   return (
     <ButtonsWrapper>
@@ -52,7 +58,7 @@ function ActionButtons() {
         borderless
         onClick={() => {
           dispatch({type: 'CLEAR'});
-          onSearch?.('');
+          handleSearch('');
         }}
       />
     </ButtonsWrapper>
@@ -68,6 +74,8 @@ export function SearchQueryBuilder({
   onChange,
   onSearch,
   onBlur,
+  searchSource,
+  savedSearchType,
   queryInterface = QueryInterfaceType.TOKENIZED,
 }: SearchQueryBuilderProps) {
   const {state, dispatch} = useQueryBuilderState({initialQuery});
@@ -95,6 +103,13 @@ export function SearchQueryBuilder({
     onChange?.(state.query);
   }, [onChange, state.query]);
 
+  const handleSearch = useHandleSearch({
+    parsedQuery,
+    savedSearchType,
+    searchSource,
+    onSearch,
+  });
+
   const contextValue = useMemo(() => {
     return {
       ...state,
@@ -103,9 +118,19 @@ export function SearchQueryBuilder({
       keys,
       getTagValues,
       dispatch,
-      onSearch,
+      handleSearch,
+      searchSource,
     };
-  }, [state, parsedQuery, filterKeySections, keys, getTagValues, dispatch, onSearch]);
+  }, [
+    state,
+    parsedQuery,
+    filterKeySections,
+    keys,
+    getTagValues,
+    dispatch,
+    handleSearch,
+    searchSource,
+  ]);
 
   return (
     <SearchQueryBuilerContext.Provider value={contextValue}>

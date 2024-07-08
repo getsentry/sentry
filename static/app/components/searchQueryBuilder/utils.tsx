@@ -133,6 +133,18 @@ export function collapseTextTokens(tokens: ParseResult | null) {
   }, []);
 }
 
+export function tokenIsInvalid(token: TokenResult<Token>) {
+  if (
+    token.type !== Token.FILTER &&
+    token.type !== Token.FREE_TEXT &&
+    token.type !== Token.LOGIC_BOOLEAN
+  ) {
+    return false;
+  }
+
+  return Boolean(token.invalid);
+}
+
 export function getValidOpsForFilter(
   filterToken: TokenResult<Token.FILTER>
 ): readonly TermOperator[] {

@@ -13,10 +13,11 @@ interface ContextData {
   filterKeySections: FilterKeySection[];
   focusOverride: FocusOverride | null;
   getTagValues: (tag: Tag, query: string) => Promise<string[]>;
+  handleSearch: (query: string) => void;
   keys: TagCollection;
   parsedQuery: ParseResult | null;
   query: string;
-  onSearch?: (query: string) => void;
+  searchSource: string;
 }
 
 export function useSearchQueryBuilder() {
@@ -31,5 +32,6 @@ export const SearchQueryBuilerContext = createContext<ContextData>({
   getTagValues: () => Promise.resolve([]),
   dispatch: () => {},
   parsedQuery: null,
-  onSearch: () => {},
+  handleSearch: () => {},
+  searchSource: '',
 });

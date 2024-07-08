@@ -4,6 +4,7 @@ type SearchEventBase = {
   query: string;
   search_type: string;
   is_multi_project?: boolean;
+  new_experience?: boolean;
   search_source?: string;
 };
 

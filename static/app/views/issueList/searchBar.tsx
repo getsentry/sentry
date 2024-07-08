@@ -198,6 +198,8 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
         onChange={value => {
           props.onClose?.(value, {validSearch: true});
         }}
+        searchSource={props.searchSource ?? 'issues'}
+        savedSearchType={SavedSearchType.ISSUE}
       />
     );
   }

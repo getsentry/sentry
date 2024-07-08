@@ -68,6 +68,7 @@ export function SavedSearchModalContent({organization}: SavedSearchModalContentP
             useFormWrapper={false}
             disabled={disabled}
             query={value}
+            searchSource="saved_searches_modal"
           />
         )}
       </FormField>

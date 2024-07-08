@@ -291,7 +291,7 @@ function SearchQueryBuilderInputInternal({
 
   const filterValue = getWordAtCursorPosition(inputValue, selectionIndex);
 
-  const {query, keys, dispatch, onSearch} = useSearchQueryBuilder();
+  const {query, keys, dispatch, handleSearch} = useSearchQueryBuilder();
   const aliasToKeyMap = useMemo(() => {
     return Object.fromEntries(Object.values(keys).map(key => [key.alias, key.key]));
   }, [keys]);
@@ -399,8 +399,8 @@ function SearchQueryBuilderInputInternal({
         resetInputValue();
 
         // Because the query does not change until a subsequent render,
-        // we need to do the replacement that is does in the ruducer here
-        onSearch?.(replaceTokenWithPadding(query, token, value));
+        // we need to do the replacement that is does in the reducer here
+        handleSearch(replaceTokenWithPadding(query, token, value));
       }}
       onExit={() => {
         if (inputValue !== token.value.trim()) {
