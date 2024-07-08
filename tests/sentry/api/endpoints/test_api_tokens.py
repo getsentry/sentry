@@ -204,7 +204,15 @@ class ApiTokensPutTest(APITestCase):
         )
         assert response.status_code == 403
 
-    def test_no_token_param(self) -> None:
+    def test_invalid_token_id(self):
+        token = ApiToken.objects.create(user=self.user)
+        self.login_as(self.user)
+        url = reverse("sentry-api-0-api-tokens")
+        response = self.client.put(url, data={"tokenId": -1})
+        assert response.status_code == 400
+        assert ApiToken.objects.filter(id=token.id).exists()
+
+    def test_no_token_param(self):
         token = ApiToken.objects.create(user=self.user)
         self.login_as(self.user)
         url = reverse("sentry-api-0-api-tokens")
