@@ -26,7 +26,6 @@ from sentry.api.utils import handle_query_errors
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.organizations.services.organization import RpcOrganization
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.spans_indexed import (
@@ -111,61 +110,6 @@ class OrganizationTracesEndpointBase(OrganizationEventsV2EndpointBase):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.PERFORMANCE
-
-    def get_snuba_dataclass(
-        self, request: Request, organization: Organization, check_global_views: bool = True
-    ) -> tuple[SnubaParams, dict[str, Any]]:
-        """The trace endpoint always wants to get all projects regardless of what's passed into the API.
-        This is because a trace can span any number of projects in an organization. So disable the
-        check_global_views condition."""
-
-        "We are reverting this decision to allow cross project searches"
-        if features.has(
-            "organizations:performance-trace-explorer-enforce-projects",
-            organization,
-            actor=request.user,
-        ):
-            return super().get_snuba_dataclass(
-                request, organization, check_global_views=check_global_views
-            )
-
-        return super().get_snuba_dataclass(request, organization, check_global_views=False)
-
-    def get_projects(  # type: ignore[override]
-        self,
-        request: Request,
-        organization: Organization | RpcOrganization,
-        project_ids: set[int] | None = None,
-        project_slugs: set[str] | None = None,
-        include_all_accessible: bool = True,
-    ) -> list[Project]:
-        """The trace endpoint always wants to get all projects regardless of what's passed into the API.
-
-        This is because a trace can span any number of projects in an organization. But we still want to
-        use the get_projects function to check for any permissions. So we'll just pass project_ids=-1 everytime
-        which is what would be sent if we wanted all projects"""
-
-        "We are reverting this decision to allow cross project searches"
-        if features.has(
-            "organizations:performance-trace-explorer-enforce-projects",
-            organization,
-            actor=request.user,
-        ):
-            return super().get_projects(
-                request,
-                organization,
-                project_ids=project_ids,
-                project_slugs=project_slugs,
-                include_all_accessible=include_all_accessible,
-            )
-
-        return super().get_projects(
-            request,
-            organization,
-            project_ids={-1},
-            project_slugs=None,
-            include_all_accessible=True,
-        )
 
 
 @region_silo_endpoint

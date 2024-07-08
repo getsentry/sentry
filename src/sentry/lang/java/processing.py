@@ -3,11 +3,7 @@ import re
 from collections.abc import Mapping
 from typing import Any
 
-from sentry.lang.java.utils import (
-    do_proguard_processing_ab_test,
-    get_jvm_images,
-    get_proguard_images,
-)
+from sentry.lang.java.utils import get_jvm_images, get_proguard_images
 from sentry.lang.native.error import SymbolicationFailed, write_error
 from sentry.lang.native.symbolicator import Symbolicator
 from sentry.models.eventerror import EventError
@@ -220,11 +216,8 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     if not _handle_response_status(data, response):
         return
 
-    should_do_ab_test = do_proguard_processing_ab_test()
-    symbolicator_stacktraces: list[list[dict[str, Any]]] = []
-
     processing_errors = response.get("errors", [])
-    if processing_errors and not should_do_ab_test:
+    if processing_errors:
         data.setdefault("errors", []).extend(map_symbolicator_process_jvm_errors(processing_errors))
 
     for sinfo, complete_stacktrace in zip(stacktrace_infos, response["stacktraces"]):
@@ -244,32 +237,15 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
             else:
                 new_frames.append(raw_frame)
 
-        if should_do_ab_test:
-            symbolicator_stacktraces.append(new_frames)
-        else:
-            sinfo.stacktrace["frames"] = new_frames
+        sinfo.stacktrace["frames"] = new_frames
 
         if sinfo.container is not None:
             sinfo.container["raw_stacktrace"] = {
                 "frames": raw_frames,
             }
 
-    if should_do_ab_test:
-        symbolicator_exceptions: list[dict[str, Any]] = []
-        for raw_exc in get_path(data, "exception", "values", filter=True, default=()):
-            if raw_exc.get("type", None) and raw_exc.get("module", None):
-                new_exc = response["exceptions"].pop(0)
-            else:
-                new_exc = {"module": raw_exc.get("module", None), "type": raw_exc.get("type", None)}
-            symbolicator_exceptions.append(new_exc)
-
-        data["symbolicator_stacktraces"] = symbolicator_stacktraces
-        data["symbolicator_exceptions"] = symbolicator_exceptions
-    else:
-        for raw_exc, exc in zip(processable_exceptions, response["exceptions"]):
-            raw_exc["module"] = exc["module"]
-            raw_exc["type"] = exc["type"]
-
-        data["processed_by_symbolicator"] = True
+    for raw_exc, exc in zip(processable_exceptions, response["exceptions"]):
+        raw_exc["module"] = exc["module"]
+        raw_exc["type"] = exc["type"]
 
     return data

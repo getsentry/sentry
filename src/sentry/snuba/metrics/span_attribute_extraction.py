@@ -3,8 +3,9 @@ from typing import Literal, NotRequired, TypedDict
 
 from sentry.api import event_search
 from sentry.api.event_search import ParenExpression, QueryToken, SearchFilter
+from sentry.relay.types import RuleCondition
 from sentry.sentry_metrics.extraction_rules import MetricsExtractionRule
-from sentry.snuba.metrics.extraction import RuleCondition, SearchQueryConverter, TagSpec
+from sentry.snuba.metrics.extraction import SearchQueryConverter, TagSpec
 
 # Matches the top level span attributes defined in Relay
 # https://github.com/getsentry/relay/blob/e59f21d9/relay-event-schema/src/protocol/span.rs#L119
@@ -138,8 +139,23 @@ def _parse_conditions(conditions: Sequence[str] | None) -> Sequence[QueryToken]:
 def _get_rule_condition(
     extraction_rule: MetricsExtractionRule, parsed_conditions: Sequence[QueryToken]
 ) -> RuleCondition | None:
+    if _is_counter(extraction_rule):
+        return _get_counter_rule_condition(extraction_rule, parsed_conditions)
+
     if not parsed_conditions:
-        if not _is_counter(extraction_rule):
+        return None
+
+    return SearchQueryConverter(parsed_conditions, field_mapper=_map_span_attribute_name).convert()
+
+
+def _get_counter_rule_condition(
+    extraction_rule: MetricsExtractionRule, parsed_conditions: Sequence[QueryToken]
+) -> RuleCondition | None:
+    is_top_level = extraction_rule.span_attribute in _TOP_LEVEL_SPAN_ATTRIBUTES
+
+    if not parsed_conditions:
+        # temporary workaround for span.duration counter metric
+        if is_top_level:
             return None
 
         return _get_exists_condition(extraction_rule.span_attribute)
@@ -148,10 +164,12 @@ def _get_rule_condition(
         parsed_conditions, field_mapper=_map_span_attribute_name
     ).convert()
 
-    return (
-        _append_exists_condition(condition_dict, extraction_rule.span_attribute)
-        if _is_counter(extraction_rule)
-        else condition_dict
+    if is_top_level:
+        return condition_dict
+
+    return _append_exists_condition(
+        condition_dict,
+        extraction_rule.span_attribute,
     )
 
 

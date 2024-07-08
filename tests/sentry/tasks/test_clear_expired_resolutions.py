@@ -71,9 +71,7 @@ class ClearExpiredResolutionsTest(TestCase):
         assert resolution2.status == GroupResolution.Status.pending
 
         activity1 = Activity.objects.get(id=activity1.id)
-        assert activity1.data is not None
         assert activity1.data["version"] == new_release.version
 
         activity2 = Activity.objects.get(id=activity2.id)
-        assert activity2.data is not None
         assert activity2.data["version"] == ""

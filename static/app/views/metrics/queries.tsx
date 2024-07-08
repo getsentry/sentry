@@ -219,6 +219,7 @@ function Query({
           mri: widget.mri,
           query: widget.query,
           aggregation: widget.aggregation,
+          condition: widget.condition,
           groupBy: widget.groupBy,
         }}
       />

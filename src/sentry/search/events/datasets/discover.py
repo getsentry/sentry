@@ -2014,7 +2014,5 @@ class DiscoverDatasetConfig(DatasetConfig):
                 ["transaction"],
             ]:
                 return None
-            raise InvalidSearchQuery(
-                "Invalid value for event.type condition. Allowed value is transaction."
-            )
+
         return self.builder.default_filter_converter(search_filter)

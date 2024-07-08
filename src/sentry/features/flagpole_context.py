@@ -49,9 +49,7 @@ def organization_context_transformer(data: SentryContextData) -> EvaluationConte
         context_data["organization_slug"] = org.slug
         context_data["organization_name"] = org.name
         context_data["organization_id"] = org.id
-        # TODO(hybridcloud) Remove this guard once org.flags has been deployed to all regions
-        if hasattr(org, "flags"):
-            context_data["organization_is-early-adopter"] = bool(org.flags.early_adopter)
+        context_data["organization_is-early-adopter"] = bool(org.flags.early_adopter)
     else:
         raise InvalidContextDataException("Invalid organization object provided")
 
