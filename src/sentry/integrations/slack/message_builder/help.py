@@ -49,17 +49,6 @@ class SlackHelpMessageBuilder(BlockSlackMessageBuilder):
         super().__init__()
         self.command = command
 
-    def get_docs_block(self) -> SlackBlock:
-        return self.get_action_block(
-            [
-                (
-                    "Sentry Docs",
-                    "https://docs.sentry.io/product/alerts-notifications/alerts/",
-                    "sentry_docs_link_clicked",
-                )
-            ]
-        )
-
     def get_header_blocks(self) -> Sequence[SlackBlock]:
         blocks = []
         if self.command and self.command != "help":
