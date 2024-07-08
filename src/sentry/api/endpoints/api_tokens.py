@@ -37,6 +37,7 @@ class ApiTokensEndpoint(Endpoint):
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (IsAuthenticated,)
@@ -122,3 +123,30 @@ class ApiTokensEndpoint(Endpoint):
         analytics.record("api_token.deleted", user_id=request.user.id)
 
         return Response(status=204)
+
+    @method_decorator(never_cache)
+    def put(self, request: Request) -> Response:
+        serializer = ApiTokenNameSerializer(data=request.data)
+
+        if serializer.is_valid():
+            result = serializer.validated_data
+
+            user_id = self._get_appropriate_user_id(request=request)
+            token_id = request.data.get("tokenId", None)
+
+            if token_id is None:
+                return Response({"tokenId": token_id}, status=400)
+
+            with outbox_context(transaction.atomic(router.db_for_write(ApiToken)), flush=False):
+                token_to_rename: ApiToken | None = ApiToken.objects.filter(
+                    id=token_id, application__isnull=True, user_id=user_id
+                ).first()
+
+                if token_to_rename is None:
+                    return Response({"tokenId": token_id, "userId": user_id}, status=400)
+
+                token_to_rename.update(name=result.get("name", None))
+                token_to_rename.save()
+
+            return Response(status=204)
+        return Response(serializer.errors, status=400)
