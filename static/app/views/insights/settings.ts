@@ -1,6 +1,6 @@
 import {t} from 'sentry/locale';
 import {MODULE_TITLE as RESOURCES_MODULE_TITLE} from 'sentry/views/insights/browser/resources/settings';
-import {  MODULE_TITLE as VITALS_MODULE_TITLE} from 'sentry/views/insights/browser/webVitals/settings';
+import {MODULE_TITLE as VITALS_MODULE_TITLE} from 'sentry/views/insights/browser/webVitals/settings';
 import {MODULE_TITLE as CACHE_MODULE_TITLE} from 'sentry/views/insights/cache/settings';
 import {MODULE_TITLE as DB_MODULE_TITLE} from 'sentry/views/insights/database/settings';
 import {MODULE_TITLE as HTTP_MODULE_TITLE} from 'sentry/views/insights/http/settings';
