@@ -232,6 +232,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
     openMembership = serializers.BooleanField(required=False)
     allowSharedIssues = serializers.BooleanField(required=False)
+    allowMemberProjectCreation = serializers.BooleanField(required=False)
     enhancedPrivacy = serializers.BooleanField(required=False)
     dataScrubber = serializers.BooleanField(required=False)
     dataScrubberDefaults = serializers.BooleanField(required=False)
@@ -476,6 +477,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             and "requireEmailVerification" in data
         ):
             org.flags.require_email_verification = data["requireEmailVerification"]
+        if "allowMemberProjectCreation" in data:
+            org.flags.disable_member_project_creation = not data["allowMemberProjectCreation"]
         if "name" in data:
             org.name = data["name"]
         if "slug" in data:
@@ -492,6 +495,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "early_adopter": org.flags.early_adopter.is_set,
                 "require_2fa": org.flags.require_2fa.is_set,
                 "codecov_access": org.flags.codecov_access.is_set,
+                "disable_member_project_creation": org.flags.disable_member_project_creation.is_set,
             },
         }
 
