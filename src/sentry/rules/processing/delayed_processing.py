@@ -320,6 +320,7 @@ def build_group_to_groupevent(
                 "delayed_processing.missing_event_id",
                 extra={"rule": rule_group[0], "project_id": project_id},
             )
+
         group = group_id_to_group.get(int(rule_group[1]))
         if not group or not event:
             if not group:
@@ -328,9 +329,13 @@ def build_group_to_groupevent(
                     extra={"rule": rule_group[0], "project_id": project_id},
                 )
             if not event:
+                extra = {"rule": rule_group[0], "project_id": project_id}
+                if group:
+                    extra["group_id"] = group.id
+
                 logger.info(
                     "delayed_processing.missing_event",
-                    extra={"rule": rule_group[0], "project_id": project_id, "group_id": group.id},  # type: ignore[union-attr]
+                    extra=extra,
                 )
             continue
 
