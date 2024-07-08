@@ -207,10 +207,4 @@ reject-python-snapshots:
 	@cargo insta --version &> /dev/null || cargo install cargo-insta
 	@cargo insta reject --workspace-root `pwd` -e pysnap
 
-lint-js:
-	@echo "--> Linting javascript"
-	bin/lint --js --parseable
-	@echo ""
-
-
 .PHONY: build

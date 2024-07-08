@@ -100,6 +100,56 @@ repos:
         pass_filenames: false
         language: system
 
+      # Javascript linting, formatting.
+      # We're using the local node_modules to simplify things, otherwise would
+      # need an easy way to keep versions in sync. Furthermore some repositories
+      # are either not on pre-commit mirrors or are missing some tagged versions.
+      # pre-commit-managed nodeenv environments also do not work out of the box because
+      # additional_dependencies does not install a flattened dependency tree which is needed by,
+      # for example, our eslint setup.
+
+      - id: biome
+        name: biome (javascript, typescript, json)
+        language: system
+        files: \.(jsx?|tsx?|css)$
+        entry: ./node_modules/.bin/biome check --log-level=error --write --files-ignore-unknown=true --no-errors-on-unmatched
+
+      - id: eslint
+        name: eslint
+        language: system
+        files: \.[jt]sx?$
+        entry: ./node_modules/.bin/eslint --quiet --fix
+
+      - id: stylelint
+        name: stylelint
+        language: system
+        files: \.[jt]sx?$
+        entry: ./node_modules/.bin/stylelint --quiet
+
+      - id: prettier
+        name: prettier (yaml, markdown, ts, tsx, js, jsx, css)
+        language: system
+        # TODO: Remove tsx and jsx when Biome supports styled CSS formatting.
+        types_or: [yaml, markdown, ts, tsx, javascript, jsx, css]
+        entry: ./node_modules/.bin/prettier --log-level=error --write
+        # https://pre-commit.com/#regular-expressions
+        exclude: |
+          (?x)^($^
+            # prettier crashes on some of these, by intent:
+            |fixtures/.*
+            # these have enormous diffs when formatted:
+            |api-docs/paths/events/issue-hashes\.json
+            |api-docs/paths/events/latest-event\.json
+            |api-docs/paths/events/oldest-event\.json
+            |api-docs/paths/events/project-event-details\.json
+            |src/sentry/issues/event\.schema\.json
+            |static/app/data/world\.json
+            |static/app/utils/profiling/profile/formats/android/trace\.json
+            |static/app/utils/profiling/profile/formats/ios/trace\.json
+            |static/app/utils/profiling/profile/formats/node/trace\.json
+            |static/app/utils/profiling/profile/formats/typescript/trace\.json
+          )$
+
   - repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
     hooks:
@@ -130,38 +180,7 @@ repos:
       - id: debug-statements
       - id: name-tests-test
         args: [--pytest-test-first]
-  - repo: https://github.com/biomejs/pre-commit
-    rev: v0.2.0
-    hooks:
-      - id: biome-check
-        name: biome (javascript, typescript, json)
-        additional_dependencies: ['@biomejs/biome@1.8.3']
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: 'v3.1.0' # Use the sha or tag you want to point at
-    hooks:
-      - id: prettier
-        name: prettier (yaml, markdown, ts, tsx, js, jsx, css)
-        # TODO: Remove tsx and jsx when Biome supports styled CSS formatting.
-        types_or: [yaml, markdown, ts, tsx, javascript, jsx, css]
-        # Override the default version of prettier since there isn't a tag with 3.2.5
-        additional_dependencies: ['prettier@3.3.2']
-        # https://pre-commit.com/#regular-expressions
-        exclude: |
-          (?x)^($^
-            # prettier crashes on some of these, by intent:
-            |fixtures/.*
-            # these have enormous diffs when formatted:
-            |api-docs/paths/events/issue-hashes\.json
-            |api-docs/paths/events/latest-event\.json
-            |api-docs/paths/events/oldest-event\.json
-            |api-docs/paths/events/project-event-details\.json
-            |src/sentry/issues/event\.schema\.json
-            |static/app/data/world\.json
-            |static/app/utils/profiling/profile/formats/android/trace\.json
-            |static/app/utils/profiling/profile/formats/ios/trace\.json
-            |static/app/utils/profiling/profile/formats/node/trace\.json
-            |static/app/utils/profiling/profile/formats/typescript/trace\.json
-          )$
+
   - repo: https://github.com/shellcheck-py/shellcheck-py
     rev: v0.9.0.6
     hooks:
