@@ -128,7 +128,7 @@ class ApiTokensEndpoint(Endpoint):
     def put(self, request: Request) -> Response:
         keys = list(request.data.keys())
         allowed_fields = ["name", "tokenId"]
-        
+
        if any(key not in allowed_fields for key in keys):
             return Response(
                 {"error": "Only auth token name can be edited after creation"}, status=403
