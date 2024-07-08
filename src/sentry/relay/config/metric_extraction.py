@@ -30,6 +30,7 @@ from sentry.models.transaction_threshold import (
     TransactionMetric,
 )
 from sentry.relay.config.experimental import TimeChecker
+from sentry.relay.types import RuleCondition
 from sentry.search.events import fields
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
@@ -41,7 +42,6 @@ from sentry.snuba.metrics.extraction import (
     MetricSpecType,
     OnDemandMetricSpec,
     OnDemandMetricSpecVersioning,
-    RuleCondition,
     SpecVersion,
     TagMapping,
     TagSpec,
