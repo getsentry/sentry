@@ -1,6 +1,6 @@
 from collections.abc import Mapping, Sequence
 
-from sentry.integrations.slack.message_builder import SlackBlock, SlackBody
+from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.block import BlockSlackMessageBuilder
 
 from ..utils import logger
@@ -22,6 +22,13 @@ CHANNEL_COMMANDS = {
     "unlink team": "Unlink a team from the channel this command is typed in.",
 }
 CONTACT_MESSAGE = "Let us know if you have feedback: ecosystem-feedback@sentry.io"
+
+
+SUPPORT_HEADER_MESSAGE = "Need support? Check out these resources:"
+SUPPORT_OPTIONS_MESSAGE = "• Want help for your particular case? <https://docs.sentry.io/support|File a ticket in Zendesk>. \n• Want to report an issue, request a feature, or get support? <https://github.com/getsentry/sentry/issues/new/choose|File a GitHub issue>. \n• Have feedback? Email ecosystem-feedback@sentry.io."
+
+DOCS_HEADER_MESSAGE = "Want to view documentation? Check out these resources:"
+DOCS_OPTIONS_MESSAGE = "• <https://docs.sentry.io/organization/integrations/|General Sentry integration docs> \n• <https://docs.sentry.io/organization/integrations/notification-incidents/slack/|Sentry Slack integration docs> \n• <https://sentry.slack.com/apps/A011MFBJEUU-sentry|Sentry Slack app>"
 
 
 def list_commands(commands: Mapping[str, str]) -> str:
@@ -64,7 +71,7 @@ class SlackHelpMessageBuilder(BlockSlackMessageBuilder):
         blocks.append(self.get_markdown_block(HEADER_MESSAGE))
         return blocks
 
-    def build(self) -> SlackBody:
+    def get_help_message(self) -> SlackBlock:
         return self._build_blocks(
             *self.get_header_blocks(),
             self.get_markdown_block(DM_COMMAND_HEADER),
@@ -76,3 +83,23 @@ class SlackHelpMessageBuilder(BlockSlackMessageBuilder):
             self.get_divider(),
             self.get_markdown_block(GENERAL_MESSAGE),
         )
+
+    def get_support_message(self) -> SlackBlock:
+        return self._build_blocks(
+            self.get_markdown_block(SUPPORT_HEADER_MESSAGE),
+            self.get_markdown_block(SUPPORT_OPTIONS_MESSAGE),
+        )
+
+    def get_docs_message(self) -> SlackBlock:
+        return self._build_blocks(
+            self.get_markdown_block(DOCS_HEADER_MESSAGE),
+            self.get_markdown_block(DOCS_OPTIONS_MESSAGE),
+        )
+
+    def build(self) -> SlackBlock:
+        if self.command == "support":
+            return self.get_support_message()
+        elif self.command == "docs":
+            return self.get_docs_message()
+        else:
+            return self.get_help_message()
