@@ -3,8 +3,9 @@ from typing import Literal, NotRequired, TypedDict
 
 from sentry.api import event_search
 from sentry.api.event_search import ParenExpression, QueryToken, SearchFilter
+from sentry.relay.types import RuleCondition
 from sentry.sentry_metrics.extraction_rules import MetricsExtractionRule
-from sentry.snuba.metrics.extraction import RuleCondition, SearchQueryConverter, TagSpec
+from sentry.snuba.metrics.extraction import SearchQueryConverter, TagSpec
 
 # Matches the top level span attributes defined in Relay
 # https://github.com/getsentry/relay/blob/e59f21d9/relay-event-schema/src/protocol/span.rs#L119
