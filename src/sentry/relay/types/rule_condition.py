@@ -72,7 +72,7 @@ class GlobCondition(TypedDict):
     value: list[str]
 
 
-class ForLoopCondition(TypedDict):
+class IterableCondition(TypedDict):
     """Condition for iterating over a list and applying a nested condition"""
 
     op: Literal["any", "all"]
@@ -97,7 +97,7 @@ class NotCondition(TypedDict):
 RuleCondition = Union[
     BooleanCondition,
     NotCondition,
-    ForLoopCondition,
+    IterableCondition,
     EqCondition,
     GteCondition,
     GtCondition,
