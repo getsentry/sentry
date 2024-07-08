@@ -121,6 +121,7 @@ type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
 export declare namespace TraceTree {
   interface Transaction extends TraceFullDetailed {
     sdk_name: string;
+    profiler_id: string;
   }
   interface Span extends RawSpanType {
     childTransactions: TraceTreeNode<TraceTree.Transaction>[];
@@ -430,7 +431,7 @@ function fetchSingleTrace(
     query: string;
     traceId: string;
   }
-): Promise<TraceSplitResults<TraceFullDetailed>> {
+): Promise<TraceSplitResults<TraceTree.Transaction>> {
   return api.requestPromise(
     `/organizations/${params.orgSlug}/events-trace/${params.traceId}/?${params.query}`
   );
@@ -2630,6 +2631,7 @@ function partialTransaction(
     parent_event_id: '',
     project_id: 0,
     sdk_name: '',
+    profiler_id: '',
     'transaction.duration': 0,
     'transaction.op': 'loading-transaction',
     'transaction.status': 'loading-status',
