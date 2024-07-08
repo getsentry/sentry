@@ -464,7 +464,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 extra={
                     "organization_id": self.project.organization.id,
                     "project_id": self.project.id,
-                    "error": "Rate Limit Exceeded",
+                    "error": "Snuba Rate Limit Exceeded",
                 },
             )
 

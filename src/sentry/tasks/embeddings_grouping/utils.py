@@ -255,11 +255,11 @@ def _make_snuba_call(project, snuba_requests, referrer):
             delay=2,
             exceptions=RateLimitExceeded,
         )
-    except RateLimitExceeded as e:
+    except RateLimitExceeded:
         extra = {
             "organization_id": project.organization.id,
             "project_id": project.id,
-            "error": e.message,
+            "error": "Snuba Rate Limit Exceeded",
         }
         logger.exception(
             "tasks.backfill_seer_grouping_records.snuba_query_exception",
