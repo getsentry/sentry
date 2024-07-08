@@ -283,19 +283,15 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   );
 
   if (isProjKeysLoading) {
-    return (
-      <Fragment>
-        {radioButtons}
-        <LoadingIndicator />
-      </Fragment>
-    );
+    return <LoadingIndicator />;
   }
 
   // No platform or not supported or no docs
   if (
     !currentPlatform ||
     !feedbackOnboardingPlatforms.includes(currentPlatform.id) ||
-    !newDocs
+    !newDocs ||
+    !dsn
   ) {
     return (
       <Fragment>
@@ -338,18 +334,16 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   return (
     <Fragment>
       {radioButtons}
-      {newDocs && dsn && (
-        <FeedbackOnboardingLayout
-          docsConfig={newDocs}
-          dsn={dsn}
-          cdn={cdn}
-          activeProductSelection={[]}
-          platformKey={currentPlatform.id}
-          projectId={currentProject.id}
-          projectSlug={currentProject.slug}
-          configType={getConfig()}
-        />
-      )}
+      <FeedbackOnboardingLayout
+        docsConfig={newDocs}
+        dsn={dsn}
+        cdn={cdn}
+        activeProductSelection={[]}
+        platformKey={currentPlatform.id}
+        projectId={currentProject.id}
+        projectSlug={currentProject.slug}
+        configType={getConfig()}
+      />
     </Fragment>
   );
 }
