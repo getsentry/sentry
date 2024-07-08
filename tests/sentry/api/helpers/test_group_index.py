@@ -1086,9 +1086,14 @@ class DeleteGroupsTest(TestCase):
         assert send_robust.called
 
     @with_feature("projects:similarity-embeddings-delete-by-hash")
+    @patch(
+        "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
+    )
     @patch("sentry.tasks.delete_seer_grouping_records.logger")
     @patch("sentry.signals.issue_deleted.send_robust")
-    def test_delete_groups_deletes_seer_records_by_hash(self, send_robust: Mock, mock_logger: Mock):
+    def test_delete_groups_deletes_seer_records_by_hash(
+        self, send_robust: Mock, mock_logger: Mock, mock_delete_seer_grouping_records_by_hash
+    ):
         groups = [self.create_group(), self.create_group()]
         group_ids = [group.id for group in groups]
         request = self.make_request(user=self.user, method="GET")
@@ -1114,4 +1119,7 @@ class DeleteGroupsTest(TestCase):
         mock_logger.info.assert_called_with(
             "calling seer record deletion by hash",
             extra={"project_id": self.project.id, "hashes": hashes},
+        )
+        mock_delete_seer_grouping_records_by_hash.assert_called_with(
+            args=[self.project.id, hashes, 0]
         )
