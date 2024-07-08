@@ -1,0 +1,220 @@
+#!/usr/bin/env python
+
+"""
+Produces uptime configurations to the uptime-configs topic. Supports batch
+loading of many configurations from a JSON file.
+
+Deletion by subscription ID is also supported.
+
+When loading configs from a json file it should be in the format:
+
+[
+  {
+    "subscription_id": "c673bd5c1d214e27a42d292d49bd6592",
+    "interval_seconds": 300,
+    "timeout_ms": 10,
+    "url": "https://example.com"
+  },
+  ...
+]
+"""
+
+import logging
+import uuid
+from pprint import pformat
+from typing import Literal, TextIO, Union, cast
+
+from sentry_kafka_schemas.schema_types.uptime_configs_v1 import CheckConfig, CheckInterval
+
+from sentry.runner import configure
+from sentry.uptime.config_producer import produce_config, produce_config_removal
+from sentry.utils import json
+
+configure()
+
+import argparse
+
+
+class AddSingleArgs(argparse.Namespace):
+    mode: Literal["add"]
+    dry_run: bool
+    subscription_id: uuid.UUID
+    interval: CheckInterval
+    timeout: int
+    url: str
+
+
+class AddBatchArgs(argparse.Namespace):
+    mode: Literal["add-batch"]
+    dry_run: bool
+    json_file: TextIO
+
+
+class RemoveSingleArgs(argparse.Namespace):
+    mode: Literal["remove"]
+    dry_run: bool
+    subscription_id: uuid.UUID
+
+
+class RemoveBatchArgs(argparse.Namespace):
+    mode: Literal["remove-batch"]
+    dry_run: bool
+    json_file: TextIO
+
+
+AddArgs = Union[AddSingleArgs, AddBatchArgs]
+RemoveArgs = Union[RemoveSingleArgs, RemoveBatchArgs]
+
+Args = Union[AddArgs, RemoveArgs]
+
+
+def add(args: AddArgs):
+    configs: list[CheckConfig] = []
+
+    if args.mode == "add-batch":
+        data = json.load(args.json_file)
+        if not isinstance(data, list):
+            logging.error("Expected a list of configurations")
+            return
+        configs = data
+    elif args.mode == "add":
+        configs.append(
+            {
+                "subscription_id": args.subscription_id.hex,
+                "interval_seconds": args.interval,
+                "timeout_ms": args.timeout,
+                "url": args.url,
+            }
+        )
+
+    logging.info("Adding %d configurations", len(configs))
+
+    for config in configs:
+        if args.dry_run:
+            logging.info("Would add config:\n%s", pformat(config))
+            continue
+
+        logging.info("Adding config:\n%s", pformat(config))
+        produce_config(config)
+
+    logging.info("Finished adding configurations")
+
+
+def remove(args: RemoveArgs):
+    subscription_ids: list[uuid.UUID] = []
+
+    if args.mode == "remove-batch":
+        data = json.load(args.json_file)
+        if not isinstance(data, list):
+            logging.error("Expected a list of subscription IDs")
+            return
+        subscription_ids = [uuid.UUID(sub_id) for sub_id in data]
+    elif args.mode == "remove":
+        subscription_ids.append(args.subscription_id)
+
+    logging.info("Removing %d configurations", len(subscription_ids))
+
+    for sub_id in subscription_ids:
+        if args.dry_run:
+            logging.info("Would remove subscription ID: %s", sub_id.hex)
+            continue
+
+        logging.info("Removing subscription ID: %s", sub_id.hex)
+        produce_config_removal(sub_id)
+
+    logging.info("Finished removing configurations")
+
+
+def valid_uuid(arg):
+    try:
+        return uuid.UUID(arg)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"Invalid UUID value: {arg}")
+
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        prog="uptime-load-config",
+        description="Load one or many uptime configurations into the configs topic",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Don't actually produce the configs",
+    )
+
+    subparsers = parser.add_subparsers(dest="mode", required=True)
+
+    # Single configuration mode
+    add_single = subparsers.add_parser(
+        "add",
+        help="Add a single configuration via options",
+    )
+    add_single.add_argument(
+        "--subscription_id",
+        required=True,
+        type=valid_uuid,
+        help="The subscription ID",
+    )
+    add_single.add_argument(
+        "--interval-secs",
+        type=int,
+        required=True,
+        dest="interval",
+        choices=[60, 300, 600, 1200, 1800, 3600],
+        help="The interval to check in seconds",
+    )
+    add_single.add_argument(
+        "--timeout-ms",
+        type=int,
+        required=True,
+        dest="timeout",
+        help="Timeout in milliseconds",
+    )
+    add_single.add_argument(
+        "--url",
+        type=str,
+        required=True,
+        help="The URL to check",
+    )
+
+    # Remove a single configuration
+    remove_batch = subparsers.add_parser(
+        "remove",
+        help="Remove a configuration by subscription ID",
+    )
+    remove_batch.add_argument(
+        "--subscription_id",
+        type=valid_uuid,
+        required=True,
+        help="The subscription ID to remove",
+    )
+
+    # Add multiple configurations
+    add_batch = subparsers.add_parser(
+        "add-batch",
+        help="Add multiple configurations via a json file",
+    )
+    add_batch.add_argument(
+        "json_file",
+        type=argparse.FileType("r"),
+        help="The JSON subscription file. Should be an array of configurations",
+    )
+
+    # Remove multiple configurations
+    add_batch = subparsers.add_parser(
+        "remove-batch",
+        help="Remove multiple configurations via a json file",
+    )
+    add_batch.add_argument(
+        "json_file",
+        type=argparse.FileType("r"),
+        help="The JSON subscription file. Should be an array subscription IDs to remove",
+    )
+
+    args = cast(Args, parser.parse_args())
+
+    if args.mode.startswith("add"):
+        add(cast(AddArgs, args))
+    elif args.mode.startswith("remove"):
+        remove(cast(RemoveArgs, args))
