@@ -21,11 +21,11 @@ create-db \
 apply-migrations \
 reset-db \
 node-version-check \
-install-js-dev \
-install-py-dev :
+install-js-dev :
 	@./scripts/do.sh $@
 
-develop:
+develop \
+install-py-dev :
 	devenv-sync
 
 # This is to ensure devenv sync's only called once if the above

@@ -124,6 +124,10 @@ def main(context: dict[str, str]) -> int:
     ):
         return 1
 
+        pip uninstall -qqy djangorestframework-stubs django-stubs
+        pip install --constraint requirements-dev-frozen.txt -r requirements-dev-frozen.txt
+        python3 -m tools.fast_editable --path .
+
     if not run_procs(
         repo,
         reporoot,

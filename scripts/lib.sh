@@ -86,22 +86,6 @@ upgrade-pip() {
     pip-install pip
 }
 
-install-py-dev() {
-    upgrade-pip
-    # It places us within top src dir to be at the same path as setup.py
-    # This helps when getsentry calls into this script
-    cd "${HERE}/.." || exit
-
-    echo "--> Installing Sentry (for development)"
-
-    # pip doesn't do well with swapping drop-ins
-    pip uninstall -qqy djangorestframework-stubs django-stubs
-
-    pip-install -r requirements-dev-frozen.txt
-
-    python3 -m tools.fast_editable --path .
-}
-
 node-version-check() {
     # Checks to see if node's version matches the one specified in package.json for Volta.
     node -pe "process.exit(Number(!(process.version == 'v' + require('./.volta.json').volta.node )))" ||
