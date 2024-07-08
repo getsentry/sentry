@@ -8,13 +8,13 @@ import HighlightTopRightPattern from 'sentry-images/pattern/highlight-top-right.
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import {FeedbackOnboardingLayout} from 'sentry/components/feedback/feedbackOnboarding/feedbackOnboardingLayout';
-import useLoadFeedbackOnboardingDoc from 'sentry/components/feedback/feedbackOnboarding/useLoadFeedbackOnboardingDoc';
 import {CRASH_REPORT_HASH} from 'sentry/components/feedback/useFeedbackOnboarding';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {FeedbackOnboardingWebApiBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils/feedbackOnboarding';
 import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
+import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/replaysOnboarding/platformOptionDropdown';
 import {replayJsFrameworkOptions} from 'sentry/components/replaysOnboarding/utils';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
@@ -157,7 +157,6 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     };
   });
 
-  const organization = useOrganization();
   const [jsFramework, setJsFramework] = useState<{
     value: PlatformKey;
     label?: ReactNode;
@@ -192,32 +191,30 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     replayJsLoaderInstructionsPlatformList.includes(currentPlatform.id) &&
     !crashReportOnboarding;
 
-  function getJsFramework() {
-    return (
-      replayJsFrameworkOptions.find(p => p.id === jsFramework.value) ??
-      replayJsFrameworkOptions[0]
-    );
-  }
+  const jsFrameworkPlatform =
+    replayJsFrameworkOptions.find(p => p.id === jsFramework.value) ??
+    replayJsFrameworkOptions[0];
 
   const {
+    isLoading: isProjKeysLoading,
     docs: newDocs,
     dsn,
     cdn,
-    isProjKeysLoading,
-  } = useLoadFeedbackOnboardingDoc({
+  } = useLoadGettingStarted({
     platform:
       showJsFrameworkInstructions && !crashReportOnboarding
-        ? getJsFramework()
+        ? jsFrameworkPlatform
         : currentPlatform,
-    organization,
-    projectSlug: currentProject.slug,
+    projSlug: currentProject.slug,
+    productType: 'feedback',
+    orgSlug: currentProject.organization.slug,
   });
 
   // New onboarding docs for initial loading of JS Framework options
-  const {docs: jsFrameworkDocs} = useLoadFeedbackOnboardingDoc({
-    platform: getJsFramework(),
-    organization,
-    projectSlug: currentProject.slug,
+  const {docs: jsFrameworkDocs} = useLoadGettingStarted({
+    platform: jsFrameworkPlatform,
+    projSlug: currentProject.slug,
+    orgSlug: currentProject.organization.slug,
   });
 
   if (webApiPlatform && !crashReportOnboarding) {
@@ -340,7 +337,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   return (
     <Fragment>
       {radioButtons}
-      {newDocs && (
+      {newDocs && dsn && (
         <FeedbackOnboardingLayout
           docsConfig={newDocs}
           dsn={dsn}

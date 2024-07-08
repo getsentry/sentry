@@ -9,31 +9,16 @@ import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStarted
 import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
-import useLoadGettingStarted from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
+import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PlatformIntegration, Project, ProjectKey} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
-import {getPlatformPath} from 'sentry/utils/gettingStartedDocs/getPlatformPath';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import type {PlatformIntegration, Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import FirstEventIndicator from 'sentry/views/onboarding/components/firstEventIndicator';
 
 export default function UpdatedEmptyState({project}: {project?: Project}) {
   const organization = useOrganization();
-
-  const {
-    data: projectKeys,
-    isError: projectKeysIsError,
-    isLoading: projectKeysIsLoading,
-  } = useApiQuery<ProjectKey[]>(
-    [`/projects/${organization.slug}/${project?.slug}/keys/`],
-    {
-      staleTime: Infinity,
-      enabled: defined(project),
-    }
-  );
 
   const {isLoading: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -43,32 +28,26 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     p => p.id === currentPlatformKey
   ) as PlatformIntegration;
 
-  const platformPath = getPlatformPath(currentPlatform);
-
-  const module = useLoadGettingStarted({
-    platformId: currentPlatform.id,
-    platformPath,
+  const loadGettingStarted = useLoadGettingStarted({
+    platform: currentPlatform,
+    orgSlug: organization.slug,
+    projSlug: project?.slug,
   });
 
   if (
     !project ||
-    projectKeysIsError ||
-    projectKeysIsLoading ||
-    !projectKeys ||
-    projectKeys.length === 0 ||
-    !module ||
-    !currentPlatform ||
-    module === 'none'
+    loadGettingStarted.isError ||
+    loadGettingStarted.isLoading ||
+    !loadGettingStarted.docs ||
+    !loadGettingStarted.cdn ||
+    !loadGettingStarted.dsn
   ) {
     return null;
   }
 
-  const dsn = projectKeys[0].dsn.public;
-  const {default: docs} = module;
-
   const docParams: DocsParams<any> = {
-    cdn: projectKeys[0].dsn.cdn,
-    dsn,
+    cdn: loadGettingStarted.cdn,
+    dsn: loadGettingStarted.dsn,
     organization,
     platformKey: currentPlatformKey,
     projectId: project.id,
@@ -86,9 +65,9 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     replayOptions: {block: true, mask: true},
   };
 
-  const install = docs.onboarding.install(docParams)[0];
-  const configure = docs.onboarding.configure(docParams);
-  const verify = docs.onboarding.verify(docParams);
+  const install = loadGettingStarted.docs.onboarding.install(docParams)[0];
+  const configure = loadGettingStarted.docs.onboarding.configure(docParams);
+  const verify = loadGettingStarted.docs.onboarding.verify(docParams);
 
   const {description: installDescription} = install;
 
