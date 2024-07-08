@@ -84,11 +84,12 @@ class ProjectDeletionTask(ModelDeletionTask):
             ProguardArtifactRelease,
             DiscoverSavedQueryProject,
             IncidentProject,
-            QuerySubscription,
         ):
             relations.append(ModelRelation(m, {"project_id": instance.id}, BulkModelDeletionTask))
+
         relations.append(ModelRelation(Monitor, {"project_id": instance.id}))
         relations.append(ModelRelation(Group, {"project_id": instance.id}))
+        relations.append(ModelRelation(QuerySubscription, {"project_id": instance.id}))
         relations.append(
             ModelRelation(
                 AlertRule,
