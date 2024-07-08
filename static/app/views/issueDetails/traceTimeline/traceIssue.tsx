@@ -79,7 +79,7 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
 // We could also make another call to the issues endpoint  to fetch the metadata,
 // however, we currently don't support it and it is extremely slow
 export function getTitleSubtitleMessage(event: TimelineEvent) {
-  let title;
+  let title = event.title;
   // XXX: This is not fully correct but it will make following PRs easier to review
   const subtitle = event.transaction;
   let message = event.message;
