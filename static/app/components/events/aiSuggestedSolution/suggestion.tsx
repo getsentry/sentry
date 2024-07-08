@@ -105,6 +105,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
   const [suggestedSolutionLocalConfig, setSuggestedSolutionLocalConfig] =
     useOpenAISuggestionLocalStorage();
   const [piiCertified, setPiiCertified] = useState(false);
+  const [feedbackProvided, setFeedbackProvided] = useState(false);
   const isSentryEmployee = useIsSentryEmployee();
 
   const {
@@ -132,6 +133,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
 
   const handleFeedbackClick = useCallback(() => {
     addSuccessMessage('Thank you for your feedback!');
+    setFeedbackProvided(true);
   }, []);
 
   if (isSentryEmployee && !piiCertified) {
@@ -191,7 +193,7 @@ export function Suggestion({onHideSuggestion, projectSlug, event}: Props) {
           />
         )}
       </PanelBody>
-      {!dataIsLoading && !dataIsError && (
+      {!dataIsLoading && !dataIsError && !feedbackProvided && (
         <PanelFooter>
           <Feedback>
             <strong>{t('Was this helpful?')}</strong>
