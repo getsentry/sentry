@@ -22,7 +22,7 @@ from sentry.models.savedsearch import SortOptions
 
 DEFAULT_VIEWS: list[GroupSearchViewSerializerResponse] = [
     {
-        "id": "",
+        "id": None,
         "name": "Prioritized",
         "query": "is:unresolved issue.priority:[high, medium]",
         "querySort": SortOptions.DATE.value,
@@ -97,7 +97,7 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         validated_data = serializer.validated_data
         try:
             with transaction.atomic(using=router.db_for_write(GroupSearchView)):
-                bulk_update_views(organization, request.user.id, validated_data)
+                bulk_update_views(organization, request.user.id, validated_data["views"])
         except IntegrityError as e:
             sentry_sdk.capture_exception(e)
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
@@ -112,27 +112,28 @@ class OrganizationGroupSearchViewsEndpoint(OrganizationEndpoint):
         )
 
 
-def bulk_update_views(org: Organization, user_id: int, validated_data):
-    views = validated_data["views"]
+def bulk_update_views(
+    org: Organization, user_id: int, views: list[GroupSearchViewSerializerResponse]
+) -> None:
 
     existing_view_ids = [view["id"] for view in views if "id" in view]
 
     _delete_missing_views(org, user_id, view_ids_to_keep=existing_view_ids)
 
-    for idx, view in enumerate(validated_data["views"]):
+    for idx, view in enumerate(views):
         if "id" not in view:
             _create_view(org, user_id, view, position=idx)
         else:
             _update_existing_view(view, position=idx)
 
 
-def _delete_missing_views(org: Organization, user_id: int, view_ids_to_keep: list[int]):
+def _delete_missing_views(org: Organization, user_id: int, view_ids_to_keep: list[int]) -> None:
     GroupSearchView.objects.filter(organization=org, user_id=user_id).exclude(
         id__in=view_ids_to_keep
     ).delete()
 
 
-def _update_existing_view(view: GroupSearchViewSerializerResponse, position: int):
+def _update_existing_view(view: GroupSearchViewSerializerResponse, position: int) -> None:
     GroupSearchView.objects.get(id=view["id"]).update(
         name=view["name"],
         query=view["query"],
@@ -141,7 +142,9 @@ def _update_existing_view(view: GroupSearchViewSerializerResponse, position: int
     )
 
 
-def _create_view(org: Organization, user_id: int, view, position: int):
+def _create_view(
+    org: Organization, user_id: int, view: GroupSearchViewSerializerResponse, position: int
+) -> None:
     GroupSearchView.objects.create(
         organization=org,
         user_id=user_id,

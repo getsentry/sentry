@@ -6,7 +6,7 @@ from sentry.models.savedsearch import SORT_LITERALS
 
 
 class GroupSearchViewSerializerResponse(TypedDict):
-    id: str
+    id: str | None
     name: str
     query: str
     querySort: SORT_LITERALS
@@ -19,7 +19,7 @@ class GroupSearchViewSerializerResponse(TypedDict):
 class GroupSearchViewSerializer(Serializer):
     def serialize(self, obj, attrs, user, **kwargs) -> GroupSearchViewSerializerResponse:
         return {
-            "id": str(obj.id),
+            "id": None if obj.id is None else str(obj.id),
             "name": obj.name,
             "query": obj.query,
             "querySort": obj.query_sort,
