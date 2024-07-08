@@ -11,7 +11,7 @@ import Link from 'sentry/components/links/link';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChat, IconCircleFill, IconFatal, IconImage, IconPlay} from 'sentry/icons';
+import {IconChat, IconFatal, IconImage, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
@@ -84,23 +84,21 @@ function FeedbackListItem({feedbackItem, isSelected, onSelect, style}: Props) {
         />
       </Row>
 
-      <TextOverflow style={{gridArea: 'user'}}>
-        <strong>
-          {feedbackItem.metadata.name ??
-            feedbackItem.metadata.contact_email ??
-            t('Anonymous User')}
-        </strong>
-      </TextOverflow>
+      <ContactRow style={{fontWeight: feedbackItem.hasSeen ? undefined : 'bold'}}>
+        {feedbackItem.metadata.name ??
+          feedbackItem.metadata.contact_email ??
+          t('Anonymous User')}
+      </ContactRow>
 
-      <TimeSince date={feedbackItem.firstSeen} style={{gridArea: 'time'}} />
+      <StyledTimeSince date={feedbackItem.firstSeen} />
 
-      {feedbackItem.hasSeen ? null : (
-        <DotRow style={{gridArea: 'unread'}}>
-          <IconCircleFill size="xs" color="purple400" />
-        </DotRow>
-      )}
-
-      <PreviewRow align="flex-start" justify="flex-start" style={{gridArea: 'message'}}>
+      <PreviewRow
+        align="flex-start"
+        justify="flex-start"
+        style={{
+          gridArea: 'message',
+        }}
+      >
         <StyledTextOverflow>{feedbackItem.metadata.message}</StyledTextOverflow>
       </PreviewRow>
 
@@ -108,11 +106,11 @@ function FeedbackListItem({feedbackItem, isSelected, onSelect, style}: Props) {
         <Row justify="flex-start" gap={space(0.75)}>
           <StyledProjectBadge
             project={feedbackItem.project}
-            avatarSize={16}
+            avatarSize={14}
             hideName
             avatarProps={{hasTooltip: false}}
           />
-          <TextOverflow>{feedbackItem.shortId}</TextOverflow>
+          <ShortId>{feedbackItem.shortId}</ShortId>
         </Row>
 
         <Row justify="flex-end" gap={space(1)}>
@@ -210,12 +208,7 @@ const StyledProjectBadge = styled(ProjectBadge)`
 const PreviewRow = styled(Row)`
   height: 2.8em;
   align-items: flex-start;
-`;
-
-const DotRow = styled(Row)`
-  height: 2.2em;
-  align-items: flex-start;
-  justify-content: center;
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const StyledTextOverflow = styled(TextOverflow)`
@@ -226,4 +219,19 @@ const StyledTextOverflow = styled(TextOverflow)`
   -webkit-box-orient: vertical;
   line-height: ${p => p.theme.text.lineHeightBody};
 `;
+
+const ContactRow = styled(TextOverflow)`
+  font-size: ${p => p.theme.fontSizeMedium};
+  grid-area: 'user';
+`;
+
+const ShortId = styled(TextOverflow)`
+  font-size: ${p => p.theme.fontSizeSmall};
+`;
+
+const StyledTimeSince = styled(TimeSince)`
+  font-size: ${p => p.theme.fontSizeSmall};
+  grid-area: 'time';
+`;
+
 export default FeedbackListItem;
