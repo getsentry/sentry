@@ -220,7 +220,7 @@ const MAPPER_FOR_FRAME: Record<string, (frame) => Details> = {
   }),
   'ui.blur': () => ({
     color: 'purple300',
-    description: t('The user is preoccupied with another browser tab or window'),
+    description: t('The user is preoccupied with another browser, tab, or window'),
     tabKey: TabKey.BREADCRUMBS,
     title: 'Window Blur',
     icon: <IconFocus isFocused={false} size="xs" />,
