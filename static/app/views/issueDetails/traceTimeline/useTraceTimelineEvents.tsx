@@ -17,8 +17,8 @@ interface BaseEvent {
   transaction: string;
 }
 
-interface TimelineDiscoverEvent extends BaseEvent {}
-interface TimelineIssuePlatformEvent extends BaseEvent {
+interface TimelineIssuePlatformEvent extends BaseEvent {}
+interface TimelineDiscoverEvent extends BaseEvent {
   'event.type': string;
   'stack.function': string[];
 }
