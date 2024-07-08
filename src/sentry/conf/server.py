@@ -2893,6 +2893,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "monitors-clock-tick": "default",
     "monitors-clock-tasks": "default",
     "uptime-results": "default",
+    "uptime-configs": "default",
     "generic-events": "default",
     "snuba-generic-events-commit-log": "default",
     "group-attributes": "default",
