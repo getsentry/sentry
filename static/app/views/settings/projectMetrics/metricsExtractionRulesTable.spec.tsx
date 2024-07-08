@@ -57,6 +57,11 @@ describe('Metrics Extraction Rules Table', function () {
       url: `/organizations/${organization.slug}/spans/fields/`,
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/metrics/query/`,
+      method: 'POST',
+      body: {data: []},
+    });
   });
 
   it('shall open the modal to edit a rule by clicking on edit', async function () {

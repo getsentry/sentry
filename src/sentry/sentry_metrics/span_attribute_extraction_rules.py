@@ -1,5 +1,6 @@
 from typing import Any
 
+import sentry_sdk
 from rest_framework.request import Request
 
 from sentry.models.project import Project
@@ -14,6 +15,17 @@ def create_extraction_rule_config(request: Request, project: Project, config_upd
     configs = []
     for obj in config_update:
         configs.append(SpanAttributeExtractionRuleConfig.from_dict(obj, request.user.id, project))
+        if (
+            "conditions" not in obj
+            or len(obj["conditions"]) == 0
+            or (len(obj["conditions"]) == 1 and obj["conditions"][0] == "")
+        ):
+            with sentry_sdk.push_scope() as scope:
+                scope.set_tag("project", project.slug)
+                sentry_sdk.capture_message(
+                    "A MetricExtractionRuleConfig without conditions was created.",
+                )
+
     return configs
 
 
