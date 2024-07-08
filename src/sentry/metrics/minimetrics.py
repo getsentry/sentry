@@ -127,6 +127,19 @@ class MiniMetricsMetricsBackend(MetricsBackend):
 
         return unit
 
+    def _attach_metric_to_span(
+        self, key: str, value: float | int, op: str, tags: Tags | None = None
+    ) -> None:
+        if not options.get("delightful_metrics.enable_span_attributes"):
+            return
+
+        with sentry_sdk.get_current_span() or sentry_sdk.start_span(op=f"minimetrics.{op}") as span:
+
+            span.set_data(self._get_key(key), value)
+            if tags:
+                for tag, value in tags.items():
+                    span.set_tag(tag, value)
+
     def incr(
         self,
         key: str,
@@ -146,6 +159,8 @@ class MiniMetricsMetricsBackend(MetricsBackend):
                 stacklevel=stacklevel + 1,
             )
 
+            self._attach_metric_to_span(key=key, value=amount, op="incr", tags=tags)
+
     def timing(
         self,
         key: str,
@@ -164,6 +179,8 @@ class MiniMetricsMetricsBackend(MetricsBackend):
                 unit="second",
                 stacklevel=stacklevel + 1,
             )
+
+            self._attach_metric_to_span(key=key, value=value, op="timing", tags=tags)
 
     def gauge(
         self,
@@ -193,6 +210,8 @@ class MiniMetricsMetricsBackend(MetricsBackend):
                     stacklevel=stacklevel + 1,
                 )
 
+            self._attach_metric_to_span(key=key, value=value, op="gauge", tags=tags)
+
     def distribution(
         self,
         key: str,
@@ -211,6 +230,8 @@ class MiniMetricsMetricsBackend(MetricsBackend):
                 unit=self._to_minimetrics_unit(unit=unit),
                 stacklevel=stacklevel + 1,
             )
+
+            self._attach_metric_to_span(key=key, value=value, op="distribution", tags=tags)
 
     def event(
         self,

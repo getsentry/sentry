@@ -2081,6 +2081,12 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
+register(
+    "delightful_metrics.enable_span_attributes",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
 # IDs of orgs that will stop ingesting custom metrics.
 register(
     "custom-metrics-ingestion-disabled-orgs",
