@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {GithubFeedbackButton} from 'sentry/components/githubFeedbackButton';
-import ReplayDiff from 'sentry/components/replays/replayDiff';
+import ReplayDiffChooser from 'sentry/components/replays/diff/replayDiffChooser';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -53,7 +53,7 @@ export default function ReplayComparisonModal({
             }
           )}
         </StyledParagraph>
-        <ReplayDiff
+        <ReplayDiffChooser
           replay={replay}
           leftOffsetMs={leftOffsetMs}
           rightOffsetMs={rightOffsetMs}
