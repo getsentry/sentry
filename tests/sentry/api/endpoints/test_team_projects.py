@@ -96,6 +96,18 @@ class TeamProjectsCreateTest(APITestCase):
         )
         assert response.data["platform"][0] == "Invalid platform"
 
+    def test_invalid_name(self):
+        invalid_name = "auth"
+
+        response = self.get_error_response(
+            self.organization.slug,
+            self.team.slug,
+            name=invalid_name,
+            platform="python",
+            status_code=400,
+        )
+        assert response.data["name"][0] == f'The name "{invalid_name}" is reserved and not allowed.'
+
     def test_duplicate_slug(self):
         self.create_project(slug="bar")
         response = self.get_error_response(
