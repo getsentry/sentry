@@ -1552,11 +1552,14 @@ def _convert_countif_filter(key: str, op: str, value: str) -> RuleCondition:
     """Maps ``count_if`` arguments to a ``RuleCondition``."""
     assert op in _COUNTIF_TO_RELAY_OPERATORS, f"Unsupported `count_if` operator {op}"
 
-    condition: RuleCondition = {
-        "op": _COUNTIF_TO_RELAY_OPERATORS[op],
-        "name": _map_field_name(key),
-        "value": fields.normalize_count_if_value({"column": key, "value": value}),
-    }
+    condition = cast(
+        RuleCondition,
+        {
+            "op": _COUNTIF_TO_RELAY_OPERATORS[op],
+            "name": _map_field_name(key),
+            "value": fields.normalize_count_if_value({"column": key, "value": value}),
+        },
+    )
 
     if op == "notEquals":
         condition = {"op": "not", "inner": condition}
@@ -1762,11 +1765,14 @@ class SearchQueryConverter:
             if isinstance(value, str):
                 value = event_search.translate_escape_sequences(value)
 
-            condition = {
-                "op": operator,
-                "name": self._field_mapper(key),
-                "value": value,
-            }
+            condition = cast(
+                RuleCondition,
+                {
+                    "op": operator,
+                    "name": self._field_mapper(key),
+                    "value": value,
+                },
+            )
 
         # In case we have negation operators, we have to wrap them in the `not` condition.
         if token.operator in ("!=", "NOT IN"):
