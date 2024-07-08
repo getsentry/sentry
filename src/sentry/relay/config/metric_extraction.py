@@ -149,7 +149,7 @@ def get_extrapolation_config(project: Project) -> MetricExtrapolationConfig | No
     # Extrapolation applies to extracted metrics. This enables extrapolation for
     # the entire `custom` namespace, but this does not extrapolate old custom
     # metrics sent from the SDK directly.
-    config = {
+    config: MetricExtrapolationConfig = {
         "include": ["?:custom/*"],
         "exclude": [],
     }
