@@ -215,7 +215,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   const {docs: jsFrameworkDocs} = useLoadGettingStarted({
     platform: jsFrameworkPlatform,
     projSlug: currentProject.slug,
-    orgSlug: currentProject.organization.slug,
+    orgSlug: organization.slug,
   });
 
   if (webApiPlatform && !crashReportOnboarding) {

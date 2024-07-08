@@ -39,7 +39,13 @@ export function SdkDocumentation({
   }
 
   if (loadGettingStarted.isError) {
-    return <LoadingError />;
+    return (
+      <LoadingError
+        message={t(
+          'We encountered an issue while loading the getting started documentation for this platform.'
+        )}
+      />
+    );
   }
 
   if (!loadGettingStarted.docs) {
@@ -55,7 +61,9 @@ export function SdkDocumentation({
   if (!loadGettingStarted.dsn) {
     return (
       <LoadingError
-        message={t('There was a problem fething the DSN for your project.')}
+        message={t(
+          'We encountered an issue while loading the DSN for this getting started documentation.'
+        )}
         onRetry={loadGettingStarted.refetch}
       />
     );
