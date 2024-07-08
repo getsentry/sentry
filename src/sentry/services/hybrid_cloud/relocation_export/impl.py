@@ -4,6 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import logging
+from datetime import datetime, timezone
 from io import BytesIO
 from uuid import UUID
 
@@ -29,8 +30,6 @@ logger = logging.getLogger(__name__)
 
 
 class DBBackedRelocationExportService(RegionRelocationExportService):
-    """TODO(DONOTSUBMIT)"""
-
     def request_new_export(
         self,
         *,
@@ -40,7 +39,7 @@ class DBBackedRelocationExportService(RegionRelocationExportService):
         org_slug: str,
         encrypt_with_public_key: bytes,
     ) -> None:
-        from sentry.tasks.relocation import reply_with_remote_export
+        from sentry.tasks.relocation import fulfill_cross_region_export_request
 
         logger_data = {
             "uuid": relocation_uuid,
@@ -57,13 +56,14 @@ class DBBackedRelocationExportService(RegionRelocationExportService):
         # `ControlRelocationExportService.reply_with_export` via a manually-scheduled
         # `RegionOutbox`, which will handle the task of asynchronously delivering the encrypted,
         # newly-exported bytes.
-        reply_with_remote_export.apply_async(
+        fulfill_cross_region_export_request.apply_async(
             args=[
                 relocation_uuid,
                 requesting_region_name,
                 replying_region_name,
                 org_slug,
                 encrypt_with_public_key,
+                datetime.now(tz=timezone.utc),
             ]
         )
         logger.info("SaaS -> SaaS exporting task scheduled", extra=logger_data)
@@ -107,6 +107,10 @@ class DBBackedRelocationExportService(RegionRelocationExportService):
             file.putfile(fp, blob_size=RELOCATION_BLOB_SIZE, logger=logger)
             logger.info("SaaS -> SaaS relocation underlying File created", extra=logger_data)
 
+            # This write ensures that the entire chain triggered by `uploading_start` remains
+            # idempotent, since only one (relocation_uuid, relocation_file_kind) pairing can exist
+            # in that database's table at a time. If we try to write a second, it will fail due to
+            # that unique constraint.
             RelocationFile.objects.create(
                 relocation=relocation,
                 file=file,
@@ -119,8 +123,6 @@ class DBBackedRelocationExportService(RegionRelocationExportService):
 
 
 class ProxyingRelocationExportService(ControlRelocationExportService):
-    """TODO(DONOTSUBNMIT)"""
-
     def request_new_export(
         self,
         *,
@@ -153,7 +155,7 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
                 replying_region_name=replying_region_name,
                 org_slug=org_slug,
                 encrypt_with_public_key=encrypt_with_public_key,
-            ).json(),
+            ).dict(),
         ).save()
         logger.info("SaaS -> SaaS request proxy outbox saved", extra=logger_data)
 
@@ -196,6 +198,6 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
                 requesting_region_name=requesting_region_name,
                 replying_region_name=replying_region_name,
                 org_slug=org_slug,
-            ).json(),
+            ).dict(),
         ).save()
         logger.info("SaaS -> SaaS reply proxy outbox saved", extra=logger_data)

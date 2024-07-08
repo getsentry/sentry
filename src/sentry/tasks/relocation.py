@@ -4,7 +4,7 @@ import logging
 import re
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, timedelta, timezone
 from io import BytesIO
 from string import Template
 from typing import Any
@@ -53,17 +53,17 @@ from sentry.models.relocation import (
     ValidationStatus,
 )
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.organizations.services.organization import organization_service
 from sentry.services.hybrid_cloud.relocation_export.model import (
     RelocationExportReplyWithExportParameters,
 )
 from sentry.services.hybrid_cloud.relocation_export.service import control_relocation_export_service
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import relocated, relocation_redeem_promo_code
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.types.region import get_local_region
+from sentry.users.services.lost_password_hash import lost_password_hash_service
+from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.utils.db import atomic_transaction
 from sentry.utils.env import gcp_project_id, log_gcp_credentials_details
@@ -88,6 +88,7 @@ FAST_TIME_LIMIT = 60  # 1 minute
 MEDIUM_TIME_LIMIT = 60 * 5  # 5 minutes
 SLOW_TIME_LIMIT = 60 * 60  # 1 hour
 DEFAULT_VALIDATION_TIMEOUT = timedelta(minutes=60)
+CROSS_REGION_EXPORT_TIMEOUT = timedelta(minutes=60)
 
 # All pre and post processing tasks have the same number of retries. A "fast" task is one that almost always completes in <=5 minutes, and does relatively little bulk writing to the database.
 MAX_FAST_TASK_RETRIES = 3
@@ -111,6 +112,9 @@ RELOCATION_FILES_TO_BE_VALIDATED = [
 # Various error strings that we want to surface to users, grouped by step.
 ERR_UPLOADING_FAILED = "Internal error during file upload."
 ERR_UPLOADING_NO_SAAS_TO_SAAS_ORG_SLUG = "SAAS->SAAS relocations must specify an org slug."
+ERR_UPLOADING_CROSS_REGION_TIMEOUT = Template(
+    "Cross-region relocation export request timed out after $min minutes."
+)
 
 ERR_PREPROCESSING_DECRYPTION = """Could not decrypt the imported JSON - are you sure you used the
                                   correct public key?"""
@@ -184,11 +188,12 @@ def uploading_start(uuid: str, replying_region_name: str | None, org_slug: str |
         |            |            |            |-----05---->|            |
         |            |            |            |            |     06     |
         |            |            |            |            |     07     |
-        |            |            |            |<----08-----|            |
-        |            |            |     09     |            |            |
+        |            |            |            |            |     08     |
+        |            |            |            |<----09-----|            |
         |            |            |     10     |            |            |
-        |            |<----11-----|            |            |            |
-        |     12     |            |            |            |            |
+        |            |            |     11     |            |            |
+        |            |<----12-----|            |            |            |
+        |     13     |            |            |            |            |
         |            |            |            |            |            |
 
 
@@ -208,27 +213,30 @@ def uploading_start(uuid: str, replying_region_name: str | None, org_slug: str |
     05. The `DBBackedExportService::request_new_export` call is sent over the wire from the control
         silo to the exporting region.
     06. (ER) .../relocation_export/impl.py::DBBackedRelocationExportService::request_new_export: The
-        request RPC call is received, and immediately schedules the `reply_with_remote_export`
-        celery task, which uses an exponential backoff algorithm to try and create an encrypted
-        tarball containing an export of the requested org slug. This data is written as a file to
-        this region's relocation-specific GCS bucket, and the response is immediately packaged into
-        a `RegionOutbox`, so that we may robustly attempt to send it at drain-time.
-    07. (ER) .../receiver/outbox/region.py::process_relocation_reply_with_export: Whenever an outbox
+        request RPC call is received, and immediately schedules the
+        `fulfill_cross_region_export_request` celery task, which uses an exponential backoff
+        algorithm to try and create an encrypted tarball containing an export of the requested org
+        slug.
+    07. (ER) .../tasks/relocation.py::fulfill_cross_region_export_request: This celery task performs
+        the actual export operation locally in the exporting region. This data is written as a file
+        to this region's relocation-specific GCS bucket, and the response is immediately packaged
+        into a `RegionOutbox`, so that we may robustly attempt to send it at drain-time.
+    08. (ER) .../receiver/outbox/region.py::process_relocation_reply_with_export: Whenever an outbox
         draining attempt occurs, this code will be called to read the saved export data from the
         local GCS bucket, package it into an RPC call, and send it back to the proxy.
-    08. The `ProxyingRelocationExportService::reply_with_export` call is sent over the wire from the
+    09. The `ProxyingRelocationExportService::reply_with_export` call is sent over the wire from the
         exporting region back to the control silo.
-    09. (CS) .../relocation_export/impl.py::ProxyingRelocationExportService::reply_with_export: The
+    10. (CS) .../relocation_export/impl.py::ProxyingRelocationExportService::reply_with_export: The
         request RPC call is received, and is immediately packaged into a `ControlOutbox`, so that we
         may robustly forward it back to the requesting region. To ensure robustness, the export data
         is saved to a local file, so that outbox drain attempts can read it locally without needing
         to make their own nested RPB calls.
-    10. (CS) .../receiver/outbox/control.py::process_relocation_reply_with_export: Whenever an
+    11. (CS) .../receiver/outbox/control.py::process_relocation_reply_with_export: Whenever an
         outbox draining attempt occurs, this code will be called to read the export data from the
         local relocation-specific GCS bucket, then forward it into the requesting region.
-    11. The `DBBackedExportService::reply_with_export` call is sent over the wire from the control
+    12. The `DBBackedExportService::reply_with_export` call is sent over the wire from the control
         silo back to the requesting region.
-    12. (RR) .../relocation_export/impl.py::DBBackedRelocationExportService::reply_with_export:
+    13. (RR) .../relocation_export/impl.py::DBBackedRelocationExportService::reply_with_export:
         We've made it all the way back! The export data gets saved to a `RelocationFile` associated
         with the `Relocation` that originally triggered `uploading_start`, and the next task in the
         sequence (`uploading_complete`) is scheduled.
@@ -268,12 +276,21 @@ def uploading_start(uuid: str, replying_region_name: str | None, org_slug: str |
             public_key_pem = GCPKMSEncryptor.from_crypto_key_version(
                 get_default_crypto_key_version()
             ).get_public_key_pem()
+
+            # Send out the cross-region request.
             control_relocation_export_service.request_new_export(
                 relocation_uuid=uuid,
                 requesting_region_name=get_local_region().name,
                 replying_region_name=replying_region_name,
                 org_slug=org_slug,
                 encrypt_with_public_key=public_key_pem,
+            )
+
+            # Make sure we're not waiting forever for our cross-region check to come back. After a
+            # reasonable amount of time, go ahead and fail the relocation.
+            cross_region_export_timeout_check.apply_async(
+                args=[uuid],
+                countdown=CROSS_REGION_EXPORT_TIMEOUT * 60,
             )
             return
 
@@ -283,20 +300,27 @@ def uploading_start(uuid: str, replying_region_name: str | None, org_slug: str |
 
 
 @instrumented_task(
-    name="sentry.relocation.reply_with_remote_export",
+    name="sentry.relocation.fulfill_cross_region_export_request",
     queue="relocation",
     autoretry_for=(Exception,),
     max_retries=MAX_FAST_TASK_RETRIES,
     retry_backoff=RETRY_BACKOFF,
     retry_backoff_jitter=True,
+    # Setting `acks_late` here allows us to retry the potentially long-lived task if the k8s pod if
+    # the worker received SIGKILL/TERM/QUIT. We have a timeout check in the task itself to make sure
+    # it does not loop indefinitely.
+    acks_late=True,
     soft_time_limit=MEDIUM_TIME_LIMIT,
+    silo_mode=SiloMode.REGION,
 )
-def reply_with_remote_export(
+def fulfill_cross_region_export_request(
     uuid: str,
     requesting_region_name: str,
     replying_region_name: str,
     org_slug: str,
     encrypt_with_public_key: bytes,
+    # Unix timestamp, in seconds.
+    scheduled_at: int,
 ) -> None:
     """
     Unlike most other tasks in this file, this one is not an `OrderedTask` intended to be
@@ -307,6 +331,25 @@ def reply_with_remote_export(
     call is received with the encrypted export in tow, it will trigger the next step in the
     `SAAS_TO_SAAS` relocation's pipeline, namely `uploading_complete`.
     """
+
+    # Because we use `acks_late`, we need to be careful to prevent infinite scheduling due to some
+    # persistent bug, like an error in the export logic. So, if `CROSS_REGION_EXPORT_TIMEOUT` time
+    # has elapsed, always fail this task. Note that we don't report proactively back this failure,
+    # and instead wait for the timeout check to pick it up on the other end.
+    scheduled_at_dt = datetime.fromtimestamp(scheduled_at, tz=timezone.utc)
+    if scheduled_at_dt + CROSS_REGION_EXPORT_TIMEOUT < datetime.now(tz=timezone.utc):
+        logger.error(
+            "Cross region relocation fulfillment timeout",
+            extra={
+                "uuid": uuid,
+                "requesting_region_name": requesting_region_name,
+                "replying_region_name": replying_region_name,
+                "org_slug": org_slug,
+                "encrypted_contents_size": len(encrypt_with_public_key),
+                "scheduled_at": scheduled_at,
+            },
+        )
+        raise Exception("Cross region relocation fulfillment timeout")
 
     log_gcp_credentials_details(logger)
     path = f"runs/{uuid}/saas_to_saas_export/{org_slug}.tar"
@@ -332,8 +375,68 @@ def reply_with_remote_export(
             requesting_region_name=requesting_region_name,
             replying_region_name=replying_region_name,
             org_slug=org_slug,
-        ).json(),
+        ).dict(),
     ).save()
+
+
+@instrumented_task(
+    name="sentry.relocation.cross_region_export_timeout_check",
+    queue="relocation",
+    autoretry_for=(Exception,),
+    max_retries=MAX_FAST_TASK_RETRIES,
+    retry_backoff=RETRY_BACKOFF,
+    retry_backoff_jitter=True,
+    soft_time_limit=FAST_TIME_LIMIT,
+    silo_mode=SiloMode.REGION,
+)
+def cross_region_export_timeout_check(
+    uuid: str,
+) -> None:
+    """
+    Not part of the primary `OrderedTask` queue. This task is only used to ensure that cross-region
+    export requests don't hang indefinitely.
+    """
+
+    try:
+        relocation: Relocation = Relocation.objects.get(uuid=uuid)
+    except Relocation.DoesNotExist:
+        logger.exception("Could not locate Relocation model by UUID: %s", uuid)
+        return
+
+    logger_data = {"uuid": relocation.uuid, "task": "cross_region_export_timeout_check"}
+    logger.info(
+        "Cross region timeout check: started",
+        extra=logger_data,
+    )
+
+    # We've moved past the `UPLOADING_START` step, so the cross-region response was received, one
+    # way or another.
+    if relocation.latest_task != OrderedTask.UPLOADING_START.name:
+        logger.info(
+            "Cross region timeout check: no timeout detected",
+            extra=logger_data,
+        )
+        return
+
+    # Another nested exception handler could have already failed this relocation - in this case, do
+    # nothing.
+    if relocation.status == Relocation.Status.FAILURE.value:
+        logger.info(
+            "Cross region timeout check: task already failed",
+            extra=logger_data,
+        )
+        return
+
+    reason = ERR_UPLOADING_CROSS_REGION_TIMEOUT.substitute(mins=CROSS_REGION_EXPORT_TIMEOUT)
+    relocation.failure_reason = reason
+    relocation.status = Relocation.Status.FAILURE.value
+    relocation.save()
+
+    logger_data["reason"] = reason
+    logger.error(
+        "Cross region timeout check: timeout detected",
+        extra=logger_data,
+    )
 
 
 @instrumented_task(
@@ -1227,7 +1330,7 @@ def validating_complete(uuid: str, build_id: str) -> None:
     autoretry_for=(Exception,),
     # At first blush, it would seem that retrying a failed import will leave a bunch of "abandoned"
     # data from the previous one, but that is not actually the case: because we use this relocation
-    # UUID as the `import_uuid` for the `import...` call, we'll be able to re-use all of the
+    # UUID as the `import_uuid` for the `import_in...` call, we'll be able to re-use all of the
     # already-written import chunks (and, by extension, their models). This is due to each import
     # write operation atomically checking the relevant `ImportChunk` table for collisions at
     # database write time. So it will attempt to write a new copy, realize that this `(import_uuid,
