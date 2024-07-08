@@ -24,14 +24,6 @@ jobs:
     timeout-minutes: 3
     # Map a step output to a job output
     outputs:
-      lintable_prettier_modified: ${{ steps.changes.outputs.lintable_prettier_modified }}
-      lintable_prettier_modified_files: ${{ steps.changes.outputs.lintable_prettier_modified_files }}
-      lintable_css_in_js_modified: ${{ steps.changes.outputs.lintable_css_in_js_modified }}
-      lintable_css_in_js_modified_files: ${{ steps.changes.outputs.lintable_css_in_js_modified_files }}
-      lintable_css_in_js_rules_changed: ${{ steps.changes.outputs.lintable_css_in_js_rules_changed }}
-      lintable_modified: ${{ steps.changes.outputs.lintable_modified }}
-      lintable_modified_files: ${{ steps.changes.outputs.lintable_modified_files }}
-      lintable_rules_changed: ${{ steps.changes.outputs.lintable_rules_changed }}
       testable_modified: ${{ steps.changes.outputs.testable_modified }}
       testable_modified_files: ${{ steps.changes.outputs.testable_modified_files }}
       testable_rules_changed: ${{ steps.changes.outputs.testable_rules_changed }}
