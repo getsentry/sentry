@@ -126,11 +126,13 @@ class ApiTokensEndpoint(Endpoint):
 
     @method_decorator(never_cache)
     def put(self, request: Request) -> Response:
-        for key in request.data.keys():
-            if key != "name" and key != "tokenId":
-                return Response(
-                    {"error": "Only auth token name can be edited after creation"}, status=403
-                )
+        keys = list(request.data.keys())
+        allowed_fields = ["name", "tokenId"]
+        
+       if any(key not in allowed_fields for key in keys):
+            return Response(
+                {"error": "Only auth token name can be edited after creation"}, status=403
+            )
 
         serializer = ApiTokenNameSerializer(data=request.data)
 
