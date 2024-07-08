@@ -137,8 +137,8 @@ class MiniMetricsMetricsBackend(MetricsBackend):
 
             span.set_data(self._get_key(key), value)
             if tags:
-                for tag, value in tags.items():
-                    span.set_tag(tag, value)
+                for tag_key, tag_value in tags.items():
+                    span.set_tag(tag_key, tag_value)
 
     def incr(
         self,
