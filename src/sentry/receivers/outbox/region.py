@@ -26,7 +26,7 @@ from sentry.models.organization import Organization
 from sentry.models.outbox import OutboxCategory, process_region_outbox
 from sentry.models.project import Project
 from sentry.receivers.outbox import maybe_process_tombstone
-from sentry.services.hybrid_cloud.relocation_export import control_relocation_export_service
+from sentry.relocation.services.relocation_export.service import control_relocation_export_service
 from sentry.types.region import get_local_region
 
 

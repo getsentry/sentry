@@ -15,11 +15,11 @@ from sentry.models.files.file import File
 from sentry.models.files.utils import get_relocation_storage
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope
 from sentry.models.relocation import Relocation, RelocationFile
-from sentry.services.hybrid_cloud.relocation_export.model import (
+from sentry.relocation.services.relocation_export.model import (
     RelocationExportReplyWithExportParameters,
     RelocationExportRequestNewExportParameters,
 )
-from sentry.services.hybrid_cloud.relocation_export.service import (
+from sentry.relocation.services.relocation_export.service import (
     ControlRelocationExportService,
     RegionRelocationExportService,
 )

@@ -26,8 +26,8 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.outbox import OutboxCategory, process_control_outbox
 from sentry.organizations.services.organization import RpcOrganizationSignal, organization_service
 from sentry.receivers.outbox import maybe_process_tombstone
+from sentry.relocation.services.relocation_export.service import region_relocation_export_service
 from sentry.sentry_apps.services.app.service import get_by_application_id, get_installation
-from sentry.services.hybrid_cloud.relocation_export import region_relocation_export_service
 
 logger = logging.getLogger(__name__)
 

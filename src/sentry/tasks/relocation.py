@@ -54,10 +54,10 @@ from sentry.models.relocation import (
 )
 from sentry.models.user import User
 from sentry.organizations.services.organization import organization_service
-from sentry.services.hybrid_cloud.relocation_export.model import (
+from sentry.relocation.services.relocation_export.model import (
     RelocationExportReplyWithExportParameters,
 )
-from sentry.services.hybrid_cloud.relocation_export.service import control_relocation_export_service
+from sentry.relocation.services.relocation_export.service import control_relocation_export_service
 from sentry.signals import relocated, relocation_redeem_promo_code
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
