@@ -396,8 +396,6 @@ def register_temporary_features(manager: FeatureManager):
     # Feature flags for migrating to the Slack SDK WebClient
     # Use new Slack SDK Client in get_channel_id_with_timeout
     manager.add("organizations:slack-sdk-get-channel-id", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
-    # Use new Slack SDK Client to respond to link commands
-    manager.add("organizations:slack-sdk-link-commands", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Use new Slack SDK Client in SlackActionEndpoint
     manager.add("organizations:slack-sdk-webhook-handling", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Use new Slack SDK Client for SlackNotifyBasicMixin
