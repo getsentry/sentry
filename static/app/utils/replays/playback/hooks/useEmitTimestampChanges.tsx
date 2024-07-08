@@ -5,7 +5,7 @@ import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurr
 import {replayPlayerTimestampEmitter} from 'sentry/utils/replays/replayPlayerTimestampEmitter';
 
 /**
- * @deprecated This emitted sends some global state through a singleton.
+ * @deprecated This emitter sends some global state through a singleton.
  * If there are multiple replay instances on the page values will be confusing.
  * A better implementation would nest the consumer under the same
  * <ReplayCurrentTimeContextProvider> ancestor node.
