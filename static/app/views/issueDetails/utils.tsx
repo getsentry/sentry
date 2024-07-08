@@ -9,6 +9,7 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import type {Group, GroupActivity} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export function markEventSeen(
   api: Client,
@@ -232,4 +233,13 @@ export function getGroupEventDetailsQueryData({
   }
 
   return {...defaultParams, environment: environments};
+}
+
+export function useHasStreamlinedUI() {
+  const location = useLocation();
+  const organization = useOrganization();
+  return (
+    location.query.streamline === '1' ||
+    organization.features.includes('issue-details-streamline')
+  );
 }
