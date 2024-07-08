@@ -1,7 +1,7 @@
 from unittest.mock import Mock
 
 from sentry.api.endpoints.organization_projects_experiment import DISABLED_FEATURE_ERROR_STRING
-from sentry.constants import RESERVED_ORGANIZATION_SLUGS
+from sentry.constants import RESERVED_PROJECT_SLUGS
 from sentry.ingest import inbound_filters
 from sentry.models.project import Project
 from sentry.models.rule import Rule
@@ -99,17 +99,15 @@ class TeamProjectsCreateTest(APITestCase):
 
     def test_invalid_name(self):
 
+        invalid_name = list(RESERVED_PROJECT_SLUGS)[0]
         response = self.get_error_response(
             self.organization.slug,
             self.team.slug,
-            name=list(RESERVED_ORGANIZATION_SLUGS)[0],
+            name=invalid_name,
             platform="python",
             status_code=400,
         )
-        assert (
-            response.data["name"][0]
-            == f'The name "{RESERVED_ORGANIZATION_SLUGS[0]}" is reserved and not allowed.'
-        )
+        assert response.data["name"][0] == f'The name "{invalid_name}" is reserved and not allowed.'
 
     def test_duplicate_slug(self):
         self.create_project(slug="bar")
