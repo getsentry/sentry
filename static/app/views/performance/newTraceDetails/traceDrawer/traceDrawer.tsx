@@ -807,6 +807,8 @@ const TabIconButton = styled(Button)<{active: boolean}>`
   box-shadow: none;
   transition: none !important;
   opacity: ${p => (p.active ? 0.7 : 0.5)};
+  height: 24px;
+  max-height: 24px;
 
   &:not(:last-child) {
     margin-right: ${space(1)};
