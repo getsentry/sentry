@@ -321,7 +321,10 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   );
 
   if (isLoading || isProjKeysLoading) {
-    return <LoadingIndicator />;
+    <Fragment>
+      {radioButtons}
+      <LoadingIndicator />
+    </Fragment>;
   }
 
   const doesNotSupportReplay = currentProject.platform

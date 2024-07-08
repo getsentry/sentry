@@ -283,7 +283,12 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   );
 
   if (isProjKeysLoading) {
-    return <LoadingIndicator />;
+    return (
+      <Fragment>
+        {radioButtons}
+        <LoadingIndicator />
+      </Fragment>
+    );
   }
 
   // No platform or not supported or no docs
