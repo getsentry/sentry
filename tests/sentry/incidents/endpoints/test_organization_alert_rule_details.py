@@ -40,7 +40,6 @@ from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
 )
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -937,30 +936,6 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
         }
         mock_find_channel_id_for_alert_rule.assert_called_once_with(kwargs=kwargs)
 
-    @responses.activate
-    def test_create_slack_alert_with_name_and_channel_id(self):
-        """
-        The user specifies the Slack channel and channel ID (which match).
-        """
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
-        channelName = "my-channel"
-        # Specifying an inputChannelID will cause the validate_channel_id logic to be triggered
-        channelID = 123
-        self._mock_slack_response(
-            url=f"https://slack.com/api/conversations.info?channel={channelID}",
-            body={"ok": "true", "channel": {"name": channelName}},
-        )
-        with assume_test_silo_mode(SiloMode.REGION), override_settings(SILO_MODE=SiloMode.REGION):
-            resp = self._organization_alert_rule_api_call(channelName, channelID)
-
-        stored_action = resp.data["triggers"][0]["actions"][0]
-        assert stored_action["inputChannelId"] == str(channelID)
-        assert stored_action["targetIdentifier"] == channelName
-
-    @override_options({"slack-sdk.valid_channel_id": True})
     def test_create_slack_alert_with_name_and_channel_id_sdk(self):
         """
         The user specifies the Slack channel and channel ID (which match).
@@ -984,38 +959,6 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
             assert stored_action["inputChannelId"] == str(channelID)
             assert stored_action["targetIdentifier"] == channelName
 
-    @responses.activate
-    def test_create_slack_alert_with_mismatch_name_and_channel_id(self):
-        """
-        The user specifies the Slack channel and channel ID but they do not match.
-        """
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
-        otherChannel = "some-other-channel"
-        channelName = "my-channel"
-        # Specifying an inputChannelID will cause the validate_channel_id logic to be triggered
-        channelID = 123
-        self._mock_slack_response(
-            url=f"https://slack.com/api/conversations.info?channel={channelID}",
-            body={"ok": "true", "channel": {"name": otherChannel}},
-        )
-
-        with assume_test_silo_mode(SiloMode.REGION), override_settings(SILO_MODE=SiloMode.REGION):
-            resp = self._organization_alert_rule_api_call(channelName, channelID)
-
-        assert resp.status_code == 400
-        assert resp.data == {
-            "nonFieldErrors": [
-                ErrorDetail(
-                    string=f"Received channel name {otherChannel} does not match inputted channel name {channelName}.",
-                    code="invalid",
-                )
-            ]
-        }
-
-    @override_options({"slack-sdk.valid_channel_id": True})
     def test_create_slack_alert_with_mismatch_name_and_channel_id_sdk(self):
         """
         The user specifies the Slack channel and channel ID but they do not match.
