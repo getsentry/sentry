@@ -8,7 +8,7 @@ interface Props extends SVGIconProps {
 }
 
 const IconFocus = forwardRef<SVGSVGElement, Props>(
-  ({isFocused = false, ...props}, ref) => {
+  ({isFocused = true, ...props}, ref) => {
     return (
       <SvgIcon {...props} ref={ref}>
         {isFocused ? (
