@@ -9,7 +9,7 @@ interface Props {
 
 export default function useExtractedPageHtml({replay, offsetMsToStopAt}: Props) {
   return useQuery(
-    ['extactPageHtml', replay],
+    ['extactPageHtml', replay, offsetMsToStopAt],
     () =>
       extractPageHtml({
         offsetMsToStopAt,

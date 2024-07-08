@@ -53,6 +53,7 @@ function ExtractMetric({project}: {project: Project}) {
         aggregates: data.aggregates.flatMap(explodeAggregateGroup),
         unit: 'none',
         conditions: data.conditions,
+        projectId: parseInt(project.id, 10),
       };
 
       createExtractionRuleMutation.mutate(
@@ -76,7 +77,7 @@ function ExtractMetric({project}: {project: Project}) {
       );
       onSubmitSuccess(data);
     },
-    [createExtractionRuleMutation, navigate]
+    [createExtractionRuleMutation, navigate, project.id]
   );
 
   if (!hasCustomMetricsExtractionRules(organization)) {
