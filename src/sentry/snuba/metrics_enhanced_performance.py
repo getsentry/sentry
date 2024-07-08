@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import types
 from collections.abc import Sequence
 from datetime import timedelta
 from typing import Any
@@ -83,7 +84,7 @@ def query(
 
     # Either metrics failed, or this isn't a query we can enhance with metrics
     if not metrics_compatible:
-        dataset = discover
+        dataset: types.ModuleType = discover
         if fallback_to_transactions:
             dataset = transactions
             sentry_sdk.set_tag("performance.dataset", "transactions")
@@ -164,7 +165,7 @@ def timeseries_query(
 
     # This isn't a query we can enhance with metrics
     if not metrics_compatible:
-        dataset = discover
+        dataset: types.ModuleType = discover
         if fallback_to_transactions:
             dataset = transactions
             sentry_sdk.set_tag("performance.dataset", "transactions")
@@ -250,7 +251,7 @@ def top_events_timeseries(
 
     # This isn't a query we can enhance with metrics
     if not metrics_compatible:
-        dataset = discover
+        dataset: types.ModuleType = discover
         if fallback_to_transactions:
             dataset = transactions
             sentry_sdk.set_tag("performance.dataset", "transactions")
