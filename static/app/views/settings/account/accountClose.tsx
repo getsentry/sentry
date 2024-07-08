@@ -138,9 +138,8 @@ function AccountClose() {
 
       <TextBlock>
         {t(
-          'This will permanently remove all associated data for your user. Any specified organizations will also be deleted'
+          'This will permanently remove all associated data for your user. Any specified organizations will also be deleted.'
         )}
-        .
       </TextBlock>
 
       <Alert type="error" showIcon>
