@@ -22,8 +22,11 @@ from sentry.security.utils import capture_security_activity
 from sentry.types.token import AuthTokenType
 
 
-class ApiTokenSerializer(serializers.Serializer):
+class ApiTokenNameSerializer(serializers.Serializer):
     name = CharField(max_length=255, allow_blank=True, required=False)
+
+
+class ApiTokenSerializer(ApiTokenNameSerializer):
     scopes = MultipleChoiceField(required=True, choices=settings.SENTRY_SCOPES)
 
 
