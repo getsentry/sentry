@@ -14,13 +14,13 @@ import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {TraceFullDetailedQuery} from 'sentry/utils/performance/quickTrace/traceFullQuery';
 import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
 import type {
-  TraceFullDetailed,
   TraceMeta,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
 import {TraceView as TraceViewV1} from './../newTraceDetails';
 import TraceDetailsContent from './content';
@@ -108,9 +108,9 @@ class TraceSummary extends Component<Props> {
       error: QueryError | null;
       isLoading: boolean;
       meta: TraceMeta | null;
-      traces: (TraceFullDetailed[] | TraceSplitResults<TraceFullDetailed>) | null;
+      traces: (TraceTree.Transaction[] | TraceSplitResults<TraceTree.Transaction>) | null;
     }) => {
-      const {transactions, orphanErrors} = getTraceSplitResults<TraceFullDetailed>(
+      const {transactions, orphanErrors} = getTraceSplitResults<TraceTree.Transaction>(
         traces ?? [],
         organization
       );
@@ -125,7 +125,7 @@ class TraceSummary extends Component<Props> {
         isLoading,
         error,
         orphanErrors,
-        traces: transactions ?? (traces as TraceFullDetailed[]),
+        traces: transactions ?? (traces as TraceTree.Transaction[]),
         meta,
         handleLimitChange: this.handleLimitChange,
       };
@@ -170,7 +170,7 @@ class TraceSummary extends Component<Props> {
               content({
                 isLoading: traceResults.isLoading || metaResults.isLoading,
                 error: traceResults.error || metaResults.error,
-                traces: traceResults.traces,
+                traces: traceResults.traces as unknown as TraceTree.Transaction[],
                 meta: metaResults.meta,
               })
             }
