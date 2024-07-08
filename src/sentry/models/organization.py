@@ -49,6 +49,7 @@ class OrganizationStatus(IntEnum):
     ACTIVE = 0
     PENDING_DELETION = 1
     DELETION_IN_PROGRESS = 2
+    RELOCATION_PENDING_APPROVAL = 3
 
     # alias for OrganizationStatus.ACTIVE
     VISIBLE = 0
@@ -78,6 +79,7 @@ OrganizationStatus_labels = {
     OrganizationStatus.ACTIVE: "active",
     OrganizationStatus.PENDING_DELETION: "pending deletion",
     OrganizationStatus.DELETION_IN_PROGRESS: "deletion in progress",
+    OrganizationStatus.RELOCATION_PENDING_APPROVAL: "relocation pending approval",
 }
 
 

@@ -20,6 +20,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
+from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.rule import Rule
 from sentry.models.user import User
 from sentry.monitors.models import Monitor, MonitorType, ScheduleType
@@ -165,6 +166,9 @@ class Fixtures:
         if "teams" not in kwargs:
             kwargs["teams"] = [self.team]
         return Factories.create_project(**kwargs)
+
+    def create_project_template(self, **kwargs) -> ProjectTemplate:
+        return Factories.create_project_template(**kwargs)
 
     def create_project_bookmark(self, project=None, *args, **kwargs):
         if project is None:
@@ -334,6 +338,9 @@ class Fixtures:
 
     def create_sentry_app_installation_for_provider(self, *args, **kwargs):
         return Factories.create_sentry_app_installation_for_provider(*args, **kwargs)
+
+    def create_span_attribute_extraction_config(self, *args, **kwargs):
+        return Factories.create_span_attribute_extraction_config(*args, **kwargs)
 
     def create_stacktrace_link_schema(self, *args, **kwargs):
         return Factories.create_stacktrace_link_schema(*args, **kwargs)

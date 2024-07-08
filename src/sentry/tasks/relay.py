@@ -14,7 +14,6 @@ from sentry.utils.sdk import set_current_event_project
 logger = logging.getLogger(__name__)
 
 
-# TODO(hybrid-cloud): Add silo_mode for region once testing is adjusted
 # The time_limit here should match the `debounce_ttl` of the projectconfig_debounce_cache
 # service.
 @instrumented_task(

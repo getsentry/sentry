@@ -500,40 +500,40 @@ class GetStacktraceStringTest(TestCase):
                 exception_type_str="InnerException",
                 exception_value="nope",
                 frames=self.create_frames(
-                    num_frames=30, context_line_factory=lambda i: f"inner line {i}"
+                    num_frames=25, context_line_factory=lambda i: f"inner line {i}"
                 ),
             ),
             self.create_exception(
                 exception_type_str="MiddleException",
                 exception_value="un-uh",
                 frames=self.create_frames(
-                    num_frames=30, context_line_factory=lambda i: f"middle line {i}"
+                    num_frames=25, context_line_factory=lambda i: f"middle line {i}"
                 ),
             ),
             self.create_exception(
                 exception_type_str="OuterException",
                 exception_value="no way",
                 frames=self.create_frames(
-                    num_frames=30, context_line_factory=lambda i: f"outer line {i}"
+                    num_frames=25, context_line_factory=lambda i: f"outer line {i}"
                 ),
             ),
         ]
         stacktrace_str = get_stacktrace_string(data_chained_exception)
 
         # The stacktrace string should be:
-        #    30 frames from OuterExcepton (with lines counting up from 1 to 30), followed by
-        #    20 frames from MiddleExcepton (with lines counting up from 11 to 30), followed by
+        #    25 frames from OuterExcepton (with lines counting up from 1 to 25), followed by
+        #    5 frames from MiddleExcepton (with lines counting up from 21 to 25), followed by
         #    no frames from InnerExcepton (though the type and value are in there)
         expected = "".join(
             ["OuterException: no way"]
             + [
                 f'\n  File "hello.py", function hello_there\n    outer line {i}'
-                for i in range(1, 31)  #
+                for i in range(1, 26)  #
             ]
             + ["\nMiddleException: un-uh"]
             + [
                 f'\n  File "hello.py", function hello_there\n    middle line {i}'
-                for i in range(11, 31)
+                for i in range(21, 26)
             ]
             + ["\nInnerException: nope"]
         )
@@ -593,14 +593,14 @@ class GetStacktraceStringTest(TestCase):
 
     def test_chained_too_many_frames_minified_js_frame_limit(self):
         """Test that we restrict fully-minified stacktraces to 20 frames, and all other stacktraces to 50 frames."""
-        for minified_frames, expected_frame_count in [("all", 20), ("some", 50), ("none", 50)]:
+        for minified_frames, expected_frame_count in [("all", 20), ("some", 30), ("none", 30)]:
             data_chained_exception = copy.deepcopy(self.CHAINED_APP_DATA)
             data_chained_exception["app"]["component"]["values"][0]["values"] = [
                 self.create_exception(
                     exception_type_str="InnerException",
                     exception_value="nope",
                     frames=self.create_frames(
-                        num_frames=30,
+                        num_frames=25,
                         context_line_factory=lambda i: f"inner line {i}",
                         minified_frames=cast(Literal["all", "some", "none"], minified_frames),
                     ),
@@ -609,7 +609,7 @@ class GetStacktraceStringTest(TestCase):
                     exception_type_str="MiddleException",
                     exception_value="un-uh",
                     frames=self.create_frames(
-                        num_frames=30,
+                        num_frames=25,
                         context_line_factory=lambda i: f"middle line {i}",
                         minified_frames=cast(Literal["all", "some", "none"], minified_frames),
                     ),
@@ -618,7 +618,7 @@ class GetStacktraceStringTest(TestCase):
                     exception_type_str="OuterException",
                     exception_value="no way",
                     frames=self.create_frames(
-                        num_frames=30,
+                        num_frames=25,
                         context_line_factory=lambda i: f"outer line {i}",
                         minified_frames=cast(Literal["all", "some", "none"], minified_frames),
                     ),
@@ -658,45 +658,45 @@ class GetStacktraceStringTest(TestCase):
         stacktrace_str = get_stacktrace_string(data)
         assert stacktrace_str == ""
 
-    def test_over_50_contributing_frames(self):
-        """Check that when there are over 50 contributing frames, the last 50 are included."""
+    def test_over_30_contributing_frames(self):
+        """Check that when there are over 50 contributing frames, the last 30 are included."""
 
         data_frames = copy.deepcopy(self.BASE_APP_DATA)
-        # Create 30 contributing frames, 1-30 -> last 20 should be included
+        # Create 30 contributing frames, 1-20 -> last 10 should be included
         data_frames["app"]["component"]["values"][0]["values"][0]["values"] = self.create_frames(
-            30, True
+            20, True
         )
-        # Create 20 non-contributing frames, 31-50 -> none should be included
+        # Create 20 non-contributing frames, 21-40 -> none should be included
         data_frames["app"]["component"]["values"][0]["values"][0]["values"] += self.create_frames(
-            20, False, 31
+            20, False, 21
         )
-        # Create 30 contributing frames, 51-80 -> all should be included
+        # Create 20 contributing frames, 41-60 -> all should be included
         data_frames["app"]["component"]["values"][0]["values"][0]["values"] += self.create_frames(
-            30, True, 51
+            20, True, 41
         )
         stacktrace_str = get_stacktrace_string(data_frames)
 
         num_frames = 0
         for i in range(1, 11):
             assert ("test = " + str(i) + "!") not in stacktrace_str
-        for i in range(11, 31):
+        for i in range(11, 21):
             num_frames += 1
             assert ("test = " + str(i) + "!") in stacktrace_str
-        for i in range(31, 51):
+        for i in range(21, 41):
             assert ("test = " + str(i) + "!") not in stacktrace_str
-        for i in range(51, 81):
+        for i in range(41, 61):
             num_frames += 1
             assert ("test = " + str(i) + "!") in stacktrace_str
-        assert num_frames == 50
+        assert num_frames == 30
 
     def test_too_many_frames_minified_js_frame_limit(self):
         """Test that we restrict fully-minified stacktraces to 20 frames, and all other stacktraces to 50 frames."""
-        for minified_frames, expected_frame_count in [("all", 20), ("some", 50), ("none", 50)]:
+        for minified_frames, expected_frame_count in [("all", 20), ("some", 30), ("none", 30)]:
             data_frames = copy.deepcopy(self.BASE_APP_DATA)
             data_frames["app"]["component"]["values"] = [
                 self.create_exception(
                     frames=self.create_frames(
-                        num_frames=60,
+                        num_frames=40,
                         context_line_factory=lambda i: f"context line {i}",
                         minified_frames=cast(Literal["all", "some", "none"], minified_frames),
                     ),

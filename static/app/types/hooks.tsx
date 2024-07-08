@@ -13,6 +13,7 @@ import type SelectorItems from 'sentry/components/timeRangeSelector/selectorItem
 import type {SVGIconProps} from 'sentry/icons/svgIcon';
 import type {Group} from 'sentry/types/group';
 import type {UseExperiment} from 'sentry/utils/useExperiment';
+import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
 import type {StatusToggleButtonProps} from 'sentry/views/monitors/components/statusToggleButton';
 import type {OrganizationStatsProps} from 'sentry/views/organizationStats';
 import type {RouteAnalyticsContext} from 'sentry/views/routeAnalyticsContextProvider';
@@ -76,11 +77,6 @@ type DisabledMemberViewProps = RouteComponentProps<{orgId: string}, {}>;
 
 type MemberListHeaderProps = {
   members: Member[];
-  organization: Organization;
-};
-
-type DisabledAppStoreConnectMultiple = {
-  children: React.ReactNode;
   organization: Organization;
 };
 
@@ -193,7 +189,6 @@ export type ComponentHooks = {
   'component:data-consent-org-creation-checkbox': () => React.ComponentType<{}> | null;
   'component:data-consent-priority-learn-more': () => React.ComponentType<{}> | null;
   'component:ddm-metrics-samples-list': () => React.ComponentType<MetricsSamplesListProps>;
-  'component:disabled-app-store-connect-multiple': () => React.ComponentType<DisabledAppStoreConnectMultiple>;
   'component:disabled-custom-symbol-sources': () => React.ComponentType<DisabledCustomSymbolSources>;
   'component:disabled-member': () => React.ComponentType<DisabledMemberViewProps>;
   'component:disabled-member-tooltip': () => React.ComponentType<DisabledMemberTooltipProps>;
@@ -203,6 +198,7 @@ export type ComponentHooks = {
   'component:first-party-integration-alert': () => React.ComponentType<FirstPartyIntegrationAlertProps>;
   'component:header-date-range': () => React.ComponentType<DateRangeProps>;
   'component:header-selector-items': () => React.ComponentType<SelectorItemsProps>;
+  'component:insights-upsell-page': () => React.ComponentType<InsightsUpsellHook>;
   'component:member-list-header': () => React.ComponentType<MemberListHeaderProps>;
   'component:monitor-status-toggle': () => React.ComponentType<StatusToggleButtonProps>;
   'component:org-stats-banner': () => React.ComponentType<DashboardHeadersProps>;
@@ -661,6 +657,15 @@ type SidebarNavigationItemHook = () => React.ComponentType<{
   }) => React.ReactElement;
   id: string;
 }>;
+
+/**
+ * Insights upsell hook takes in a insights module name
+ * and renders either the applicable upsell page or the children inside the hook.
+ */
+type InsightsUpsellHook = {
+  children: React.ReactNode;
+  moduleName: TitleableModuleNames;
+};
 
 /**
  * Invite Modal customization allows for a render-prop component to add

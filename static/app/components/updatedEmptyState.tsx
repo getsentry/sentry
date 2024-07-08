@@ -91,11 +91,8 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
   const verify = docs.onboarding.verify(docParams);
 
   const {description: installDescription} = install;
-  const {
-    code,
-    description: configDescription,
-    language,
-  } = install.configurations?.[0] ?? {};
+
+  const installConfigurations = install.configurations ?? [];
 
   const {configurations, description: configureDescription} = configure[0] ?? {};
   const {configurations: sourceMapConfigurations, description: sourcemapDescription} =
@@ -122,16 +119,22 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
               <div>
                 <div>
                   <DescriptionWrapper>{installDescription}</DescriptionWrapper>
-                  <DescriptionWrapper>{configDescription}</DescriptionWrapper>
-                  <CodeSnippetWrapper>
-                    {Array.isArray(code) ? (
-                      <TabbedCodeSnippet tabs={code} />
-                    ) : (
-                      <OnboardingCodeSnippet language={language}>
-                        {code ?? ''}
-                      </OnboardingCodeSnippet>
-                    )}
-                  </CodeSnippetWrapper>
+                  {installConfigurations.map((configuration, index) => (
+                    <div key={index}>
+                      <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
+                      <CodeSnippetWrapper>
+                        {configuration.code ? (
+                          Array.isArray(configuration.code) ? (
+                            <TabbedCodeSnippet tabs={configuration.code} />
+                          ) : (
+                            <OnboardingCodeSnippet language={configuration.language}>
+                              {configuration.code}
+                            </OnboardingCodeSnippet>
+                          )
+                        ) : null}
+                      </CodeSnippetWrapper>
+                    </div>
+                  ))}
                   {verify.length === 0 && (
                     <FirstEventIndicator
                       organization={organization}
@@ -156,24 +159,26 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                 </GuidedSteps.ButtonWrapper>
               </div>
             </GuidedSteps.Step>
-            {configureDescription ? (
+            {configurations ? (
               <GuidedSteps.Step stepKey="configure-sentry" title={t('Configure Sentry')}>
                 <div>
                   <div>
                     <DescriptionWrapper>{configureDescription}</DescriptionWrapper>
-                    {configurations?.map((configuration, index) => (
+                    {configurations.map((configuration, index) => (
                       <div key={index}>
                         <DescriptionWrapper>
                           {configuration.description}
                         </DescriptionWrapper>
                         <CodeSnippetWrapper>
-                          {Array.isArray(configuration.code) ? (
-                            <TabbedCodeSnippet tabs={configuration.code} />
-                          ) : (
-                            <OnboardingCodeSnippet language={configuration.language}>
-                              {configuration.code ?? ''}
-                            </OnboardingCodeSnippet>
-                          )}
+                          {configuration.code ? (
+                            Array.isArray(configuration.code) ? (
+                              <TabbedCodeSnippet tabs={configuration.code} />
+                            ) : (
+                              <OnboardingCodeSnippet language={configuration.language}>
+                                {configuration.code}
+                              </OnboardingCodeSnippet>
+                            )
+                          ) : null}
                         </CodeSnippetWrapper>
                       </div>
                     ))}
@@ -198,13 +203,15 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                     <div key={index}>
                       <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
                       <CodeSnippetWrapper>
-                        {Array.isArray(configuration.code) ? (
-                          <TabbedCodeSnippet tabs={configuration.code} />
-                        ) : (
-                          <OnboardingCodeSnippet language={configuration.language}>
-                            {configuration.code ?? ''}
-                          </OnboardingCodeSnippet>
-                        )}
+                        {configuration.code ? (
+                          Array.isArray(configuration.code) ? (
+                            <TabbedCodeSnippet tabs={configuration.code} />
+                          ) : (
+                            <OnboardingCodeSnippet language={configuration.language}>
+                              {configuration.code}
+                            </OnboardingCodeSnippet>
+                          )
+                        ) : null}
                       </CodeSnippetWrapper>
                     </div>
                   ))}
@@ -217,21 +224,23 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
             ) : (
               <Fragment />
             )}
-            {verifyDescription ? (
+            {verifyConfigutations ? (
               <GuidedSteps.Step stepKey="verify-sentry" title={t('Verify')}>
                 <div>
                   <DescriptionWrapper>{verifyDescription}</DescriptionWrapper>
-                  {verifyConfigutations?.map((configuration, index) => (
+                  {verifyConfigutations.map((configuration, index) => (
                     <div key={index}>
                       <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
                       <CodeSnippetWrapper>
-                        {Array.isArray(configuration.code) ? (
-                          <TabbedCodeSnippet tabs={configuration.code} />
-                        ) : (
-                          <OnboardingCodeSnippet language={configuration.language}>
-                            {configuration.code ?? ''}
-                          </OnboardingCodeSnippet>
-                        )}
+                        {configuration.code ? (
+                          Array.isArray(configuration.code) ? (
+                            <TabbedCodeSnippet tabs={configuration.code} />
+                          ) : (
+                            <OnboardingCodeSnippet language={configuration.language}>
+                              {configuration.code}
+                            </OnboardingCodeSnippet>
+                          )
+                        ) : null}
                       </CodeSnippetWrapper>
                     </div>
                   ))}
