@@ -124,37 +124,7 @@ class ApiTokensCreateTest(APITestCase):
 
 
 @control_silo_test
-class ApiTokensDeleteTest(APITestCase):
-    def test_simple(self):
-        token = ApiToken.objects.create(user=self.user)
-        self.login_as(self.user)
-        url = reverse("sentry-api-0-api-tokens")
-        response = self.client.delete(url, data={"tokenId": token.id})
-        assert response.status_code == 204
-        assert not ApiToken.objects.filter(id=token.id).exists()
-
-    def test_never_cache(self):
-        token = ApiToken.objects.create(user=self.user)
-        self.login_as(self.user)
-        url = reverse("sentry-api-0-api-tokens")
-        response = self.client.delete(url, data={"tokenId": token.id})
-        assert response.status_code == 204
-        assert (
-            response.get("cache-control")
-            == "max-age=0, no-cache, no-store, must-revalidate, private"
-        )
-
-    def test_returns_400_when_no_token_param_is_sent(self) -> None:
-        token = ApiToken.objects.create(user=self.user)
-        self.login_as(self.user)
-        url = reverse("sentry-api-0-api-tokens")
-        response = self.client.delete(url, data={})
-        assert response.status_code == 400
-        assert ApiToken.objects.filter(id=token.id).exists()
-
-
-@control_silo_test
-class ApiTokensEditTest(APITestCase):
+class ApiTokensPutTest(APITestCase):
     def test_simple(self):
         token = ApiToken.objects.create(user=self.user, name="name")
         self.login_as(self.user)
@@ -167,6 +137,20 @@ class ApiTokensEditTest(APITestCase):
         assert response.status_code == 204
         token = ApiToken.objects.get(user=self.user)
         assert token.name == "rename1"
+
+    def test_never_cache(self):
+        token = ApiToken.objects.create(user=self.user, name="name")
+        self.login_as(self.user)
+        url = reverse("sentry-api-0-api-tokens")
+        response = self.client.put(
+            url,
+            data={"name": "rename1", "tokenId": token.id},
+        )
+        assert response.status_code == 204
+        assert (
+            response.get("cache-control")
+            == "max-age=0, no-cache, no-store, must-revalidate, private"
+        )
 
     def test_delete_name(self):
         token = ApiToken.objects.create(user=self.user, name="name")
@@ -219,6 +203,44 @@ class ApiTokensEditTest(APITestCase):
             },
         )
         assert response.status_code == 403
+
+    def test_no_token_param(self) -> None:
+        token = ApiToken.objects.create(user=self.user)
+        self.login_as(self.user)
+        url = reverse("sentry-api-0-api-tokens")
+        response = self.client.put(url, data={})
+        assert response.status_code == 400
+        assert ApiToken.objects.filter(id=token.id).exists()
+
+
+@control_silo_test
+class ApiTokensDeleteTest(APITestCase):
+    def test_simple(self):
+        token = ApiToken.objects.create(user=self.user)
+        self.login_as(self.user)
+        url = reverse("sentry-api-0-api-tokens")
+        response = self.client.delete(url, data={"tokenId": token.id})
+        assert response.status_code == 204
+        assert not ApiToken.objects.filter(id=token.id).exists()
+
+    def test_never_cache(self):
+        token = ApiToken.objects.create(user=self.user)
+        self.login_as(self.user)
+        url = reverse("sentry-api-0-api-tokens")
+        response = self.client.delete(url, data={"tokenId": token.id})
+        assert response.status_code == 204
+        assert (
+            response.get("cache-control")
+            == "max-age=0, no-cache, no-store, must-revalidate, private"
+        )
+
+    def test_returns_400_when_no_token_param_is_sent(self) -> None:
+        token = ApiToken.objects.create(user=self.user)
+        self.login_as(self.user)
+        url = reverse("sentry-api-0-api-tokens")
+        response = self.client.delete(url, data={})
+        assert response.status_code == 400
+        assert ApiToken.objects.filter(id=token.id).exists()
 
 
 # TODO(schew2381): Delete this testcase after staff is released
