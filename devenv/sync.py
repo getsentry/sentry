@@ -119,20 +119,44 @@ def main(context: dict[str, str]) -> int:
             ("javascript dependencies", ("make", "install-js-dev")),
             # could opt out of syncing python if FRONTEND_ONLY but only if repo-local devenv
             # and pre-commit were moved to inside devenv and not the sentry venv
-            ("python dependencies", ("make", "install-py-dev")),
+            (
+                "python dependencies (1/3)",
+                ("pip", "uninstall", "-qqy", "djangorestframework-stubs", "django-stubs"),
+            ),
         ),
     ):
         return 1
-
-        pip uninstall -qqy djangorestframework-stubs django-stubs
-        pip install --constraint requirements-dev-frozen.txt -r requirements-dev-frozen.txt
-        python3 -m tools.fast_editable --path .
 
     if not run_procs(
         repo,
         reporoot,
         venv_dir,
-        (("pre-commit dependencies", ("pre-commit", "install", "--install-hooks", "-f")),),
+        (
+            # TODO: devenv should provide a job runner (jobs run in parallel, tasks run sequentially)
+            (
+                "python dependencies (2/3)",
+                (
+                    "pip",
+                    "install",
+                    "--constraint",
+                    "requirements-dev-frozen.txt",
+                    "-r",
+                    "requirements-dev-frozen.txt",
+                ),
+            ),
+        ),
+    ):
+        return 1
+
+    if not run_procs(
+        repo,
+        reporoot,
+        venv_dir,
+        (
+            # TODO: devenv should provide a job runner (jobs run in parallel, tasks run sequentially)
+            ("python dependencies (3/3)", ("python3", "-m", "tools.fast_editable", "--path", ".")),
+            ("pre-commit dependencies", ("pre-commit", "install", "--install-hooks", "-f")),
+        ),
     ):
         return 1
 
