@@ -28,7 +28,7 @@ export function getReplayDiffOffsetsFromFrame(
     frame => frame.timestamp > hydrationError.timestampMs
   );
   const leftFrame = prevIncremental.at(-1);
-  const leftOffsetMs = Math.max(1, (leftFrame?.timestamp ?? 0) - startTimestampMs);
+  const leftOffsetMs = Math.max(0, (leftFrame?.timestamp ?? 0) - startTimestampMs);
   const rightFrame = nextIncremental.at(1) ?? nextIncremental.at(0);
   const rightOffsetMs = Math.max(1, (rightFrame?.timestamp ?? 0) - startTimestampMs);
 
@@ -63,7 +63,7 @@ export function getReplayDiffOffsetsFromEvent(replay: ReplayReader, event: Event
   // Use the event timestamp for the left side.
   // Event has only second precision, therefore the hydration error happened
   // sometime after this timestamp.
-  const leftOffsetMs = Math.max(1, eventTimestampMs - replayStartTimestamp);
+  const leftOffsetMs = Math.max(0, eventTimestampMs - replayStartTimestamp);
 
   // Use the timestamp of the first mutation to happen after the timestamp of
   // the error event.
