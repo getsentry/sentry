@@ -341,7 +341,7 @@ class SlackService:
 
             text = notification.get_notification_title(ExternalProviders.SLACK, shared_context)
 
-            blocks: list[dict[str, Any]] = []
+            blocks: list[SlackBlock] = []
             if text:
                 blocks.append(BlockSlackMessageBuilder.get_markdown_block(text))
             attachment_blocks = local_attachments.get("blocks")
