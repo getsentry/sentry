@@ -1,36 +1,33 @@
 from collections.abc import Callable, Sequence
-from typing import TypedDict
-
-from sentry.dynamic_sampling.rules.utils import (
-    Condition,
-    EqCondition,
-    GlobCondition,
-    GtCondition,
-    GteCondition,
-    LtCondition,
-    LteCondition,
-)
 from sentry.models.project import Project
+from sentry.relay.types import GenericFilter, GenericFiltersConfig
 
+GENERIC_FILTERS_VERSION = 1
 
-class GenericFilter(TypedDict):
-    id: str
-    isEnabled: bool
-    condition: (
-        Condition
-        | EqCondition
-        | GteCondition
-        | GtCondition
-        | LteCondition
-        | LtCondition
-        | GlobCondition
-        | None
-    )
+def _error_message_condition(values):
+    """
+    Condition that expresses error message matching for an inbound filter.
 
-
-class GenericFiltersConfig(TypedDict):
-    version: int
-    filters: Sequence[GenericFilter]
+    This condition was inspired by how the error message filter was statically implemented in Relay.
+    """
+    return {
+        "op": "or",
+        "inner": [
+            {"op": "glob", "name": "event.logentry.formatted", "value": values},
+            {"op": "glob", "name": "event.logentry.message", "value": values},
+            {
+                "op": "any",
+                "name": "event.exceptions",
+                "inner": {
+                    "op": "or",
+                    "inner": [
+                        {"op": "glob", "name": "ty", "value": values},
+                        {"op": "glob", "name": "value", "value": values},
+                    ],
+                },
+            },
+        ],
+    }
 
 
 def _chunk_load_error_filter(project: Project) -> GenericFilter | None:
@@ -39,9 +36,21 @@ def _chunk_load_error_filter(project: Project) -> GenericFilter | None:
 
     Example:
     ChunkLoadError: Loading chunk 3662 failed.\n(error:
-    https://DOMAIN.com/_next/static/chunks/29107295-0151559bd23117ba.js)
+    https://domain.com/_next/static/chunks/29107295-0151559bd23117ba.js)
     """
-    pass
+    if project.get_option("filters:chunk-load-error") not in ("1", True):
+        return None
+
+    values = [
+        "ChunkLoadError: Loading chunk *",
+        "*Uncaught *: ChunkLoadError: Loading chunk *",
+    ]
+
+    return {
+        "id": "chunk-load-error",
+        "isEnabled": True,
+        "condition": _error_message_condition(values),
+    }
 
 
 def _hydration_error_filter(project: Project) -> GenericFilter | None:
@@ -68,19 +77,7 @@ def _hydration_error_filter(project: Project) -> GenericFilter | None:
     return {
         "id": "hydration-error",
         "isEnabled": True,
-        "condition": {
-            "op": "or",
-            "inner": [
-                {"op": "glob", "name": "event.logentry.formatted", "value": values},
-                {"op": "glob", "name": "event.logentry.message", "value": values},
-                {
-                    "op": "loop",
-                    "name": "event.exceptions",
-                    # Translated to `event.exceptions.[index].ty`
-                    "inner": {"op": "glob", "name": "ty", "value": values},
-                },
-            ],
-        },
+        "condition": _error_message_condition(values),
     }
 
 
@@ -91,6 +88,13 @@ GENERIC_FILTERS: Sequence[Callable[[Project], GenericFilter | None]] = [
 
 
 def get_generic_project_filters(project: Project) -> GenericFiltersConfig:
+    """
+    Computes the generic filters configuration for inbound filters.
+
+    Generic inbound filters are able to express arbitrary filtering conditions on an event, using
+    Relay's `RuleCondition` DSL. They differ from static inbound filters which filter events based on a
+    hardcoded set of rules, specific to each type.
+    """
     generic_filters = []
 
     for generic_filter_fn in generic_filters:
@@ -99,6 +103,6 @@ def get_generic_project_filters(project: Project) -> GenericFiltersConfig:
             generic_filters.append(generic_filter)
 
     return {
-        "version": 1,
+        "version": GENERIC_FILTERS_VERSION,
         "filters": generic_filters,
     }
