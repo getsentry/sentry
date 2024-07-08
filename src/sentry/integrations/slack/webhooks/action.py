@@ -296,7 +296,7 @@ class SlackActionEndpoint(Endpoint):
             user_id=user.id,
         )
 
-    def build_resolve_modal_payload(self, callback_id):
+    def build_resolve_modal_payload_deprecated(self, callback_id) -> dict[str, Any]:
         formatted_resolve_options = []
         for text, value in RESOLVE_OPTIONS.items():
             formatted_resolve_options.append(
@@ -338,7 +338,51 @@ class SlackActionEndpoint(Endpoint):
             "callback_id": callback_id,
         }
 
-    def build_archive_modal_payload(self, callback_id):
+    def build_resolve_modal_payload(self, callback_id) -> View:
+        formatted_resolve_options = []
+        for text, value in RESOLVE_OPTIONS.items():
+            formatted_resolve_options.append(
+                {
+                    "text": {
+                        "type": "plain_text",
+                        "text": text,
+                        "emoji": True,
+                    },
+                    "value": value,
+                }
+            )
+
+        return View(
+            **{
+                "type": "modal",
+                "title": {"type": "plain_text", "text": "Resolve Issue"},
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {"type": "mrkdwn", "text": "Resolve"},
+                        "accessory": {
+                            "type": "static_select",
+                            "initial_option": {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "Immediately",
+                                    "emoji": True,
+                                },
+                                "value": "resolved",
+                            },
+                            "options": formatted_resolve_options,
+                            "action_id": "static_select-action",
+                        },
+                    }
+                ],
+                "close": {"type": "plain_text", "text": "Cancel"},
+                "submit": {"type": "plain_text", "text": "Resolve"},
+                "private_metadata": callback_id,
+                "callback_id": callback_id,
+            }
+        )
+
+    def build_archive_modal_payload_deprecated(self, callback_id) -> dict[str, Any]:
         formatted_archive_options = []
         for text, value in ARCHIVE_OPTIONS.items():
             formatted_archive_options.append(
@@ -383,6 +427,53 @@ class SlackActionEndpoint(Endpoint):
             "callback_id": callback_id,
         }
 
+    def build_archive_modal_payload(self, callback_id) -> View:
+        formatted_archive_options = []
+        for text, value in ARCHIVE_OPTIONS.items():
+            formatted_archive_options.append(
+                {
+                    "text": {
+                        "type": "plain_text",
+                        "text": text,
+                        "emoji": True,
+                    },
+                    "value": value,
+                }
+            )
+
+        return View(
+            **{
+                "type": "modal",
+                "title": {"type": "plain_text", "text": "Archive Issue"},
+                "blocks": [
+                    {
+                        "type": "section",
+                        "text": {
+                            "type": "mrkdwn",
+                            "text": "Archive",
+                        },
+                        "accessory": {
+                            "type": "static_select",
+                            "initial_option": {
+                                "text": {
+                                    "type": "plain_text",
+                                    "text": "Until escalating",
+                                    "emoji": True,
+                                },
+                                "value": "ignored:archived_until_escalating",
+                            },
+                            "options": formatted_archive_options,
+                            "action_id": "static_select-action",
+                        },
+                    }
+                ],
+                "close": {"type": "plain_text", "text": "Cancel"},
+                "submit": {"type": "plain_text", "text": "Archive"},
+                "private_metadata": callback_id,
+                "callback_id": callback_id,
+            }
+        )
+
     def open_resolve_dialog(self, slack_request: SlackActionRequest, group: Group) -> None:
         # XXX(epurkhiser): In order to update the original message we have to
         # keep track of the response_url in the callback_id. Definitely hacky,
@@ -401,8 +492,8 @@ class SlackActionEndpoint(Endpoint):
         callback_id = orjson.dumps(callback_id).decode()
 
         # XXX(CEO): the second you make a selection (without hitting Submit) it sends a slightly different request
-        modal_payload = self.build_resolve_modal_payload(callback_id)
         if features.has("organizations:slack-sdk-action-view-open", group.project.organization):
+            modal_payload = self.build_resolve_modal_payload(callback_id)
             slack_client = SlackSdkClient(integration_id=slack_request.integration.id)
             try:
                 slack_client.views_open(
@@ -420,6 +511,7 @@ class SlackActionEndpoint(Endpoint):
                     },
                 )
         else:
+            modal_payload = self.build_resolve_modal_payload_deprecated(callback_id)
             slack_client = SlackClient(integration_id=slack_request.integration.id)
             try:
                 payload = {
@@ -458,13 +550,8 @@ class SlackActionEndpoint(Endpoint):
             callback_id["channel_id"] = slack_request.data["channel"]["id"]
         callback_id = orjson.dumps(callback_id).decode()
 
-        modal_payload = self.build_archive_modal_payload(callback_id)
-        payload = {
-            "view": orjson.dumps(modal_payload).decode(),
-            "trigger_id": slack_request.data["trigger_id"],
-        }
-
         if features.has("organizations:slack-sdk-action-view-open", group.project.organization):
+            modal_payload = self.build_archive_modal_payload(callback_id)
             slack_client = SlackSdkClient(integration_id=slack_request.integration.id)
             try:
                 slack_client.views_open(
@@ -482,8 +569,13 @@ class SlackActionEndpoint(Endpoint):
                     },
                 )
         else:
-            slack_client = SlackClient(integration_id=slack_request.integration.id)
+            modal_payload = self.build_archive_modal_payload_deprecated(callback_id)
+            payload = {
+                "view": orjson.dumps(modal_payload).decode(),
+                "trigger_id": slack_request.data["trigger_id"],
+            }
 
+            slack_client = SlackClient(integration_id=slack_request.integration.id)
             try:
                 headers = {"content-type": "application/json; charset=utf-8"}
                 slack_client.post(
