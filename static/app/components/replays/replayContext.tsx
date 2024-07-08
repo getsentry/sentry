@@ -1,12 +1,4 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-} from 'react';
+import {createContext, useCallback, useContext, useEffect, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import {Replayer, ReplayerEvents} from '@sentry-internal/rrweb';
 
@@ -20,7 +12,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import clamp from 'sentry/utils/number/clamp';
 import type useInitialOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useRAF from 'sentry/utils/replays/hooks/useRAF';
-import {replayPlayerTimestampEmitter} from 'sentry/utils/replays/replayPlayerTimestampEmitter';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -42,13 +33,6 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
    * The context in which the replay is being viewed.
    */
   analyticsContext: string;
-
-  /**
-   * The time, in milliseconds, where the user focus is.
-   * The user focus can be reported by any collaborating object, usually on
-   * hover.
-   */
-  currentHoverTime: undefined | number;
 
   /**
    * The current time of the video, in milliseconds
@@ -115,12 +99,6 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
   restart: () => void;
 
   /**
-   * Set the currentHoverTime so collaborating components can highlight related
-   * information
-   */
-  setCurrentHoverTime: (time: undefined | number) => void;
-
-  /**
    * Jump the video to a specific time
    */
   setCurrentTime: (time: number) => void;
@@ -160,7 +138,6 @@ interface ReplayPlayerContextProps extends HighlightCallbacks {
 const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   analyticsContext: '',
   clearAllHighlights: () => {},
-  currentHoverTime: undefined,
   currentTime: 0,
   dimensions: {height: 0, width: 0},
   fastForwardSpeed: 0,
@@ -175,7 +152,6 @@ const ReplayPlayerContext = createContext<ReplayPlayerContextProps>({
   removeHighlight: () => {},
   replay: null,
   restart: () => {},
-  setCurrentHoverTime: () => {},
   setCurrentTime: () => {},
   setRoot: () => {},
   setSpeed: () => {},
@@ -251,7 +227,6 @@ export function Provider({
   const hasNewEvents = events !== oldEvents;
   const replayerRef = useRef<Replayer>(null);
   const [dimensions, setDimensions] = useState<Dimensions>({height: 0, width: 0});
-  const [currentHoverTime, setCurrentHoverTime] = useState<undefined | number>();
   const [isPlaying, setIsPlaying] = useState(false);
   const [finishedAtMS, setFinishedAtMS] = useState<number>(-1);
   const [isSkippingInactive, setIsSkippingInactive] = useState(
@@ -671,13 +646,6 @@ export function Provider({
     }
   }, [isBuffering, events, applyInitialOffset]);
 
-  useLayoutEffect(() => {
-    replayPlayerTimestampEmitter.emit('replay timestamp change', {
-      currentTime,
-      currentHoverTime,
-    });
-  }, [currentTime, currentHoverTime]);
-
   useEffect(() => {
     if (!isBuffering && buffer.target !== -1) {
       setBufferTime({target: -1, previous: -1});
@@ -689,7 +657,6 @@ export function Provider({
       value={{
         analyticsContext,
         clearAllHighlights,
-        currentHoverTime,
         currentTime,
         dimensions,
         fastForwardSpeed,
@@ -705,7 +672,6 @@ export function Provider({
         removeHighlight,
         replay,
         restart,
-        setCurrentHoverTime,
         setCurrentTime,
         setSpeed,
         speed,
