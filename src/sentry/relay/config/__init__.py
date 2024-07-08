@@ -46,7 +46,7 @@ from sentry.utils.options import sample_modulo
 from .generic_filters import get_generic_project_filters
 from .measurements import CUSTOM_MEASUREMENT_LIMIT
 
-#: These features will be listed in the project config.
+# These features will be listed in the project config.
 #
 # NOTE: These features must be sorted or the tests will fail!
 EXPOSABLE_FEATURES = [
@@ -182,7 +182,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     try:
         # At the end we compute the generic project filters, which are inbound filters expressible with a conditional
         # DSL that Relay understands.
-        generic_filters = get_generic_project_filters()
+        generic_filters = get_generic_project_filters(project)
     except Exception as e:
         sentry_sdk.capture_exception(e)
         logger.exception(
@@ -319,6 +319,10 @@ def get_project_config(
 
 
 def get_dynamic_sampling_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
+    if options.get("dynamic-sampling.config.killswitch"):
+        # This killswitch will cause extra load, and should only be used for AM1->AM2 migration.
+        return None
+
     if features.has("organizations:dynamic-sampling", project.organization):
         return {"version": 2, "rules": generate_rules(project)}
 
