@@ -190,7 +190,7 @@ function TableView(props: TableViewProps) {
 
       let target;
 
-      if (dataRow['event.type'].toString() !== 'transaction') {
+      if (dataRow['event.type'] !== 'transaction') {
         const project = dataRow.project || dataRow['project.name'];
         target = {
           // NOTE: This uses a legacy redirect for project event to the issue group event link
@@ -321,7 +321,7 @@ function TableView(props: TableViewProps) {
     if (columnKey === 'id') {
       let target;
 
-      if (dataRow['event.type'].toString() !== 'transaction') {
+      if (dataRow['event.type'] !== 'transaction') {
         const project = dataRow.project || dataRow['project.name'];
 
         target = {
