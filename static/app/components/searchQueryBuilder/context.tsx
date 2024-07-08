@@ -18,6 +18,7 @@ interface ContextData {
   parsedQuery: ParseResult | null;
   query: string;
   searchSource: string;
+  size: 'small' | 'normal';
 }
 
 export function useSearchQueryBuilder() {
@@ -34,4 +35,5 @@ export const SearchQueryBuilerContext = createContext<ContextData>({
   parsedQuery: null,
   handleSearch: () => {},
   searchSource: '',
+  size: 'normal',
 });

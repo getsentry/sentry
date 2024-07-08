@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -21,6 +21,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SavedSearchType, Tag} from 'sentry/types/group';
 import PanelProvider from 'sentry/utils/panelProvider';
+import {useDimensions} from 'sentry/utils/useDimensions';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 
 interface SearchQueryBuilderProps {
@@ -78,6 +79,7 @@ export function SearchQueryBuilder({
   savedSearchType,
   queryInterface = QueryInterfaceType.TOKENIZED,
 }: SearchQueryBuilderProps) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const {state, dispatch} = useQueryBuilderState({initialQuery});
 
   const keys = useMemo(
@@ -109,6 +111,8 @@ export function SearchQueryBuilder({
     searchSource,
     onSearch,
   });
+  const {width} = useDimensions({elementRef: wrapperRef});
+  const size = width < 600 ? ('small' as const) : ('normal' as const);
 
   const contextValue = useMemo(() => {
     return {
@@ -120,6 +124,7 @@ export function SearchQueryBuilder({
       dispatch,
       handleSearch,
       searchSource,
+      size,
     };
   }, [
     state,
@@ -130,19 +135,24 @@ export function SearchQueryBuilder({
     dispatch,
     handleSearch,
     searchSource,
+    size,
   ]);
 
   return (
     <SearchQueryBuilerContext.Provider value={contextValue}>
       <PanelProvider>
-        <Wrapper className={className} onBlur={() => onBlur?.(state.query)}>
-          <PositionedSearchIcon size="sm" />
+        <Wrapper
+          className={className}
+          onBlur={() => onBlur?.(state.query)}
+          ref={wrapperRef}
+        >
+          {size !== 'small' && <PositionedSearchIcon size="sm" />}
           {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
             <PlainTextQueryInput label={label} />
           ) : (
             <TokenizedQueryGrid label={label} />
           )}
-          <ActionButtons />
+          {size !== 'small' && <ActionButtons />}
         </Wrapper>
       </PanelProvider>
     </SearchQueryBuilerContext.Provider>
