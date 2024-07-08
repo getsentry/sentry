@@ -266,8 +266,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-trace-explorer", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable trace explorer sorting by newest
     manager.add("organizations:performance-trace-explorer-sorting", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
-    # Enable enforcing project selection in trace explorer
-    manager.add("organizations:performance-trace-explorer-enforce-projects", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable linking to trace explorer from metrics
     manager.add("organizations:performance-trace-explorer-with-metrics", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable FE/BE for tracing without performance
