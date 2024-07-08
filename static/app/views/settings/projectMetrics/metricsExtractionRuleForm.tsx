@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useId, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -8,12 +8,14 @@ import Form, {type FormProps} from 'sentry/components/forms/form';
 import FormField from 'sentry/components/forms/formField';
 import type FormModel from 'sentry/components/forms/model';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {IconAdd, IconClose} from 'sentry/icons';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconAdd, IconClose, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricAggregation, MetricsExtractionCondition} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DEFAULT_METRICS_CARDINALITY_LIMIT} from 'sentry/utils/metrics/constants';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
@@ -30,6 +32,7 @@ export interface FormData {
 interface Props extends Omit<FormProps, 'onSubmit'> {
   initialData: FormData;
   project: Project;
+  cardinality?: Record<string, number>;
   isEdit?: boolean;
   onSubmit?: (
     data: FormData,
@@ -40,7 +43,7 @@ interface Props extends Omit<FormProps, 'onSubmit'> {
   ) => void;
 }
 
-const KNOWN_NUMERIC_FIELDS = new Set([
+const HIGH_CARDINALITY_TAGS = new Set([
   SpanIndexedField.SPAN_DURATION,
   SpanIndexedField.SPAN_SELF_TIME,
   SpanIndexedField.PROJECT_ID,
@@ -52,6 +55,8 @@ const KNOWN_NUMERIC_FIELDS = new Set([
   SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE,
   SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY,
   SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT,
+  SpanIndexedField.TRANSACTION_ID,
+  SpanIndexedField.ID,
 ]);
 
 const AGGREGATE_OPTIONS: {label: string; value: AggregateGroup}[] = [
@@ -138,7 +143,13 @@ const SPAN_SEARCH_CONFIG = {
   disallowNegation: true,
 };
 
-export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}: Props) {
+export function MetricsExtractionRuleForm({
+  isEdit,
+  project,
+  onSubmit,
+  cardinality,
+  ...props
+}: Props) {
   const organization = useOrganization();
 
   const [customAttributes, setCustomeAttributes] = useState<string[]>(() => {
@@ -159,16 +170,19 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
     return copy;
   }, [tags]);
 
-  const attributeOptions = useMemo(() => {
+  const allAttributeOptions = useMemo(() => {
     let keys = Object.keys(supportedTags);
-    const disabledKeys = new Set(extractionRules?.map(rule => rule.spanAttribute) || []);
-
     if (customAttributes.length) {
       keys = [...new Set(keys.concat(customAttributes))];
     }
+    return keys.sort((a, b) => a.localeCompare(b));
+  }, [customAttributes, supportedTags]);
+
+  const attributeOptions = useMemo(() => {
+    const disabledKeys = new Set(extractionRules?.map(rule => rule.spanAttribute) || []);
 
     return (
-      keys
+      allAttributeOptions
         .map(key => ({
           label: key,
           value: key,
@@ -180,18 +194,22 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
             : undefined,
           tooltipOptions: {position: 'left'},
         }))
-        .sort((a, b) => a.label.localeCompare(b.label))
         // Sort disabled attributes to bottom
         .sort((a, b) => Number(a.disabled) - Number(b.disabled))
     );
-  }, [customAttributes, supportedTags, extractionRules]);
+  }, [allAttributeOptions, extractionRules]);
 
   const tagOptions = useMemo(() => {
-    return attributeOptions.filter(
-      // We don't want to suggest numeric fields as tags as they would explode cardinality
-      option => !KNOWN_NUMERIC_FIELDS.has(option.value as SpanIndexedField)
-    );
-  }, [attributeOptions]);
+    return allAttributeOptions
+      .filter(
+        // We don't want to suggest numeric fields as tags as they would explode cardinality
+        option => !HIGH_CARDINALITY_TAGS.has(option as SpanIndexedField)
+      )
+      .map(option => ({
+        label: option,
+        value: option,
+      }));
+  }, [allAttributeOptions]);
 
   const handleSubmit = useCallback(
     (
@@ -289,45 +307,77 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
                 );
               };
 
+              const getMaxCardinality = (condition: MetricsExtractionCondition) => {
+                if (!cardinality) {
+                  return 0;
+                }
+                return condition.mris.reduce(
+                  (acc, mri) => Math.max(acc, cardinality[mri] || 0),
+                  0
+                );
+              };
+
               return (
                 <Fragment>
                   <ConditionsWrapper hasDelete={value.length > 1}>
-                    {conditions.map((condition, index) => (
-                      <Fragment key={condition.id}>
-                        <SearchWrapper hasPrefix={conditions.length > 1}>
-                          {conditions.length > 1 && (
-                            <ConditionSymbol>{index + 1}</ConditionSymbol>
+                    {conditions.map((condition, index) => {
+                      const maxCardinality = getMaxCardinality(condition);
+                      const isExeedingCardinalityLimit =
+                        // TODO: Retrieve limit from BE
+                        maxCardinality >= DEFAULT_METRICS_CARDINALITY_LIMIT;
+                      const hasSiblings = conditions.length > 1;
+
+                      return (
+                        <Fragment key={condition.id}>
+                          <SearchWrapper
+                            hasPrefix={hasSiblings || isExeedingCardinalityLimit}
+                          >
+                            {hasSiblings || isExeedingCardinalityLimit ? (
+                              isExeedingCardinalityLimit ? (
+                                <Tooltip
+                                  title={t(
+                                    'This query is exeeding the cardinality limit. Remove tags or add more filters to receive accurate data.'
+                                  )}
+                                >
+                                  <StyledIconWarning size="xs" color="yellow300" />
+                                </Tooltip>
+                              ) : (
+                                <ConditionSymbol>{index + 1}</ConditionSymbol>
+                              )
+                            ) : null}
+                            <SearchBarWithId
+                              {...SPAN_SEARCH_CONFIG}
+                              searchSource="metrics-extraction"
+                              query={condition.value}
+                              onSearch={(queryString: string) =>
+                                handleChange(queryString, index)
+                              }
+                              onClose={(queryString: string, {validSearch}) => {
+                                if (validSearch) {
+                                  handleChange(queryString, index);
+                                }
+                              }}
+                              placeholder={t('Search for span attributes')}
+                              organization={organization}
+                              metricAlert={false}
+                              supportedTags={supportedTags}
+                              dataset={DiscoverDatasets.SPANS_INDEXED}
+                              projectIds={[parseInt(project.id, 10)]}
+                              hasRecentSearches={false}
+                              savedSearchType={undefined}
+                              useFormWrapper={false}
+                            />
+                          </SearchWrapper>
+                          {value.length > 1 && (
+                            <Button
+                              aria-label={t('Remove Query')}
+                              onClick={() => onChange(conditions.toSpliced(index, 1), {})}
+                              icon={<IconClose />}
+                            />
                           )}
-                          <SearchBar
-                            {...SPAN_SEARCH_CONFIG}
-                            searchSource="metrics-extraction"
-                            query={condition.value}
-                            onSearch={(queryString: string) =>
-                              handleChange(queryString, index)
-                            }
-                            placeholder={t('Search for span attributes')}
-                            organization={organization}
-                            metricAlert={false}
-                            supportedTags={supportedTags}
-                            dataset={DiscoverDatasets.SPANS_INDEXED}
-                            projectIds={[parseInt(project.id, 10)]}
-                            hasRecentSearches={false}
-                            onBlur={(queryString: string) =>
-                              handleChange(queryString, index)
-                            }
-                            savedSearchType={undefined}
-                            useFormWrapper={false}
-                          />
-                        </SearchWrapper>
-                        {value.length > 1 && (
-                          <Button
-                            aria-label={t('Remove Query')}
-                            onClick={() => onChange(conditions.toSpliced(index, 1), {})}
-                            icon={<IconClose />}
-                          />
-                        )}
-                      </Fragment>
-                    ))}
+                        </Fragment>
+                      );
+                    })}
                   </ConditionsWrapper>
                   <ConditionsButtonBar>
                     <Button
@@ -348,6 +398,11 @@ export function MetricsExtractionRuleForm({isEdit, project, onSubmit, ...props}:
   );
 }
 
+function SearchBarWithId(props: React.ComponentProps<typeof SearchBar>) {
+  const id = useId();
+  return <SearchBar id={id} {...props} />;
+}
+
 const ConditionsWrapper = styled('div')<{hasDelete: boolean}>`
   padding: ${space(1)} 0;
   display: grid;
@@ -363,18 +418,11 @@ const ConditionsWrapper = styled('div')<{hasDelete: boolean}>`
   `}
 `;
 
-const SearchWrapper = styled('div')<{hasPrefix: boolean}>`
+const SearchWrapper = styled('div')<{hasPrefix?: boolean}>`
   display: grid;
   gap: ${space(1)};
   align-items: center;
-  ${p =>
-    p.hasPrefix
-      ? `
-  grid-template-columns: max-content 1fr;
-  `
-      : `
-  grid-template-columns: 1fr;
-  `}
+  grid-template-columns: ${p => (p.hasPrefix ? 'max-content' : '')} 1fr;
 `;
 
 const ConditionSymbol = styled('div')`
@@ -385,6 +433,10 @@ const ConditionSymbol = styled('div')`
   height: ${space(3)};
   width: ${space(3)};
   border-radius: 50%;
+`;
+
+const StyledIconWarning = styled(IconWarning)`
+  margin: 0 ${space(0.5)};
 `;
 
 const ConditionsButtonBar = styled('div')`

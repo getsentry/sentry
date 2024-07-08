@@ -45,7 +45,6 @@ class MSTeamsNoteNotificationTest(MSTeamsActivityNotificationTest):
             f"[{self.group.title}](http://testserver/organizations/{self.organization.slug}/issues/{self.group.id}/?referrer=note\\_activity-msteams&amp;notification\\_uuid="
             in body[1]["text"]
         )
-        assert notification.activity.data is not None
         assert notification.activity.data["text"] == body[2]["text"]
         notification_uuid = self.get_notification_uuid(body[3]["columns"][1]["items"][0]["text"])
         assert (

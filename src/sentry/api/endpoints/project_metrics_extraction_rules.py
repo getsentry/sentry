@@ -1,6 +1,7 @@
 import logging
+from collections.abc import Generator
+from contextlib import contextmanager
 
-import sentry_sdk
 from django.db import IntegrityError, router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -10,16 +11,18 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import ProjectEndpoint
+from sentry.api.exceptions import BadRequest, ConflictError
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.metrics_extraction_rules import (
     SpanAttributeExtractionRuleConfigSerializer,
 )
 from sentry.models.project import Project
-from sentry.sentry_metrics.configuration import HARD_CODED_UNITS
-from sentry.sentry_metrics.models import (
-    SpanAttributeExtractionRuleCondition,
-    SpanAttributeExtractionRuleConfig,
+from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
+from sentry.sentry_metrics.span_attribute_extraction_rules import (
+    create_extraction_rule_config,
+    delete_extraction_rule_config,
+    update_extraction_rule_config,
 )
 from sentry.tasks.relay import schedule_invalidate_project_config
 
@@ -28,6 +31,19 @@ logger = logging.getLogger("sentry.metric_extraction_rules")
 
 class MetricsExtractionRuleValidationError(ValueError):
     pass
+
+
+@contextmanager
+def handle_exceptions() -> Generator[None, None, None]:
+    try:
+        yield
+    except IntegrityError:
+        raise ConflictError(detail="Resource already exists.")
+    except KeyError as e:
+        raise BadRequest(detail=f"Missing field in input data: {str(e)}")
+    except MetricsExtractionRuleValidationError as e:
+        logger.warning("Failed to update extraction rule", exc_info=True)
+        raise BadRequest(detail=str(e))
 
 
 @region_silo_endpoint
@@ -54,40 +70,34 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
         if len(config_update) == 0:
             return Response(status=204)
 
-        try:
+        with handle_exceptions():
             with transaction.atomic(router.db_for_write(SpanAttributeExtractionRuleConfig)):
-                for obj in config_update:
-                    SpanAttributeExtractionRuleConfig.objects.filter(
-                        project=project, span_attribute=obj["spanAttribute"]
-                    ).delete()
+                delete_extraction_rule_config(project, config_update)
                 schedule_invalidate_project_config(
                     project_id=project.id, trigger="span_attribute_extraction_configs"
                 )
-        except Exception as e:
-            sentry_sdk.capture_exception()
-            return Response(status=400, data={"detail": str(e)})
 
-        return Response(status=204)
+            return Response(status=204)
 
     def get(self, request: Request, project: Project) -> Response:
         """GET extraction rules for project. Returns 200 and a list of extraction rules on success."""
         if not self.has_feature(project.organization, request):
             return Response(status=404)
 
-        configs = SpanAttributeExtractionRuleConfig.objects.filter(project=project)
+        with handle_exceptions():
+            configs = SpanAttributeExtractionRuleConfig.objects.filter(project=project)
 
-        # TODO(metrics): do real pagination using the database
-        return self.paginate(
-            request,
-            queryset=list(configs),
-            paginator_cls=OffsetPaginator,
-            on_results=lambda x: serialize(
-                x, user=request.user, serializer=SpanAttributeExtractionRuleConfigSerializer()
-            ),
-            default_per_page=1000,
-            max_per_page=1000,
-            max_limit=1000,  # overrides default max_limit of 100 when creating paginator object
-        )
+            return self.paginate(
+                request,
+                queryset=configs,
+                paginator_cls=OffsetPaginator,
+                on_results=lambda x: serialize(
+                    x, user=request.user, serializer=SpanAttributeExtractionRuleConfigSerializer()
+                ),
+                default_per_page=1000,
+                max_per_page=1000,
+                max_limit=1000,  # overrides default max_limit of 100 when creating paginator object
+            )
 
     def post(self, request: Request, project: Project) -> Response:
         """POST an extraction rule to create a resource."""
@@ -101,16 +111,11 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                 status=400,
                 data={"detail": "Please specify the metric extraction rule to be created."},
             )
-        try:
-            configs = []
+
+        with handle_exceptions():
             with transaction.atomic(router.db_for_write(SpanAttributeExtractionRuleConfig)):
-                for obj in config_update:
-                    configs.append(
-                        SpanAttributeExtractionRuleConfig.from_dict(obj, request.user.id, project)
-                    )
-
+                configs = create_extraction_rule_config(request, project, config_update)
                 validate_number_of_extracted_metrics(project)
-
                 schedule_invalidate_project_config(
                     project_id=project.id, trigger="span_attribute_extraction_configs"
                 )
@@ -119,20 +124,6 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                 configs, request.user, SpanAttributeExtractionRuleConfigSerializer()
             )
             return Response(data=persisted_config, status=200)
-
-        except IntegrityError:
-            return Response(status=409, data={"detail": "Resource already exists."})
-
-        except KeyError as e:
-            return Response(status=400, data={"detail": f"Missing field in input data: {str(e)}"})
-
-        except MetricsExtractionRuleValidationError as e:
-            logger.warning("Failed to update extraction rule", exc_info=True)
-            return Response(status=400, data={"detail": str(e)})
-
-        except Exception:
-            logger.exception("Failed to update extraction rule")
-            return Response(status=400)
 
     def put(self, request: Request, project: Project) -> Response:
         """PUT to modify an existing extraction rule."""
@@ -143,39 +134,10 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
         if not config_update:
             return Response(status=200)
 
-        try:
+        with handle_exceptions():
             with transaction.atomic(router.db_for_write(SpanAttributeExtractionRuleConfig)):
-                configs = []
-                for obj in config_update:
-                    config = SpanAttributeExtractionRuleConfig.objects.get(
-                        project=project, span_attribute=obj["spanAttribute"]
-                    )
-                    config.aggregates = obj["aggregates"]
-                    config.unit = HARD_CODED_UNITS.get(obj["spanAttribute"], obj["unit"])
-                    config.tags = obj["tags"]
-                    config.save()
-                    config.refresh_from_db()
-                    configs.append(config)
-
-                    # delete conditions not present in update
-                    included_conditions = [x["id"] for x in obj["conditions"] if "id" in x]
-                    SpanAttributeExtractionRuleCondition.objects.filter(config=config).exclude(
-                        id__in=included_conditions
-                    ).delete()
-
-                    for condition in obj["conditions"]:
-                        condition_id = condition["id"] if "id" in condition else None
-                        SpanAttributeExtractionRuleCondition.objects.update_or_create(
-                            id=condition_id,
-                            config=config,
-                            defaults={
-                                "value": condition["value"],
-                                "created_by_id": request.user.id,
-                            },
-                        )
-
+                configs = update_extraction_rule_config(request, project, config_update)
                 validate_number_of_extracted_metrics(project)
-
                 schedule_invalidate_project_config(
                     project_id=project.id, trigger="span_attribute_extraction_configs"
                 )
@@ -187,17 +149,6 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
             )
 
             return Response(data=persisted_config, status=200)
-
-        except KeyError as e:
-            return Response(status=400, data={"detail": f"Missing field in input data: {str(e)}"})
-
-        except MetricsExtractionRuleValidationError as e:
-            logger.warning("Failed to update extraction rule", exc_info=True)
-            return Response(status=400, data={"detail": str(e)})
-
-        except Exception:
-            logger.exception("Failed to update extraction rule")
-            return Response(status=400, data={"detail": "Failed to update extraction rule."})
 
 
 def validate_number_of_extracted_metrics(project: Project):

@@ -426,6 +426,9 @@ from .endpoints.organization_member_unreleased_commits import (
 )
 from .endpoints.organization_metrics_code_locations import OrganizationMetricsCodeLocationsEndpoint
 from .endpoints.organization_metrics_details import OrganizationMetricsDetailsEndpoint
+from .endpoints.organization_metrics_extraction_rules import (
+    OrganizationMetricsExtractionRulesEndpoint,
+)
 from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
     OrganizationMetricsCompatibilitySums,
@@ -446,6 +449,7 @@ from .endpoints.organization_processingissues import OrganizationProcessingIssue
 from .endpoints.organization_profiling_functions import OrganizationProfilingFunctionTrendsEndpoint
 from .endpoints.organization_profiling_profiles import (
     OrganizationProfilingChunksEndpoint,
+    OrganizationProfilingChunksFlamegraphEndpoint,
     OrganizationProfilingFiltersEndpoint,
     OrganizationProfilingFlamegraphEndpoint,
 )
@@ -1499,6 +1503,11 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-metrics-compatibility-sums",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/metrics/extraction-rules/$",
+        OrganizationMetricsExtractionRulesEndpoint.as_view(),
+        name="sentry-api-0-organization-metrics-extraction-rules",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/missing-members/$",
         OrganizationMissingMembersEndpoint.as_view(),
         name="sentry-api-0-organization-missing-members",
@@ -2105,6 +2114,11 @@ ORGANIZATION_URLS = [
                     r"^flamegraph/$",
                     OrganizationProfilingFlamegraphEndpoint.as_view(),
                     name="sentry-api-0-organization-profiling-flamegraph",
+                ),
+                re_path(
+                    r"^chunks-flamegraph/$",
+                    OrganizationProfilingChunksFlamegraphEndpoint.as_view(),
+                    name="sentry-api-0-organization-profiling-chunks-flamegraph",
                 ),
                 re_path(
                     r"^function-trends/$",

@@ -50,7 +50,7 @@ export function CustomMetricsTable({project}: Props) {
   );
 
   const metricsCardinality = useMetricsCardinality({
-    project,
+    projects: [parseInt(project.id, 10)],
   });
 
   const isLoading = metricsMeta.isLoading || metricsCardinality.isLoading;
@@ -151,6 +151,7 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
   const blockMetricMutation = useBlockMetric(project);
   const {hasAccess} = useAccess({access: ['project:write'], project});
   const cardinalityLimit =
+    // Retrive limit from BE
     project.relayCustomMetricCardinalityLimit ?? DEFAULT_METRICS_CARDINALITY_LIMIT;
 
   return (
