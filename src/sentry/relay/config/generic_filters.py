@@ -1,8 +1,10 @@
 from collections.abc import Callable, Sequence
+
 from sentry.models.project import Project
 from sentry.relay.types import GenericFilter, GenericFiltersConfig
 
 GENERIC_FILTERS_VERSION = 1
+
 
 def _error_message_condition(values):
     """
