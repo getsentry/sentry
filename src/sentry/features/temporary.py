@@ -332,9 +332,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:releases-v2-st", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable playing replays from the replay tab
     manager.add("organizations:replay-play-from-replay-tab", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Mobile replay killswitch
-    # TODO: Delete me on or before public beta.
-    manager.add("organizations:session-replay-video", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Enable version 2 of reprocessing (completely distinct from v1)
     manager.add("organizations:reprocessing-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:required-email-verification", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
