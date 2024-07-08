@@ -7,10 +7,7 @@ import {IconSad} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import type EventView from 'sentry/utils/discover/eventView';
-import type {
-  TraceError,
-  TraceFullDetailed,
-} from 'sentry/utils/performance/quickTrace/types';
+import type {TraceError} from 'sentry/utils/performance/quickTrace/types';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -19,6 +16,7 @@ import {TraceViewWaterfall} from 'sentry/views/performance/newTraceDetails';
 import {useReplayTraceMeta} from 'sentry/views/performance/newTraceDetails/traceApi/useReplayTraceMeta';
 import {useTrace} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {useTraceRootEvent} from 'sentry/views/performance/newTraceDetails/traceApi/useTraceRootEvent';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import type {TracePreferencesState} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {loadTraceViewPreferences} from 'sentry/views/performance/newTraceDetails/traceState/tracePreferences';
 import {TraceStateProvider} from 'sentry/views/performance/newTraceDetails/traceState/traceStateProvider';
@@ -59,7 +57,7 @@ function TraceFound({
   eventView: EventView | null;
   organization: Organization;
   performanceActive: boolean;
-  traces: TraceFullDetailed[] | null;
+  traces: TraceTree.Transaction[] | null;
   orphanErrors?: TraceError[];
 }) {
   const location = useLocation();
@@ -143,7 +141,7 @@ function Trace({replayRecord}: {replayRecord: undefined | ReplayRecord}) {
       performanceActive={performanceActive}
       organization={organization}
       eventView={eventView}
-      traces={traces ?? []}
+      traces={(traces as TraceTree.Transaction[]) ?? []}
       orphanErrors={orphanErrors}
     />
   );

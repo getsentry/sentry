@@ -1,6 +1,5 @@
 import type {Location, LocationDescriptor} from 'history';
 
-import type {EventTransaction} from 'sentry/types';
 import {generateContinuousProfileFlamechartRouteWithQuery} from 'sentry/utils/profiling/routes';
 import type {
   TraceTree,
@@ -26,7 +25,7 @@ function toDate(value: unknown): Date | null {
  */
 export function makeTraceContinuousProfilingLink(
   value: TraceTreeNode<TraceTree.NodeValue>,
-  transaction: EventTransaction,
+  profilerId: string,
   options: {
     orgSlug: string;
     projectSlug: string;
@@ -39,10 +38,9 @@ export function makeTraceContinuousProfilingLink(
 
   let start: Date | null = toDate(value.space[0]);
   let end: Date | null = toDate(value.space[0] + value.space[1]);
-  const profilerId: string | null = transaction.contexts?.profile?.profiler_id ?? null;
 
   // End timestamp is required to generate a link
-  if (end === null || profilerId === null) {
+  if (end === null || typeof profilerId !== 'string' || profilerId === '') {
     return null;
   }
 

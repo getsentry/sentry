@@ -29,6 +29,7 @@ import type {
   TraceFullDetailed,
   TraceMeta,
 } from 'sentry/utils/performance/quickTrace/types';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {
   TraceDetailBody,
   TraceViewContainer,
@@ -51,12 +52,12 @@ type AccType = {
   renderedChildren: React.ReactNode[];
 };
 
-type Props = Pick<RouteComponentProps<{}, {}>, 'location'> & {
+type TraceViewProps = Pick<RouteComponentProps<{}, {}>, 'location'> & {
   meta: TraceMeta | null;
   organization: Organization;
   traceEventView: EventView;
   traceSlug: string;
-  traces: TraceFullDetailed[];
+  traces: TraceTree.Transaction[];
   filteredEventIds?: Set<string>;
   handleLimitChange?: (newLimit: number) => void;
   orphanErrors?: TraceError[];
@@ -142,7 +143,7 @@ export default function TraceView({
   orphanErrors,
   handleLimitChange,
   ...props
-}: Props) {
+}: TraceViewProps) {
   const sentrySpan = Sentry.startInactiveSpan({
     op: 'trace.render',
     name: 'trace-view-content',

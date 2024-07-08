@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import Tags from 'sentry/components/events/eventTagsAndScreenshot/tags';
@@ -41,6 +41,7 @@ import {
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/guards';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import {makeTraceContinuousProfilingLink} from 'sentry/views/performance/newTraceDetails/traceDrawer/traceProfilingLink';
 import type {
   MissingInstrumentationNode,
   NoDataNode,
@@ -375,6 +376,7 @@ function NodeActions(props: {
   organization: Organization;
   eventSize?: number | undefined;
 }) {
+  const organization = useOrganization();
   const items = useMemo(() => {
     const showInView: MenuItemProps = {
       key: 'show-in-view',
@@ -431,9 +433,29 @@ function NodeActions(props: {
     return [showInView];
   }, [props]);
 
+  const profilerId = useMemo(() => {
+    if (isTransactionNode(props.node)) {
+      return props.node.value.profiler_id;
+    }
+    if (isSpanNode(props.node)) {
+      return props.node.value.sentry_tags?.profiler_id ?? '';
+    }
+    return '';
+  }, [props]);
+
+  const profileLink = makeTraceContinuousProfilingLink(props.node, profilerId, {
+    orgSlug: props.organization.slug,
+    projectSlug: props.node.value.project_slug,
+  });
+
   return (
     <ActionsContainer>
       <Actions className="Actions">
+        {organization.features.includes('continuous-profiling-ui') && !!profileLink ? (
+          <LinkButton size="xs" to={profileLink}>
+            {t('Continuous Profile')}
+          </LinkButton>
+        ) : null}
         <Button
           size="xs"
           onClick={_e => {

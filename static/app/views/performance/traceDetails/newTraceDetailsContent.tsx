@@ -38,6 +38,7 @@ import useRouter from 'sentry/utils/useRouter';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import Tags from 'sentry/views/discover/tags';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
 
 import {BrowserDisplay} from '../transactionDetails/eventMetas';
@@ -55,7 +56,7 @@ type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'loca
   organization: Organization;
   traceEventView: EventView;
   traceSlug: string;
-  traces: TraceFullDetailed[] | null;
+  traces: TraceTree.Transaction[] | null;
   handleLimitChange?: (newLimit: number) => void;
   orphanErrors?: TraceError[];
 };
