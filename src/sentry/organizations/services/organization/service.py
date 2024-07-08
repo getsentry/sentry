@@ -399,8 +399,8 @@ class OrganizationService(RpcService):
     @abstractmethod
     def get_or_create_team_member(
         self,
-        organization_id: int,
         *,
+        organization_id: int,
         team_id: int,
         organization_member_id: int,
         role: str | None,
