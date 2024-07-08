@@ -1,4 +1,5 @@
 import datetime
+import logging
 from datetime import timedelta
 
 from django.utils import timezone
@@ -23,6 +24,8 @@ SCHEDULER_LOCK_KEY = "uptime_detector_scheduler_lock"
 FAILED_URL_RETRY_FREQ = timedelta(days=7)
 URL_MIN_TIMES_SEEN = 5
 URL_MIN_PERCENT = 0.05
+
+logger = logging.getLogger("sentry.uptime-url-autodetection")
 
 
 @instrumented_task(
@@ -150,6 +153,13 @@ def process_candidate_url(
     # If we hit this point, then the url looks worth monitoring. Create an uptime subscription in monitor mode.
     # Also check if there's already an existing auto detected monitor for this project. If so, delete it.
     # TODO: Implement subscriptions
+    logger.info(
+        "uptime.url_autodetected",
+        extra={
+            "url": url,
+            "project": project.id,
+        },
+    )
     return True
 
 
