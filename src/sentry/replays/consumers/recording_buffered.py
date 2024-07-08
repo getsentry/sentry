@@ -61,6 +61,7 @@ from sentry.replays.lib.storage import (
     make_video_filename,
     storage_kv,
 )
+from sentry.replays.usecases.blocklist import mobile_processing_is_blocked
 from sentry.replays.usecases.ingest import decompress, process_headers, track_initial_segment_event
 from sentry.replays.usecases.ingest.dom_index import (
     ReplayActionsEvent,
@@ -224,6 +225,11 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
             # TODO: DLQ
             logger.exception("Could not decode recording message.")
             return None
+
+    # Sales-led organizations are temporarily blocked during the open beta period
+    # unless they explicitly opt in.
+    if mobile_processing_is_blocked(decoded_message):
+        return None
 
     try:
         headers, recording_data = process_headers(cast_payload_bytes(decoded_message["payload"]))
