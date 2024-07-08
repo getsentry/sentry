@@ -1,35 +1,39 @@
 from collections.abc import Callable, Sequence
+from typing import cast
 
 from sentry.models.project import Project
-from sentry.relay.types import GenericFilter, GenericFiltersConfig
+from sentry.relay.types import GenericFilter, GenericFiltersConfig, RuleCondition
 
 GENERIC_FILTERS_VERSION = 1
 
 
-def _error_message_condition(values):
+def _error_message_condition(values: Sequence[str]) -> RuleCondition:
     """
     Condition that expresses error message matching for an inbound filter.
 
     This condition was inspired by how the error message filter was statically implemented in Relay.
     """
-    return {
-        "op": "or",
-        "inner": [
-            {"op": "glob", "name": "event.logentry.formatted", "value": values},
-            {"op": "glob", "name": "event.logentry.message", "value": values},
-            {
-                "op": "any",
-                "name": "event.exceptions",
-                "inner": {
-                    "op": "or",
-                    "inner": [
-                        {"op": "glob", "name": "ty", "value": values},
-                        {"op": "glob", "name": "value", "value": values},
-                    ],
+    return cast(
+        RuleCondition,
+        {
+            "op": "or",
+            "inner": [
+                {"op": "glob", "name": "event.logentry.formatted", "value": values},
+                {"op": "glob", "name": "event.logentry.message", "value": values},
+                {
+                    "op": "any",
+                    "name": "event.exceptions",
+                    "inner": {
+                        "op": "or",
+                        "inner": [
+                            {"op": "glob", "name": "ty", "value": values},
+                            {"op": "glob", "name": "value", "value": values},
+                        ],
+                    },
                 },
-            },
-        ],
-    }
+            ],
+        },
+    )
 
 
 def _chunk_load_error_filter(project: Project) -> GenericFilter | None:
@@ -83,26 +87,30 @@ def _hydration_error_filter(project: Project) -> GenericFilter | None:
     }
 
 
-GENERIC_FILTERS: Sequence[Callable[[Project], GenericFilter | None]] = [
+# List of all active generic filters that Sentry currently sends to Relay.
+ACTIVE_GENERIC_FILTERS: Sequence[Callable[[Project], GenericFilter | None]] = [
     _chunk_load_error_filter,
     _hydration_error_filter,
 ]
 
 
-def get_generic_project_filters(project: Project) -> GenericFiltersConfig:
+def get_generic_filters(project: Project) -> GenericFiltersConfig | None:
     """
-    Computes the generic filters configuration for inbound filters.
+    Computes the generic inbound filters configuration for inbound filters.
 
     Generic inbound filters are able to express arbitrary filtering conditions on an event, using
     Relay's `RuleCondition` DSL. They differ from static inbound filters which filter events based on a
     hardcoded set of rules, specific to each type.
     """
-    generic_filters = []
+    generic_filters: list[GenericFilter] = []
 
-    for generic_filter_fn in generic_filters:
+    for generic_filter_fn in ACTIVE_GENERIC_FILTERS:
         generic_filter = generic_filter_fn(project)
         if generic_filter is not None:
             generic_filters.append(generic_filter)
+
+    if not generic_filters:
+        return None
 
     return {
         "version": GENERIC_FILTERS_VERSION,

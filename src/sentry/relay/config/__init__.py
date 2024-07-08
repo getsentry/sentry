@@ -43,7 +43,7 @@ from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo
 
-from .generic_filters import get_generic_project_filters
+from .generic_filters import get_generic_filters
 from .measurements import CUSTOM_MEASUREMENT_LIMIT
 
 # These features will be listed in the project config.
@@ -180,17 +180,16 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         filter_settings["csp"] = {"disallowedSources": csp_disallowed_sources}
 
     try:
-        # At the end we compute the generic project filters, which are inbound filters expressible with a conditional
+        # At the end we compute the generic inbound filters, which are inbound filters expressible with a conditional
         # DSL that Relay understands.
-        generic_filters = get_generic_project_filters(project)
+        generic_filters = get_generic_filters(project)
+        if generic_filters is not None:
+            filter_settings["generic"] = generic_filters
     except Exception as e:
         sentry_sdk.capture_exception(e)
         logger.exception(
             "Exception while building Relay project config: error building generic filters"
         )
-    else:
-        if generic_filters and len(generic_filters["filters"]) > 0:
-            filter_settings["generic"] = generic_filters
 
     return filter_settings
 
