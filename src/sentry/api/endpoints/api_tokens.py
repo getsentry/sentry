@@ -126,6 +126,9 @@ class ApiTokensEndpoint(Endpoint):
 
     @method_decorator(never_cache)
     def put(self, request: Request) -> Response:
+        if "scopes" in request.data:
+            return Response(status=403)
+
         serializer = ApiTokenNameSerializer(data=request.data)
 
         if serializer.is_valid():
@@ -145,7 +148,7 @@ class ApiTokensEndpoint(Endpoint):
                 if token_to_rename is None:
                     return Response({"tokenId": token_id, "userId": user_id}, status=400)
 
-                token_to_rename.update(name=result.get("name", None))
+                token_to_rename.name = result.get("name", None)
                 token_to_rename.save()
 
             return Response(status=204)

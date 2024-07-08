@@ -206,6 +206,20 @@ class ApiTokensEditTest(APITestCase):
         )
         assert response.status_code == 400
 
+    def test_editing_scopes(self):
+        token = ApiToken.objects.create(user=self.user)
+        self.login_as(self.user)
+        url = reverse("sentry-api-0-api-tokens")
+        response = self.client.put(
+            url,
+            data={
+                "name": "rename1",
+                "scopes": ["event:read"],
+                "tokenId": token.id,
+            },
+        )
+        assert response.status_code == 403
+
 
 # TODO(schew2381): Delete this testcase after staff is released
 @control_silo_test
