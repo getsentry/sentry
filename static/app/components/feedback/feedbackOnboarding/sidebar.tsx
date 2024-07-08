@@ -144,6 +144,7 @@ function FeedbackOnboardingSidebar(props: CommonSidebarProps) {
 }
 
 function OnboardingContent({currentProject}: {currentProject: Project}) {
+  const organization = useOrganization();
   const jsFrameworkSelectOptions = replayJsFrameworkOptions.map(platform => {
     return {
       value: platform.id,
@@ -207,7 +208,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         : currentPlatform,
     projSlug: currentProject.slug,
     productType: 'feedback',
-    orgSlug: currentProject.organization.slug,
+    orgSlug: organization.slug,
   });
 
   // New onboarding docs for initial loading of JS Framework options
