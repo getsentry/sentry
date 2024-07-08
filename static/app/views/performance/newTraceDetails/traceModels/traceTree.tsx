@@ -120,8 +120,8 @@ type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;
 
 export declare namespace TraceTree {
   interface Transaction extends TraceFullDetailed {
-    sdk_name: string;
     profiler_id: string;
+    sdk_name: string;
   }
   interface Span extends RawSpanType {
     childTransactions: TraceTreeNode<TraceTree.Transaction>[];

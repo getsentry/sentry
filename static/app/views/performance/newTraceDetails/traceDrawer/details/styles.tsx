@@ -10,7 +10,9 @@ import Tags from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
 import KeyValueData, {
+  CardPanel,
   type KeyValueDataContentProps,
+  Subject,
 } from 'sentry/components/keyValueData';
 import {LazyRender, type LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
@@ -39,6 +41,7 @@ import {
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/guards';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import {makeTraceContinuousProfilingLink} from 'sentry/views/performance/newTraceDetails/traceDrawer/traceProfilingLink';
 import type {
   MissingInstrumentationNode,
   NoDataNode,
@@ -47,7 +50,6 @@ import type {
   TraceTree,
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
-import {makeTraceContinuousProfilingLink} from 'sentry/views/performance/newTraceDetails/traceDrawer/traceProfilingLink';
 
 const DetailContainer = styled('div')`
   display: flex;
@@ -558,14 +560,31 @@ function SectionCard({
   const contentItems = items.map(item => ({item, ...itemProps}));
 
   return (
-    <KeyValueData.Card
-      title={title}
-      contentItems={contentItems}
-      sortAlphabetically={sortAlphabetically}
-      truncateLength={disableTruncate ? Infinity : 5}
-    />
+    <CardWrapper>
+      <KeyValueData.Card
+        title={title}
+        contentItems={contentItems}
+        sortAlphabetically={sortAlphabetically}
+        truncateLength={disableTruncate ? Infinity : 5}
+      />
+    </CardWrapper>
   );
 }
+
+// This is trace-view specific styling. The card is rendered in a number of different places
+// with tests failing otherwise, since @container queries are not supported by the version of
+// jsdom currently used by jest.
+const CardWrapper = styled('div')`
+  ${CardPanel} {
+    container-type: inline-size;
+  }
+
+  ${Subject} {
+    @container (width < 350px) {
+      max-width: 200px;
+    }
+  }
+`;
 
 function SectionCardGroup({children}: {children: React.ReactNode}) {
   return <KeyValueData.Container>{children}</KeyValueData.Container>;
