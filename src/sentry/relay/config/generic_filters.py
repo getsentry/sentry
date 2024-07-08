@@ -7,7 +7,7 @@ from sentry.relay.types import GenericFilter, GenericFiltersConfig, RuleConditio
 GENERIC_FILTERS_VERSION = 1
 
 
-def _error_message_condition(values: Sequence[str]) -> RuleCondition:
+def _error_message_condition(value: Sequence[tuple[str, str]]) -> RuleCondition:
     """
     Condition that expresses error message matching for an inbound filter.
 
@@ -16,22 +16,21 @@ def _error_message_condition(values: Sequence[str]) -> RuleCondition:
     return cast(
         RuleCondition,
         {
-            "op": "or",
-            "inner": [
-                {"op": "glob", "name": "event.logentry.formatted", "value": values},
-                {"op": "glob", "name": "event.logentry.message", "value": values},
-                {
-                    "op": "any",
-                    "name": "event.exceptions",
-                    "inner": {
-                        "op": "or",
+            "op": "any",
+            "name": "event.exceptions",
+            "inner": {
+                "op": "or",
+                "inner": [
+                    {
+                        "op": "and",
                         "inner": [
-                            {"op": "glob", "name": "ty", "value": values},
-                            {"op": "glob", "name": "value", "value": values},
+                            {"op": "glob", "name": "ty", "value": ty},
+                            {"op": "glob", "name": "value", "value": value},
                         ],
-                    },
-                },
-            ],
+                    }
+                    for ty, value in value
+                ],
+            },
         },
     )
 
@@ -48,9 +47,8 @@ def _chunk_load_error_filter(project: Project) -> GenericFilter | None:
         return None
 
     values = [
-        "ChunkLoadError",
-        "Loading chunk *" "ChunkLoadError: Loading chunk *",
-        "*Uncaught *: ChunkLoadError: Loading chunk *",
+        ("ChunkLoadError", "Loading chunk *"),
+        ("*Uncaught *", "ChunkLoadError: Loading chunk *"),
     ]
 
     return {
@@ -77,8 +75,8 @@ def _hydration_error_filter(project: Project) -> GenericFilter | None:
         return None
 
     values = [
-        "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*",
-        "*https://react.dev/errors/{418,419,422,423,425}*",
+        ("*", "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*"),
+        ("*", "*https://react.dev/errors/{418,419,422,423,425}*"),
     ]
 
     return {
