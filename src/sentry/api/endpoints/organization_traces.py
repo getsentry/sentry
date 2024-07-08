@@ -1,7 +1,8 @@
+import dataclasses
 import math
 import time
 from collections import defaultdict
-from collections.abc import Generator, Mapping, MutableMapping, Sequence
+from collections.abc import Callable, Generator, Mapping, MutableMapping, Sequence
 from contextlib import contextmanager
 from dataclasses import replace
 from datetime import datetime, timedelta
@@ -25,15 +26,15 @@ from sentry.api.utils import handle_query_errors
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.search.events.builder import (
-    QueryBuilder,
+from sentry.search.events.builder.base import BaseQueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.builder.spans_indexed import (
     SpansIndexedQueryBuilder,
     TimeseriesSpanIndexedQueryBuilder,
 )
 from sentry.search.events.constants import TIMEOUT_SPAN_ERROR_MESSAGE
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams, WhereType
 from sentry.sentry_metrics.querying.samples_list import SpanKey, get_sample_list_executor_cls
-from sentry.services.hybrid_cloud.organization import RpcOrganization
 from sentry.snuba import discover, spans_indexed
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
@@ -110,35 +111,6 @@ class OrganizationTracesEndpointBase(OrganizationEventsV2EndpointBase):
     }
     owner = ApiOwner.PERFORMANCE
 
-    def get_snuba_dataclass(
-        self, request: Request, organization: Organization, check_global_views: bool = True
-    ) -> tuple[SnubaParams, dict[str, Any]]:
-        """The trace endpoint always wants to get all projects regardless of what's passed into the API.
-        This is because a trace can span any number of projects in an organization. So disable the
-        check_global_views condition."""
-        return super().get_snuba_dataclass(request, organization, check_global_views=False)
-
-    def get_projects(  # type: ignore[override]
-        self,
-        request: Request,
-        organization: Organization | RpcOrganization,
-        project_ids: set[int] | None = None,
-        project_slugs: set[str] | None = None,
-        include_all_accessible: bool = True,
-    ) -> list[Project]:
-        """The trace endpoint always wants to get all projects regardless of what's passed into the API.
-
-        This is because a trace can span any number of projects in an organization. But we still want to
-        use the get_projects function to check for any permissions. So we'll just pass project_ids=-1 everytime
-        which is what would be sent if we wanted all projects"""
-        return super().get_projects(
-            request,
-            organization,
-            project_ids={-1},
-            project_slugs=None,
-            include_all_accessible=True,
-        )
-
 
 @region_silo_endpoint
 class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
@@ -176,6 +148,13 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
             limit=self.get_per_page(request),
             breakdown_slices=serialized["breakdownSlices"],
             sort=serialized.get("sort") if allow_sorting else None,
+            get_all_projects=lambda: self.get_projects(
+                request,
+                organization,
+                project_ids={-1},
+                project_slugs=None,
+                include_all_accessible=True,
+            ),
         )
 
         return self.paginate(
@@ -342,6 +321,7 @@ class TracesExecutor:
         limit: int,
         breakdown_slices: int,
         sort: str | None,
+        get_all_projects: Callable[[], list[Project]],
     ):
         self.params = params
         self.snuba_params = snuba_params
@@ -354,21 +334,31 @@ class TracesExecutor:
         self.limit = limit
         self.breakdown_slices = breakdown_slices
         self.sort = sort
+        self.get_all_projects = get_all_projects
 
         if self.sort is not None:
             sentry_sdk.set_tag("sort_key", self.sort)
+
+    def params_with_all_projects(self) -> tuple[ParamsType, SnubaParams]:
+        all_projects_snuba_params = dataclasses.replace(
+            self.snuba_params, projects=self.get_all_projects()
+        )
+
+        all_projects_params = dict(self.params)
+        all_projects_params["projects"] = all_projects_snuba_params.projects
+        all_projects_params["projects_objects"] = all_projects_snuba_params.projects
+        all_projects_params["projects_id"] = all_projects_snuba_params.project_ids
+
+        return cast(ParamsType, all_projects_params), all_projects_snuba_params
 
     def execute(self, offset: int, limit: int):
         return {"data": self._execute()}
 
     def _execute(self):
-        selected_projects_params = self.params
-        selected_projects_snuba_params = self.snuba_params
-
         with handle_span_query_errors():
             min_timestamp, max_timestamp, trace_ids = self.get_traces_matching_conditions(
-                selected_projects_params,
-                selected_projects_snuba_params,
+                self.params,
+                self.snuba_params,
             )
 
         self.refine_params(min_timestamp, max_timestamp)
@@ -377,9 +367,11 @@ class TracesExecutor:
             return []
 
         with handle_span_query_errors():
+            params, snuba_params = self.params_with_all_projects()
+
             all_queries = self.get_all_queries(
-                self.params,
-                self.snuba_params,
+                params,
+                snuba_params,
                 trace_ids,
             )
 
@@ -593,7 +585,7 @@ class TracesExecutor:
         snuba_params: SnubaParams,
         trace_ids: list[str],
     ) -> tuple[datetime, datetime, list[str]]:
-        all_queries: list[QueryBuilder] = []
+        all_queries: list[BaseQueryBuilder] = []
         timestamp_column: str | None = None
 
         # Putting all the trace ids into a single query will likely encounter the
@@ -658,7 +650,7 @@ class TracesExecutor:
         params: ParamsType,
         snuba_params: SnubaParams,
         sort: str | None = None,
-    ) -> tuple[QueryBuilder, str]:
+    ) -> tuple[BaseQueryBuilder, str]:
         if len(self.user_queries) < 2:
             timestamp_column = "timestamp"
         else:
@@ -736,7 +728,7 @@ class TracesExecutor:
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
-    ) -> list[QueryBuilder]:
+    ) -> list[BaseQueryBuilder]:
         traces_metas_query = self.get_traces_metas_query(
             params,
             snuba_params,
@@ -867,7 +859,7 @@ class TracesExecutor:
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
-    ) -> QueryBuilder:
+    ) -> BaseQueryBuilder:
         query = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             params,
@@ -911,7 +903,7 @@ class TracesExecutor:
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
-    ) -> QueryBuilder:
+    ) -> BaseQueryBuilder:
         query = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             params,
@@ -979,8 +971,8 @@ class TracesExecutor:
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
-    ) -> QueryBuilder:
-        query = QueryBuilder(
+    ) -> BaseQueryBuilder:
+        query = DiscoverQueryBuilder(
             Dataset.Events,
             params,
             snuba_params=snuba_params,
@@ -1010,8 +1002,8 @@ class TracesExecutor:
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
-    ) -> QueryBuilder:
-        query = QueryBuilder(
+    ) -> BaseQueryBuilder:
+        query = DiscoverQueryBuilder(
             Dataset.IssuePlatform,
             params,
             snuba_params=snuba_params,
@@ -1047,7 +1039,7 @@ class OrderedTracesExecutor:
         *,
         params: ParamsType,
         snuba_params: SnubaParams,
-        builder: QueryBuilder,
+        builder: BaseQueryBuilder,
         limit: int,
         timestamp_column: str,
         max_block_size_hours: int,
@@ -1271,7 +1263,7 @@ class TraceSpansExecutor:
         span_keys: list[SpanKey] | None,
         limit: int,
         offset: int,
-    ) -> QueryBuilder:
+    ) -> BaseQueryBuilder:
         user_spans_query = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             params,
@@ -1419,7 +1411,7 @@ class TraceStatsExecutor:
             self.rollup,
         )
 
-    def get_timeseries_query(self) -> QueryBuilder:
+    def get_timeseries_query(self) -> BaseQueryBuilder:
         query = TimeseriesSpanIndexedQueryBuilder(
             Dataset.SpansIndexed,
             self.params,

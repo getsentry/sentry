@@ -15,6 +15,7 @@ from sentry.models.grouphash import GroupHash
 from sentry.models.groupinbox import GroupInbox
 from sentry.models.project import Project
 from sentry.signals import issue_deleted
+from sentry.tasks.delete_seer_grouping_records import call_delete_seer_grouping_records_by_hash
 from sentry.tasks.deletion.groups import delete_groups as delete_groups_task
 from sentry.utils.audit import create_audit_entry
 
@@ -44,6 +45,9 @@ def delete_group_list(
 
     eventstream_state = eventstream.backend.start_delete_groups(project.id, group_ids)
     transaction_id = uuid4().hex
+
+    # Tell seer to delete grouping records for these groups
+    call_delete_seer_grouping_records_by_hash(group_ids)
 
     # We do not want to delete split hashes as they are necessary for keeping groups... split.
     GroupHash.objects.filter(

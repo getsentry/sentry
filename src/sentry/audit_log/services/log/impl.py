@@ -3,7 +3,6 @@ from __future__ import annotations
 import datetime
 
 from django.db import IntegrityError, router, transaction
-from django.db.models import QuerySet
 
 from sentry.audit_log.services.log import AuditLogEvent, LogService, UserIpEvent
 from sentry.db.postgres.transactions import enforce_constraints
@@ -54,12 +53,12 @@ class DatabaseBackedLogService(LogService):
     def find_last_log(
         self,
         *,
-        organization_id: int | None,
+        organization_id: int,
         target_object_id: int | None,
-        event: int | None,
+        event: int,
         data: dict[str, str] | None = None,
     ) -> AuditLogEvent | None:
-        last_entry_q: QuerySet[AuditLogEntry] = AuditLogEntry.objects.filter(
+        last_entry_q = AuditLogEntry.objects.filter(
             organization_id=organization_id,
             target_object=target_object_id,
             event=event,
@@ -82,7 +81,7 @@ class OutboxBackedLogService(LogService):
             category=OutboxCategory.AUDIT_LOG_EVENT,
             object_identifier=RegionOutbox.next_object_identifier(),
             payload=event.__dict__,
-        )  # type: ignore[misc]
+        )
         outbox.save()
 
     def record_user_ip(self, *, event: UserIpEvent) -> None:
@@ -92,15 +91,15 @@ class OutboxBackedLogService(LogService):
             category=OutboxCategory.USER_IP_EVENT,
             object_identifier=event.user_id,
             payload=event.__dict__,
-        )  # type: ignore[misc]
+        )
         outbox.save()
 
     def find_last_log(
         self,
         *,
-        organization_id: int | None,
+        organization_id: int,
         target_object_id: int | None,
-        event: int | None,
+        event: int,
         data: dict[str, str] | None = None,
     ) -> AuditLogEvent | None:
         return None

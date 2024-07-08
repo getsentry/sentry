@@ -1,11 +1,13 @@
 import logging
 from typing import Any
 
+import sentry_sdk
 from django.conf import settings
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
 
 from sentry import options
+from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.embeddings_grouping.utils import (
@@ -20,8 +22,10 @@ from sentry.tasks.embeddings_grouping.utils import (
     make_backfill_grouping_index_redis_key,
     make_backfill_project_index_redis_key,
     send_group_and_stacktrace_to_seer,
+    send_group_and_stacktrace_to_seer_multithreaded,
     update_groups,
 )
+from sentry.utils import redis
 
 BACKFILL_NAME = "backfill_grouping_records"
 BULK_DELETE_METADATA_CHUNK_SIZE = 100
@@ -33,7 +37,7 @@ logger = logging.getLogger(__name__)
 @instrumented_task(
     name="sentry.tasks.backfill_seer_grouping_records",
     queue="backfill_seer_grouping_records",
-    max_retries=0,
+    max_retries=5,
     silo_mode=SiloMode.REGION,
     soft_time_limit=60 * 15,
     time_limit=60 * 15 + 5,
@@ -53,6 +57,7 @@ def backfill_seer_grouping_records_for_project(
     Pass in last_processed_group_index = None if calling for the first time. This function will spawn
     child tasks that will pass the last_processed_group_index
     """
+    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
     logger.info(
         "backfill_seer_grouping_records",
@@ -66,16 +71,12 @@ def backfill_seer_grouping_records_for_project(
     )
 
     try:
-        (
-            project,
-            redis_client,
-            last_processed_group_index,
-            last_processed_project_index,
-        ) = initialize_backfill(
+        (project, last_processed_group_index, last_processed_project_index,) = initialize_backfill(
             current_project_id,
             cohort,
             last_processed_group_index_input,
             last_processed_project_index_input,
+            redis_client,
         )
     except FeatureError:
         logger.info(
@@ -83,6 +84,23 @@ def backfill_seer_grouping_records_for_project(
             extra={"current_project_id": current_project_id},
         )
         # TODO: let's just delete this branch since feature is on
+        return
+    except Project.DoesNotExist:
+        logger.info(
+            "backfill_seer_grouping_records.project_does_not_exist",
+            extra={"current_project_id": current_project_id},
+        )
+        assert last_processed_project_index_input is not None
+        call_next_backfill(
+            last_processed_group_index=None,
+            project_id=current_project_id,
+            redis_client=redis_client,
+            len_group_id_batch_unfiltered=0,
+            last_group_id=None,
+            last_processed_project_index=last_processed_project_index_input,
+            cohort=cohort,
+            only_delete=only_delete,
+        )
         return
 
     if options.get("seer.similarity-backfill-killswitch.enabled"):
@@ -169,19 +187,26 @@ def backfill_seer_grouping_records_for_project(
         if group_id in group_hashes_dict
     ]
 
-    seer_response = send_group_and_stacktrace_to_seer(
-        project,
-        groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
-        nodestore_results,
-    )
+    if options.get("similarity.backfill_seer_threads") > 1:
+        seer_response = send_group_and_stacktrace_to_seer_multithreaded(
+            groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
+            nodestore_results,
+        )
+    else:
+        seer_response = send_group_and_stacktrace_to_seer(
+            groups_to_backfill_with_no_embedding_has_snuba_row_and_nodestore_row,
+            nodestore_results,
+        )
+
     if not seer_response.get("success"):
         logger.info(
-            "backfill_seer_grouping_records.seer_down",
+            "backfill_seer_grouping_records.seer_failed",
             extra={
                 "current_project_id": current_project_id,
                 "last_processed_project_index": last_processed_project_index,
             },
         )
+        sentry_sdk.capture_exception(Exception("Seer failed during backfill"))
         return
 
     update_groups(

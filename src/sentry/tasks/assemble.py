@@ -43,7 +43,7 @@ from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics, redis
 from sentry.utils.db import atomic_transaction
 from sentry.utils.files import get_max_file_size
-from sentry.utils.sdk import bind_organization_context, configure_scope
+from sentry.utils.sdk import Scope, bind_organization_context
 
 logger = logging.getLogger(__name__)
 
@@ -232,8 +232,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     from sentry.models.debugfile import BadDif, create_dif_from_id, detect_dif_from_path
     from sentry.models.project import Project
 
-    with configure_scope() as scope:
-        scope.set_tag("project", project_id)
+    Scope.get_isolation_scope().set_tag("project", project_id)
 
     delete_file = False
 

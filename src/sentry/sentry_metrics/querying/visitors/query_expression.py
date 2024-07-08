@@ -1,6 +1,7 @@
 from collections.abc import Sequence
 from typing import Any
 
+import sentry_sdk
 from snuba_sdk import AliasedExpression, Column, Condition, Formula, Op, Timeseries
 from snuba_sdk.conditions import ConditionGroup
 
@@ -126,6 +127,12 @@ class QueryValidationV2Visitor(QueryExpressionVisitor[QueryExpression]):
         if self._query_namespace is None:
             self._query_namespace = namespace
         elif self._query_namespace != namespace:
+            with sentry_sdk.isolation_scope() as scope:
+                scope.set_extra("query_namespace", self._query_namespace)
+                scope.set_extra("namespace", namespace)
+                sentry_sdk.capture_message(
+                    "Querying metrics belonging to different namespaces is not allowed"
+                )
             raise InvalidMetricsQueryError(
                 "Querying metrics belonging to different namespaces is not allowed"
             )

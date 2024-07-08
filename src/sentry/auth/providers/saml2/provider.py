@@ -19,7 +19,7 @@ from sentry.auth.view import AuthView
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.organizations.services.organization import organization_service
 from sentry.utils.auth import get_login_url
 from sentry.utils.http import absolute_uri
 from sentry.web.frontend.base import BaseView, control_silo_view

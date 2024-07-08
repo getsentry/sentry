@@ -8,10 +8,10 @@ from rest_framework.request import Request
 from sentry.models.activity import Activity
 from sentry.models.groupmeta import GroupMeta
 from sentry.plugins.base.v1 import Plugin
-from sentry.services.hybrid_cloud.usersocialauth.model import RpcUserSocialAuth
-from sentry.services.hybrid_cloud.usersocialauth.service import usersocialauth_service
 from sentry.signals import issue_tracker_used
 from sentry.types.activity import ActivityType
+from sentry.users.services.usersocialauth.model import RpcUserSocialAuth
+from sentry.users.services.usersocialauth.service import usersocialauth_service
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute

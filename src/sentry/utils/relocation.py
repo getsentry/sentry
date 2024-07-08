@@ -17,7 +17,7 @@ from sentry.backup.scopes import RelocationScope
 from sentry.http import get_server_hostname
 from sentry.models.files.utils import get_relocation_storage
 from sentry.models.relocation import Relocation, RelocationFile
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.service import user_service
 from sentry.utils.email.message_builder import MessageBuilder as MessageBuilder
 
 logger = logging.getLogger("sentry.relocation.tasks")

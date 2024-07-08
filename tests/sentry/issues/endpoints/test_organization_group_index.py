@@ -4178,7 +4178,6 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
             ident=grp_resolution.id,
         )
 
-        assert "current_release_version" in activity.data
         assert activity.data["current_release_version"] == release_2.version
 
     def test_in_non_semver_projects_group_resolution_stores_current_release_version(self) -> None:
@@ -4759,6 +4758,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert snooze.user_count is None
         assert snooze.user_window is None
         assert snooze.window is None
+        assert snooze.state is not None
         assert snooze.state["times_seen"] == 1
 
         assert response.data["status"] == "ignored"
@@ -4797,6 +4797,7 @@ class GroupUpdateTest(APITestCase, SnubaTestCase):
         assert snooze.user_count == 10
         assert snooze.user_window is None
         assert snooze.window is None
+        assert snooze.state is not None
         assert snooze.state["users_seen"] == 10
 
         assert response.data["status"] == "ignored"

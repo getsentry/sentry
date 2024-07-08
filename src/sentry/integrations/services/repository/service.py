@@ -10,8 +10,8 @@ from sentry.hybridcloud.rpc.resolvers import ByOrganizationId
 from sentry.hybridcloud.rpc.service import RpcService, regional_rpc_method
 from sentry.integrations.services.repository import RpcRepository
 from sentry.integrations.services.repository.model import RpcCreateRepository
-from sentry.services.hybrid_cloud.user.model import RpcUser
 from sentry.silo.base import SiloMode
+from sentry.users.services.user.model import RpcUser
 
 
 class RepositoryService(RpcService):

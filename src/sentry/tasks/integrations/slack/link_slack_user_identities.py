@@ -11,7 +11,7 @@ from sentry.integrations.utils import get_identities_by_user
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 
@@ -22,16 +22,20 @@ logger = logging.getLogger("sentry.integrations.slack.tasks")
     name="sentry.integrations.slack.link_users_identities",
     queue="integrations.control",
     silo_mode=SiloMode.CONTROL,
+    max_retries=3,
 )
 def link_slack_user_identities(
-    integration_id: int | None = None,
-    organization_id: int | None = None,
+    integration_id: int,
+    organization_id: int,
 ) -> None:
-    if integration_id is not None:
-        integration = integration_service.get_integration(integration_id=integration_id)
-    if organization_id is not None:
-        organization = organization_service.get_organization_by_id(id=organization_id).organization
-    assert organization is not None and integration is not None
+    integration = integration_service.get_integration(integration_id=integration_id)
+    organization = organization_service.get_organization_by_id(id=organization_id).organization
+    if organization is None or integration is None:
+        logger.error(
+            "slack.post_install.link_identities.invalid_params",
+            extra={"organization": organization_id, "integration": integration_id},
+        )
+        return None
 
     emails_by_user = UserEmail.objects.get_emails_by_user(organization=organization)
     idp = IdentityProvider.objects.get(
@@ -80,7 +84,7 @@ def update_identities(slack_data_by_user: Mapping[User, SlackUserData], idp: Ide
         # the Identity matching that idp/external_id combo is linked to a different user
         if not created:
             logger.info(
-                "post_install.identity_linked_different_user",
+                "slack.post_install.identity_linked_different_user",
                 extra={
                     "idp_id": idp.id,
                     "external_id": slack_id,

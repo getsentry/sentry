@@ -20,7 +20,7 @@ from sentry.db.models import (
 )
 from sentry.db.models.base import control_silo_model
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.service import user_service
 
 MAX_ACTOR_LABEL_LENGTH = 64
 

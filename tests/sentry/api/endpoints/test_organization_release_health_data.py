@@ -18,6 +18,7 @@ from sentry.snuba.metrics.naming_layer.public import (
     TransactionStatusTagValue,
     TransactionTagsKey,
 )
+from sentry.snuba.metrics.query import MetricField
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.cursors import Cursor
@@ -1647,8 +1648,10 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
     @patch("sentry.snuba.metrics.fields.base.get_public_name_from_mri")
     @patch("sentry.snuba.metrics.query_builder.get_mri")
     @patch("sentry.snuba.metrics.query.get_public_name_from_mri")
+    @patch("sentry.api.endpoints.organization_release_health_data.parse_field")
     def test_derived_metric_incorrectly_defined_as_singular_entity(
         self,
+        mocked_parse_field,
         mocked_get_public_name_from_mri,
         mocked_get_mri_query,
         mocked_reverse_mri,
@@ -1658,6 +1661,8 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         mocked_get_mri_query.return_value = "crash_free_fake"
         mocked_reverse_mri.return_value = "crash_free_fake"
         mocked_parse_mri.return_value = ParsedMRI("e", "sessions", "crash_free_fake", "none")
+        mocked_parse_field.return_value = MetricField(None, "e:sessions/crashed_free_fake@none")
+
         for status in ["ok", "crashed"]:
             for minute in range(4):
                 self.build_and_store_session(
@@ -2448,12 +2453,10 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             self.store_metric(
                 self.organization.id,
                 self.project.id,
-                "counter",
                 SessionMRI.RAW_SESSION.value,
                 {"session.status": "crashed"},
                 int(session["started"]),
                 +1,
-                use_case_id=UseCaseID.SESSIONS,
             )
 
         response = self.get_success_response(
@@ -2501,12 +2504,10 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
             self.store_metric(
                 self.organization.id,
                 self.project.id,
-                "counter",
                 SessionMRI.RAW_SESSION.value,
                 {"session.status": "crashed"},
                 int(session["started"]),
                 +1,
-                use_case_id=UseCaseID.SESSIONS,
             )
 
         response = self.get_success_response(
@@ -2521,3 +2522,37 @@ class DerivedMetricsDataTest(MetricsAPIBaseTestCase):
         assert group["totals"]["session.crash_rate"] == 1.0  # value is capped at 1.0
         for value in group["series"]["session.crash_rate"]:
             assert value is None or value <= 1
+
+    def test_metric_without_operation_is_not_allowed(self):
+        """
+        Do not allow to query for a metric without operation.
+        For example:
+            - querying for `sentry.sessions.session` is not valid because operation is missing
+            - querying for `sum(sentry.sessions.session)` is valid because operation `sum` exists
+        """
+        self.build_and_store_session(
+            project_id=self.project.id,
+            minutes_before_now=1,
+            status="crashed",
+        )
+
+        response = self.get_error_response(
+            self.organization.slug,
+            field=["sentry.sessions.session"],
+            includeSeries=0,
+            statsPeriod="6m",
+            interval="1m",
+            status_code=400,
+        )
+        result = response.json()
+        assert "detail" in result
+        assert result["detail"] == "You can not use generic metric public field without operation"
+
+        response = self.get_success_response(
+            self.organization.slug,
+            field=["sum(sentry.sessions.session)"],
+            includeSeries=0,
+            statsPeriod="6m",
+            interval="1m",
+        )
+        assert response.status_code == 200

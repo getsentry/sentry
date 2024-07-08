@@ -7,7 +7,7 @@ from typing import TYPE_CHECKING, Any
 from django.contrib.auth.models import AnonymousUser
 from django.utils import timezone
 
-from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.users.services.user.model import RpcUser
 from sentry.utils.email import MessageBuilder
 
 if TYPE_CHECKING:
