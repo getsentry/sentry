@@ -143,8 +143,6 @@ yarn.lock                                                @getsentry/owners-js-de
 ## Hybrid Cloud
 /src/sentry/silo/                                        @getsentry/hybrid-cloud
 /src/sentry/hybridcloud                                  @getsentry/hybrid-cloud
-/src/sentry/services/hybrid_cloud/                       @getsentry/hybrid-cloud
-/src/sentry/middleware/api_gateway.py                    @getsentry/hybrid-cloud
 /src/sentry/middleware/customer_domain.py                @getsentry/hybrid-cloud
 /src/sentry/middleware/subdomain.py                      @getsentry/hybrid-cloud
 /src/sentry/middleware/integration/                      @getsentry/hybrid-cloud
@@ -489,11 +487,13 @@ static/app/components/events/eventStatisticalDetector/                    @getse
 /src/sentry/middleware/ratelimit.py                         @getsentry/issues
 /src/sentry/middleware/access_log.py                        @getsentry/issues
 /src/sentry/ratelimits/                                     @getsentry/issues
+/src/sentry/seer/similarity/                                @getsentry/issues
 /src/sentry/tasks/auto_remove_inbox.py                      @getsentry/issues
 /src/sentry/tasks/auto_resolve_issues.py                    @getsentry/issues
 /src/sentry/tasks/codeowners/                               @getsentry/issues
 /src/sentry/tasks/commits.py                                @getsentry/issues
 /src/sentry/tasks/commit_context.py                         @getsentry/issues
+/src/sentry/tasks/embeddings_grouping/                      @getsentry/issues
 /src/sentry/tasks/post_process.py                           @getsentry/issues
 /src/sentry/tasks/unmerge.py                                @getsentry/issues
 /src/sentry/search/snuba/                                   @getsentry/issues

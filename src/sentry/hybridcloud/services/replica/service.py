@@ -8,7 +8,7 @@ from sentry.hybridcloud.services.control_organization_provisioning import (
     RpcOrganizationSlugReservation,
 )
 from sentry.notifications.services import RpcExternalActor
-from sentry.services.hybrid_cloud.organization import RpcOrganizationMemberTeam, RpcTeam
+from sentry.organizations.services.organization import RpcOrganizationMemberTeam, RpcTeam
 from sentry.silo.base import SiloMode
 
 

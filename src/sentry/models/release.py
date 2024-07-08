@@ -47,8 +47,8 @@ from sentry.models.releases.constants import (
 from sentry.models.releases.exceptions import ReleaseCommitError, UnsafeReleaseDeletion
 from sentry.models.releases.release_project import ReleaseProject
 from sentry.models.releases.util import ReleaseQuerySet, SemverFilter, SemverVersion
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.signals import issue_resolved
+from sentry.users.services.user import RpcUser
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.db import atomic_transaction
@@ -97,7 +97,7 @@ def _get_cache_key(project_id: int, group_id: int, first: bool) -> str:
 
 
 class ReleaseModelManager(BaseManager["Release"]):
-    def get_queryset(self):
+    def get_queryset(self) -> ReleaseQuerySet:
         return ReleaseQuerySet(self.model, using=self._db)
 
     def annotate_prerelease_column(self):

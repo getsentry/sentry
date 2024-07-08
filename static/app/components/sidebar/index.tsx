@@ -52,14 +52,11 @@ import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {releaseLevelAsBadgeProps as CacheModuleBadgeProps} from 'sentry/views/insights/cache/settings';
-import {
-  MODULE_TITLES,
-  useModuleTitle,
-} from 'sentry/views/insights/common/utils/useModuleTitle';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
+import {MODULE_SIDEBAR_TITLE as HTTP_MODULE_SIDEBAR_TITLE} from 'sentry/views/insights/http/settings';
 import {releaseLevelAsBadgeProps as LLMModuleBadgeProps} from 'sentry/views/insights/llmMonitoring/settings';
 import {releaseLevelAsBadgeProps as QueuesModuleBadgeProps} from 'sentry/views/insights/queues/settings';
-import {ModuleName} from 'sentry/views/insights/types';
+import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
@@ -125,7 +122,6 @@ function Sidebar() {
   const activePanel = useLegacyStore(SidebarPanelStore);
   const organization = useOrganization({allowNull: true});
   const {shouldAccordionFloat} = useContext(ExpandedContext);
-  const resourceModuleTitle = useModuleTitle(ModuleName.RESOURCE);
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
   const collapsed = !!preferences.collapsed;
@@ -260,7 +256,9 @@ function Sidebar() {
     <Feature key="http" features="insights-entry-points" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
-        label={<GuideAnchor target="performance-http">{MODULE_TITLES.http}</GuideAnchor>}
+        label={
+          <GuideAnchor target="performance-http">{HTTP_MODULE_SIDEBAR_TITLE}</GuideAnchor>
+        }
         to={`/organizations/${organization.slug}/${moduleURLBuilder('http')}/`}
         id="performance-http"
         icon={<SubitemDot collapsed />}
@@ -361,7 +359,7 @@ function Sidebar() {
     <Feature key="resource" features="insights-entry-points">
       <SidebarItem
         {...sidebarItemProps}
-        label={<GuideAnchor target="starfish">{resourceModuleTitle}</GuideAnchor>}
+        label={<GuideAnchor target="starfish">{MODULE_TITLES.resource}</GuideAnchor>}
         to={`/organizations/${organization.slug}/${moduleURLBuilder('resource')}/`}
         id="performance-browser-resources"
         icon={<SubitemDot collapsed />}

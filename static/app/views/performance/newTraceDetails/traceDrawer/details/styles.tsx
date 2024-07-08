@@ -3,14 +3,16 @@ import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import * as qs from 'query-string';
 
-import {Button} from 'sentry/components/button';
+import {Button, LinkButton} from 'sentry/components/button';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {DropdownMenu, type MenuItemProps} from 'sentry/components/dropdownMenu';
 import Tags from 'sentry/components/events/eventTagsAndScreenshot/tags';
 import {DataSection} from 'sentry/components/events/styles';
 import FileSize from 'sentry/components/fileSize';
 import KeyValueData, {
+  CardPanel,
   type KeyValueDataContentProps,
+  Subject,
 } from 'sentry/components/keyValueData';
 import {LazyRender, type LazyRenderProps} from 'sentry/components/lazyRender';
 import Link from 'sentry/components/links/link';
@@ -39,6 +41,7 @@ import {
   isTransactionNode,
 } from 'sentry/views/performance/newTraceDetails/guards';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
+import {makeTraceContinuousProfilingLink} from 'sentry/views/performance/newTraceDetails/traceDrawer/traceProfilingLink';
 import type {
   MissingInstrumentationNode,
   NoDataNode,
@@ -373,6 +376,7 @@ function NodeActions(props: {
   organization: Organization;
   eventSize?: number | undefined;
 }) {
+  const organization = useOrganization();
   const items = useMemo(() => {
     const showInView: MenuItemProps = {
       key: 'show-in-view',
@@ -429,9 +433,29 @@ function NodeActions(props: {
     return [showInView];
   }, [props]);
 
+  const profilerId = useMemo(() => {
+    if (isTransactionNode(props.node)) {
+      return props.node.value.profiler_id;
+    }
+    if (isSpanNode(props.node)) {
+      return props.node.value.sentry_tags?.profiler_id ?? '';
+    }
+    return '';
+  }, [props]);
+
+  const profileLink = makeTraceContinuousProfilingLink(props.node, profilerId, {
+    orgSlug: props.organization.slug,
+    projectSlug: props.node.value.project_slug,
+  });
+
   return (
     <ActionsContainer>
       <Actions className="Actions">
+        {organization.features.includes('continuous-profiling-ui') && !!profileLink ? (
+          <LinkButton size="xs" to={profileLink}>
+            {t('Continuous Profile')}
+          </LinkButton>
+        ) : null}
         <Button
           size="xs"
           onClick={_e => {
@@ -536,14 +560,31 @@ function SectionCard({
   const contentItems = items.map(item => ({item, ...itemProps}));
 
   return (
-    <KeyValueData.Card
-      title={title}
-      contentItems={contentItems}
-      sortAlphabetically={sortAlphabetically}
-      truncateLength={disableTruncate ? Infinity : 5}
-    />
+    <CardWrapper>
+      <KeyValueData.Card
+        title={title}
+        contentItems={contentItems}
+        sortAlphabetically={sortAlphabetically}
+        truncateLength={disableTruncate ? Infinity : 5}
+      />
+    </CardWrapper>
   );
 }
+
+// This is trace-view specific styling. The card is rendered in a number of different places
+// with tests failing otherwise, since @container queries are not supported by the version of
+// jsdom currently used by jest.
+const CardWrapper = styled('div')`
+  ${CardPanel} {
+    container-type: inline-size;
+  }
+
+  ${Subject} {
+    @container (width < 350px) {
+      max-width: 200px;
+    }
+  }
+`;
 
 function SectionCardGroup({children}: {children: React.ReactNode}) {
   return <KeyValueData.Container>{children}</KeyValueData.Container>;

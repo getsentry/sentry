@@ -9,7 +9,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.integration import IntegrationEndpoint
 from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.models.integrations.integration import Integration
-from sentry.services.hybrid_cloud.organization import RpcOrganization
+from sentry.organizations.services.organization import RpcOrganization
 
 
 @control_silo_endpoint

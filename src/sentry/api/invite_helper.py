@@ -11,7 +11,7 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.user import User
 from sentry.models.useremail import UserEmail
-from sentry.services.hybrid_cloud.organization import (
+from sentry.organizations.services.organization import (
     RpcOrganizationMember,
     RpcUserInviteContext,
     organization_service,

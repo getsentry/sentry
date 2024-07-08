@@ -13,9 +13,7 @@ describe('Metrics Page Header Actions', function () {
     it('display "add custom metrics" button', async function () {
       const addCustomMetric = jest.fn();
 
-      render(
-        <PageHeaderActions showCustomMetricButton addCustomMetric={addCustomMetric} />
-      );
+      render(<PageHeaderActions showAddMetricButton addCustomMetric={addCustomMetric} />);
 
       const button = screen.getByRole('button', {name: 'Add Custom Metrics'});
 
@@ -28,10 +26,13 @@ describe('Metrics Page Header Actions', function () {
 
     it('display "add new metric" button', async function () {
       render(
-        <PageHeaderActions showCustomMetricButton addCustomMetric={() => jest.fn()} />,
+        <PageHeaderActions showAddMetricButton addCustomMetric={() => jest.fn()} />,
         {
           organization: OrganizationFixture({
-            features: ['custom-metrics-extraction-rule'],
+            features: [
+              'custom-metrics-extraction-rule',
+              'custom-metrics-extraction-rule-ui',
+            ],
           }),
         }
       );
@@ -43,7 +44,7 @@ describe('Metrics Page Header Actions', function () {
       await userEvent.click(button);
 
       expect(navigateTo).toHaveBeenCalledWith(
-        `/settings/projects/:projectId/metrics/`,
+        `/settings/projects/:projectId/metrics/configure-metric/`,
         expect.objectContaining({
           params: expect.objectContaining({
             projectId: 'project-slug',

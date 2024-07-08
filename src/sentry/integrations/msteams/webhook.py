@@ -24,8 +24,8 @@ from sentry.models.activity import ActivityIntegration
 from sentry.models.apikey import ApiKey
 from sentry.models.group import Group
 from sentry.models.rule import Rule
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo.base import SiloMode
+from sentry.users.services.user.service import user_service
 from sentry.utils import jwt
 from sentry.utils.audit import create_audit_entry
 from sentry.utils.signing import sign

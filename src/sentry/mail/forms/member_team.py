@@ -7,7 +7,7 @@ from django import forms
 
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.service import user_service
 
 T = TypeVar("T", bound=enum.Enum)
 

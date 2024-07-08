@@ -12,8 +12,8 @@ from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.organization import Organization
 from sentry.models.team import Team
 from sentry.notifications.notifications.base import BaseNotification
-from sentry.services.hybrid_cloud.user import RpcUser
 from sentry.types.actor import Actor
+from sentry.users.services.user import RpcUser
 
 
 def get_context(

@@ -11,10 +11,12 @@ from typing import TYPE_CHECKING, Any, Optional, Union
 from pydantic.fields import Field
 
 from sentry.hybridcloud.rpc import RpcModel
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.users.services.user import RpcUser
 
 if TYPE_CHECKING:
     from django.contrib.auth.models import AnonymousUser
+
+    from sentry.auth.provider import Provider
 
 
 class RpcApiKey(RpcModel):
@@ -190,17 +192,17 @@ class RpcAuthProvider(RpcModel):
     organization_id: int = -1
     provider: str = ""
     flags: RpcAuthProviderFlags = Field(default_factory=lambda: RpcAuthProviderFlags())
-    config: Mapping[str, Any]
+    config: dict[str, Any]
     default_role: int = -1
     default_global_access: bool = False
 
     def __hash__(self) -> int:
         return hash((self.id, self.organization_id, self.provider))
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, Any]:
         return {"provider": self.provider, "config": self.config}
 
-    def get_provider(self):
+    def get_provider(self) -> "Provider":
         from sentry.auth import manager
 
         return manager.get(self.provider, **self.config)
@@ -216,7 +218,7 @@ class RpcAuthIdentity(RpcModel):
     user_id: int = -1
     auth_provider_id: int = -1
     ident: str = ""
-    data: Mapping[str, Any] = Field(default_factory=dict)
+    data: dict[str, Any] = Field(default_factory=dict)
     last_verified: datetime.datetime = Field(default_factory=datetime.datetime.now)
 
 
