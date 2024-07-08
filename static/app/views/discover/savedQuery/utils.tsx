@@ -252,29 +252,73 @@ export function displayModeToDisplayType(displayMode: DisplayModes): DisplayType
 }
 
 export function getSavedQueryDataset(
-  location: Location,
+  location: Location | undefined,
   savedQuery: SavedQuery | undefined,
   splitDecision?: SavedQueryDatasets
 ): SavedQueryDatasets {
-  const dataset = decodeScalar(location.query[DATASET_PARAM]);
+  const dataset = decodeScalar(location?.query?.[DATASET_PARAM]);
   if (dataset) {
     return dataset as SavedQueryDatasets;
   }
   if (savedQuery?.queryDataset === SavedQueryDatasets.DISCOVER && splitDecision) {
     return splitDecision;
   }
-  return (savedQuery?.queryDataset ?? SavedQueryDatasets.ERRORS) as SavedQueryDatasets;
+  return (savedQuery?.queryDataset ?? SavedQueryDatasets.DISCOVER) as SavedQueryDatasets;
 }
 
-export function getDatasetFromSavedQueryDataset(
-  queryDataset: SavedQueryDatasets
-): DiscoverDatasets {
-  switch (queryDataset) {
+export function getSavedQueryWithDataset(
+  savedQuery?: SavedQuery
+): SavedQuery | undefined {
+  if (!savedQuery) {
+    return undefined;
+  }
+  return {
+    ...savedQuery,
+    dataset: getDatasetFromLocationOrSavedQueryDataset(
+      undefined,
+      savedQuery?.queryDataset
+    ),
+  } as SavedQuery;
+}
+
+export function getDatasetFromLocationOrSavedQueryDataset(
+  location: Location | undefined,
+  queryDataset: SavedQueryDatasets | undefined
+): DiscoverDatasets | undefined {
+  const dataset = decodeScalar(location?.query?.dataset);
+  if (dataset) {
+    return dataset as DiscoverDatasets;
+  }
+  const savedQueryDataset = decodeScalar(location?.query?.queryDataset) ?? queryDataset;
+  switch (savedQueryDataset) {
     case SavedQueryDatasets.ERRORS:
       return DiscoverDatasets.ERRORS;
     case SavedQueryDatasets.TRANSACTIONS:
       return DiscoverDatasets.TRANSACTIONS;
-    default:
+    case SavedQueryDatasets.DISCOVER:
       return DiscoverDatasets.DISCOVER;
+    default:
+      return undefined;
+  }
+}
+
+export function getSavedQueryDatasetFromLocationOrDataset(
+  location: Location | undefined,
+  dataset: DiscoverDatasets | undefined
+): SavedQueryDatasets | undefined {
+  const savedQueryDataset = decodeScalar(location?.query?.queryDataset);
+  if (savedQueryDataset) {
+    return savedQueryDataset as SavedQueryDatasets;
+  }
+  const discoverDataset = decodeScalar(location?.query?.dataset) ?? dataset;
+  switch (discoverDataset) {
+    case DiscoverDatasets.ERRORS:
+      return SavedQueryDatasets.ERRORS;
+    case DiscoverDatasets.TRANSACTIONS:
+      return SavedQueryDatasets.TRANSACTIONS;
+    case DiscoverDatasets.DISCOVER:
+      return SavedQueryDatasets.DISCOVER;
+    default:
+      return undefined;
   }
 }

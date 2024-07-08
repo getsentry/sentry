@@ -6,6 +6,7 @@ import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
+import {useMetricsCardinality} from 'sentry/utils/metrics/useMetricsCardinality';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   aggregatesToGroups,
@@ -34,6 +35,10 @@ export function MetricsExtractionRuleEditModal({
     organization.slug,
     project.slug
   );
+
+  const {data: cardinality} = useMetricsCardinality({
+    projects: [parseInt(project.id, 10)],
+  });
 
   const initialData: FormData = useMemo(() => {
     return {
@@ -99,6 +104,7 @@ export function MetricsExtractionRuleEditModal({
           cancelLabel={t('Cancel')}
           onCancel={closeModal}
           onSubmit={handleSubmit}
+          cardinality={cardinality}
           isEdit
           requireChanges
         />

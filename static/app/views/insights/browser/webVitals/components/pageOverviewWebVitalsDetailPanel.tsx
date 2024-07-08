@@ -36,6 +36,7 @@ import type {
   TransactionSampleRowWithScore,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
+import decodeBrowserType from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import useProfileExists from 'sentry/views/insights/browser/webVitals/utils/useProfileExists';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {SpanIndexedField} from 'sentry/views/insights/types';
@@ -87,6 +88,7 @@ export function PageOverviewWebVitalsDetailPanel({
   const routes = useRoutes();
   const {replayExists} = useReplayExists();
 
+  const browserType = decodeBrowserType(location.query[SpanIndexedField.BROWSER_NAME]);
   const isInp = webVital === 'inp';
 
   const replayLinkGenerator = generateReplayLink(routes);
@@ -102,10 +104,11 @@ export function PageOverviewWebVitalsDetailPanel({
       : location.query.transaction
     : undefined;
 
-  const {data: projectData} = useProjectRawWebVitalsQuery({transaction});
+  const {data: projectData} = useProjectRawWebVitalsQuery({transaction, browserType});
   const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
     weightWebVital: webVital ?? 'total',
     transaction,
+    browserType,
   });
 
   const projectScore = calculatePerformanceScoreFromStoredTableDataRow(
@@ -117,12 +120,14 @@ export function PageOverviewWebVitalsDetailPanel({
       transaction: transaction ?? '',
       webVital,
       enabled: Boolean(webVital) && !isInp,
+      browserType,
     });
 
   const {data: inpTableData, isLoading: isInteractionsLoading} =
     useInteractionsCategorizedSamplesQuery({
       transaction: transaction ?? '',
       enabled: Boolean(webVital) && isInp,
+      browserType,
     });
 
   const {profileExists} = useProfileExists(
@@ -130,7 +135,7 @@ export function PageOverviewWebVitalsDetailPanel({
   );
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
-    useProjectRawWebVitalsValuesTimeseriesQuery({transaction});
+    useProjectRawWebVitalsValuesTimeseriesQuery({transaction, browserType});
 
   const webVitalData: LineChartSeries = {
     data:
