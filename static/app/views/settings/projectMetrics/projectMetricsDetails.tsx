@@ -29,7 +29,6 @@ import routeTitleGen from 'sentry/utils/routeTitle';
 import {TextAlignRight} from 'sentry/views/insights/common/components/textAlign';
 import {CodeLocations} from 'sentry/views/metrics/codeLocations';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
-import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 import {BlockButton} from 'sentry/views/settings/projectMetrics/blockButton';
 
 import {useProjectMetric} from '../../../utils/metrics/useMetricsMeta';
@@ -52,7 +51,6 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
 
   const isBlockedMetric = blockingStatus?.isBlocked ?? false;
   const blockMetricMutation = useBlockMetric(project);
-  const {hasAccess} = useAccess({access: ['project:write'], project});
 
   const {type, name, unit} = parseMRI(mri) ?? {};
   const aggregation = getDefaultAggregation(mri);
@@ -112,7 +110,6 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
           <Controls>
             <BlockButton
               size="sm"
-              hasAccess={hasAccess}
               disabled={blockMetricMutation.isLoading}
               isBlocked={isBlockedMetric}
               onConfirm={handleMetricBlockToggle}
@@ -212,7 +209,6 @@ function ProjectMetricsDetails({project, params, organization}: Props) {
               <TextAlignRight>
                 <BlockButton
                   size="xs"
-                  hasAccess={hasAccess}
                   disabled={blockMetricMutation.isLoading || isBlockedMetric}
                   isBlocked={isBlockedTag}
                   onConfirm={() => handleMetricTagBlockToggle(key)}

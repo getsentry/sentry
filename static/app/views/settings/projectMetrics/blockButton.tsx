@@ -9,7 +9,6 @@ type BlockTarget = 'metric' | 'tag';
 
 export interface BlockButtonProps extends BaseButtonProps {
   blockTarget: BlockTarget;
-  hasAccess: boolean;
   isBlocked: boolean;
   onConfirm: () => void;
 }
@@ -51,7 +50,6 @@ export function BlockButton({
   isBlocked,
   blockTarget,
   onConfirm,
-  hasAccess,
   disabled,
   ...props
 }: BlockButtonProps) {
@@ -64,7 +62,7 @@ export function BlockButton({
       }
       // Confirm clones the child element and adds the disabled prop to the clone
       // this will override the disabled prop if passed to the Button itself
-      disabled={!hasAccess || disabled}
+      disabled={disabled}
       confirmText={isBlocked ? t('Activate') : t('Disable')}
     >
       <Button
@@ -79,18 +77,8 @@ export function BlockButton({
     </Confirm>
   );
 
-  const hasTooltip = !hasAccess || !isBlocked;
-
-  return hasTooltip ? (
-    <Tooltip
-      title={
-        hasAccess
-          ? tooltipText[blockTarget]
-          : t('You do not have permissions to edit metrics.')
-      }
-    >
-      {button}
-    </Tooltip>
+  return !isBlocked ? (
+    <Tooltip title={tooltipText[blockTarget]}>{button}</Tooltip>
   ) : (
     button
   );

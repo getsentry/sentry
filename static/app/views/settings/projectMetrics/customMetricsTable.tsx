@@ -23,7 +23,6 @@ import {useMetricsCardinality} from 'sentry/utils/metrics/useMetricsCardinality'
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useAccess} from 'sentry/views/settings/projectMetrics/access';
 import {BlockButton} from 'sentry/views/settings/projectMetrics/blockButton';
 import {useSearchQueryParam} from 'sentry/views/settings/projectMetrics/utils/useSearchQueryParam';
 
@@ -149,7 +148,6 @@ interface MetricsTableProps {
 
 function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
   const blockMetricMutation = useBlockMetric(project);
-  const {hasAccess} = useAccess({access: ['project:write'], project});
   const cardinalityLimit =
     // Retrive limit from BE
     project.relayCustomMetricCardinalityLimit ?? DEFAULT_METRICS_CARDINALITY_LIMIT;
@@ -217,7 +215,6 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
             <Cell right>
               <BlockButton
                 size="xs"
-                hasAccess={hasAccess}
                 disabled={blockMetricMutation.isLoading}
                 isBlocked={isBlocked}
                 blockTarget="metric"
