@@ -62,7 +62,6 @@ __all__ = ["query_groups_past_counts", "parse_groups_past_counts"]
 REFERRER = "sentry.issues.escalating"
 # The amount of data needed to generate a group forecast
 BUCKETS_PER_GROUP = 7 * 24
-ONE_WEEK_DURATION = 7
 IS_ESCALATING_REFERRER = "sentry.issues.escalating.is_escalating"
 GROUP_HOURLY_COUNT_TTL = 60
 HOUR = 3600  # 3600 seconds

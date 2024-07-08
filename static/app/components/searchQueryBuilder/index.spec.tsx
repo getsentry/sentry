@@ -89,6 +89,7 @@ describe('SearchQueryBuilder', function () {
     initialQuery: '',
     filterKeySections: FITLER_KEY_SECTIONS,
     label: 'Query Builder',
+    searchSource: '',
   };
 
   describe('callbacks', function () {

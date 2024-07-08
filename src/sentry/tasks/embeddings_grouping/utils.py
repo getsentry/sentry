@@ -6,7 +6,6 @@ from datetime import UTC, datetime, timedelta
 from typing import Any, TypedDict
 
 import sentry_sdk
-from django.conf import settings
 from google.api_core.exceptions import DeadlineExceeded, ServiceUnavailable
 from redis.client import StrictRedis
 from rediscluster import RedisCluster
@@ -34,7 +33,7 @@ from sentry.seer.similarity.types import (
 from sentry.seer.similarity.utils import filter_null_from_event_title, get_stacktrace_string
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
-from sentry.utils import json, metrics, redis
+from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.safe import get_path
@@ -97,6 +96,7 @@ def initialize_backfill(
     cohort: str | list[int] | None,
     last_processed_group_index: int | None,
     last_processed_project_index: int | None,
+    redis_client: StrictRedis | RedisCluster,
 ):
     logger.info(
         "backfill_seer_grouping_records.start",
@@ -108,8 +108,6 @@ def initialize_backfill(
     project = Project.objects.get_from_cache(id=project_id)
     if not features.has("projects:similarity-embeddings-backfill", project):
         raise FeatureError("Project does not have feature")
-
-    redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
     if last_processed_group_index is None:
         last_processed_group_index_ret = int(
@@ -128,7 +126,7 @@ def initialize_backfill(
     else:
         last_processed_project_index_ret = last_processed_project_index
 
-    return project, redis_client, last_processed_group_index_ret, last_processed_project_index_ret
+    return project, last_processed_group_index_ret, last_processed_project_index_ret
 
 
 @sentry_sdk.tracing.trace

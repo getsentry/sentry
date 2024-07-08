@@ -4,27 +4,14 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import ContextIcon from 'sentry/components/events/contexts/contextIcon';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import {decodeScalar} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
+import decodeBrowserType, {
+  BrowserType,
+} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {SpanIndexedField} from 'sentry/views/insights/types';
-
-// TODO: include both "Google Chrome" and "Chrome" when filtering by Chrome browser
-// Taken from: https://github.com/getsentry/relay/blob/ed2fc8c85b2732011e8262f4f598fa2c9857571d/relay-dynamic-config/src/defaults.rs#L146
-export enum BrowserType {
-  ALL = '',
-  CHROME = 'Chrome',
-  SAFARI = 'Safari',
-  FIREFOX = 'Firefox',
-  OPERA = 'Opera',
-  EDGE = 'Edge',
-  CHROME_MOBILE = 'Chrome Mobile',
-  FIREFOX_MOBILE = 'Firefox Mobile',
-  // Note that Safari uses "Mobile Safari" instead of "Safari Mobile"
-  SAFARI_MOBILE = 'Mobile Safari',
-  EDGE_MOBILE = 'Edge Mobile',
-  OPERA_MOBILE = 'Opera Mobile',
-}
 
 const LabelContainer = styled('div')`
   display: flex;
@@ -56,9 +43,10 @@ const browserOptions = [
 ];
 
 export default function BrowserTypeSelector() {
+  const organization = useOrganization();
   const location = useLocation();
 
-  const value = decodeScalar(location.query[SpanIndexedField.BROWSER_NAME]) ?? '';
+  const value = decodeBrowserType(location.query[SpanIndexedField.BROWSER_NAME]);
 
   return (
     <CompactSelect
@@ -66,6 +54,10 @@ export default function BrowserTypeSelector() {
       value={value}
       options={browserOptions ?? []}
       onChange={newValue => {
+        trackAnalytics('insight.vital.select_browser_value', {
+          organization,
+          browser: newValue.value,
+        });
         browserHistory.push({
           ...location,
           query: {
