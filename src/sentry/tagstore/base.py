@@ -143,7 +143,6 @@ class TagStorage(Service):
         dataset: Dataset = Dataset.Events,
         status=TagKeyStatus.ACTIVE,
         use_cache: bool = False,
-        include_transactions: bool = False,
         tenant_ids=None,
     ):
         """

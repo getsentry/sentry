@@ -1,4 +1,5 @@
 import sentry_sdk
+from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -15,10 +16,6 @@ from sentry.utils.numbers import format_grouped_length
 from sentry.utils.sdk import set_measurement
 
 
-class InvalidDatasetParam(Exception):
-    pass
-
-
 @region_silo_endpoint
 class OrganizationTagsEndpoint(OrganizationEndpoint):
     publish_status = {
@@ -33,7 +30,7 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
             return Response([])
 
         if request.GET.get("dataset") and request.GET.get("dataset") not in Dataset:
-            raise InvalidDatasetParam()
+            raise ParseError("Invalid dataset parameter")
 
         with sentry_sdk.start_span(op="tagstore", description="get_tag_keys_for_projects"):
             with handle_query_errors():
@@ -43,9 +40,7 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
                     filter_params["start"],
                     filter_params["end"],
                     use_cache=request.GET.get("use_cache", "0") == "1",
-                    dataset=Dataset(request.GET.get("dataset", "events")),
-                    # Defaults to True, because the frontend caches these tags globally
-                    include_transactions=request.GET.get("include_transactions", "1") == "1",
+                    dataset=Dataset(request.GET.get("dataset", "discover")),
                     tenant_ids={"organization_id": organization.id},
                 )
 
