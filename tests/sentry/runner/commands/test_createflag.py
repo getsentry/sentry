@@ -58,8 +58,11 @@ class TestCreateFlag(CliTestCase):
             conditions_tuples.append(condition_data)
             cli_input.extend(condition_data)
 
-        # Change last input type to
+        # Change last input to No to discontinue creating conditions
         cli_input[len(cli_input) - 1] = "n"
+
+        # Skip creating more segments
+        cli_input.append("n")
 
         rv = self.invoke(
             "--name=new flag",
