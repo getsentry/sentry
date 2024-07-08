@@ -35,7 +35,7 @@ def query(
     extra_columns=None,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type=None,
-    fallback_to_transactions: bool | None = False,
+    fallback_to_transactions=False,
 ) -> discover.EventsResponse:
     return discover._query(
         selected_columns,

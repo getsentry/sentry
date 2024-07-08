@@ -41,7 +41,7 @@ def query(
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type=None,
-    fallback_to_transactions: bool | None = False,
+    fallback_to_transactions=False,
 ):
     metrics_compatible = not equations
     dataset_reason = discover.DEFAULT_DATASET_REASON
@@ -130,7 +130,7 @@ def timeseries_query(
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type=None,
-    fallback_to_transactions: bool | None = False,
+    fallback_to_transactions=False,
 ) -> SnubaTSResult:
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -213,7 +213,7 @@ def top_events_timeseries(
     functions_acl: list[str] | None = None,
     on_demand_metrics_enabled: bool | None = False,
     on_demand_metrics_type: MetricSpecType | None = None,
-    fallback_to_transactions: bool | None = False,
+    fallback_to_transactions=False,
 ) -> SnubaTSResult | dict[str, Any]:
     metrics_compatible = False
     equations, _ = categorize_columns(selected_columns)

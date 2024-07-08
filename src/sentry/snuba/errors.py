@@ -45,7 +45,7 @@ def query(
     skip_tag_resolution=False,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type: MetricSpecType | None = None,
-    fallback_to_transactions: bool | None = False,
+    fallback_to_transactions=False,
 ) -> EventsResponse:
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
