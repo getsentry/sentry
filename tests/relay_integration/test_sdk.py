@@ -4,7 +4,7 @@ from unittest import mock
 import pytest
 import sentry_sdk
 from django.test.utils import override_settings
-from sentry_sdk import push_scope
+from sentry_sdk import isolation_scope
 
 from sentry import eventstore
 from sentry.eventstore.models import Event
@@ -91,7 +91,7 @@ def test_encoding(settings, post_event_with_sdk):
     class NotJSONSerializable:
         pass
 
-    with push_scope() as scope:
+    with isolation_scope() as scope:
         scope.set_extra("request", NotJSONSerializable())
         event = post_event_with_sdk({"message": "check the req"})
 

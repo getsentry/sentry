@@ -1,4 +1,5 @@
 import {type CSSProperties, useRef} from 'react';
+import {forwardRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
@@ -32,18 +33,21 @@ export interface TimelineItemProps {
   style?: CSSProperties;
 }
 
-export function Item({
-  title,
-  children,
-  icon,
-  timeString,
-  colorConfig = {primary: 'gray300', secondary: 'gray200'},
-  startTimeString,
-  renderTimestamp,
-  isActive = false,
-  style,
-  ...props
-}: TimelineItemProps) {
+export const Item = forwardRef(function _Item(
+  {
+    title,
+    children,
+    icon,
+    timeString,
+    colorConfig = {primary: 'gray300', secondary: 'gray200'},
+    startTimeString,
+    renderTimestamp,
+    isActive = false,
+    style,
+    ...props
+  }: TimelineItemProps,
+  ref: React.ForwardedRef<HTMLDivElement>
+) {
   const theme = useTheme();
   const placeholderTime = useRef(new Date().toTimeString()).current;
   const {primary, secondary} = colorConfig;
@@ -59,11 +63,11 @@ export function Item({
   return (
     <Row
       color={secondary}
-      hasLowerBorder={isActive}
       style={{
         borderBottom: `1px solid ${isActive ? theme[secondary] : 'transparent'}`,
         ...style,
       }}
+      ref={ref}
       {...props}
     >
       <IconWrapper
@@ -83,34 +87,18 @@ export function Item({
       <Spacer
         style={{borderLeft: `1px solid ${isActive ? theme.border : 'transparent'}`}}
       />
-      <Content>{children}</Content>
+      <Content
+        style={{
+          marginBottom: `${isActive ? space(1) : 0}`,
+        }}
+      >
+        {children}
+      </Content>
     </Row>
   );
-}
+});
 
-interface GroupProps {
-  children: React.ReactNode;
-}
-
-export function Container({children}: GroupProps) {
-  return <Wrapper>{children}</Wrapper>;
-}
-
-const Wrapper = styled('div')`
-  position: relative;
-  /* vertical line connecting items */
-  &::before {
-    content: '';
-    position: absolute;
-    left: 10.5px;
-    width: 1px;
-    top: 0;
-    bottom: 0;
-    background: ${p => p.theme.border};
-  }
-`;
-
-const Row = styled('div')<{hasLowerBorder: boolean}>`
+const Row = styled('div')`
   position: relative;
   color: ${p => p.theme.subText};
   display: grid;
@@ -124,10 +112,6 @@ const Row = styled('div')<{hasLowerBorder: boolean}>`
   &:last-child {
     margin-bottom: 0;
     background: ${p => p.theme.background};
-  }
-  &:last-child > :last-child,
-  &:first-child > :last-child {
-    margin-bottom: ${p => (p.hasLowerBorder ? space(1) : 0)};
   }
 `;
 
@@ -143,12 +127,11 @@ const IconWrapper = styled('div')`
   }
 `;
 
-const Title = styled('p')`
-  margin: 0;
+const Title = styled('div')`
   font-weight: bold;
-  text-transform: capitalize;
   text-align: left;
   grid-column: span 1;
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const Timestamp = styled('p')`
@@ -169,10 +152,13 @@ const Content = styled('div')`
   grid-column: span 2;
   color: ${p => p.theme.subText};
   margin: ${space(0.25)} 0 0;
+  font-size: ${p => p.theme.fontSizeSmall};
+  word-wrap: break-word;
 `;
 
 export const Text = styled('div')`
   text-align: left;
+  font-size: ${p => p.theme.fontSizeSmall};
   &:only-child {
     margin-top: 0;
   }
@@ -189,6 +175,20 @@ export const Data = styled('div')`
   position: relative;
   &:only-child {
     margin-top: 0;
+  }
+`;
+
+export const Container = styled('div')`
+  position: relative;
+  /* vertical line connecting items */
+  &::before {
+    content: '';
+    position: absolute;
+    left: 10.5px;
+    width: 1px;
+    top: 0;
+    bottom: 0;
+    background: ${p => p.theme.border};
   }
 `;
 

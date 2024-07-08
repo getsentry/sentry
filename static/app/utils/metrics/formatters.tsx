@@ -17,7 +17,7 @@ import {
 } from 'sentry/utils/formatters';
 import {formatNumberWithDynamicDecimalPoints} from 'sentry/utils/number/formatNumberWithDynamicDecimalPoints';
 
-const metricTypeToReadable: Record<MetricType, string> = {
+const metricTypeToReadable: Record<Exclude<MetricType, 'v'>, string> = {
   c: t('counter'),
   g: t('gauge'),
   d: t('distribution'),

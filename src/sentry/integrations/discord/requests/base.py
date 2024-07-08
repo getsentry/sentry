@@ -13,8 +13,8 @@ from sentry.identity.services.identity import RpcIdentityProvider
 from sentry.identity.services.identity.model import RpcIdentity
 from sentry.identity.services.identity.service import identity_service
 from sentry.integrations.services.integration import RpcIntegration, integration_service
-from sentry.services.hybrid_cloud.user.model import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.service import user_service
 
 from ..utils import logger, verify_signature
 

@@ -22,6 +22,8 @@ import {useProjectWebVitalsScoresTimeseriesQuery} from 'sentry/views/insights/br
 import {useTransactionWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useTransactionWebVitalsScoresQuery';
 import {MODULE_DOC_LINK} from 'sentry/views/insights/browser/webVitals/settings';
 import type {RowWithScoreAndOpportunity} from 'sentry/views/insights/browser/webVitals/types';
+import {applyStaticWeightsToTimeseries} from 'sentry/views/insights/browser/webVitals/utils/applyStaticWeightsToTimeseries';
+import {useStaticWeightsSetting} from 'sentry/views/insights/browser/webVitals/utils/useStaticWeightsSetting';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 
@@ -62,6 +64,12 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
 
   const order = ORDER;
 
+  const shouldUseStaticWeights = useStaticWeightsSetting();
+
+  const weightedTimeseriesData = shouldUseStaticWeights
+    ? applyStaticWeightsToTimeseries(timeseriesData)
+    : timeseriesData;
+
   const getAreaChart = _ => {
     const segmentColors = theme.charts.getColorPalette(3).slice(0, 5);
     return (
@@ -69,7 +77,7 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
         stacked
         height={props.chartHeight}
         data={formatTimeSeriesResultsToChartData(
-          timeseriesData,
+          weightedTimeseriesData,
           segmentColors,
           false,
           order
@@ -99,7 +107,8 @@ export function PerformanceScoreListWidget(props: PerformanceWidgetProps) {
         'count_scores(measurements.score.total)'
       ] as number;
       const opportunity = scoreCount
-        ? (((listItem as RowWithScoreAndOpportunity).opportunity ?? 0) * 100) / scoreCount
+        ? (((listItem as RowWithScoreAndOpportunity).opportunity ?? 0) * 100) /
+          (shouldUseStaticWeights ? 1 : scoreCount) // static weight keys are already normalized
         : 0;
       return (
         <Fragment key={i}>

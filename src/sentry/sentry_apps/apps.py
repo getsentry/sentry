@@ -12,7 +12,7 @@ from django.db.models import Q
 from django.http.request import HttpRequest
 from django.utils import timezone
 from rest_framework.exceptions import ValidationError
-from sentry_sdk.api import push_scope
+from sentry_sdk.api import isolation_scope
 
 from sentry import analytics, audit_log
 from sentry.api.helpers.slugs import sentry_slugify
@@ -39,7 +39,7 @@ from sentry.sentry_apps.installations import (
     SentryAppInstallationTokenCreator,
 )
 from sentry.sentry_apps.services.hook import hook_service
-from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.users.services.user.model import RpcUser
 
 Schema = Mapping[str, Any]
 
@@ -399,7 +399,7 @@ class SentryAppCreator:
                     target_type=IntegrationTypes.SENTRY_APP.value,
                 )
         except IntegrityError:
-            with push_scope() as scope:
+            with isolation_scope() as scope:
                 scope.set_tag("sentry_app", sentry_app.slug)
                 sentry_sdk.capture_message("IntegrityError while creating IntegrationFeature")
 

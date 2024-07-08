@@ -399,6 +399,7 @@ INSTALLED_APPS: tuple[str, ...] = (
     "sentry.replays",
     "sentry.release_health",
     "sentry.search",
+    "sentry.sentry_metrics",
     "sentry.sentry_metrics.indexer.postgres.apps.Config",
     "sentry.snuba",
     "sentry.lang.java.apps.Config",
@@ -1309,8 +1310,8 @@ BGTASKS = {
     },
 }
 
-# Sentry logs to two major places: stdout, and it's internal project.
-# To disable logging to the internal project, add a logger who's only
+# Sentry logs to two major places: stdout, and its internal project.
+# To disable logging to the internal project, add a logger whose only
 # handler is 'console' and disable propagating upwards.
 # Additionally, Sentry has the ability to override logger levels by
 # providing the cli with -l/--loglevel or the SENTRY_LOG_LEVEL env var.
@@ -1449,7 +1450,6 @@ SENTRY_EARLY_FEATURES = {
     "organizations:gitlab-disable-on-broken": "Enable disabling gitlab integrations when broken is detected",
     "organizations:grouping-stacktrace-ui": "Enable experimental new version of stacktrace component where additional data related to grouping is shown on each frame",
     "organizations:grouping-title-ui": "Enable tweaks to group title in relation to hierarchical grouping.",
-    "organizations:issue-details-tag-improvements": "Enable tag improvements in the issue details page",
     "organizations:mobile-cpu-memory-in-transactions": "Display CPU and memory metrics in transactions with profiles",
     "organizations:performance-metrics-backed-transaction-summary": "Enable metrics-backed transaction summary view",
     "organizations:performance-new-trends": "Enable new trends",
@@ -2893,6 +2893,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "monitors-clock-tick": "default",
     "monitors-clock-tasks": "default",
     "uptime-results": "default",
+    "uptime-configs": "default",
     "generic-events": "default",
     "snuba-generic-events-commit-log": "default",
     "group-attributes": "default",
@@ -3073,17 +3074,16 @@ SENTRY_LPQ_OPTIONS = {
     # There is one budget for each of the symbolication platforms: native, js, and jvm.
     # The "project_budget" value exists for backward compatibility.
     #
-    # This has been arbitrarily chosen as `5.0` for native and js, which means an average of:
+    # This has been arbitrarily chosen as `5.0`, which means an average of:
     # -  1x 5-second event per second, or
     # -  5x 1-second events per second, or
     # - 10x 0.5-second events per second
     #
-    # For jvm events we use a higher budget of `7.5`.
     # Cost increases quadratically with symbolication time.
     "project_budget": 5.0,
     "project_budget_native": 5.0,
     "project_budget_js": 5.0,
-    "project_budget_jvm": 7.5,
+    "project_budget_jvm": 5.0,
 }
 
 # XXX(meredith): Temporary metrics indexer

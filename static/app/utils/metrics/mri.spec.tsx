@@ -1,5 +1,11 @@
 import type {MetricType, MRI, ParsedMRI, UseCase} from 'sentry/types/metrics';
-import {getUseCaseFromMRI, parseField, parseMRI, toMRI} from 'sentry/utils/metrics/mri';
+import {
+  formatMRI,
+  getUseCaseFromMRI,
+  parseField,
+  parseMRI,
+  toMRI,
+} from 'sentry/utils/metrics/mri';
 
 describe('parseMRI', () => {
   it('should handle falsy values', () => {
@@ -203,4 +209,17 @@ describe('toMRI', () => {
       expect(toMRI(parsedMRI)).toEqual(mri);
     }
   );
+});
+
+describe('formatMRI', () => {
+  it('returns the metric name', () => {
+    expect(formatMRI('c:custom/foo@none')).toEqual('foo');
+    expect(formatMRI('c:custom/bar@ms')).toEqual('bar');
+    expect(formatMRI('d:transactions/baz@ms')).toEqual('baz');
+  });
+
+  it('strips the projectId from virtual metrics', () => {
+    expect(formatMRI('v:custom/foo|123@none')).toEqual('foo');
+    expect(formatMRI('v:custom/bar|456@ms')).toEqual('bar');
+  });
 });
