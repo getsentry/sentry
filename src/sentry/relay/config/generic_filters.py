@@ -48,7 +48,8 @@ def _chunk_load_error_filter(project: Project) -> GenericFilter | None:
         return None
 
     values = [
-        "ChunkLoadError: Loading chunk *",
+        "ChunkLoadError",
+        "Loading chunk *" "ChunkLoadError: Loading chunk *",
         "*Uncaught *: ChunkLoadError: Loading chunk *",
     ]
 
