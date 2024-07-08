@@ -190,7 +190,10 @@ function TableView(props: TableViewProps) {
 
       let target;
 
-      if (dataRow.trace === null || dataRow.trace === undefined) {
+      if (
+        !dataRow.trace ||
+        ['error', 'default'].includes(dataRow['event.type'].toString())
+      ) {
         if (dataRow['event.type'] === 'transaction') {
           throw new Error(
             'Transaction event should always have a trace associated with it.'
@@ -321,7 +324,10 @@ function TableView(props: TableViewProps) {
     if (columnKey === 'id') {
       let target;
 
-      if (dataRow.trace === null || dataRow.trace === undefined) {
+      if (
+        !dataRow.trace ||
+        ['error', 'default'].includes(dataRow['event.type'].toString())
+      ) {
         if (dataRow['event.type'] === 'transaction') {
           throw new Error(
             'Transaction event should always have a trace associated with it.'
