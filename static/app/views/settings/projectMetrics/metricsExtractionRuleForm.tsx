@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useState} from 'react';
+import {Fragment, useCallback, useId, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -175,7 +175,7 @@ export function MetricsExtractionRuleForm({
     if (customAttributes.length) {
       keys = [...new Set(keys.concat(customAttributes))];
     }
-    return keys;
+    return keys.sort((a, b) => a.localeCompare(b));
   }, [customAttributes, supportedTags]);
 
   const attributeOptions = useMemo(() => {
@@ -194,7 +194,6 @@ export function MetricsExtractionRuleForm({
             : undefined,
           tooltipOptions: {position: 'left'},
         }))
-        .sort((a, b) => a.label.localeCompare(b.label))
         // Sort disabled attributes to bottom
         .sort((a, b) => Number(a.disabled) - Number(b.disabled))
     );
@@ -346,13 +345,18 @@ export function MetricsExtractionRuleForm({
                                 <ConditionSymbol>{index + 1}</ConditionSymbol>
                               )
                             ) : null}
-                            <SearchBar
+                            <SearchBarWithId
                               {...SPAN_SEARCH_CONFIG}
                               searchSource="metrics-extraction"
                               query={condition.value}
                               onSearch={(queryString: string) =>
                                 handleChange(queryString, index)
                               }
+                              onClose={(queryString: string, {validSearch}) => {
+                                if (validSearch) {
+                                  handleChange(queryString, index);
+                                }
+                              }}
                               placeholder={t('Search for span attributes')}
                               organization={organization}
                               metricAlert={false}
@@ -360,9 +364,6 @@ export function MetricsExtractionRuleForm({
                               dataset={DiscoverDatasets.SPANS_INDEXED}
                               projectIds={[parseInt(project.id, 10)]}
                               hasRecentSearches={false}
-                              onBlur={(queryString: string) =>
-                                handleChange(queryString, index)
-                              }
                               savedSearchType={undefined}
                               useFormWrapper={false}
                             />
@@ -395,6 +396,11 @@ export function MetricsExtractionRuleForm({
       )}
     </Form>
   );
+}
+
+function SearchBarWithId(props: React.ComponentProps<typeof SearchBar>) {
+  const id = useId();
+  return <SearchBar id={id} {...props} />;
 }
 
 const ConditionsWrapper = styled('div')<{hasDelete: boolean}>`

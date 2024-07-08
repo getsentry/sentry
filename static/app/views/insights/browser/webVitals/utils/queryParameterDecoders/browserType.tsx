@@ -1,6 +1,21 @@
 import {decodeScalar} from 'sentry/utils/queryString';
-import {BrowserType} from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
 
+// TODO: include both "Google Chrome" and "Chrome" when filtering by Chrome browser
+// Taken from: https://github.com/getsentry/relay/blob/ed2fc8c85b2732011e8262f4f598fa2c9857571d/relay-dynamic-config/src/defaults.rs#L146
+export enum BrowserType {
+  ALL = '',
+  CHROME = 'Chrome',
+  SAFARI = 'Safari',
+  FIREFOX = 'Firefox',
+  OPERA = 'Opera',
+  EDGE = 'Edge',
+  CHROME_MOBILE = 'Chrome Mobile',
+  FIREFOX_MOBILE = 'Firefox Mobile',
+  // Note that Safari uses "Mobile Safari" instead of "Safari Mobile"
+  SAFARI_MOBILE = 'Mobile Safari',
+  EDGE_MOBILE = 'Edge Mobile',
+  OPERA_MOBILE = 'Opera Mobile',
+}
 const DEFAULT = BrowserType.ALL;
 
 export default function decode(value: string | string[] | undefined | null): BrowserType {
