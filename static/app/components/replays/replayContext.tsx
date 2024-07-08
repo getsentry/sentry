@@ -12,6 +12,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import clamp from 'sentry/utils/number/clamp';
 import type useInitialOffsetMs from 'sentry/utils/replays/hooks/useInitialTimeOffsetMs';
 import useRAF from 'sentry/utils/replays/hooks/useRAF';
+import {ReplayCurrentTimeContextProvider} from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePrevious from 'sentry/utils/usePrevious';
@@ -653,35 +654,37 @@ export function Provider({
   }, [isBuffering, buffer.target]);
 
   return (
-    <ReplayPlayerContext.Provider
-      value={{
-        analyticsContext,
-        clearAllHighlights,
-        currentTime,
-        dimensions,
-        fastForwardSpeed,
-        addHighlight,
-        setRoot,
-        isBuffering: isBuffering && !isVideoReplay,
-        isVideoBuffering,
-        isFetching,
-        isVideoReplay,
-        isFinished,
-        isPlaying,
-        isSkippingInactive,
-        removeHighlight,
-        replay,
-        restart,
-        setCurrentTime,
-        setSpeed,
-        speed,
-        togglePlayPause,
-        toggleSkipInactive,
-        ...value,
-      }}
-    >
-      {children}
-    </ReplayPlayerContext.Provider>
+    <ReplayCurrentTimeContextProvider>
+      <ReplayPlayerContext.Provider
+        value={{
+          analyticsContext,
+          clearAllHighlights,
+          currentTime,
+          dimensions,
+          fastForwardSpeed,
+          addHighlight,
+          setRoot,
+          isBuffering: isBuffering && !isVideoReplay,
+          isVideoBuffering,
+          isFetching,
+          isVideoReplay,
+          isFinished,
+          isPlaying,
+          isSkippingInactive,
+          removeHighlight,
+          replay,
+          restart,
+          setCurrentTime,
+          setSpeed,
+          speed,
+          togglePlayPause,
+          toggleSkipInactive,
+          ...value,
+        }}
+      >
+        {children}
+      </ReplayPlayerContext.Provider>
+    </ReplayCurrentTimeContextProvider>
   );
 }
 
