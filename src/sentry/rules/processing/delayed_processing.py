@@ -323,13 +323,10 @@ def build_group_to_groupevent(
 
         group = group_id_to_group.get(int(rule_group[1]))
         if not group or not event:
+            extra = {"rule": rule_group[0], "project_id": project_id}
             if not group:
-                logger.info(
-                    "delayed_processing.missing_group",
-                    extra={"rule": rule_group[0], "project_id": project_id},
-                )
+                logger.info("delayed_processing.missing_group", extra=extra)
             if not event:
-                extra = {"rule": rule_group[0], "project_id": project_id}
                 if group:
                     extra["group_id"] = group.id
 
