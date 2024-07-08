@@ -166,6 +166,7 @@ function renderInviteMembersButton({
   return disabled ? (
     isSsoRequired ? (
       <Tooltip
+        skipWrapper
         title={t(
           `Your organization must use its single sign-on provider to register new members.`
         )}
