@@ -10,8 +10,6 @@ GENERIC_FILTERS_VERSION = 1
 def _error_message_condition(value: Sequence[tuple[str, str]]) -> RuleCondition:
     """
     Condition that expresses error message matching for an inbound filter.
-
-    This condition was inspired by how the error message filter was statically implemented in Relay.
     """
     return cast(
         RuleCondition,
