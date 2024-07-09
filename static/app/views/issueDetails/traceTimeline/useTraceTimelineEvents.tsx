@@ -10,7 +10,6 @@ interface BaseEvent {
   culprit: string; // Used for default events & subtitles
   id: string;
   'issue.id': number;
-  message: string;
   project: string;
   'project.name': string;
   timestamp: string;
@@ -20,19 +19,20 @@ interface BaseEvent {
 
 interface TimelineIssuePlatformEvent extends BaseEvent {
   'event.type': '';
+  message: string; // Used for message for issue platform events
+}
+interface TimelineDefaultEvent extends BaseEvent {
+  'event.type': 'default';
 }
 export interface TimelineErrorEvent extends BaseEvent {
   'error.value': string[]; // Used for message for error events
   'event.type': 'error';
   'stack.function': string[];
 }
-interface TimelineDefaultEvent extends BaseEvent {
-  'event.type': 'default';
-}
 
 export type TimelineEvent =
-  | TimelineErrorEvent
   | TimelineDefaultEvent
+  | TimelineErrorEvent
   | TimelineIssuePlatformEvent;
 
 export interface TraceEventResponse {
@@ -109,7 +109,6 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
           // Other events
           dataset: DiscoverDatasets.DISCOVER,
           field: [
-            'message',
             'title',
             'project',
             'timestamp',

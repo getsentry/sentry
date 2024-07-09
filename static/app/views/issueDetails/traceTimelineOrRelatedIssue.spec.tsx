@@ -344,19 +344,20 @@ describe('TraceTimeline & TraceRelated Issue', () => {
 
 function createEvent({
   culprit,
+  message,
   title,
-  error_value,
+  error_value = [],
   event_type = 'error',
   stack_function = [],
 }: {
   culprit: string;
   title: string;
   error_value?: string[];
-  event_type?: 'error' | 'default' | 'transaction';
+  event_type?: 'default' | 'error' | '';
+  message?: string;
   stack_function?: string[];
 }): TimelineEvent {
   const event = {
-    message: 'message',
     culprit: culprit,
     timestamp: '2024-01-24T09:09:04+00:00',
     'issue.id': 9999,
@@ -366,14 +367,25 @@ function createEvent({
     id: '12345',
     transaction: 'n/a',
     'event.type': event_type,
+    message: 'n/a',
   };
-  if (error_value) {
-    event['error.value'] = error_value;
+  // Use this variable to determine the return value helps typescript
+  let return_event;
+  if (event.event_type === 'error') {
+    return_event = {
+      ...event,
+      'stack.function': stack_function,
+      'error.value': error_value,
+    };
+  } else if (event.event_type === '') {
+    return_event = {
+      ...event,
+      message: message,
+    };
+  } else {
+    return_event = event;
   }
-  if (event_type === 'error' || event_type === 'default') {
-    event['stack.function'] = stack_function;
-  }
-  return event;
+  return return_event;
 }
 
 describe('getTitleSubtitleMessage()', () => {
@@ -443,4 +455,6 @@ describe('getTitleSubtitleMessage()', () => {
       message: '/api/0/organizations/{organization_id_or_slug}/issues/',
     });
   });
+
+  // XXX: Add issue platform case
 });
