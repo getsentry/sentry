@@ -14,64 +14,72 @@ import {
   QueryInterfaceType,
 } from 'sentry/components/searchQueryBuilder/types';
 import {INTERFACE_TYPE_LOCALSTORAGE_KEY} from 'sentry/components/searchQueryBuilder/utils';
+import type {TagCollection} from 'sentry/types';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import localStorageWrapper from 'sentry/utils/localStorage';
+
+const FILTER_KEYS: TagCollection = {
+  [FieldKey.AGE]: {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
+  [FieldKey.ASSIGNED]: {
+    key: FieldKey.ASSIGNED,
+    name: 'Assigned To',
+    kind: FieldKind.FIELD,
+    predefined: true,
+    values: [
+      {
+        title: 'Suggested',
+        type: 'header',
+        icon: null,
+        children: [{value: 'me'}, {value: 'unassigned'}],
+      },
+      {
+        title: 'All',
+        type: 'header',
+        icon: null,
+        children: [{value: 'person1@sentry.io'}, {value: 'person2@sentry.io'}],
+      },
+    ],
+  },
+  [FieldKey.BROWSER_NAME]: {
+    key: FieldKey.BROWSER_NAME,
+    name: 'Browser Name',
+    kind: FieldKind.FIELD,
+    predefined: true,
+    values: ['Chrome', 'Firefox', 'Safari', 'Edge'],
+  },
+  [FieldKey.IS]: {
+    key: FieldKey.IS,
+    name: 'is',
+    predefined: true,
+    values: ['resolved', 'unresolved', 'ignored'],
+  },
+  [FieldKey.TIMES_SEEN]: {
+    key: FieldKey.TIMES_SEEN,
+    name: 'timesSeen',
+    kind: FieldKind.FIELD,
+  },
+  custom_tag_name: {
+    key: 'custom_tag_name',
+    name: 'Custom_Tag_Name',
+  },
+};
 
 const FITLER_KEY_SECTIONS: FilterKeySection[] = [
   {
     value: FieldKind.FIELD,
     label: 'Category 1',
     children: [
-      {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
-      {
-        key: FieldKey.ASSIGNED,
-        name: 'Assigned To',
-        kind: FieldKind.FIELD,
-        predefined: true,
-        values: [
-          {
-            title: 'Suggested',
-            type: 'header',
-            icon: null,
-            children: [{value: 'me'}, {value: 'unassigned'}],
-          },
-          {
-            title: 'All',
-            type: 'header',
-            icon: null,
-            children: [{value: 'person1@sentry.io'}, {value: 'person2@sentry.io'}],
-          },
-        ],
-      },
-      {
-        key: FieldKey.BROWSER_NAME,
-        name: 'Browser Name',
-        kind: FieldKind.FIELD,
-        predefined: true,
-        values: ['Chrome', 'Firefox', 'Safari', 'Edge'],
-      },
-      {
-        key: FieldKey.IS,
-        name: 'is',
-        predefined: true,
-        values: ['resolved', 'unresolved', 'ignored'],
-      },
-      {
-        key: FieldKey.TIMES_SEEN,
-        name: 'timesSeen',
-        kind: FieldKind.FIELD,
-      },
+      FieldKey.AGE,
+      FieldKey.ASSIGNED,
+      FieldKey.BROWSER_NAME,
+      FieldKey.IS,
+      FieldKey.TIMES_SEEN,
     ],
   },
   {
     value: FieldKind.TAG,
     label: 'Category 2',
-    children: [
-      {
-        key: 'custom_tag_name',
-        name: 'Custom_Tag_Name',
-      },
-    ],
+    children: ['custom_tag_name'],
   },
 ];
 
@@ -88,7 +96,9 @@ describe('SearchQueryBuilder', function () {
     getTagValues: jest.fn(),
     initialQuery: '',
     filterKeySections: FITLER_KEY_SECTIONS,
+    filterKeys: FILTER_KEYS,
     label: 'Query Builder',
+    searchSource: '',
   };
 
   describe('callbacks', function () {
@@ -310,6 +320,15 @@ describe('SearchQueryBuilder', function () {
       expect(
         within(group2).getByRole('option', {name: 'custom_tag_name'})
       ).toBeInTheDocument();
+    });
+
+    it('can search by key description', async function () {
+      render(<SearchQueryBuilder {...defaultProps} />);
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.keyboard('assignee');
+
+      // "assignee" is in the description of "assigned"
+      expect(await screen.findByRole('option', {name: 'assigned'})).toBeInTheDocument();
     });
 
     it('can add a new token by clicking a key suggestion', async function () {
@@ -944,23 +963,29 @@ describe('SearchQueryBuilder', function () {
         expect(within(valueButton).getAllByText('or')).toHaveLength(2);
       });
 
-      it('escapes values with spaces and reserved characters', async function () {
-        render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
-        await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
-        await userEvent.type(
-          screen.getByRole('combobox', {name: 'Add a search term'}),
-          'assigned:some" value{enter}'
+      it.each([
+        ['spaces', 'a b', '"a b"'],
+        ['quotes', 'a"b', '"a\\"b"'],
+        ['parens', 'foo()', '"foo()"'],
+      ])('tag values escape %s', async (_, value, expected) => {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="browser.name:"
+          />
         );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+        await userEvent.keyboard(`${value}{enter}`);
+
         // Value should be surrounded by quotes and escaped
-        expect(
-          await screen.findByRole('row', {name: 'assigned:"some\\" value"'})
-        ).toBeInTheDocument();
-        // Display text should be display the original value
-        expect(
-          within(
-            screen.getByRole('button', {name: 'Edit value for filter: assigned'})
-          ).getByText('some" value')
-        ).toBeInTheDocument();
+        await waitFor(() => {
+          expect(mockOnChange).toHaveBeenCalledWith(`browser.name:${expected}`);
+        });
       });
 
       it('can replace a value with a new one', async function () {

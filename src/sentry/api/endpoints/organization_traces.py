@@ -26,10 +26,12 @@ from sentry.api.utils import handle_query_errors
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.models.project import Project
-from sentry.organizations.services.organization import RpcOrganization
-from sentry.search.events.builder import SpansIndexedQueryBuilder, TimeseriesSpanIndexedQueryBuilder
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
+from sentry.search.events.builder.spans_indexed import (
+    SpansIndexedQueryBuilder,
+    TimeseriesSpanIndexedQueryBuilder,
+)
 from sentry.search.events.constants import TIMEOUT_SPAN_ERROR_MESSAGE
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams, WhereType
 from sentry.sentry_metrics.querying.samples_list import SpanKey, get_sample_list_executor_cls
@@ -39,7 +41,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils.iterators import chunked
 from sentry.utils.numbers import clip
 from sentry.utils.sdk import set_measurement
-from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
+from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries, bulk_snuba_queries_with_referrers
 
 MAX_SNUBA_RESULTS = 10_000
 
@@ -108,61 +110,6 @@ class OrganizationTracesEndpointBase(OrganizationEventsV2EndpointBase):
         "GET": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.PERFORMANCE
-
-    def get_snuba_dataclass(
-        self, request: Request, organization: Organization, check_global_views: bool = True
-    ) -> tuple[SnubaParams, dict[str, Any]]:
-        """The trace endpoint always wants to get all projects regardless of what's passed into the API.
-        This is because a trace can span any number of projects in an organization. So disable the
-        check_global_views condition."""
-
-        "We are reverting this decision to allow cross project searches"
-        if features.has(
-            "organizations:performance-trace-explorer-enforce-projects",
-            organization,
-            actor=request.user,
-        ):
-            return super().get_snuba_dataclass(
-                request, organization, check_global_views=check_global_views
-            )
-
-        return super().get_snuba_dataclass(request, organization, check_global_views=False)
-
-    def get_projects(  # type: ignore[override]
-        self,
-        request: Request,
-        organization: Organization | RpcOrganization,
-        project_ids: set[int] | None = None,
-        project_slugs: set[str] | None = None,
-        include_all_accessible: bool = True,
-    ) -> list[Project]:
-        """The trace endpoint always wants to get all projects regardless of what's passed into the API.
-
-        This is because a trace can span any number of projects in an organization. But we still want to
-        use the get_projects function to check for any permissions. So we'll just pass project_ids=-1 everytime
-        which is what would be sent if we wanted all projects"""
-
-        "We are reverting this decision to allow cross project searches"
-        if features.has(
-            "organizations:performance-trace-explorer-enforce-projects",
-            organization,
-            actor=request.user,
-        ):
-            return super().get_projects(
-                request,
-                organization,
-                project_ids=project_ids,
-                project_slugs=project_slugs,
-                include_all_accessible=include_all_accessible,
-            )
-
-        return super().get_projects(
-            request,
-            organization,
-            project_ids={-1},
-            project_slugs=None,
-            include_all_accessible=True,
-        )
 
 
 @region_silo_endpoint
@@ -428,13 +375,13 @@ class TracesExecutor:
                 trace_ids,
             )
 
-            all_raw_results = bulk_snuba_queries(
-                [query.get_snql_query() for query in all_queries],
-                Referrer.API_TRACE_EXPLORER_TRACES_META.value,
+            all_raw_results = bulk_snuba_queries_with_referrers(
+                [(query.get_snql_query(), referrer.value) for query, referrer in all_queries]
             )
 
             all_results = [
-                query.process_results(result) for query, result in zip(all_queries, all_raw_results)
+                query.process_results(result)
+                for (query, _), result in zip(all_queries, all_raw_results)
             ]
 
             # the order of these results is defined by the order
@@ -781,39 +728,37 @@ class TracesExecutor:
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
-    ) -> list[BaseQueryBuilder]:
-        traces_metas_query = self.get_traces_metas_query(
+    ) -> list[tuple[BaseQueryBuilder, Referrer]]:
+        traces_metas_query_with_referrer = self.get_traces_metas_query(
             params,
             snuba_params,
             trace_ids,
         )
 
-        traces_errors_query = self.get_traces_errors_query(
+        traces_errors_query_with_referrer = self.get_traces_errors_query(
             params,
             snuba_params,
             trace_ids,
         )
 
-        traces_occurrences_query = self.get_traces_occurrences_query(
+        traces_occurrences_query_with_referrer = self.get_traces_occurrences_query(
             params,
             snuba_params,
             trace_ids,
         )
 
-        traces_breakdown_projects_query = self.get_traces_breakdown_projects_query(
+        traces_breakdown_projects_query_with_referrer = self.get_traces_breakdown_projects_query(
             params,
             snuba_params,
             trace_ids,
         )
 
-        queries = [
-            traces_metas_query,
-            traces_errors_query,
-            traces_occurrences_query,
-            traces_breakdown_projects_query,
+        return [
+            traces_metas_query_with_referrer,
+            traces_errors_query_with_referrer,
+            traces_occurrences_query_with_referrer,
+            traces_breakdown_projects_query_with_referrer,
         ]
-
-        return queries
 
     def process_final_results(
         self,
@@ -912,7 +857,7 @@ class TracesExecutor:
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
-    ) -> BaseQueryBuilder:
+    ) -> tuple[BaseQueryBuilder, Referrer]:
         query = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             params,
@@ -949,14 +894,14 @@ class TracesExecutor:
             ]
         )
 
-        return query
+        return query, Referrer.API_TRACE_EXPLORER_TRACES_BREAKDOWNS
 
     def get_traces_metas_query(
         self,
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
-    ) -> BaseQueryBuilder:
+    ) -> tuple[BaseQueryBuilder, Referrer]:
         query = SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
             params,
@@ -1017,14 +962,14 @@ class TracesExecutor:
         if options.get("performance.traces.trace-explorer-skip-floating-spans"):
             query.add_conditions([Condition(Column("transaction_id"), Op.IS_NOT_NULL, None)])
 
-        return query
+        return query, Referrer.API_TRACE_EXPLORER_TRACES_META
 
     def get_traces_errors_query(
         self,
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
-    ) -> BaseQueryBuilder:
+    ) -> tuple[BaseQueryBuilder, Referrer]:
         query = DiscoverQueryBuilder(
             Dataset.Events,
             params,
@@ -1048,14 +993,14 @@ class TracesExecutor:
             ]
         )
 
-        return query
+        return query, Referrer.API_TRACE_EXPLORER_TRACES_ERRORS
 
     def get_traces_occurrences_query(
         self,
         params: ParamsType,
         snuba_params: SnubaParams,
         trace_ids: list[str],
-    ) -> BaseQueryBuilder:
+    ) -> tuple[BaseQueryBuilder, Referrer]:
         query = DiscoverQueryBuilder(
             Dataset.IssuePlatform,
             params,
@@ -1079,7 +1024,7 @@ class TracesExecutor:
             ]
         )
 
-        return query
+        return query, Referrer.API_TRACE_EXPLORER_TRACES_OCCURRENCES
 
 
 class OrderedTracesExecutor:

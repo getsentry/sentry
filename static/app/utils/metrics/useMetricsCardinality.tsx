@@ -1,11 +1,10 @@
-import type {Project} from 'sentry/types/project';
 import {
   type MetricsQueryApiQueryParams,
   useMetricsQuery,
 } from 'sentry/utils/metrics/useMetricsQuery';
 
 type Props = {
-  project: Project;
+  projects: (number | string)[];
 };
 
 const CARDINALITY_QUERIES = [
@@ -28,13 +27,13 @@ const CARDINALITY_DATE_TIME = {
 
 const CARDINALITY_INTERVAL = '1h';
 
-export function useMetricsCardinality({project}: Props) {
+export function useMetricsCardinality({projects}: Props) {
   const cardinalityQuery = useMetricsQuery(
     CARDINALITY_QUERIES,
     {
       environments: [],
       datetime: CARDINALITY_DATE_TIME,
-      projects: [parseInt(project.id, 10)],
+      projects: projects,
     },
     {interval: CARDINALITY_INTERVAL, includeSeries: false}
   );

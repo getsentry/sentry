@@ -50,6 +50,7 @@ from sentry.utils.snowflake import save_with_snowflake_id, snowflake_id_model
 
 if TYPE_CHECKING:
     from sentry.models.options.project_option import ProjectOptionManager
+    from sentry.models.options.project_template_option import ProjectTemplateOptionManager
     from sentry.models.user import User
 
 SENTRY_USE_SNOWFLAKE = getattr(settings, "SENTRY_USE_SNOWFLAKE", False)
@@ -407,9 +408,19 @@ class Project(Model, PendingDeletionMixin):
 
         return ProjectOption.objects
 
+    @property
+    def template_manager(self) -> ProjectTemplateOptionManager:
+        from sentry.models.options.project_template_option import ProjectTemplateOption
+
+        return ProjectTemplateOption.objects
+
     def get_option(
         self, key: str, default: Any | None = None, validate: Callable[[object], bool] | None = None
     ) -> Any:
+        # if the option is not set, check the template
+        if not self.option_manager.isset(self, key) and self.template is not None:
+            return self.template_manager.get_value(self.template, key, default, validate)
+
         return self.option_manager.get_value(self, key, default, validate)
 
     def update_option(self, key: str, value: Any) -> bool:

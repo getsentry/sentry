@@ -1,11 +1,14 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {
+  render,
+  renderGlobalModal,
+  screen,
+  userEvent,
+} from 'sentry-test/reactTestingLibrary';
 
-import {navigateTo} from 'sentry/actionCreators/navigation';
 import {PageHeaderActions} from 'sentry/views/metrics/pageHeaderActions';
 
-jest.mock('sentry/actionCreators/navigation');
 jest.mock('sentry/views/metrics/useCreateDashboard');
 
 describe('Metrics Page Header Actions', function () {
@@ -29,10 +32,14 @@ describe('Metrics Page Header Actions', function () {
         <PageHeaderActions showAddMetricButton addCustomMetric={() => jest.fn()} />,
         {
           organization: OrganizationFixture({
-            features: ['custom-metrics-extraction-rule'],
+            features: [
+              'custom-metrics-extraction-rule',
+              'custom-metrics-extraction-rule-ui',
+            ],
           }),
         }
       );
+      renderGlobalModal();
 
       const button = screen.getByRole('button', {name: 'Add New Metric'});
 
@@ -40,14 +47,9 @@ describe('Metrics Page Header Actions', function () {
 
       await userEvent.click(button);
 
-      expect(navigateTo).toHaveBeenCalledWith(
-        `/settings/projects/:projectId/metrics/configure-metric/`,
-        expect.objectContaining({
-          params: expect.objectContaining({
-            projectId: 'project-slug',
-          }),
-        })
-      );
+      expect(
+        await screen.findByRole('heading', {name: /Configure Metric/})
+      ).toBeInTheDocument();
     });
   });
 });

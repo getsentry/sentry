@@ -7,14 +7,22 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
+import {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 
 type Props = {
+  browserType?: BrowserType;
   dataset?: DiscoverDatasets;
   tag?: Tag;
   transaction?: string;
 };
 
-export const useProjectRawWebVitalsQuery = ({transaction, tag, dataset}: Props = {}) => {
+export const useProjectRawWebVitalsQuery = ({
+  transaction,
+  tag,
+  dataset,
+  browserType,
+}: Props = {}) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const location = useLocation();
@@ -24,6 +32,9 @@ export const useProjectRawWebVitalsQuery = ({transaction, tag, dataset}: Props =
   }
   if (tag) {
     search.addFilterValue(tag.key, tag.name);
+  }
+  if (browserType !== undefined && browserType !== BrowserType.ALL) {
+    search.addFilterValue(SpanIndexedField.BROWSER_NAME, browserType);
   }
 
   const projectEventView = EventView.fromNewQueryWithPageFilters(

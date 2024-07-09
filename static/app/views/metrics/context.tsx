@@ -23,7 +23,7 @@ import {
   MetricExpressionType,
   type MetricsWidget,
 } from 'sentry/utils/metrics/types';
-import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
+import {useVirtualizedMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
@@ -237,21 +237,27 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
   const updateQuery = useUpdateQuery();
   const {multiChartMode} = useLocationQuery({fields: {multiChartMode: decodeInteger}});
   const pageFilters = usePageFilters();
-  const {data: metaCustom, isLoading: isMetaCustomLoading} = useMetricsMeta(
+  const {data: metaCustom, isLoading: isMetaCustomLoading} = useVirtualizedMetricsMeta(
     pageFilters.selection,
-    ['custom']
+    ['custom'],
+    true,
+    pageFilters.isReady
   );
-  const {data: metaPerformance, isLoading: isMetaPerformanceLoading} = useMetricsMeta(
-    pageFilters.selection,
-    ['transactions', 'spans']
-  );
+  const {data: metaPerformance, isLoading: isMetaPerformanceLoading} =
+    useVirtualizedMetricsMeta(
+      pageFilters.selection,
+      ['transactions', 'spans'],
+      true,
+      pageFilters.isReady
+    );
   const isMultiChartMode = multiChartMode === 1;
+  const firstCustomMetric = metaCustom[0]?.mri;
 
   const {setDefaultQuery, isDefaultQuery} = useDefaultQuery();
 
   const [selectedWidgetIndex, setSelectedWidgetIndex] = useState(0);
   const {widgets, updateWidget, addWidget, removeWidget, duplicateWidget, setWidgets} =
-    useMetricWidgets(metaCustom[0]?.mri);
+    useMetricWidgets(firstCustomMetric);
 
   const [metricsSamples, setMetricsSamples] = useState<
     MetricsSamplesResults<Field>['data'] | undefined
