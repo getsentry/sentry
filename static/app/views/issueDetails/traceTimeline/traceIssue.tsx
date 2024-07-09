@@ -10,7 +10,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 
-import type {TimelineEvent, TimelineIssuePlatformEvent} from './useTraceTimelineEvents';
+import type {TimelineEvent} from './useTraceTimelineEvents';
 
 interface TraceIssueEventProps {
   event: TimelineEvent;
@@ -92,19 +92,15 @@ export function getTitleSubtitleMessage(event: TimelineEvent) {
       // It uses metadata.value which could differ depending on what error.value is used in the event manager
       // TODO: Add support for chained exceptions since we grab the value from the first stack trace
       // https://github.com/getsentry/sentry/blob/a221f399d2b4190f2631fcca311bdb5b3748838b/src/sentry/eventtypes/error.py#L115-L134
-      message = event['error.value'].at(-1);
+      message = event['error.value'].at(-1) ?? '';
     } else if (event['event.type'] === 'default') {
       // See getTitle() and getMessage() in sentry/utils/events.tsx
       subtitle = '';
       message = event.culprit;
     } else {
-      const issuePlatformEvent = event as TimelineIssuePlatformEvent;
       // It is suspected that this value is calculated somewhere in Relay
       // and we deconstruct it here to match what the Issue details page shows
-      message = issuePlatformEvent.message
-        .replace(event.culprit, '')
-        .replace(title, '')
-        .trimStart();
+      message = event.message.replace(event.culprit, '').replace(title, '').trimStart();
     }
   } catch (error) {
     // If we fail, report it so we can figure it out
