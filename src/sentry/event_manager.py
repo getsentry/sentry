@@ -33,7 +33,7 @@ from sentry import (
 from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attachment_cache
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
-    INSIGHT_MODULE_SPAN_FILTERS,
+    INSIGHT_MODULE_FILTERS,
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
     PLACEHOLDER_EVENT_TITLES,
@@ -499,10 +499,8 @@ class EventManager:
                     project=project, event=jobs[0]["event"], sender=Project
                 )
 
-            for module, is_module_span in INSIGHT_MODULE_SPAN_FILTERS.items():
-                if not get_project_insight_flag(project, module) and any(
-                    [is_module_span(span) for span in job["data"]["spans"]]
-                ):
+            for module, is_module in INSIGHT_MODULE_FILTERS.items():
+                if not get_project_insight_flag(project, module) and is_module(job["data"]):
                     first_insight_span_received.send_robust(
                         project=project, module=module, sender=Project
                     )
