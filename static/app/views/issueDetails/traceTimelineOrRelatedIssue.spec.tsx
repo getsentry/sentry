@@ -61,7 +61,6 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     meta: {fields: {}, units: {}},
   };
   const mainError: TimelineErrorEvent = {
-    message: 'This is the message for the issue',
     culprit: 'n/a',
     'error.value': ['some-other-error-value', 'The last error value'],
     timestamp: firstEventTimestamp,
@@ -75,7 +74,6 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     'stack.function': ['important.task', 'task.run'],
   };
   const secondError: TimelineErrorEvent = {
-    message: 'Message of the second issue',
     culprit: 'billiard.pool in foo', // Used for subtitle
     'error.value': ['some-other-error-value', 'The last error value'],
     timestamp: '2024-01-24T09:09:04+00:00',
@@ -369,15 +367,16 @@ function createEvent({
     'event.type': event_type,
     message: 'n/a',
   };
+
   // Use this variable to determine the return value helps typescript
   let return_event;
-  if (event.event_type === 'error') {
+  if (event['event.type'] === 'error') {
     return_event = {
       ...event,
       'stack.function': stack_function,
       'error.value': error_value,
     };
-  } else if (event.event_type === '') {
+  } else if (event['event.type'] === '') {
     return_event = {
       ...event,
       message: message,
