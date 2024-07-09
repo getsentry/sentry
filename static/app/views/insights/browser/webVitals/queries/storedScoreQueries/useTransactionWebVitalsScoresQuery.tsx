@@ -12,13 +12,13 @@ import type {
   RowWithScoreAndOpportunity,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
-import {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useStaticWeightsSetting} from 'sentry/views/insights/browser/webVitals/utils/useStaticWeightsSetting';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 
 type Props = {
-  browserType?: BrowserType;
+  browserTypes?: BrowserType[];
   defaultSort?: Sort;
   enabled?: boolean;
   limit?: number;
@@ -38,7 +38,7 @@ export const useTransactionWebVitalsScoresQuery = ({
   webVital = 'total',
   query,
   shouldEscapeFilters = true,
-  browserType,
+  browserTypes,
 }: Props) => {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
@@ -62,8 +62,8 @@ export const useTransactionWebVitalsScoresQuery = ({
   if (transaction) {
     search.addFilterValue('transaction', transaction, shouldEscapeFilters);
   }
-  if (browserType !== undefined && browserType !== BrowserType.ALL) {
-    search.addFilterValue(SpanIndexedField.BROWSER_NAME, browserType);
+  if (browserTypes) {
+    search.addDisjunctionFilterValues(SpanIndexedField.BROWSER_NAME, browserTypes);
   }
   const eventView = EventView.fromNewQueryWithPageFilters(
     {

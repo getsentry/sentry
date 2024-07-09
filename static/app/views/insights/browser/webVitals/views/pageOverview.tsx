@@ -35,7 +35,7 @@ import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVita
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
-import decodeBrowserType from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
@@ -94,14 +94,14 @@ export function PageOverview() {
   const crumbs = useModuleBreadcrumbs('vital');
 
   const query = decodeScalar(location.query.query);
-  const browserType = decodeBrowserType(location.query[SpanIndexedField.BROWSER_NAME]);
+  const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
 
   const {data: pageData, isLoading} = useProjectRawWebVitalsQuery({
     transaction,
-    browserType,
+    browserTypes,
   });
   const {data: projectScores, isLoading: isProjectScoresLoading} =
-    useProjectWebVitalsScoresQuery({transaction, browserType});
+    useProjectWebVitalsScoresQuery({transaction, browserTypes});
 
   if (transaction === undefined) {
     // redirect user to webvitals landing page
@@ -236,7 +236,7 @@ export function PageOverview() {
                 projectScore={projectScore}
                 transaction={transaction}
                 projectScoreIsLoading={isLoading}
-                browserType={browserType}
+                browserTypes={browserTypes}
               />
             </Layout.Side>
           </Layout.Body>

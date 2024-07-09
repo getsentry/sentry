@@ -34,7 +34,7 @@ import {
   MODULE_TITLE,
 } from 'sentry/views/insights/browser/webVitals/settings';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
-import decodeBrowserType from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
@@ -53,11 +53,11 @@ export function WebVitalsLandingPage() {
     webVital: (location.query.webVital as WebVitals) ?? null,
   });
 
-  const browserType = decodeBrowserType(location.query[SpanIndexedField.BROWSER_NAME]);
+  const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
 
-  const {data: projectData, isLoading} = useProjectRawWebVitalsQuery({browserType});
+  const {data: projectData, isLoading} = useProjectRawWebVitalsQuery({browserTypes});
   const {data: projectScores, isLoading: isProjectScoresLoading} =
-    useProjectWebVitalsScoresQuery({browserType});
+    useProjectWebVitalsScoresQuery({browserTypes});
 
   const projectScore =
     isProjectScoresLoading || isLoading
@@ -112,7 +112,7 @@ export function WebVitalsLandingPage() {
                   projectScore={projectScore}
                   isProjectScoreLoading={isLoading || isProjectScoresLoading}
                   webVital={state.webVital}
-                  browserType={browserType}
+                  browserTypes={browserTypes}
                 />
               </PerformanceScoreChartContainer>
               <WebVitalMetersContainer>

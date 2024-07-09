@@ -203,6 +203,26 @@ export class MutableSearch {
     return this;
   }
 
+  /**
+   * Adds the filter values separated by OR operators. This is in contrast to
+   * addFilterValues, which implicitly separates each filter value with an AND operator.
+   */
+  addDisjunctionFilterValues(key: string, values: string[], shouldEscape = true) {
+    if (values.length === 0) {
+      return this;
+    }
+
+    this.addOp('(');
+    for (let i = 0; i < values.length; i++) {
+      if (i > 0) {
+        this.addOp('OR');
+      }
+      this.addFilterValue(key, values[i], shouldEscape);
+    }
+    this.addOp(')');
+    return this;
+  }
+
   addFilterValue(key: string, value: string, shouldEscape = true) {
     // Filter values that we insert through the UI can contain special characters
     // that need to escaped. User entered filters should not be escaped.

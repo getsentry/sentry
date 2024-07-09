@@ -28,7 +28,7 @@ const CHART_HEIGHTS = 100;
 
 type Props = {
   transaction: string;
-  browserType?: BrowserType;
+  browserTypes?: BrowserType[];
   projectScore?: ProjectScore;
   projectScoreIsLoading?: boolean;
   search?: string;
@@ -38,7 +38,7 @@ export function PageOverviewSidebar({
   projectScore,
   transaction,
   projectScoreIsLoading,
-  browserType,
+  browserTypes,
 }: Props) {
   const theme = useTheme();
   const router = useRouter();
@@ -61,7 +61,7 @@ export function PageOverviewSidebar({
   const {data, isLoading: isLoading} = useProjectRawWebVitalsValuesTimeseriesQuery({
     transaction,
     datetime: doubledDatetime,
-    browserType,
+    browserTypes,
   });
 
   const {countDiff, currentSeries, currentCount, initialCount} = processSeriesData(
