@@ -4,7 +4,7 @@ import * as Sentry from '@sentry/react';
 import {saveRecentSearch} from 'sentry/actionCreators/savedSearches';
 import type {Client} from 'sentry/api';
 import {tokenIsInvalid} from 'sentry/components/searchQueryBuilder/utils';
-import type {ParseResult} from 'sentry/components/searchSyntax/parser';
+import {type ParseResult, Token} from 'sentry/components/searchSyntax/parser';
 import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useApi from 'sentry/utils/useApi';
@@ -42,6 +42,46 @@ async function saveAsRecentSearch({
   }
 }
 
+function trackIndividualSearchFilters({
+  parsedQuery,
+  searchType,
+  searchSource,
+  query,
+  organization,
+}: {
+  organization: Organization;
+  parsedQuery: ParseResult | null;
+  query: string;
+  searchSource: string;
+  searchType: string;
+}) {
+  try {
+    parsedQuery?.forEach(token => {
+      if (token.type !== 'filter') {
+        return;
+      }
+
+      const values =
+        token.value.type === Token.VALUE_TEXT_LIST ||
+        token.value.type === Token.VALUE_NUMBER_LIST
+          ? token.value.items.map(item => item.value.text)
+          : [token.value.text];
+
+      trackAnalytics('search.searched_filter', {
+        organization,
+        query,
+        key: token.key.text,
+        values,
+        search_type: searchType,
+        search_source: searchSource,
+        new_experience: true,
+      });
+    });
+  } catch (e) {
+    Sentry.captureException(e);
+  }
+}
+
 export function useHandleSearch({
   parsedQuery,
   savedSearchType,
@@ -74,6 +114,14 @@ export function useHandleSearch({
         search_type: searchType,
         search_source: searchSource,
         new_experience: true,
+      });
+
+      trackIndividualSearchFilters({
+        parsedQuery,
+        searchType,
+        searchSource,
+        query,
+        organization,
       });
 
       saveAsRecentSearch({api, organization, query, savedSearchType});
