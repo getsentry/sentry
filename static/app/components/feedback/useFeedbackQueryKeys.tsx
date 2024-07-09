@@ -39,9 +39,9 @@ export function FeedbackQueryKeys({children, organization}: Props) {
   // the list (the head element in the array); the same time as when we loaded
   // the page. It can be updated without loading the page, when we want to see
   // fresh list items.
-  const [listHeadTime, setHeadTime] = useState(() => Date.now());
+  const [listHeadTime, setHeadTimeMs] = useState(() => Date.now());
   const resetListHeadTime = useCallback(() => {
-    setHeadTime(Date.now());
+    setHeadTimeMs(Date.now());
   }, []);
 
   const itemQueryKeyRef = useRef<Map<string, ItemQueryKeys>>(new Map());
