@@ -75,6 +75,7 @@ export const Item = forwardRef(function _Item(
           borderColor: isActive ? theme[secondary] : 'transparent',
           color: theme[primary],
         }}
+        className="icon-wrapper"
       >
         {icon}
       </IconWrapper>

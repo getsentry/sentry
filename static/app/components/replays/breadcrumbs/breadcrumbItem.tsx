@@ -34,6 +34,7 @@ import {
   isFeedbackFrame,
   isHydrationErrorFrame,
 } from 'sentry/utils/replays/types';
+import type {Color} from 'sentry/utils/theme';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 import IconWrapper from 'sentry/views/replays/detail/iconWrapper';
@@ -124,11 +125,15 @@ function BreadcrumbItem({
   const timeString = new Date(frame.timestampMs).toISOString();
   const startTimeString = new Date(startTimestampMs).toISOString();
   if (hasNewTimelineUI) {
+    // Coerce previous design colors into new ones. After 'new-timeline-ui' is GA, we can modify
+    // the mapper directly.
+    const darkColor =
+      color === 'gray300' ? color : (color.replace('300', '400') as Color);
     return (
       <StyledTimelineItem
         icon={icon}
         title={title}
-        colorConfig={{primary: color, secondary: color}}
+        colorConfig={{primary: darkColor, secondary: color}}
         timeString={timeString}
         renderTimestamp={(_ts, _sts) => (
           <ReplayTimestamp>
@@ -299,6 +304,9 @@ const StyledTimelineItem = styled(Timeline.Item)`
   margin: 0;
   &:hover {
     background: ${p => p.theme.translucentSurface200};
+    .icon-wrapper {
+      background: ${p => p.theme.translucentSurface200};
+    }
   }
   cursor: pointer;
   /* vertical line connecting items */
