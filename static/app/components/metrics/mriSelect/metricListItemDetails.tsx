@@ -151,7 +151,7 @@ export function MetricListItemDetails({
               size="xs"
               to={
                 isVirtualMetric
-                  ? `/settings/projects/${firstMetricProject.slug}/metrics/${formatMRI(metric.mri)}/edit`
+                  ? `/settings/projects/${firstMetricProject.slug}/metrics/`
                   : `/settings/projects/${firstMetricProject.slug}/metrics/${encodeURIComponent(metric.mri)}`
               }
               aria-label={t('Open metric settings')}

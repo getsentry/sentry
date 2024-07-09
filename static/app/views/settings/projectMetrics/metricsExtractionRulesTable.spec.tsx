@@ -6,24 +6,21 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import * as useNavigate from 'sentry/utils/useNavigate';
+import type {MetricsExtractionRule} from 'sentry/types/metrics';
 
 import {MetricsExtractionRulesTable} from './metricsExtractionRulesTable';
 
-const MockNavigate = jest.fn();
-jest.mock('sentry/utils/useNavigate', () => ({
-  useNavigate: () => MockNavigate,
-}));
 describe('Metrics Extraction Rules Table', function () {
-  const {router, project, organization} = initializeOrg();
+  const {project, organization} = initializeOrg();
 
   beforeEach(function () {
     MockApiClient.addMockResponse({
-      url: `/projects/${organization.slug}/${project.slug}/metrics/extraction-rules/`,
+      url: `/projects/${organization.slug}/${project.id}/metrics/extraction-rules/`,
       method: 'GET',
       body: [
         {
           spanAttribute: 'span.duration',
+          projectId: Number(project.id),
           aggregates: [
             'count',
             'count_unique',
@@ -50,7 +47,7 @@ describe('Metrics Extraction Rules Table', function () {
               ],
             },
           ],
-        },
+        } satisfies MetricsExtractionRule,
       ],
     });
     MockApiClient.addMockResponse({
@@ -65,34 +62,11 @@ describe('Metrics Extraction Rules Table', function () {
   });
 
   it('shall open the modal to edit a rule by clicking on edit', async function () {
-    jest.spyOn(useNavigate, 'useNavigate');
-
     render(<MetricsExtractionRulesTable project={project} />);
+    renderGlobalModal();
 
     const editButton = await screen.findByLabelText('Edit metric');
     await userEvent.click(editButton);
-
-    expect(MockNavigate).toHaveBeenCalledWith(
-      `/settings/projects/${project.slug}/metrics/span.duration/edit/`
-    );
-  });
-
-  it('shall open the modal to edit a rule if edit path in URL', async function () {
-    jest.spyOn(useNavigate, 'useNavigate');
-
-    render(<MetricsExtractionRulesTable project={project} />, {
-      router: {
-        location: {
-          ...router.location,
-          pathname: `/settings/projects/${project.slug}/metrics/span.duration/edit/`,
-        },
-        params: {
-          spanAttribute: 'span.duration',
-        },
-      },
-    });
-
-    renderGlobalModal();
 
     expect(
       await screen.findByRole('heading', {name: /span.duration/})
