@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import functools
 import logging
 from collections.abc import Callable, Generator
 from contextlib import contextmanager
@@ -65,7 +66,6 @@ class LeakyBucketRateLimiter:
             current_level = float(current_level)
             wait_time = float(wait_time)
             info = LeakyBucketLimitInfo(bucket_size, drip_rate, last_drip, current_level, wait_time)
-            # print(f"{timestamp=} {info=}")
             return info
         except Exception:
             logger.exception(
@@ -196,6 +196,7 @@ class LeakyBucketRateLimiter:
         """
 
         def decorator(func):
+            @functools.wraps(func)
             def wrapper(*args, **kwargs):
                 try:
                     with self.context(key):
