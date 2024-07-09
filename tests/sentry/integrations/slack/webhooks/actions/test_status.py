@@ -215,6 +215,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
         assert trigger_id == self.trigger_id
 
+        assert view.private_metadata is not None
         private_metadata = orjson.loads(view.private_metadata)
         assert int(private_metadata["issue"]) == self.group.id
         assert private_metadata["orig_response_url"] == self.response_url
@@ -312,7 +313,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         view: View = self.mock_view.call_args.kwargs["view"]
 
         assert trigger_id == self.trigger_id
-
+        assert view.private_metadata is not None
         private_metadata = orjson.loads(view.private_metadata)
         assert int(private_metadata["issue"]) == self.group.id
         assert private_metadata["orig_response_url"] == self.response_url
@@ -1386,7 +1387,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         view: View = mock_views_open.call_args.kwargs["view"]
 
         assert trigger_id == self.trigger_id
-
+        assert view.private_metadata is not None
         private_metadata = orjson.loads(view.private_metadata)
         assert int(private_metadata["issue"]) == self.group.id
         assert private_metadata["orig_response_url"] == self.response_url
@@ -1665,7 +1666,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         view: View = mock_views_open.call_args.kwargs["view"]
 
         assert trigger_id == self.trigger_id
-
+        assert view.private_metadata is not None
         private_metadata = orjson.loads(view.private_metadata)
         assert int(private_metadata["issue"]) == self.group.id
         assert private_metadata["orig_response_url"] == self.response_url
@@ -1729,7 +1730,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         view: View = mock_open_view.call_args.kwargs["view"]
 
         assert trigger_id == self.trigger_id
-
+        assert view.private_metadata is not None
         private_metadata = orjson.loads(view.private_metadata)
         assert int(private_metadata["issue"]) == self.group.id
         assert private_metadata["orig_response_url"] == self.response_url
@@ -1934,7 +1935,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         view: View = mock_open_view.call_args.kwargs["view"]
 
         assert trigger_id == self.trigger_id
-
+        assert view.private_metadata is not None
         private_metadata = orjson.loads(view.private_metadata)
         assert int(private_metadata["issue"]) == self.group.id
         assert private_metadata["orig_response_url"] == self.response_url
