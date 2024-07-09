@@ -81,8 +81,8 @@ export class VideoReplayerWithInteractions {
       // if the difference is less, so that the rrweb tap is visible and obvious.
       if (isTouchStart(e) && index < events.length - 2) {
         const nextEvent = events[index + 1];
-        if (isTouchEnd(nextEvent) && nextEvent.timestamp - e.timestamp < 500) {
-          nextEvent.timestamp = e.timestamp + 500;
+        if (isTouchEnd(nextEvent)) {
+          nextEvent.timestamp = Math.max(nextEvent.timestamp, e.timestamp + 500);
         }
       }
       eventsWithSnapshots.push(e);
