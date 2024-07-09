@@ -109,6 +109,7 @@ from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
 from sentry.reprocessing2 import is_reprocessed_event
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.signals import (
     first_event_received,
     first_event_with_minified_stack_trace_received,
@@ -2563,11 +2564,10 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                     "issues.severity.seer-timout",
                     settings.SEER_SEVERITY_TIMEOUT / 1000,
                 )
-                response = severity_connection_pool.urlopen(
-                    "POST",
+                response = make_signed_seer_api_request(
+                    severity_connection_pool,
                     "/v0/issues/severity-score",
                     body=orjson.dumps(payload),
-                    headers={"content-type": "application/json;charset=utf-8"},
                     timeout=timeout,
                 )
                 severity = orjson.loads(response.data).get("severity")
