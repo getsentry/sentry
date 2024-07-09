@@ -77,7 +77,15 @@ export function isMetricFormula(
 
 export function getMetricsQueryApiRequestPayload(
   queries: (MetricsQueryApiRequestQuery | MetricsQueryApiRequestFormula)[],
-  {projects, environments, datetime}: PageFilters,
+  {
+    projects,
+    environments,
+    datetime,
+  }: {
+    datetime: PageFilters['datetime'];
+    environments: PageFilters['environments'];
+    projects: (number | string)[];
+  },
   {
     intervalLadder,
     interval: intervalParam,
