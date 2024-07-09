@@ -12,8 +12,8 @@ from sentry.models.dashboard_widget import (
     DashboardWidgetQueryOnDemand,
     DashboardWidgetTypes,
 )
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
+from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
 
 

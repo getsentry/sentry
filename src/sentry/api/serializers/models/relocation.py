@@ -8,8 +8,8 @@ from sentry.api.serializers import Serializer, register
 from sentry.models.importchunk import BaseImportChunk, ControlImportChunkReplica, RegionImportChunk
 from sentry.models.relocation import Relocation
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.user.model import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.users.services.user.model import RpcUser
+from sentry.users.services.user.service import user_service
 
 NEEDED_USER_FIELDS = {"email", "id", "username"}
 

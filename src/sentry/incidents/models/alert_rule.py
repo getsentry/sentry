@@ -33,10 +33,10 @@ from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.notificationaction import AbstractNotificationAction, ActionService, ActionTarget
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions, delete_snuba_subscription
 from sentry.types.actor import Actor
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 
 logger = logging.getLogger(__name__)

@@ -367,7 +367,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         ) = self.create_mock_traces()
 
         query = {
-            "project": [project_2.id],
+            "project": [],
             "field": ["id", "parent_span", "span.duration"],
             "query": "foo:[bar, baz]",
             "suggestedQuery": "foo:baz span.duration:>0s",
@@ -460,7 +460,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         timestamp = int(ts.timestamp() * 1000)
 
         query = {
-            "project": [project.id],
+            "project": [],
             "field": ["id", "parent_span", "span.duration"],
             "query": "",
             "maxSpansPerTrace": 3,
@@ -536,7 +536,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
         timestamp = int(ts.timestamp() * 1000)
 
         query = {
-            "project": [project.id],
+            "project": [],
             "field": ["id", "parent_span", "span.duration"],
             "query": "",
             "maxSpansPerTrace": 3,
@@ -575,6 +575,44 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             },
         ]
 
+    def test_use_separate_referrers(self):
+        from sentry.api.endpoints.organization_traces import TracesExecutor
+        from sentry.snuba.referrer import Referrer
+        from sentry.utils.snuba import _snuba_query
+
+        now = before_now().replace(hour=0, minute=0, second=0, microsecond=0)
+        start = now - timedelta(days=2)
+        end = now - timedelta(days=1)
+        trace_id = uuid4().hex
+
+        with (
+            patch.object(
+                TracesExecutor,
+                "get_traces_matching_conditions",
+                return_value=(start, end, trace_id),
+            ),
+            patch("sentry.utils.snuba._snuba_query", wraps=_snuba_query) as mock_snuba_query,
+        ):
+            query = {
+                "project": [self.project.id],
+                "field": ["id", "parent_span", "span.duration"],
+                "sort": ["-span.duration"],
+            }
+
+            response = self.do_request(query)
+            assert response.status_code == 200, response.data
+
+            actual_referrers = {
+                call[0][0][2].headers["referer"] for call in mock_snuba_query.call_args_list
+            }
+
+        assert {
+            Referrer.API_TRACE_EXPLORER_TRACES_BREAKDOWNS.value,
+            Referrer.API_TRACE_EXPLORER_TRACES_META.value,
+            Referrer.API_TRACE_EXPLORER_TRACES_ERRORS.value,
+            Referrer.API_TRACE_EXPLORER_TRACES_OCCURRENCES.value,
+        } == actual_referrers
+
     def test_matching_tag(self):
         (
             project_1,
@@ -594,108 +632,113 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
             ["foo:bar span.duration:>10s", "foo:baz"],
             ["foo:[bar, baz]"],
         ]:
-            query = {
-                "project": [project_2.id],
-                "field": ["id", "parent_span", "span.duration"],
-                "query": q,
-                "suggestedQuery": "foo:baz span.duration:>0s",
-                "maxSpansPerTrace": 4,
-                "sort": ["-span.duration"],
-            }
+            for features in [
+                None,  # use the default features
+                ["organizations:performance-trace-explorer"],
+            ]:
+                query = {
+                    # only query for project_2 but expect traces to start from project_1
+                    "project": [project_2.id],
+                    "field": ["id", "parent_span", "span.duration"],
+                    "query": q,
+                    "suggestedQuery": "foo:baz span.duration:>0s",
+                    "maxSpansPerTrace": 4,
+                    "sort": ["-span.duration"],
+                }
 
-            response = self.do_request(query)
-            assert response.status_code == 200, response.data
+                response = self.do_request(query, features=features)
+                assert response.status_code == 200, response.data
 
-            assert response.data["meta"] == {
-                "dataset": "unknown",
-                "datasetReason": "unchanged",
-                "fields": {},
-                "isMetricsData": False,
-                "isMetricsExtractedData": False,
-                "tips": {},
-                "units": {},
-            }
+                assert response.data["meta"] == {
+                    "dataset": "unknown",
+                    "datasetReason": "unchanged",
+                    "fields": {},
+                    "isMetricsData": False,
+                    "isMetricsExtractedData": False,
+                    "tips": {},
+                    "units": {},
+                }
 
-            result_data = sorted(response.data["data"], key=lambda trace: trace["duration"])
+                result_data = sorted(response.data["data"], key=lambda trace: trace["duration"])
 
-            assert result_data == [
-                {
-                    "trace": trace_id_1,
-                    "numErrors": 1,
-                    "numOccurrences": 0,
-                    "numSpans": 4,
-                    "matchingSpans": 3,
-                    "project": project_1.slug,
-                    "name": "foo",
-                    "duration": 60_100,
-                    "start": timestamps[0],
-                    "end": timestamps[0] + 60_100,
-                    "breakdowns": [
-                        {
-                            "project": project_1.slug,
-                            "sdkName": "sentry.javascript.node",
-                            "isRoot": False,
-                            "start": timestamps[0],
-                            "end": timestamps[0] + 60_100,
-                            "sliceStart": 0,
-                            "sliceEnd": 40,
-                            "sliceWidth": 40,
-                            "kind": "project",
-                            "duration": 60_100,
-                        },
-                        {
-                            "project": project_2.slug,
-                            "sdkName": "sentry.javascript.node",
-                            "isRoot": False,
-                            "start": timestamps[1] + 522,
-                            "end": timestamps[3] + 30_003 + 61,
-                            "sliceStart": 11,
-                            "sliceEnd": 32,
-                            "sliceWidth": 21,
-                            "kind": "project",
-                            "duration": timestamps[3] - timestamps[1] + 30_003,
-                        },
-                    ],
-                },
-                {
-                    "trace": trace_id_2,
-                    "numErrors": 0,
-                    "numOccurrences": 0,
-                    "numSpans": 6,
-                    "matchingSpans": 2,
-                    "project": project_1.slug,
-                    "name": "bar",
-                    "duration": 90_123,
-                    "start": timestamps[4],
-                    "end": timestamps[4] + 90_123,
-                    "breakdowns": [
-                        {
-                            "project": project_1.slug,
-                            "sdkName": "sentry.javascript.node",
-                            "isRoot": False,
-                            "start": timestamps[4],
-                            "end": timestamps[4] + 90_123,
-                            "sliceStart": 0,
-                            "sliceEnd": 40,
-                            "sliceWidth": 40,
-                            "kind": "project",
-                            "duration": 90_123,
-                        },
-                        {
-                            "project": project_2.slug,
-                            "sdkName": "sentry.javascript.node",
-                            "isRoot": False,
-                            "start": timestamps[5] - 988,
-                            "end": timestamps[6] + 20_006 + 536,
-                            "sliceStart": 4,
-                            "sliceEnd": 14,
-                            "sliceWidth": 10,
-                            "kind": "project",
-                            "duration": timestamps[6] - timestamps[5] + 20_006,
-                        },
-                    ],
-                },
-            ]
+                assert result_data == [
+                    {
+                        "trace": trace_id_1,
+                        "numErrors": 1,
+                        "numOccurrences": 0,
+                        "numSpans": 4,
+                        "matchingSpans": 3,
+                        "project": project_1.slug,
+                        "name": "foo",
+                        "duration": 60_100,
+                        "start": timestamps[0],
+                        "end": timestamps[0] + 60_100,
+                        "breakdowns": [
+                            {
+                                "project": project_1.slug,
+                                "sdkName": "sentry.javascript.node",
+                                "isRoot": False,
+                                "start": timestamps[0],
+                                "end": timestamps[0] + 60_100,
+                                "sliceStart": 0,
+                                "sliceEnd": 40,
+                                "sliceWidth": 40,
+                                "kind": "project",
+                                "duration": 60_100,
+                            },
+                            {
+                                "project": project_2.slug,
+                                "sdkName": "sentry.javascript.node",
+                                "isRoot": False,
+                                "start": timestamps[1] + 522,
+                                "end": timestamps[3] + 30_003 + 61,
+                                "sliceStart": 11,
+                                "sliceEnd": 32,
+                                "sliceWidth": 21,
+                                "kind": "project",
+                                "duration": timestamps[3] - timestamps[1] + 30_003,
+                            },
+                        ],
+                    },
+                    {
+                        "trace": trace_id_2,
+                        "numErrors": 0,
+                        "numOccurrences": 0,
+                        "numSpans": 6,
+                        "matchingSpans": 2,
+                        "project": project_1.slug,
+                        "name": "bar",
+                        "duration": 90_123,
+                        "start": timestamps[4],
+                        "end": timestamps[4] + 90_123,
+                        "breakdowns": [
+                            {
+                                "project": project_1.slug,
+                                "sdkName": "sentry.javascript.node",
+                                "isRoot": False,
+                                "start": timestamps[4],
+                                "end": timestamps[4] + 90_123,
+                                "sliceStart": 0,
+                                "sliceEnd": 40,
+                                "sliceWidth": 40,
+                                "kind": "project",
+                                "duration": 90_123,
+                            },
+                            {
+                                "project": project_2.slug,
+                                "sdkName": "sentry.javascript.node",
+                                "isRoot": False,
+                                "start": timestamps[5] - 988,
+                                "end": timestamps[6] + 20_006 + 536,
+                                "sliceStart": 4,
+                                "sliceEnd": 14,
+                                "sliceWidth": 10,
+                                "kind": "project",
+                                "duration": timestamps[6] - timestamps[5] + 20_006,
+                            },
+                        ],
+                    },
+                ]
 
     def test_sorted(self):
         (
@@ -922,7 +965,7 @@ class OrganizationTracesEndpointTest(OrganizationTracesEndpointTestBase):
                     "metricsMax": 50_000,
                     "metricsOp": op,
                     "metricsQuery": ["foo:qux"],
-                    "project": [project_1.id],
+                    "project": [],
                     "field": ["id", "parent_span", "span.duration"],
                     "suggestedQuery": ["foo:qux"],
                     "maxSpansPerTrace": 3,
@@ -1075,7 +1118,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
         ) = self.create_mock_traces()
 
         query = {
-            "project": [self.project.id],
+            "project": [],
             "field": ["id"],
             "sort": "id",
         }
@@ -1113,7 +1156,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
             ["foo:[bar, baz]"],
         ]:
             query = {
-                "project": [self.project.id],
+                "project": [],
                 "field": ["id"],
                 "sort": "id",
                 "query": user_query,
@@ -1167,7 +1210,7 @@ class OrganizationTraceSpansEndpointTest(OrganizationTracesEndpointTestBase):
                     "metricsMax": 50_000,
                     "metricsOp": op,
                     "metricsQuery": ["foo:qux"],
-                    "project": [self.project.id],
+                    "project": [],
                     "field": ["id"],
                     "sort": "id",
                 }
@@ -1280,7 +1323,7 @@ class OrganizationTracesStatsEndpointTest(OrganizationTracesEndpointTestBase):
             query = {
                 "yAxis": ["count()"],
                 "query": q,
-                "project": [project_1.id],
+                "project": [],
             }
 
             response = self.do_request(query)

@@ -56,9 +56,9 @@ from sentry.search.events.types import (
     SnubaParams,
     WhereType,
 )
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.utils import MetricMeta
+from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start
 from sentry.utils.env import in_test_environment
 from sentry.utils.snuba import (
@@ -82,7 +82,7 @@ class BaseQueryBuilder:
     spans_metrics_builder = False
     profile_functions_metrics_builder = False
     entity: Entity | None = None
-    config_class: type[DatasetConfig] | None
+    config_class: type[DatasetConfig] | None = None
     duration_fields: set[str] = set()
 
     def get_middle(self):

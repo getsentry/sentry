@@ -533,6 +533,7 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
       location,
       isHomepage,
       splitDecision,
+      homepageQuery,
     } = this.props;
 
     const contextMenuItems: MenuItemProps[] = [];
@@ -594,8 +595,9 @@ class SavedQueryButtonGroup extends PureComponent<Props, State> {
             hasFeature && (
               <DatasetSelector
                 isHomepage={isHomepage}
-                savedQuery={savedQuery}
+                savedQuery={isHomepage ? homepageQuery : savedQuery}
                 splitDecision={splitDecision}
+                eventView={eventView}
               />
             )
           }

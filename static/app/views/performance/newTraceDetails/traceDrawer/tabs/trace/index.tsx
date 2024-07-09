@@ -44,7 +44,9 @@ export function TraceDetails(props: TraceDetailsProps) {
     }
 
     return [...props.node.errors, ...props.node.performance_issues];
-  }, [props.node]);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.node, props.node?.errors.size, props.node?.performance_issues.size]);
 
   if (!props.node) {
     return null;

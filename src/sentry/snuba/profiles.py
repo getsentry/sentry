@@ -2,7 +2,10 @@ from datetime import datetime
 from typing import Any
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.events.builder import ProfilesQueryBuilder, ProfilesTimeseriesQueryBuilder
+from sentry.search.events.builder.profiles import (
+    ProfilesQueryBuilder,
+    ProfilesTimeseriesQueryBuilder,
+)
 from sentry.search.events.fields import get_json_meta_type
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset

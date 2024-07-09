@@ -18,20 +18,16 @@ const replayRecord = ReplayRecordFixture({
 
 const PAGELOAD_FRAME = replayInitBreadcrumb(replayRecord);
 
-const [NAV_FRAME_1, NAV_FRAME_2] = hydrateBreadcrumbs(
-  replayRecord,
-  [
-    ReplayNavFrameFixture({
-      data: {to: 'MainActivityScreen'},
-      timestamp: NAVIGATION_DATE_1,
-    }),
-    ReplayNavFrameFixture({
-      data: {to: 'ConfirmPayment'},
-      timestamp: NAVIGATION_DATE_2,
-    }),
-  ],
-  []
-);
+const [NAV_FRAME_1, NAV_FRAME_2] = hydrateBreadcrumbs(replayRecord, [
+  ReplayNavFrameFixture({
+    data: {to: 'MainActivityScreen'},
+    timestamp: NAVIGATION_DATE_1,
+  }),
+  ReplayNavFrameFixture({
+    data: {to: 'ConfirmPayment'},
+    timestamp: NAVIGATION_DATE_2,
+  }),
+]);
 
 describe('getCurrentScreenName', () => {
   it('should return the screen name based on the closest navigation crumb', () => {

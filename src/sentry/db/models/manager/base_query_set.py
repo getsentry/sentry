@@ -7,11 +7,11 @@ from django.core.exceptions import EmptyResultSet
 from django.db import connections, router, transaction
 from django.db.models import QuerySet, sql
 
-from sentry.db.models.manager.types import M
+from sentry.db.models.manager.types import M, R
 from sentry.signals import post_update
 
 
-class BaseQuerySet(QuerySet[M]):
+class BaseQuerySet(QuerySet[M, R]):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
         self._with_post_update_signal = False
