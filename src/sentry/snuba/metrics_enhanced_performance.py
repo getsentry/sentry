@@ -206,7 +206,6 @@ def top_events_timeseries(
     functions_acl: list[str] | None = None,
     on_demand_metrics_enabled: bool | None = False,
     on_demand_metrics_type: MetricSpecType | None = None,
-    fallback_to_transactions=False,
 ) -> SnubaTSResult | dict[str, Any]:
     metrics_compatible = False
     equations, _ = categorize_columns(selected_columns)
