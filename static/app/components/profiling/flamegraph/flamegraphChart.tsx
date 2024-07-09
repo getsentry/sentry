@@ -4,6 +4,7 @@ import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
 import {t} from 'sentry/locale';
+import type {RequestState} from 'sentry/types/core';
 import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
 import {useCanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import type {CanvasView} from 'sentry/utils/profiling/canvasView';
@@ -17,7 +18,6 @@ import {
 } from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphChartRenderer} from 'sentry/utils/profiling/renderers/chartRenderer';
 import type {Rect} from 'sentry/utils/profiling/speedscope';
-import {useProfiles} from 'sentry/views/profiling/profilesProvider';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';
@@ -38,9 +38,11 @@ interface FlamegraphChartProps {
   chartView: CanvasView<FlamegraphChartModel> | null;
   noMeasurementMessage: string | undefined;
   setChartCanvasRef: (ref: HTMLCanvasElement | null) => void;
+  status: RequestState<any>['type'];
 }
 
 export function FlamegraphChart({
+  status,
   chart,
   canvasPoolManager,
   chartView,
@@ -50,7 +52,6 @@ export function FlamegraphChart({
   canvasBounds,
   noMeasurementMessage,
 }: FlamegraphChartProps) {
-  const profiles = useProfiles();
   const scheduler = useCanvasScheduler(canvasPoolManager);
   const theme = useFlamegraphTheme();
 
@@ -303,9 +304,9 @@ export function FlamegraphChart({
         />
       ) : null}
       {/* transaction loads after profile, so we want to show loading even if it's in initial state */}
-      {profiles.type === 'loading' || profiles.type === 'initial' ? (
+      {status === 'loading' || status === 'initial' ? (
         <CollapsibleTimelineLoadingIndicator />
-      ) : profiles.type === 'resolved' && chart?.status !== 'ok' ? (
+      ) : status === 'resolved' && chart?.status !== 'ok' ? (
         <CollapsibleTimelineMessage>{message}</CollapsibleTimelineMessage>
       ) : null}
     </Fragment>

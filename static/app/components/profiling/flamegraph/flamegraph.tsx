@@ -64,6 +64,7 @@ import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 import {
+  useProfiles,
   useProfileTransaction,
   useSetProfiles,
 } from 'sentry/views/profiling/profilesProvider';
@@ -199,15 +200,15 @@ function Flamegraph(): ReactElement {
   const profiledTransaction = useProfileTransaction();
   const dispatch = useDispatchFlamegraphState();
 
+  const profiles = useProfiles();
   const setProfiles = useSetProfiles();
   const profileGroup = useProfileGroup();
 
   const flamegraphTheme = useFlamegraphTheme();
   const position = useFlamegraphZoomPosition();
-  const profiles = useFlamegraphProfiles();
   const {colorCoding, sorting, view} = useFlamegraphPreferences();
   const {highlightFrames} = useFlamegraphSearch();
-  const {threadId, selectedRoot} = useFlamegraphProfiles();
+  const flamegraphProfiles = useFlamegraphProfiles();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
@@ -266,8 +267,8 @@ function Flamegraph(): ReactElement {
   }, [profileGroup.metadata.platform, profileGroup.measurements]);
 
   const profile = useMemo(() => {
-    return profileGroup.profiles.find(p => p.threadId === threadId);
-  }, [profileGroup, threadId]);
+    return profileGroup.profiles.find(p => p.threadId === flamegraphProfiles.threadId);
+  }, [profileGroup, flamegraphProfiles.threadId]);
 
   const spanTree: SpanTree = useMemo(() => {
     if (profiledTransaction.type === 'resolved' && profiledTransaction.data) {
@@ -296,7 +297,7 @@ function Flamegraph(): ReactElement {
   }, [spanTree, profile, profileGroup, profiledTransaction]);
 
   const flamegraph = useMemo(() => {
-    if (typeof threadId !== 'number') {
+    if (typeof flamegraphProfiles.threadId !== 'number') {
       return LOADING_OR_FALLBACK_FLAMEGRAPH;
     }
 
@@ -339,7 +340,14 @@ function Flamegraph(): ReactElement {
     span?.end();
 
     return newFlamegraph;
-  }, [profile, profileGroup, profiledTransaction, sorting, threadId, view]);
+  }, [
+    profile,
+    profileGroup,
+    profiledTransaction,
+    sorting,
+    flamegraphProfiles.threadId,
+    view,
+  ]);
 
   const profileOffsetFromTransaction = useMemo(
     () =>
@@ -1216,16 +1224,19 @@ function Flamegraph(): ReactElement {
   // of the frame weights and timing are relative to the entire profile. If there is a user selected
   // root however, all weights are relative to that sub tree.
   const referenceNode = useMemo(
-    () => (selectedRoot ? selectedRoot : flamegraph.root),
-    [selectedRoot, flamegraph.root]
+    () =>
+      flamegraphProfiles.selectedRoot ? flamegraphProfiles.selectedRoot : flamegraph.root,
+    [flamegraphProfiles.selectedRoot, flamegraph.root]
   );
 
   // In case a user selected root is present, we will display that root + its entire sub tree.
   // If no root is selected, we will display the entire sub tree down from the root. We start at
   // root.children because flamegraph.root is a virtual node that we do not want to show in the table.
   const rootNodes = useMemo(() => {
-    return selectedRoot ? [selectedRoot] : flamegraph.root.children;
-  }, [selectedRoot, flamegraph.root]);
+    return flamegraphProfiles.selectedRoot
+      ? [flamegraphProfiles.selectedRoot]
+      : flamegraph.root.children;
+  }, [flamegraphProfiles.selectedRoot, flamegraph.root]);
 
   const onSortingChange: FlamegraphViewSelectMenuProps['onSortingChange'] = useCallback(
     newSorting => {
@@ -1256,7 +1267,7 @@ function Flamegraph(): ReactElement {
   );
 
   useEffect(() => {
-    if (defined(profiles.threadId)) {
+    if (defined(flamegraphProfiles.threadId)) {
       return;
     }
     const threadID =
@@ -1326,7 +1337,7 @@ function Flamegraph(): ReactElement {
         payload: threadID,
       });
     }
-  }, [profileGroup, highlightFrames, profiles.threadId, dispatch, sorting]);
+  }, [profileGroup, highlightFrames, flamegraphProfiles.threadId, dispatch, sorting]);
 
   // A bit unfortunate for now, but the search component accepts a list
   // of model to search through. This will become useful as we  build
@@ -1339,7 +1350,7 @@ function Flamegraph(): ReactElement {
       <FlamegraphToolbar>
         <FlamegraphThreadSelector
           profileGroup={profileGroup}
-          threadId={threadId}
+          threadId={flamegraphProfiles.threadId}
           onThreadIdChange={onThreadIdChange}
         />
         <FlamegraphViewSelectMenu
@@ -1360,6 +1371,7 @@ function Flamegraph(): ReactElement {
         uiFrames={
           hasUIFrames ? (
             <FlamegraphUIFrames
+              status={profiles.type}
               canvasBounds={uiFramesCanvasBounds}
               canvasPoolManager={canvasPoolManager}
               setUIFramesCanvasRef={setUIFramesCanvasRef}
@@ -1373,6 +1385,7 @@ function Flamegraph(): ReactElement {
         batteryChart={
           hasBatteryChart ? (
             <FlamegraphChart
+              status={profiles.type}
               chartCanvasRef={batteryChartCanvasRef}
               chartCanvas={batteryChartCanvas}
               setChartCanvasRef={setBatteryChartCanvasRef}
@@ -1393,6 +1406,7 @@ function Flamegraph(): ReactElement {
         memoryChart={
           hasMemoryChart ? (
             <FlamegraphChart
+              status={profiles.type}
               chartCanvasRef={memoryChartCanvasRef}
               chartCanvas={memoryChartCanvas}
               setChartCanvasRef={setMemoryChartCanvasRef}
@@ -1417,6 +1431,7 @@ function Flamegraph(): ReactElement {
         cpuChart={
           hasCPUChart ? (
             <FlamegraphChart
+              status={profiles.type}
               chartCanvasRef={cpuChartCanvasRef}
               chartCanvas={cpuChartCanvas}
               setChartCanvasRef={setCpuChartCanvasRef}
