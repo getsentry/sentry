@@ -686,7 +686,6 @@ export class Results extends Component<Props, State> {
             yAxis={yAxisArray}
             router={router}
             isHomepage={isHomepage}
-            splitDecision={splitDecision}
             setHomepageQuery={this.setHomepageQuery}
           />
           <Layout.Body>
