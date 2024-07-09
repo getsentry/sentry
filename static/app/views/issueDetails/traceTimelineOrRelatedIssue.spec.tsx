@@ -8,6 +8,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 
+import {getTitleSubtitleMessage} from './traceTimeline/traceIssue';
 import {TraceTimeline} from './traceTimeline/traceTimeline';
 import type {TraceEventResponse} from './traceTimeline/useTraceTimelineEvents';
 import {TraceTimeLineOrRelatedIssue} from './traceTimelineOrRelatedIssue';
@@ -49,12 +50,14 @@ describe('TraceTimeline & TraceRelated Issue', () => {
         title: 'Slow DB Query',
         id: 'abc',
         transaction: '/api/slow/',
+        culprit: '/api/slow/',
       },
     ],
     meta: {fields: {}, units: {}},
   };
   const mainError = {
     message: 'This is the message for the issue',
+    culprit: 'n/a',
     timestamp: firstEventTimestamp,
     'issue.id': event['issue.id'],
     project: project.slug,
@@ -67,6 +70,8 @@ describe('TraceTimeline & TraceRelated Issue', () => {
   };
   const secondError = {
     message: 'Message of the second issue',
+    culprit: 'billiard.pool in foo', // Used for subtitle
+    'error.value': ['some-other-error-value', 'The last error value'],
     timestamp: '2024-01-24T09:09:04+00:00',
     'issue.id': 9999,
     project: project.slug,
@@ -287,9 +292,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     });
 
     render(<TraceTimeLineOrRelatedIssue event={event} />, {
-      organization: OrganizationFixture({
-        features: [],
-      }),
+      organization: OrganizationFixture({features: []}), // No global-views feature
     });
     expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
   });
@@ -329,5 +332,103 @@ describe('TraceTimeline & TraceRelated Issue', () => {
       }),
     });
     expect(await screen.findByText('Slow DB Query')).toBeInTheDocument();
+  });
+});
+
+function createEvent({
+  culprit,
+  title,
+  error_value,
+  event_type = 'error',
+}: {
+  culprit: string;
+  title: string;
+  error_value?: string[];
+  event_type?: string;
+}) {
+  const event = {
+    message: 'message',
+    culprit: culprit,
+    timestamp: '2024-01-24T09:09:04+00:00',
+    'issue.id': 9999,
+    project: 'foo',
+    'project.name': 'bar',
+    title: title,
+    id: '12345',
+    transaction: 'n/a',
+    'event.type': event_type,
+  };
+  if (error_value) {
+    event['error.value'] = error_value;
+  }
+  return event;
+}
+
+describe('getTitleSubtitleMessage()', () => {
+  it('error event', () => {
+    expect(
+      getTitleSubtitleMessage(
+        createEvent({
+          culprit: '/api/0/sentry-app-installations/{uuid}/',
+          title:
+            'ClientError: 404 Client Error: for url: https://api.clickup.com/sentry/webhook',
+          error_value: [
+            '404 Client Error: for url: https://api.clickup.com/sentry/webhook',
+          ],
+        })
+      )
+    ).toEqual({
+      title: 'ClientError', // The colon and remainder of string are removed
+      subtitle: '/api/0/sentry-app-installations/{uuid}/',
+      message: '404 Client Error: for url: https://api.clickup.com/sentry/webhook',
+    });
+  });
+
+  it('error event: It keeps the colon', () => {
+    expect(
+      getTitleSubtitleMessage(
+        createEvent({
+          culprit: 'billiard.pool in foo',
+          title: 'WorkerLostError: ',
+          error_value: ['some-other-error-value', 'The last error value'],
+        })
+      )
+    ).toEqual({
+      title: 'WorkerLostError:', // The colon is kept
+      subtitle: 'billiard.pool in foo',
+      message: 'The last error value',
+    });
+  });
+
+  it('error event: No error_value', () => {
+    expect(
+      getTitleSubtitleMessage(
+        createEvent({
+          title: 'foo',
+          culprit: 'bar',
+          error_value: [''], // We always get a non-empty array
+        })
+      )
+    ).toEqual({
+      title: 'foo',
+      subtitle: 'bar',
+      message: '',
+    });
+  });
+
+  it('default event', () => {
+    expect(
+      getTitleSubtitleMessage(
+        createEvent({
+          culprit: '/api/0/organizations/{organization_id_or_slug}/issues/',
+          title: 'Query from referrer search.group_index is throttled',
+          event_type: 'default',
+        })
+      )
+    ).toEqual({
+      title: 'Query from referrer search.group_index is throttled',
+      subtitle: '',
+      message: '/api/0/organizations/{organization_id_or_slug}/issues/',
+    });
   });
 });
