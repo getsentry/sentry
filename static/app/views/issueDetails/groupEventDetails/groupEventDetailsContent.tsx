@@ -54,6 +54,7 @@ import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ResourcesAndPossibleSolutions} from 'sentry/views/issueDetails/resourcesAndPossibleSolutions';
+import {TraceTimeLineOrRelatedIssue} from 'sentry/views/issueDetails/traceTimelineOrRelatedIssue';
 
 const LLMMonitoringSection = lazy(
   () => import('sentry/components/events/interfaces/llm-monitoring/llmMonitoringSection')
@@ -121,6 +122,7 @@ function DefaultGroupEventDetailsContent({
         <ActionableItems event={event} project={project} isShare={false} />
       )}
       <StyledDataSection>
+        <TraceTimeLineOrRelatedIssue event={event} />
         <SuspectCommits
           project={project}
           eventId={event.id}
