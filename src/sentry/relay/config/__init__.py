@@ -62,7 +62,6 @@ EXPOSABLE_FEATURES = [
     "organizations:transaction-name-normalize",
     "organizations:user-feedback-ingest",
     "projects:discard-transaction",
-    "projects:extract-transaction-from-segment-span",
     "projects:profiling-ingest-unsampled-profiles",
     "projects:span-metrics-extraction",
     "projects:span-metrics-extraction-addons",
