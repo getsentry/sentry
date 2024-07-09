@@ -77,20 +77,11 @@ function FocusTabs({className, isVideoReplay}: Props) {
   const {getActiveTab, setActiveTab} = useActiveReplayTab({isVideoReplay});
   const activeTab = getActiveTab();
 
-  const isTabDisabled = (tab: string) => {
-    return (
-      tab === TabKey.NETWORK &&
-      isVideoReplay &&
-      !organization.features.includes('session-replay-mobile-network-tab')
-    );
-  };
-
   return (
     <ScrollableTabs className={className} underlined>
       {Object.entries(getReplayTabs({organization, isVideoReplay})).map(([tab, label]) =>
         label ? (
           <ListLink
-            disabled={isTabDisabled(tab)}
             data-test-id={`replay-details-${tab}-btn`}
             key={tab}
             isActive={() => tab === activeTab}
@@ -105,9 +96,7 @@ function FocusTabs({className, isVideoReplay}: Props) {
               });
             }}
           >
-            <Tooltip title={isTabDisabled(tab) ? t('This feature is coming soon') : null}>
-              {label}
-            </Tooltip>
+            {label}
           </ListLink>
         ) : null
       )}
