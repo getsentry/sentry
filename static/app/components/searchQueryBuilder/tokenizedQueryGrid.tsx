@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import type {AriaGridListOptions} from '@react-aria/gridlist';
 import {Item} from '@react-stately/collections';
 import type {ListState} from '@react-stately/list';
+import {useListState} from '@react-stately/list';
 import type {CollectionChildren} from '@react-types/shared';
 
 import {SearchQueryBuilderBoolean} from 'sentry/components/searchQueryBuilder/boolean';
@@ -10,8 +11,10 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import {SearchQueryBuilderFilter} from 'sentry/components/searchQueryBuilder/filter';
 import {SearchQueryBuilderInput} from 'sentry/components/searchQueryBuilder/input';
 import {SearchQueryBuilderParen} from 'sentry/components/searchQueryBuilder/paren';
+import {SelectionKeyHandler} from 'sentry/components/searchQueryBuilder/selectionKeyHandler';
 import {useQueryBuilderGrid} from 'sentry/components/searchQueryBuilder/useQueryBuilderGrid';
 import {useSelectOnDrag} from 'sentry/components/searchQueryBuilder/useSelectOnDrag';
+import {useUndoStack} from 'sentry/components/searchQueryBuilder/useUndoStack';
 import {makeTokenKey} from 'sentry/components/searchQueryBuilder/utils';
 import {type ParseResultToken, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
@@ -40,14 +43,35 @@ function useApplyFocusOverride(state: ListState<ParseResultToken>) {
 
 function Grid(props: GridProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const selectionKeyHandlerRef = useRef<HTMLInputElement>(null);
   const {size} = useSearchQueryBuilder();
-  const {state, gridProps} = useQueryBuilderGrid(props, ref);
-
+  const state = useListState<ParseResultToken>({
+    ...props,
+    selectionBehavior: 'replace',
+    onSelectionChange: selection => {
+      // When there is a selection, focus the SelectionKeyHandler which will
+      // handle keyboard events in this state.
+      if (selection === 'all' || selection.size > 0) {
+        state.selectionManager.setFocused(true);
+        state.selectionManager.setFocusedKey(null);
+        selectionKeyHandlerRef.current?.focus();
+      }
+    },
+  });
+  const {undo} = useUndoStack(state);
+  const {gridProps} = useQueryBuilderGrid({
+    props,
+    state,
+    ref,
+    selectionKeyHandlerRef,
+    undo,
+  });
   useApplyFocusOverride(state);
   useSelectOnDrag(state);
 
   return (
     <SearchQueryGridWrapper {...gridProps} ref={ref} size={size}>
+      <SelectionKeyHandler ref={selectionKeyHandlerRef} state={state} undo={undo} />
       {[...state.collection].map(item => {
         const token = item.value;
 
