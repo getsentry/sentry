@@ -325,7 +325,7 @@ def _error_message_condition(value: Sequence[tuple[str, str]]) -> RuleCondition:
     )
 
 
-def _chunk_load_error_filter() -> GenericFilter | None:
+def _chunk_load_error_filter() -> RuleCondition:
     """
     Filters out chunk load errors.
 
@@ -338,13 +338,10 @@ def _chunk_load_error_filter() -> GenericFilter | None:
         ("*Uncaught *", "ChunkLoadError: Loading chunk *"),
     ]
 
-    return {
-        "isEnabled": True,
-        "condition": _error_message_condition(values),
-    }
+    return _error_message_condition(values)
 
 
-def _hydration_error_filter() -> GenericFilter | None:
+def _hydration_error_filter() -> RuleCondition:
     """
     Filters out hydration errors.
 
@@ -362,14 +359,11 @@ def _hydration_error_filter() -> GenericFilter | None:
         ("*", "*https://react.dev/errors/{418,419,422,423,425}*"),
     ]
 
-    return {
-        "isEnabled": True,
-        "condition": _error_message_condition(values),
-    }
+    return _error_message_condition(values)
 
 
 # List of all active generic filters that Sentry currently sends to Relay.
-ACTIVE_GENERIC_FILTERS: Sequence[tuple[str, Callable[[], GenericFilter | None]]] = [
+ACTIVE_GENERIC_FILTERS: Sequence[tuple[str, Callable[[], RuleCondition]]] = [
     ("chunk-load-error", _chunk_load_error_filter),
     ("react-hydration-errors", _hydration_error_filter),
 ]
@@ -389,10 +383,15 @@ def get_generic_filters(project: Project) -> GenericFiltersConfig | None:
         if project.get_option(f"filters:{generic_filter_id}") not in ("1", True):
             continue
 
-        generic_filter = generic_filter_fn()
-        if generic_filter is not None:
-            generic_filter["id"] = generic_filter_id
-            generic_filters.append(generic_filter)
+        condition = generic_filter_fn()
+        if condition is not None:
+            generic_filters.append(
+                {
+                    "id": generic_filter_id,
+                    "isEnabled": True,
+                    "condition": condition,
+                }
+            )
 
     if not generic_filters:
         return None
