@@ -10,7 +10,10 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 
 import {getTitleSubtitleMessage} from './traceTimeline/traceIssue';
 import {TraceTimeline} from './traceTimeline/traceTimeline';
-import type {TraceEventResponse} from './traceTimeline/useTraceTimelineEvents';
+import type {
+  TimelineErrorEvent,
+  TraceEventResponse,
+} from './traceTimeline/useTraceTimelineEvents';
 import {TraceTimeLineOrRelatedIssue} from './traceTimelineOrRelatedIssue';
 
 jest.mock('sentry/utils/routeAnalytics/useRouteAnalyticsParams');
@@ -51,13 +54,14 @@ describe('TraceTimeline & TraceRelated Issue', () => {
         id: 'abc',
         transaction: 'n/a',
         culprit: '/api/slow/',
+        'event.type': '',
       },
     ],
     meta: {fields: {}, units: {}},
   };
-  const mainError = {
-    message: 'This is the message for the issue',
+  const mainError: TimelineErrorEvent = {
     culprit: 'n/a',
+    'error.value': ['some-other-error-value', 'The last error value'],
     timestamp: firstEventTimestamp,
     'issue.id': event['issue.id'],
     project: project.slug,
@@ -65,11 +69,10 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     title: event.title,
     id: event.id,
     transaction: 'important.task',
-    'event.type': event.type,
+    'event.type': 'error',
     'stack.function': ['important.task', 'task.run'],
   };
-  const secondError = {
-    message: 'Message of the second issue',
+  const secondError: TimelineErrorEvent = {
     culprit: 'billiard.pool in foo', // Used for subtitle
     'error.value': ['some-other-error-value', 'The last error value'],
     timestamp: '2024-01-24T09:09:04+00:00',
@@ -79,7 +82,8 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     title: 'someTitle',
     id: '12345',
     transaction: 'foo',
-    'event.type': event.type,
+    'event.type': 'error',
+    'stack.function': ['n/a'],
   };
   const discoverBody: TraceEventResponse = {
     data: [mainError],
@@ -340,16 +344,17 @@ function createEvent({
   title,
   error_value,
   event_type = 'error',
+  stack_function = [],
   message = 'n/a',
 }: {
   culprit: string;
   title: string;
   error_value?: string[];
-  event_type?: string;
+  event_type?: 'default' | 'error' | '';
   message?: string;
+  stack_function?: string[];
 }) {
   const event = {
-    message: message,
     culprit: culprit,
     timestamp: '2024-01-24T09:09:04+00:00',
     'issue.id': 9999,
@@ -360,10 +365,24 @@ function createEvent({
     transaction: 'n/a',
     'event.type': event_type,
   };
-  if (error_value) {
-    event['error.value'] = error_value;
+
+  // Using this intermediary variable helps typescript
+  let return_event;
+  if (event['event.type'] === 'error') {
+    return_event = {
+      ...event,
+      'stack.function': stack_function,
+      'error.value': error_value,
+    };
+  } else if (event['event.type'] === '') {
+    return_event = {
+      ...event,
+      message: message,
+    };
+  } else {
+    return_event = event;
   }
-  return event;
+  return return_event;
 }
 
 describe('getTitleSubtitleMessage()', () => {
@@ -441,7 +460,7 @@ describe('getTitleSubtitleMessage()', () => {
           message: '/api/slow/ Slow DB Query SELECT "sentry_monitorcheckin"."monitor_id"',
           culprit: '/api/slow/',
           title: 'Slow DB Query',
-          event_type: 'transaction',
+          event_type: '',
         })
       )
     ).toEqual({

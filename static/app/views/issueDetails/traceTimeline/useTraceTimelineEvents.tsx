@@ -17,16 +17,23 @@ interface BaseEvent {
   transaction: string;
 }
 
-export interface TimelineIssuePlatformEvent extends BaseEvent {
+interface TimelineIssuePlatformEvent extends BaseEvent {
+  'event.type': '';
   message: string; // Used for message for issue platform events
 }
-interface TimelineDiscoverEvent extends BaseEvent {
+interface TimelineDefaultEvent extends BaseEvent {
+  'event.type': 'default';
+}
+export interface TimelineErrorEvent extends BaseEvent {
   'error.value': string[]; // Used for message for error events
-  'event.type': string;
+  'event.type': 'error';
   'stack.function': string[];
 }
 
-export type TimelineEvent = TimelineDiscoverEvent | TimelineIssuePlatformEvent;
+export type TimelineEvent =
+  | TimelineDefaultEvent
+  | TimelineErrorEvent
+  | TimelineIssuePlatformEvent;
 
 export interface TraceEventResponse {
   data: TimelineEvent[];
@@ -73,6 +80,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
             'issue.id',
             'transaction',
             'culprit', // Used for the subtitle
+            'event.type', // This is useful for typing TimelineEvent
           ],
           per_page: 100,
           query: `trace:${traceId}`,
@@ -157,6 +165,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
         timestamp: event.dateCreated!,
         title: event.title,
         transaction: '',
+        'event.type': event['event.type'],
       });
     }
     const timestamps = events.map(e => new Date(e.timestamp).getTime());
