@@ -11,6 +11,11 @@ from sentry import features, options
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.sdk_client import SlackSdkClient
+from sentry.integrations.slack.utils.errors import (
+    CHANNEL_NOT_FOUND,
+    RATE_LIMITED,
+    unpack_slack_api_error,
+)
 from sentry.integrations.slack.utils.users import get_slack_user_list
 from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
@@ -106,7 +111,7 @@ def validate_channel_id(name: str, integration_id: int | None, input_channel_id:
         try:
             results = client.conversations_info(channel=input_channel_id).data
         except SlackApiError as e:
-            if e.response["error"] == "channel_not_found":
+            if unpack_slack_api_error(e) == CHANNEL_NOT_FOUND:
                 raise ValidationError("Channel not found. Invalid ID provided.") from e
             _logger.exception(
                 "rule.slack.conversation_info_failed",
@@ -230,7 +235,7 @@ def check_user_with_timeout(
                 return SlackChannelIdData(prefix=_prefix, channel_id=None, timed_out=True)
     except SlackApiError as e:
         _logger.exception("rule.slack.user_check_error", extra=logger_params)
-        if "ratelimited" in str(e):
+        if unpack_slack_api_error(e) == RATE_LIMITED:
             raise ApiRateLimitedError("Slack rate limited") from e
 
     return SlackChannelIdData(prefix=_prefix, channel_id=_channel_id, timed_out=False)
@@ -257,7 +262,7 @@ def check_for_channel(
             "post_at": int(time.time() + 500),
         }
         _logger.exception("slack.chat_scheduleMessage.error", extra=logger_params)
-        if "channel_not_found" in str(e):
+        if unpack_slack_api_error(e) == CHANNEL_NOT_FOUND:
             return None
         else:
             raise
