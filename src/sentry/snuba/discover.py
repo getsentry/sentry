@@ -441,7 +441,6 @@ def timeseries_query(
     use_metrics_layer=False,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type=None,
-    fallback_to_transactions=False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries against events.
@@ -465,8 +464,6 @@ def timeseries_query(
     query time-shifted back by comparison_delta, and compare the results to get the % change for each
     time bucket. Requires that we only pass
     allow_metric_aggregates (bool) Ignored here, only used in metric enhanced performance
-    fallback_to_transactions (bool) Whether to fallback to the transactions dataset if the query
-                    fails in metrics enhanced requests. To be removed once the discover dataset is split.
     """
     return _timeseries_query(
         selected_columns,
@@ -670,7 +667,6 @@ def top_events_timeseries(
     functions_acl=None,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type=None,
-    fallback_to_transactions=False,
 ):
     """
     High-level API for doing arbitrary user timeseries queries for a limited number of top events
@@ -693,8 +689,6 @@ def top_events_timeseries(
     top_events (dict|None) A dictionary with a 'data' key containing a list of dictionaries that
                     represent the top events matching the query. Useful when you have found
                     the top events earlier and want to save a query.
-    fallback_to_transactions (bool) Whether to fallback to the transactions dataset if the query
-                    fails in metrics enhanced requests. To be removed once the discover dataset is split.
     """
     return _top_events_timeseries(
         timeseries_columns,
