@@ -16,7 +16,6 @@ from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import Replay
 from sentry_sdk.tracing import Span
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
-from sentry.replays.usecases.denylist import mobile_processing_is_blocked
 from sentry.replays.usecases.ingest import ingest_recording
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
 
@@ -124,10 +123,6 @@ def process_message_threaded(message: Message[MessageContext]) -> Any:
     except ValidationError:
         # TODO: DLQ
         logger.exception("Could not decode recording message.")
-        return None
-
-    # TODO: Temporary open beta block. Remove after GA.
-    if mobile_processing_is_blocked(message_dict):
         return None
 
     ingest_recording(message_dict, context.transaction, context.isolation_scope)
