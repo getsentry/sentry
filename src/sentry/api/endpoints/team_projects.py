@@ -19,7 +19,7 @@ from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import ObjectStatus
+from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.models.project import Project
 from sentry.signals import project_created
 from sentry.utils.snowflake import MaxSnowflakeRetryError
@@ -55,6 +55,11 @@ their own alerts to be notified of new issues.
         if Project.is_valid_platform(value):
             return value
         raise serializers.ValidationError("Invalid platform")
+
+    def validate_name(self, value: str) -> str:
+        if value in RESERVED_PROJECT_SLUGS:
+            raise serializers.ValidationError(f'The name "{value}" is reserved and not allowed.')
+        return value
 
 
 # While currently the UI suggests teams are a parent of a project, in reality
