@@ -65,7 +65,8 @@ export function MetricWidgetCard({
   renderErrorMessage,
   showContextMenu = true,
 }: Props) {
-  const {getVirtualMRIQuery} = useVirtualMetricsContext();
+  const {getVirtualMRIQuery, isLoading: isLoadingVirtualMetrics} =
+    useVirtualMetricsContext();
 
   const metricQueries = useMemo(
     () =>
@@ -84,7 +85,10 @@ export function MetricWidgetCard({
     [widget, dashboardFilters, getVirtualMRIQuery]
   );
 
-  const widgetMQL = useMemo(() => getWidgetTitle(metricQueries), [metricQueries]);
+  const widgetMQL = useMemo(
+    () => (isLoadingVirtualMetrics ? '' : getWidgetTitle(metricQueries)),
+    [isLoadingVirtualMetrics, metricQueries]
+  );
 
   const {interval: validatedInterval} = useMetricsIntervalOptions({
     // TODO: Figure out why this can be undefined

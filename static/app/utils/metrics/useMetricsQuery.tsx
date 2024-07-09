@@ -192,7 +192,7 @@ export function useMetricsQuery(
   enableRefetch = true
 ) {
   const organization = useOrganization();
-  const {resolveVirtualMRI} = useVirtualMetricsContext();
+  const {resolveVirtualMRI, isLoading} = useVirtualMetricsContext();
 
   const resolvedQueries = useMemo(
     () =>
@@ -236,6 +236,7 @@ export function useMetricsQuery(
       refetchOnReconnect: enableRefetch,
       refetchOnWindowFocus: enableRefetch,
       refetchInterval: false,
+      enabled: !isLoading,
     }
   );
 }
