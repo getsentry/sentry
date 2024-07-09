@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 
 import orjson
 from django.core.cache import cache
+from django.test import override_settings
 from urllib3 import HTTPResponse
 from urllib3.exceptions import ConnectTimeoutError, MaxRetryError
 
@@ -19,6 +20,7 @@ from sentry.event_manager import (
 )
 from sentry.models.group import Group
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import override_options
 from sentry.testutils.helpers.features import apply_feature_flag_on_cls
 from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.skips import requires_snuba
@@ -74,6 +76,21 @@ class TestGetEventSeverity(TestCase):
         assert severity == 0.1231
         assert reason == "ml"
         assert cache.get(SEER_ERROR_COUNT_KEY) == 0
+
+        with override_options({"seer.api.use-shared-secret": 1.0}), override_settings(
+            SEER_API_SHARED_SECRET="some-secret"
+        ):
+            _get_severity_score(event)
+            mock_urlopen.assert_called_with(
+                "POST",
+                "/v0/issues/severity-score",
+                body=orjson.dumps(payload),
+                headers={
+                    "content-type": "application/json;charset=utf-8",
+                    "Authorization": "Rpcsignature rpc0:8d982376e4e49ffe845ed39853f6f2cb9bf38564d2a8a325dcd88abba8c58564",
+                },
+                timeout=0.2,
+            )
 
     @patch(
         "sentry.event_manager.severity_connection_pool.urlopen",
