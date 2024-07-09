@@ -16,7 +16,7 @@ import {SpanIndexedField} from 'sentry/views/insights/types';
 const LabelContainer = styled('div')`
   display: flex;
   gap: ${space(1)};
-  min-width: 130px;
+  width: max-content;
 `;
 
 function optionToLabel(iconName: string, labelValue: string): React.ReactNode {
