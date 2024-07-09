@@ -159,6 +159,8 @@ def register_temporary_features(manager: FeatureManager):
     # Enable the new issue stream search bar UI
     manager.add("organizations:issue-stream-search-query-builder", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:large-debug-files", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    # Enable v8 support for the Loader Script
+    manager.add("organizations:js-sdk-loader-v8", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enabled latest adopted release filter for issue alerts
     manager.add("organizations:latest-adopted-release-filter", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:mep-rollout-flag", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -517,7 +519,6 @@ def register_temporary_features(manager: FeatureManager):
     # Starfish: extract metrics from the spans
     manager.add("projects:span-metrics-extraction", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("projects:span-metrics-extraction-addons", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
-    manager.add("projects:extract-transaction-from-segment-span", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("projects:relay-otel-endpoint", ProjectFeature, FeatureHandlerStrategy.OPTIONS)
 
     # Project plugin features

@@ -1103,6 +1103,9 @@ register(
     "relay.compute-metrics-summaries.sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
+# Controls whether generic inbound filters are sent to Relay.
+register("relay.emit-generic-inbound-filters", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -1468,6 +1471,18 @@ register(
 register(
     "sentry-metrics.synchronized-rebalance-delay",
     default=15,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry-metrics.extrapolation.enable_transactions",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry-metrics.extrapolation.enable_spans",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

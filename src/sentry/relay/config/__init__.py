@@ -20,6 +20,7 @@ from sentry.ingest.inbound_filters import (
     _FilterSpec,
     get_all_filter_specs,
     get_filter_key,
+    get_generic_filters,
 )
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
@@ -36,7 +37,6 @@ from sentry.relay.config.metric_extraction import (
     get_metric_conditional_tagging_rules,
     get_metric_extraction_config,
 )
-from sentry.relay.types import RuleCondition
 from sentry.relay.utils import to_camel_case_name
 from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES
 from sentry.sentry_metrics.visibility import get_metrics_blocking_state_for_relay_config
@@ -62,7 +62,6 @@ EXPOSABLE_FEATURES = [
     "organizations:transaction-name-normalize",
     "organizations:user-feedback-ingest",
     "projects:discard-transaction",
-    "projects:extract-transaction-from-segment-span",
     "projects:profiling-ingest-unsampled-profiles",
     "projects:span-metrics-extraction",
     "projects:span-metrics-extraction-addons",
@@ -142,6 +141,9 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
 
         error_messages += project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}") or []
 
+    # TODO: remove both error message filters when the generic filters implementation is proved to be on par when it
+    #   comes to filtering capabilities. When both generic and non-generic filters are applied, the generic ones take
+    #   precedence.
     # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
     # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
     # why the value true is determined by either "1" or True.
@@ -179,35 +181,20 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     if csp_disallowed_sources:
         filter_settings["csp"] = {"disallowedSources": csp_disallowed_sources}
 
-    try:
-        generic_filters = _get_generic_project_filters()
-    except Exception:
-        logger.exception(
-            "Exception while building Relay project config: error building generic filters"
-        )
-    else:
-        if generic_filters and len(generic_filters["filters"]) > 0:
-            filter_settings["generic"] = generic_filters
+    if options.get("relay.emit-generic-inbound-filters"):
+        try:
+            # At the end we compute the generic inbound filters, which are inbound filters expressible with a
+            # conditional DSL that Relay understands.
+            generic_filters = get_generic_filters(project)
+            if generic_filters is not None:
+                filter_settings["generic"] = generic_filters
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            logger.exception(
+                "Exception while building Relay project config: error building generic filters"
+            )
 
     return filter_settings
-
-
-class GenericFilter(TypedDict):
-    id: str
-    isEnabled: bool
-    condition: RuleCondition
-
-
-class GenericFiltersConfig(TypedDict):
-    version: int
-    filters: Sequence[GenericFilter]
-
-
-def _get_generic_project_filters() -> GenericFiltersConfig:
-    return {
-        "version": 1,
-        "filters": [],
-    }
 
 
 def get_quotas(project: Project, keys: Iterable[ProjectKey] | None = None) -> list[str]:

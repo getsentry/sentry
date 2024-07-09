@@ -10,7 +10,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 
-import type {TimelineEvent, TimelineIssuePlatformEvent} from './useTraceTimelineEvents';
+import type {TimelineEvent} from './useTraceTimelineEvents';
 
 interface TraceIssueEventProps {
   event: TimelineEvent;
@@ -83,7 +83,7 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
 export function getTitleSubtitleMessage(event: TimelineEvent) {
   let title = event.title.trimEnd();
   let subtitle = event.culprit;
-  let message;
+  let message = '';
   try {
     if (event['event.type'] === 'error') {
       if (title[title.length - 1] !== ':') {
