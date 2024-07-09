@@ -40,6 +40,7 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useProjects from 'sentry/utils/useProjects';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
 
 import {TraceDetailHeader, TraceSearchBar, TraceSearchContainer} from './styles';
@@ -61,7 +62,7 @@ type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'loca
   organization: Organization;
   traceEventView: EventView;
   traceSlug: string;
-  traces: TraceFullDetailed[] | null;
+  traces: TraceTree.Transaction[] | null;
   handleLimitChange?: (newLimit: number) => void;
   orphanErrors?: TraceError[];
 };

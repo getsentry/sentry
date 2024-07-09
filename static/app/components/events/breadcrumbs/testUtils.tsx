@@ -8,30 +8,30 @@ import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
 const oneMinuteBeforeEventFixture = '2019-05-21T18:00:48.76Z';
 export const MOCK_BREADCRUMBS = [
   {
-    message: 'warning',
+    message: 'warning message',
     category: 'Warning Category',
     level: BreadcrumbLevelType.WARNING,
     type: BreadcrumbType.INFO,
     timestamp: oneMinuteBeforeEventFixture,
   },
   {
-    message: 'log',
+    message: 'log message',
     category: 'Log Category',
     level: BreadcrumbLevelType.LOG,
     type: BreadcrumbType.INFO,
     timestamp: oneMinuteBeforeEventFixture,
   },
   {
-    message: 'request',
-    category: 'Request Category',
-    level: BreadcrumbLevelType.INFO,
+    message: 'navigation message',
+    category: 'Navigation Category',
+    level: BreadcrumbLevelType.FATAL,
     type: BreadcrumbType.NAVIGATION,
     timestamp: oneMinuteBeforeEventFixture,
   },
   {
-    message: 'query',
+    message: 'query message',
     category: 'Query Category',
-    level: BreadcrumbLevelType.INFO,
+    level: BreadcrumbLevelType.DEBUG,
     type: BreadcrumbType.QUERY,
     timestamp: oneMinuteBeforeEventFixture,
   },

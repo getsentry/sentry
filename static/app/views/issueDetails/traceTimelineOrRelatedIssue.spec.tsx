@@ -8,6 +8,7 @@ import ProjectsStore from 'sentry/stores/projectsStore';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 
+import {getTitleSubtitleMessage} from './traceTimeline/traceIssue';
 import {TraceTimeline} from './traceTimeline/traceTimeline';
 import type {TraceEventResponse} from './traceTimeline/useTraceTimelineEvents';
 import {TraceTimeLineOrRelatedIssue} from './traceTimelineOrRelatedIssue';
@@ -55,6 +56,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
   };
   const mainError = {
     message: 'This is the message for the issue',
+    culprit: 'n/a',
     timestamp: firstEventTimestamp,
     'issue.id': event['issue.id'],
     project: project.slug,
@@ -67,6 +69,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
   };
   const secondError = {
     message: 'Message of the second issue',
+    culprit: 'n/a',
     timestamp: '2024-01-24T09:09:04+00:00',
     'issue.id': 9999,
     project: project.slug,
@@ -287,9 +290,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     });
 
     render(<TraceTimeLineOrRelatedIssue event={event} />, {
-      organization: OrganizationFixture({
-        features: [],
-      }),
+      organization: OrganizationFixture({features: []}), // No global-views feature
     });
     expect(await screen.findByLabelText('Current Event')).toBeInTheDocument();
   });
@@ -329,5 +330,87 @@ describe('TraceTimeline & TraceRelated Issue', () => {
       }),
     });
     expect(await screen.findByText('Slow DB Query')).toBeInTheDocument();
+  });
+});
+
+function createEvent({
+  culprit,
+  message,
+  title,
+  transaction,
+  event_type = 'error',
+}: {
+  culprit: string;
+  message: string;
+  title: string;
+  transaction: string;
+  event_type?: string;
+}) {
+  return {
+    culprit: culprit,
+    message: message,
+    timestamp: '2024-01-24T09:09:04+00:00',
+    'issue.id': 9999,
+    project: 'foo',
+    'project.name': 'bar',
+    title: title,
+    id: '12345',
+    transaction: transaction,
+    'event.type': event_type,
+  };
+}
+
+describe('getTitleSubtitleMessage()', () => {
+  it('error event', () => {
+    expect(
+      getTitleSubtitleMessage(
+        createEvent({
+          culprit: 'n/a',
+          title:
+            'ClientError: 404 Client Error: for url: https://api.clickup.com/sentry/webhook',
+          message: 'Message of the second issue',
+          transaction: 'foo',
+        })
+      )
+    ).toEqual({
+      title: 'ClientError', // The colon and remainder of string are removed
+      subtitle: 'foo',
+      message: 'Message of the second issue',
+    });
+  });
+
+  it('error event: It keeps the colon', () => {
+    expect(
+      getTitleSubtitleMessage(
+        createEvent({
+          culprit: 'n/a',
+          title: 'WorkerLostError: ',
+          message: 'Message of the second issue',
+          transaction: 'foo',
+        })
+      )
+    ).toEqual({
+      title: 'WorkerLostError:', // The colon is kept
+      subtitle: 'foo',
+      message: 'Message of the second issue',
+    });
+  });
+
+  it('default event', () => {
+    expect(
+      getTitleSubtitleMessage(
+        createEvent({
+          culprit: '/api/0/organizations/{organization_id_or_slug}/issues/',
+          message: 'n/a',
+          title: 'Query from referrer search.group_index is throttled',
+          transaction: 'n/a',
+          event_type: 'default',
+        })
+      )
+    ).toEqual({
+      title: 'Query from referrer search.group_index is throttled',
+      subtitle: '',
+      message: '/api/0/organizations/{organization_id_or_slug}/issues/',
+    });
   });
 });

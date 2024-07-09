@@ -1,5 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import Link from 'sentry/components/links/link';
@@ -9,7 +10,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 
-import type {TimelineEvent} from './useTraceTimelineEvents';
+import type {TimelineDiscoverEvent, TimelineEvent} from './useTraceTimelineEvents';
 
 interface TraceIssueEventProps {
   event: TimelineEvent;
@@ -59,7 +60,9 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
         <TraceIssueDetailsContainer>
           <NoOverflowDiv>
             <TraceIssueEventTitle>{title}</TraceIssueEventTitle>
-            <TraceIssueEventSubtitle>{subtitle}</TraceIssueEventSubtitle>
+            <TraceIssueEventSubtitle data-test-id="subtitle-span">
+              {subtitle}
+            </TraceIssueEventSubtitle>
           </NoOverflowDiv>
           <NoOverflowDiv>{message}</NoOverflowDiv>
         </TraceIssueDetailsContainer>
@@ -68,18 +71,38 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
   );
 }
 
-function getTitleSubtitleMessage(event: TimelineEvent) {
-  let title;
-  // XXX: This is not fully correct but it will make this first PR easier to review
-  const subtitle = event.transaction;
+// This function tries to imitate what getTitle() from utils.events does.
+// In that module, the data comes from the issues endpoint while in here
+// we grab the data from the events endpoint. A larger effort is
+// required in order to use that function directly since the data between
+// the two endpoint is slightly different.
+// For instance, the events endpoint could include a _metadata dict with
+// the title, subtitle and message.
+// We could also make another call to the issues endpoint  to fetch the metadata,
+// however, we currently don't support it and it is extremely slow
+export function getTitleSubtitleMessage(event: TimelineEvent) {
+  let title = event.title.trimEnd();
+  // XXX: This is not fully correct but it will make following PRs easier to review
+  let subtitle = event.transaction;
   let message = event.message;
-  if (event['event.type'] === 'error') {
-    title = event.title.split(':')[0];
-  } else {
-    title = event.title;
-    // It is suspected that this value is calculated somewhere in Relay
-    // and we deconstruct it here to match what the Issue details page shows
-    message = event.message.replace(event.transaction, '').replace(title, '');
+  try {
+    if (event['event.type'] === 'error') {
+      if (title[title.length - 1] !== ':') {
+        title = event.title.split(':')[0];
+      }
+    } else if (event['event.type'] === 'default') {
+      // See getTitle() and getMessage() in sentry/utils/events.tsx
+      subtitle = '';
+      const errorEvent = event as TimelineDiscoverEvent;
+      message = errorEvent.culprit;
+    } else {
+      // It is suspected that this value is calculated somewhere in Relay
+      // and we deconstruct it here to match what the Issue details page shows
+      message = event.message.replace(event.transaction, '').replace(title, '');
+    }
+  } catch (error) {
+    // If we fail, report it so we can figure it out
+    Sentry.captureException(error);
   }
   return {title, subtitle, message};
 }

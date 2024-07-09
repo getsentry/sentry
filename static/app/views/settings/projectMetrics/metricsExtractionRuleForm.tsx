@@ -441,5 +441,4 @@ const StyledIconWarning = styled(IconWarning)`
 
 const ConditionsButtonBar = styled('div')`
   margin-top: ${space(1)};
-  height: ${space(3)};
 `;
