@@ -84,8 +84,12 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
         if not self.has_feature(project.organization, request):
             return Response(status=404)
 
+        query = request.GET.get("query")
+
         with handle_exceptions():
             configs = SpanAttributeExtractionRuleConfig.objects.filter(project=project)
+            if query:
+                configs = configs.filter(span_attribute__icontains=query)
 
             return self.paginate(
                 request,

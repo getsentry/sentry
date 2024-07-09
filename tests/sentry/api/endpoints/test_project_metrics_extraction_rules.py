@@ -655,3 +655,45 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
 
         assert response.status_code == 400
         assert response.data["detail"] == "Total number of rules exceeds the limit of 1."
+
+    @django_db_all
+    @with_feature("organizations:custom-metrics-extraction-rule")
+    def test_query_filter_rules(self):
+        for i, span_attribute in zip(range(0, 3), ("count_clicks", "some_span", "count_views")):
+            self.create_span_attribute_extraction_config(
+                dictionary={
+                    "spanAttribute": span_attribute,
+                    "aggregates": ["count", "p50", "p75", "p95", "p99"],
+                    "unit": "none",
+                    "tags": [f"tag{num}" for num in range(0, i)],
+                    "conditions": [
+                        {"value": f"foo:bar{i}"},
+                    ],
+                },
+                user_id=self.user.id,
+                project=self.project,
+            )
+
+        response = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            method="get",
+            query="count",
+        )
+
+        assert response.status_code == 200
+        data = response.data
+        assert len(data) == 2
+        assert {el["spanAttribute"] for el in data} == {"count_clicks", "count_views"}
+
+        response = self.get_response(
+            self.organization.slug,
+            self.project.slug,
+            method="get",
+            query="span",
+        )
+
+        assert response.status_code == 200
+        data = response.data
+        assert len(data) == 1
+        assert {el["spanAttribute"] for el in data} == {"some_span"}
