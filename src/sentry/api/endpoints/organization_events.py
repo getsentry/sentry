@@ -23,7 +23,7 @@ from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.exceptions import InvalidParams
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
-from sentry.snuba import discover, errors, metrics_enhanced_performance, metrics_performance
+from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import dataset_split_decision_inferred_from_query, get_dataset
@@ -348,9 +348,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         elif referrer not in ALLOWED_EVENTS_REFERRERS:
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
-        def _data_fn(
-            scopedDataset, offset, limit, query, fallback_to_transactions=False
-        ) -> dict[str, Any]:
+        def _data_fn(scopedDataset, offset, limit, query) -> dict[str, Any]:
             return scopedDataset.query(
                 selected_columns=self.get_field_list(organization, request),
                 query=query,
@@ -371,7 +369,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 use_metrics_layer=batch_features.get("organizations:use-metrics-layer", False),
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
                 on_demand_metrics_type=on_demand_metrics_type,
-                fallback_to_transactions=fallback_to_transactions,
             )
 
         @sentry_sdk.tracing.trace
@@ -384,77 +381,75 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     organization,
                     actor=request.user,
                 )
-                has_errors = False
-                has_transactions = False
 
                 if does_widget_have_split and not has_override_feature:
                     # This is essentially cached behaviour and we skip the check
+                    split_query = scoped_query
                     if widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS:
-                        split_dataset = errors
+                        split_dataset = discover
+                        split_query = (
+                            f"({scoped_query}) AND !event.type:transaction"
+                            if scoped_query
+                            else "!event.type:transaction"
+                        )
                     elif widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE:
                         # We can't add event.type:transaction for now because of on-demand.
                         split_dataset = scopedDataset
                     else:
                         split_dataset = discover
 
-                    return _data_fn(split_dataset, offset, limit, scoped_query)
+                    return _data_fn(split_dataset, offset, limit, split_query)
 
-                # Widget has not split the discover dataset yet, so we need to check if there are errors etc.
+                try:
+                    error_results = _data_fn(
+                        discover,
+                        offset,
+                        limit,
+                        (
+                            f"({scoped_query}) AND !event.type:transaction"
+                            if scoped_query
+                            else "!event.type:transaction"
+                        ),
+                    )
+                    # Widget has not split the discover dataset yet, so we need to check if there are errors etc.
+                    has_errors = len(error_results["data"]) > 0
+                except SnubaError:
+                    has_errors = False
+                    error_results = None
+
+                original_results = _data_fn(scopedDataset, offset, limit, scoped_query)
+                if original_results.get("data"):
+                    dataset_meta = original_results.get("data").get("meta", {})
                 else:
-                    map = {}
-                    with ThreadPoolExecutor(max_workers=3) as exe:
-                        futures = {
-                            exe.submit(
-                                # Force the fallback to transactions here. If the query is ambiguous,
-                                # we will re-run the query without the fallback.
-                                _data_fn,
-                                get_dataset(dataset_),
-                                offset,
-                                limit,
-                                scoped_query,
-                                True,
-                            ): dataset_
-                            for dataset_ in [
-                                "errors",
-                                "metricsEnhanced",
-                            ]
-                        }
+                    dataset_meta = list(original_results.values())[0].get("data").get("meta", {})
+                using_metrics = dataset_meta.get("isMetricsData", False) or dataset_meta.get(
+                    "isMetricsExtractedData", False
+                )
+                has_other_data = len(original_results["data"]) > 0
 
-                        for future in as_completed(futures):
-                            dataset_ = futures[future]
-                            try:
-                                result = future.result()
-                                map[dataset_] = result
-                            except SnubaError:
-                                pass
+                has_transactions = has_other_data
+                transaction_results = None
+                if has_errors and has_other_data and not using_metrics:
+                    # In the case that the original request was not using the metrics dataset, we cannot be certain that other data is solely transactions.
+                    sentry_sdk.set_tag("third_split_query", True)
+                    transactions_only_query = (
+                        f"({scoped_query}) AND event.type:transaction"
+                        if scoped_query
+                        else "event.type:transaction"
+                    )
+                    transaction_results = _data_fn(discover, offset, limit, transactions_only_query)
+                    has_transactions = len(transaction_results["data"]) > 0
 
-                    try:
-                        error_results = map["errors"]
-                        error_results["meta"][
-                            "discoverSplitDecision"
-                        ] = DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
-                        has_errors = len(error_results["data"]) > 0
-                    except SnubaError:
-                        error_results = None
+                decision = self.save_split_decision(widget, has_errors, has_transactions)
 
-                    try:
-                        transaction_results = map["metricsEnhanced"]
-                        transaction_results["meta"][
-                            "discoverSplitDecision"
-                        ] = DashboardWidgetTypes.get_type_name(
-                            DashboardWidgetTypes.TRANSACTION_LIKE
-                        )
-                        has_transactions = len(transaction_results["data"]) > 0
-                    except KeyError:
-                        transaction_results = None
-
-                    decision = self.save_split_decision(widget, has_errors, has_transactions)
-                    if decision == DashboardWidgetTypes.TRANSACTION_LIKE:
-                        return transaction_results
-                    elif decision == DashboardWidgetTypes.ERROR_EVENTS and error_results:
-                        return error_results
-                    else:
-                        return _data_fn(scopedDataset, offset, limit, scoped_query)
+                if decision == DashboardWidgetTypes.DISCOVER:
+                    return _data_fn(discover, offset, limit, scoped_query)
+                elif decision == DashboardWidgetTypes.TRANSACTION_LIKE:
+                    return original_results
+                elif decision == DashboardWidgetTypes.ERROR_EVENTS and error_results:
+                    return error_results
+                else:
+                    return original_results
             except Exception as e:
                 # Swallow the exception if it was due to the discover split, and try again one more time.
                 sentry_sdk.capture_exception(e)
