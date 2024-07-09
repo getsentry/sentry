@@ -5,6 +5,7 @@ from typing import Any
 
 import sentry_sdk
 from sentry_sdk.metrics import Metric, MetricsAggregator, metrics_noop
+from sentry_sdk.tracing import Span
 
 from sentry import options
 from sentry.features.rollout import in_random_rollout
@@ -112,6 +113,35 @@ def should_summarize_metric(key: str, tags: dict[str, Any]) -> bool:
     return in_random_rollout("delightful_metrics.metrics_summary_sample_rate")
 
 
+@metrics_noop
+def _set_metric_on_span(key: str, value: float | int, op: str, tags: Tags | None = None) -> None:
+    if not options.get("delightful_metrics.enable_span_attributes"):
+        return
+
+    scope = sentry_sdk.Scope.get_isolation_scope()
+
+    span_or_tx = getattr(scope, "_span", None)
+
+    if not span_or_tx:
+        with scope.start_transaction():
+            with scope.start_span(op=f"minimetrics.{op}") as span:
+                return _add_metric_data_to_span(span, key, value, tags)
+    elif span_or_tx.parent_span_id is not None:
+        return _add_metric_data_to_span(span_or_tx, key, value, tags)
+    else:
+        with scope.start_span(op=f"minimetrics.{op}") as span:
+            return _add_metric_data_to_span(span, key, value, tags)
+
+
+def _add_metric_data_to_span(
+    span: Span, key: str, value: float | int, tags: Tags | None = None
+) -> None:
+    span.set_data(key, value)
+    if tags:
+        for tag_key, tag_value in tags.items():
+            span.set_tag(tag_key, tag_value)
+
+
 class MiniMetricsMetricsBackend(MetricsBackend):
     @staticmethod
     def _keep_metric(sample_rate: float) -> bool:
@@ -126,19 +156,6 @@ class MiniMetricsMetricsBackend(MetricsBackend):
             return "none"
 
         return unit
-
-    def _attach_metric_to_span(
-        self, key: str, value: float | int, op: str, tags: Tags | None = None
-    ) -> None:
-        if not options.get("delightful_metrics.enable_span_attributes"):
-            return
-
-        with sentry_sdk.get_current_span() or sentry_sdk.start_span(op=f"minimetrics.{op}") as span:
-
-            span.set_data(self._get_key(key), value)
-            if tags:
-                for tag_key, tag_value in tags.items():
-                    span.set_tag(tag_key, tag_value)
 
     def incr(
         self,
@@ -159,7 +176,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
                 stacklevel=stacklevel + 1,
             )
 
-            self._attach_metric_to_span(key=key, value=amount, op="incr", tags=tags)
+            _set_metric_on_span(key=key, value=amount, op="incr", tags=tags)
 
     def timing(
         self,
@@ -180,7 +197,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
                 stacklevel=stacklevel + 1,
             )
 
-            self._attach_metric_to_span(key=key, value=value, op="timing", tags=tags)
+            _set_metric_on_span(key=key, value=value, op="timing", tags=tags)
 
     def gauge(
         self,
@@ -210,7 +227,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
                     stacklevel=stacklevel + 1,
                 )
 
-            self._attach_metric_to_span(key=key, value=value, op="gauge", tags=tags)
+            _set_metric_on_span(key=key, value=value, op="gauge", tags=tags)
 
     def distribution(
         self,
@@ -231,7 +248,7 @@ class MiniMetricsMetricsBackend(MetricsBackend):
                 stacklevel=stacklevel + 1,
             )
 
-            self._attach_metric_to_span(key=key, value=value, op="distribution", tags=tags)
+            _set_metric_on_span(key=key, value=value, op="distribution", tags=tags)
 
     def event(
         self,
