@@ -89,6 +89,26 @@ class CreateEventTestCase(TestCase, BaseEventFrequencyPercentTest):
             data=data, project_id=project_id, assert_no_errors=False, event_type=EventType.ERROR
         )
 
+    def create_event_frequency_condition(
+        self,
+        interval="1d",
+        id="EventFrequencyCondition",
+        value=1,
+        comparison_type=ComparisonType.COUNT,
+        comparison_interval=None,
+    ) -> EventFrequencyConditionData:
+        condition_id = f"sentry.rules.conditions.event_frequency.{id}"
+        condition_blob = EventFrequencyConditionData(
+            interval=interval,
+            id=condition_id,
+            value=value,
+            comparisonType=comparison_type,
+        )
+        if comparison_interval:
+            condition_blob["comparisonInterval"] = comparison_interval
+
+        return condition_blob
+
 
 class BuildGroupToGroupEventTest(TestCase):
     def test_build_group_to_groupevent(self):
@@ -101,6 +121,35 @@ class BulkFetchEventsTest(TestCase):
 
 
 class GetConditionGroupResultsTest(CreateEventTestCase):
+    def test_empty_condition_groups(self):
+        assert get_condition_group_results({}, self.project) == {}
+
+    @patch("sentry.rules.processing.delayed_processing.logger")
+    def test_nonexistent_condition_cls(self, mock_logger):
+        first_query = UniqueConditionQuery(cls_id="fake_id", interval=None, environment_id=1)
+        fake_data_groups = DataAndGroups(
+            data=self.create_event_frequency_condition(id="fake_id"),
+            group_ids={1},
+        )
+        fake_data_groups = {"data": "foo", "group_ids": {1, 2, 3}}
+        assert get_condition_group_results({first_query: fake_data_groups}, self.project) is None
+        mock_logger.warning.assert_called_once()
+
+    @patch("sentry.rules.processing.delayed_processing.logger")
+    def test_fast_condition_cls(self, mock_logger):
+        first_query = UniqueConditionQuery(
+            cls_id="sentry.rules.conditions.every_event.EveryEventCondition",
+            interval=None,
+            environment_id=1,
+        )
+        fake_data_groups = DataAndGroups(
+            data=self.create_event_frequency_condition(id="fake_id"),
+            group_ids={1},
+        )
+        fake_data_groups = {"data": "foo", "group_ids": {1, 2, 3}}
+        assert get_condition_group_results({first_query: fake_data_groups}, self.project) is None
+        mock_logger.warning.assert_called_once()
+
     def test_get_condition_group_results(self):
         interval = "1h"
         comparison_interval = "15m"
@@ -233,26 +282,6 @@ class ParseRuleGroupToEventDataTest(TestCase):
 
 class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTestCase):
     buffer_timestamp = (FROZEN_TIME + timedelta(seconds=1)).timestamp()
-
-    def create_event_frequency_condition(
-        self,
-        interval="1d",
-        id="EventFrequencyCondition",
-        value=1,
-        comparison_type=ComparisonType.COUNT,
-        comparison_interval=None,
-    ) -> EventFrequencyConditionData:
-        condition_id = f"sentry.rules.conditions.event_frequency.{id}"
-        condition_blob = EventFrequencyConditionData(
-            interval=interval,
-            id=condition_id,
-            value=value,
-            comparisonType=comparison_type,
-        )
-        if comparison_interval:
-            condition_blob["comparisonInterval"] = comparison_interval
-
-        return condition_blob
 
     def push_to_hash(self, project_id, rule_id, group_id, event_id=None, occurrence_id=None):
         value = json.dumps({"event_id": event_id, "occurrence_id": occurrence_id})
