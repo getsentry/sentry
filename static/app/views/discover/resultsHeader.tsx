@@ -33,6 +33,7 @@ type Props = {
   location: Location;
   organization: Organization;
   router: InjectedRouter;
+  setHomepageQuery: (savedQuery?: SavedQuery) => void;
   setSavedQuery: (savedQuery?: SavedQuery) => void;
   yAxis: string[];
   isHomepage?: boolean;
@@ -94,7 +95,7 @@ class ResultsHeader extends Component<Props, State> {
   }
 
   fetchHomepageQueryData() {
-    const {api, organization} = this.props;
+    const {api, organization, setHomepageQuery} = this.props;
     this.setState({loading: true});
     fetchHomepageQuery(api, organization.slug).then(homepageQuery => {
       this.setState({
@@ -105,6 +106,7 @@ class ResultsHeader extends Component<Props, State> {
           : homepageQuery,
         loading: false,
       });
+      setHomepageQuery(homepageQuery);
     });
   }
 
@@ -156,6 +158,7 @@ class ResultsHeader extends Component<Props, State> {
       setSavedQuery,
       isHomepage,
       splitDecision,
+      setHomepageQuery,
     } = this.props;
     const {savedQuery, loading, homepageQuery} = this.state;
 
@@ -210,6 +213,7 @@ class ResultsHeader extends Component<Props, State> {
             splitDecision={splitDecision}
             setHomepageQuery={updatedHomepageQuery => {
               this.setState({homepageQuery: updatedHomepageQuery});
+              setHomepageQuery(homepageQuery);
               if (isHomepage) {
                 setSavedQuery(updatedHomepageQuery);
               }
