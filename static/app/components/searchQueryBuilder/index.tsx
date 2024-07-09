@@ -19,12 +19,17 @@ import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils
 import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {SavedSearchType, Tag} from 'sentry/types/group';
+import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 
 interface SearchQueryBuilderProps {
-  filterKeySections: FilterKeySection[];
+  /**
+   * A complete mapping of all possible filter keys.
+   * Filter keys not included will not show up when typing and may be shown as invalid.
+   * Should be a stable reference.
+   */
+  filterKeys: TagCollection;
   getTagValues: (key: Tag, query: string) => Promise<string[]>;
   initialQuery: string;
   /**
@@ -32,6 +37,11 @@ interface SearchQueryBuilderProps {
    */
   searchSource: string;
   className?: string;
+  /**
+   * When provided, displays a tabbed interface for discovering filter keys.
+   * Sections and filter keys are displayed in the order they are provided.
+   */
+  filterKeySections?: FilterKeySection[];
   label?: string;
   onBlur?: (query: string) => void;
   /**
@@ -69,6 +79,7 @@ export function SearchQueryBuilder({
   className,
   label,
   initialQuery,
+  filterKeys,
   filterKeySections,
   getTagValues,
   onChange,
@@ -80,19 +91,9 @@ export function SearchQueryBuilder({
 }: SearchQueryBuilderProps) {
   const {state, dispatch} = useQueryBuilderState({initialQuery});
 
-  const keys = useMemo(
-    () =>
-      filterKeySections.reduce((acc, section) => {
-        for (const tag of section.children) {
-          acc[tag.key] = tag;
-        }
-        return acc;
-      }, {}),
-    [filterKeySections]
-  );
   const parsedQuery = useMemo(
-    () => parseQueryBuilderValue(state.query, {keys}),
-    [keys, state.query]
+    () => parseQueryBuilderValue(state.query, {filterKeys}),
+    [filterKeys, state.query]
   );
 
   useEffectAfterFirstRender(() => {
@@ -114,8 +115,8 @@ export function SearchQueryBuilder({
     return {
       ...state,
       parsedQuery,
-      filterKeySections,
-      keys,
+      filterKeySections: filterKeySections ?? [],
+      filterKeys,
       getTagValues,
       dispatch,
       handleSearch,
@@ -125,11 +126,11 @@ export function SearchQueryBuilder({
     state,
     parsedQuery,
     filterKeySections,
-    keys,
     getTagValues,
     dispatch,
     handleSearch,
     searchSource,
+    filterKeys,
   ]);
 
   return (

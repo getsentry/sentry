@@ -62,12 +62,12 @@ function getSearchConfigFromKeys(keys: TagCollection): Partial<SearchConfig> {
 
 export function parseQueryBuilderValue(
   value: string,
-  options?: {keys: TagCollection}
+  options?: {filterKeys: TagCollection}
 ): ParseResult | null {
   return collapseTextTokens(
     parseSearch(value || ' ', {
       flattenParenGroups: true,
-      ...getSearchConfigFromKeys(options?.keys ?? {}),
+      ...getSearchConfigFromKeys(options?.filterKeys ?? {}),
     })
   );
 }

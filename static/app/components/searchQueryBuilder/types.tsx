@@ -1,9 +1,7 @@
 import type {ReactNode} from 'react';
 
-import type {Tag} from 'sentry/types/group';
-
 export type FilterKeySection = {
-  children: Tag[];
+  children: string[];
   label: ReactNode;
   value: string;
 };

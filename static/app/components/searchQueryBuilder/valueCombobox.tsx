@@ -500,14 +500,14 @@ function useFilterSuggestions({
   selectedValues: string[];
   token: TokenResult<Token.FILTER>;
 }) {
-  const {getTagValues, keys} = useSearchQueryBuilder();
-  const key = keys[token.key.text];
+  const {getTagValues, filterKeys} = useSearchQueryBuilder();
+  const key = filterKeys[token.key.text];
   const predefinedValues = useMemo(
     () => getPredefinedValues({key, filterValue, token}),
     [key, filterValue, token]
   );
   const shouldFetchValues = key && !key.predefined && !predefinedValues.length;
-  const canSelectMultipleValues = tokenSupportsMultipleValues(token, keys);
+  const canSelectMultipleValues = tokenSupportsMultipleValues(token, filterKeys);
 
   // TODO(malwilley): Display error states
   const {data, isFetching} = useQuery<string[]>({
@@ -635,8 +635,8 @@ export function SearchQueryBuilderValueCombobox({
 }: SearchQueryValueBuilderProps) {
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const {keys, dispatch} = useSearchQueryBuilder();
-  const canSelectMultipleValues = tokenSupportsMultipleValues(token, keys);
+  const {filterKeys, dispatch} = useSearchQueryBuilder();
+  const canSelectMultipleValues = tokenSupportsMultipleValues(token, filterKeys);
   const [inputValue, setInputValue] = useState(() => {
     if (isDateToken(token)) {
       return token.value.type === Token.VALUE_ISO_8601_DATE ? token.value.text : '';
