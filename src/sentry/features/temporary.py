@@ -364,8 +364,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:session-replay-materialized-view", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False)
     # Enable mobile replay player
     manager.add("organizations:session-replay-mobile-player", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable mobile replay denylist
-    manager.add("organizations:session-replay-mobile-denylist", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    # Disable select orgs from ingesting mobile replay events.
+    manager.add("organizations:session-replay-video-denylist", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable mobile replay player network tab
     manager.add("organizations:session-replay-mobile-network-tab", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable the new event linking columns to be queried
