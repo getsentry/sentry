@@ -17,7 +17,14 @@ import {
 } from 'sentry/components/events/breadcrumbs/utils';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import useDrawer from 'sentry/components/globalDrawer';
-import {IconClock, IconEllipsis, IconFilter, IconSearch, IconSort} from 'sentry/icons';
+import {
+  IconClock,
+  IconEllipsis,
+  IconFilter,
+  IconSearch,
+  IconSort,
+  IconTimer,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
@@ -109,7 +116,13 @@ export default function BreadcrumbsDataSection({
       />
       <Button
         aria-label={t('Change Time Format for Breadcrumbs')}
-        icon={<IconClock size="xs" />}
+        icon={
+          timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE ? (
+            <IconClock size="xs" />
+          ) : (
+            <IconTimer size="xs" />
+          )
+        }
         onClick={() => {
           const nextTimeDisplay =
             timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE
