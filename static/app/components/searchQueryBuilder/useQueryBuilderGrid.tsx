@@ -92,7 +92,7 @@ export function useQueryBuilderGrid(
   const {undo} = useUndoStack(state);
 
   const onKeyDown = useCallback(
-    (e: React.KeyboardEvent<HTMLDivElement>) => {
+    async (e: React.KeyboardEvent<HTMLDivElement>) => {
       if (e.key === 'z' && isCtrlKeyPressed(e)) {
         undo();
         e.stopPropagation();
@@ -110,8 +110,9 @@ export function useQueryBuilderGrid(
           case 'Backspace':
           case 'Delete': {
             dispatch({
-              type: 'DELETE_TOKENS',
+              type: 'REPLACE_TOKENS_WITH_TEXT',
               tokens: selectedTokens,
+              text: '',
             });
             state.selectionManager.setFocusedKey(
               findNearestFreeTextKey(
@@ -123,15 +124,6 @@ export function useQueryBuilderGrid(
             state.selectionManager.clearSelection();
             return;
           }
-          case 'c':
-            if (isCtrlKeyPressed(e)) {
-              const queryToCopy = selectedTokens
-                .map(token => token.text)
-                .join('')
-                .trim();
-              navigator.clipboard.writeText(queryToCopy);
-            }
-            return;
           case 'ArrowRight':
             state.selectionManager.clearSelection();
             state.selectionManager.setFocusedKey(
@@ -153,6 +145,66 @@ export function useQueryBuilderGrid(
             );
             return;
           default:
+            if (isCtrlKeyPressed(e)) {
+              const copySelectedTokens = () => {
+                const queryToCopy = selectedTokens
+                  .map(token => token.text)
+                  .join('')
+                  .trim();
+                navigator.clipboard.writeText(queryToCopy);
+              };
+
+              if (e.key === 'a') {
+                state.selectionManager.selectAll();
+                e.preventDefault();
+                e.stopPropagation();
+              } else if (e.key === 'z') {
+                state.selectionManager.clearSelection();
+                undo();
+                e.stopPropagation();
+                e.preventDefault();
+              } else if (e.key === 'x') {
+                state.selectionManager.clearSelection();
+                copySelectedTokens();
+                dispatch({
+                  type: 'REPLACE_TOKENS_WITH_TEXT',
+                  tokens: selectedTokens,
+                  text: '',
+                });
+                e.stopPropagation();
+                e.preventDefault();
+              } else if (e.key === 'v') {
+                state.selectionManager.clearSelection();
+
+                // TODO(malwilley): Find a way to handle pasting without requiring user permissions
+                const text = await navigator.clipboard.readText();
+                const cleanedText = text.replace('\n', '').trim();
+                dispatch({
+                  type: 'REPLACE_TOKENS_WITH_TEXT',
+                  tokens: selectedTokens,
+                  text: cleanedText,
+                });
+                e.preventDefault();
+                e.stopPropagation();
+              } else if (e.key === 'c') {
+                copySelectedTokens();
+                e.preventDefault();
+                e.stopPropagation();
+              }
+              return;
+            }
+
+            // If th key pressed will generate a symbol, replace the selection with it
+            if (/^.$/u.test(e.key)) {
+              dispatch({
+                type: 'REPLACE_TOKENS_WITH_TEXT',
+                text: e.key,
+                tokens: selectedTokens,
+              });
+              e.preventDefault();
+              e.stopPropagation();
+            }
+
             return;
         }
       }
