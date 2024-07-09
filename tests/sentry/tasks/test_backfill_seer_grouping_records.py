@@ -39,7 +39,7 @@ from sentry.testutils.helpers.task_runner import TaskRunner
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils import json, redis
 from sentry.utils.safe import get_path
-from sentry.utils.snuba import bulk_snuba_queries
+from sentry.utils.snuba import RateLimitExceeded, bulk_snuba_queries
 
 EXCEPTION = {
     "values": [
@@ -448,6 +448,25 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         group_ids_results = [row["data"][0]["group_id"] for row in group_event_rows]
         for group_id in group_ids_last_seen:
             assert group_id in group_ids_results
+
+    @patch("sentry.tasks.embeddings_grouping.utils.logger")
+    @patch("sentry.utils.snuba.bulk_snuba_queries")
+    def test_get_data_from_snuba_exception(self, mock_bulk_snuba_queries, mock_logger):
+        mock_bulk_snuba_queries.side_effect = RateLimitExceeded
+
+        group_ids_last_seen = {
+            group.id: group.last_seen for group in Group.objects.filter(project_id=self.project.id)
+        }
+        with pytest.raises(Exception):
+            get_data_from_snuba(self.project, group_ids_last_seen)
+            mock_logger.exception.assert_called_with(
+                "tasks.backfill_seer_grouping_records.snuba_query_exception",
+                extra={
+                    "organization_id": self.project.organization.id,
+                    "project_id": self.project.id,
+                    "error": "Snuba Rate Limit Exceeded",
+                },
+            )
 
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.post_bulk_grouping_records")
