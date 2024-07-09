@@ -12,7 +12,6 @@ import {getTitleSubtitleMessage} from './traceTimeline/traceIssue';
 import {TraceTimeline} from './traceTimeline/traceTimeline';
 import type {
   TimelineErrorEvent,
-  TimelineEvent,
   TraceEventResponse,
 } from './traceTimeline/useTraceTimelineEvents';
 import {TraceTimeLineOrRelatedIssue} from './traceTimelineOrRelatedIssue';
@@ -344,7 +343,7 @@ function createEvent({
   culprit,
   message,
   title,
-  error_value = [],
+  error_value,
   event_type = 'error',
   stack_function = [],
 }: {
@@ -354,7 +353,7 @@ function createEvent({
   event_type?: 'default' | 'error' | '';
   message?: string;
   stack_function?: string[];
-}): TimelineEvent {
+}) {
   const event = {
     culprit: culprit,
     timestamp: '2024-01-24T09:09:04+00:00',
