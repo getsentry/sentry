@@ -3,7 +3,11 @@ import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
 // eslint-disable-next-line no-restricted-imports
-import {fetchTagValues} from 'sentry/actionCreators/tags';
+import {
+  builtInIssuesFields,
+  fetchTagValues,
+  useFetchIssueOrganizationTags,
+} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
@@ -12,9 +16,14 @@ import {ItemType} from 'sentry/components/smartSearchBar/types';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Tag, TagCollection} from 'sentry/types';
-import {SavedSearchType} from 'sentry/types';
+import {
+  type Organization,
+  SavedSearchType,
+  type Tag,
+  type TagCollection,
+} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
+import {SEMVER_TAGS} from 'sentry/utils/discover/fields';
 import {
   DEVICE_CLASS_TAG_VALUES,
   FieldKind,
@@ -51,11 +60,6 @@ const getFilterKeySections = (
   const allTags: Tag[] = Object.values(tags).filter(
     tag => !EXCLUDED_TAGS.includes(tag.key)
   );
-  const eventTags = orderBy(
-    allTags.filter(tag => tag.kind === FieldKind.TAG),
-    ['totalValues', 'key'],
-    ['desc', 'asc']
-  ).map(tag => tag.key);
   const issueFields = orderBy(
     allTags.filter(tag => tag.kind === FieldKind.ISSUE_FIELD),
     ['key']
@@ -63,6 +67,11 @@ const getFilterKeySections = (
   const eventFields = orderBy(
     allTags.filter(tag => tag.kind === FieldKind.EVENT_FIELD),
     ['key']
+  ).map(tag => tag.key);
+  const eventTags = orderBy(
+    allTags.filter(tag => tag.kind === FieldKind.TAG),
+    ['totalValues', 'key'],
+    ['desc', 'asc']
   ).map(tag => tag.key);
 
   return [
@@ -84,6 +93,35 @@ const getFilterKeySections = (
   ];
 };
 
+const getAdditionalIssueTags = (
+  org: Organization,
+  currentTags: TagCollection
+): TagCollection => {
+  const semverFields: TagCollection = Object.values(SEMVER_TAGS).reduce<TagCollection>(
+    (acc, tag) => {
+      return {
+        ...acc,
+        [tag.key]: {
+          predefined: false,
+          ...tag,
+          kind: org.features.includes('issue-stream-search-query-builder')
+            ? FieldKind.EVENT_FIELD
+            : FieldKind.FIELD,
+        },
+      };
+    },
+    {}
+  );
+  const hasFieldValues = [
+    ...Object.values(currentTags).map(tag => tag.key),
+    ...Object.values(SEMVER_TAGS).map(tag => tag.key),
+  ].sort();
+
+  const builtInIssuesTags: TagCollection = builtInIssuesFields(org, hasFieldValues);
+
+  return {...semverFields, ...builtInIssuesTags};
+};
+
 interface Props extends React.ComponentProps<typeof SmartSearchBar>, WithIssueTagsProps {
   organization: Organization;
 }
@@ -93,6 +131,10 @@ const EXCLUDED_TAGS = ['environment'];
 function IssueListSearchBar({organization, tags, ...props}: Props) {
   const api = useApi();
   const {selection: pageFilters} = usePageFilters();
+  const {tags: issueTags} = useFetchIssueOrganizationTags({
+    orgIdOrSlug: organization.id,
+    projectIds: pageFilters.projects.map(id => id.toString()),
+  });
 
   const tagValueLoader = useCallback(
     (key: string, search: string) => {
@@ -192,10 +234,13 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
       },
     ],
   };
-
+  const additionalTags = getAdditionalIssueTags(organization, issueTags);
   const filterKeySections = useMemo(() => {
-    return getFilterKeySections(tags, organization);
-  }, [organization, tags]);
+    const allTags = {...issueTags, ...additionalTags};
+    return getFilterKeySections(allTags, organization);
+  }, [organization, issueTags, additionalTags]);
+
+  const filterKeys = {...issueTags, ...additionalTags};
 
   if (organization.features.includes('issue-stream-search-query-builder')) {
     return (
@@ -204,7 +249,7 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
         initialQuery={props.query ?? ''}
         getTagValues={getTagValues}
         filterKeySections={filterKeySections}
-        filterKeys={tags}
+        filterKeys={filterKeys}
         onSearch={props.onSearch}
         onBlur={props.onBlur}
         onChange={value => {

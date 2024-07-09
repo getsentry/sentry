@@ -225,6 +225,21 @@ export enum AggregationKey {
   LAST_SEEN = 'last_seen',
 }
 
+export enum IsFieldValues {
+  RESOLVED = 'resolved',
+  UNRESOLVED = 'unresolved',
+  ARCHIVED = 'archived',
+  ESCALATING = 'escalating',
+  NEW = 'new',
+  ONGOING = 'ongoing',
+  REGRESSED = 'regressed',
+  ASSIGNED = 'assigned',
+  UNASSIGNED = 'unassigned',
+  FOR_REVIEW = 'for_review',
+  LINKED = 'linked',
+  UNLINKED = 'unlinked',
+}
+
 export interface FieldDefinition {
   kind: FieldKind;
   valueType: FieldValueType | null;
@@ -1046,7 +1061,6 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   },
 };
 
-//
 export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.AGE,
   FieldKey.ASSIGNED_OR_SUGGESTED,

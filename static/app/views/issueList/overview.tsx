@@ -466,8 +466,10 @@ class IssueListOverview extends Component<Props, State> {
   }
 
   fetchTags() {
-    const {api, organization, selection} = this.props;
-    loadOrganizationTags(api, organization.slug, selection);
+    if (!this.props.organization.features.includes('issue-stream-search-query-builder')) {
+      const {api, organization, selection} = this.props;
+      loadOrganizationTags(api, organization.slug, selection);
+    }
   }
 
   fetchStats = (groups: string[]) => {
