@@ -366,7 +366,7 @@ function createEvent({
     'event.type': event_type,
   };
 
-  // Use this variable to determine the return value helps typescript
+  // Using this intermediary variable helps typescript
   let return_event;
   if (event['event.type'] === 'error') {
     return_event = {
@@ -453,13 +453,13 @@ describe('getTitleSubtitleMessage()', () => {
     });
   });
 
-  it('issue platform', () => {
+  it('issue platform event', () => {
     expect(
       getTitleSubtitleMessage(
         createEvent({
+          message: '/api/slow/ Slow DB Query SELECT "sentry_monitorcheckin"."monitor_id"',
           culprit: '/api/slow/',
           title: 'Slow DB Query',
-          message: '/api/slow/ Slow DB Query SELECT "sentry_monitorcheckin"."monitor_id"',
           event_type: '',
         })
       )
