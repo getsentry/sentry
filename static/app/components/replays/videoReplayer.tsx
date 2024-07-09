@@ -446,8 +446,10 @@ export class VideoReplayer {
 
   protected setVideoTime(video: HTMLVideoElement, timeMs: number) {
     // If 'ended' is true, the current time will be overwritten to 0 after hitting play.
-    // This ensures that ended is reset to false so current time doesn't get overwritten
+    // Setting currentTime will cause a side-effect of resetting 'ended' to false.
+    // The additional assignment of currentTime is required to make sure ended is reset before we assign the actual currentTime
     if (video.ended && timeMs > 0) {
+      // we set it to 1ms before to reduce flickering
       video.currentTime = (timeMs - 1) / 1000;
     }
 
