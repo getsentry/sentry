@@ -34,7 +34,6 @@ import {
 import {EntryType, type Event} from 'sentry/types/event';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-export const BREADCRUMB_TIMESTAMP_PLACEHOLDER = '--';
 const BREADCRUMB_TITLE_PLACEHOLDER = t('Generic');
 const BREADCRUMB_SUMMARY_COUNT = 3;
 
@@ -97,6 +96,7 @@ export function getBreadcrumbFilterOptions(crumbs: EnhancedCrumb[]) {
   });
   return filterOptions.sort((a, b) => a.value.localeCompare(b.value));
 }
+
 export interface EnhancedCrumb {
   // Mutated crumb where we change types or virtual crumb
   breadcrumb: RawCrumb;

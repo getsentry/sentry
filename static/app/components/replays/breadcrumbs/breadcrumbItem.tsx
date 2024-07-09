@@ -122,8 +122,6 @@ function BreadcrumbItem({
   }, [frame]);
 
   const hasNewTimelineUI = useHasNewTimelineUI();
-  const timeString = new Date(frame.timestampMs).toISOString();
-  const startTimeString = new Date(startTimestampMs).toISOString();
   if (hasNewTimelineUI) {
     // Coerce previous design colors into new ones. After 'new-timeline-ui' is GA, we can modify
     // the mapper directly.
@@ -134,16 +132,14 @@ function BreadcrumbItem({
         icon={icon}
         title={title}
         colorConfig={{primary: darkColor, secondary: color}}
-        timeString={timeString}
-        renderTimestamp={(_ts, _sts) => (
+        timestamp={
           <ReplayTimestamp>
             <TimestampButton
               startTimestampMs={startTimestampMs}
               timestampMs={frame.timestampMs}
             />
           </ReplayTimestamp>
-        )}
-        startTimeString={startTimeString}
+        }
         data-is-error-frame={isErrorFrame(frame)}
         style={style}
         className={className}
