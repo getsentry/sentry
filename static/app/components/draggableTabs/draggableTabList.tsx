@@ -187,7 +187,7 @@ function BaseDraggableTabList({
             </Reorder.Item>
           ))}
           <AddViewButton borderless size="zero" onClick={() => setIsTempTabVisible(true)}>
-            <IconAdd size="xs" style={{margin: '2 4 2 2'}} />
+            <StlyedIconAdd size="xs" />
             Add View
           </AddViewButton>
           {isTempTabVisible && <TabDivider />}
@@ -295,6 +295,11 @@ export function DraggableTabList({
 }
 
 DraggableTabList.Item = Item;
+
+const StlyedIconAdd = styled(IconAdd)`
+  margin-right: ${space(0.5)};
+  margin-left: ${space(0.5)};
+`;
 
 const TabDivider = styled('div')`
   height: 50%;
