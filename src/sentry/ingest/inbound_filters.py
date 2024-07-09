@@ -299,10 +299,30 @@ _healthcheck_filter = _FilterSpec(
 )
 
 
-def _error_message_condition(value: Sequence[tuple[str, str]]) -> RuleCondition:
+def _error_message_condition(values: Sequence[tuple[str | None, str | None]]) -> RuleCondition:
     """
     Condition that expresses error message matching for an inbound filter.
     """
+    conditions = []
+
+    for ty, value in values:
+        ty_and_value = []
+
+        if ty is not None:
+            ty_and_value.append({"op": "glob", "name": "ty", "value": [ty]})
+        if value is not None:
+            ty_and_value.append({"op": "glob", "name": "value", "value": [value]})
+
+        if len(ty_and_value) == 1:
+            conditions.append(ty_and_value[0])
+        elif len(ty_and_value) == 2:
+            conditions.append(
+                {
+                    "op": "and",
+                    "inner": ty_and_value,
+                }
+            )
+
     return cast(
         RuleCondition,
         {
@@ -310,16 +330,7 @@ def _error_message_condition(value: Sequence[tuple[str, str]]) -> RuleCondition:
             "name": "event.exceptions",
             "inner": {
                 "op": "or",
-                "inner": [
-                    {
-                        "op": "and",
-                        "inner": [
-                            {"op": "glob", "name": "ty", "value": [ty]},
-                            {"op": "glob", "name": "value", "value": [value]},
-                        ],
-                    }
-                    for ty, value in value
-                ],
+                "inner": conditions,
             },
         },
     )
@@ -355,8 +366,8 @@ def _hydration_error_filter() -> RuleCondition:
     425 - Text content does not match server-rendered HTML.
     """
     values = [
-        ("*", "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*"),
-        ("*", "*https://react.dev/errors/{418,419,422,423,425}*"),
+        (None, "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*"),
+        (None, "*https://react.dev/errors/{418,419,422,423,425}*"),
     ]
 
     return _error_message_condition(values)
