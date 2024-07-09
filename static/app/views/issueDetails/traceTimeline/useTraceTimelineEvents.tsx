@@ -8,7 +8,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 
 interface BaseEvent {
   culprit: string; // Used for default events & subtitles
-  'event.type': string;
   id: string;
   'issue.id': number;
   message: string;
@@ -20,15 +19,21 @@ interface BaseEvent {
 }
 
 interface TimelineIssuePlatformEvent extends BaseEvent {
-  'event.type': 'transaction';
+  'event.type': '';
 }
-interface TimelineDiscoverEvent extends BaseEvent {
+interface TimelineErrorEvent extends BaseEvent {
   'error.value': string[]; // Used for message for error events
-  'event.type': 'error' | 'default';
-  'stack.function': string[]; // This will have data when this is an error event
+  'event.type': 'error';
+  'stack.function': string[];
+}
+interface TimelineDefaultEvent extends BaseEvent {
+  'event.type': 'default';
 }
 
-export type TimelineEvent = TimelineDiscoverEvent | TimelineIssuePlatformEvent;
+export type TimelineEvent =
+  | TimelineErrorEvent
+  | TimelineDefaultEvent
+  | TimelineIssuePlatformEvent;
 
 export interface TraceEventResponse {
   data: TimelineEvent[];
