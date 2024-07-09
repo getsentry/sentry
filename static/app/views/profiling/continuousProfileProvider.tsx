@@ -3,7 +3,6 @@ import * as Sentry from '@sentry/react';
 
 import type {Client} from 'sentry/api';
 import {ContinuousProfileHeader} from 'sentry/components/profiling/continuousProfileHeader';
-import {t} from 'sentry/locale';
 import type {RequestState} from 'sentry/types/core';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
@@ -117,14 +116,7 @@ function ContinuousProfileProvider(
         setProfiles({type: 'resolved', data: p});
       })
       .catch(err => {
-        // XXX: our API client mock implementation does not mimick the real
-        // implementation, so we need to check for an empty object here. #sad
-        const isEmptyObject = err.toString() === '[object Object]';
-        const message = isEmptyObject
-          ? t('Error: Unable to load profiles')
-          : err.toString();
-
-        setProfiles({type: 'errored', error: message});
+        setProfiles({type: 'errored', error: 'Failed to fetch profiles'});
         Sentry.captureException(err);
       });
 
