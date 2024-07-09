@@ -325,3 +325,14 @@ class OrganizationIntegrationServiceTest(BaseIntegrationServiceTest):
             oi.refresh_from_db()
             assert oi.config == new_config
             assert oi.grace_period_end is None
+
+    def test_send_incident_alert_missing_sentryapp(self) -> None:
+        result = integration_service.send_incident_alert_notification(
+            sentry_app_id=9876,  # does not exist
+            action_id=1,
+            incident_id=1,
+            new_status=0,
+            organization_id=self.organization.id,
+            incident_attachment_json="{}",
+        )
+        assert not result

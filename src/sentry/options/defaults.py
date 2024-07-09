@@ -684,20 +684,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enable use of Symbolicator proguard processing for specific projects.
-register(
-    "symbolicator.proguard-processing-projects",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Enable use of Symbolicator proguard processing for fraction of projects.
-register(
-    "symbolicator.proguard-processing-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-register("symbolicator.proguard-processing-ab-test", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-
 # Transaction events
 # True => kill switch to disable ingestion of transaction events for internal project.
 register(
@@ -1098,6 +1084,9 @@ register(
     "relay.compute-metrics-summaries.sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
+# Controls whether generic inbound filters are sent to Relay.
+register("relay.emit-generic-inbound-filters", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -1463,6 +1452,18 @@ register(
 register(
     "sentry-metrics.synchronized-rebalance-delay",
     default=15,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry-metrics.extrapolation.enable_transactions",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry-metrics.extrapolation.enable_spans",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

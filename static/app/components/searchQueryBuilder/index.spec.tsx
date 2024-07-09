@@ -14,64 +14,72 @@ import {
   QueryInterfaceType,
 } from 'sentry/components/searchQueryBuilder/types';
 import {INTERFACE_TYPE_LOCALSTORAGE_KEY} from 'sentry/components/searchQueryBuilder/utils';
+import type {TagCollection} from 'sentry/types';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import localStorageWrapper from 'sentry/utils/localStorage';
+
+const FILTER_KEYS: TagCollection = {
+  [FieldKey.AGE]: {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
+  [FieldKey.ASSIGNED]: {
+    key: FieldKey.ASSIGNED,
+    name: 'Assigned To',
+    kind: FieldKind.FIELD,
+    predefined: true,
+    values: [
+      {
+        title: 'Suggested',
+        type: 'header',
+        icon: null,
+        children: [{value: 'me'}, {value: 'unassigned'}],
+      },
+      {
+        title: 'All',
+        type: 'header',
+        icon: null,
+        children: [{value: 'person1@sentry.io'}, {value: 'person2@sentry.io'}],
+      },
+    ],
+  },
+  [FieldKey.BROWSER_NAME]: {
+    key: FieldKey.BROWSER_NAME,
+    name: 'Browser Name',
+    kind: FieldKind.FIELD,
+    predefined: true,
+    values: ['Chrome', 'Firefox', 'Safari', 'Edge'],
+  },
+  [FieldKey.IS]: {
+    key: FieldKey.IS,
+    name: 'is',
+    predefined: true,
+    values: ['resolved', 'unresolved', 'ignored'],
+  },
+  [FieldKey.TIMES_SEEN]: {
+    key: FieldKey.TIMES_SEEN,
+    name: 'timesSeen',
+    kind: FieldKind.FIELD,
+  },
+  custom_tag_name: {
+    key: 'custom_tag_name',
+    name: 'Custom_Tag_Name',
+  },
+};
 
 const FITLER_KEY_SECTIONS: FilterKeySection[] = [
   {
     value: FieldKind.FIELD,
     label: 'Category 1',
     children: [
-      {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
-      {
-        key: FieldKey.ASSIGNED,
-        name: 'Assigned To',
-        kind: FieldKind.FIELD,
-        predefined: true,
-        values: [
-          {
-            title: 'Suggested',
-            type: 'header',
-            icon: null,
-            children: [{value: 'me'}, {value: 'unassigned'}],
-          },
-          {
-            title: 'All',
-            type: 'header',
-            icon: null,
-            children: [{value: 'person1@sentry.io'}, {value: 'person2@sentry.io'}],
-          },
-        ],
-      },
-      {
-        key: FieldKey.BROWSER_NAME,
-        name: 'Browser Name',
-        kind: FieldKind.FIELD,
-        predefined: true,
-        values: ['Chrome', 'Firefox', 'Safari', 'Edge'],
-      },
-      {
-        key: FieldKey.IS,
-        name: 'is',
-        predefined: true,
-        values: ['resolved', 'unresolved', 'ignored'],
-      },
-      {
-        key: FieldKey.TIMES_SEEN,
-        name: 'timesSeen',
-        kind: FieldKind.FIELD,
-      },
+      FieldKey.AGE,
+      FieldKey.ASSIGNED,
+      FieldKey.BROWSER_NAME,
+      FieldKey.IS,
+      FieldKey.TIMES_SEEN,
     ],
   },
   {
     value: FieldKind.TAG,
     label: 'Category 2',
-    children: [
-      {
-        key: 'custom_tag_name',
-        name: 'Custom_Tag_Name',
-      },
-    ],
+    children: ['custom_tag_name'],
   },
 ];
 
@@ -88,7 +96,9 @@ describe('SearchQueryBuilder', function () {
     getTagValues: jest.fn(),
     initialQuery: '',
     filterKeySections: FITLER_KEY_SECTIONS,
+    filterKeys: FILTER_KEYS,
     label: 'Query Builder',
+    searchSource: '',
   };
 
   describe('callbacks', function () {

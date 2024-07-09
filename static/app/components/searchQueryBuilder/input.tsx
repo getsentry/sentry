@@ -23,7 +23,7 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Tag} from 'sentry/types/group';
+import type {Tag, TagCollection} from 'sentry/types/group';
 import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
@@ -172,12 +172,12 @@ function createItem(tag: Tag): KeyItem {
   };
 }
 
-function createSection(section: FilterKeySection): KeySectionItem {
+function createSection(section: FilterKeySection, keys: TagCollection): KeySectionItem {
   return {
     key: section.value,
     value: section.value,
     title: section.label,
-    options: section.children.map(createItem),
+    options: section.children.map(key => createItem(keys[key])),
   };
 }
 
@@ -223,20 +223,23 @@ function useSortItems({
 }: {
   filterValue: string;
 }): Array<KeySectionItem | KeyItem> {
-  const {filterKeySections} = useSearchQueryBuilder();
+  const {filterKeys, filterKeySections} = useSearchQueryBuilder();
   const flatItems = useMemo<KeyItem[]>(
-    () => filterKeySections.flatMap(section => section.children.map(createItem)),
-    [filterKeySections]
+    () => Object.values(filterKeys).map(createItem),
+    [filterKeys]
   );
   const search = useFuzzySearch(flatItems, FUZZY_SEARCH_OPTIONS);
 
   return useMemo(() => {
     if (!filterValue || !search) {
-      return filterKeySections.map(createSection);
+      if (!filterKeySections.length) {
+        return flatItems;
+      }
+      return filterKeySections.map(section => createSection(section, filterKeys));
     }
 
     return search.search(filterValue).map(({item}) => item);
-  }, [filterKeySections, filterValue, search]);
+  }, [filterKeySections, filterKeys, filterValue, flatItems, search]);
 }
 
 function KeyDescription({tag}: {tag: Tag}) {
@@ -291,10 +294,11 @@ function SearchQueryBuilderInputInternal({
 
   const filterValue = getWordAtCursorPosition(inputValue, selectionIndex);
 
-  const {query, keys, dispatch, onSearch} = useSearchQueryBuilder();
+  const {query, filterKeys, filterKeySections, dispatch, handleSearch} =
+    useSearchQueryBuilder();
   const aliasToKeyMap = useMemo(() => {
-    return Object.fromEntries(Object.values(keys).map(key => [key.alias, key.key]));
-  }, [keys]);
+    return Object.fromEntries(Object.values(filterKeys).map(key => [key.alias, key.key]));
+  }, [filterKeys]);
 
   const items = useSortItems({filterValue});
 
@@ -399,8 +403,8 @@ function SearchQueryBuilderInputInternal({
         resetInputValue();
 
         // Because the query does not change until a subsequent render,
-        // we need to do the replacement that is does in the ruducer here
-        onSearch?.(replaceTokenWithPadding(query, token, value));
+        // we need to do the replacement that is does in the reducer here
+        handleSearch(replaceTokenWithPadding(query, token, value));
       }}
       onExit={() => {
         if (inputValue !== token.value.trim()) {
@@ -441,7 +445,7 @@ function SearchQueryBuilderInputInternal({
       tabIndex={tabIndex}
       maxOptions={50}
       onPaste={onPaste}
-      displayTabbedMenu={inputValue.length === 0}
+      displayTabbedMenu={inputValue.length === 0 && filterKeySections.length > 0}
       shouldFilterResults={false}
       shouldCloseOnInteractOutside={el => {
         if (rowRef.current?.contains(el)) {
