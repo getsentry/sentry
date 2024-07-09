@@ -32,7 +32,6 @@ type Props = {
   location: Location;
   organization: Organization;
   router: InjectedRouter;
-  setHomepageQuery: (savedQuery?: SavedQuery) => void;
   setSavedQuery: (savedQuery?: SavedQuery) => void;
   yAxis: string[];
   isHomepage?: boolean;
@@ -93,7 +92,7 @@ class ResultsHeader extends Component<Props, State> {
   }
 
   fetchHomepageQueryData() {
-    const {api, organization, setHomepageQuery} = this.props;
+    const {api, organization} = this.props;
     this.setState({loading: true});
     fetchHomepageQuery(api, organization.slug).then(homepageQuery => {
       this.setState({
@@ -104,7 +103,6 @@ class ResultsHeader extends Component<Props, State> {
           : homepageQuery,
         loading: false,
       });
-      setHomepageQuery(homepageQuery);
     });
   }
 
@@ -155,7 +153,6 @@ class ResultsHeader extends Component<Props, State> {
       router,
       setSavedQuery,
       isHomepage,
-      setHomepageQuery,
     } = this.props;
     const {savedQuery, loading, homepageQuery} = this.state;
 
@@ -208,8 +205,13 @@ class ResultsHeader extends Component<Props, State> {
             router={router}
             isHomepage={isHomepage}
             setHomepageQuery={updatedHomepageQuery => {
-              this.setState({homepageQuery: updatedHomepageQuery});
-              setHomepageQuery(homepageQuery);
+              this.setState({
+                homepageQuery: organization.features.includes(
+                  'performance-discover-dataset-selector'
+                )
+                  ? getSavedQueryWithDataset(updatedHomepageQuery)
+                  : updatedHomepageQuery,
+              });
               if (isHomepage) {
                 setSavedQuery(updatedHomepageQuery);
               }

@@ -640,14 +640,6 @@ export class Results extends Component<Props, State> {
     });
   };
 
-  setHomepageQuery = (homepageQuery?: SavedQuery) => {
-    const {isHomepage, setSavedQuery} = this.props;
-    this.setState({homepageQuery});
-    if (isHomepage) {
-      setSavedQuery(homepageQuery);
-    }
-  };
-
   render() {
     const {organization, location, router, selection, api, setSavedQuery, isHomepage} =
       this.props;
@@ -660,7 +652,6 @@ export class Results extends Component<Props, State> {
       confirmedQuery,
       savedQuery,
       splitDecision,
-      homepageQuery,
     } = this.state;
     const fields = eventView.hasAggregateField()
       ? generateAggregateFields(organization, eventView.fields)
@@ -686,7 +677,6 @@ export class Results extends Component<Props, State> {
             yAxis={yAxisArray}
             router={router}
             isHomepage={isHomepage}
-            setHomepageQuery={this.setHomepageQuery}
           />
           <Layout.Body>
             <CustomMeasurementsProvider organization={organization} selection={selection}>
@@ -705,7 +695,7 @@ export class Results extends Component<Props, State> {
                       hasFeature && (
                         <DatasetSelector
                           isHomepage={isHomepage}
-                          savedQuery={isHomepage ? homepageQuery : savedQuery}
+                          savedQuery={savedQuery}
                           splitDecision={splitDecision}
                           eventView={eventView}
                         />
