@@ -157,13 +157,13 @@ def get_extrapolation_config(project: Project) -> MetricExtrapolationConfig | No
     if options.get("sentry-metrics.extrapolation.enable_transactions"):
         config["include"] += ["?:transactions/*"]
         config["exclude"] += [
-            "c:transactions/usage@none",
-            "c:transactions/count_per_root_project@none",
+            "c:transactions/usage@none",  # stats
+            "c:transactions/count_per_root_project@none",  # dynamic sampling
         ]
 
     if options.get("sentry-metrics.extrapolation.enable_spans"):
         config["include"] += ["?:spans/*"]
-        config["exclude"] += ["c:spans/usage@none"]
+        config["exclude"] += ["c:spans/usage@none"]  # stats
 
     return config
 
