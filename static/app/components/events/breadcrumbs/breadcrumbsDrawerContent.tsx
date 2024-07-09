@@ -20,7 +20,7 @@ import {
   BreadcrumbSort,
 } from 'sentry/components/events/interfaces/breadcrumbs';
 import {InputGroup} from 'sentry/components/inputGroup';
-import {IconClock, IconFilter, IconSearch, IconSort} from 'sentry/icons';
+import {IconClock, IconFilter, IconSearch, IconSort, IconTimer} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -168,7 +168,13 @@ export function BreadcrumbsDrawerContent({
           <Button
             size="xs"
             borderless
-            icon={<IconClock />}
+            icon={
+              timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE ? (
+                <IconClock size="xs" />
+              ) : (
+                <IconTimer size="xs" />
+              )
+            }
             aria-label={t('Change Time Format for All Breadcrumbs')}
             {...props}
           />
