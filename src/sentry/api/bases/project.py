@@ -104,7 +104,7 @@ class ProjectOwnershipPermission(ProjectPermission):
     }
 
 
-class ProjectMetricsExtrationRulesPermission(ProjectPermission):
+class ProjectMetricsExtractionRulesPermission(ProjectPermission):
     scope_map = {
         "GET": ["project:read", "project:write", "project:admin"],
         "POST": ["project:read", "project:write", "project:admin"],

@@ -10,7 +10,7 @@ from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import ProjectEndpoint, ProjectMetricsExtractionRulesPermission
+from sentry.api.bases.project import ProjectEndpoint, ProjectMetricsExtractionRulesPermission
 from sentry.api.exceptions import BadRequest, ConflictError
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
