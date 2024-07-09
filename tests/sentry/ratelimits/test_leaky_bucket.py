@@ -2,6 +2,7 @@ from unittest import mock
 
 import pytest
 
+from sentry.exceptions import InvalidConfiguration
 from sentry.ratelimits.leaky_bucket import LeakyBucketRateLimiter
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -135,3 +136,11 @@ class LeakyBucketRateLimiterTest(TestCase):
             info = self.limiter.get_bucket_state("foo")
             assert info.current_level == 0
             assert "Could not get bucket state" in caplog.text
+
+    def test_validate(self):
+        assert self.limiter.validate() is None
+
+        with mock.patch.object(self.limiter, "client") as redis_client:
+            redis_client.ping.side_effect = Exception("Boom")
+            with pytest.raises(InvalidConfiguration):
+                self.limiter.validate()
