@@ -49,7 +49,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
         'project.name': project.name,
         title: 'Slow DB Query',
         id: 'abc',
-        transaction: '/api/slow/',
+        transaction: 'n/a',
         culprit: '/api/slow/',
       },
     ],
@@ -340,14 +340,16 @@ function createEvent({
   title,
   error_value,
   event_type = 'error',
+  message = 'n/a',
 }: {
   culprit: string;
   title: string;
   error_value?: string[];
   event_type?: string;
+  message?: string;
 }) {
   const event = {
-    message: 'message',
+    message: message,
     culprit: culprit,
     timestamp: '2024-01-24T09:09:04+00:00',
     'issue.id': 9999,
@@ -429,6 +431,23 @@ describe('getTitleSubtitleMessage()', () => {
       title: 'Query from referrer search.group_index is throttled',
       subtitle: '',
       message: '/api/0/organizations/{organization_id_or_slug}/issues/',
+    });
+  });
+
+  it('issue platform event', () => {
+    expect(
+      getTitleSubtitleMessage(
+        createEvent({
+          message: '/api/slow/ Slow DB Query SELECT "sentry_monitorcheckin"."monitor_id"',
+          culprit: '/api/slow/',
+          title: 'Slow DB Query',
+          event_type: 'transaction',
+        })
+      )
+    ).toEqual({
+      title: 'Slow DB Query',
+      subtitle: '/api/slow/',
+      message: 'SELECT "sentry_monitorcheckin"."monitor_id"',
     });
   });
 });

@@ -10,7 +10,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 
-import type {TimelineEvent} from './useTraceTimelineEvents';
+import type {TimelineEvent, TimelineIssuePlatformEvent} from './useTraceTimelineEvents';
 
 interface TraceIssueEventProps {
   event: TimelineEvent;
@@ -83,7 +83,7 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
 export function getTitleSubtitleMessage(event: TimelineEvent) {
   let title = event.title.trimEnd();
   let subtitle = event.culprit;
-  let message = event.message;
+  let message = '';
   try {
     if (event['event.type'] === 'error') {
       if (title[title.length - 1] !== ':') {
@@ -98,9 +98,13 @@ export function getTitleSubtitleMessage(event: TimelineEvent) {
       subtitle = '';
       message = event.culprit;
     } else {
+      const issuePlatformEvent = event as TimelineIssuePlatformEvent;
       // It is suspected that this value is calculated somewhere in Relay
       // and we deconstruct it here to match what the Issue details page shows
-      message = event.message.replace(event.transaction, '').replace(title, '');
+      message = issuePlatformEvent.message
+        .replace(event.culprit, '')
+        .replace(title, '')
+        .trimStart();
     }
   } catch (error) {
     // If we fail, report it so we can figure it out
