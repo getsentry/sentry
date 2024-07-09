@@ -32,7 +32,9 @@ import type {
   RowWithScoreAndOpportunity,
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
+import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 
 type Column = GridColumnHeader;
 
@@ -57,10 +59,12 @@ export function WebVitalsDetailPanel({
 }) {
   const location = useLocation();
   const organization = useOrganization();
+  const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
 
-  const {data: projectData} = useProjectRawWebVitalsQuery({});
+  const {data: projectData} = useProjectRawWebVitalsQuery({browserTypes});
   const {data: projectScoresData} = useProjectWebVitalsScoresQuery({
     weightWebVital: webVital ?? 'total',
+    browserTypes,
   });
 
   const projectScore = calculatePerformanceScoreFromStoredTableDataRow(
@@ -80,6 +84,7 @@ export function WebVitalsDetailPanel({
       : {}),
     enabled: webVital !== null,
     sortName: 'webVitalsDetailPanelSort',
+    browserTypes,
   });
 
   const dataByOpportunity = useMemo(() => {
@@ -111,7 +116,7 @@ export function WebVitalsDetailPanel({
   }, [data, projectScoresData?.data, webVital]);
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
-    useProjectRawWebVitalsValuesTimeseriesQuery({});
+    useProjectRawWebVitalsValuesTimeseriesQuery({browserTypes});
 
   const webVitalData: LineChartSeries = {
     data:

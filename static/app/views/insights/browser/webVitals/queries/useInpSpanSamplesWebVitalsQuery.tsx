@@ -4,6 +4,7 @@ import {
   type InteractionSpanSampleRowWithScore,
   SORTABLE_INDEXED_INTERACTION_FIELDS,
 } from 'sentry/views/insights/browser/webVitals/types';
+import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {useWebVitalsSort} from 'sentry/views/insights/browser/webVitals/utils/useWebVitalsSort';
 import {useSpansIndexed} from 'sentry/views/insights/common/queries/useDiscover';
 import {SpanIndexedField} from 'sentry/views/insights/types';
@@ -14,8 +15,10 @@ export function useInpSpanSamplesWebVitalsQuery({
   enabled,
   filters = {},
   sortName,
+  browserTypes,
 }: {
   limit: number;
+  browserTypes?: BrowserType[];
   enabled?: boolean;
   filters?: {[key: string]: string[] | string | number | undefined};
   sortName?: string;
@@ -27,18 +30,24 @@ export function useInpSpanSamplesWebVitalsQuery({
     defaultSort: DEFAULT_INDEXED_INTERACTION_SORT,
     sortableFields: filteredSortableFields as unknown as string[],
   });
+
+  const mutableSearch = MutableSearch.fromQueryObject({
+    has: 'message',
+    [`!${SpanIndexedField.SPAN_DESCRIPTION}`]: '<unknown>',
+    'span.op': 'ui.interaction.click',
+    'measurements.score.weight.inp': '>0',
+    ...filters,
+  });
+  if (transaction !== undefined) {
+    mutableSearch.addFilterValue(SpanIndexedField.ORIGIN_TRANSACTION, transaction);
+  }
+  if (browserTypes) {
+    mutableSearch.addDisjunctionFilterValues(SpanIndexedField.BROWSER_NAME, browserTypes);
+  }
+
   const {data, isLoading, ...rest} = useSpansIndexed(
     {
-      search: MutableSearch.fromQueryObject({
-        has: 'message',
-        [`!${SpanIndexedField.SPAN_DESCRIPTION}`]: '<unknown>',
-        'span.op': 'ui.interaction.click',
-        'measurements.score.weight.inp': '>0',
-        ...(transaction !== undefined
-          ? {[SpanIndexedField.ORIGIN_TRANSACTION]: transaction}
-          : {}),
-        ...filters,
-      }),
+      search: mutableSearch,
       sorts: [sort],
       fields: [
         SpanIndexedField.INP,

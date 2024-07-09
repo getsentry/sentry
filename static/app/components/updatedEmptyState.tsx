@@ -101,7 +101,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     title: extraConfigTitle,
   } = configure[1] ?? {};
 
-  const {description: verifyDescription, configurations: verifyConfigutations} =
+  const {description: verifyDescription, configurations: verifyConfigurations} =
     verify[0] ?? {};
 
   return (
@@ -140,7 +140,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                   ))}
                   {!configurations &&
                     !extraConfigDescription &&
-                    !verifyConfigutations && (
+                    !verifyConfigurations && (
                       <FirstEventIndicator
                         organization={organization}
                         project={project}
@@ -226,7 +226,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                         </CodeSnippetWrapper>
                       </div>
                     ))}
-                    {!verifyConfigutations && !verifyDescription && (
+                    {!verifyConfigurations && !verifyDescription && (
                       <FirstEventIndicator
                         organization={organization}
                         project={project}
@@ -244,7 +244,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                       </FirstEventIndicator>
                     )}
                   </div>
-                  {(verifyConfigutations || verifyDescription) && (
+                  {(verifyConfigurations || verifyDescription) && (
                     <GuidedSteps.ButtonWrapper>
                       <GuidedSteps.BackButton size="md" />
                       <GuidedSteps.NextButton size="md" />
@@ -255,11 +255,11 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
             ) : (
               <Fragment />
             )}
-            {verifyConfigutations || verifyDescription ? (
+            {verifyConfigurations || verifyDescription ? (
               <GuidedSteps.Step stepKey="verify-sentry" title={t('Verify')}>
                 <div>
                   <DescriptionWrapper>{verifyDescription}</DescriptionWrapper>
-                  {verifyConfigutations?.map((configuration, index) => (
+                  {verifyConfigurations?.map((configuration, index) => (
                     <div key={index}>
                       <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
                       <CodeSnippetWrapper>

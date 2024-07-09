@@ -1,4 +1,5 @@
 import {t} from 'sentry/locale';
+import ConfigStore from 'sentry/stores/configStore';
 import {TOP_N} from 'sentry/utils/discover/types';
 
 import type {Widget} from '../types';
@@ -9,7 +10,8 @@ export type WidgetTemplate = Widget & {
 };
 
 export const getDefaultWidgets = () => {
-  return [
+  const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
+  const transactionsWidgets = [
     {
       id: 'duration-distribution',
       title: t('Duration Distribution'),
@@ -153,6 +155,8 @@ export const getDefaultWidgets = () => {
         },
       ],
     },
+  ];
+  const errorsWidgets = [
     {
       id: 'issue-for-review',
       title: t('Issues For Review'),
@@ -208,6 +212,9 @@ export const getDefaultWidgets = () => {
       ],
     },
   ];
+  return isSelfHostedErrorsOnly
+    ? errorsWidgets
+    : [...transactionsWidgets, ...errorsWidgets];
 };
 
 export function getTopNConvertedDefaultWidgets(): Readonly<Array<WidgetTemplate>> {

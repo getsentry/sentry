@@ -30,6 +30,7 @@ from sentry.models.transaction_threshold import (
     TransactionMetric,
 )
 from sentry.relay.config.experimental import TimeChecker
+from sentry.relay.types import RuleCondition
 from sentry.search.events import fields
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import ParamsType, QueryBuilderConfig
@@ -41,7 +42,6 @@ from sentry.snuba.metrics.extraction import (
     MetricSpecType,
     OnDemandMetricSpec,
     OnDemandMetricSpecVersioning,
-    RuleCondition,
     SpecVersion,
     TagMapping,
     TagSpec,
@@ -149,9 +149,23 @@ def get_extrapolation_config(project: Project) -> MetricExtrapolationConfig | No
     # Extrapolation applies to extracted metrics. This enables extrapolation for
     # the entire `custom` namespace, but this does not extrapolate old custom
     # metrics sent from the SDK directly.
-    return {
+    config: MetricExtrapolationConfig = {
         "include": ["?:custom/*"],
+        "exclude": [],
     }
+
+    if options.get("sentry-metrics.extrapolation.enable_transactions"):
+        config["include"] += ["?:transactions/*"]
+        config["exclude"] += [
+            "c:transactions/usage@none",  # stats
+            "c:transactions/count_per_root_project@none",  # dynamic sampling
+        ]
+
+    if options.get("sentry-metrics.extrapolation.enable_spans"):
+        config["include"] += ["?:spans/*"]
+        config["exclude"] += ["c:spans/usage@none"]  # stats
+
+    return config
 
 
 def get_on_demand_metric_specs(

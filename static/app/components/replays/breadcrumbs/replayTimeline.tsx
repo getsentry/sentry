@@ -68,13 +68,13 @@ export default function ReplayTimeline() {
       >
         <MinorGridlines durationMs={durationMs} width={width} />
         <MajorGridlines durationMs={durationMs} width={width} />
+        <TimelineScrubber />
         <TimelineGaps
           durationMs={durationMs}
           frames={appFrames}
           totalFrames={chapterFrames.length}
           width={width}
         />
-        <TimelineScrubber />
         <TimelineEventsContainer>
           <ReplayTimelineEvents
             durationMs={durationMs}

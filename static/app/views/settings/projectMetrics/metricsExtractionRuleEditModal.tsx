@@ -2,10 +2,14 @@ import {Fragment, useCallback, useMemo} from 'react';
 import {css} from '@emotion/react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {
+  type ModalOptions,
+  type ModalRenderProps,
+  openModal,
+} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {MetricsExtractionRule} from 'sentry/types/metrics';
-import type {Project} from 'sentry/types/project';
+import {useMetricsCardinality} from 'sentry/utils/metrics/useMetricsCardinality';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   aggregatesToGroups,
@@ -16,9 +20,8 @@ import {
 } from 'sentry/views/settings/projectMetrics/metricsExtractionRuleForm';
 import {useUpdateMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/api';
 
-interface Props extends ModalRenderProps {
+interface Props {
   metricExtractionRule: MetricsExtractionRule;
-  project: Project;
 }
 
 export function MetricsExtractionRuleEditModal({
@@ -27,13 +30,16 @@ export function MetricsExtractionRuleEditModal({
   closeModal,
   CloseButton,
   metricExtractionRule,
-  project,
-}: Props) {
+}: Props & ModalRenderProps) {
   const organization = useOrganization();
   const updateExtractionRuleMutation = useUpdateMetricsExtractionRules(
     organization.slug,
-    project.slug
+    metricExtractionRule.projectId
   );
+
+  const {data: cardinality} = useMetricsCardinality({
+    projects: [metricExtractionRule.projectId],
+  });
 
   const initialData: FormData = useMemo(() => {
     return {
@@ -58,6 +64,7 @@ export function MetricsExtractionRuleEditModal({
         aggregates: data.aggregates.flatMap(explodeAggregateGroup),
         unit: 'none',
         conditions: data.conditions,
+        projectId: metricExtractionRule.projectId,
       };
 
       updateExtractionRuleMutation.mutate(
@@ -81,7 +88,7 @@ export function MetricsExtractionRuleEditModal({
       );
       onSubmitSuccess(data);
     },
-    [closeModal, updateExtractionRuleMutation]
+    [closeModal, metricExtractionRule.projectId, updateExtractionRuleMutation]
   );
 
   return (
@@ -93,11 +100,12 @@ export function MetricsExtractionRuleEditModal({
       <Body>
         <MetricsExtractionRuleForm
           initialData={initialData}
-          project={project}
+          projectId={metricExtractionRule.projectId}
           submitLabel={t('Update')}
           cancelLabel={t('Cancel')}
           onCancel={closeModal}
           onSubmit={handleSubmit}
+          cardinality={cardinality}
           isEdit
           requireChanges
         />
@@ -108,5 +116,12 @@ export function MetricsExtractionRuleEditModal({
 
 export const modalCss = css`
   width: 100%;
-  max-width: 1000px;
+  max-width: 900px;
 `;
+
+export function openExtractionRuleEditModal(props: Props, options?: ModalOptions) {
+  openModal(modalProps => <MetricsExtractionRuleEditModal {...props} {...modalProps} />, {
+    modalCss,
+    ...options,
+  });
+}

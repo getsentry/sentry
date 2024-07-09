@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
@@ -15,38 +15,41 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import PerformanceDuration from 'sentry/components/performanceDuration';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconClose} from 'sentry/icons/iconClose';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PageFilters} from 'sentry/types/core';
 import type {MetricAggregation, MRI} from 'sentry/types/metrics';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getFormattedMQL} from 'sentry/utils/metrics';
-import {useApiQuery} from 'sentry/utils/queryClient';
-import {decodeInteger, decodeList, decodeScalar} from 'sentry/utils/queryString';
+import {decodeInteger, decodeList} from 'sentry/utils/queryString';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 
+import {usePageParams} from './hooks/usePageParams';
+import type {TraceResult} from './hooks/useTraces';
+import {useTraces} from './hooks/useTraces';
+import type {SpanResult} from './hooks/useTraceSpans';
+import {useTraceSpans} from './hooks/useTraceSpans';
 import {type Field, FIELDS, SORTS} from './data';
 import {
-  BREAKDOWN_SLICES,
-  ProjectRenderer,
+  Description,
+  ProjectBadgeWrapper,
+  ProjectsRenderer,
   SpanBreakdownSliceRenderer,
   SpanDescriptionRenderer,
   SpanIdRenderer,
@@ -59,7 +62,6 @@ import {
 import {TracesChart} from './tracesChart';
 import {TracesSearchBar} from './tracesSearchBar';
 import {
-  ALL_PROJECTS,
   areQueriesEmpty,
   getSecondaryNameFromSpan,
   getStylingSliceName,
@@ -70,27 +72,6 @@ const DEFAULT_PER_PAGE = 50;
 const SPAN_PROPS_DOCS_URL =
   'https://docs.sentry.io/concepts/search/searchable-properties/spans/';
 const ONE_MINUTE = 60 * 1000; // in milliseconds
-
-function usePageParams(location) {
-  const queries = useMemo(() => {
-    return decodeList(location.query.query);
-  }, [location.query.query]);
-
-  const metricsMax = decodeScalar(location.query.metricsMax);
-  const metricsMin = decodeScalar(location.query.metricsMin);
-  const metricsOp = decodeScalar(location.query.metricsOp);
-  const metricsQuery = decodeScalar(location.query.metricsQuery);
-  const mri = decodeScalar(location.query.mri);
-
-  return {
-    queries,
-    metricsMax,
-    metricsMin,
-    metricsOp,
-    metricsQuery,
-    mri,
-  };
-}
 
 export function Content() {
   const location = useLocation();
@@ -183,22 +164,7 @@ export function Content() {
   return (
     <LayoutMain fullWidth>
       <PageFilterBar condensed>
-        {organization.features.includes('performance-trace-explorer-enforce-projects') ? (
-          <ProjectPageFilter />
-        ) : (
-          <Tooltip
-            title={tct(
-              "Traces stem across multiple projects. You'll need to narrow down which projects you'd like to include per span.[br](ex. [code:project:javascript])",
-              {
-                br: <br />,
-                code: <Code />,
-              }
-            )}
-            position="bottom"
-          >
-            <ProjectPageFilter disabled projectOverride={ALL_PROJECTS} />
-          </Tooltip>
-        )}
+        <ProjectPageFilter />
         <EnvironmentPageFilter />
         <DatePageFilter defaultPeriod="2h" />
       </PageFilterBar>
@@ -299,6 +265,9 @@ export function Content() {
 }
 
 function TraceRow({defaultExpanded, trace}: {defaultExpanded; trace: TraceResult}) {
+  const {selection} = usePageFilters();
+  const {projects} = useProjects();
+
   const [expanded, setExpanded] = useState<boolean>(defaultExpanded);
   const [highlightedSliceName, _setHighlightedSliceName] = useState('');
   const location = useLocation();
@@ -316,6 +285,41 @@ function TraceRow({defaultExpanded, trace}: {defaultExpanded; trace: TraceResult
   );
 
   const onClickExpand = useCallback(() => setExpanded(e => !e), [setExpanded]);
+
+  const selectedProjects = useMemo(() => {
+    const selectedProjectIds = new Set(
+      selection.projects.map(project => project.toString())
+    );
+    return new Set(
+      projects
+        .filter(project => selectedProjectIds.has(project.id))
+        .map(project => project.slug)
+    );
+  }, [projects, selection.projects]);
+
+  const traceProjects = useMemo(() => {
+    const seenProjects: Set<string> = new Set();
+
+    const leadingProjects: string[] = [];
+    const trailingProjects: string[] = [];
+
+    for (let i = 0; i < trace.breakdowns.length; i++) {
+      const project = trace.breakdowns[i].project;
+      if (!defined(project) || seenProjects.has(project)) {
+        continue;
+      }
+      seenProjects.add(project);
+
+      // Priotize projects that are selected in the page filters
+      if (selectedProjects.has(project)) {
+        leadingProjects.push(project);
+      } else {
+        trailingProjects.push(project);
+      }
+    }
+
+    return [...leadingProjects, ...trailingProjects];
+  }, [selectedProjects, trace]);
 
   return (
     <Fragment>
@@ -346,9 +350,17 @@ function TraceRow({defaultExpanded, trace}: {defaultExpanded; trace: TraceResult
       </StyledPanelItem>
       <StyledPanelItem align="left" overflow>
         <Description>
-          {trace.project ? (
-            <ProjectRenderer projectSlug={trace.project} hideName />
-          ) : null}
+          <ProjectBadgeWrapper>
+            <ProjectsRenderer
+              projectSlugs={
+                traceProjects.length > 0
+                  ? traceProjects
+                  : trace.project
+                    ? [trace.project]
+                    : []
+              }
+            />
+          </ProjectBadgeWrapper>
           {trace.name ? (
             <WrappingText>{trace.name}</WrappingText>
           ) : (
@@ -560,227 +572,6 @@ function SpanRow({
   );
 }
 
-export type SpanResult<F extends string> = Record<F, any>;
-
-export interface TraceResult {
-  breakdowns: TraceBreakdownResult[];
-  duration: number;
-  end: number;
-  matchingSpans: number;
-  name: string | null;
-  numErrors: number;
-  numOccurrences: number;
-  numSpans: number;
-  project: string | null;
-  slices: number;
-  start: number;
-  trace: string;
-}
-
-interface TraceBreakdownBase {
-  duration: number; // Contains the accurate duration for display. Start and end may be quantized.
-  end: number;
-  opCategory: string | null;
-  sdkName: string | null;
-  sliceEnd: number;
-  sliceStart: number;
-  sliceWidth: number;
-  start: number;
-}
-
-type TraceBreakdownProject = TraceBreakdownBase & {
-  kind: 'project';
-  project: string;
-};
-
-type TraceBreakdownMissing = TraceBreakdownBase & {
-  kind: 'missing';
-  project: null;
-};
-
-export type TraceBreakdownResult = TraceBreakdownProject | TraceBreakdownMissing;
-
-interface TraceResults {
-  data: TraceResult[];
-  meta: any;
-}
-
-interface UseTracesOptions {
-  datetime?: PageFilters['datetime'];
-  enabled?: boolean;
-  limit?: number;
-  metricsMax?: string;
-  metricsMin?: string;
-  metricsOp?: string;
-  metricsQuery?: string;
-  mri?: string;
-  query?: string | string[];
-  sort?: '-timestamp';
-}
-
-function useTraces({
-  datetime,
-  enabled,
-  limit,
-  mri,
-  metricsMax,
-  metricsMin,
-  metricsOp,
-  metricsQuery,
-  query,
-  sort,
-}: UseTracesOptions) {
-  const organization = useOrganization();
-  const {projects} = useProjects();
-  const {selection} = usePageFilters();
-
-  const path = `/organizations/${organization.slug}/traces/`;
-
-  const endpointOptions = {
-    query: {
-      project: selection.projects,
-      environment: selection.environments,
-      ...(datetime ?? normalizeDateTimeParams(selection.datetime)),
-      query,
-      sort,
-      per_page: limit,
-      breakdownSlices: BREAKDOWN_SLICES,
-      mri,
-      metricsMax,
-      metricsMin,
-      metricsOp,
-      metricsQuery,
-    },
-  };
-  const serializedEndpointOptions = JSON.stringify(endpointOptions);
-
-  let queries: string[] = [];
-  if (Array.isArray(query)) {
-    queries = query;
-  } else if (query !== undefined) {
-    queries = [query];
-  }
-
-  useEffect(() => {
-    trackAnalytics('trace_explorer.search_request', {
-      organization,
-      queries,
-    });
-    // `queries` is already included as a dep in serializedEndpointOptions
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serializedEndpointOptions, organization]);
-
-  const result = useApiQuery<TraceResults>([path, endpointOptions], {
-    staleTime: 0,
-    refetchOnWindowFocus: false,
-    retry: false,
-    enabled,
-  });
-
-  useEffect(() => {
-    if (result.status === 'success') {
-      const project_slugs = [...new Set(result.data.data.map(trace => trace.project))];
-      const project_platforms = projects
-        .filter(p => project_slugs.includes(p.slug))
-        .map(p => p.platform ?? '');
-
-      trackAnalytics('trace_explorer.search_success', {
-        organization,
-        queries,
-        has_data: result.data.data.length > 0,
-        num_traces: result.data.data.length,
-        num_missing_trace_root: result.data.data.filter(trace => trace.name === null)
-          .length,
-        project_platforms,
-      });
-    } else if (result.status === 'error') {
-      const response = result.error.responseJSON;
-      const error =
-        typeof response?.detail === 'string'
-          ? response?.detail
-          : response?.detail?.message;
-      trackAnalytics('trace_explorer.search_failure', {
-        organization,
-        queries,
-        error: error ?? '',
-      });
-    }
-    // result.status is tied to result.data. No need to explicitly
-    // include result.data as an additional dep.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [serializedEndpointOptions, result.status, organization]);
-
-  return result;
-}
-
-interface SpanResults<F extends string> {
-  data: SpanResult<F>[];
-  meta: any;
-}
-
-interface UseTraceSpansOptions<F extends string> {
-  fields: F[];
-  trace: TraceResult;
-  datetime?: PageFilters['datetime'];
-  enabled?: boolean;
-  limit?: number;
-  metricsMax?: string;
-  metricsMin?: string;
-  metricsOp?: string;
-  metricsQuery?: string;
-  mri?: string;
-  query?: string | string[];
-  sort?: string[];
-}
-
-function useTraceSpans<F extends string>({
-  fields,
-  trace,
-  datetime,
-  enabled,
-  limit,
-  mri,
-  metricsMax,
-  metricsMin,
-  metricsOp,
-  metricsQuery,
-  query,
-  sort,
-}: UseTraceSpansOptions<F>) {
-  const organization = useOrganization();
-  const {selection} = usePageFilters();
-
-  const path = `/organizations/${organization.slug}/trace/${trace.trace}/spans/`;
-
-  const endpointOptions = {
-    query: {
-      project: selection.projects,
-      environment: selection.environments,
-      ...(datetime ?? normalizeDateTimeParams(selection.datetime)),
-      field: fields,
-      query,
-      sort,
-      per_page: limit,
-      breakdownSlices: BREAKDOWN_SLICES,
-      maxSpansPerTrace: 10,
-      mri,
-      metricsMax,
-      metricsMin,
-      metricsOp,
-      metricsQuery,
-    },
-  };
-
-  const result = useApiQuery<SpanResults<F>>([path, endpointOptions], {
-    staleTime: 0,
-    refetchOnWindowFocus: false,
-    retry: false,
-    enabled,
-  });
-
-  return result;
-}
-
 const LayoutMain = styled(Layout.Main)`
   display: flex;
   flex-direction: column;
@@ -794,13 +585,13 @@ const StyledPanel = styled(Panel)`
 const TracePanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(1, min-content) auto repeat(2, min-content) 85px 112px 66px;
+  grid-template-columns: 116px auto repeat(2, min-content) 85px 112px 66px;
 `;
 
 const SpanPanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(1, min-content) auto repeat(1, min-content) 160px 85px;
+  grid-template-columns: 100px auto repeat(1, min-content) 160px 85px;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)<{align: 'left' | 'right'}>`
@@ -812,14 +603,6 @@ const EmptyStateText = styled('div')<{size: 'fontSizeExtraLarge' | 'fontSizeMedi
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme[p.size]};
   padding-bottom: ${space(1)};
-`;
-
-const Description = styled('div')`
-  ${p => p.theme.overflowEllipsis};
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const StyledPanelItem = styled(PanelItem)<{
@@ -898,8 +681,4 @@ const StyledAlert = styled(Alert)`
 
 const StyledCloseButton = styled(IconClose)`
   cursor: pointer;
-`;
-
-const Code = styled('code')`
-  color: ${p => p.theme.red400};
 `;

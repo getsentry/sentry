@@ -11,8 +11,11 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {DEFAULT_QUERY_FILTER} from 'sentry/views/insights/browser/webVitals/settings';
+import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 
 type Props = {
+  browserTypes?: BrowserType[];
   enabled?: boolean;
   tag?: Tag;
   transaction?: string | null;
@@ -40,6 +43,7 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
   transaction,
   tag,
   enabled = true,
+  browserTypes,
 }: Props) => {
   const pageFilters = usePageFilters();
   const location = useLocation();
@@ -50,6 +54,9 @@ export const useProjectWebVitalsScoresTimeseriesQuery = ({
   ]);
   if (transaction) {
     search.addFilterValue('transaction', transaction);
+  }
+  if (browserTypes) {
+    search.addDisjunctionFilterValues(SpanIndexedField.BROWSER_NAME, browserTypes);
   }
   const projectTimeSeriesEventView = EventView.fromNewQueryWithPageFilters(
     {

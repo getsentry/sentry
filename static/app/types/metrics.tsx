@@ -135,6 +135,7 @@ export interface MetricsExtractionCondition {
 export interface MetricsExtractionRule {
   aggregates: MetricAggregation[];
   conditions: MetricsExtractionCondition[];
+  projectId: number;
   spanAttribute: string;
   tags: string[];
   unit: string;

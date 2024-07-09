@@ -198,7 +198,7 @@ export function Container({children}: {children: React.ReactNode}) {
   );
 }
 
-const CardPanel = styled(Panel)`
+export const CardPanel = styled(Panel)`
   padding: ${space(0.75)};
   display: grid;
   column-gap: ${space(1.5)};
@@ -231,13 +231,15 @@ const ContentWrapper = styled('div')<{hasErrors: boolean}>`
   }
 `;
 
-const Subject = styled('div')`
+export const Subject = styled('div')`
   grid-column: span 1;
   font-family: ${p => p.theme.text.familyMono};
   word-break: break-word;
 `;
 
-const ValueSection = styled(Subject)<{hasEmptySubject: boolean; hasErrors: boolean}>`
+const ValueSection = styled('div')<{hasEmptySubject: boolean; hasErrors: boolean}>`
+  font-family: ${p => p.theme.text.familyMono};
+  word-break: break-word;
   color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};
   grid-column: ${p => (p.hasEmptySubject ? '1 / -1' : 'span 1')};
   display: grid;

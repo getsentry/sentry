@@ -1522,9 +1522,6 @@ def get_alert_rule_trigger_action_sentry_app(organization, sentry_app_id, instal
     from sentry.sentry_apps.services.app import app_service
 
     if installations is None:
-        # TODO(hybrid-cloud): this rpc invocation is fairly deeply buried within this transaction
-        # https://github.com/getsentry/sentry/blob/2b7077a785ea394c70f4e7f12de11a039ef6634e/src/sentry/incidents/serializers/alert_rule.py#L424
-        # which we would like to avoid. We should refactor to obviate the need for this watermark
         installations = app_service.get_installed_for_organization(organization_id=organization.id)
 
     for installation in installations:

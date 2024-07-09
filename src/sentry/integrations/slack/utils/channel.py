@@ -228,8 +228,10 @@ def check_user_with_timeout(
             # TODO: This is a problem if we don't go through all the users and eventually run in to someone with duplicate display name
             if time.time() > time_to_quit:
                 return SlackChannelIdData(prefix=_prefix, channel_id=None, timed_out=True)
-    except SlackApiError:
+    except SlackApiError as e:
         _logger.exception("rule.slack.user_check_error", extra=logger_params)
+        if "ratelimited" in str(e):
+            raise ApiRateLimitedError("Slack rate limited") from e
 
     return SlackChannelIdData(prefix=_prefix, channel_id=_channel_id, timed_out=False)
 
