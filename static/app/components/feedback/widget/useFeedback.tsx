@@ -1,5 +1,5 @@
 import {useMemo} from 'react';
-import * as Sentry from '@sentry/react';
+import type * as Sentry from '@sentry/react';
 
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
@@ -17,10 +17,7 @@ export function useFeedback({formTitle, messagePlaceholder}: UseFeedbackOptions)
   const config = useLegacyStore(ConfigStore);
   const {state} = useAsyncSDKIntegrationStore();
 
-  // TODO(ryan953): remove the fallback `?? Sentry.getFeedback()` after
-  // getsentry is calling `store.add(feedback);`
-  const feedback =
-    (state.Feedback as FeedbackIntegration | undefined) ?? Sentry.getFeedback();
+  const feedback = state.Feedback as FeedbackIntegration | undefined;
 
   const options = useMemo(() => {
     return {
