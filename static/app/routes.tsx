@@ -532,16 +532,8 @@ function buildRoutes() {
         component={make(() => import('sentry/views/settings/projectPerformance'))}
       />
       <Route path="metrics/" name={t('Metrics')}>
-        <Redirect from="extract-metric/" to="configure-metric/" />
         <IndexRoute
           component={make(() => import('sentry/views/settings/projectMetrics'))}
-        />
-        <Route
-          name={t('Configure Metric')}
-          path="configure-metric/"
-          component={make(
-            () => import('sentry/views/settings/projectMetrics/extractMetric')
-          )}
         />
         <Route
           name={t('Metrics Details')}
@@ -549,10 +541,6 @@ function buildRoutes() {
           component={make(
             () => import('sentry/views/settings/projectMetrics/projectMetricsDetails')
           )}
-        />
-        <Route
-          path=":spanAttribute/edit/"
-          component={make(() => import('sentry/views/settings/projectMetrics'))}
         />
       </Route>
       <Route
