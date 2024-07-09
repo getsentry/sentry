@@ -1,11 +1,10 @@
-import {Fragment, useMemo, useState} from 'react';
+import {Fragment, useCallback, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
-import DropdownButton from 'sentry/components/dropdownButton';
 import BreadcrumbsTimeline from 'sentry/components/events/breadcrumbs/breadcrumbsTimeline';
 import {
   applyBreadcrumbSearch,
@@ -41,16 +40,20 @@ interface BreadcrumbsDrawerContentProps {
 
 export function BreadcrumbsDrawerContent({
   breadcrumbs,
-  focusControl,
+  focusControl: initialFocusControl,
 }: BreadcrumbsDrawerContentProps) {
   const organization = useOrganization();
   const theme = useTheme();
+
   const [search, setSearch] = useState('');
   const [filterSet, setFilterSet] = useState(new Set<string>());
   const [sort, setSort] = useLocalStorageState<BreadcrumbSort>(
     BREADCRUMB_SORT_LOCALSTORAGE_KEY,
     BreadcrumbSort.NEWEST
   );
+
+  const [focusControl, setFocusControl] = useState(initialFocusControl);
+
   const [timeDisplay, setTimeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
     BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
     BreadcrumbTimeDisplay.RELATIVE
@@ -78,6 +81,17 @@ export function BreadcrumbsDrawerContent({
     [displayCrumbs, timeDisplay]
   );
 
+  // If the focused control element is blurred, unset the state to remove styles
+  // This will allow us to simulate :focus-visible on the button elements.
+  const getFocusProps = useCallback(
+    (option: BreadcrumbControlOptions) => {
+      return option === focusControl
+        ? {autoFocus: true, onBlur: () => setFocusControl(undefined)}
+        : {};
+    },
+    [focusControl]
+  );
+
   const actions = (
     <ButtonBar gap={1}>
       <InputGroup>
@@ -91,8 +105,8 @@ export function BreadcrumbsDrawerContent({
               organization,
             });
           }}
-          autoFocus={focusControl === BreadcrumbControlOptions.SEARCH}
           aria-label={t('Search All Breadcrumbs')}
+          {...getFocusProps(BreadcrumbControlOptions.SEARCH)}
         />
         <InputGroup.TrailingItems disablePointerEvents>
           <IconSearch size="xs" />
@@ -111,34 +125,30 @@ export function BreadcrumbsDrawerContent({
         multiple
         options={filterOptions}
         maxMenuHeight={400}
-        trigger={(props, isOpen) => (
-          <DropdownButton
+        trigger={props => (
+          <VisibleFocusButton
             size="xs"
             borderless
             style={{background: filterSet.size > 0 ? theme.purple100 : 'transparent'}}
             icon={<IconFilter />}
-            showChevron={false}
-            isOpen={isOpen}
-            autoFocus={focusControl === BreadcrumbControlOptions.FILTER}
-            {...props}
             aria-label={t('Filter All Breadcrumbs')}
+            {...props}
+            {...getFocusProps(BreadcrumbControlOptions.FILTER)}
           >
             {filterSet.size > 0 ? filterSet.size : null}
-          </DropdownButton>
+          </VisibleFocusButton>
         )}
       />
       <CompactSelect
         size="xs"
-        trigger={(props, isOpen) => (
-          <DropdownButton
+        trigger={props => (
+          <VisibleFocusButton
             size="xs"
             borderless
             icon={<IconSort />}
-            showChevron={false}
-            isOpen={isOpen}
-            autoFocus={focusControl === BreadcrumbControlOptions.SORT}
             aria-label={t('Sort All Breadcrumbs')}
             {...props}
+            {...getFocusProps(BreadcrumbControlOptions.SORT)}
           />
         )}
         onChange={selectedOption => {
@@ -154,13 +164,11 @@ export function BreadcrumbsDrawerContent({
       />
       <CompactSelect
         size="xs"
-        trigger={(props, isOpen) => (
-          <DropdownButton
+        trigger={props => (
+          <Button
             size="xs"
             borderless
             icon={<IconClock />}
-            showChevron={false}
-            isOpen={isOpen}
             aria-label={t('Change Time Format for All Breadcrumbs')}
             {...props}
           />
@@ -216,6 +224,11 @@ export function BreadcrumbsDrawerContent({
     </Fragment>
   );
 }
+
+const VisibleFocusButton = styled(Button)`
+  box-shadow: ${p => (p.autoFocus ? p.theme.button.default.focusBorder : 'transparent')} 0
+    0 0 1px;
+`;
 
 const HeaderGrid = styled('div')`
   display: grid;
