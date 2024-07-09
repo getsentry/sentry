@@ -500,6 +500,7 @@ describe('SearchQueryBuilder', function () {
       // jsdom does not support clipboard API
       Object.assign(navigator, {
         clipboard: {
+          readText: jest.fn().mockResolvedValue(''),
           writeText: jest.fn().mockResolvedValue(''),
         },
       });
@@ -777,6 +778,47 @@ describe('SearchQueryBuilder', function () {
       ).toHaveFocus();
     });
 
+    it('replaces selection when a key is pressed', async function () {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:firefox"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{Control>}a{/Control}');
+      await userEvent.keyboard('foo');
+      expect(
+        screen.queryByRole('row', {name: 'browser.name:firefox'})
+      ).not.toBeInTheDocument();
+      expect(getLastInput()).toHaveFocus();
+      expect(getLastInput()).toHaveValue('foo');
+    });
+
+    it('replaces selection with pasted content with ctrl+v', async function () {
+      jest.spyOn(navigator.clipboard, 'readText').mockResolvedValue('foo');
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:firefox"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{Control>}a{/Control}');
+      await userEvent.keyboard('{Control>}v{/Control}');
+      expect(
+        screen.queryByRole('row', {name: 'browser.name:firefox'})
+      ).not.toBeInTheDocument();
+      expect(getLastInput()).toHaveFocus();
+      expect(getLastInput()).toHaveValue('foo');
+    });
+
     it('can copy selection with ctrl-c', async function () {
       render(
         <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox foo" />
@@ -789,6 +831,24 @@ describe('SearchQueryBuilder', function () {
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
         'browser.name:firefox foo'
       );
+    });
+
+    it('can cut selection with ctrl-x', async function () {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:firefox"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{Control>}a{/Control}');
+      await userEvent.keyboard('{Control>}x{/Control}');
+
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('browser.name:firefox');
+      expect(mockOnChange).toHaveBeenCalledWith('');
     });
 
     it('can undo last action with ctrl-z', async function () {
