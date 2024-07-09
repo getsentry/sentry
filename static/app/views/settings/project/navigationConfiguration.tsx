@@ -89,19 +89,6 @@ export default function getConfiguration({
           title: t('Issue Grouping'),
         },
         {
-          path: `${pathPrefix}/processing-issues/`,
-          title: t('Processing Issues'),
-          show: () => {
-            // NOTE: both `project` and `options` are non-null here.
-            return 'sentry:reprocessing_active' in (project?.options ?? {});
-          },
-          // eslint-disable-next-line @typescript-eslint/no-shadow
-          badge: ({project}) => {
-            const issues = project?.processingIssues ?? 0;
-            return issues <= 0 ? null : issues > 99 ? '99+' : issues;
-          },
-        },
-        {
           path: `${pathPrefix}/debug-symbols/`,
           title: t('Debug Files'),
           badge: debugFilesNeedsReview ? () => 'warning' : undefined,

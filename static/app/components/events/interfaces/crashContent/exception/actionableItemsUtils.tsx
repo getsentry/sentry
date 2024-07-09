@@ -10,7 +10,7 @@ import {
   NativeProcessingErrors,
   ProguardProcessingErrors,
 } from 'sentry/constants/eventErrors';
-import {tct} from 'sentry/locale';
+import {t, tct} from 'sentry/locale';
 import type {DebugFile} from 'sentry/types/debugFiles';
 import type {Image} from 'sentry/types/debugImage';
 import type {Event, ExceptionValue, Thread} from 'sentry/types/event';
@@ -21,7 +21,6 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 import {semverCompare} from 'sentry/utils/versions/semverCompare';
-import {projectProcessingIssuesMessages} from 'sentry/views/settings/project/projectProcessingIssues';
 
 const MINIFIED_DATA_JAVA_EVENT_REGEX_MATCH =
   /^(([\w\$]\.[\w\$]{1,2})|([\w\$]{2}\.[\w\$]\.[\w\$]))(\.|$)/g;
@@ -243,7 +242,7 @@ export const useFetchProguardMappingFiles = ({
       return [
         {
           type: 'proguard_missing_mapping',
-          message: projectProcessingIssuesMessages.proguard_missing_mapping,
+          message: t('A proguard mapping file was missing.'),
           data: {mapping_uuid: proGuardImageUuid},
         },
       ];

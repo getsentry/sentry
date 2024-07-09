@@ -596,13 +596,6 @@ function buildRoutes() {
         <Redirect from=":name/" to="release-bundles/:name/" />
       </Route>
       <Route
-        path="processing-issues/"
-        name={t('Processing Issues')}
-        component={make(
-          () => import('sentry/views/settings/project/projectProcessingIssues')
-        )}
-      />
-      <Route
         path="filters/"
         name={t('Inbound Filters')}
         component={make(() => import('sentry/views/settings/project/projectFilters'))}
@@ -2181,10 +2174,6 @@ function buildRoutes() {
         <Redirect
           from="debug-symbols/"
           to="/settings/:orgId/projects/:projectId/debug-symbols/"
-        />
-        <Redirect
-          from="processing-issues/"
-          to="/settings/:orgId/projects/:projectId/processing-issues/"
         />
         <Redirect from="filters/" to="/settings/:orgId/projects/:projectId/filters/" />
         <Redirect from="hooks/" to="/settings/:orgId/projects/:projectId/hooks/" />

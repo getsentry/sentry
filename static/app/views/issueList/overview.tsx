@@ -24,7 +24,6 @@ import Pagination from 'sentry/components/pagination';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import QueryCount from 'sentry/components/queryCount';
-import ProcessingIssueList from 'sentry/components/stream/processingIssueList';
 import {DEFAULT_QUERY, DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
@@ -1208,8 +1207,8 @@ class IssueListOverview extends Component<Props, State> {
     const query = this.getQuery();
 
     const modifiedQueryCount = Math.max(queryCount, 0);
-    const projectIds = selection?.projects?.map(p => p.toString());
 
+    // TODO: these two might still be in use for reprocessing2
     const showReprocessingTab = this.displayReprocessingTab();
     const displayReprocessingActions = this.displayReprocessingLayout(
       showReprocessingTab,
@@ -1255,11 +1254,6 @@ class IssueListOverview extends Component<Props, State> {
                 />
               )}
               <PanelBody>
-                <ProcessingIssueList
-                  organization={organization}
-                  projectIds={projectIds}
-                  showProject
-                />
                 <VisuallyCompleteWithData
                   hasData={this.state.groupIds.length > 0}
                   id="IssueList-Body"
