@@ -137,8 +137,13 @@ class NoGroupsHandler extends Component<Props, State> {
       'android',
       ...(organization.features.includes('issue-stream-empty-state-additional-platforms')
         ? [
+            'apple-ios',
+            'dotnet',
+            'dotnet-aspnetcore',
+            'flutter',
             'go',
             'javascript',
+            'javascript-angular',
             'javascript-react',
             'javascript-vue',
             'node-express',
@@ -148,7 +153,10 @@ class NoGroupsHandler extends Component<Props, State> {
             'python',
             'python-fastapi',
             'python-flask',
+            'react-native',
             'ruby',
+            'ruby-rails',
+            'unity',
           ]
         : []),
     ];
