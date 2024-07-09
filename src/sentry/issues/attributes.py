@@ -19,6 +19,7 @@ from sentry.conf.types.kafka_definition import Topic
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupowner import GroupOwner, GroupOwnerType
+from sentry.models.release import Release
 from sentry.signals import issue_assigned, issue_deleted, issue_unassigned, post_update
 from sentry.utils import json, metrics, snuba
 from sentry.utils.arroyo_producer import SingletonProducer
@@ -43,7 +44,7 @@ class GroupValues:
     first_seen: datetime
     num_comments: int
     priority: int
-    first_release: str | None
+    first_release: Release | None
 
 
 def _get_attribute_snapshot_producer() -> KafkaProducer:
@@ -147,7 +148,7 @@ def _bulk_retrieve_group_values(group_ids: list[int]) -> list[GroupValues]:
             "first_seen",
             "num_comments",
             "priority",
-            "first_release__id",
+            "first_release",
         )
     }
     assert len(group_values_map) == len(group_ids)
@@ -164,7 +165,7 @@ def _bulk_retrieve_group_values(group_ids: list[int]) -> list[GroupValues]:
                 first_seen=group_values["first_seen"],
                 num_comments=group_values["num_comments"] or 0,
                 priority=group_values["priority"],
-                first_release=group_values["first_release__id"],
+                first_release=group_values["first_release"],
             )
         )
     return results
@@ -204,7 +205,7 @@ def _bulk_retrieve_snapshot_values(
             "status": group_value.status,
             "substatus": group_value.substatus,
             "priority": group_value.priority,
-            "first_release": group_value.first_release,
+            "first_release": group_value.first_release.id if group_value.first_release else None,
             "first_seen": group_value.first_seen.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
             "num_comments": group_value.num_comments,
             "timestamp": datetime.now().isoformat(),
