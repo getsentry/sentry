@@ -10,14 +10,14 @@ from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import ProjectEndpoint
+from sentry.api.bases import ProjectEndpoint, ProjectMetricsExtractionRulesPermission
 from sentry.api.exceptions import BadRequest, ConflictError
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.metrics_extraction_rules import (
     SpanAttributeExtractionRuleConfigSerializer,
 )
-from sentry.models.project import Project, ProjectMetricsExtractionRulesPermission
+from sentry.models.project import Project
 from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
 from sentry.sentry_metrics.span_attribute_extraction_rules import (
     create_extraction_rule_config,
