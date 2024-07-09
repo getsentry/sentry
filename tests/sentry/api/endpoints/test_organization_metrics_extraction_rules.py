@@ -173,11 +173,10 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
     @with_feature("organizations:custom-metrics-extraction-rule")
     def test_query_filter_rules(self):
         projects = []
-        configs = []
         for i, span_attribute in zip(range(0, 3), ("count_clicks", "some_span", "count_views")):
             project = self.create_project(organization=self.organization, name=f"project_{i}")
             projects.append(project)
-            config = self.create_span_attribute_extraction_config(
+            self.create_span_attribute_extraction_config(
                 dictionary={
                     "spanAttribute": span_attribute,
                     "aggregates": ["count", "p50", "p75", "p95", "p99"],
@@ -190,7 +189,6 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
                 user_id=self.user.id,
                 project=project,
             )
-            configs.append(config)
 
         response = self.get_response(
             self.organization.slug,
