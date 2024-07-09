@@ -112,9 +112,7 @@ export function useDeleteMetricsExtractionRules(
       onError: createRollback(queryClient, queryKey),
       onSettled: () => {
         queryClient.invalidateQueries(queryKey);
-        queryClient.invalidateQueries(getMetricsExtractionOrgApiKey(orgSlug), {
-          exact: false,
-        });
+        queryClient.invalidateQueries(getMetricsExtractionOrgApiKey(orgSlug));
       },
     }
   );
@@ -157,9 +155,7 @@ export function useCreateMetricsExtractionRules(
       onError: createRollback(queryClient, queryKey),
       onSettled: () => {
         queryClient.invalidateQueries(queryKey);
-        queryClient.invalidateQueries(getMetricsExtractionOrgApiKey(orgSlug), {
-          exact: false,
-        });
+        queryClient.invalidateQueries(getMetricsExtractionOrgApiKey(orgSlug));
       },
     }
   );
@@ -201,9 +197,7 @@ export function useUpdateMetricsExtractionRules(
       onError: createRollback(queryClient, queryKey),
       onSettled: () => {
         queryClient.invalidateQueries(queryKey);
-        queryClient.invalidateQueries(getMetricsExtractionOrgApiKey(orgSlug), {
-          exact: false,
-        });
+        queryClient.invalidateQueries(getMetricsExtractionOrgApiKey(orgSlug));
       },
     }
   );
