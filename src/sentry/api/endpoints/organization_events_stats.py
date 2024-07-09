@@ -396,6 +396,8 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         dataset_meta = original_results.data.get("meta", {})
                     elif isinstance(original_results, dict):
                         dataset_meta = list(original_results.values())[0].data.get("meta", {})
+                    else:
+                        dataset_meta = {}
 
                     using_metrics = dataset_meta.get("isMetricsData", False) or dataset_meta.get(
                         "isMetricsExtractedData", False
