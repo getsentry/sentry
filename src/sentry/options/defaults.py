@@ -684,25 +684,6 @@ register(
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# Enable use of Symbolicator proguard processing for specific projects.
-#
-# TODO: Unused as of #73905, remove this.
-register(
-    "symbolicator.proguard-processing-projects",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Enable use of Symbolicator proguard processing for fraction of projects.
-#
-# TODO: Unused as of #73905, remove this.
-register(
-    "symbolicator.proguard-processing-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-# TODO: Unused as of #73905, remove this.
-register("symbolicator.proguard-processing-ab-test", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
-
 # Transaction events
 # True => kill switch to disable ingestion of transaction events for internal project.
 register(
