@@ -85,7 +85,8 @@ const FITLER_KEY_SECTIONS: FilterKeySection[] = [
 
 describe('SearchQueryBuilder', function () {
   beforeEach(() => {
-    localStorageWrapper.clear();
+    // `useDimensions` is used to hide things when the component is too small, so we need to mock a large width
+    Object.defineProperty(Element.prototype, 'clientWidth', {value: 1000});
   });
 
   afterEach(function () {
@@ -158,6 +159,22 @@ describe('SearchQueryBuilder', function () {
       ).not.toBeInTheDocument();
 
       expect(screen.getByRole('combobox')).toHaveFocus();
+    });
+
+    it('is hidden at small sizes', function () {
+      Object.defineProperty(Element.prototype, 'clientWidth', {value: 100});
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:firefox"
+          onChange={mockOnChange}
+        />
+      );
+
+      expect(
+        screen.queryByRole('button', {name: 'Clear search query'})
+      ).not.toBeInTheDocument();
     });
   });
 
