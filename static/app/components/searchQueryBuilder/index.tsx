@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -89,6 +89,7 @@ export function SearchQueryBuilder({
   savedSearchType,
   queryInterface = QueryInterfaceType.TOKENIZED,
 }: SearchQueryBuilderProps) {
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const {state, dispatch} = useQueryBuilderState({initialQuery});
 
   const parsedQuery = useMemo(
@@ -119,6 +120,8 @@ export function SearchQueryBuilder({
       filterKeys,
       getTagValues,
       dispatch,
+      onSearch,
+      wrapperRef,
       handleSearch,
       searchSource,
     };
@@ -126,17 +129,22 @@ export function SearchQueryBuilder({
     state,
     parsedQuery,
     filterKeySections,
+    filterKeys,
     getTagValues,
     dispatch,
+    onSearch,
     handleSearch,
     searchSource,
-    filterKeys,
   ]);
 
   return (
     <SearchQueryBuilerContext.Provider value={contextValue}>
       <PanelProvider>
-        <Wrapper className={className} onBlur={() => onBlur?.(state.query)}>
+        <Wrapper
+          ref={wrapperRef}
+          className={className}
+          onBlur={() => onBlur?.(state.query)}
+        >
           <PositionedSearchIcon size="sm" />
           {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
             <PlainTextQueryInput label={label} />

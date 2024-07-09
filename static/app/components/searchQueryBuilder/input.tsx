@@ -502,6 +502,7 @@ export function SearchQueryBuilderInput({
 }
 
 const Row = styled('div')`
+  position: relative;
   display: flex;
   align-items: stretch;
   height: 24px;
@@ -511,12 +512,20 @@ const Row = styled('div')`
   }
 
   &[aria-selected='true'] {
-    background-color: ${p => p.theme.blue200};
+    &::before {
+      content: '';
+      position: absolute;
+      left: ${space(0.5)};
+      right: ${space(0.5)};
+      top: 0;
+      bottom: 0;
+      background-color: ${p => p.theme.gray100};
+    }
   }
 
   input {
     &::selection {
-      background-color: ${p => p.theme.blue200};
+      background-color: ${p => p.theme.gray100};
     }
   }
 `;

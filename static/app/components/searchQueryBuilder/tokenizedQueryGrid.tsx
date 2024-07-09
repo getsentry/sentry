@@ -11,6 +11,7 @@ import {SearchQueryBuilderFilter} from 'sentry/components/searchQueryBuilder/fil
 import {SearchQueryBuilderInput} from 'sentry/components/searchQueryBuilder/input';
 import {SearchQueryBuilderParen} from 'sentry/components/searchQueryBuilder/paren';
 import {useQueryBuilderGrid} from 'sentry/components/searchQueryBuilder/useQueryBuilderGrid';
+import {useSelectOnDrag} from 'sentry/components/searchQueryBuilder/useSelectOnDrag';
 import {makeTokenKey} from 'sentry/components/searchQueryBuilder/utils';
 import {type ParseResultToken, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
@@ -42,6 +43,7 @@ function Grid(props: GridProps) {
   const {state, gridProps} = useQueryBuilderGrid(props, ref);
 
   useApplyFocusOverride(state);
+  useSelectOnDrag(state);
 
   return (
     <SearchQueryGridWrapper {...gridProps} ref={ref}>
