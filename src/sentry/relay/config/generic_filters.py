@@ -22,8 +22,8 @@ def _error_message_condition(value: Sequence[tuple[str, str]]) -> RuleCondition:
                     {
                         "op": "and",
                         "inner": [
-                            {"op": "glob", "name": "ty", "value": ty},
-                            {"op": "glob", "name": "value", "value": value},
+                            {"op": "glob", "name": "ty", "value": [ty]},
+                            {"op": "glob", "name": "value", "value": [value]},
                         ],
                     }
                     for ty, value in value
