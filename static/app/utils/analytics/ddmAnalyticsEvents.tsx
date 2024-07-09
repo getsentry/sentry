@@ -9,9 +9,6 @@ export type DDMEventParameters = {
   'ddm.open-onboarding': {
     source: 'onboarding_panel' | 'header' | 'banner';
   };
-  'ddm.opt_in_modal_closed': {
-    source: 'im_in' | 'learn_more' | 'close_button';
-  };
   'ddm.page-view': {};
   'ddm.remove-default-query': {};
   'ddm.sample-table-interaction': {
@@ -52,5 +49,4 @@ export const ddmEventMap: Record<keyof DDMEventParameters, string> = {
   'ddm.widget.group': 'DDM: Change query grouping',
   'ddm.widget.metric': 'DDM: Change query metric',
   'ddm.widget.operation': 'DDM: Change query operation',
-  'ddm.opt_in_modal_closed': 'DDM: Opt In Modal Closed',
 };

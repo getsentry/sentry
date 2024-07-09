@@ -10,7 +10,6 @@ import {VirtualMetricsContextProvider} from 'sentry/utils/metrics/virtualMetrics
 import useOrganization from 'sentry/utils/useOrganization';
 import {MetricsContextProvider, useMetricsContext} from 'sentry/views/metrics/context';
 import {MetricsLayout} from 'sentry/views/metrics/layout';
-import {useOptInModal} from 'sentry/views/metrics/optInModal';
 
 function WrappedPageFiltersContainer({children}: {children: React.ReactNode}) {
   const {isDefaultQuery} = useMetricsContext();
@@ -23,7 +22,6 @@ function WrappedPageFiltersContainer({children}: {children: React.ReactNode}) {
 
 function Metrics() {
   const organization = useOrganization();
-  useOptInModal();
 
   useEffect(() => {
     trackAnalytics('ddm.page-view', {
