@@ -239,10 +239,17 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
   const pageFilters = usePageFilters();
   const {data: metaCustom, isLoading: isMetaCustomLoading} = useVirtualizedMetricsMeta(
     pageFilters.selection,
-    ['custom']
+    ['custom'],
+    true,
+    pageFilters.isReady
   );
   const {data: metaPerformance, isLoading: isMetaPerformanceLoading} =
-    useVirtualizedMetricsMeta(pageFilters.selection, ['transactions', 'spans']);
+    useVirtualizedMetricsMeta(
+      pageFilters.selection,
+      ['transactions', 'spans'],
+      true,
+      pageFilters.isReady
+    );
   const isMultiChartMode = multiChartMode === 1;
   const firstCustomMetric = metaCustom[0]?.mri;
 

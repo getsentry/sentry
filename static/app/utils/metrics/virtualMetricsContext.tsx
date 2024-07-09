@@ -100,11 +100,11 @@ const EMPTY_ARRAY: never[] = [];
 
 export function VirtualMetricsContextProvider({children}: Props) {
   const organization = useOrganization();
-  const {selection} = usePageFilters();
+  const {selection, isReady} = usePageFilters();
 
   const {isLoading, data = EMPTY_ARRAY} = useApiQuery<MetricsExtractionRule[]>(
     getMetricsExtractionRulesApiKey(organization.slug, selection.projects),
-    {staleTime: 0}
+    {staleTime: 0, enabled: isReady}
   );
 
   const mriToVirtualMap = useMemo(() => createMRIToVirtualMap(data), [data]);
@@ -262,9 +262,5 @@ export function VirtualMetricsContextProvider({children}: Props) {
     ]
   );
 
-  return (
-    <Context.Provider value={contextValue}>
-      {isLoading ? null : children}
-    </Context.Provider>
-  );
+  return <Context.Provider value={contextValue}>{children}</Context.Provider>;
 }

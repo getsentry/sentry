@@ -4,6 +4,7 @@ import {css} from '@emotion/react';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {
   MetricWidgetTitle,
   type MetricWidgetTitleState,
@@ -55,7 +56,7 @@ function MetricWidgetViewerModal({
   dashboardFilters,
 }: Props) {
   const {selection} = usePageFilters();
-  const {resolveVirtualMRI, getVirtualMRIQuery} = useVirtualMetricsContext();
+  const {resolveVirtualMRI, getVirtualMRIQuery, isLoading} = useVirtualMetricsContext();
   const [userHasModified, setUserHasModified] = useState(false);
   const [displayType, setDisplayType] = useState(widget.displayType);
   const [metricQueries, setMetricQueries] = useState<DashboardMetricsQuery[]>(() =>
@@ -281,6 +282,10 @@ function MetricWidgetViewerModal({
   }, [userHasModified, closeModal]);
 
   const {mri, aggregation, query, condition} = metricQueries[0];
+
+  if (isLoading) {
+    return <LoadingIndicator />;
+  }
 
   return (
     <Fragment>
