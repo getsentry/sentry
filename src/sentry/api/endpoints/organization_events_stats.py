@@ -259,7 +259,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             rollup: int,
             zerofill_results: bool,
             comparison_delta: datetime | None,
-        ) -> SnubaTSResult:
+        ) -> SnubaTSResult | dict[str, SnubaTSResult]:
             if top_events > 0:
                 return scoped_dataset.top_events_timeseries(
                     timeseries_columns=query_columns,
@@ -320,7 +320,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 rollup: int,
                 zerofill_results: bool,
                 comparison_delta: datetime | None,
-            ) -> SnubaTSResult:
+            ) -> SnubaTSResult | dict[str, SnubaTSResult]:
 
                 if not (metrics_enhanced and dashboard_widget_id):
                     return _get_event_stats(
@@ -392,7 +392,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         comparison_delta,
                     )
                     has_other_data = self.check_if_results_have_data(original_results)
-                    dataset_meta = original_results.data.get("meta", {})
+                    if isinstance(original_results, SnubaTSResult):
+                        dataset_meta = original_results.data.get("meta", {})
+                    elif isinstance(original_results, dict):
+                        dataset_meta = list(original_results.values())[0].data.get("meta", {})
 
                     using_metrics = dataset_meta.get("isMetricsData", False) or dataset_meta.get(
                         "isMetricsExtractedData", False
