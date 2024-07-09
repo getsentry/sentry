@@ -10,7 +10,6 @@ interface BaseEvent {
   culprit: string; // Used for default events & subtitles
   id: string;
   'issue.id': number;
-  message: string;
   project: string;
   'project.name': string;
   timestamp: string;
@@ -18,7 +17,9 @@ interface BaseEvent {
   transaction: string;
 }
 
-interface TimelineIssuePlatformEvent extends BaseEvent {}
+export interface TimelineIssuePlatformEvent extends BaseEvent {
+  message: string; // Used for message for issue platform events
+}
 interface TimelineDiscoverEvent extends BaseEvent {
   'error.value': string[]; // Used for message for error events
   'event.type': string;
@@ -100,7 +101,6 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
           // Other events
           dataset: DiscoverDatasets.DISCOVER,
           field: [
-            'message',
             'title',
             'project',
             'timestamp',
