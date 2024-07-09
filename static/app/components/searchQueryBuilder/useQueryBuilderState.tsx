@@ -36,6 +36,12 @@ type DeleteTokenAction = {
   type: 'DELETE_TOKEN';
 };
 
+type DeleteTokensAction = {
+  tokens: ParseResultToken[];
+  type: 'DELETE_TOKENS';
+  focusOverride?: FocusOverride;
+};
+
 type UpdateFreeTextAction = {
   text: string;
   token: TokenResult<Token.FREE_TEXT> | TokenResult<Token.SPACES>;
@@ -77,6 +83,7 @@ export type QueryBuilderActions =
   | UpdateQueryAction
   | ResetFocusOverrideAction
   | DeleteTokenAction
+  | DeleteTokensAction
   | UpdateFreeTextAction
   | PasteFreeTextAction
   | UpdateFilterOpAction
@@ -89,6 +96,35 @@ function removeQueryToken(query: string, token: TokenResult<Token>): string {
     query.substring(0, token.location.start.offset),
     query.substring(token.location.end.offset)
   );
+}
+
+function removeQueryTokensFromQuery(
+  query: string,
+  tokens: Array<TokenResult<Token>>
+): string {
+  if (!tokens.length) {
+    return query;
+  }
+
+  return removeExcessWhitespaceFromParts(
+    query.substring(0, tokens[0].location.start.offset),
+    query.substring(tokens.at(-1)!.location.end.offset)
+  );
+}
+
+function deleteQueryTokens(
+  state: QueryBuilderState,
+  action: DeleteTokensAction
+): QueryBuilderState {
+  if (!action.tokens.length) {
+    return state;
+  }
+
+  return {
+    ...state,
+    query: removeQueryTokensFromQuery(state.query, action.tokens),
+    focusOverride: action.focusOverride ?? null,
+  };
 }
 
 function modifyFilterOperator(
@@ -345,6 +381,8 @@ export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
             ...state,
             query: removeQueryToken(state.query, action.token),
           };
+        case 'DELETE_TOKENS':
+          return deleteQueryTokens(state, action);
         case 'UPDATE_FREE_TEXT':
           return updateFreeText(state, action);
         case 'PASTE_FREE_TEXT':

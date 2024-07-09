@@ -209,7 +209,7 @@ const FilterWrapper = styled('div')`
   }
 
   &[aria-selected='true'] {
-    background-color: ${p => p.theme.blue200};
+    background-color: ${p => p.theme.gray100};
   }
 `;
 
