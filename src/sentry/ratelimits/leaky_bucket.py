@@ -22,8 +22,8 @@ leaky_bucket_info = redis.load_redis_script("ratelimits/leaky_bucket.lua")
 class LeakyBucketLimitInfo:
     burst_limit: int  # maximum number of requests allowed in a burst
     drip_rate: int  # number of requests allowed per second
-    last_drip: float | None = None  # unix timestamp of the last drip
-    current_level: float | None = 0.0  # current level of the bucket
+    last_drip: float = 0  # unix timestamp of the last drip
+    current_level: float = 0  # current level of the bucket
     wait_time: float = 0  # seconds to wait until next request is allowed
 
 
@@ -80,14 +80,12 @@ class LeakyBucketRateLimiter:
     def get_bucket_state(self, key: str) -> LeakyBucketLimitInfo:
         try:
             last_drip, current_level = map(
-                lambda x: float(x) if x is not None else x,
+                lambda x: float(x or 0),
                 self.client.hmget(
                     self.redis_key(key),
                     ["last_drip", "current_level"],
                 ),
             )
-            assert current_level is not None
-            assert last_drip is not None
         except Exception:
             logger.exception("Could not get bucket state", dict(key=self.redis_key))
             return LeakyBucketLimitInfo(self.burst_limit, self.drip_rate)
