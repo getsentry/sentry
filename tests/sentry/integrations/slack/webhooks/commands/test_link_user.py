@@ -1,6 +1,3 @@
-import orjson
-import responses
-
 from sentry.integrations.slack.views.link_identity import SUCCESS_LINKED_MESSAGE, build_linking_url
 from sentry.integrations.slack.views.unlink_identity import (
     SUCCESS_UNLINKED_MESSAGE,
@@ -18,7 +15,6 @@ from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
 class SlackLinkIdentityViewTest(SlackCommandsTest):
     """Slack Linking Views are returned on Control Silo"""
 
-    @responses.activate
     def test_link_user_identity(self):
         linking_url = build_linking_url(
             self.integration, self.external_id, self.channel_id, self.response_url
@@ -27,15 +23,14 @@ class SlackLinkIdentityViewTest(SlackCommandsTest):
         response = self.client.post(linking_url)
         assert response.status_code == 200
 
-        assert len(responses.calls) >= 1
-        data = orjson.loads(responses.calls[0].request.body)
-        assert SUCCESS_LINKED_MESSAGE in get_response_text(data)
+        assert self.mock_webhook.call_count == 1
+        text = self.mock_webhook.call_args.kwargs["text"]
+        assert text == SUCCESS_LINKED_MESSAGE
 
 
 class SlackCommandsLinkUserTest(SlackCommandsTest):
     """Slash commands results are generated on Region Silo"""
 
-    @responses.activate
     def test_link_command(self):
         data = self.send_slack_message("link")
         assert "Link your Slack identity" in get_response_text(data)
@@ -50,7 +45,6 @@ class SlackCommandsLinkUserTest(SlackCommandsTest):
 class SlackUnlinkIdentityViewTest(SlackCommandsTest):
     """Slack Linking Views are returned on Control Silo"""
 
-    @responses.activate
     def test_unlink_user_identity_auth(self):
         self.link_user()
 
@@ -68,7 +62,6 @@ class SlackUnlinkIdentityViewTest(SlackCommandsTest):
             in response.content.decode("utf-8")
         )
 
-    @responses.activate
     def test_unlink_user_identity(self):
         self.link_user()
 
@@ -82,9 +75,9 @@ class SlackUnlinkIdentityViewTest(SlackCommandsTest):
         response = self.client.post(unlinking_url)
         assert response.status_code == 200
 
-        assert len(responses.calls) >= 1
-        data = orjson.loads(responses.calls[0].request.body)
-        assert SUCCESS_UNLINKED_MESSAGE in get_response_text(data)
+        assert self.mock_webhook.call_count == 1
+        text = self.mock_webhook.call_args.kwargs["text"]
+        assert text == SUCCESS_UNLINKED_MESSAGE
         assert not Identity.objects.filter(external_id=self.slack_id).exists()
 
     def test_404(self):

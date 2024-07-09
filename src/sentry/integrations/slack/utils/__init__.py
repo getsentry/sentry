@@ -4,7 +4,6 @@ __all__ = (
     "logger",
     "RedisRuleStatus",
     "send_incident_alert_notification",
-    "send_slack_response",
     "set_signing_secret",
     "SLACK_RATE_LIMITED_MESSAGE",
     "strip_channel_name",
@@ -18,7 +17,7 @@ logger = logging.getLogger("sentry.integrations.slack")
 
 from .auth import is_valid_role, set_signing_secret
 from .channel import get_channel_id, strip_channel_name, validate_channel_id
-from .notifications import send_incident_alert_notification, send_slack_response
+from .notifications import send_incident_alert_notification
 from .rule_status import RedisRuleStatus
 
 SLACK_RATE_LIMITED_MESSAGE = "Requests to Slack exceeded the rate limit. Please try again later."
