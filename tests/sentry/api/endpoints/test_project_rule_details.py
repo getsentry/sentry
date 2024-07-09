@@ -1156,54 +1156,47 @@ class UpdateProjectRuleTest(ProjectRuleDetailsBaseTestCase):
             ],
         }
 
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.list",
-            status=200,
-            content_type="application/json",
-            body=orjson.dumps(channels),
-        )
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.info",
-            status=200,
-            content_type="application/json",
-            body=orjson.dumps({"ok": channels["ok"], "channel": channels["channels"][0]}),
-        )
-        blocks = SlackRuleSaveEditMessageBuilder(rule=self.rule, new=False).build()
-        payload = {
-            "text": blocks.get("text"),
-            "blocks": orjson.dumps(blocks.get("blocks")).decode(),
-            "channel": "new_channel_id",
-            "unfurl_links": False,
-            "unfurl_media": False,
-        }
-        # Pass none environment to payload
-        payload = {
-            "name": self.rule.label,
-            "actionMatch": "any",
-            "filterMatch": "all",
-            "actions": actions,
-            "environment": None,
-        }
-        response = self.get_success_response(
-            self.organization.slug, self.project.slug, self.rule.id, status_code=200, **payload
-        )
-        rule_id = response.data["id"]
-        rule_label = response.data["name"]
-        assert response.data["actions"][0]["channel_id"] == "old_channel_id"
-        sent_blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
-        message = "*Alert rule updated*\n\n"
-        message += f"<http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> in the <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|*{self.project.slug}*> project was recently updated."
-        assert sent_blocks[0]["text"]["text"] == message
+        with self.mock_conversations_list(channels):
+            with self.mock_conversations_info(channels["channels"][0]):
 
-        changes = "Changes\n"
-        changes += f"• Removed '{self.environment.name}' environment\n"
-        assert sent_blocks[1]["text"]["text"] == changes
-        assert (
-            sent_blocks[2]["elements"][0]["text"]
-            == "<http://testserver/settings/account/notifications/alerts/|*Notification Settings*>"
-        )
+                blocks = SlackRuleSaveEditMessageBuilder(rule=self.rule, new=False).build()
+                payload = {
+                    "text": blocks.get("text"),
+                    "blocks": orjson.dumps(blocks.get("blocks")).decode(),
+                    "channel": "new_channel_id",
+                    "unfurl_links": False,
+                    "unfurl_media": False,
+                }
+                # Pass none environment to payload
+                payload = {
+                    "name": self.rule.label,
+                    "actionMatch": "any",
+                    "filterMatch": "all",
+                    "actions": actions,
+                    "environment": None,
+                }
+                response = self.get_success_response(
+                    self.organization.slug,
+                    self.project.slug,
+                    self.rule.id,
+                    status_code=200,
+                    **payload,
+                )
+                rule_id = response.data["id"]
+                rule_label = response.data["name"]
+                assert response.data["actions"][0]["channel_id"] == "old_channel_id"
+                sent_blocks = orjson.loads(mock_post.call_args.kwargs["blocks"])
+                message = "*Alert rule updated*\n\n"
+                message += f"<http://testserver/organizations/{self.organization.slug}/alerts/rules/{self.project.slug}/{rule_id}/details/|*{rule_label}*> in the <http://testserver/organizations/{self.organization.slug}/projects/{self.project.slug}/|*{self.project.slug}*> project was recently updated."
+                assert sent_blocks[0]["text"]["text"] == message
+
+                changes = "Changes\n"
+                changes += f"• Removed '{self.environment.name}' environment\n"
+                assert sent_blocks[1]["text"]["text"] == changes
+                assert (
+                    sent_blocks[2]["elements"][0]["text"]
+                    == "<http://testserver/settings/account/notifications/alerts/|*Notification Settings*>"
+                )
 
     @responses.activate
     @with_feature("organizations:rule-create-edit-confirm-notification")

@@ -48,7 +48,6 @@ from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
@@ -1175,21 +1174,16 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
         )
         context = self.context.copy()
         context.update({"input_channel_id": "CSVK0921"})
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.info",
-            status=200,
-            content_type="application/json",
-            body=json.dumps({"ok": "true", "channel": {"name": "merp", "id": "CSVK0921"}}),
-        )
-        serializer = AlertRuleTriggerActionSerializer(context=context, data=base_params)
-        assert not serializer.is_valid()
 
-        # # Make sure the action was not created.
-        alert_rule_trigger_actions = list(
-            AlertRuleTriggerAction.objects.filter(integration_id=self.integration.id)
-        )
-        assert len(alert_rule_trigger_actions) == 0
+        with self.mock_conversations_info({"name": "merp", "id": "CSVK0921"}):
+            serializer = AlertRuleTriggerActionSerializer(context=context, data=base_params)
+            assert not serializer.is_valid()
+
+            # # Make sure the action was not created.
+            alert_rule_trigger_actions = list(
+                AlertRuleTriggerAction.objects.filter(integration_id=self.integration.id)
+            )
+            assert len(alert_rule_trigger_actions) == 0
 
     def test_sentry_app_action_missing_params(self):
         self.run_fail_validation_test(

@@ -11,6 +11,7 @@ from django.conf import settings
 from django.test import override_settings
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.response import Response
+from slack_sdk.errors import SlackApiError
 from slack_sdk.web import SlackResponse
 
 from sentry import audit_log
@@ -27,12 +28,10 @@ from sentry.incidents.models.alert_rule import (
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.incidents.serializers import AlertRuleSerializer
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
-from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.sentry_apps.services.app import app_service
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.tasks.deletion.scheduled import run_scheduled_deletions
 from sentry.tasks.integrations.slack.find_channel_id_for_alert_rule import (
@@ -989,28 +988,42 @@ class AlertRuleDetailsSlackPutEndpointTest(AlertRuleDetailsBase):
                 ]
             }
 
-    # An incorrect channelID will raise an ApiError in the Slack client
-    @patch.object(SlackClient, "get", side_effect=ApiError(text="channel_not_found"))
+    # An incorrect channelID will raise an SlackApiError in the Slack client
     @responses.activate
-    def test_create_slack_alert_with_non_existent_channel_id(self, mock_slack_client):
+    def test_create_slack_alert_with_non_existent_channel_id(self):
         """
         The user specifies a bad Slack channel ID.
         """
-        self.create_member(
-            user=self.user, organization=self.organization, role="owner", teams=[self.team]
-        )
-        self.login_as(self.user)
-        channelName = "my-channel"
-        # Specifying an inputChannelID will cause the validate_channel_id logic to be triggered
-        channelID = 123
-        resp = self._organization_alert_rule_api_call(channelName, channelID)
+        with patch(
+            "slack_sdk.web.client.WebClient.conversations_info",
+            side_effect=SlackApiError(
+                "error",
+                SlackResponse(
+                    client=None,
+                    http_verb="POST",
+                    api_url="https://slack.com/api/conversations.info",
+                    req_args={"channel": "my-channel"},
+                    data={"ok": False, "error": "channel_not_found"},
+                    headers={},
+                    status_code=400,
+                ),
+            ),
+        ):
+            self.create_member(
+                user=self.user, organization=self.organization, role="owner", teams=[self.team]
+            )
+            self.login_as(self.user)
+            channelName = "my-channel"
+            # Specifying an inputChannelID will cause the validate_channel_id logic to be triggered
+            channelID = 123
+            resp = self._organization_alert_rule_api_call(channelName, channelID)
 
-        assert resp.status_code == 400
-        assert resp.data == {
-            "nonFieldErrors": [
-                ErrorDetail(string="Channel not found. Invalid ID provided.", code="invalid")
-            ]
-        }
+            assert resp.status_code == 400
+            assert resp.data == {
+                "nonFieldErrors": [
+                    ErrorDetail(string="Channel not found. Invalid ID provided.", code="invalid")
+                ]
+            }
 
     @patch.object(find_channel_id_for_alert_rule, "apply_async")
     @patch("sentry.integrations.slack.utils.rule_status.uuid4")

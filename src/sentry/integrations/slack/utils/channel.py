@@ -101,7 +101,7 @@ def validate_channel_id(name: str, integration_id: int | None, input_channel_id:
     try:
         results = client.conversations_info(channel=input_channel_id).data
     except SlackApiError as e:
-        if e.response["error"] == "channel_not_found":
+        if "channel_not_found" in str(e):
             raise ValidationError("Channel not found. Invalid ID provided.") from e
         _logger.exception(
             "rule.slack.conversation_info_failed",
