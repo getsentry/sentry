@@ -24,33 +24,37 @@ interface BreadcrumbsItemContentProps {
   meta?: Record<string, any>;
 }
 
+const DEFAULT_STRUCTURED_DATA_PROPS = {
+  depth: 0,
+  maxDefaultDepth: 1,
+  withAnnotatedText: true,
+  withOnlyFormattedText: true,
+};
+
 export default function BreadcrumbsItemContent({
   breadcrumb: bc,
   meta,
-  fullyExpanded,
+  fullyExpanded = false,
 }: BreadcrumbsItemContentProps) {
-  const maxDefaultDepth = fullyExpanded ? 10000 : 1;
-  const structureProps = {
-    depth: 0,
-    maxDefaultDepth,
-    withAnnotatedText: true,
-    withOnlyFormattedText: true,
+  const structuredDataProps = {
+    ...DEFAULT_STRUCTURED_DATA_PROPS,
+    forceDefaultExpand: fullyExpanded,
   };
 
   const defaultMessage = defined(bc.message) ? (
     <Timeline.Text>
-      <StructuredData value={bc.message} meta={meta?.message} {...structureProps} />
+      <StructuredData value={bc.message} meta={meta?.message} {...structuredDataProps} />
     </Timeline.Text>
   ) : null;
   const defaultData = defined(bc.data) ? (
     <Timeline.Data>
-      <StructuredData value={bc.data} meta={meta?.data} {...structureProps} />
+      <StructuredData value={bc.data} meta={meta?.data} {...structuredDataProps} />
     </Timeline.Data>
   ) : null;
 
   if (bc?.type === BreadcrumbType.HTTP) {
     return (
-      <HTTPCrumbContent breadcrumb={bc} meta={meta}>
+      <HTTPCrumbContent breadcrumb={bc} meta={meta} fullyExpanded={fullyExpanded}>
         {defaultMessage}
       </HTTPCrumbContent>
     );
@@ -80,9 +84,11 @@ function HTTPCrumbContent({
   breadcrumb,
   meta,
   children = null,
+  fullyExpanded,
 }: {
   breadcrumb: BreadcrumbTypeHTTP;
-  children?: React.ReactNode;
+  children: React.ReactNode;
+  fullyExpanded: boolean;
   meta?: Record<string, any>;
 }) {
   const {method, url, status_code: statusCode, ...otherData} = breadcrumb?.data ?? {};
@@ -106,10 +112,8 @@ function HTTPCrumbContent({
           <StructuredData
             value={otherData}
             meta={meta}
-            depth={0}
-            maxDefaultDepth={2}
-            withAnnotatedText
-            withOnlyFormattedText
+            {...DEFAULT_STRUCTURED_DATA_PROPS}
+            forceDefaultExpand={fullyExpanded}
           />
         </Timeline.Data>
       ) : null}

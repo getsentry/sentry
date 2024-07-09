@@ -80,9 +80,16 @@ export default function BreadcrumbsTimeline({
   });
 
   return (
-    <Timeline.Container ref={containerRef} style={{height: virtualizer.getTotalSize()}}>
-      {items}
-    </Timeline.Container>
+    <div
+      ref={containerRef}
+      style={{
+        height: virtualizer.getTotalSize(),
+
+        contain: 'layout size',
+      }}
+    >
+      <Timeline.Container>{items}</Timeline.Container>
+    </div>
   );
 }
 
