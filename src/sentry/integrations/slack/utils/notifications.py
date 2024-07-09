@@ -18,7 +18,6 @@ from sentry.integrations.repository.metric_alert import (
     NewMetricAlertNotificationMessage,
 )
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.slack import unpack_slack_api_error
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.metrics import (
     SLACK_COMMANDS_LINK_IDENTITY_FAILURE_DATADOG_METRIC,
@@ -27,7 +26,7 @@ from sentry.integrations.slack.metrics import (
     SLACK_METRIC_ALERT_SUCCESS_DATADOG_METRIC,
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
-from sentry.integrations.slack.utils.errors import EXPIRED_URL
+from sentry.integrations.slack.utils.errors import EXPIRED_URL, unpack_slack_api_error
 from sentry.integrations.slack.views.types import IdentityParams
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.utils import metrics
