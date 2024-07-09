@@ -20,6 +20,7 @@ from sentry.ingest.inbound_filters import (
     _FilterSpec,
     get_all_filter_specs,
     get_filter_key,
+    get_generic_filters,
 )
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
@@ -43,7 +44,6 @@ from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo
 
-from .generic_filters import get_generic_filters
 from .measurements import CUSTOM_MEASUREMENT_LIMIT
 
 # These features will be listed in the project config.
