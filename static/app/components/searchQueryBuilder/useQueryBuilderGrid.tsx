@@ -3,11 +3,12 @@ import {type AriaGridListOptions, useGridList} from '@react-aria/gridlist';
 import {ListKeyboardDelegate} from '@react-aria/selection';
 import type {ListState} from '@react-stately/list';
 import {useListState} from '@react-stately/list';
-import type {CollectionChildren} from '@react-types/shared';
+import type {CollectionChildren, Key} from '@react-types/shared';
 
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {useUndoStack} from 'sentry/components/searchQueryBuilder/useUndoStack';
-import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
+import {type ParseResultToken, Token} from 'sentry/components/searchSyntax/parser';
+import {defined} from 'sentry/utils';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 
 interface UseQueryBuilderGridProps extends AriaGridListOptions<ParseResultToken> {
@@ -15,6 +16,32 @@ interface UseQueryBuilderGridProps extends AriaGridListOptions<ParseResultToken>
 }
 
 const noop = () => {};
+
+function findNearestFreeTextKey(
+  state: ListState<ParseResultToken>,
+  startKey: Key | null,
+  direction: 'right' | 'left'
+): Key | null {
+  let key: Key | null = startKey;
+  while (key) {
+    const item = state.collection.getItem(key);
+    if (!item) {
+      break;
+    }
+    if (item.value?.type === Token.FREE_TEXT) {
+      return key;
+    }
+    key = (direction === 'right' ? item.nextKey : item.prevKey) ?? null;
+  }
+
+  if (key) {
+    return key;
+  }
+
+  return direction === 'right'
+    ? state.collection.getLastKey()
+    : state.collection.getFirstKey();
+}
 
 /**
  * Modified version React Aria's useGridList to support the search component.
@@ -28,7 +55,7 @@ export function useQueryBuilderGrid(
   gridProps: DOMAttributes<HTMLDivElement>;
   state: ListState<ParseResultToken>;
 } {
-  const {dispatch, query} = useSearchQueryBuilder();
+  const {dispatch} = useSearchQueryBuilder();
 
   const state = useListState<ParseResultToken>({
     ...props,
@@ -36,6 +63,7 @@ export function useQueryBuilderGrid(
     onSelectionChange: selection => {
       // When there is a selection, set focus to the grid itself.
       if (selection === 'all' || selection.size > 0) {
+        ref.current?.focus();
         state.selectionManager.setFocusedKey(null);
         state.selectionManager.setFocused(true);
       }
@@ -74,24 +102,58 @@ export function useQueryBuilderGrid(
 
       // When there is a selection, the grid will have focus and handle that behavior.
       if (state.selectionManager.selectedKeys.size > 0) {
+        const selectedTokens = Array.from(state.selectionManager.selectedKeys)
+          .map(key => state.collection.getItem(key)?.value)
+          .filter(defined);
+
         switch (e.key) {
           case 'Backspace':
-          case 'Delete':
-            dispatch({type: 'CLEAR'});
-            break;
+          case 'Delete': {
+            dispatch({
+              type: 'DELETE_TOKENS',
+              tokens: selectedTokens,
+            });
+            state.selectionManager.setFocusedKey(
+              findNearestFreeTextKey(
+                state,
+                state.selectionManager.firstSelectedKey,
+                'left'
+              )
+            );
+            state.selectionManager.clearSelection();
+            return;
+          }
           case 'c':
             if (isCtrlKeyPressed(e)) {
-              navigator.clipboard.writeText(query);
+              const queryToCopy = selectedTokens
+                .map(token => token.text)
+                .join('')
+                .trim();
+              navigator.clipboard.writeText(queryToCopy);
             }
-            break;
+            return;
           case 'ArrowRight':
-            state.selectionManager.setFocusedKey(state.collection.getLastKey());
-            break;
+            state.selectionManager.clearSelection();
+            state.selectionManager.setFocusedKey(
+              findNearestFreeTextKey(
+                state,
+                state.selectionManager.lastSelectedKey,
+                'right'
+              )
+            );
+            return;
           case 'ArrowLeft':
-            state.selectionManager.setFocusedKey(state.collection.getFirstKey());
-            break;
+            state.selectionManager.clearSelection();
+            state.selectionManager.setFocusedKey(
+              findNearestFreeTextKey(
+                state,
+                state.selectionManager.firstSelectedKey,
+                'left'
+              )
+            );
+            return;
           default:
-            break;
+            return;
         }
       }
 
@@ -111,17 +173,12 @@ export function useQueryBuilderGrid(
           originalGridProps.onKeyDown?.(e);
       }
     },
-    [dispatch, originalGridProps, query, state.collection, state.selectionManager, undo]
+    [dispatch, originalGridProps, state, undo]
   );
 
   const gridProps = useMemo(
     () => ({
       ...originalGridProps,
-      // If we click inside the grid but not on any of the items, focus the last one
-      onClick: () => {
-        state.selectionManager.setFocused(true);
-        state.selectionManager.setFocusedKey(state.collection.getLastKey());
-      },
       // The default behavior will capture some keys such as Enter and Space, which
       // we want to handle ourselves.
       onKeyDownCapture: noop,

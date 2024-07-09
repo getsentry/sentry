@@ -123,6 +123,8 @@ export function SearchQueryBuilder({
       filterKeys,
       getTagValues,
       dispatch,
+      onSearch,
+      wrapperRef,
       handleSearch,
       searchSource,
       size,
@@ -131,12 +133,13 @@ export function SearchQueryBuilder({
     state,
     parsedQuery,
     filterKeySections,
+    filterKeys,
     getTagValues,
     dispatch,
+    onSearch,
     handleSearch,
     searchSource,
     size,
-    filterKeys,
   ]);
 
   return (
