@@ -86,8 +86,10 @@ def register_temporary_features(manager: FeatureManager):
     # Delightful Developer Metrics (DDM):
     # Enables experimental WIP custom metrics related features
     manager.add("organizations:custom-metrics-experimental", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enables custom metrics extraction rule endpoint
+    # Enables generation of custom metrics extraction rules
     manager.add("organizations:custom-metrics-extraction-rule", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
+    # Enables UI for creation of custom metrics extraction rules
+    manager.add("organizations:custom-metrics-extraction-rule-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enables metrics extrapolation feature
     manager.add("organizations:metrics-extrapolation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable the default alert at project creation to be the high priority alert
@@ -140,8 +142,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:issue-details-autofix-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enables a toggle for entering the new issue details UI
     manager.add("organizations:issue-details-new-experience-toggle", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable tag improvements in the issue details page
-    manager.add("organizations:issue-details-tag-improvements", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    # Enables access to the streamlined issue details UI
+    manager.add("organizations:issue-details-streamline", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Whether to allow issue only search on the issue list
     manager.add("organizations:issue-search-allow-postgres-only-search", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Whether to make a side/parallel query against events -> group_attributes when searching issues
@@ -157,6 +159,8 @@ def register_temporary_features(manager: FeatureManager):
     # Enable the new issue stream search bar UI
     manager.add("organizations:issue-stream-search-query-builder", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:large-debug-files", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    # Enable v8 support for the Loader Script
+    manager.add("organizations:js-sdk-loader-v8", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enabled latest adopted release filter for issue alerts
     manager.add("organizations:latest-adopted-release-filter", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:mep-rollout-flag", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -173,8 +177,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:minute-resolution-sessions", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Display CPU and memory metrics in transactions with profiles
     manager.add("organizations:mobile-cpu-memory-in-transactions", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable column that shows ttid ttfd contributing spans
-    manager.add("organizations:mobile-ttid-ttfd-contribution", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Adds the ttid & ttfd vitals to the frontend
     manager.add("organizations:mobile-vitals", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enables higher limit for alert rules
@@ -268,8 +270,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-trace-explorer", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable trace explorer sorting by newest
     manager.add("organizations:performance-trace-explorer-sorting", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
-    # Enable enforcing project selection in trace explorer
-    manager.add("organizations:performance-trace-explorer-enforce-projects", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable linking to trace explorer from metrics
     manager.add("organizations:performance-trace-explorer-with-metrics", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable FE/BE for tracing without performance
@@ -323,8 +323,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:related-events", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable related issues feature
     manager.add("organizations:related-issues", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable related issues in issue details page
-    manager.add("organizations:related-issues-issue-details-page", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Metrics cardinality limiter in Relay
     manager.add("organizations:relay-cardinality-limiter", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable the release details performance section
@@ -400,10 +398,12 @@ def register_temporary_features(manager: FeatureManager):
     # Feature flags for migrating to the Slack SDK WebClient
     # Use new Slack SDK Client in get_channel_id_with_timeout
     manager.add("organizations:slack-sdk-get-channel-id", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
-    # Use new Slack SDK Client to respond to link commands
-    manager.add("organizations:slack-sdk-link-commands", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Use new Slack SDK Client in SlackActionEndpoint
     manager.add("organizations:slack-sdk-webhook-handling", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
+    # Use new Slack SDK Client in SlackActionEndpoint's `view.open`
+    manager.add("organizations:slack-sdk-action-view-open", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
+    # Use new Slack SDK Client for SlackNotifyBasicMixin
+    manager.add("organizations:slack-sdk-notify-mixin", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Add regression chart as image to slack message
     manager.add("organizations:slack-endpoint-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     manager.add("organizations:slack-function-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
@@ -415,6 +415,10 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:insights-initial-modules", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable access to newer Insights modules (Caches, Queues, LLMs, Mobile UI)
     manager.add("organizations:insights-addon-modules", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    # Use static web vital performance scoring weights
+    manager.add("organizations:insights-browser-webvitals-static-weights", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
+    # Sets all web vitals to optional when calculating performance scores
+    manager.add("organizations:insights-browser-webvitals-optional-components", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable standalone span ingestion
     manager.add("organizations:standalone-span-ingestion", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable the aggregate span waterfall view
@@ -425,16 +429,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:starfish-browser-resource-module-image-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enables the resource module ui
     manager.add("organizations:starfish-browser-resource-module-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable browser starfish webvitals module view
-    manager.add("organizations:starfish-browser-webvitals", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable browser starfish webvitals module pageoverview v2 view
-    manager.add("organizations:starfish-browser-webvitals-pageoverview-v2", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable INP in the browser starfish webvitals module
-    manager.add("organizations:starfish-browser-webvitals-replace-fid-with-inp", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Update Web Vitals UI to display aggregate web vital values as avg instead of p75
-    manager.add("organizations:performance-webvitals-avg", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable browser starfish webvitals module to use backend provided performance scores
-    manager.add("organizations:starfish-browser-webvitals-use-backend-scores", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable mobile starfish app start module view
     manager.add("organizations:starfish-mobile-appstart", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable mobile starfish ui module view
@@ -525,7 +519,6 @@ def register_temporary_features(manager: FeatureManager):
     # Starfish: extract metrics from the spans
     manager.add("projects:span-metrics-extraction", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("projects:span-metrics-extraction-addons", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
-    manager.add("projects:extract-transaction-from-segment-span", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("projects:relay-otel-endpoint", ProjectFeature, FeatureHandlerStrategy.OPTIONS)
 
     # Project plugin features

@@ -703,7 +703,7 @@ class BaseOAuth2(OAuthAuth):
 
 
 # Cache for discovered backends.
-BACKENDSCACHE: dict[str, type[SocialAuthBackend]] = {}
+BACKENDSCACHE: dict[str, type[BaseAuth]] = {}
 
 _import_lock = threading.Lock()
 

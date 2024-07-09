@@ -22,6 +22,8 @@ import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 
 export const INTERFACE_TYPE_LOCALSTORAGE_KEY = 'search-query-builder-interface';
 
+const SHOULD_ESCAPE_REGEX = /[\s"()]/;
+
 function getSearchConfigFromKeys(keys: TagCollection): Partial<SearchConfig> {
   const config = {
     booleanKeys: new Set<string>(),
@@ -60,12 +62,12 @@ function getSearchConfigFromKeys(keys: TagCollection): Partial<SearchConfig> {
 
 export function parseQueryBuilderValue(
   value: string,
-  options?: {keys: TagCollection}
+  options?: {filterKeys: TagCollection}
 ): ParseResult | null {
   return collapseTextTokens(
     parseSearch(value || ' ', {
       flattenParenGroups: true,
-      ...getSearchConfigFromKeys(options?.keys ?? {}),
+      ...getSearchConfigFromKeys(options?.filterKeys ?? {}),
     })
   );
 }
@@ -131,6 +133,18 @@ export function collapseTextTokens(tokens: ParseResult | null) {
   }, []);
 }
 
+export function tokenIsInvalid(token: TokenResult<Token>) {
+  if (
+    token.type !== Token.FILTER &&
+    token.type !== Token.FREE_TEXT &&
+    token.type !== Token.LOGIC_BOOLEAN
+  ) {
+    return false;
+  }
+
+  return Boolean(token.invalid);
+}
+
 export function getValidOpsForFilter(
   filterToken: TokenResult<Token.FILTER>
 ): readonly TermOperator[] {
@@ -158,10 +172,8 @@ export function escapeTagValue(value: string): string {
     return '';
   }
 
-  // Wrap in quotes if there is a space
-  return value.includes(' ') || value.includes('"')
-    ? `"${escapeDoubleQuotes(value)}"`
-    : value;
+  // Wrap in quotes if there is a space or parens
+  return SHOULD_ESCAPE_REGEX.test(value) ? `"${escapeDoubleQuotes(value)}"` : value;
 }
 
 export function unescapeTagValue(value: string): string {

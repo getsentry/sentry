@@ -1,3 +1,4 @@
+import type {Location} from 'history';
 import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {waitFor} from 'sentry-test/reactTestingLibrary';
@@ -8,6 +9,7 @@ import type {
   TracePerformanceIssue,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
+import * as useOrganization from 'sentry/utils/useOrganization';
 
 import {
   isAutogroupedNode,
@@ -1300,6 +1302,38 @@ describe('TraceTree', () => {
     expect(tree.list[3].value.start_timestamp).toBe(2);
   });
 
+  it('appends a tree to another tree', () => {
+    const tree1 = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction({
+            transaction: 'txn 1',
+            start_timestamp: 0,
+            children: [makeTransaction({start_timestamp: 1, transaction: 'txn 2'})],
+          }),
+        ],
+      }),
+      null
+    );
+
+    const tree2 = TraceTree.FromTrace(
+      makeTrace({
+        transactions: [
+          makeTransaction({
+            transaction: 'txn 3',
+            start_timestamp: 2,
+            children: [makeTransaction({start_timestamp: 3, transaction: 'txn 4'})],
+          }),
+        ],
+      }),
+      null
+    );
+
+    tree1.appendTree(tree2);
+
+    expect(tree1.list.length).toBe(5);
+  });
+
   it('preserves input order', () => {
     const firstChild = makeTransaction({
       start_timestamp: 0,
@@ -2541,6 +2575,169 @@ describe('TraceTree', () => {
       expect(tree.list.length).toBe(6);
 
       expect(autogroupedNode.children[0].depth).toBe(4);
+    });
+  });
+
+  describe('incremental trace fetch', () => {
+    const organization = OrganizationFixture();
+
+    beforeEach(function () {
+      jest.clearAllMocks();
+      jest.spyOn(useOrganization, 'default').mockReturnValue(organization);
+    });
+
+    it('Fetches and updates tree with fetched trace', async () => {
+      const traces = [
+        {traceSlug: 'slug1', timestamp: 1},
+        {traceSlug: 'slug2', timestamp: 2},
+      ];
+
+      const tree: TraceTree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              transaction: 'txn 1',
+              start_timestamp: 0,
+              children: [makeTransaction({start_timestamp: 1, transaction: 'txn 2'})],
+            }),
+          ],
+        }),
+        null
+      );
+
+      // Mock the API calls
+      MockApiClient.addMockResponse({
+        method: 'GET',
+        url: '/organizations/org-slug/events-trace/slug1/?limit=10000&timestamp=1&useSpans=1',
+        body: {
+          transactions: [
+            makeTransaction({
+              transaction: 'txn 3',
+              start_timestamp: 0,
+              children: [makeTransaction({start_timestamp: 1, transaction: 'txn 4'})],
+            }),
+          ],
+          orphan_errors: [],
+        },
+      });
+      MockApiClient.addMockResponse({
+        method: 'GET',
+        url: '/organizations/org-slug/events-trace/slug2/?limit=10000&timestamp=2&useSpans=1',
+        body: {
+          transactions: [
+            makeTransaction({
+              transaction: 'txn 5',
+              start_timestamp: 0,
+              children: [makeTransaction({start_timestamp: 1, transaction: 'txn 6'})],
+            }),
+          ],
+          orphan_errors: [],
+        },
+      });
+
+      MockApiClient.addMockResponse({
+        method: 'GET',
+        url: '/organizations/org-slug/events-trace/slug1/?limit=10000&timestamp=1&useSpans=1',
+        body: {
+          transactions: [
+            makeTransaction({
+              transaction: 'txn 3',
+              start_timestamp: 0,
+              children: [makeTransaction({start_timestamp: 1, transaction: 'txn 4'})],
+            }),
+          ],
+          orphan_errors: [],
+        },
+      });
+
+      expect(tree.list.length).toBe(3);
+
+      tree.fetchAdditionalTraces({
+        replayTraces: traces,
+        api: new MockApiClient(),
+        filters: {},
+        organization,
+        rerender: () => {},
+        urlParams: {} as Location['query'],
+      });
+
+      await waitFor(() => expect(tree.root.children[0].fetchStatus).toBe('idle'));
+
+      expect(tree.list.length).toBe(7);
+    });
+
+    it('Does not infinitely fetch on error', async () => {
+      const traces = [
+        {traceSlug: 'slug1', timestamp: 1},
+        {traceSlug: 'slug2', timestamp: 2},
+        {traceSlug: 'slug3', timestamp: 3},
+      ];
+
+      const tree: TraceTree = TraceTree.FromTrace(
+        makeTrace({
+          transactions: [
+            makeTransaction({
+              transaction: 'txn 1',
+              start_timestamp: 0,
+              children: [makeTransaction({start_timestamp: 1, transaction: 'txn 2'})],
+            }),
+          ],
+        }),
+        null
+      );
+
+      // Mock the API calls
+      const mockedResponse1 = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: '/organizations/org-slug/events-trace/slug1/?limit=10000&timestamp=1&useSpans=1',
+        statusCode: 400,
+      });
+      const mockedResponse2 = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: '/organizations/org-slug/events-trace/slug2/?limit=10000&timestamp=2&useSpans=1',
+        body: {
+          transactions: [
+            makeTransaction({
+              transaction: 'txn 5',
+              start_timestamp: 0,
+              children: [makeTransaction({start_timestamp: 1, transaction: 'txn 6'})],
+            }),
+          ],
+          orphan_errors: [],
+        },
+      });
+      const mockedResponse3 = MockApiClient.addMockResponse({
+        method: 'GET',
+        url: '/organizations/org-slug/events-trace/slug3/?limit=10000&timestamp=3&useSpans=1',
+        body: {
+          transactions: [
+            makeTransaction({
+              transaction: 'txn 7',
+              start_timestamp: 0,
+              children: [makeTransaction({start_timestamp: 1, transaction: 'txn 8'})],
+            }),
+          ],
+          orphan_errors: [],
+        },
+      });
+
+      expect(tree.list.length).toBe(3);
+
+      tree.fetchAdditionalTraces({
+        replayTraces: traces,
+        api: new MockApiClient(),
+        filters: {},
+        organization,
+        rerender: () => {},
+        urlParams: {} as Location['query'],
+      });
+
+      await waitFor(() => expect(tree.root.children[0].fetchStatus).toBe('idle'));
+
+      expect(tree.list.length).toBe(7);
+      expect(mockedResponse1).toHaveBeenCalledTimes(1);
+      expect(mockedResponse2).toHaveBeenCalledTimes(1);
+      expect(mockedResponse3).toHaveBeenCalledTimes(1);
     });
   });
 });

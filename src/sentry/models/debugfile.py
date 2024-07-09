@@ -6,7 +6,6 @@ import hashlib
 import logging
 import os
 import os.path
-import random
 import re
 import shutil
 import tempfile
@@ -35,7 +34,6 @@ from sentry.db.models import (
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.files.file import File
 from sentry.models.files.utils import clear_cached_files
-from sentry.reprocessing import resolve_processing_issue
 from sentry.utils import json
 from sentry.utils.zip import safe_extract_zip
 
@@ -337,8 +335,6 @@ def create_dif_from_id(
     # reprocessing can start.
     clean_redundant_difs(project, meta.debug_id)
 
-    resolve_processing_issue(project=project, scope="native", object="dsym:%s" % meta.debug_id)
-
     return dif, True
 
 
@@ -629,16 +625,6 @@ class DIFCache:
         """Given some ids returns an id to path mapping for where the
         debug symbol files are on the FS.
         """
-
-        # If this call is for proguard purposes, we probabilistically cut this function short
-        # right here so we don't overload filestore.
-        # Note: this random rollout is reversed because it is an early return
-        if features is not None:
-            if "mapping" in features and random.random() >= options.get(
-                "filestore.proguard-throttle"
-            ):
-                return {}
-
         debug_ids = [str(debug_id).lower() for debug_id in debug_ids]
         difs = ProjectDebugFile.objects.find_by_debug_ids(project, debug_ids, features)
 

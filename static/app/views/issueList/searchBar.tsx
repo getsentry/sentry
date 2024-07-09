@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
@@ -40,7 +40,14 @@ const getSupportedTags = (supportedTags: TagCollection): TagCollection => {
   );
 };
 
-const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
+const getFilterKeySections = (
+  tags: TagCollection,
+  organization: Organization
+): FilterKeySection[] => {
+  if (!organization.features.includes('issue-stream-search-query-builder')) {
+    return [];
+  }
+
   const allTags: Tag[] = Object.values(tags).filter(
     tag => !EXCLUDED_TAGS.includes(tag.key)
   );
@@ -48,15 +55,15 @@ const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
     allTags.filter(tag => tag.kind === FieldKind.TAG),
     ['totalValues', 'key'],
     ['desc', 'asc']
-  );
+  ).map(tag => tag.key);
   const issueFields = orderBy(
     allTags.filter(tag => tag.kind === FieldKind.ISSUE_FIELD),
     ['key']
-  );
+  ).map(tag => tag.key);
   const eventFields = orderBy(
     allTags.filter(tag => tag.kind === FieldKind.EVENT_FIELD),
     ['key']
-  );
+  ).map(tag => tag.key);
 
   return [
     {
@@ -186,18 +193,25 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
     ],
   };
 
+  const filterKeySections = useMemo(() => {
+    return getFilterKeySections(tags, organization);
+  }, [organization, tags]);
+
   if (organization.features.includes('issue-stream-search-query-builder')) {
     return (
       <SearchQueryBuilder
         className={props.className}
         initialQuery={props.query ?? ''}
         getTagValues={getTagValues}
-        filterKeySections={getFilterKeySections(tags)}
+        filterKeySections={filterKeySections}
+        filterKeys={tags}
         onSearch={props.onSearch}
         onBlur={props.onBlur}
         onChange={value => {
           props.onClose?.(value, {validSearch: true});
         }}
+        searchSource={props.searchSource ?? 'issues'}
+        savedSearchType={SavedSearchType.ISSUE}
       />
     );
   }

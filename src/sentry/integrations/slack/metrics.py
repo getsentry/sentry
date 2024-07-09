@@ -44,3 +44,9 @@ SLACK_COMMANDS_ENDPOINT_SUCCESS_DATADOG_METRIC = (
 SLACK_COMMANDS_ENDPOINT_FAILURE_DATADOG_METRIC = (
     "sentry.integrations.slack.commands_endpoint.failure"
 )
+SLACK_COMMANDS_LINK_IDENTITY_SUCCESS_DATADOG_METRIC = (
+    "sentry.integrations.slack.commands_link_identity.success"
+)
+SLACK_COMMANDS_LINK_IDENTITY_FAILURE_DATADOG_METRIC = (
+    "sentry.integrations.slack.commands_link_identity.failure"
+)

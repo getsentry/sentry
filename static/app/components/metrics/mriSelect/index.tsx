@@ -3,21 +3,25 @@ import styled from '@emotion/styled';
 
 import {ComboBox} from 'sentry/components/comboBox';
 import type {ComboBoxOption} from 'sentry/components/comboBox/types';
-import {IconWarning} from 'sentry/icons';
+import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import {IconProject, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import type {MetricMeta, MRI} from 'sentry/types/metrics';
 import {type Fuse, useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {
   isCustomMetric,
+  isExtractedCustomMetric,
   isSpanDuration,
   isSpanMeasurement,
   isTransactionDuration,
   isTransactionMeasurement,
 } from 'sentry/utils/metrics';
+import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import useKeyPress from 'sentry/utils/useKeyPress';
+import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 
 import {MetricListItemDetails} from './metricListItemDetails';
@@ -146,9 +150,11 @@ export const MRISelect = memo(function MRISelect({
   isLoading,
   value,
 }: MRISelectProps) {
+  const organization = useOrganization();
   const {projects} = useProjects();
   const mriMode = useMriMode();
   const [inputValue, setInputValue] = useState('');
+  const hasExtractionRules = hasCustomMetricsExtractionRules(organization);
 
   const metricsWithDuplicateNames = useMetricsWithDuplicateNames(metricsMeta);
   const filteredMRIs = useFilteredMRIs(metricsMeta, inputValue, mriMode);
@@ -207,22 +213,55 @@ export const MRISelect = memo(function MRISelect({
   const mriOptions = useMemo(
     () =>
       displayedMetrics.map<ComboBoxOption<MRI>>(metric => {
+        const parsedMRI = parseMRI(metric.mri);
         const isDuplicateWithDifferentUnit = metricsWithDuplicateNames.has(metric.mri);
+        const isUnresolvedExtractedMetric = isExtractedCustomMetric(metric);
+        const showProjectBadge = hasExtractionRules && selectedProjects.length > 1;
+        const projectToShow =
+          selectedProjects.length > 1 && metric.projectIds.length === 1
+            ? projects.find(p => metric.projectIds[0] === parseInt(p.id, 10))
+            : undefined;
+
+        let projectBadge: React.ReactNode = null;
+
+        if (showProjectBadge) {
+          projectBadge = projectToShow ? (
+            <ProjectBadge
+              project={projectToShow}
+              key={projectToShow.slug}
+              avatarSize={12}
+              disableLink
+              hideName
+            />
+          ) : (
+            <StyledIconProject key="generic-project" size="xs" />
+          );
+        }
 
         const trailingItems: React.ReactNode[] = [];
         if (isDuplicateWithDifferentUnit) {
           trailingItems.push(<IconWarning key="warning" size="xs" color="yellow400" />);
         }
-        if (parseMRI(metric.mri).useCase === 'custom' && !mriMode) {
+        if (parsedMRI.useCase === 'custom' && !mriMode) {
           trailingItems.push(
-            <CustomMetricInfoText key="text">{t('Custom')}</CustomMetricInfoText>
+            <CustomMetricInfoText key="text">
+              {parsedMRI.type === 'v' ||
+              !hasExtractionRules ||
+              isUnresolvedExtractedMetric
+                ? t('Custom')
+                : t('Deprecated')}
+            </CustomMetricInfoText>
           );
         }
         return {
           label: mriMode
             ? metric.mri
-            : middleEllipsis(formatMRI(metric.mri) ?? '', 46, /\.|-|_/),
+            : isUnresolvedExtractedMetric
+              ? t('Deleted Metric')
+              : middleEllipsis(formatMRI(metric.mri) ?? '', 46, /\.|-|_/),
           value: metric.mri,
+          leadingItems: [projectBadge],
+          disabled: isUnresolvedExtractedMetric,
           details:
             metric.projectIds.length > 0 ? (
               <MetricListItemDetails
@@ -236,7 +275,15 @@ export const MRISelect = memo(function MRISelect({
           trailingItems,
         };
       }),
-    [displayedMetrics, metricsWithDuplicateNames, mriMode, onTagClick, selectedProjects]
+    [
+      displayedMetrics,
+      hasExtractionRules,
+      metricsWithDuplicateNames,
+      mriMode,
+      onTagClick,
+      projects,
+      selectedProjects,
+    ]
   );
 
   return (
@@ -267,4 +314,8 @@ const CustomMetricInfoText = styled('span')`
 const MetricComboBox = styled(ComboBox<MRI>)`
   min-width: 200px;
   max-width: min(500px, 100%);
+`;
+
+const StyledIconProject = styled(IconProject)`
+  margin-left: -4px;
 `;

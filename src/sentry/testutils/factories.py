@@ -118,6 +118,7 @@ from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
@@ -134,8 +135,7 @@ from sentry.models.useremail import UserEmail
 from sentry.models.userpermission import UserPermission
 from sentry.models.userreport import UserReport
 from sentry.models.userrole import UserRole
-from sentry.organizations.services.organization import RpcOrganization
-from sentry.organizations.services.organization.model import RpcUserOrganizationContext
+from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
@@ -143,6 +143,7 @@ from sentry.sentry_apps.installations import (
 )
 from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
 from sentry.sentry_apps.services.hook import hook_service
+from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
 from sentry.signals import project_created
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -492,6 +493,17 @@ class Factories:
                     project=project, user=AnonymousUser(), default_rules=True, sender=Factories
                 )
         return project
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_project_template(project=None, organization=None, **kwargs) -> ProjectTemplate:
+        if not kwargs.get("name"):
+            kwargs["name"] = petname.generate(2, " ", letters=10).title()
+
+        with transaction.atomic(router.db_for_write(Project)):
+            project_template = ProjectTemplate.objects.create(organization=organization, **kwargs)
+
+        return project_template
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -1191,6 +1203,13 @@ class Factories:
             provider=provider,
             sentry_app_installation=installation,
         )
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_span_attribute_extraction_config(
+        dictionary: dict[str, Any], user_id: int, project: Project
+    ) -> SpanAttributeExtractionRuleConfig:
+        return SpanAttributeExtractionRuleConfig.from_dict(dictionary, user_id, project)
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)

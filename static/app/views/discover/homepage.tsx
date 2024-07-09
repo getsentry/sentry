@@ -15,6 +15,7 @@ import EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
 import {Results} from './results';
 
@@ -108,10 +109,18 @@ class HomepageQueryAPI extends DeprecatedAsyncComponent<Props, HomepageQueryStat
 
   renderBody(): React.ReactNode {
     const {savedQuery, loading} = this.state;
+    const {organization} = this.props;
+    let savedQueryWithDataset = savedQuery;
+    if (
+      organization.features.includes('performance-discover-dataset-selector') &&
+      savedQuery
+    ) {
+      savedQueryWithDataset = getSavedQueryWithDataset(savedQuery);
+    }
     return (
       <Results
         {...this.props}
-        savedQuery={savedQuery ?? undefined}
+        savedQuery={savedQueryWithDataset ?? undefined}
         loading={loading}
         setSavedQuery={this.setSavedQuery}
         isHomepage
