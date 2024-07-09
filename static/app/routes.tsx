@@ -1961,25 +1961,23 @@ function buildRoutes() {
         component={make(() => import('sentry/views/profiling/differentialFlamegraph'))}
       />
       <Route
-        path="profile/:projectId/:eventId/"
-        component={make(() => import('sentry/views/profiling/profilesProvider'))}
-      >
-        <Route
-          path="flamegraph/"
-          component={make(() => import('sentry/views/profiling/profileFlamechart'))}
-        />
-      </Route>
-      <Route
         path="profile/:projectId/"
-        component={make(
-          () => import('sentry/views/profiling/continuousProfilesProvider')
-        )}
+        component={make(() => import('sentry/views/profiling/continuousProfileProvider'))}
       >
         <Route
           path="flamegraph/"
           component={make(
             () => import('sentry/views/profiling/continuousProfileFlamechart')
           )}
+        />
+      </Route>
+      <Route
+        path="profile/:projectId/:eventId/"
+        component={make(() => import('sentry/views/profiling/profilesProvider'))}
+      >
+        <Route
+          path="flamegraph/"
+          component={make(() => import('sentry/views/profiling/profileFlamechart'))}
         />
       </Route>
     </Route>
