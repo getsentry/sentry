@@ -6,7 +6,6 @@ import {act, fireEvent, render, screen} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import type {Project} from 'sentry/types/project';
-import type {SpanResult} from 'sentry/views/traces/content';
 import type {Field} from 'sentry/views/traces/data';
 import {
   ProjectRenderer,
@@ -17,6 +16,7 @@ import {
   TraceIssuesRenderer,
   TransactionRenderer,
 } from 'sentry/views/traces/fieldRenderers';
+import type {SpanResult} from 'sentry/views/traces/hooks/useTraceSpans';
 
 describe('Renderers', function () {
   let context;

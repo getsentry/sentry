@@ -2,7 +2,8 @@ import type {Location, LocationDescriptor} from 'history';
 
 import type {Organization} from 'sentry/types/organization';
 
-import type {SpanResult, TraceResult} from './content';
+import type {TraceResult} from './hooks/useTraces';
+import type {SpanResult} from './hooks/useTraceSpans';
 import type {Field} from './data';
 
 export function normalizeTraces(traces: TraceResult[] | undefined) {

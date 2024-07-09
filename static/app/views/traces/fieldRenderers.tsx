@@ -29,7 +29,9 @@ import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transac
 
 import {TraceViewSources} from '../performance/newTraceDetails/traceMetadataHeader';
 
-import type {SpanResult, TraceResult} from './content';
+import type {TraceResult} from './hooks/useTraces';
+import {BREAKDOWN_SLICES} from './hooks/useTraces';
+import type {SpanResult} from './hooks/useTraceSpans';
 import type {Field} from './data';
 import {getShortenedSdkName, getStylingSliceName} from './utils';
 
@@ -281,7 +283,6 @@ export function TraceBreakdownRenderer({
 }
 
 const BREAKDOWN_SIZE_PX = 200;
-export const BREAKDOWN_SLICES = 40;
 
 /**
  * This renders slices in two different ways;
