@@ -349,7 +349,7 @@ config:
         p50: 3000.0
         weight: 0.15
       - measurement: lcp
-        optional: false
+        optional: true
         p10: 2500.0
         p50: 4000.0
         weight: 0.3
