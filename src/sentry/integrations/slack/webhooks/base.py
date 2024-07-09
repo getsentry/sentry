@@ -46,8 +46,8 @@ class SlackDMEndpoint(Endpoint, abc.ABC):
         """
         command, args = request.get_command_and_args()
 
-        if command in ["help", ""]:
-            return self.respond(SlackHelpMessageBuilder().build())
+        if command in ["help", "", "support", "docs"]:
+            return self.respond(SlackHelpMessageBuilder(command=command).build())
 
         if command == "link":
             if not args:
