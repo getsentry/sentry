@@ -24,12 +24,17 @@ function filterTempIds(rules: MetricsExtractionRule[]) {
   }));
 }
 
-export const getMetricsExtractionRulesApiKey = (orgSlug: string, projectSlug: string) =>
-  [`/projects/${orgSlug}/${projectSlug}/metrics/extraction-rules/`] as const;
+export const getMetricsExtractionRulesApiKey = (
+  orgSlug: string,
+  projectId: string | number
+) => [`/projects/${orgSlug}/${projectId}/metrics/extraction-rules/`] as const;
 
-export function useMetricsExtractionRules(orgSlug: string, projectSlug: string) {
+export const getMetricsExtractionOrgApiKey = (orgSlug: string) =>
+  [`/organizations/${orgSlug}/metrics/extraction-rules/`] as const;
+
+export function useMetricsExtractionRules(orgSlug: string, projectId: string | number) {
   return useApiQuery<MetricsExtractionRule[]>(
-    getMetricsExtractionRulesApiKey(orgSlug, projectSlug),
+    getMetricsExtractionRulesApiKey(orgSlug, projectId),
     {
       staleTime: 0,
       retry: false,
@@ -78,10 +83,13 @@ function createRollback(queryClient: QueryClient, queryKey: ApiQueryKey) {
   };
 }
 
-export function useDeleteMetricsExtractionRules(orgSlug: string, projectSlug: string) {
+export function useDeleteMetricsExtractionRules(
+  orgSlug: string,
+  projectId: string | number
+) {
   const api = useApi();
   const queryClient = useQueryClient();
-  const queryKey = getMetricsExtractionRulesApiKey(orgSlug, projectSlug);
+  const queryKey = getMetricsExtractionRulesApiKey(orgSlug, projectId);
 
   return useMutation<
     MetricsExtractionRule[],
@@ -104,15 +112,19 @@ export function useDeleteMetricsExtractionRules(orgSlug: string, projectSlug: st
       onError: createRollback(queryClient, queryKey),
       onSettled: () => {
         queryClient.invalidateQueries(queryKey);
+        queryClient.invalidateQueries(getMetricsExtractionOrgApiKey(orgSlug));
       },
     }
   );
 }
 
-export function useCreateMetricsExtractionRules(orgSlug: string, projectSlug: string) {
+export function useCreateMetricsExtractionRules(
+  orgSlug: string,
+  projectId: string | number
+) {
   const api = useApi();
   const queryClient = useQueryClient();
-  const queryKey = getMetricsExtractionRulesApiKey(orgSlug, projectSlug);
+  const queryKey = getMetricsExtractionRulesApiKey(orgSlug, projectId);
 
   return useMutation<
     MetricsExtractionRule[],
@@ -143,15 +155,19 @@ export function useCreateMetricsExtractionRules(orgSlug: string, projectSlug: st
       onError: createRollback(queryClient, queryKey),
       onSettled: () => {
         queryClient.invalidateQueries(queryKey);
+        queryClient.invalidateQueries(getMetricsExtractionOrgApiKey(orgSlug));
       },
     }
   );
 }
 
-export function useUpdateMetricsExtractionRules(orgSlug: string, projectSlug: string) {
+export function useUpdateMetricsExtractionRules(
+  orgSlug: string,
+  projectId: string | number
+) {
   const api = useApi();
   const queryClient = useQueryClient();
-  const queryKey = getMetricsExtractionRulesApiKey(orgSlug, projectSlug);
+  const queryKey = getMetricsExtractionRulesApiKey(orgSlug, projectId);
 
   return useMutation<
     MetricsExtractionRule[],
@@ -181,6 +197,7 @@ export function useUpdateMetricsExtractionRules(orgSlug: string, projectSlug: st
       onError: createRollback(queryClient, queryKey),
       onSettled: () => {
         queryClient.invalidateQueries(queryKey);
+        queryClient.invalidateQueries(getMetricsExtractionOrgApiKey(orgSlug));
       },
     }
   );

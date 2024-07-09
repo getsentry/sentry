@@ -124,6 +124,104 @@ class ApiTokensCreateTest(APITestCase):
 
 
 @control_silo_test
+class ApiTokensPutTest(APITestCase):
+    def test_simple(self):
+        token = ApiToken.objects.create(user=self.user, name="name")
+        self.login_as(self.user)
+        url = reverse("sentry-api-0-api-tokens")
+        assert token.name == "name"
+        response = self.client.put(
+            url,
+            data={"name": "rename1", "tokenId": token.id},
+        )
+        assert response.status_code == 204
+        token = ApiToken.objects.get(user=self.user)
+        assert token.name == "rename1"
+
+    def test_never_cache(self):
+        token = ApiToken.objects.create(user=self.user, name="name")
+        self.login_as(self.user)
+        url = reverse("sentry-api-0-api-tokens")
+        response = self.client.put(
+            url,
+            data={"name": "rename1", "tokenId": token.id},
+        )
+        assert response.status_code == 204
+        assert (
+            response.get("cache-control")
+            == "max-age=0, no-cache, no-store, must-revalidate, private"
+        )
+
+    def test_delete_name(self):
+        token = ApiToken.objects.create(user=self.user, name="name")
+        self.login_as(self.user)
+        url = reverse("sentry-api-0-api-tokens")
+        response = self.client.put(
+            url,
+            data={"tokenId": token.id},
+        )
+        assert response.status_code == 204
+        token = ApiToken.objects.get(user=self.user)
+        assert token.name is None
+
+    def test_add_name(self):
+        token = ApiToken.objects.create(user=self.user)
+        self.login_as(self.user)
+        url = reverse("sentry-api-0-api-tokens")
+        assert token.name is None
+        response = self.client.put(
+            url,
+            data={"name": "rename1", "tokenId": token.id},
+        )
+        assert response.status_code == 204
+        token = ApiToken.objects.get(user=self.user)
+        assert token.name == "rename1"
+
+    def test_invalid_name(self):
+        token = ApiToken.objects.create(user=self.user)
+        self.login_as(self.user)
+        url = reverse("sentry-api-0-api-tokens")
+        response = self.client.put(
+            url,
+            data={
+                "name": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in",
+                "tokenId": token.id,
+            },
+        )
+        assert response.status_code == 400
+
+    def test_editing_scopes(self):
+        token = ApiToken.objects.create(user=self.user)
+        self.login_as(self.user)
+        url = reverse("sentry-api-0-api-tokens")
+        response = self.client.put(
+            url,
+            data={
+                "name": "rename1",
+                "scopes": ["event:read"],
+                "tokenId": token.id,
+            },
+        )
+        assert response.status_code == 403
+
+    def test_invalid_token_id(self):
+        token = ApiToken.objects.create(user=self.user)
+        self.login_as(self.user)
+        url = reverse("sentry-api-0-api-tokens")
+        response = self.client.put(url, data={"tokenId": -1})
+        assert response.status_code == 400
+        assert ApiToken.objects.filter(id=token.id).exists()
+
+    def test_no_token_param(self):
+        token = ApiToken.objects.create(user=self.user)
+        self.login_as(self.user)
+        url = reverse("sentry-api-0-api-tokens")
+        response = self.client.put(url, data={})
+        assert response.status_code == 400
+        assert ApiToken.objects.filter(id=token.id).exists()
+
+
+@control_silo_test
 class ApiTokensDeleteTest(APITestCase):
     def test_simple(self):
         token = ApiToken.objects.create(user=self.user)
