@@ -901,6 +901,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     eventProcessing: dict[str, bool]
     symbolSources: str
     extrapolateMetrics: bool
+    uptimeAutodetection: bool
 
 
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
@@ -1028,6 +1029,15 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 {
                     "extrapolateMetrics": bool(
                         attrs["options"].get("sentry:extrapolate_metrics", False)
+                    )
+                }
+            )
+
+        if features.has("organizations:uptime-settings", obj.organization):
+            data.update(
+                {
+                    "uptimeAutodetection": bool(
+                        attrs["options"].get("sentry:uptime_autodetection", True)
                     )
                 }
             )
