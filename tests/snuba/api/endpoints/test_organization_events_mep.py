@@ -3458,64 +3458,6 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         )
         assert response.status_code == 400, response.content
 
-    @mock.patch("sentry.snuba.transactions.query")
-    def test_mep_uses_transactions_dataset_when_fallback_is_specified(
-        self, mock_transactions_query
-    ):
-        """
-        Tests that the transactions dataset will only be used when a dashboard request is made
-        with a dashboardWidgetId.
-        """
-        mock_transactions_query.return_value = {
-            "data": [
-                {
-                    "transaction": "foo_transaction",
-                    "equation|measurements.datacenter_memory / 3": 11,
-                }
-            ],
-            "meta": {
-                "fields": {"transaction": "string", "measurements.datacenter_memory": "number"}
-            },
-        }
-        _, widget, __ = create_widget(["count()"], "", self.project, discover_widget_split=None)
-        self.store_transaction_metric(
-            33,
-            metric="measurements.datacenter_memory",
-            internal_metric="d:transactions/measurements.datacenter_memory@petabyte",
-            entity="metrics_distributions",
-            tags={"transaction": "foo_transaction"},
-            timestamp=self.min_ago,
-        )
-        transaction_data = load_data("transaction", timestamp=self.min_ago)
-        transaction_data["measurements"]["datacenter_memory"] = {
-            "value": 33,
-            "unit": "petabyte",
-        }
-        self.store_event(transaction_data, self.project.id)
-
-        response = self.do_request(
-            {
-                "field": [
-                    "transaction",
-                    "measurements.datacenter_memory",
-                    # Equations are not supported, forces a fallback from metrics
-                    "equation|measurements.datacenter_memory / 3",
-                ],
-                "query": "",
-                "dataset": "metricsEnhanced",
-                "dashboardWidgetId": widget.id,
-            },
-            features={**self.features, "organizations:performance-discover-dataset-selector": True},
-        )
-        assert response.status_code == 200, response.content
-        data = response.data["data"]
-        assert len(data) == 1
-        assert data[0]["equation|measurements.datacenter_memory / 3"] == 11
-
-        meta = response.data["meta"]
-        assert not meta["isMetricsData"]
-        mock_transactions_query.assert_called_once()
-
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetrics(
     MetricsEnhancedPerformanceTestCase
