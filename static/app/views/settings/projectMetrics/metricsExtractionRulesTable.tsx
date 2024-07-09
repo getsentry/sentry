@@ -17,7 +17,6 @@ import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
 import {DEFAULT_METRICS_CARDINALITY_LIMIT} from 'sentry/utils/metrics/constants';
 import {useMetricsCardinality} from 'sentry/utils/metrics/useMetricsCardinality';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import {openExtractionRuleCreateModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleCreateModal';
 import {openExtractionRuleEditModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleEditModal';
@@ -33,7 +32,6 @@ type Props = {
 
 export function MetricsExtractionRulesTable({project}: Props) {
   const organization = useOrganization();
-  const navigate = useNavigate();
   const [query, setQuery] = useSearchQueryParam('query');
 
   const {data: extractionRules, isLoading: isLoadingExtractionRules} =
@@ -74,19 +72,11 @@ export function MetricsExtractionRulesTable({project}: Props) {
     [deleteMetricsExtractionRules]
   );
 
-  const handleEdit = useCallback(
-    (rule: MetricsExtractionRule) => {
-      openExtractionRuleEditModal(
-        {
-          metricExtractionRule: rule,
-        },
-        {
-          onClose: () => navigate(`/settings/projects/${project.slug}/metrics/`),
-        }
-      );
-    },
-    [project.slug, navigate]
-  );
+  const handleEdit = useCallback((rule: MetricsExtractionRule) => {
+    openExtractionRuleEditModal({
+      metricExtractionRule: rule,
+    });
+  }, []);
 
   const handleCreate = useCallback(() => {
     openExtractionRuleCreateModal({projectId: project.id});

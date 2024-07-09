@@ -29,6 +29,9 @@ export const getMetricsExtractionRulesApiKey = (
   projectId: string | number
 ) => [`/projects/${orgSlug}/${projectId}/metrics/extraction-rules/`] as const;
 
+export const getMetricsExtractionOrgApiKey = (orgSlug: string) =>
+  [`/organizations/${orgSlug}/metrics/extraction-rules/`] as const;
+
 export function useMetricsExtractionRules(orgSlug: string, projectId: string | number) {
   return useApiQuery<MetricsExtractionRule[]>(
     getMetricsExtractionRulesApiKey(orgSlug, projectId),
@@ -109,6 +112,9 @@ export function useDeleteMetricsExtractionRules(
       onError: createRollback(queryClient, queryKey),
       onSettled: () => {
         queryClient.invalidateQueries(queryKey);
+        queryClient.invalidateQueries(getMetricsExtractionOrgApiKey(orgSlug), {
+          exact: false,
+        });
       },
     }
   );
@@ -151,6 +157,9 @@ export function useCreateMetricsExtractionRules(
       onError: createRollback(queryClient, queryKey),
       onSettled: () => {
         queryClient.invalidateQueries(queryKey);
+        queryClient.invalidateQueries(getMetricsExtractionOrgApiKey(orgSlug), {
+          exact: false,
+        });
       },
     }
   );
@@ -192,6 +201,9 @@ export function useUpdateMetricsExtractionRules(
       onError: createRollback(queryClient, queryKey),
       onSettled: () => {
         queryClient.invalidateQueries(queryKey);
+        queryClient.invalidateQueries(getMetricsExtractionOrgApiKey(orgSlug), {
+          exact: false,
+        });
       },
     }
   );

@@ -22,7 +22,6 @@ import {isCustomMeasurement} from 'sentry/utils/metrics';
 import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
 import {formatMRI} from 'sentry/utils/metrics/mri';
 import {MetricExpressionType, type MetricsQueryWidget} from 'sentry/utils/metrics/types';
-import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -40,7 +39,6 @@ interface Props {
 export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props) {
   const router = useRouter();
   const organization = useOrganization();
-  const {refetch} = useVirtualMetricsContext();
   const formulaDependencies = useFormulaDependencies();
   const {isDefaultQuery, setDefaultQuery, widgets, showQuerySymbols, isMultiChartMode} =
     useMetricsContext();
@@ -149,7 +147,7 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
         (hasCustomMetricsExtractionRules(organization) ? (
           <Button
             priority="primary"
-            onClick={() => openExtractionRuleCreateModal({}, {onClose: refetch})}
+            onClick={() => openExtractionRuleCreateModal({})}
             size="sm"
           >
             {t('Add New Metric')}

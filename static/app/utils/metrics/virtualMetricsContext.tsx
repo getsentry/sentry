@@ -29,7 +29,6 @@ const Context = createContext<{
   } | null;
   getVirtualMeta: (mri: MRI) => MetricMeta;
   isLoading: boolean;
-  refetch: () => void;
   resolveVirtualMRI: (
     mri: MRI,
     conditionId: number,
@@ -46,7 +45,6 @@ const Context = createContext<{
   getTags: () => [],
   getVirtualMRIQuery: () => null,
   resolveVirtualMRI: (mri, _, aggregation) => ({mri, aggregation}),
-  refetch: () => {},
   virtualMeta: [],
   isLoading: false,
 });
@@ -104,12 +102,7 @@ export function VirtualMetricsContextProvider({children}: Props) {
   const organization = useOrganization();
   const {selection} = usePageFilters();
 
-  // TODO: support querying multiple projects in the API
-  const {
-    isLoading,
-    refetch,
-    data = EMPTY_ARRAY,
-  } = useApiQuery<MetricsExtractionRule[]>(
+  const {isLoading, data = EMPTY_ARRAY} = useApiQuery<MetricsExtractionRule[]>(
     getMetricsExtractionRulesApiKey(organization.slug, selection.projects),
     {staleTime: 0}
   );
@@ -253,7 +246,6 @@ export function VirtualMetricsContextProvider({children}: Props) {
       getTags,
       getVirtualMRIQuery,
       resolveVirtualMRI,
-      refetch,
       virtualMeta,
       isLoading,
     }),
@@ -265,7 +257,6 @@ export function VirtualMetricsContextProvider({children}: Props) {
       getTags,
       getVirtualMRIQuery,
       resolveVirtualMRI,
-      refetch,
       virtualMeta,
       isLoading,
     ]

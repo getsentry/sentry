@@ -332,7 +332,7 @@ function TagWarningIcon() {
 }
 
 function QueryFooter({mri, closeOverlay}) {
-  const {getVirtualMeta, getExtractionRule, refetch} = useVirtualMetricsContext();
+  const {getVirtualMeta, getExtractionRule} = useVirtualMetricsContext();
   const selectedProjects = useSelectedProjects();
 
   const metricMeta = getVirtualMeta(mri);
@@ -352,10 +352,7 @@ function QueryFooter({mri, closeOverlay}) {
           if (!extractionRule) {
             return;
           }
-          openExtractionRuleEditModal(
-            {metricExtractionRule: extractionRule},
-            {onClose: refetch}
-          );
+          openExtractionRuleEditModal({metricExtractionRule: extractionRule});
         }}
       >
         {t('Add Query')}

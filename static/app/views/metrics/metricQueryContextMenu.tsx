@@ -53,7 +53,7 @@ export function MetricQueryContextMenu({
   displayType,
   widgetIndex,
 }: ContextMenuProps) {
-  const {getExtractionRule, refetch} = useVirtualMetricsContext();
+  const {getExtractionRule} = useVirtualMetricsContext();
   const organization = useOrganization();
   const router = useRouter();
 
@@ -162,14 +162,9 @@ export function MetricQueryContextMenu({
           } else {
             const extractionRule = getExtractionRule(metricsQuery.mri);
             if (extractionRule) {
-              openExtractionRuleEditModal(
-                {
-                  metricExtractionRule: extractionRule,
-                },
-                {
-                  onClose: refetch,
-                }
-              );
+              openExtractionRuleEditModal({
+                metricExtractionRule: extractionRule,
+              });
             }
           }
         },
@@ -196,7 +191,6 @@ export function MetricQueryContextMenu({
       widgetIndex,
       router,
       getExtractionRule,
-      refetch,
       removeWidget,
     ]
   );
