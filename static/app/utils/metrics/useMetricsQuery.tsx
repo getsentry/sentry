@@ -77,7 +77,15 @@ export function isMetricFormula(
 
 export function getMetricsQueryApiRequestPayload(
   queries: (MetricsQueryApiRequestQuery | MetricsQueryApiRequestFormula)[],
-  {projects, environments, datetime}: PageFilters,
+  {
+    projects,
+    environments,
+    datetime,
+  }: {
+    datetime: PageFilters['datetime'];
+    environments: PageFilters['environments'];
+    projects: (number | string)[];
+  },
   {
     intervalLadder,
     interval: intervalParam,
@@ -167,7 +175,15 @@ export function getMetricsQueryApiRequestPayload(
 
 export function useMetricsQuery(
   queries: MetricsQueryApiQueryParams[],
-  {projects, environments, datetime}: PageFilters,
+  {
+    projects,
+    environments,
+    datetime,
+  }: {
+    datetime: PageFilters['datetime'];
+    environments: PageFilters['environments'];
+    projects: (number | string)[];
+  },
   overrides: {
     includeSeries?: boolean;
     interval?: string;
@@ -176,7 +192,7 @@ export function useMetricsQuery(
   enableRefetch = true
 ) {
   const organization = useOrganization();
-  const {resolveVirtualMRI} = useVirtualMetricsContext();
+  const {resolveVirtualMRI, isLoading} = useVirtualMetricsContext();
 
   const resolvedQueries = useMemo(
     () =>
@@ -220,6 +236,7 @@ export function useMetricsQuery(
       refetchOnReconnect: enableRefetch,
       refetchOnWindowFocus: enableRefetch,
       refetchInterval: false,
+      enabled: !isLoading,
     }
   );
 }

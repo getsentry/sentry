@@ -4,7 +4,7 @@ import {
 } from 'sentry/utils/metrics/useMetricsQuery';
 
 type Props = {
-  projects: number[];
+  projects: (number | string)[];
 };
 
 const CARDINALITY_QUERIES = [

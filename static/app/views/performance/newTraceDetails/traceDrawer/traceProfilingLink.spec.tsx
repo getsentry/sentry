@@ -1,5 +1,4 @@
 import type {LocationDescriptor} from 'history';
-import {TransactionEventFixture} from 'sentry-fixture/event';
 
 import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {TraceTreeNode} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
@@ -17,6 +16,7 @@ function makeTransaction(
     transaction: 'transaction',
     'transaction.op': '',
     'transaction.status': '',
+    profiler_id: '',
     performance_issues: [],
     errors: [],
     ...overrides,
@@ -31,33 +31,27 @@ describe('traceProfilingLink', () => {
     });
 
     it('requires projectSlug', () => {
-      const event = TransactionEventFixture();
+      const event = makeTransaction();
       expect(
-        makeTraceContinuousProfilingLink(node, event, {
+        makeTraceContinuousProfilingLink(node, event.profiler_id, {
           projectSlug: 'project',
           orgSlug: '',
         })
       ).toBeNull();
     });
     it('requires orgSlug', () => {
-      const event = TransactionEventFixture();
+      const event = makeTransaction();
       expect(
-        makeTraceContinuousProfilingLink(node, event, {
+        makeTraceContinuousProfilingLink(node, event.profiler_id, {
           projectSlug: '',
           orgSlug: 'sentry',
         })
       ).toBeNull();
     });
     it('requires profilerId', () => {
-      const event = TransactionEventFixture({
-        contexts: {
-          profile: {
-            profiler_id: undefined,
-          },
-        },
-      });
       expect(
-        makeTraceContinuousProfilingLink(node, event, {
+        // @ts-expect-error missing profiler_id
+        makeTraceContinuousProfilingLink(node, undefined, {
           projectSlug: 'project',
           orgSlug: 'sentry',
         })
@@ -66,14 +60,6 @@ describe('traceProfilingLink', () => {
   });
 
   it('creates a window of time around end timestamp', () => {
-    const event = TransactionEventFixture({
-      contexts: {
-        profile: {
-          profiler_id: 'profiler',
-        },
-      },
-    });
-
     const timestamp = new Date().getTime();
 
     const node = new TraceTreeNode(
@@ -87,7 +73,7 @@ describe('traceProfilingLink', () => {
 
     const link: LocationDescriptor | null = makeTraceContinuousProfilingLink(
       node,
-      event,
+      'profiler',
       {
         projectSlug: 'project',
         orgSlug: 'sentry',
