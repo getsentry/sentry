@@ -149,9 +149,23 @@ def get_extrapolation_config(project: Project) -> MetricExtrapolationConfig | No
     # Extrapolation applies to extracted metrics. This enables extrapolation for
     # the entire `custom` namespace, but this does not extrapolate old custom
     # metrics sent from the SDK directly.
-    return {
+    config: MetricExtrapolationConfig = {
         "include": ["?:custom/*"],
+        "exclude": [],
     }
+
+    if options.get("sentry-metrics.extrapolation.enable_transactions"):
+        config["include"] += ["?:transactions/*"]
+        config["exclude"] += [
+            "c:transactions/usage@none",  # stats
+            "c:transactions/count_per_root_project@none",  # dynamic sampling
+        ]
+
+    if options.get("sentry-metrics.extrapolation.enable_spans"):
+        config["include"] += ["?:spans/*"]
+        config["exclude"] += ["c:spans/usage@none"]  # stats
+
+    return config
 
 
 def get_on_demand_metric_specs(

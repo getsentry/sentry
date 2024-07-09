@@ -6,6 +6,7 @@ from unittest import mock
 
 import pytest
 from django.utils import timezone
+from sentry_relay.processing import normalize_project_config
 
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleProjects
 from sentry.models.dashboard_widget import DashboardWidgetQuery, DashboardWidgetQueryOnDemand
@@ -2239,3 +2240,43 @@ def test_get_metric_extraction_config_span_attributes_above_max_limit(
 
         assert config
         assert len(config["metrics"]) == 1
+
+
+@django_db_all
+@override_options(
+    {
+        "sentry-metrics.extrapolation.enable_transactions": True,
+        "sentry-metrics.extrapolation.enable_spans": True,
+    }
+)
+def test_get_metric_extrapolation_config(default_project: Project) -> None:
+    default_project.update_option("sentry:extrapolate_metrics", True)
+
+    # Create a dummy extraction rule to ensure there is at least one
+    # metric. Otherwise, the spec will be empty.
+    attr_config = {
+        "spanAttribute": "span.duration",
+        "aggregates": ["count"],
+        "unit": "none",
+        "tags": [],
+        "conditions": [{"id": 1, "value": "bar:baz"}],
+    }
+    SpanAttributeExtractionRuleConfig.from_dict(attr_config, 1, default_project)
+
+    with Feature(
+        ["organizations:metrics-extrapolation", "organizations:custom-metrics-extraction-rule"]
+    ):
+        config = get_metric_extraction_config(TimeChecker(timedelta(seconds=0)), default_project)
+
+    assert config and config["extrapolate"]
+
+    # Generate boilerplate around minimal project config:
+    project_config = {
+        "allowedDomains": ["*"],
+        "piiConfig": None,
+        "trustedRelays": [],
+        "metricExtraction": config,
+    }
+
+    normalized = normalize_project_config(project_config)["metricExtraction"]["extrapolate"]
+    assert normalized == config["extrapolate"]
