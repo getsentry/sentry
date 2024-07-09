@@ -17,7 +17,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.metrics_extraction_rules import (
     SpanAttributeExtractionRuleConfigSerializer,
 )
-from sentry.models.project import Project
+from sentry.models.project import Project, ProjectMetricsExtractionRulesPermission
 from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
 from sentry.sentry_metrics.span_attribute_extraction_rules import (
     create_extraction_rule_config,
@@ -55,6 +55,7 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
+    permission_classes = (ProjectMetricsExtractionRulesPermission,)
 
     def has_feature(self, organization, request):
         return features.has(

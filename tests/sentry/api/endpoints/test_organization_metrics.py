@@ -85,6 +85,14 @@ class OrganizationMetricsPermissionTest(APITestCase):
             url, HTTP_AUTHORIZATION=f"Bearer {token.token}", format="json"
         )
 
+    def test_access_with_wrong_permission_scopes(self):
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            token = ApiToken.objects.create(user=self.user, scope_list=[])
+
+        for method, endpoint, *rest in self.endpoints:
+            response = self.send_request(self.organization, token, method, endpoint, *rest)
+            assert response.status_code == 403
+
     def test_access_of_another_organization(self):
         other_user = self.create_user("admin_2@localhost", is_superuser=True, is_staff=True)
         self.create_organization(name="foo", slug="foo", owner=other_user)
