@@ -65,7 +65,7 @@ class ResultProcessor(abc.ABC, Generic[T, U]):
                 id=FAKE_SUBSCRIPTION_ID,
                 subscription_id=self.get_subscription_id(result),
                 type="test",
-                url="https://sentry.io/",
+                url="https://downtime-simulator-test1.vercel.app/",
                 interval_seconds=300,
                 timeout_ms=500,
             )
