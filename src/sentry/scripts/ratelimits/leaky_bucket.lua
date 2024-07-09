@@ -10,8 +10,12 @@
 --        ^^^ to understand why we pass this,
 --            read https://github.blog/2021-04-05-how-we-scaled-github-api-sharded-replicated-rate-limiter-redis/
 -- Output:
---   * nil if allowed
---   * time to wait in seconds if not allowed
+--   * bucket_size (limit of drops in the bucket, effecitvely the max burst limit),
+--   * drip_rate (number of drops leaking per second, effectively the sustained rate limit),
+--   * last_drip (the last time we allowed a request),
+--   * current_level (the current water level in the bucket),
+--   * wait_time (time in seconds to wait before the next request can be allowed
+--                0 indicates that the request can be allowed immediately)
 --
 -- Key is a hash with schema:
 --   * current_level: the current water level in the bucket
@@ -57,13 +61,13 @@ local new_level = math.max(0, current_level - elapsed_time * drip_rate) + 1
 -- check it the current request would overflow the bucket
 local allowed = new_level <= bucket_size
 
+local wait_time = tostring((new_level - bucket_size) / drip_rate)
 
 if allowed then
   redis.call("hset", key, "current_level", new_level)
   redis.call("hset", key, "last_drip", current_time)
   redis.call("expire", key, max_tll_seconds)
-  return bucket_size, drip_rate, current_time, new_level, nil
-else
-  local wait_time = (new_level - bucket_size) / drip_rate
-  return bucket_size, drip_rate, last_drip, current_level, wait_time
+  wait_time = 0
 end
+
+return { bucket_size, drip_rate, tostring(last_drip), tostring(current_level), wait_time}
