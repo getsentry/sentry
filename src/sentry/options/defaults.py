@@ -1472,6 +1472,18 @@ register(
 )
 
 register(
+    "sentry-metrics.extrapolation.enable_transactions",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry-metrics.extrapolation.enable_spans",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "sentry-metrics.extrapolation.duplication-limit",
     default=0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
