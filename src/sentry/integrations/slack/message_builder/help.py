@@ -15,6 +15,8 @@ GENERAL_MESSAGE = "Just want to learn more about Sentry? Check out our <https://
 DM_COMMANDS = {
     "link": "Link your Slack identity to your Sentry account to receive notifications. You'll also be able to perform actions in Sentry through Slack.",
     "unlink": "Unlink your Slack identity from your Sentry account.",
+    "support": "Get support resources.",
+    "docs": "View documentation resources.",
     "help": "View this list of commands.",
 }
 CHANNEL_COMMANDS = {
