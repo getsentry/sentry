@@ -450,7 +450,6 @@ class SnubaTagStorage(TagStorage):
             dataset=dataset,
             include_values_seen=False,
             use_cache=use_cache,
-            dataset=dataset,
             tenant_ids=tenant_ids,
             **optimize_kwargs,
         )

@@ -29,12 +29,16 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
         except NoProjects:
             return Response([])
 
-        if request.GET.get("dataset") and request.GET.get("dataset") not in Dataset:
-            raise ParseError("Invalid dataset parameter")
+        if request.GET.get("dataset"):
+            try:
+                Dataset(request.GET.get("dataset"))
+            except ValueError:
+                raise ParseError("Invalid dataset parameter")
 
         with sentry_sdk.start_span(op="tagstore", description="get_tag_keys_for_projects"):
             with handle_query_errors():
                 results = tagstore.backend.get_tag_keys_for_projects(
+                    organization.id,
                     filter_params["project_id"],
                     filter_params.get("environment"),
                     filter_params["start"],

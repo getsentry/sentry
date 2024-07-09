@@ -2,11 +2,13 @@ from unittest import mock
 
 from django.urls import reverse
 
-from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
+from tests.snuba.api.endpoints.test_organization_events_facets_performance_histogram import (
+    OrganizationEventsFacetsPerformanceHistogramEndpointTest,
+)
 
 
-class OrganizationTagsTest(APITestCase, SnubaTestCase):
+class OrganizationTagsTest(OrganizationEventsFacetsPerformanceHistogramEndpointTest):
     def setUp(self):
         super().setUp()
         self.min_ago = iso_format(before_now(minutes=1))
@@ -54,6 +56,46 @@ class OrganizationTagsTest(APITestCase, SnubaTestCase):
             {"name": "Fruit", "key": "fruit", "totalValues": 3},
             {"name": "Some Tag", "key": "some_tag", "totalValues": 1},
         ]
+
+    def test_dataset_param(self):
+        user = self.create_user()
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        self.create_member(organization=org, user=user, teams=[team])
+
+        self.login_as(user=user)
+
+        project = self.create_project(organization=org, teams=[team])
+        self.store_event(
+            data={"event_id": "a" * 32, "tags": {"berry": "raspberry"}, "timestamp": self.min_ago},
+            project_id=project.id,
+        )
+
+        self.store_transaction(
+            project_id=self.project.id,
+            tags=[("stone_fruit", "cherry")],
+            user_id=user.id,
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-tags", kwargs={"organization_id_or_slug": org.slug}
+        )
+
+        eventsResponse = self.client.get(
+            url, {"statsPeriod": "14d", "dataset": "events"}, format="json"
+        )
+        assert eventsResponse.status_code == 200, eventsResponse.content
+        eventsData = eventsResponse.data
+        eventsData.sort(key=lambda val: val["name"])
+        assert eventsData == [
+            {"name": "Berry", "key": "berry", "totalValues": 1},
+            {"name": "Level", "key": "level", "totalValues": 1},
+        ]
+
+        # Performance dataset
+        # spansResponse = self.client.get(
+        #     url, {"statsPeriod": "14d", "dataset": "search_issues"}, format="json"
+        # )
 
     def test_no_projects(self):
         user = self.create_user()
