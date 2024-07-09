@@ -30,7 +30,6 @@ import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import GroupEventDetailsContent from 'sentry/views/issueDetails/groupEventDetails/groupEventDetailsContent';
 import GroupEventHeader from 'sentry/views/issueDetails/groupEventHeader';
 import GroupSidebar from 'sentry/views/issueDetails/groupSidebar';
-import {TraceTimeLineOrRelatedIssue} from 'sentry/views/issueDetails/traceTimelineOrRelatedIssue';
 
 import ReprocessingProgress from '../reprocessingProgress';
 import {
@@ -193,11 +192,6 @@ function GroupEventDetails(props: GroupEventDetailsProps) {
                     project={project}
                   />
                 )}
-                {eventWithMeta && (
-                  <StyledDataSection>
-                    <TraceTimeLineOrRelatedIssue event={eventWithMeta} />
-                  </StyledDataSection>
-                )}
                 {renderContent()}
               </StyledLayoutMain>
               <StyledLayoutSide>
@@ -248,13 +242,6 @@ const StyledLayoutSide = styled(Layout.Side)`
   @media (min-width: ${p => p.theme.breakpoints.large}) {
     padding-right: ${space(4)};
     padding-left: 0;
-  }
-`;
-
-const StyledDataSection = styled('div')`
-  padding: ${space(0.5)} ${space(2)};
-  @media (min-width: ${p => p.theme.breakpoints.medium}) {
-    padding: ${space(1)} ${space(4)};
   }
 `;
 
