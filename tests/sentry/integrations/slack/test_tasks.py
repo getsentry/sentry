@@ -415,7 +415,6 @@ class SlackTasksTest(TestCase):
                     "payload": {"blocks": ["hello"], "text": "text", "channel": "channel"},
                     "log_error_message": "my_message",
                     "log_params": {"log_key": "log_value"},
-                    "has_sdk_flag": True,
                 }
             )
 
@@ -440,7 +439,6 @@ class SlackTasksTest(TestCase):
                     },
                     "log_error_message": "my_message",
                     "log_params": {"log_key": "log_value"},
-                    "has_sdk_flag": True,
                 }
             )
 
