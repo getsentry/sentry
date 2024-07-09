@@ -9,19 +9,25 @@ UNKNOWN_COMMAND_MESSAGE = "Unknown command: `{command}`"
 HEADER_MESSAGE = "Here are the commands you can use. Commands not working? Re-install the app!"
 DM_COMMAND_HEADER = "*Direct Message Commands:*"
 CHANNEL_COMMANDS_HEADER = "*Channel Commands:*"
+HELP_COMMANDS_HEADER = "*Help Commands:*"
+HELP_COMMANDS_HEADER_MESSAGE = (
+    "These commands can be run in a direct message with the Sentry app or in a channel."
+)
 CONTACT_HEADER = "*Contact:*"
 GENERAL_MESSAGE = "Just want to learn more about Sentry? Check out our <https://docs.sentry.io/product/integrations/notification-incidents/slack/|documentation>."
 
 DM_COMMANDS = {
     "link": "Link your Slack identity to your Sentry account to receive notifications. You'll also be able to perform actions in Sentry through Slack.",
     "unlink": "Unlink your Slack identity from your Sentry account.",
-    "support": "Get support resources.",
-    "docs": "View documentation resources.",
-    "help": "View this list of commands.",
 }
 CHANNEL_COMMANDS = {
     "link team": "Get your Sentry team's issue alert notifications in the channel this command is typed in.",
     "unlink team": "Unlink a team from the channel this command is typed in.",
+}
+HELP_COMMANDS = {
+    "support": "Get support resources.",
+    "docs": "View documentation resources.",
+    "help": "View this list of commands.",
 }
 CONTACT_MESSAGE = "Let us know if you have feedback: ecosystem-feedback@sentry.io"
 
@@ -44,6 +50,7 @@ def list_commands(commands: Mapping[str, str]) -> str:
 
 DM_COMMANDS_MESSAGE = list_commands(DM_COMMANDS)
 CHANNEL_COMMANDS_MESSAGE = list_commands(CHANNEL_COMMANDS)
+HELP_COMMANDS_MESSAGE = list_commands(HELP_COMMANDS)
 
 
 class SlackHelpMessageBuilder(BlockSlackMessageBuilder):
@@ -69,6 +76,9 @@ class SlackHelpMessageBuilder(BlockSlackMessageBuilder):
             self.get_markdown_block(DM_COMMANDS_MESSAGE),
             self.get_markdown_block(CHANNEL_COMMANDS_HEADER),
             self.get_markdown_block(CHANNEL_COMMANDS_MESSAGE),
+            self.get_markdown_block(HELP_COMMANDS_HEADER),
+            self.get_markdown_block(HELP_COMMANDS_HEADER_MESSAGE),
+            self.get_markdown_block(HELP_COMMANDS_MESSAGE),
             self.get_markdown_block(CONTACT_HEADER),
             self.get_markdown_block(CONTACT_MESSAGE),
             self.get_divider(),
