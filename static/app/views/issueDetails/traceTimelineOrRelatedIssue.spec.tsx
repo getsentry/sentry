@@ -50,6 +50,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
         title: 'Slow DB Query',
         id: 'abc',
         transaction: '/api/slow/',
+        culprit: '/api/slow/',
       },
     ],
     meta: {fields: {}, units: {}},
@@ -69,7 +70,8 @@ describe('TraceTimeline & TraceRelated Issue', () => {
   };
   const secondError = {
     message: 'Message of the second issue',
-    culprit: 'n/a',
+    culprit: 'billiard.pool in foo', // Used for subtitle
+    'error.value': ['some-other-error-value', 'The last error value'],
     timestamp: '2024-01-24T09:09:04+00:00',
     'issue.id': 9999,
     project: project.slug,
@@ -335,29 +337,31 @@ describe('TraceTimeline & TraceRelated Issue', () => {
 
 function createEvent({
   culprit,
-  message,
   title,
-  transaction,
+  error_value,
   event_type = 'error',
 }: {
   culprit: string;
-  message: string;
   title: string;
-  transaction: string;
+  error_value?: string[];
   event_type?: string;
 }) {
-  return {
+  const event = {
+    message: 'message',
     culprit: culprit,
-    message: message,
     timestamp: '2024-01-24T09:09:04+00:00',
     'issue.id': 9999,
     project: 'foo',
     'project.name': 'bar',
     title: title,
     id: '12345',
-    transaction: transaction,
+    transaction: 'n/a',
     'event.type': event_type,
   };
+  if (error_value) {
+    event['error.value'] = error_value;
+  }
+  return event;
 }
 
 describe('getTitleSubtitleMessage()', () => {
@@ -365,17 +369,18 @@ describe('getTitleSubtitleMessage()', () => {
     expect(
       getTitleSubtitleMessage(
         createEvent({
-          culprit: 'n/a',
+          culprit: '/api/0/sentry-app-installations/{uuid}/',
           title:
             'ClientError: 404 Client Error: for url: https://api.clickup.com/sentry/webhook',
-          message: 'Message of the second issue',
-          transaction: 'foo',
+          error_value: [
+            '404 Client Error: for url: https://api.clickup.com/sentry/webhook',
+          ],
         })
       )
     ).toEqual({
       title: 'ClientError', // The colon and remainder of string are removed
-      subtitle: 'foo',
-      message: 'Message of the second issue',
+      subtitle: '/api/0/sentry-app-installations/{uuid}/',
+      message: '404 Client Error: for url: https://api.clickup.com/sentry/webhook',
     });
   });
 
@@ -383,16 +388,31 @@ describe('getTitleSubtitleMessage()', () => {
     expect(
       getTitleSubtitleMessage(
         createEvent({
-          culprit: 'n/a',
+          culprit: 'billiard.pool in foo',
           title: 'WorkerLostError: ',
-          message: 'Message of the second issue',
-          transaction: 'foo',
+          error_value: ['some-other-error-value', 'The last error value'],
         })
       )
     ).toEqual({
       title: 'WorkerLostError:', // The colon is kept
-      subtitle: 'foo',
-      message: 'Message of the second issue',
+      subtitle: 'billiard.pool in foo',
+      message: 'The last error value',
+    });
+  });
+
+  it('error event: No error_value', () => {
+    expect(
+      getTitleSubtitleMessage(
+        createEvent({
+          title: 'foo',
+          culprit: 'bar',
+          error_value: [''], // We always get a non-empty array
+        })
+      )
+    ).toEqual({
+      title: 'foo',
+      subtitle: 'bar',
+      message: '',
     });
   });
 
@@ -401,9 +421,7 @@ describe('getTitleSubtitleMessage()', () => {
       getTitleSubtitleMessage(
         createEvent({
           culprit: '/api/0/organizations/{organization_id_or_slug}/issues/',
-          message: 'n/a',
           title: 'Query from referrer search.group_index is throttled',
-          transaction: 'n/a',
           event_type: 'default',
         })
       )
