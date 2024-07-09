@@ -9,7 +9,7 @@ from concurrent.futures._base import FINISHED, RUNNING
 from contextlib import contextmanager
 from queue import Full, PriorityQueue
 from time import time
-from typing import TYPE_CHECKING, Generic, NamedTuple, TypeVar
+from typing import Generic, NamedTuple, TypeVar
 
 import sentry_sdk
 import sentry_sdk.scope
@@ -17,11 +17,6 @@ import sentry_sdk.scope
 logger = logging.getLogger(__name__)
 
 T = TypeVar("T")
-
-if TYPE_CHECKING:
-    FutureBase = Future[T]
-else:
-    FutureBase = Future
 
 
 def execute(function: Callable[..., T], daemon=True):
@@ -48,7 +43,7 @@ def execute(function: Callable[..., T], daemon=True):
 @functools.total_ordering
 class PriorityTask(NamedTuple, Generic[T]):
     priority: int
-    item: tuple[Callable[[], T], sentry_sdk.Scope, FutureBase[T]]
+    item: tuple[sentry_sdk.Scope, sentry_sdk.Scope, Callable[[], T], Future[T]]
 
     def __eq__(self, b):
         return self.priority == b.priority
@@ -57,7 +52,7 @@ class PriorityTask(NamedTuple, Generic[T]):
         return self.priority < b.priority
 
 
-class TimedFuture(FutureBase[T]):
+class TimedFuture(Future[T]):
     _condition: threading.Condition
     _state: str
 
@@ -169,7 +164,7 @@ class SynchronousExecutor(Executor[T]):
         """
         Immediately execute a callable, returning a ``TimedFuture``.
         """
-        future: FutureBase[T] = self.Future()
+        future: Future[T] = self.Future()
         assert future.set_running_or_notify_cancel()
         try:
             result = callable()
@@ -201,17 +196,19 @@ class ThreadedExecutor(Executor[T]):
     def __worker(self):
         queue = self.__queue
         while True:
-            priority, (function, isolation_scope, future) = queue.get(True)
-            with sentry_sdk.scope.use_isolation_scope(isolation_scope.fork()):
-                if not future.set_running_or_notify_cancel():
-                    continue
-                try:
-                    result = function()
-                except Exception as e:
-                    future.set_exception(e)
-                else:
-                    future.set_result(result)
-                queue.task_done()
+            priority, item = queue.get(True)
+            thread_isolation_scope, thread_current_scope, function, future = item
+            with sentry_sdk.scope.use_isolation_scope(thread_isolation_scope):
+                with sentry_sdk.scope.use_scope(thread_current_scope):
+                    if not future.set_running_or_notify_cancel():
+                        continue
+                    try:
+                        result = function()
+                    except Exception as e:
+                        future.set_exception(e)
+                    else:
+                        future.set_result(result)
+                    queue.task_done()
 
     def start(self):
         with self.__lock:
@@ -240,8 +237,16 @@ class ThreadedExecutor(Executor[T]):
         if not self.__started:
             self.start()
 
-        future: FutureBase[T] = self.Future()
-        task = PriorityTask(priority, (callable, sentry_sdk.Scope.get_isolation_scope(), future))
+        future: Future[T] = self.Future()
+        task = PriorityTask(
+            priority,
+            (
+                sentry_sdk.Scope.get_isolation_scope().fork(),
+                sentry_sdk.Scope.get_current_scope().fork(),
+                callable,
+                future,
+            ),
+        )
         try:
             self.__queue.put(task, block=block, timeout=timeout)
         except Full as error:

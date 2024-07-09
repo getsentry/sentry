@@ -21,7 +21,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import PerformanceDuration from 'sentry/components/performanceDuration';
-import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconClose} from 'sentry/icons/iconClose';
@@ -29,8 +28,9 @@ import {IconWarning} from 'sentry/icons/iconWarning';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PageFilters} from 'sentry/types/core';
-import type {MRI} from 'sentry/types/metrics';
+import type {MetricAggregation, MRI} from 'sentry/types/metrics';
 import type {Organization} from 'sentry/types/organization';
+import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {getUtcDateString} from 'sentry/utils/dates';
@@ -46,7 +46,9 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import {type Field, FIELDS, SORTS} from './data';
 import {
   BREAKDOWN_SLICES,
-  ProjectRenderer,
+  Description,
+  ProjectBadgeWrapper,
+  ProjectsRenderer,
   SpanBreakdownSliceRenderer,
   SpanDescriptionRenderer,
   SpanIdRenderer,
@@ -59,7 +61,6 @@ import {
 import {TracesChart} from './tracesChart';
 import {TracesSearchBar} from './tracesSearchBar';
 import {
-  ALL_PROJECTS,
   areQueriesEmpty,
   getSecondaryNameFromSpan,
   getStylingSliceName,
@@ -183,18 +184,7 @@ export function Content() {
   return (
     <LayoutMain fullWidth>
       <PageFilterBar condensed>
-        <Tooltip
-          title={tct(
-            "Traces stem across multiple projects. You'll need to narrow down which projects you'd like to include per span.[br](ex. [code:project:javascript])",
-            {
-              br: <br />,
-              code: <Code />,
-            }
-          )}
-          position="bottom"
-        >
-          <ProjectPageFilter disabled projectOverride={ALL_PROJECTS} />
-        </Tooltip>
+        <ProjectPageFilter />
         <EnvironmentPageFilter />
         <DatePageFilter defaultPeriod="2h" />
       </PageFilterBar>
@@ -207,7 +197,11 @@ export function Content() {
           {tct('The metric query [metricQuery] is filtering the results below.', {
             metricQuery: (
               <strong>
-                {getFormattedMQL({mri: mri as MRI, op: metricsOp, query: metricsQuery})}
+                {getFormattedMQL({
+                  mri: mri as MRI,
+                  aggregation: metricsOp as MetricAggregation,
+                  query: metricsQuery,
+                })}
               </strong>
             ),
           })}
@@ -291,6 +285,9 @@ export function Content() {
 }
 
 function TraceRow({defaultExpanded, trace}: {defaultExpanded; trace: TraceResult}) {
+  const {selection} = usePageFilters();
+  const {projects} = useProjects();
+
   const [expanded, setExpanded] = useState<boolean>(defaultExpanded);
   const [highlightedSliceName, _setHighlightedSliceName] = useState('');
   const location = useLocation();
@@ -308,6 +305,41 @@ function TraceRow({defaultExpanded, trace}: {defaultExpanded; trace: TraceResult
   );
 
   const onClickExpand = useCallback(() => setExpanded(e => !e), [setExpanded]);
+
+  const selectedProjects = useMemo(() => {
+    const selectedProjectIds = new Set(
+      selection.projects.map(project => project.toString())
+    );
+    return new Set(
+      projects
+        .filter(project => selectedProjectIds.has(project.id))
+        .map(project => project.slug)
+    );
+  }, [projects, selection.projects]);
+
+  const traceProjects = useMemo(() => {
+    const seenProjects: Set<string> = new Set();
+
+    const leadingProjects: string[] = [];
+    const trailingProjects: string[] = [];
+
+    for (let i = 0; i < trace.breakdowns.length; i++) {
+      const project = trace.breakdowns[i].project;
+      if (!defined(project) || seenProjects.has(project)) {
+        continue;
+      }
+      seenProjects.add(project);
+
+      // Priotize projects that are selected in the page filters
+      if (selectedProjects.has(project)) {
+        leadingProjects.push(project);
+      } else {
+        trailingProjects.push(project);
+      }
+    }
+
+    return [...leadingProjects, ...trailingProjects];
+  }, [selectedProjects, trace]);
 
   return (
     <Fragment>
@@ -338,9 +370,17 @@ function TraceRow({defaultExpanded, trace}: {defaultExpanded; trace: TraceResult
       </StyledPanelItem>
       <StyledPanelItem align="left" overflow>
         <Description>
-          {trace.project ? (
-            <ProjectRenderer projectSlug={trace.project} hideName />
-          ) : null}
+          <ProjectBadgeWrapper>
+            <ProjectsRenderer
+              projectSlugs={
+                traceProjects.length > 0
+                  ? traceProjects
+                  : trace.project
+                    ? [trace.project]
+                    : []
+              }
+            />
+          </ProjectBadgeWrapper>
           {trace.name ? (
             <WrappingText>{trace.name}</WrappingText>
           ) : (
@@ -746,6 +786,7 @@ function useTraceSpans<F extends string>({
 
   const endpointOptions = {
     query: {
+      project: selection.projects,
       environment: selection.environments,
       ...(datetime ?? normalizeDateTimeParams(selection.datetime)),
       field: fields,
@@ -785,13 +826,13 @@ const StyledPanel = styled(Panel)`
 const TracePanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(1, min-content) auto repeat(2, min-content) 85px 112px 66px;
+  grid-template-columns: 116px auto repeat(2, min-content) 85px 112px 66px;
 `;
 
 const SpanPanelContent = styled('div')`
   width: 100%;
   display: grid;
-  grid-template-columns: repeat(1, min-content) auto repeat(1, min-content) 160px 85px;
+  grid-template-columns: 100px auto repeat(1, min-content) 160px 85px;
 `;
 
 const StyledPanelHeader = styled(PanelHeader)<{align: 'left' | 'right'}>`
@@ -803,14 +844,6 @@ const EmptyStateText = styled('div')<{size: 'fontSizeExtraLarge' | 'fontSizeMedi
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme[p.size]};
   padding-bottom: ${space(1)};
-`;
-
-const Description = styled('div')`
-  ${p => p.theme.overflowEllipsis};
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: ${space(1)};
 `;
 
 const StyledPanelItem = styled(PanelItem)<{
@@ -889,8 +922,4 @@ const StyledAlert = styled(Alert)`
 
 const StyledCloseButton = styled(IconClose)`
   cursor: pointer;
-`;
-
-const Code = styled('code')`
-  color: ${p => p.theme.red400};
 `;

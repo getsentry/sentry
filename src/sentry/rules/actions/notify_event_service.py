@@ -13,13 +13,13 @@ from sentry.incidents.endpoints.serializers.incident import IncidentSerializer
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.metric_alerts import incident_attachment_info
+from sentry.integrations.services.integration import integration_service
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.plugins.base import plugins
 from sentry.rules.actions.base import EventAction
 from sentry.rules.actions.services import PluginService
 from sentry.rules.base import CallbackFuture
-from sentry.services.hybrid_cloud.app import RpcSentryAppService, app_service
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
+from sentry.sentry_apps.services.app import RpcSentryAppService, app_service
 from sentry.tasks.sentry_apps import notify_sentry_app
 from sentry.utils import json, metrics
 from sentry.utils.forms import set_field_choices, set_widget_choices

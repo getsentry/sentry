@@ -2,7 +2,7 @@ import type {RefObject} from 'react';
 import {useCallback} from 'react';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
-import {divide} from 'sentry/components/replays/utils';
+import divide from 'sentry/utils/number/divide';
 import useMouseTracking from 'sentry/utils/replays/hooks/useMouseTracking';
 
 type Opts<T extends Element> = {

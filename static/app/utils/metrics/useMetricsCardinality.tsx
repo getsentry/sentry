@@ -1,20 +1,21 @@
-import type {MRI} from 'sentry/types/metrics';
-import type {Project} from 'sentry/types/project';
-import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
+import {
+  type MetricsQueryApiQueryParams,
+  useMetricsQuery,
+} from 'sentry/utils/metrics/useMetricsQuery';
 
 type Props = {
-  project: Project;
+  projects: number[];
 };
 
 const CARDINALITY_QUERIES = [
   {
     name: 'a',
-    mri: 'g:metric_stats/cardinality@none' as MRI,
-    op: 'max',
+    mri: 'g:metric_stats/cardinality@none',
+    aggregation: 'max',
     groupBy: ['mri'],
     query: '!mri:"" cardinality.window:3600',
     orderBy: 'desc' as 'desc' | 'asc',
-  },
+  } as MetricsQueryApiQueryParams,
 ];
 
 const CARDINALITY_DATE_TIME = {
@@ -26,13 +27,13 @@ const CARDINALITY_DATE_TIME = {
 
 const CARDINALITY_INTERVAL = '1h';
 
-export function useMetricsCardinality({project}: Props) {
+export function useMetricsCardinality({projects}: Props) {
   const cardinalityQuery = useMetricsQuery(
     CARDINALITY_QUERIES,
     {
       environments: [],
       datetime: CARDINALITY_DATE_TIME,
-      projects: [parseInt(project.id, 10)],
+      projects: projects,
     },
     {interval: CARDINALITY_INTERVAL, includeSeries: false}
   );

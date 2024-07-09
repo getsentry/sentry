@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from abc import ABC
-from collections.abc import Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict
+from typing import Any
 
 from sentry.integrations.slack.message_builder import SlackBlock
 from sentry.integrations.slack.message_builder.base.base import SlackMessageBuilder
@@ -13,7 +13,7 @@ from sentry.notifications.utils.actions import MessageAction
 class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
     @staticmethod
     def get_image_block(url: str, title: str | None = None, alt: str | None = None) -> SlackBlock:
-        block: MutableMapping[str, Any] = {
+        block: dict[str, Any] = {
             "type": "image",
             "image_url": url,
         }
@@ -124,11 +124,7 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
 
     @staticmethod
     def get_action_block(actions: Sequence[tuple[str, str | None, str]]) -> SlackBlock:
-        class SlackBlockType(TypedDict):
-            type: str
-            elements: list[dict[str, Any]]
-
-        action_block: SlackBlockType = {"type": "actions", "elements": []}
+        elements = []
         for text, url, value in actions:
             button = {
                 "type": "button",
@@ -138,8 +134,9 @@ class BlockSlackMessageBuilder(SlackMessageBuilder, ABC):
             if url:
                 button["url"] = url
 
-            action_block["elements"].append(button)
+            elements.append(button)
 
+        action_block = {"type": "actions", "elements": elements}
         return action_block
 
     @staticmethod

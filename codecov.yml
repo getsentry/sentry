@@ -21,7 +21,6 @@ coverage:
     - src/*/migrations/
     - src/bitfield/
     - src/sentry/debug/
-    - src/sentry/lint/
     - src/sentry/runner/
     - src/social_auth/
     - static/app/routes.tsx
