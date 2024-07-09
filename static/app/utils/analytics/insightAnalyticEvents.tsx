@@ -33,7 +33,7 @@ export type InsightEventParameters = {
   'insight.vital.overview.open_transaction_summary': {};
   'insight.vital.overview.toggle_data_type': {type: string};
   'insight.vital.overview.toggle_tab': {tab: string};
-  'insight.vital.select_browser_value': {browser: string};
+  'insight.vital.select_browser_value': {browsers: string[]};
   'insight.vital.vital_sidebar_opened': {vital: string};
 };
 
