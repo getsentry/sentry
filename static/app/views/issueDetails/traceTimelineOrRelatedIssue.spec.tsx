@@ -52,7 +52,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
         'project.name': project.name,
         title: 'Slow DB Query',
         id: 'abc',
-        transaction: '/api/slow/',
+        transaction: 'n/a',
         culprit: '/api/slow/',
         'event.type': '',
       },
@@ -341,11 +341,11 @@ describe('TraceTimeline & TraceRelated Issue', () => {
 
 function createEvent({
   culprit,
-  message,
   title,
   error_value,
   event_type = 'error',
   stack_function = [],
+  message = 'n/a',
 }: {
   culprit: string;
   title: string;
