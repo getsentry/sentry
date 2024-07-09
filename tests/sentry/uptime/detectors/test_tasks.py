@@ -1,6 +1,7 @@
 from datetime import timedelta
 from unittest import mock
 from unittest.mock import call
+from urllib.robotparser import RobotFileParser
 
 from django.utils import timezone
 
@@ -189,13 +190,50 @@ class ProcessCandidateUrlTest(TestCase):
 
     def test_failed_robots_txt(self):
         url = "https://sentry.io"
+        test_robot_parser = RobotFileParser()
+        robots_txt = ["User-agent: *", "Disallow: /"]
+        test_robot_parser.parse(robots_txt)
         with mock.patch(
-            # TODO: Replace this mock with real tests when we implement this function properly
-            "sentry.uptime.detectors.tasks.check_url_robots_txt",
-            return_value=False,
+            "sentry.uptime.detectors.tasks.get_robots_txt_parser",
+            return_value=test_robot_parser,
         ):
             assert not process_candidate_url(self.project, 100, url, 50)
         assert is_failed_url(url)
+
+    def test_failed_robots_txt_user_agent(self):
+        url = "https://sentry.io"
+        test_robot_parser = RobotFileParser()
+        robots_txt = ["User-agent: sentry.io_uptime_checker_v_1", "Disallow: /"]
+        test_robot_parser.parse(robots_txt)
+        with mock.patch(
+            "sentry.uptime.detectors.tasks.get_robots_txt_parser",
+            return_value=test_robot_parser,
+        ):
+            assert not process_candidate_url(self.project, 100, url, 50)
+        assert is_failed_url(url)
+
+    def test_succeeded_robots_txt(self):
+        url = "https://sentry.io"
+        test_robot_parser = RobotFileParser()
+        robots_txt = ["User-agent: *", "Allow: /", "Disallow: /no-robos"]
+        test_robot_parser.parse(robots_txt)
+        with mock.patch(
+            "sentry.uptime.detectors.tasks.get_robots_txt_parser",
+            return_value=test_robot_parser,
+        ):
+            assert process_candidate_url(self.project, 100, url, 50)
+
+    def test_no_robots_txt(self):
+        # Supplying no robots txt should allow all urls
+        url = "https://sentry.io"
+        test_robot_parser = RobotFileParser()
+        robots_txt: list[str] = []
+        test_robot_parser.parse(robots_txt)
+        with mock.patch(
+            "sentry.uptime.detectors.tasks.get_robots_txt_parser",
+            return_value=test_robot_parser,
+        ):
+            assert process_candidate_url(self.project, 100, url, 50)
 
 
 class TestFailedUrl(TestCase):
