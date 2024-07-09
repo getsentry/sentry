@@ -53,6 +53,8 @@ class _AsyncRegionDispatcher(ABC):
         )
 
         if successes:
+            # Typically we expect only one request to be made or only one successful
+            # response. If there are multiple, forward one arbitrarily.
             return self._forward_response(successes[-1])
         else:
             return None
