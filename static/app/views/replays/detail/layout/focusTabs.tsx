@@ -26,18 +26,18 @@ function getReplayTabs({
   // useful logging context will come from breadcrumbs
   // A11y, trace, and memory aren't applicable for mobile
 
-  // Show the console tab if 1) it's a video replay and we have the FF enabled
+  // Show the console and trace tab if 1) it's a video replay and we have the FF enabled
   // or 2) it's not a video replay
-  const showConsoleTab = isVideoReplay
+  const showInternalOnlyTab = isVideoReplay
     ? organization.features.includes('session-replay-mobile-network-tab')
     : true;
 
   return {
     [TabKey.BREADCRUMBS]: t('Breadcrumbs'),
-    [TabKey.CONSOLE]: showConsoleTab ? t('Console') : null,
+    [TabKey.CONSOLE]: showInternalOnlyTab ? t('Console') : null,
     [TabKey.NETWORK]: t('Network'),
     [TabKey.ERRORS]: t('Errors'),
-    [TabKey.TRACE]: isVideoReplay ? null : t('Trace'),
+    [TabKey.TRACE]: showInternalOnlyTab ? t('Trace') : null,
     [TabKey.A11Y]: isVideoReplay ? null : (
       <Fragment>
         <Tooltip
