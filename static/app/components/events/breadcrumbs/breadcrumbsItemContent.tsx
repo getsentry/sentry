@@ -26,7 +26,7 @@ interface BreadcrumbsItemContentProps {
 
 const DEFAULT_STRUCTURED_DATA_PROPS = {
   depth: 0,
-  maxDefaultDepth: 1,
+  maxDefaultDepth: 2,
   withAnnotatedText: true,
   withOnlyFormattedText: true,
 };
@@ -38,7 +38,7 @@ export default function BreadcrumbsItemContent({
 }: BreadcrumbsItemContentProps) {
   const structuredDataProps = {
     ...DEFAULT_STRUCTURED_DATA_PROPS,
-    forceDefaultExpand: fullyExpanded,
+    maxDefaultDepth: fullyExpanded ? 10000 : 1,
   };
 
   const defaultMessage = defined(bc.message) ? (
