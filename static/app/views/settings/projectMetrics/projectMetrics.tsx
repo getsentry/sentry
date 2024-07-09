@@ -67,9 +67,7 @@ function ProjectMetrics({project}: Props) {
         )}
       </TextBlock>
 
-      {hasMetricsExtrapolationFeature(organization) ? null : (
-        <PermissionAlert project={project} />
-      )}
+      {hasExtractionRules ? null : <PermissionAlert project={project} />}
 
       {hasMetricsExtrapolationFeature(organization) ? (
         <ExtrapolationField project={project} />
