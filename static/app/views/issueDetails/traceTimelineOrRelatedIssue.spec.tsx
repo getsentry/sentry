@@ -11,7 +11,7 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 import {getTitleSubtitleMessage} from './traceTimeline/traceIssue';
 import {TraceTimeline} from './traceTimeline/traceTimeline';
 import type {
-  TimelineDiscoverEvent,
+  TimelineErrorEvent,
   TimelineEvent,
   TraceEventResponse,
 } from './traceTimeline/useTraceTimelineEvents';
@@ -55,14 +55,15 @@ describe('TraceTimeline & TraceRelated Issue', () => {
         id: 'abc',
         transaction: '/api/slow/',
         culprit: '/api/slow/',
-        'event.type': 'transaction',
+        'event.type': '',
       },
     ],
     meta: {fields: {}, units: {}},
   };
-  const mainError: TimelineDiscoverEvent = {
+  const mainError: TimelineErrorEvent = {
     message: 'This is the message for the issue',
     culprit: 'n/a',
+    'error.value': ['some-other-error-value', 'The last error value'],
     timestamp: firstEventTimestamp,
     'issue.id': event['issue.id'],
     project: project.slug,
@@ -73,7 +74,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     'event.type': 'error',
     'stack.function': ['important.task', 'task.run'],
   };
-  const secondError: TimelineDiscoverEvent = {
+  const secondError: TimelineErrorEvent = {
     message: 'Message of the second issue',
     culprit: 'billiard.pool in foo', // Used for subtitle
     'error.value': ['some-other-error-value', 'The last error value'],

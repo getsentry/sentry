@@ -21,7 +21,7 @@ interface BaseEvent {
 interface TimelineIssuePlatformEvent extends BaseEvent {
   'event.type': '';
 }
-interface TimelineErrorEvent extends BaseEvent {
+export interface TimelineErrorEvent extends BaseEvent {
   'error.value': string[]; // Used for message for error events
   'event.type': 'error';
   'stack.function': string[];
