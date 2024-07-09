@@ -7,12 +7,22 @@ export type MetricAggregation =
   | 'count'
   | 'min'
   | 'max'
+  | 'min'
   | 'p50'
   | 'p75'
   | 'p95'
   | 'p99';
 
-export type MetricType = 'c' | 'd' | 'g' | 'e' | 's';
+export type MetricType =
+  | 'c'
+  | 'd'
+  | 'g'
+  | 'e'
+  | 's'
+  // Virtual metrics combine multiple metrics into one, to hide the internal complexity
+  // of span based metrics.
+  // Created and used only in the frontend
+  | 'v';
 
 export type UseCase = 'custom' | 'transactions' | 'sessions' | 'spans' | 'metric_stats';
 
@@ -115,3 +125,18 @@ export type BlockingStatus = {
 };
 
 export type MetricsMetaCollection = Record<string, MetricMeta>;
+
+export interface MetricsExtractionCondition {
+  id: number;
+  mris: MRI[];
+  value: string;
+}
+
+export interface MetricsExtractionRule {
+  aggregates: MetricAggregation[];
+  conditions: MetricsExtractionCondition[];
+  projectId: number;
+  spanAttribute: string;
+  tags: string[];
+  unit: string;
+}

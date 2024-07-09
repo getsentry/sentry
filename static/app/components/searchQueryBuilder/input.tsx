@@ -4,6 +4,7 @@ import {mergeProps} from '@react-aria/utils';
 import {Item, Section} from '@react-stately/collections';
 import type {ListState} from '@react-stately/list';
 import type {KeyboardEvent, Node} from '@react-types/shared';
+import type Fuse from 'fuse.js';
 
 import {getEscapedKey} from 'sentry/components/compactSelect/utils';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/combobox';
@@ -22,8 +23,9 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Tag} from 'sentry/types/group';
+import type {Tag, TagCollection} from 'sentry/types/group';
 import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
@@ -40,6 +42,35 @@ type SearchQueryBuilderInputInternalProps = {
   tabIndex: number;
   token: TokenResult<Token.FREE_TEXT> | TokenResult<Token.SPACES>;
 };
+
+type KeyItem = {
+  description: string;
+  details: React.ReactNode;
+  hideCheck: boolean;
+  key: string;
+  label: string;
+  showDetailsInOverlay: boolean;
+  textValue: string;
+  value: string;
+};
+
+type KeySectionItem = {
+  key: string;
+  options: KeyItem[];
+  title: React.ReactNode;
+  value: string;
+};
+
+const FUZZY_SEARCH_OPTIONS: Fuse.IFuseOptions<KeyItem> = {
+  keys: ['label', 'description'],
+  threshold: 0.2,
+  includeMatches: false,
+  minMatchCharLength: 1,
+};
+
+function isSection(item: KeyItem | KeySectionItem): item is KeySectionItem {
+  return 'options' in item;
+}
 
 function getWordAtCursorPosition(value: string, cursorPosition: number) {
   const words = value.split(' ');
@@ -125,27 +156,29 @@ function replaceAliasedFilterKeys(value: string, aliasToKeyMap: Record<string, s
   return value;
 }
 
-function getItemsBySection(filterKeySections: FilterKeySection[]) {
-  return filterKeySections.map(section => {
-    return {
-      key: section.value,
-      value: section.value,
-      title: section.label,
-      options: section.children.map(tag => {
-        const fieldDefinition = getFieldDefinition(tag.key);
+function createItem(tag: Tag): KeyItem {
+  const fieldDefinition = getFieldDefinition(tag.key);
+  const description = fieldDefinition?.desc;
 
-        return {
-          key: getEscapedKey(tag.key),
-          label: tag.alias ?? tag.key,
-          value: tag.key,
-          textValue: tag.key,
-          hideCheck: true,
-          showDetailsInOverlay: true,
-          details: fieldDefinition?.desc ? <KeyDescription tag={tag} /> : null,
-        };
-      }),
-    };
-  });
+  return {
+    key: getEscapedKey(tag.key),
+    label: tag.alias ?? tag.key,
+    description: description ?? '',
+    value: tag.key,
+    textValue: tag.key,
+    hideCheck: true,
+    showDetailsInOverlay: true,
+    details: fieldDefinition?.desc ? <KeyDescription tag={tag} /> : null,
+  };
+}
+
+function createSection(section: FilterKeySection, keys: TagCollection): KeySectionItem {
+  return {
+    key: section.value,
+    value: section.value,
+    title: section.label,
+    options: section.children.map(key => createItem(keys[key])),
+  };
 }
 
 function countPreviousItemsOfType({
@@ -183,6 +216,30 @@ function calculateNextFocusForParen(item: Node<ParseResultToken>): FocusOverride
   return {
     itemKey: `${Token.FREE_TEXT}:${tokenTypeIndex + 1}`,
   };
+}
+
+function useSortItems({
+  filterValue,
+}: {
+  filterValue: string;
+}): Array<KeySectionItem | KeyItem> {
+  const {filterKeys, filterKeySections} = useSearchQueryBuilder();
+  const flatItems = useMemo<KeyItem[]>(
+    () => Object.values(filterKeys).map(createItem),
+    [filterKeys]
+  );
+  const search = useFuzzySearch(flatItems, FUZZY_SEARCH_OPTIONS);
+
+  return useMemo(() => {
+    if (!filterValue || !search) {
+      if (!filterKeySections.length) {
+        return flatItems;
+      }
+      return filterKeySections.map(section => createSection(section, filterKeys));
+    }
+
+    return search.search(filterValue).map(({item}) => item);
+  }, [filterKeySections, filterKeys, filterValue, flatItems, search]);
 }
 
 function KeyDescription({tag}: {tag: Tag}) {
@@ -237,14 +294,13 @@ function SearchQueryBuilderInputInternal({
 
   const filterValue = getWordAtCursorPosition(inputValue, selectionIndex);
 
-  const {query, keys, filterKeySections, dispatch, onSearch} = useSearchQueryBuilder();
+  const {query, filterKeys, filterKeySections, dispatch, handleSearch} =
+    useSearchQueryBuilder();
   const aliasToKeyMap = useMemo(() => {
-    return Object.fromEntries(Object.values(keys).map(key => [key.alias, key.key]));
-  }, [keys]);
-  const sections = useMemo(
-    () => getItemsBySection(filterKeySections),
-    [filterKeySections]
-  );
+    return Object.fromEntries(Object.values(filterKeys).map(key => [key.alias, key.key]));
+  }, [filterKeys]);
+
+  const items = useSortItems({filterValue});
 
   // When token value changes, reset the input value
   const [prevValue, setPrevValue] = useState(inputValue);
@@ -328,7 +384,7 @@ function SearchQueryBuilderInputInternal({
   return (
     <SearchQueryBuilderCombobox
       ref={inputRef}
-      items={sections}
+      items={items}
       onOptionSelected={value => {
         dispatch({
           type: 'UPDATE_FREE_TEXT',
@@ -347,8 +403,8 @@ function SearchQueryBuilderInputInternal({
         resetInputValue();
 
         // Because the query does not change until a subsequent render,
-        // we need to do the replacement that is does in the ruducer here
-        onSearch?.(replaceTokenWithPadding(query, token, value));
+        // we need to do the replacement that is does in the reducer here
+        handleSearch(replaceTokenWithPadding(query, token, value));
       }}
       onExit={() => {
         if (inputValue !== token.value.trim()) {
@@ -357,7 +413,6 @@ function SearchQueryBuilderInputInternal({
         }
       }}
       inputValue={inputValue}
-      filterValue={filterValue}
       token={token}
       inputLabel={t('Add a search term')}
       onInputChange={e => {
@@ -390,7 +445,8 @@ function SearchQueryBuilderInputInternal({
       tabIndex={tabIndex}
       maxOptions={50}
       onPaste={onPaste}
-      displayTabbedMenu={inputValue.length === 0}
+      displayTabbedMenu={inputValue.length === 0 && filterKeySections.length > 0}
+      shouldFilterResults={false}
       shouldCloseOnInteractOutside={el => {
         if (rowRef.current?.contains(el)) {
           return false;
@@ -399,15 +455,21 @@ function SearchQueryBuilderInputInternal({
       }}
       onClick={onClick}
     >
-      {section => (
-        <Section title={section.title} key={section.key}>
-          {section.options.map(child => (
-            <Item {...child} key={child.key}>
-              {child.label}
-            </Item>
-          ))}
-        </Section>
-      )}
+      {keyItem =>
+        isSection(keyItem) ? (
+          <Section title={keyItem.title} key={keyItem.key}>
+            {keyItem.options.map(child => (
+              <Item {...child} key={child.key}>
+                {child.label}
+              </Item>
+            ))}
+          </Section>
+        ) : (
+          <Item {...keyItem} key={keyItem.key}>
+            {keyItem.label}
+          </Item>
+        )
+      }
     </SearchQueryBuilderCombobox>
   );
 }
@@ -440,6 +502,7 @@ export function SearchQueryBuilderInput({
 }
 
 const Row = styled('div')`
+  position: relative;
   display: flex;
   align-items: stretch;
   height: 24px;
@@ -449,12 +512,20 @@ const Row = styled('div')`
   }
 
   &[aria-selected='true'] {
-    background-color: ${p => p.theme.blue200};
+    &::before {
+      content: '';
+      position: absolute;
+      left: ${space(0.5)};
+      right: ${space(0.5)};
+      top: 0;
+      bottom: 0;
+      background-color: ${p => p.theme.gray100};
+    }
   }
 
   input {
     &::selection {
-      background-color: ${p => p.theme.blue200};
+      background-color: ${p => p.theme.gray100};
     }
   }
 `;

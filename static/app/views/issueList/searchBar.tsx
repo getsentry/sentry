@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
@@ -26,7 +26,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import type {WithIssueTagsProps} from 'sentry/utils/withIssueTags';
 import withIssueTags from 'sentry/utils/withIssueTags';
 
-const getSupportedTags = (supportedTags: TagCollection) => {
+const getSupportedTags = (supportedTags: TagCollection): TagCollection => {
   return Object.fromEntries(
     Object.keys(supportedTags).map(key => [
       key,
@@ -40,16 +40,41 @@ const getSupportedTags = (supportedTags: TagCollection) => {
   );
 };
 
-const getFilterKeySections = (tags: TagCollection): FilterKeySection[] => {
-  const allTags: Tag[] = orderBy(Object.values(getSupportedTags(tags)), 'key');
-  const eventTags = allTags.filter(tag => tag.kind === FieldKind.TAG);
-  const issueFields = allTags.filter(tag => tag.kind === FieldKind.FIELD);
+const getFilterKeySections = (
+  tags: TagCollection,
+  organization: Organization
+): FilterKeySection[] => {
+  if (!organization.features.includes('issue-stream-search-query-builder')) {
+    return [];
+  }
+
+  const allTags: Tag[] = Object.values(tags).filter(
+    tag => !EXCLUDED_TAGS.includes(tag.key)
+  );
+  const eventTags = orderBy(
+    allTags.filter(tag => tag.kind === FieldKind.TAG),
+    ['totalValues', 'key'],
+    ['desc', 'asc']
+  ).map(tag => tag.key);
+  const issueFields = orderBy(
+    allTags.filter(tag => tag.kind === FieldKind.ISSUE_FIELD),
+    ['key']
+  ).map(tag => tag.key);
+  const eventFields = orderBy(
+    allTags.filter(tag => tag.kind === FieldKind.EVENT_FIELD),
+    ['key']
+  ).map(tag => tag.key);
 
   return [
     {
-      value: FieldKind.FIELD,
-      label: t('Issue Fields'),
+      value: FieldKind.ISSUE_FIELD,
+      label: t('Issue Filters'),
       children: issueFields,
+    },
+    {
+      value: FieldKind.EVENT_FIELD,
+      label: t('Event Filters'),
+      children: eventFields,
     },
     {
       value: FieldKind.TAG,
@@ -74,8 +99,12 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
       const orgSlug = organization.slug;
       const projectIds = pageFilters.projects.map(id => id.toString());
       const endpointParams = {
-        start: getUtcDateString(pageFilters.datetime.start),
-        end: getUtcDateString(pageFilters.datetime.end),
+        start: pageFilters.datetime.start
+          ? getUtcDateString(pageFilters.datetime.start)
+          : undefined,
+        end: pageFilters.datetime.end
+          ? getUtcDateString(pageFilters.datetime.end)
+          : undefined,
         statsPeriod: pageFilters.datetime.period,
       };
 
@@ -164,18 +193,25 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
     ],
   };
 
+  const filterKeySections = useMemo(() => {
+    return getFilterKeySections(tags, organization);
+  }, [organization, tags]);
+
   if (organization.features.includes('issue-stream-search-query-builder')) {
     return (
       <SearchQueryBuilder
         className={props.className}
         initialQuery={props.query ?? ''}
         getTagValues={getTagValues}
-        filterKeySections={getFilterKeySections(tags)}
+        filterKeySections={filterKeySections}
+        filterKeys={tags}
         onSearch={props.onSearch}
         onBlur={props.onBlur}
         onChange={value => {
           props.onClose?.(value, {validSearch: true});
         }}
+        searchSource={props.searchSource ?? 'issues'}
+        savedSearchType={SavedSearchType.ISSUE}
       />
     );
   }

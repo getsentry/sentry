@@ -8,7 +8,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization_events import OrganizationEventsEndpointBase
 from sentry.api.endpoints.organization_events_spans_performance import EventID, get_span_description
 from sentry.api.utils import handle_query_errors
-from sentry.search.events.builder import QueryBuilder
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.search.utils import parse_datetime_string
 from sentry.snuba.dataset import Dataset
@@ -44,7 +44,7 @@ def init_query_builder(params, transaction, regression_breakpoint, limit, span_s
         "any(id) as sample_event_id",
     ]
 
-    builder = QueryBuilder(
+    builder = DiscoverQueryBuilder(
         dataset=Dataset.Discover,
         params=params,
         selected_columns=selected_columns,

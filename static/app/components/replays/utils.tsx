@@ -1,30 +1,8 @@
-import {formatSecondsToClock} from 'sentry/utils/duration/formatSecondsToClock';
 import type {ReplayFrame, SpanFrame, VideoEvent} from 'sentry/utils/replays/types';
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 const HOUR = 60 * MINUTE;
-
-export function showPlayerTime(
-  timestamp: ConstructorParameters<typeof Date>[0],
-  relativeTimeMs: number,
-  showMs: boolean = false
-): string {
-  return formatTime(Math.abs(new Date(timestamp).getTime() - relativeTimeMs), showMs);
-}
-
-export function formatTime(ms: number, showMs?: boolean): string {
-  if (ms <= 0 || isNaN(ms)) {
-    if (showMs) {
-      return '00:00.000';
-    }
-
-    return '00:00';
-  }
-
-  const seconds = ms / 1000;
-  return formatSecondsToClock(showMs ? seconds : Math.floor(seconds));
-}
 
 /**
  * Figure out how many ticks to show in an area.
@@ -175,16 +153,6 @@ export function flattenFrames(frames: SpanFrame[]): FlattenedSpanRange[] {
     }
   }
   return flattened;
-}
-
-/**
- * Divide two numbers safely
- */
-export function divide(numerator: number, denominator: number | undefined) {
-  if (denominator === undefined || isNaN(denominator) || denominator === 0) {
-    return 0;
-  }
-  return numerator / denominator;
 }
 
 /**

@@ -532,16 +532,8 @@ function buildRoutes() {
         component={make(() => import('sentry/views/settings/projectPerformance'))}
       />
       <Route path="metrics/" name={t('Metrics')}>
-        <Redirect from="extract-metric/" to="configure-metric/" />
         <IndexRoute
           component={make(() => import('sentry/views/settings/projectMetrics'))}
-        />
-        <Route
-          name={t('Configure Metric')}
-          path="configure-metric/"
-          component={make(
-            () => import('sentry/views/settings/projectMetrics/extractMetric')
-          )}
         />
         <Route
           name={t('Metrics Details')}
@@ -591,13 +583,6 @@ function buildRoutes() {
         </Route>
         <Redirect from=":name/" to="release-bundles/:name/" />
       </Route>
-      <Route
-        path="processing-issues/"
-        name={t('Processing Issues')}
-        component={make(
-          () => import('sentry/views/settings/project/projectProcessingIssues')
-        )}
-      />
       <Route
         path="filters/"
         name={t('Inbound Filters')}
@@ -1464,8 +1449,8 @@ function buildRoutes() {
         moduleBaseURL && (
           <Redirect
             key={moduleBaseURL}
-            from={`${moduleBaseURL}`}
-            to={`/${INSIGHTS_BASE_URL}/${moduleBaseURL}/`}
+            from={`${moduleBaseURL}/*`}
+            to={`/${INSIGHTS_BASE_URL}/${moduleBaseURL}/:splat`}
           />
         )
     )
@@ -1984,6 +1969,19 @@ function buildRoutes() {
           component={make(() => import('sentry/views/profiling/profileFlamechart'))}
         />
       </Route>
+      <Route
+        path="profile/:projectId/"
+        component={make(
+          () => import('sentry/views/profiling/continuousProfilesProvider')
+        )}
+      >
+        <Route
+          path="flamegraph/"
+          component={make(
+            () => import('sentry/views/profiling/continuousProfileFlamechart')
+          )}
+        />
+      </Route>
     </Route>
   );
 
@@ -2164,10 +2162,6 @@ function buildRoutes() {
         <Redirect
           from="debug-symbols/"
           to="/settings/:orgId/projects/:projectId/debug-symbols/"
-        />
-        <Redirect
-          from="processing-issues/"
-          to="/settings/:orgId/projects/:projectId/processing-issues/"
         />
         <Redirect from="filters/" to="/settings/:orgId/projects/:projectId/filters/" />
         <Redirect from="hooks/" to="/settings/:orgId/projects/:projectId/hooks/" />

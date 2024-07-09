@@ -77,17 +77,17 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.useremail import UserEmail
-from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.organization.model import (
+from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcOrganizationDeleteResponse,
     RpcOrganizationDeleteState,
 )
-from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.organization.provisioning import (
     OrganizationSlugCollisionException,
     organization_provisioning_service,
 )
+from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.audit import create_audit_entry
 
 ERR_DEFAULT_ORG = "You cannot remove the default organization."
@@ -243,6 +243,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
     openMembership = serializers.BooleanField(required=False)
     allowSharedIssues = serializers.BooleanField(required=False)
+    allowMemberProjectCreation = serializers.BooleanField(required=False)
     enhancedPrivacy = serializers.BooleanField(required=False)
     dataScrubber = serializers.BooleanField(required=False)
     dataScrubberDefaults = serializers.BooleanField(required=False)
@@ -487,6 +488,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             and "requireEmailVerification" in data
         ):
             org.flags.require_email_verification = data["requireEmailVerification"]
+        if "allowMemberProjectCreation" in data:
+            org.flags.disable_member_project_creation = not data["allowMemberProjectCreation"]
         if "name" in data:
             org.name = data["name"]
         if "slug" in data:
@@ -503,6 +506,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "early_adopter": org.flags.early_adopter.is_set,
                 "require_2fa": org.flags.require_2fa.is_set,
                 "codecov_access": org.flags.codecov_access.is_set,
+                "disable_member_project_creation": org.flags.disable_member_project_creation.is_set,
             },
         }
 

@@ -22,9 +22,9 @@ from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.outbox import OutboxCategory, process_control_outbox
+from sentry.organizations.services.organization import RpcOrganizationSignal, organization_service
 from sentry.receivers.outbox import maybe_process_tombstone
 from sentry.sentry_apps.services.app.service import get_by_application_id, get_installation
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSignal, organization_service
 
 logger = logging.getLogger(__name__)
 

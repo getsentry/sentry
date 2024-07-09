@@ -202,9 +202,8 @@ class BaseApiClient(TrackResponseMixin):
             tags={str(self.integration_type): self.name},
         )
 
-        with sentry_sdk.configure_scope() as scope:
-            if self.integration_type:
-                scope.set_tag(self.integration_type, self.name)
+        if self.integration_type:
+            sentry_sdk.Scope.get_isolation_scope().set_tag(self.integration_type, self.name)
 
         request = Request(
             method=method.upper(),

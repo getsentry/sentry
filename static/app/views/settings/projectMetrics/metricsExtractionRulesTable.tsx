@@ -2,22 +2,25 @@ import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {modalCss} from 'sentry/components/featureFeedback/feedbackModal';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
+import {Tooltip} from 'sentry/components/tooltip';
+import {IconWarning} from 'sentry/icons';
 import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconDelete} from 'sentry/icons/iconDelete';
 import {IconEdit} from 'sentry/icons/iconEdit';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
+import {DEFAULT_METRICS_CARDINALITY_LIMIT} from 'sentry/utils/metrics/constants';
+import {useMetricsCardinality} from 'sentry/utils/metrics/useMetricsCardinality';
 import useOrganization from 'sentry/utils/useOrganization';
-import {MetricsExtractionRuleEditModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleEditModal';
+import {openExtractionRuleCreateModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleCreateModal';
+import {openExtractionRuleEditModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleEditModal';
 import {
-  type MetricsExtractionRule,
   useDeleteMetricsExtractionRules,
   useMetricsExtractionRules,
 } from 'sentry/views/settings/projectMetrics/utils/api';
@@ -31,14 +34,15 @@ export function MetricsExtractionRulesTable({project}: Props) {
   const organization = useOrganization();
   const [query, setQuery] = useSearchQueryParam('query');
 
-  const {data: extractionRules, isLoading} = useMetricsExtractionRules(
-    organization.slug,
-    project.slug
-  );
+  const {data: extractionRules, isLoading: isLoadingExtractionRules} =
+    useMetricsExtractionRules(organization.slug, project.id);
   const {mutate: deleteMetricsExtractionRules} = useDeleteMetricsExtractionRules(
     organization.slug,
-    project.slug
+    project.id
   );
+  const {data: cardinality, isLoading: isLoadingCardinality} = useMetricsCardinality({
+    projects: [project.id],
+  });
 
   const filteredExtractionRules = useMemo(() => {
     return (extractionRules || []).filter(rule =>
@@ -68,21 +72,15 @@ export function MetricsExtractionRulesTable({project}: Props) {
     [deleteMetricsExtractionRules]
   );
 
-  const handleEdit = useCallback(
-    (rule: MetricsExtractionRule) => {
-      openModal(
-        props => (
-          <MetricsExtractionRuleEditModal
-            project={project}
-            metricExtractionRule={rule}
-            {...props}
-          />
-        ),
-        {modalCss}
-      );
-    },
-    [project]
-  );
+  const handleEdit = useCallback((rule: MetricsExtractionRule) => {
+    openExtractionRuleEditModal({
+      metricExtractionRule: rule,
+    });
+  }, []);
+
+  const handleCreate = useCallback(() => {
+    openExtractionRuleCreateModal({projectId: project.id});
+  }, [project]);
 
   return (
     <Fragment>
@@ -95,19 +93,16 @@ export function MetricsExtractionRulesTable({project}: Props) {
           query={query}
           size="sm"
         />
-        <LinkButton
-          to={`/settings/projects/${project.slug}/metrics/extract-metric`}
-          priority="primary"
-          size="sm"
-        >
+        <Button onClick={handleCreate} priority="primary" size="sm">
           {t('Add Metric')}
-        </LinkButton>
+        </Button>
       </SearchWrapper>
       <RulesTable
-        isLoading={isLoading}
+        isLoading={isLoadingExtractionRules || isLoadingCardinality}
         onDelete={handleDelete}
         onEdit={handleEdit}
         extractionRules={filteredExtractionRules}
+        cardinality={cardinality || {}}
         hasSearch={!!query}
       />
     </Fragment>
@@ -115,6 +110,7 @@ export function MetricsExtractionRulesTable({project}: Props) {
 }
 
 interface RulesTableProps {
+  cardinality: Record<string, number>;
   extractionRules: MetricsExtractionRule[];
   hasSearch: boolean;
   isLoading: boolean;
@@ -124,17 +120,31 @@ interface RulesTableProps {
 
 function RulesTable({
   extractionRules,
+  cardinality,
   isLoading,
   onDelete,
   onEdit,
   hasSearch,
 }: RulesTableProps) {
+  const getTotalCardinality = (rule: MetricsExtractionRule) => {
+    const mris = rule.conditions.flatMap(condition => condition.mris);
+    return mris.reduce((acc, mri) => acc + (cardinality[mri] || 0), 0);
+  };
+
+  const getMaxCardinality = (rule: MetricsExtractionRule) => {
+    const mris = rule.conditions.flatMap(condition => condition.mris);
+    return mris.reduce((acc, mri) => Math.max(acc, cardinality[mri] || 0), 0);
+  };
+
   return (
     <ExtractionRulesPanelTable
       headers={[
         <Cell key="spanAttribute">
           <IconArrow size="xs" direction="down" />
           {t('Span attribute')}
+        </Cell>,
+        <Cell right key="cardinality">
+          {t('Cardinality')}
         </Cell>,
         <Cell right key="filters">
           {t('Filters')}
@@ -154,8 +164,21 @@ function RulesTable({
       {extractionRules
         .toSorted((a, b) => a?.spanAttribute?.localeCompare(b?.spanAttribute))
         .map(rule => (
-          <Fragment key={rule.spanAttribute + rule.type + rule.unit}>
+          <Fragment key={rule.spanAttribute + rule.unit}>
             <Cell>{rule.spanAttribute}</Cell>
+            <Cell right>
+              {getTotalCardinality(rule)}
+              {/* TODO: Retrieve limit from BE */}
+              {getMaxCardinality(rule) >= DEFAULT_METRICS_CARDINALITY_LIMIT ? (
+                <Tooltip
+                  title={t(
+                    'Some of your defined queries are exeeding the cardinality limit. Remove tags or add filters to receive accurate data.'
+                  )}
+                >
+                  <IconWarning size="xs" color="yellow300" />
+                </Tooltip>
+              ) : null}
+            </Cell>
             <Cell right>
               {rule.conditions.length ? (
                 <Button priority="link" onClick={() => onEdit(rule)}>
@@ -167,18 +190,18 @@ function RulesTable({
             </Cell>
             <Cell right>
               <Button
-                aria-label={t('Delete metric')}
-                size="xs"
-                icon={<IconDelete />}
-                borderless
-                onClick={() => onDelete(rule)}
-              />
-              <Button
                 aria-label={t('Edit metric')}
                 size="xs"
                 icon={<IconEdit />}
                 borderless
                 onClick={() => onEdit(rule)}
+              />
+              <Button
+                aria-label={t('Delete metric')}
+                size="xs"
+                icon={<IconDelete />}
+                borderless
+                onClick={() => onDelete(rule)}
               />
             </Cell>
           </Fragment>
@@ -204,7 +227,7 @@ const FlexSpacer = styled('div')`
 `;
 
 const ExtractionRulesPanelTable = styled(PanelTable)`
-  grid-template-columns: 1fr repeat(2, min-content);
+  grid-template-columns: 1fr repeat(3, min-content);
 `;
 
 const Cell = styled('div')<{right?: boolean}>`

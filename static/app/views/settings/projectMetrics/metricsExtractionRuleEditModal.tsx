@@ -1,25 +1,27 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import {css} from '@emotion/react';
-import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {
+  type ModalOptions,
+  type ModalRenderProps,
+  openModal,
+} from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
-import type {Project} from 'sentry/types/project';
-import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
+import type {MetricsExtractionRule} from 'sentry/types/metrics';
+import {useMetricsCardinality} from 'sentry/utils/metrics/useMetricsCardinality';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
+  aggregatesToGroups,
+  createCondition as createExtractionCondition,
+  explodeAggregateGroup,
   type FormData,
   MetricsExtractionRuleForm,
 } from 'sentry/views/settings/projectMetrics/metricsExtractionRuleForm';
-import {
-  type MetricsExtractionRule,
-  useUpdateMetricsExtractionRules,
-} from 'sentry/views/settings/projectMetrics/utils/api';
+import {useUpdateMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/api';
 
-interface Props extends ModalRenderProps {
+interface Props {
   metricExtractionRule: MetricsExtractionRule;
-  project: Project;
 }
 
 export function MetricsExtractionRuleEditModal({
@@ -28,22 +30,25 @@ export function MetricsExtractionRuleEditModal({
   closeModal,
   CloseButton,
   metricExtractionRule,
-  project,
-}: Props) {
+}: Props & ModalRenderProps) {
   const organization = useOrganization();
   const updateExtractionRuleMutation = useUpdateMetricsExtractionRules(
     organization.slug,
-    project.slug
+    metricExtractionRule.projectId
   );
+
+  const {data: cardinality} = useMetricsCardinality({
+    projects: [metricExtractionRule.projectId],
+  });
 
   const initialData: FormData = useMemo(() => {
     return {
       spanAttribute: metricExtractionRule.spanAttribute,
-      type: metricExtractionRule.type,
+      aggregates: aggregatesToGroups(metricExtractionRule.aggregates),
       tags: metricExtractionRule.tags,
       conditions: metricExtractionRule.conditions.length
         ? metricExtractionRule.conditions
-        : [''],
+        : [createExtractionCondition()],
     };
   }, [metricExtractionRule]);
 
@@ -56,9 +61,10 @@ export function MetricsExtractionRuleEditModal({
       const extractionRule: MetricsExtractionRule = {
         spanAttribute: data.spanAttribute!,
         tags: data.tags,
-        type: data.type!,
+        aggregates: data.aggregates.flatMap(explodeAggregateGroup),
         unit: 'none',
-        conditions: data.conditions.filter(Boolean),
+        conditions: data.conditions,
+        projectId: metricExtractionRule.projectId,
       };
 
       updateExtractionRuleMutation.mutate(
@@ -82,27 +88,24 @@ export function MetricsExtractionRuleEditModal({
       );
       onSubmitSuccess(data);
     },
-    [closeModal, updateExtractionRuleMutation]
+    [closeModal, metricExtractionRule.projectId, updateExtractionRuleMutation]
   );
 
   return (
     <Fragment>
       <Header>
-        <h4>
-          <Capitalize>{getReadableMetricType(metricExtractionRule.type)}</Capitalize>
-          {' — '}
-          {metricExtractionRule.spanAttribute}
-        </h4>
+        <h4>{metricExtractionRule.spanAttribute}</h4>
       </Header>
       <CloseButton />
       <Body>
         <MetricsExtractionRuleForm
           initialData={initialData}
-          project={project}
+          projectId={metricExtractionRule.projectId}
           submitLabel={t('Update')}
           cancelLabel={t('Cancel')}
           onCancel={closeModal}
           onSubmit={handleSubmit}
+          cardinality={cardinality}
           isEdit
           requireChanges
         />
@@ -113,9 +116,12 @@ export function MetricsExtractionRuleEditModal({
 
 export const modalCss = css`
   width: 100%;
-  max-width: 1000px;
+  max-width: 900px;
 `;
 
-const Capitalize = styled('span')`
-  text-transform: capitalize;
-`;
+export function openExtractionRuleEditModal(props: Props, options?: ModalOptions) {
+  openModal(modalProps => <MetricsExtractionRuleEditModal {...props} {...modalProps} />, {
+    modalCss,
+    ...options,
+  });
+}

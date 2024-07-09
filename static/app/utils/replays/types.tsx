@@ -193,6 +193,14 @@ export function isHydrationErrorFrame(
   return frame.category === 'replay.hydrate-error';
 }
 
+export function isBackgroundFrame(frame: ReplayFrame): frame is BreadcrumbFrame {
+  return frame && 'category' in frame && frame.category === 'app.background';
+}
+
+export function isForegroundFrame(frame: ReplayFrame): frame is BreadcrumbFrame {
+  return frame && 'category' in frame && frame.category === 'app.foreground';
+}
+
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
 type HydratedTimestamp = {
@@ -285,10 +293,6 @@ export type HydrationErrorFrame = Overwrite<
   {
     data: {
       description: string;
-      mutations: {
-        next: RecordingFrame | null;
-        prev: RecordingFrame | null;
-      };
       url?: string;
     };
   }

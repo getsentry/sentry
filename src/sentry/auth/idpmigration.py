@@ -11,7 +11,7 @@ from rb.clients import LocalClient
 from sentry import options
 from sentry.models.authprovider import AuthProvider
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
+from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.utils import metrics, redis
 from sentry.utils.email import MessageBuilder
 from sentry.utils.http import absolute_uri

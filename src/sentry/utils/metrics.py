@@ -30,7 +30,7 @@ __all__ = [
     "gauge",
     "backend",
     "MutableTags",
-    "ensure_non_negative_crash_free_rate_value",
+    "ensure_crash_rate_in_bounds",
 ]
 
 
@@ -264,14 +264,19 @@ def event(
         logger.exception("Unable to record backend metric")
 
 
-def ensure_non_negative_crash_free_rate_value(
-    data: Any, request: Request, organization, CRASH_FREE_RATE_METRIC_KEY="session.crash_free_rate"
+def ensure_crash_rate_in_bounds(
+    data: Any,
+    request: Request,
+    organization,
+    CRASH_RATE_METRIC_KEY: str,
+    lower_bound: float = 0.0,
+    upper_bound: float = 1.0,
 ):
     """
-    Ensures that crash_free_rate metric will never have negative
-    value returned to the customer by replacing all the negative values with 0.
-    Negative value of crash_free_metric can happen due to the
-    corrupted data that is used to calculate the metric
+    Ensures that crash rate metric will always have value in expected bounds, and
+    that invalid value is never returned to the customer by replacing all the invalid values with
+    the bound value.
+    Invalid crash rate can happen due to the corrupted data that is used to calculate the metric
     (see: https://github.com/getsentry/sentry/issues/73172)
 
     Example format of data argument:
@@ -288,31 +293,41 @@ def ensure_non_negative_crash_free_rate_value(
     for group in groups:
         if "series" in group:
             series = group["series"]
-            if CRASH_FREE_RATE_METRIC_KEY in series:
-                for i, value in enumerate(series[CRASH_FREE_RATE_METRIC_KEY]):
+            if CRASH_RATE_METRIC_KEY in series:
+                for i, value in enumerate(series[CRASH_RATE_METRIC_KEY]):
                     try:
                         value = float(value)
-                        if value < 0:
+                        if value < lower_bound or value > upper_bound:
                             with sentry_sdk.isolation_scope() as scope:
                                 scope.set_tag("organization", organization.id)
-                                scope.set_extra("crash_free_rate_in_series", value)
+                                scope.set_extra(f"{CRASH_RATE_METRIC_KEY} value in series", value)
                                 scope.set_extra("request_query_params", request.query_params)
-                                sentry_sdk.capture_message("crash_free_rate in series is negative")
-                            series[CRASH_FREE_RATE_METRIC_KEY][i] = 0
+                                sentry_sdk.capture_message(
+                                    f"{CRASH_RATE_METRIC_KEY} not in (f{lower_bound}, f{upper_bound})"
+                                )
+                            if value < lower_bound:
+                                series[CRASH_RATE_METRIC_KEY][i] = lower_bound
+                            else:
+                                series[CRASH_RATE_METRIC_KEY][i] = upper_bound
                     except TypeError:
                         # value is not a number
                         continue
 
         if "totals" in group:
             totals = group["totals"]
-            if (
-                CRASH_FREE_RATE_METRIC_KEY in totals
-                and totals[CRASH_FREE_RATE_METRIC_KEY] is not None
-                and totals[CRASH_FREE_RATE_METRIC_KEY] < 0
-            ):
+            if CRASH_RATE_METRIC_KEY not in totals or totals[CRASH_RATE_METRIC_KEY] is None:
+                # no action is needed
+                continue
+            value = totals[CRASH_RATE_METRIC_KEY]
+            if value < lower_bound or value > upper_bound:
                 with sentry_sdk.isolation_scope() as scope:
                     scope.set_tag("organization", organization.id)
-                    scope.set_extra("crash_free_rate", totals[CRASH_FREE_RATE_METRIC_KEY])
+                    scope.set_extra(f"{CRASH_RATE_METRIC_KEY} value", totals[CRASH_RATE_METRIC_KEY])
                     scope.set_extra("request_query_params", request.query_params)
-                    sentry_sdk.capture_message("crash_free_rate is negative")
-                totals[CRASH_FREE_RATE_METRIC_KEY] = 0
+                    sentry_sdk.capture_message(
+                        f"{CRASH_RATE_METRIC_KEY} not in (f{lower_bound}, f{upper_bound})"
+                    )
+                if value < lower_bound:
+                    totals[CRASH_RATE_METRIC_KEY] = lower_bound
+                else:
+                    totals[CRASH_RATE_METRIC_KEY] = upper_bound

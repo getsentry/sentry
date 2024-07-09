@@ -29,13 +29,14 @@ import {useMetricsContext} from 'sentry/views/metrics/context';
 import {getCreateAlert} from 'sentry/views/metrics/metricQueryContextMenu';
 import {useCreateDashboard} from 'sentry/views/metrics/useCreateDashboard';
 import {useFormulaDependencies} from 'sentry/views/metrics/utils/useFormulaDependencies';
+import {openExtractionRuleCreateModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleCreateModal';
 
 interface Props {
   addCustomMetric: () => void;
-  showCustomMetricButton: boolean;
+  showAddMetricButton: boolean;
 }
 
-export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Props) {
+export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props) {
   const router = useRouter();
   const organization = useOrganization();
   const formulaDependencies = useFormulaDependencies();
@@ -142,11 +143,11 @@ export function PageHeaderActions({showCustomMetricButton, addCustomMetric}: Pro
 
   return (
     <ButtonBar gap={1}>
-      {showCustomMetricButton &&
+      {showAddMetricButton &&
         (hasCustomMetricsExtractionRules(organization) ? (
           <Button
             priority="primary"
-            onClick={() => navigateTo(`/settings/projects/:projectId/metrics/`, router)}
+            onClick={() => openExtractionRuleCreateModal({})}
             size="sm"
           >
             {t('Add New Metric')}

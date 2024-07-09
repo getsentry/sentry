@@ -2,7 +2,8 @@ import {useMemo} from 'react';
 
 import type {PageFilters} from 'sentry/types/core';
 import {getDateTimeParams, getMetricsInterval} from 'sentry/utils/metrics';
-import {getUseCaseFromMRI, MRIToField} from 'sentry/utils/metrics/mri';
+import {getUseCaseFromMRI, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
+import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -38,6 +39,8 @@ export interface MetricsQueryApiRequestQuery {
   mri: MRI;
   name: string;
   alias?: string;
+  // Conditions are used to identify virtual metrics
+  condition?: number;
   groupBy?: string[];
   isQueryOnly?: boolean;
   limit?: number;
@@ -74,7 +77,15 @@ export function isMetricFormula(
 
 export function getMetricsQueryApiRequestPayload(
   queries: (MetricsQueryApiRequestQuery | MetricsQueryApiRequestFormula)[],
-  {projects, environments, datetime}: PageFilters,
+  {
+    projects,
+    environments,
+    datetime,
+  }: {
+    datetime: PageFilters['datetime'];
+    environments: PageFilters['environments'];
+    projects: (number | string)[];
+  },
   {
     intervalLadder,
     interval: intervalParam,
@@ -164,7 +175,15 @@ export function getMetricsQueryApiRequestPayload(
 
 export function useMetricsQuery(
   queries: MetricsQueryApiQueryParams[],
-  {projects, environments, datetime}: PageFilters,
+  {
+    projects,
+    environments,
+    datetime,
+  }: {
+    datetime: PageFilters['datetime'];
+    environments: PageFilters['environments'];
+    projects: (number | string)[];
+  },
   overrides: {
     includeSeries?: boolean;
     interval?: string;
@@ -173,15 +192,37 @@ export function useMetricsQuery(
   enableRefetch = true
 ) {
   const organization = useOrganization();
+  const {resolveVirtualMRI, isLoading} = useVirtualMetricsContext();
+
+  const resolvedQueries = useMemo(
+    () =>
+      queries.map(query => {
+        if (isMetricFormula(query)) {
+          return query;
+        }
+        const {type} = parseMRI(query.mri);
+
+        if (type !== 'v' || !query.condition) {
+          return query;
+        }
+        const {mri, aggregation} = resolveVirtualMRI(
+          query.mri,
+          query.condition,
+          query.aggregation
+        );
+        return {...query, mri, aggregation};
+      }),
+    [queries, resolveVirtualMRI]
+  );
 
   const {query: queryToSend, body} = useMemo(
     () =>
       getMetricsQueryApiRequestPayload(
-        queries,
+        resolvedQueries,
         {datetime, projects, environments},
         {...overrides}
       ),
-    [queries, datetime, projects, environments, overrides]
+    [resolvedQueries, datetime, projects, environments, overrides]
   );
 
   return useApiQuery<MetricsQueryApiResponse>(
@@ -195,6 +236,7 @@ export function useMetricsQuery(
       refetchOnReconnect: enableRefetch,
       refetchOnWindowFocus: enableRefetch,
       refetchInterval: false,
+      enabled: !isLoading,
     }
   );
 }
