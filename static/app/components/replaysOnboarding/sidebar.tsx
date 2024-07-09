@@ -207,12 +207,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     : otherPlatform;
 
   // New onboarding docs
-  const {
-    docs: newDocs,
-    dsn,
-    cdn,
-    isProjKeysLoading,
-  } = useLoadReplayOnboardingDoc({
+  const {docs, dsn, cdn, isProjKeysLoading} = useLoadReplayOnboardingDoc({
     platform:
       showJsFrameworkInstructions && setupMode() === 'npm'
         ? replayJsFrameworkOptions.find(p => p.id === jsFramework.value) ??
@@ -274,11 +269,11 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           onChange={setSetupMode}
         />
       ) : (
-        newDocs?.platformOptions && (
+        docs?.platformOptions && (
           <PlatformSelect>
             {tct("I'm using [platformSelect]", {
               platformSelect: (
-                <PlatformOptionDropdown platformOptions={newDocs?.platformOptions} />
+                <PlatformOptionDropdown platformOptions={docs?.platformOptions} />
               ),
             })}
           </PlatformSelect>
@@ -323,7 +318,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   }
 
   // No platform or no docs
-  if (!currentPlatform || !newDocs) {
+  if (!currentPlatform || !docs) {
     return (
       <Fragment>
         <div>
@@ -349,7 +344,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     <Fragment>
       {radioButtons}
       <ReplayOnboardingLayout
-        docsConfig={newDocs}
+        docsConfig={docs}
         dsn={dsn}
         cdn={cdn}
         activeProductSelection={[]}
