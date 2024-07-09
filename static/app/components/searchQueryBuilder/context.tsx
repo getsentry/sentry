@@ -18,6 +18,7 @@ interface ContextData {
   parsedQuery: ParseResult | null;
   query: string;
   searchSource: string;
+  size: 'small' | 'normal';
   wrapperRef: React.RefObject<HTMLDivElement>;
 }
 
@@ -36,4 +37,5 @@ export const SearchQueryBuilerContext = createContext<ContextData>({
   wrapperRef: {current: null},
   handleSearch: () => {},
   searchSource: '',
+  size: 'normal',
 });

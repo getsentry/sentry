@@ -21,6 +21,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 import PanelProvider from 'sentry/utils/panelProvider';
+import {useDimensions} from 'sentry/utils/useDimensions';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 
 interface SearchQueryBuilderProps {
@@ -111,6 +112,8 @@ export function SearchQueryBuilder({
     searchSource,
     onSearch,
   });
+  const {width} = useDimensions({elementRef: wrapperRef});
+  const size = width < 600 ? ('small' as const) : ('normal' as const);
 
   const contextValue = useMemo(() => {
     return {
@@ -124,6 +127,7 @@ export function SearchQueryBuilder({
       wrapperRef,
       handleSearch,
       searchSource,
+      size,
     };
   }, [
     state,
@@ -135,23 +139,24 @@ export function SearchQueryBuilder({
     onSearch,
     handleSearch,
     searchSource,
+    size,
   ]);
 
   return (
     <SearchQueryBuilerContext.Provider value={contextValue}>
       <PanelProvider>
         <Wrapper
-          ref={wrapperRef}
           className={className}
           onBlur={() => onBlur?.(state.query)}
+          ref={wrapperRef}
         >
-          <PositionedSearchIcon size="sm" />
+          {size !== 'small' && <PositionedSearchIcon size="sm" />}
           {!parsedQuery || queryInterface === QueryInterfaceType.TEXT ? (
             <PlainTextQueryInput label={label} />
           ) : (
             <TokenizedQueryGrid label={label} />
           )}
-          <ActionButtons />
+          {size !== 'small' && <ActionButtons />}
         </Wrapper>
       </PanelProvider>
     </SearchQueryBuilerContext.Provider>
