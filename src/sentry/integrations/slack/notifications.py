@@ -11,6 +11,11 @@ from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.notifications import get_integrations_by_channel_by_recipient
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.service import SlackService
+from sentry.integrations.slack.utils.errors import (
+    CHANNEL_NOT_FOUND,
+    EXPIRED_URL,
+    unpack_slack_api_error,
+)
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notify import register_notification_provider
@@ -41,12 +46,10 @@ class SlackNotifyBasicMixin(NotifyBasicMixin):
             try:
                 client.chat_postMessage(channel=channel_id, text=message)
             except SlackApiError as e:
-                error = str(e)
-                message = error.split("\n")[0]
-                if "Expired url" not in message and "channel_not_found" not in message:
+                if unpack_slack_api_error(e) not in (EXPIRED_URL, CHANNEL_NOT_FOUND):
                     logger.exception(
                         "slack.slash-response.error",
-                        extra={"error": error},
+                        extra={"error": str(e)},
                     )
 
 
