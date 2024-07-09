@@ -197,7 +197,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     replayJsFrameworkOptions[0];
 
   const {
-    isLoading: isProjKeysLoading,
+    isLoading,
     docs: newDocs,
     dsn,
     cdn,
@@ -282,7 +282,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     </Header>
   );
 
-  if (isProjKeysLoading) {
+  if (isLoading) {
     return (
       <Fragment>
         {radioButtons}

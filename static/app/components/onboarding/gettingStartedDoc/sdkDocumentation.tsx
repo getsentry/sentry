@@ -28,17 +28,17 @@ export function SdkDocumentation({
   configType,
   organization,
 }: SdkDocumentationProps) {
-  const loadGettingStarted = useLoadGettingStarted({
+  const {isLoading, isError, dsn, cdn, docs, refetch} = useLoadGettingStarted({
     orgSlug: organization.slug,
     projSlug: projectSlug,
     platform,
   });
 
-  if (loadGettingStarted.isLoading) {
+  if (isLoading) {
     return <LoadingIndicator />;
   }
 
-  if (loadGettingStarted.isError) {
+  if (isError) {
     return (
       <LoadingError
         message={t(
@@ -48,7 +48,7 @@ export function SdkDocumentation({
     );
   }
 
-  if (!loadGettingStarted.docs) {
+  if (!docs) {
     return (
       <LoadingError
         message={t(
@@ -58,22 +58,22 @@ export function SdkDocumentation({
     );
   }
 
-  if (!loadGettingStarted.dsn) {
+  if (!dsn) {
     return (
       <LoadingError
         message={t(
           'We encountered an issue while loading the DSN for this getting started documentation.'
         )}
-        onRetry={loadGettingStarted.refetch}
+        onRetry={refetch}
       />
     );
   }
 
   return (
     <OnboardingLayout
-      docsConfig={loadGettingStarted.docs}
-      dsn={loadGettingStarted.dsn}
-      cdn={loadGettingStarted.cdn}
+      docsConfig={docs}
+      dsn={dsn}
+      cdn={cdn}
       activeProductSelection={activeProductSelection}
       newOrg={newOrg}
       platformKey={platform.id}

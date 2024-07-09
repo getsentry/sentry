@@ -1,4 +1,5 @@
-import type {ProjectKey} from 'sentry/types/project';
+import type {Organization} from 'sentry/types/organization';
+import type {Project, ProjectKey} from 'sentry/types/project';
 import {
   type ApiQueryKey,
   useApiQuery,
@@ -6,11 +7,11 @@ import {
 } from 'sentry/utils/queryClient';
 
 interface ProjectKeysParameters {
-  orgSlug: string;
-  projSlug?: string;
+  orgSlug: Organization['slug'];
+  projSlug?: Project['slug'];
 }
 
-export const makeProjectKeysQueryKey = ({
+const makeProjectKeysQueryKey = ({
   orgSlug,
   projSlug,
 }: ProjectKeysParameters): ApiQueryKey => [`/projects/${orgSlug}/${projSlug}/keys/`];

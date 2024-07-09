@@ -321,10 +321,12 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   );
 
   if (isLoading || isProjKeysLoading) {
-    <Fragment>
-      {radioButtons}
-      <LoadingIndicator />
-    </Fragment>;
+    return (
+      <Fragment>
+        {radioButtons}
+        <LoadingIndicator />
+      </Fragment>
+    );
   }
 
   const doesNotSupportReplay = currentProject.platform
@@ -354,7 +356,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   }
 
   // No platform or no docs (new nor old)
-  if (!currentPlatform || ((!newDocs || !dsn) && !hasOnboardingContents)) {
+  if (!currentPlatform || (!newDocs && !hasOnboardingContents)) {
     return (
       <Fragment>
         <div>

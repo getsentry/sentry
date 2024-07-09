@@ -35,6 +35,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
   });
 
   if (
+    !currentPlatform ||
     !project ||
     loadGettingStarted.isError ||
     loadGettingStarted.isLoading ||
