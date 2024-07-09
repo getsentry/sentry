@@ -83,7 +83,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     id: '12345',
     transaction: 'foo',
     'event.type': 'error',
-    'stack.function': ['foo', 'bar'],
+    'stack.function': ['n/a'],
   };
   const discoverBody: TraceEventResponse = {
     data: [mainError],
@@ -364,7 +364,6 @@ function createEvent({
     id: '12345',
     transaction: 'n/a',
     'event.type': event_type,
-    message: 'n/a',
   };
 
   // Use this variable to determine the return value helps typescript
@@ -454,5 +453,20 @@ describe('getTitleSubtitleMessage()', () => {
     });
   });
 
-  // XXX: Add issue platform case
+  it('issue platform', () => {
+    expect(
+      getTitleSubtitleMessage(
+        createEvent({
+          culprit: '/api/slow/',
+          title: 'Slow DB Query',
+          message: '/api/slow/ Slow DB Query SELECT "sentry_monitorcheckin"."monitor_id"',
+          event_type: '',
+        })
+      )
+    ).toEqual({
+      title: 'Slow DB Query',
+      subtitle: '/api/slow/',
+      message: 'SELECT "sentry_monitorcheckin"."monitor_id"',
+    });
+  });
 });

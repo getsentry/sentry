@@ -100,7 +100,7 @@ export function getTitleSubtitleMessage(event: TimelineEvent) {
     } else {
       // It is suspected that this value is calculated somewhere in Relay
       // and we deconstruct it here to match what the Issue details page shows
-      message = event.message.replace(event.transaction, '').replace(title, '');
+      message = event.message.replace(event.culprit, '').replace(title, '').trimStart();
     }
   } catch (error) {
     // If we fail, report it so we can figure it out
