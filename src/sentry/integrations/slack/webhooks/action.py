@@ -753,7 +753,12 @@ class SlackActionEndpoint(Endpoint):
         json_blocks = orjson.dumps(response.get("blocks")).decode()
         webhook_client = WebhookClient(response_url)
         try:
-            webhook_client.send(blocks=json_blocks, delete_original=False, replace_original=True)
+            webhook_client.send(
+                blocks=json_blocks,
+                text=response.get("text"),
+                delete_original=False,
+                replace_original=True,
+            )
             logger.info(
                 "slack.webhook.update_status.success",
                 extra={"integration_id": slack_request.integration.id, "blocks": json_blocks},
