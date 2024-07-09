@@ -306,7 +306,7 @@ def _error_message_condition(values: Sequence[tuple[str | None, str | None]]) ->
     conditions = []
 
     for ty, value in values:
-        ty_and_value = []
+        ty_and_value: list[RuleCondition] = []
 
         if ty is not None:
             ty_and_value.append({"op": "glob", "name": "ty", "value": [ty]})
