@@ -16,6 +16,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 
 const Context = createContext<{
   getConditions: (mri: MRI) => MetricsExtractionCondition[];
+  getExtractionRule: (mri: MRI) => MetricsExtractionRule | null;
   getTags: (mri: MRI) => MetricTag[];
   getVirtualMRI: (mri: MRI) => MRI | null;
   getVirtualMRIQuery: (
@@ -28,6 +29,7 @@ const Context = createContext<{
   } | null;
   getVirtualMeta: (mri: MRI) => MetricMeta;
   isLoading: boolean;
+  refetch: () => void;
   resolveVirtualMRI: (
     mri: MRI,
     conditionId: number,
@@ -40,9 +42,11 @@ const Context = createContext<{
     throw new Error('Not implemented');
   },
   getConditions: () => [],
+  getExtractionRule: () => null,
   getTags: () => [],
   getVirtualMRIQuery: () => null,
   resolveVirtualMRI: (mri, _, aggregation) => ({mri, aggregation}),
+  refetch: () => {},
   virtualMeta: [],
   isLoading: false,
 });
@@ -101,7 +105,11 @@ export function VirtualMetricsContextProvider({children}: Props) {
   const {selection} = usePageFilters();
 
   // TODO: support querying multiple projects in the API
-  const {isLoading, data = EMPTY_ARRAY} = useApiQuery<MetricsExtractionRule[]>(
+  const {
+    isLoading,
+    refetch,
+    data = EMPTY_ARRAY,
+  } = useApiQuery<MetricsExtractionRule[]>(
     getMetricsExtractionRulesApiKey(organization.slug, selection.projects),
     {staleTime: 0}
   );
@@ -224,6 +232,13 @@ export function VirtualMetricsContextProvider({children}: Props) {
     [getVirtualMRI, virtualMRIToRuleMap]
   );
 
+  const getExtractionRule = useCallback(
+    (mri: MRI) => {
+      return virtualMRIToRuleMap.get(mri) ?? null;
+    },
+    [virtualMRIToRuleMap]
+  );
+
   const virtualMeta = useMemo(
     () => Array.from(virtualMRIToRuleMap.keys()).map(getVirtualMeta),
     [getVirtualMeta, virtualMRIToRuleMap]
@@ -234,9 +249,11 @@ export function VirtualMetricsContextProvider({children}: Props) {
       getVirtualMRI,
       getVirtualMeta,
       getConditions,
+      getExtractionRule,
       getTags,
       getVirtualMRIQuery,
       resolveVirtualMRI,
+      refetch,
       virtualMeta,
       isLoading,
     }),
@@ -244,9 +261,11 @@ export function VirtualMetricsContextProvider({children}: Props) {
       getVirtualMRI,
       getVirtualMeta,
       getConditions,
+      getExtractionRule,
       getTags,
       getVirtualMRIQuery,
       resolveVirtualMRI,
+      refetch,
       virtualMeta,
       isLoading,
     ]

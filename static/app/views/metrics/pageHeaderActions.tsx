@@ -22,6 +22,7 @@ import {isCustomMeasurement} from 'sentry/utils/metrics';
 import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
 import {formatMRI} from 'sentry/utils/metrics/mri';
 import {MetricExpressionType, type MetricsQueryWidget} from 'sentry/utils/metrics/types';
+import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
@@ -29,6 +30,7 @@ import {useMetricsContext} from 'sentry/views/metrics/context';
 import {getCreateAlert} from 'sentry/views/metrics/metricQueryContextMenu';
 import {useCreateDashboard} from 'sentry/views/metrics/useCreateDashboard';
 import {useFormulaDependencies} from 'sentry/views/metrics/utils/useFormulaDependencies';
+import {openExtractionRuleCreateModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleCreateModal';
 
 interface Props {
   addCustomMetric: () => void;
@@ -38,6 +40,7 @@ interface Props {
 export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props) {
   const router = useRouter();
   const organization = useOrganization();
+  const {refetch} = useVirtualMetricsContext();
   const formulaDependencies = useFormulaDependencies();
   const {isDefaultQuery, setDefaultQuery, widgets, showQuerySymbols, isMultiChartMode} =
     useMetricsContext();
@@ -146,12 +149,7 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
         (hasCustomMetricsExtractionRules(organization) ? (
           <Button
             priority="primary"
-            onClick={() =>
-              navigateTo(
-                `/settings/projects/:projectId/metrics/configure-metric/`,
-                router
-              )
-            }
+            onClick={() => openExtractionRuleCreateModal({}, {onClose: refetch})}
             size="sm"
           >
             {t('Add New Metric')}
