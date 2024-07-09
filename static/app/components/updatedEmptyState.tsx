@@ -409,8 +409,4 @@ const CodeSnippetWrapper = styled('div')`
 
 const DescriptionWrapper = styled('div')`
   margin-bottom: ${space(1)};
-  display: flex;
-  align-items: center;
-  flex-direction: row;
-  gap: ${space(0.5)};
 `;
