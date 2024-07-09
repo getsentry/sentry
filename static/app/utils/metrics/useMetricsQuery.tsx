@@ -1,8 +1,12 @@
 import {useMemo} from 'react';
 
 import type {PageFilters} from 'sentry/types/core';
-import {getDateTimeParams, getMetricsInterval} from 'sentry/utils/metrics';
-import {getUseCaseFromMRI, MRIToField, parseMRI} from 'sentry/utils/metrics/mri';
+import {
+  getDateTimeParams,
+  getMetricsInterval,
+  isVirtualMetric,
+} from 'sentry/utils/metrics';
+import {getUseCaseFromMRI, MRIToField} from 'sentry/utils/metrics/mri';
 import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -200,9 +204,7 @@ export function useMetricsQuery(
         if (isMetricFormula(query)) {
           return query;
         }
-        const {type} = parseMRI(query.mri);
-
-        if (type !== 'v' || !query.condition) {
+        if (!isVirtualMetric(query) || !query.condition) {
           return query;
         }
         const {mri, aggregation} = resolveVirtualMRI(

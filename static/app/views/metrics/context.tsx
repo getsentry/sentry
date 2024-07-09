@@ -11,7 +11,7 @@ import isEqual from 'lodash/isEqual';
 
 import type {FocusAreaSelection} from 'sentry/components/metrics/chart/types';
 import type {Field} from 'sentry/components/metrics/metricSamplesTable';
-import type {MRI} from 'sentry/types/metrics';
+import type {MetricAggregation, MetricMeta, MRI} from 'sentry/types/metrics';
 import {useInstantRef, useUpdateQuery} from 'sentry/utils/metrics';
 import {
   emptyMetricsFormulaWidget,
@@ -25,6 +25,7 @@ import {
 } from 'sentry/utils/metrics/types';
 import {useVirtualizedMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
+import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
@@ -94,14 +95,18 @@ export function useMetricsContext() {
   return useContext(MetricsContext);
 }
 
-export function useMetricWidgets(mri: MRI) {
+export function useMetricWidgets(
+  mri: MRI,
+  condition?: number,
+  aggregation?: MetricAggregation
+) {
   const {widgets: urlWidgets} = useLocationQuery({fields: {widgets: decodeScalar}});
   const updateQuery = useUpdateQuery();
 
   const widgets = useStructuralSharing(
     useMemo<MetricsWidget[]>(
-      () => parseMetricWidgetsQueryParam(urlWidgets, mri),
-      [urlWidgets, mri]
+      () => parseMetricWidgetsQueryParam(urlWidgets, {mri, condition, aggregation}),
+      [urlWidgets, mri, condition, aggregation]
     )
   );
 
@@ -235,6 +240,7 @@ const useDefaultQuery = () => {
 export function MetricsContextProvider({children}: {children: React.ReactNode}) {
   const router = useRouter();
   const updateQuery = useUpdateQuery();
+  const {getConditions} = useVirtualMetricsContext();
   const {multiChartMode} = useLocationQuery({fields: {multiChartMode: decodeInteger}});
   const pageFilters = usePageFilters();
   const {data: metaCustom, isLoading: isMetaCustomLoading} = useVirtualizedMetricsMeta(
@@ -251,13 +257,17 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
       pageFilters.isReady
     );
   const isMultiChartMode = multiChartMode === 1;
-  const firstCustomMetric = metaCustom[0]?.mri;
+  const firstCustomMetric: MetricMeta | undefined = metaCustom[0];
 
   const {setDefaultQuery, isDefaultQuery} = useDefaultQuery();
 
   const [selectedWidgetIndex, setSelectedWidgetIndex] = useState(0);
   const {widgets, updateWidget, addWidget, removeWidget, duplicateWidget, setWidgets} =
-    useMetricWidgets(firstCustomMetric);
+    useMetricWidgets(
+      firstCustomMetric?.mri,
+      firstCustomMetric && getConditions(firstCustomMetric.mri)[0]?.id,
+      firstCustomMetric?.operations[0]
+    );
 
   const [metricsSamples, setMetricsSamples] = useState<
     MetricsSamplesResults<Field>['data'] | undefined
