@@ -207,11 +207,7 @@ function fillIds(
 
 export function parseMetricWidgetsQueryParam(
   queryParam?: string,
-  defaultValues: {
-    aggregation?: MetricAggregation;
-    condition?: number;
-    mri?: MRI;
-  } = {}
+  defaultMRI?: MRI
 ): MetricsWidget[] {
   let currentWidgets: unknown = undefined;
 
@@ -303,15 +299,12 @@ export function parseMetricWidgetsQueryParam(
   // Iterate over the widgets without an id and assign them a unique one
 
   if (queries.length === 0) {
-    const mri = defaultValues.mri || emptyMetricsQueryWidget.mri;
-    const condition = defaultValues.condition || emptyMetricsQueryWidget.condition;
-    const aggregation = defaultValues.aggregation || getDefaultAggregation(mri);
+    const mri = defaultMRI || emptyMetricsQueryWidget.mri;
 
     queries.push({
       ...emptyMetricsQueryWidget,
       mri,
-      condition,
-      aggregation,
+      aggregation: getDefaultAggregation(mri),
     });
   }
 
