@@ -3,6 +3,7 @@ import {
   screen,
   userEvent,
   waitForDrawerToHide,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import type {DrawerConfig} from 'sentry/components/globalDrawer';
@@ -177,5 +178,35 @@ describe('GlobalDrawer', function () {
 
     expect(closeSpy).toHaveBeenCalled();
     expect(content).not.toBeInTheDocument();
+  });
+
+  it('renders custom header content when specified', async function () {
+    const customHeader = 'Look at my neat drawer header';
+    render(
+      <GlobalDrawerTestComponent
+        config={{
+          renderer: ({Body}) => (
+            <Body data-test-id="drawer-test-content">custom header</Body>
+          ),
+          options: {ariaLabel, headerContent: customHeader},
+        }}
+      />
+    );
+
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
+
+    expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
+    const drawer = screen.getByRole('complementary', {name: ariaLabel});
+    expect(drawer).toBeInTheDocument();
+
+    // Has close button + custom header
+    const closeButton = within(drawer).getByRole('button', {name: 'Close Drawer'});
+    expect(closeButton).toBeInTheDocument();
+    expect(within(drawer).getByText(customHeader)).toBeInTheDocument();
+
+    await userEvent.click(closeButton);
+    await waitForDrawerToHide(ariaLabel);
+
+    expect(drawer).not.toBeInTheDocument();
   });
 });

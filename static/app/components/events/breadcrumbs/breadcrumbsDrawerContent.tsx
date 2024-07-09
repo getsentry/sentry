@@ -2,8 +2,6 @@ import {Fragment, useMemo, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
-import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -26,9 +24,6 @@ import {InputGroup} from 'sentry/components/inputGroup';
 import {IconClock, IconFilter, IconSearch, IconSort} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Event} from 'sentry/types/event';
-import type {Group} from 'sentry/types/group';
-import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -41,16 +36,10 @@ export const enum BreadcrumbControlOptions {
 
 interface BreadcrumbsDrawerContentProps {
   breadcrumbs: EnhancedCrumb[];
-  event: Event;
-  group: Group;
-  project: Project;
   focusControl?: BreadcrumbControlOptions;
 }
 
 export function BreadcrumbsDrawerContent({
-  event,
-  group,
-  project,
   breadcrumbs,
   focusControl,
 }: BreadcrumbsDrawerContentProps) {
@@ -194,22 +183,6 @@ export function BreadcrumbsDrawerContent({
 
   return (
     <Fragment>
-      <NavigationCrumbs
-        crumbs={[
-          {
-            label: (
-              <CrumbContainer>
-                <ProjectAvatar project={project} />
-                <GroupShortId>{group.shortId}</GroupShortId>
-              </CrumbContainer>
-            ),
-          },
-          {
-            label: <GroupShortId>{event.id.substring(0, 8)}</GroupShortId>,
-          },
-          {label: t('Breadcrumbs')},
-        ]}
-      />
       <HeaderGrid>
         <Header>{t('Breadcrumbs')}</Header>
         {actions}
@@ -244,18 +217,6 @@ export function BreadcrumbsDrawerContent({
   );
 }
 
-const CrumbContainer = styled('div')`
-  display: flex;
-  gap: ${space(1)};
-  align-items: center;
-`;
-
-const GroupShortId = styled('div')`
-  font-family: ${p => p.theme.text.family};
-  font-size: ${p => p.theme.fontSizeMedium};
-  line-height: 1;
-`;
-
 const HeaderGrid = styled('div')`
   display: grid;
   grid-template-columns: 1fr auto;
@@ -275,10 +236,6 @@ const SearchInput = styled(InputGroup.Input)`
   border: 0;
   box-shadow: unset;
   color: inherit;
-`;
-
-const NavigationCrumbs = styled(NavigationBreadcrumbs)`
-  margin: 0;
 `;
 
 const TimelineContainer = styled('div')`

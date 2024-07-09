@@ -1,6 +1,8 @@
 import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -77,14 +79,31 @@ export default function BreadcrumbsDataSection({
           <Body>
             <BreadcrumbsDrawerContent
               breadcrumbs={enhancedCrumbs}
-              group={group}
-              event={event}
-              project={project}
               focusControl={focusControl}
             />
           </Body>
         ),
-        {ariaLabel: 'breadcrumb drawer'}
+        {
+          ariaLabel: 'breadcrumb drawer',
+          headerContent: (
+            <NavigationCrumbs
+              crumbs={[
+                {
+                  label: (
+                    <CrumbContainer>
+                      <ProjectAvatar project={project} />
+                      <GroupShortId>{group.shortId}</GroupShortId>
+                    </CrumbContainer>
+                  ),
+                },
+                {
+                  label: <GroupShortId>{event.id.substring(0, 8)}</GroupShortId>,
+                },
+                {label: t('Breadcrumbs')},
+              ]}
+            />
+          ),
+        }
       );
     },
     [group, event, project, openDrawer, enhancedCrumbs, organization]
@@ -200,4 +219,21 @@ const VerticalEllipsis = styled(IconEllipsis)`
 
 const ViewAllButton = styled(Button)`
   padding: ${space(0.75)} ${space(1)};
+`;
+
+const NavigationCrumbs = styled(NavigationBreadcrumbs)`
+  margin: 0;
+  padding: 0;
+`;
+
+const CrumbContainer = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+`;
+
+const GroupShortId = styled('div')`
+  font-family: ${p => p.theme.text.family};
+  font-size: ${p => p.theme.fontSizeMedium};
+  line-height: 1;
 `;

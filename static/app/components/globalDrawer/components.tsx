@@ -1,4 +1,4 @@
-import {forwardRef} from 'react';
+import {forwardRef, Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -10,12 +10,13 @@ import {space} from 'sentry/styles/space';
 
 interface DrawerPanelProps {
   children: React.ReactNode;
+  headerContent: React.ReactNode;
   onClose: DrawerOptions['onClose'];
   ariaLabel?: SlideOverPanelProps['ariaLabel'];
 }
 
 export const DrawerPanel = forwardRef(function _DrawerPanel(
-  {ariaLabel, children, onClose}: DrawerPanelProps,
+  {ariaLabel, children, headerContent, onClose}: DrawerPanelProps,
   ref: React.ForwardedRef<HTMLDivElement>
 ) {
   return (
@@ -37,6 +38,12 @@ export const DrawerPanel = forwardRef(function _DrawerPanel(
           >
             {t('Close')}
           </CloseButton>
+          {headerContent && (
+            <Fragment>
+              <HeaderBar />
+              {headerContent}
+            </Fragment>
+          )}
         </DrawerHeader>
         {children}
       </SlideOverPanel>
@@ -50,8 +57,16 @@ const CloseButton = styled(Button)`
     color: ${p => p.theme.textColor};
   }
 `;
+const HeaderBar = styled('div')`
+  margin: 0 ${space(2)};
+  border-right: 1px solid ${p => p.theme.border};
+`;
 
 const DrawerHeader = styled('header')`
+  position: sticky;
+  top: 0;
+  z-index: ${p => p.theme.zIndex.drawer + 1};
+  background: ${p => p.theme.background};
   justify-content: flex-start;
   display: flex;
   padding: ${space(1.5)};
@@ -69,6 +84,7 @@ const DrawerContainer = styled('div')`
   inset: 0;
   z-index: ${p => p.theme.zIndex.drawer};
   pointer-events: none;
+  display: relative;
 `;
 
 export const DrawerComponents = {

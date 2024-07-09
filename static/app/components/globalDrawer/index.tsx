@@ -29,6 +29,10 @@ export interface DrawerOptions {
    */
   closeOnOutsideClick?: boolean;
   /**
+   * Custom content for the header of the drawer
+   */
+  headerContent?: React.ReactNode;
+  /**
    * Callback for when the drawer closes
    */
   onClose?: () => void;
@@ -126,6 +130,7 @@ export function GlobalDrawer({children}) {
               ariaLabel={currentDrawerConfig.options.ariaLabel}
               onClose={handleClose}
               ref={panelRef}
+              headerContent={currentDrawerConfig?.options?.headerContent ?? null}
             >
               {renderedChild}
             </DrawerComponents.DrawerPanel>
