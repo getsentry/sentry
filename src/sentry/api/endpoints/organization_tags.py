@@ -54,6 +54,7 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
                     "custom_tags.count.grouped",
                     format_grouped_length(len(results), [1, 10, 50, 100]),
                 )
+                sentry_sdk.set_tag("dataset_queried", request.GET.get("dataset", "discover"))
                 set_measurement("custom_tags.count", len(results))
 
         return Response(serialize(results, request.user))
