@@ -1,6 +1,12 @@
 import responses
 
-from fixtures.slack import HELP_COMMAND, INVALID_COMMAND, MISSING_COMMAND
+from fixtures.slack import (
+    DOCS_COMMAND,
+    HELP_COMMAND,
+    INVALID_COMMAND,
+    MISSING_COMMAND,
+    SUPPORT_COMMAND,
+)
 from sentry.integrations.slack.message_builder import SlackBody
 from sentry.silo.base import SiloMode
 from sentry.testutils.helpers import get_response_text
@@ -9,11 +15,19 @@ from sentry.types.region import Region, RegionCategory
 from tests.sentry.integrations.slack.webhooks.commands import SlackCommandsTest
 
 
-def assert_is_help_text(data: SlackBody, expected_command: str | None = None) -> None:
+def assert_is_help_text(data: SlackBody) -> None:
     text = get_response_text(data)
     assert "Here are the commands you can use" in text
-    if expected_command:
-        assert expected_command in text
+
+
+def assert_is_support_text(data: SlackBody) -> None:
+    text = get_response_text(data)
+    assert "Need support? Check out these resources:" in text
+
+
+def assert_is_docs_text(data: SlackBody) -> None:
+    text = get_response_text(data)
+    assert "Want to view documentation? Check out these resources:" in text
 
 
 def assert_unknown_command_text(data: SlackBody, unknown_command: str | None = None) -> None:
@@ -56,3 +70,25 @@ class SlackCommandsHelpTest(SlackCommandsTest):
             )
         data = self.send_slack_message("help")
         assert_is_help_text(data)
+
+    @responses.activate
+    def test_support_command(self):
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            responses.add(
+                method=responses.POST,
+                url="http://us.testserver/extensions/slack/commands/",
+                json=SUPPORT_COMMAND,
+            )
+        data = self.send_slack_message("support")
+        assert_is_support_text(data)
+
+    @responses.activate
+    def test_docs_command(self):
+        if SiloMode.get_current_mode() == SiloMode.CONTROL:
+            responses.add(
+                method=responses.POST,
+                url="http://us.testserver/extensions/slack/commands/",
+                json=DOCS_COMMAND,
+            )
+        data = self.send_slack_message("docs")
+        assert_is_docs_text(data)
