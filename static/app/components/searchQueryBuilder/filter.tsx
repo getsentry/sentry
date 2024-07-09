@@ -30,6 +30,8 @@ type SearchQueryTokenProps = {
 };
 
 function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
+  const {size} = useSearchQueryBuilder();
+
   switch (token.value.type) {
     case Token.VALUE_TEXT_LIST:
     case Token.VALUE_NUMBER_LIST:
@@ -42,19 +44,22 @@ function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
           </FilterValueSingleTruncatedValue>
         );
       }
+
+      const maxItems = size === 'small' ? 1 : 3;
+
       return (
         <FilterValueList>
-          {items.slice(0, 3).map((item, index) => (
+          {items.slice(0, maxItems).map((item, index) => (
             <Fragment key={index}>
               <FilterMultiValueTruncated>
                 {formatFilterValue(item.value)}
               </FilterMultiValueTruncated>
-              {index !== items.length - 1 && index < 2 ? (
+              {index !== items.length - 1 && index < maxItems - 1 ? (
                 <FilterValueOr>or</FilterValueOr>
               ) : null}
             </Fragment>
           ))}
-          {items.length > 3 && <span>+{items.length - 3}</span>}
+          {items.length > maxItems && <span>+{items.length - maxItems}</span>}
         </FilterValueList>
       );
     case Token.VALUE_ISO_8601_DATE:
@@ -181,15 +186,15 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
       ref={ref}
       {...modifiedRowProps}
     >
-      <BaseTokenPart {...gridCellProps}>
+      <BaseGridCell {...gridCellProps}>
         <FilterKeyOperator token={token} state={state} item={item} />
-      </BaseTokenPart>
-      <BaseTokenPart {...gridCellProps}>
+      </BaseGridCell>
+      <FilterValueGridCell {...gridCellProps}>
         <FilterValue token={token} state={state} item={item} />
-      </BaseTokenPart>
-      <BaseTokenPart {...gridCellProps}>
+      </FilterValueGridCell>
+      <BaseGridCell {...gridCellProps}>
         <FilterDelete token={token} state={state} item={item} />
-      </BaseTokenPart>
+      </BaseGridCell>
     </FilterWrapper>
   );
 }
@@ -203,20 +208,28 @@ const FilterWrapper = styled('div')`
   border-radius: ${p => p.theme.borderRadius};
   height: 24px;
 
+  /* Ensures that filters do not grow outside of the container */
+  min-width: 0;
+
   :focus {
     background-color: ${p => p.theme.gray100};
     outline: none;
   }
 
   &[aria-selected='true'] {
-    background-color: ${p => p.theme.blue200};
+    background-color: ${p => p.theme.gray100};
   }
 `;
 
-const BaseTokenPart = styled('div')`
+const BaseGridCell = styled('div')`
   display: flex;
   align-items: stretch;
   position: relative;
+`;
+
+const FilterValueGridCell = styled(BaseGridCell)`
+  /* When we run out of space, shrink the value */
+  min-width: 0;
 `;
 
 const UnstyledButton = styled('button')`
@@ -236,6 +249,8 @@ const ValueButton = styled(UnstyledButton)`
   color: ${p => p.theme.purple400};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
+  width: 100%;
+  max-width: 400px;
 
   :focus {
     background-color: ${p => p.theme.purple100};
@@ -249,6 +264,7 @@ const ValueEditing = styled('div')`
   color: ${p => p.theme.purple400};
   border-left: 1px solid transparent;
   border-right: 1px solid transparent;
+  max-width: 100%;
 
   :focus-within {
     background-color: ${p => p.theme.purple100};
@@ -289,6 +305,6 @@ const FilterMultiValueTruncated = styled('div')`
 
 const FilterValueSingleTruncatedValue = styled('div')`
   ${p => p.theme.overflowEllipsis};
-  max-width: 400px;
+  max-width: 100%;
   width: min-content;
 `;

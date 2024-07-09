@@ -62,12 +62,12 @@ function getSearchConfigFromKeys(keys: TagCollection): Partial<SearchConfig> {
 
 export function parseQueryBuilderValue(
   value: string,
-  options?: {keys: TagCollection}
+  options?: {filterKeys: TagCollection}
 ): ParseResult | null {
   return collapseTextTokens(
     parseSearch(value || ' ', {
       flattenParenGroups: true,
-      ...getSearchConfigFromKeys(options?.keys ?? {}),
+      ...getSearchConfigFromKeys(options?.filterKeys ?? {}),
     })
   );
 }
@@ -131,6 +131,18 @@ export function collapseTextTokens(tokens: ParseResult | null) {
 
     return [...acc, token];
   }, []);
+}
+
+export function tokenIsInvalid(token: TokenResult<Token>) {
+  if (
+    token.type !== Token.FILTER &&
+    token.type !== Token.FREE_TEXT &&
+    token.type !== Token.LOGIC_BOOLEAN
+  ) {
+    return false;
+  }
+
+  return Boolean(token.invalid);
 }
 
 export function getValidOpsForFilter(

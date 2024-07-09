@@ -10,7 +10,7 @@ from sentry import features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases import ProjectEndpoint
+from sentry.api.bases.project import ProjectEndpoint, ProjectMetricsExtractionRulesPermission
 from sentry.api.exceptions import BadRequest, ConflictError
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
@@ -55,6 +55,7 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
         "PUT": ApiPublishStatus.EXPERIMENTAL,
     }
     owner = ApiOwner.TELEMETRY_EXPERIENCE
+    permission_classes = (ProjectMetricsExtractionRulesPermission,)
 
     def has_feature(self, organization, request):
         return features.has(
@@ -84,8 +85,12 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
         if not self.has_feature(project.organization, request):
             return Response(status=404)
 
+        query = request.GET.get("query")
+
         with handle_exceptions():
             configs = SpanAttributeExtractionRuleConfig.objects.filter(project=project)
+            if query:
+                configs = configs.filter(span_attribute__icontains=query)
 
             return self.paginate(
                 request,
