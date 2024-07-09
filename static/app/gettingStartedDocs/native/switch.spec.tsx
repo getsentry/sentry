@@ -1,7 +1,7 @@
 import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
 import {screen} from 'sentry-test/reactTestingLibrary';
 
-import docs from '.';
+import docs from './switch';
 
 describe('Nintendo onboarding docs', function () {
   it('renders docs correctly', function () {
