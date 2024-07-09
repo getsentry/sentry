@@ -35,7 +35,6 @@ OPTION_KEYS = frozenset(
         "sentry:csp_ignored_sources_defaults",
         "sentry:csp_ignored_sources",
         "sentry:default_environment",
-        "sentry:reprocessing_active",
         "sentry:blacklisted_ips",
         "sentry:releases",
         "sentry:error_messages",

@@ -840,11 +840,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                     "sentry:feedback_ai_spam_detection",
                     bool(options["sentry:feedback_ai_spam_detection"]),
                 )
-            if "sentry:reprocessing_active" in options:
-                project.update_option(
-                    "sentry:reprocessing_active",
-                    bool(options["sentry:reprocessing_active"]),
-                )
             if "filters:react-hydration-errors" in options:
                 project.update_option(
                     "filters:react-hydration-errors",

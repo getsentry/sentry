@@ -9,7 +9,6 @@ import orjson
 import sentry_sdk
 from django.db import connection
 from django.db.models import prefetch_related_objects
-from django.db.models.aggregates import Count
 from django.utils import timezone
 
 from sentry import features, options, projectoptions, release_health, roles
@@ -910,18 +909,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
     ) -> MutableMapping[Project, MutableMapping[str, Any]]:
         attrs = super().get_attrs(item_list, user)
 
-        project_ids = [i.id for i in item_list]
-
-        num_issues_projects = (
-            Project.objects.filter(id__in=project_ids)
-            .annotate(num_issues=Count("processingissue"))
-            .values_list("id", "num_issues")
-        )
-
-        processing_issues_by_project = {}
-        for project_id, num_issues in num_issues_projects:
-            processing_issues_by_project[project_id] = num_issues
-
         queryset = ProjectOption.objects.filter(project__in=item_list, key__in=OPTION_KEYS)
         options_by_project = defaultdict(dict)
         for option in queryset.iterator():
@@ -938,7 +925,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                     "latest_release": latest_release_versions.get(item.id),
                     "org": orgs[str(item.organization_id)],
                     "options": options_by_project[item.id],
-                    "processing_issues": processing_issues_by_project.get(item.id, 0),
+                    "processing_issues": 0,
                     "highlight_preset": get_highlight_preset_for_project(item),
                 }
             )
@@ -1120,10 +1107,6 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
             ),
             "quotas:spike-protection-disabled": options.get("quotas:spike-protection-disabled"),
         }
-
-        reprocessing_active = options.get("sentry:reprocessing_active")
-        if reprocessing_active is not None:
-            formatted_options["sentry:reprocessing_active"] = reprocessing_active
 
         return formatted_options
 
