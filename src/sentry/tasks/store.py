@@ -12,7 +12,7 @@ import sentry_sdk
 from django.conf import settings
 from sentry_relay.processing import StoreNormalizer
 
-from sentry import options, reprocessing, reprocessing2
+from sentry import options, reprocessing2
 from sentry.attachments import attachment_cache
 from sentry.constants import DEFAULT_STORE_NORMALIZER_ARGS
 from sentry.datascrubbing import scrub_data
@@ -528,21 +528,6 @@ def process_event_from_reprocessing(
     )
 
 
-@sentry_sdk.tracing.trace
-def delete_raw_event(project_id: int, event_id: str | None) -> None:
-    set_current_event_project(project_id)
-
-    if event_id is None:
-        error_logger.error("process.failed_delete_raw_event", extra={"project_id": project_id})
-        return
-
-    from sentry.models.rawevent import RawEvent
-    from sentry.models.reprocessingreport import ReprocessingReport
-
-    RawEvent.objects.filter(project_id=project_id, event_id=event_id).delete()
-    ReprocessingReport.objects.filter(project_id=project_id, event_id=event_id).delete()
-
-
 def _do_save_event(
     cache_key: str | None = None,
     data: MutableMapping[str, Any] | None = None,
@@ -578,12 +563,6 @@ def _do_save_event(
             assert data is not None
             project_id = data.pop("project")
             set_current_event_project(project_id)
-
-        # We only need to delete raw events for events that support
-        # reprocessing.  If the data cannot be found we want to assume
-        # that we need to delete the raw event.
-        if not data or reprocessing.event_supports_reprocessing(data):
-            delete_raw_event(project_id, event_id)
 
         # This covers two cases: where data is None because we did not manage
         # to fetch it from the default cache or the empty dictionary was
