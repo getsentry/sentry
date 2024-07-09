@@ -18,7 +18,6 @@ import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
 import type {Extraction} from 'sentry/utils/replays/extractDomNodes';
 import {getReplayDiffOffsetsFromFrame} from 'sentry/utils/replays/getDiffTimestamps';
 import getFrameDetails from 'sentry/utils/replays/getFrameDetails';
@@ -131,9 +130,14 @@ function BreadcrumbItem({
         title={title}
         colorConfig={{primary: color, secondary: color}}
         timeString={timeString}
-        renderTimestamp={(_ts, _sts) =>
-          formatReplayDuration(Math.abs(frame.timestampMs - startTimestampMs), false)
-        }
+        renderTimestamp={(_ts, _sts) => (
+          <ReplayTimestamp>
+            <TimestampButton
+              startTimestampMs={startTimestampMs}
+              timestampMs={frame.timestampMs}
+            />
+          </ReplayTimestamp>
+        )}
         startTimeString={startTimeString}
         data-is-error-frame={isErrorFrame(frame)}
         style={style}
@@ -311,6 +315,12 @@ const StyledTimelineItem = styled(Timeline.Item)`
   &:first-child::before {
     top: 4px;
   }
+`;
+
+const ReplayTimestamp = styled('div')`
+  color: ${p => p.theme.textColor};
+  font-size: ${p => p.theme.fontSizeSmall};
+  align-self: flex-start;
 `;
 
 const CrumbItem = styled(PanelItem)<{isErrorFrame?: boolean}>`

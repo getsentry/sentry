@@ -79,11 +79,15 @@ export const Item = forwardRef(function _Item(
         {icon}
       </IconWrapper>
       <Title style={{color: theme[primary]}}>{title}</Title>
-      <Timestamp>
-        <Tooltip title={`${preciseTime} - ${date}`} skipWrapper>
-          {renderTimestamp ? renderTimestamp(timeString, startTimeString) : displayTime}
-        </Tooltip>
-      </Timestamp>
+      {renderTimestamp ? (
+        renderTimestamp(timeString, startTimeString)
+      ) : (
+        <Timestamp>
+          <Tooltip title={`${preciseTime} - ${date}`} skipWrapper>
+            {displayTime}
+          </Tooltip>
+        </Timestamp>
+      )}
       <Spacer
         style={{borderLeft: `1px solid ${isActive ? theme.border : 'transparent'}`}}
       />
@@ -134,10 +138,11 @@ const Title = styled('div')`
   font-size: ${p => p.theme.fontSizeMedium};
 `;
 
-const Timestamp = styled('p')`
+const Timestamp = styled('div')`
   margin: 0 ${space(1)};
   color: ${p => p.theme.subText};
   text-decoration: underline dashed ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
 `;
 
 const Spacer = styled('div')`
