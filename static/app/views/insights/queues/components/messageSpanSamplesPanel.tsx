@@ -228,7 +228,7 @@ export function MessageSpanSamplesPanel() {
     router.replace({
       pathname: location.pathname,
       query: {
-        ...query,
+        ...location.query,
         spanSearchQuery: newSpanSearchQuery,
       },
     });
