@@ -41,6 +41,7 @@ from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCAR
 class DiscoverQueryBuilder(BaseQueryBuilder):
     """Builds a discover query"""
 
+    uuid_fields = {"id", "trace", "profile.id", "replay.id"}
     duration_fields = {"transaction.duration"}
 
     def load_config(

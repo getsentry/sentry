@@ -77,7 +77,6 @@ from sentry.utils.snuba import (
 class BaseQueryBuilder:
     requires_organization_condition: bool = False
     organization_column: str = "organization.id"
-    uuid_fields = {"id", "trace", "profile.id", "replay.id"}
     function_alias_prefix: str | None = None
     spans_metrics_builder = False
     profile_functions_metrics_builder = False

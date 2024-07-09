@@ -3,7 +3,12 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from snuba_sdk import AliasedExpression, And, Column, Condition, Function, Op
 
-from sentry.search.events.builder.spans_indexed import SpansIndexedQueryBuilder
+from sentry.exceptions import InvalidSearchQuery
+from sentry.search.events.builder.spans_indexed import (
+    SPAN_ID_FIELDS,
+    UUID_FIELDS,
+    SpansIndexedQueryBuilder,
+)
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
@@ -395,3 +400,48 @@ def test_free_text_search(params, query, expected):
         selected_columns=["count"],
     )
     assert expected in builder.where
+
+
+@pytest.mark.parametrize(
+    ["column", "query", "message", "label"],
+    [
+        pytest.param(column, f"{column}:bad_span_id", "valid 16 character hex", label, id=column)
+        for column, label in SPAN_ID_FIELDS.items()
+    ]
+    + [
+        pytest.param(
+            column,
+            f"{column}:*wild*card*",
+            "Wildcard conditions are not permitted",
+            label,
+            id=column,
+        )
+        for column, label in SPAN_ID_FIELDS.items()
+    ]
+    + [
+        pytest.param(column, f"{column}:bad_span_id", "valid UUID hex", label, id=column)
+        for column, label in UUID_FIELDS.items()
+    ]
+    + [
+        pytest.param(
+            column,
+            f"{column}:*wild*card*",
+            "Wildcard conditions are not permitted",
+            label,
+            id=column,
+        )
+        for column, label in UUID_FIELDS.items()
+    ],
+)
+@django_db_all
+def test_column_validation_failed(params, column, query, message, label):
+    with pytest.raises(InvalidSearchQuery) as err:
+        SpansIndexedQueryBuilder(
+            Dataset.SpansIndexed,
+            params,
+            query=query,
+            selected_columns=["count"],
+        )
+
+    assert message in str(err)
+    assert label in str(err)
