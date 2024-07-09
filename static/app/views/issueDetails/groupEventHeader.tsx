@@ -5,6 +5,8 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
+import useOrganization from 'sentry/utils/useOrganization';
+import EventNavigation from 'sentry/views/issueDetails/eventNavigation';
 import {GroupEventCarousel} from 'sentry/views/issueDetails/groupEventCarousel';
 
 type GroupEventHeaderProps = {
@@ -14,9 +16,14 @@ type GroupEventHeaderProps = {
 };
 
 function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {
+  const organization = useOrganization();
   return (
     <StyledDataSection>
-      <GroupEventCarousel group={group} event={event} projectSlug={project.slug} />
+      {organization.features.includes('issue-details-streamline') ? (
+        <EventNavigation event={event} group={group} />
+      ) : (
+        <GroupEventCarousel group={group} event={event} projectSlug={project.slug} />
+      )}
     </StyledDataSection>
   );
 }
