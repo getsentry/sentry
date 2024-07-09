@@ -40,8 +40,8 @@ def run_test(expected_groups):
 
 
 class TestBackfillGroupAttributes(SnubaTestCase, TestMigrations):
-    migrate_from = "0731_add_insight_project_flags"
-    migrate_to = "0732_backfill_group_info_to_group_attributes"
+    migrate_from = "0733_relocation_provenance"
+    migrate_to = "0734_backfill_group_info_to_group_attributes"
 
     def setup_initial_state(self):
         release = self.create_release(project=self.group.project)
@@ -54,8 +54,8 @@ class TestBackfillGroupAttributes(SnubaTestCase, TestMigrations):
 
 
 class TestBackfillGroupAttributesRetry(SnubaTestCase, TestMigrations):
-    migrate_from = "0731_add_insight_project_flags"
-    migrate_to = "0732_backfill_group_info_to_group_attributes"
+    migrate_from = "0733_relocation_provenance"
+    migrate_to = "0734_backfill_group_info_to_group_attributes"
 
     def setup_initial_state(self):
         self.group = self.create_group(priority=PriorityLevel.HIGH)
