@@ -102,6 +102,10 @@ def _get_replay_id_mappings(
             projects=[group.project for group in groups],
         )
 
+    # Saves a snuba query. Discover queries raise an error if projects is empty.
+    if not snuba_params.projects:
+        return {}
+
     results = search_query_func(
         params={},
         snuba_params=snuba_params,
