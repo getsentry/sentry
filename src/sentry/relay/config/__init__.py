@@ -55,6 +55,7 @@ EXPOSABLE_FEATURES = [
     "organizations:device-class-synthesis",
     "organizations:profiling",
     "organizations:session-replay-combined-envelope-items",
+    "organizations:session-replay-mobile-denylist",
     "organizations:session-replay-recording-scrubbing",
     "organizations:session-replay",
     "organizations:standalone-span-ingestion",
