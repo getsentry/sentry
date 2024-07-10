@@ -6,24 +6,13 @@ import {fetchSpanFieldValues, fetchTagValues} from 'sentry/actionCreators/tags';
 import type {SearchConfig} from 'sentry/components/searchSyntax/parser';
 import {defaultConfig} from 'sentry/components/searchSyntax/parser';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
-import {NEGATION_OPERATOR, SEARCH_WILDCARD} from 'sentry/constants';
 import type {TagCollection} from 'sentry/types/group';
 import {SavedSearchType} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {Field} from 'sentry/utils/discover/fields';
-import {
-  ERROR_ONLY_FIELDS,
-  FIELD_TAGS,
-  isAggregateField,
-  isEquation,
-  isMeasurement,
-  SEMVER_TAGS,
-  SPAN_OP_BREAKDOWN_FIELDS,
-  TRACING_FIELDS,
-  TRANSACTION_ONLY_FIELDS,
-} from 'sentry/utils/discover/fields';
+import {isAggregateField, isEquation, isMeasurement} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   DEVICE_CLASS_TAG_VALUES,
@@ -36,12 +25,17 @@ import useApi from 'sentry/utils/useApi';
 import withTags from 'sentry/utils/withTags';
 import {isCustomMeasurement} from 'sentry/views/dashboards/utils';
 
-const SEARCH_SPECIAL_CHARS_REGEXP = new RegExp(
-  `^${NEGATION_OPERATOR}|\\${SEARCH_WILDCARD}`,
-  'g'
-);
+import {
+  SEARCH_SPECIAL_CHARS_REGEXP,
+  STATIC_FIELD_TAGS,
+  STATIC_FIELD_TAGS_SET,
+  STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS,
+  STATIC_FIELD_TAGS_WITHOUT_TRACING,
+  STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS,
+  STATIC_SEMVER_TAGS,
+  STATIC_SPAN_TAGS,
+} from './searchBarFields';
 
-const STATIC_FIELD_TAGS_SET = new Set(Object.keys(FIELD_TAGS));
 const getFunctionTags = (fields: Readonly<Field[]> | undefined) => {
   if (!fields?.length) {
     return [];
@@ -124,34 +118,6 @@ const getSearchConfigFromCustomPerformanceMetrics = (
   };
   return searchConfig;
 };
-
-const STATIC_FIELD_TAGS = Object.keys(FIELD_TAGS).reduce((tags, key) => {
-  tags[key] = {
-    ...FIELD_TAGS[key],
-    kind: FieldKind.FIELD,
-  };
-  return tags;
-}, {});
-
-const STATIC_FIELD_TAGS_WITHOUT_TRACING = omit(STATIC_FIELD_TAGS, TRACING_FIELDS);
-const STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS = omit(STATIC_FIELD_TAGS, ERROR_ONLY_FIELDS);
-export const STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS = omit(
-  STATIC_FIELD_TAGS,
-  TRANSACTION_ONLY_FIELDS
-);
-
-const STATIC_SPAN_TAGS = SPAN_OP_BREAKDOWN_FIELDS.reduce((tags, key) => {
-  tags[key] = {name: key, kind: FieldKind.METRICS};
-  return tags;
-}, {});
-
-const STATIC_SEMVER_TAGS = Object.keys(SEMVER_TAGS).reduce((tags, key) => {
-  tags[key] = {
-    ...SEMVER_TAGS[key],
-    kind: FieldKind.FIELD,
-  };
-  return tags;
-}, {});
 
 export const getHasTag = (tags: TagCollection) => ({
   key: FieldKey.HAS,
@@ -295,7 +261,7 @@ function SearchBar(props: SearchBarProps) {
               )
             : Object.assign({}, STATIC_FIELD_TAGS_WITHOUT_TRACING);
 
-    Object.assign(combinedTags, tagsWithKind, STATIC_FIELD_TAGS, STATIC_SEMVER_TAGS);
+    Object.assign(combinedTags, tagsWithKind, STATIC_SEMVER_TAGS);
 
     combinedTags.has = getHasTag(combinedTags);
 

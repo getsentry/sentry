@@ -1,6 +1,6 @@
 import mapValues from 'lodash/mapValues';
 
-import {STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS} from 'sentry/components/events/searchBar';
+import {STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS} from 'sentry/components/events/searchBarFields';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {TagCollection} from 'sentry/types/group';
