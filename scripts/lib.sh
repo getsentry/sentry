@@ -102,28 +102,6 @@ install-py-dev() {
     python3 -m tools.fast_editable --path .
 }
 
-setup-git-config() {
-    git config --local branch.autosetuprebase always
-    git config --local core.ignorecase false
-    git config --local blame.ignoreRevsFile .git-blame-ignore-revs
-}
-
-setup-git() {
-    setup-git-config
-
-    # if hooks are explicitly turned off do nothing
-    if [[ "$(git config core.hooksPath)" == '/dev/null' ]]; then
-        echo "--> core.hooksPath set to /dev/null. Skipping git hook setup"
-        echo ""
-        return
-    fi
-
-    echo "--> Installing git hooks"
-    mkdir -p .git/hooks && cd .git/hooks && ln -sf ../../config/hooks/* ./ && cd - || exit
-
-    .venv/bin/pre-commit install --install-hooks
-}
-
 node-version-check() {
     # Checks to see if node's version matches the one specified in package.json for Volta.
     node -pe "process.exit(Number(!(process.version == 'v' + require('./.volta.json').volta.node )))" ||
@@ -145,12 +123,6 @@ install-js-dev() {
     # account the state of the current filesystem (it only checks .yarn-integrity).
     # Add an additional check against `node_modules`
     yarn check --verify-tree || yarn install --check-files
-}
-
-develop() {
-    install-js-dev
-    install-py-dev
-    setup-git
 }
 
 init-config() {
@@ -192,18 +164,6 @@ build-platform-assets() {
     python3 -m sentry.build._integration_docs
     # make sure this didn't silently do nothing
     test -f src/sentry/integration-docs/android.json
-}
-
-bootstrap() {
-    develop
-    init-config
-    run-dependent-services
-    apply-migrations
-    create-superuser
-    # Load mocks requires a superuser
-    bin/load-mocks
-    build-platform-assets
-    echo "--> Finished bootstrapping. Have a nice day."
 }
 
 clean() {
