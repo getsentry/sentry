@@ -1,3 +1,4 @@
+import datetime
 import uuid
 from unittest.mock import patch
 
@@ -7,6 +8,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options, with_feature
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode
 
@@ -37,6 +39,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         response = self.send_put_request(token, self.endpoint)
         assert response.status_code != 403
 
+    @freeze_time("2018-08-24 07:30:00")
     @django_db_all(reset_sequences=True)
     @with_feature("organizations:custom-metrics-extraction-rule")
     def test_create_new_extraction_rule(self):
@@ -75,6 +78,14 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
             assert data[0]["aggregates"] == ["count"]
             assert data[0]["unit"] == "none"
             assert set(data[0]["tags"]) == {"tag1", "tag2", "tag3"}
+            assert data[0]["createdById"] == self.user.id
+
+            assert data[0]["dateAdded"] == datetime.datetime(
+                2018, 8, 24, 7, 30, 0, tzinfo=datetime.UTC
+            )
+            assert data[0]["dateUpdated"] == datetime.datetime(
+                2018, 8, 24, 7, 30, 0, tzinfo=datetime.UTC
+            )
 
             conditions = data[0]["conditions"]
             assert len(conditions) == 2
