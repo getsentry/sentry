@@ -6,7 +6,7 @@ from snuba_sdk import AliasedExpression, And, Column, Condition, Function, Op
 from sentry.exceptions import InvalidSearchQuery
 from sentry.search.events.builder.spans_indexed import (
     SPAN_ID_FIELDS,
-    UUID_FIELDS,
+    SPAN_UUID_FIELDS,
     SpansIndexedQueryBuilder,
 )
 from sentry.snuba.dataset import Dataset
@@ -420,7 +420,7 @@ def test_free_text_search(params, query, expected):
     ]
     + [
         pytest.param(column, f"{column}:bad_span_id", "valid UUID hex", label, id=column)
-        for column, label in UUID_FIELDS.items()
+        for column, label in SPAN_UUID_FIELDS.items()
     ]
     + [
         pytest.param(
@@ -430,7 +430,7 @@ def test_free_text_search(params, query, expected):
             label,
             id=column,
         )
-        for column, label in UUID_FIELDS.items()
+        for column, label in SPAN_UUID_FIELDS.items()
     ],
 )
 @django_db_all

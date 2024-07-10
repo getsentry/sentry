@@ -35,13 +35,21 @@ from sentry.search.events.types import (
     WhereType,
 )
 from sentry.snuba.dataset import Dataset
-from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 
 class DiscoverQueryBuilder(BaseQueryBuilder):
     """Builds a discover query"""
 
-    uuid_fields = {"id", "trace", "profile.id", "replay.id"}
+    uuid_fields = {
+        "id": "Filter ID",
+        "trace": "Filter Trace ID",
+        "profile.id": "Filter Profile ID",
+        "replay.id": "Filter Replay ID",
+    }
+    span_id_fields = {
+        "trace.span": "Filter Trace Span ID",
+        "trace.parent_span": "Filter Trace Parent Span ID",
+    }
     duration_fields = {"transaction.duration"}
 
     def load_config(
@@ -118,27 +126,6 @@ class DiscoverQueryBuilder(BaseQueryBuilder):
         # Some fields aren't valid queries
         if name in constants.SKIP_FILTER_RESOLUTION:
             name = f"tags[{name}]"
-
-        if name in {"trace.span", "trace.parent_span"}:
-            if search_filter.value.is_wildcard():
-                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
-            if not search_filter.value.is_span_id():
-                raise InvalidSearchQuery(INVALID_SPAN_ID.format(name))
-
-        # Validate event ids, trace ids, and profile ids are uuids
-        if name in self.uuid_fields:
-            if search_filter.value.is_wildcard():
-                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
-            elif not search_filter.value.is_event_id():
-                if name == "trace":
-                    label = "Filter Trace ID"
-                elif name == "profile.id":
-                    label = "Filter Profile ID"
-                elif name == "replay.id":
-                    label = "Filter Replay ID"
-                else:
-                    label = "Filter ID"
-                raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))
 
         if name in constants.TIMESTAMP_FIELDS:
             if (
