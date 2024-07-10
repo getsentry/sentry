@@ -18,7 +18,7 @@ const SUFFIX_ABBR = {
  * Returns a human readable exact duration.
  * 'precision' arg will truncate the results to the specified suffix
  *
- * e.g. 1 hour 25 minutes 15 seconds
+ * e.g. 1 hour 25 minutes 15 seconds, -1m 50s 294ms
  */
 export function getExactDuration(
   seconds: number,
@@ -35,7 +35,8 @@ export function getExactDuration(
     const divideBy = (time: number) => {
       return {
         quotient: msValue < 0 ? Math.ceil(msValue / time) : Math.floor(msValue / time),
-        remainder: msValue % time,
+        // Remainder should always be positive so that only largest unit appears negative
+        remainder: Math.abs(msValue % time),
       };
     };
 

@@ -9,6 +9,7 @@ import {
 } from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import type {ColorConfig} from 'sentry/components/timeline';
 import {
+  IconCode,
   IconCursorArrow,
   IconFire,
   IconFix,
@@ -19,9 +20,9 @@ import {
   IconSort,
   IconSpan,
   IconStack,
-  IconTerminal,
   IconUser,
   IconWarning,
+  IconWifi,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -33,7 +34,6 @@ import {
 import {EntryType, type Event} from 'sentry/types/event';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-export const BREADCRUMB_TIMESTAMP_PLACEHOLDER = '--';
 const BREADCRUMB_TITLE_PLACEHOLDER = t('Generic');
 const BREADCRUMB_SUMMARY_COUNT = 3;
 
@@ -96,6 +96,7 @@ export function getBreadcrumbFilterOptions(crumbs: EnhancedCrumb[]) {
   });
   return filterOptions.sort((a, b) => a.value.localeCompare(b.value));
 }
+
 export interface EnhancedCrumb {
   // Mutated crumb where we change types or virtual crumb
   breadcrumb: RawCrumb;
@@ -191,6 +192,8 @@ function getBreadcrumbColorConfig(type?: BreadcrumbType): ColorConfig {
       return {primary: 'purple400', secondary: 'purple200'};
     case BreadcrumbType.SYSTEM:
     case BreadcrumbType.SESSION:
+    case BreadcrumbType.DEVICE:
+    case BreadcrumbType.NETWORK:
       return {primary: 'pink400', secondary: 'pink200'};
     case BreadcrumbType.DEBUG:
     case BreadcrumbType.INFO:
@@ -224,6 +227,10 @@ function getBreadcrumbFilter(type?: BreadcrumbType) {
       return t('Session');
     case BreadcrumbType.TRANSACTION:
       return t('Transaction');
+    case BreadcrumbType.DEVICE:
+      return t('Device');
+    case BreadcrumbType.NETWORK:
+      return t('Network');
     default:
       return t('Default');
   }
@@ -255,8 +262,12 @@ function BreadcrumbIcon({type}: {type?: BreadcrumbType}) {
       return <IconRefresh size="xs" />;
     case BreadcrumbType.TRANSACTION:
       return <IconSpan size="xs" />;
+    case BreadcrumbType.DEVICE:
+      return <IconMobile size="xs" />;
+    case BreadcrumbType.NETWORK:
+      return <IconWifi size="xs" />;
     default:
-      return <IconTerminal size="xs" />;
+      return <IconCode size="xs" />;
   }
 }
 

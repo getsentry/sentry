@@ -1,12 +1,9 @@
-import {type CSSProperties, useRef} from 'react';
+import type {CSSProperties} from 'react';
 import {forwardRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
-import {getFormattedTimestamp} from 'sentry/utils/date/getFormattedTimestamp';
 import type {Color} from 'sentry/utils/theme';
 
 export interface ColorConfig {
@@ -16,7 +13,6 @@ export interface ColorConfig {
 
 export interface TimelineItemProps {
   icon: React.ReactNode;
-  timeString: string;
   title: React.ReactNode;
   children?: React.ReactNode;
   className?: string;
@@ -25,12 +21,8 @@ export interface TimelineItemProps {
   onClick?: React.MouseEventHandler<HTMLDivElement>;
   onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;
   onMouseLeave?: React.MouseEventHandler<HTMLDivElement>;
-  renderTimestamp?: (
-    timeString: TimelineItemProps['timeString'],
-    startTimeString: TimelineItemProps['startTimeString']
-  ) => React.ReactNode;
-  startTimeString?: string;
   style?: CSSProperties;
+  timestamp?: React.ReactNode;
 }
 
 export const Item = forwardRef(function _Item(
@@ -38,10 +30,8 @@ export const Item = forwardRef(function _Item(
     title,
     children,
     icon,
-    timeString,
     colorConfig = {primary: 'gray300', secondary: 'gray200'},
-    startTimeString,
-    renderTimestamp,
+    timestamp,
     isActive = false,
     style,
     ...props
@@ -49,17 +39,7 @@ export const Item = forwardRef(function _Item(
   ref: React.ForwardedRef<HTMLDivElement>
 ) {
   const theme = useTheme();
-  const placeholderTime = useRef(new Date().toTimeString()).current;
   const {primary, secondary} = colorConfig;
-  const hasRelativeTime = defined(startTimeString);
-  const {
-    displayTime,
-    date,
-    timeWithMilliseconds: preciseTime,
-  } = hasRelativeTime
-    ? getFormattedTimestamp(timeString, startTimeString, true)
-    : getFormattedTimestamp(timeString, placeholderTime);
-
   return (
     <Row
       color={secondary}
@@ -75,15 +55,12 @@ export const Item = forwardRef(function _Item(
           borderColor: isActive ? theme[secondary] : 'transparent',
           color: theme[primary],
         }}
+        className="icon-wrapper"
       >
         {icon}
       </IconWrapper>
       <Title style={{color: theme[primary]}}>{title}</Title>
-      <Timestamp>
-        <Tooltip title={`${preciseTime} - ${date}`} skipWrapper>
-          {renderTimestamp ? renderTimestamp(timeString, startTimeString) : displayTime}
-        </Tooltip>
-      </Timestamp>
+      {timestamp ?? <div />}
       <Spacer
         style={{borderLeft: `1px solid ${isActive ? theme.border : 'transparent'}`}}
       />
@@ -132,12 +109,6 @@ const Title = styled('div')`
   text-align: left;
   grid-column: span 1;
   font-size: ${p => p.theme.fontSizeMedium};
-`;
-
-const Timestamp = styled('p')`
-  margin: 0 ${space(1)};
-  color: ${p => p.theme.subText};
-  text-decoration: underline dashed ${p => p.theme.subText};
 `;
 
 const Spacer = styled('div')`

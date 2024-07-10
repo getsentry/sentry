@@ -58,7 +58,7 @@ describe('BreadcrumbsDrawerContent', function () {
       expect(drawerScreen.getByText(level)).toBeInTheDocument();
       expect(drawerScreen.getByText(message)).toBeInTheDocument();
     }
-    expect(drawerScreen.getAllByText('-1min')).toHaveLength(MOCK_BREADCRUMBS.length);
+    expect(drawerScreen.getAllByText('-1min 2ms')).toHaveLength(MOCK_BREADCRUMBS.length);
   });
 
   it('allows search to affect displayed crumbs', async function () {
@@ -129,9 +129,8 @@ describe('BreadcrumbsDrawerContent', function () {
 
   it('allows time display dropdown to change all displayed crumbs', async function () {
     const drawerScreen = await renderBreadcrumbDrawer();
-
-    expect(drawerScreen.getAllByText('-1min')).toHaveLength(MOCK_BREADCRUMBS.length);
-    expect(drawerScreen.queryByText('18:00:48')).not.toBeInTheDocument();
+    expect(drawerScreen.getAllByText('-1min 2ms')).toHaveLength(MOCK_BREADCRUMBS.length);
+    expect(drawerScreen.queryByText('06:00:48.760')).not.toBeInTheDocument();
 
     const timeControl = drawerScreen.getByRole('button', {
       name: 'Change Time Format for All Breadcrumbs',
@@ -139,13 +138,15 @@ describe('BreadcrumbsDrawerContent', function () {
     await userEvent.click(timeControl);
     await userEvent.click(drawerScreen.getByRole('option', {name: 'Absolute'}));
 
-    expect(drawerScreen.queryByText('-1min')).not.toBeInTheDocument();
-    expect(drawerScreen.getAllByText('18:00:48')).toHaveLength(MOCK_BREADCRUMBS.length);
+    expect(drawerScreen.queryByText('-1min 2ms')).not.toBeInTheDocument();
+    expect(drawerScreen.getAllByText('06:00:48.760')).toHaveLength(
+      MOCK_BREADCRUMBS.length
+    );
 
     await userEvent.click(timeControl);
     await userEvent.click(drawerScreen.getByRole('option', {name: 'Relative'}));
 
-    expect(drawerScreen.getAllByText('-1min')).toHaveLength(MOCK_BREADCRUMBS.length);
-    expect(drawerScreen.queryByText('18:00:48')).not.toBeInTheDocument();
+    expect(drawerScreen.getAllByText('-1min 2ms')).toHaveLength(MOCK_BREADCRUMBS.length);
+    expect(drawerScreen.queryByText('06:00:48.760')).not.toBeInTheDocument();
   });
 });

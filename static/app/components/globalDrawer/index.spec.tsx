@@ -1,8 +1,11 @@
+import {Fragment} from 'react';
+
 import {
   render,
   screen,
   userEvent,
   waitForDrawerToHide,
+  within,
 } from 'sentry-test/reactTestingLibrary';
 
 import type {DrawerConfig} from 'sentry/components/globalDrawer';
@@ -51,6 +54,8 @@ describe('GlobalDrawer', function () {
 
     expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
     expect(screen.getByRole('complementary', {name: ariaLabel})).toBeInTheDocument();
+    // Doesn't render header with close button unless provided to renderer
+    expect(screen.queryByRole('button', {name: 'Close Drawer'})).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByTestId('drawer-test-close'));
     await waitForDrawerToHide(ariaLabel);
@@ -67,8 +72,11 @@ describe('GlobalDrawer', function () {
     render(
       <GlobalDrawerTestComponent
         config={{
-          renderer: ({Body}) => (
-            <Body data-test-id="drawer-test-content">onClose button</Body>
+          renderer: ({Body, Header}) => (
+            <Fragment>
+              <Header />
+              <Body data-test-id="drawer-test-content">onClose button</Body>
+            </Fragment>
           ),
           options: {onClose: closeSpy, ariaLabel},
         }}
@@ -145,8 +153,11 @@ describe('GlobalDrawer', function () {
     render(
       <GlobalDrawerTestComponent
         config={{
-          renderer: ({Body}) => (
-            <Body data-test-id="drawer-test-content">ignore close events</Body>
+          renderer: ({Body, Header}) => (
+            <Fragment>
+              <Header />
+              <Body data-test-id="drawer-test-content">ignore close events</Body>
+            </Fragment>
           ),
           options: {
             onClose: closeSpy,
@@ -177,5 +188,40 @@ describe('GlobalDrawer', function () {
 
     expect(closeSpy).toHaveBeenCalled();
     expect(content).not.toBeInTheDocument();
+  });
+
+  it('renders custom header content when specified', async function () {
+    const closeSpy = jest.fn();
+    const customHeader = 'Look at my neat drawer header';
+    render(
+      <GlobalDrawerTestComponent
+        config={{
+          renderer: ({Body, Header}) => (
+            <Fragment>
+              <Header>{customHeader}</Header>
+              <Body data-test-id="drawer-test-content">custom header</Body>
+            </Fragment>
+          ),
+          options: {ariaLabel, onClose: closeSpy},
+        }}
+      />
+    );
+
+    await userEvent.click(screen.getByTestId('drawer-test-open'));
+
+    expect(await screen.findByTestId('drawer-test-content')).toBeInTheDocument();
+    const drawer = screen.getByRole('complementary', {name: ariaLabel});
+    expect(drawer).toBeInTheDocument();
+
+    // Has close button + custom header
+    const closeButton = within(drawer).getByRole('button', {name: 'Close Drawer'});
+    expect(closeButton).toBeInTheDocument();
+    expect(within(drawer).getByText(customHeader)).toBeInTheDocument();
+
+    await userEvent.click(closeButton);
+    await waitForDrawerToHide(ariaLabel);
+
+    expect(closeSpy).toHaveBeenCalled();
+    expect(drawer).not.toBeInTheDocument();
   });
 });

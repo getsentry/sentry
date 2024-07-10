@@ -24,9 +24,15 @@ export function convertCrumbType(breadcrumb: RawCrumb): RawCrumb {
     }
     switch (category) {
       case 'console':
+      case 'Logcat':
         return {...breadcrumb, type: BreadcrumbType.DEBUG};
       case 'session':
         return {...breadcrumb, type: BreadcrumbType.NAVIGATION};
+      case 'graphql':
+      case 'mutation':
+      case 'subscription':
+      case 'data_loader':
+        return {...breadcrumb, type: BreadcrumbType.QUERY};
       case 'sentry':
         if (subcategory === 'transaction' || subcategory === 'event') {
           return {...breadcrumb, type: BreadcrumbType.TRANSACTION};
