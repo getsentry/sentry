@@ -410,8 +410,10 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
                 original_results = _data_fn(scopedDataset, offset, limit, scoped_query)
                 if original_results.get("data"):
-                    dataset_meta = original_results.get("data").get("meta", {})
+                    dataset_meta = original_results.get("meta", {})
                 else:
+                    # TODO: This index is a little weird. What use case does it serve?
+                    # Is the .get("data") extra here as well?
                     dataset_meta = list(original_results.values())[0].get("data").get("meta", {})
                 using_metrics = dataset_meta.get("isMetricsData", False) or dataset_meta.get(
                     "isMetricsExtractedData", False
