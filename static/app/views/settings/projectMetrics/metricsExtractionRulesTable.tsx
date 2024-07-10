@@ -23,7 +23,7 @@ import {openExtractionRuleEditModal} from 'sentry/views/settings/projectMetrics/
 import {
   useDeleteMetricsExtractionRules,
   useMetricsExtractionRules,
-} from 'sentry/views/settings/projectMetrics/utils/api';
+} from 'sentry/views/settings/projectMetrics/utils/useMetricsExtractionRules';
 import {useSearchQueryParam} from 'sentry/views/settings/projectMetrics/utils/useSearchQueryParam';
 
 type Props = {
