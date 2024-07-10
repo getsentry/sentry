@@ -667,6 +667,7 @@ register(
 
 # The fraction of prooguard events that will be routed to the
 # separate `store.process_event_proguard` queue
+# TODO: Unused, remove this.
 register(
     "store.separate-proguard-queue-rate",
     default=0.0,
