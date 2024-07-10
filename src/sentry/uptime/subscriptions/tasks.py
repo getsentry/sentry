@@ -6,16 +6,16 @@ from uuid import uuid4
 
 from arroyo import Topic as ArroyoTopic
 from arroyo.backends.kafka.configuration import build_kafka_configuration
-from arroyo.backends.kafka.consumer import KafkaPayload, KafkaProducer
+from arroyo.backends.kafka.consumer import KafkaProducer
 from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.uptime_configs_v1 import CheckConfig
 
 from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.snuba.models import QuerySubscription
 from sentry.tasks.base import instrumented_task
+from sentry.uptime.config_producer import produce_config, produce_config_removal
 from sentry.uptime.models import UptimeSubscription
 from sentry.utils import metrics
-from sentry.utils.hashlib import md5_text
 from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
@@ -108,8 +108,7 @@ def send_uptime_subscription_config(subscription: UptimeSubscription) -> str:
     # Whenever we create/update a config we always want to generate a new subscription id. This allows us to validate
     # that the config took effect
     subscription_id = uuid4().hex
-    check_config = uptime_subscription_to_check_config(subscription, subscription_id)
-    send_uptime_config_message(subscription_id, _get_config_codec().encode(check_config))
+    produce_config(uptime_subscription_to_check_config(subscription, subscription_id))
     return subscription_id
 
 
@@ -125,13 +124,4 @@ def uptime_subscription_to_check_config(
 
 
 def send_uptime_config_deletion(subscription_id: str) -> None:
-    send_uptime_config_message(subscription_id, b"")
-
-
-def send_uptime_config_message(subscription_id: str, value: bytes) -> None:
-    producer = _get_subscription_producer()
-    message_key = md5_text(subscription_id).hexdigest().encode()
-    payload = KafkaPayload(message_key, value, [])
-    result = producer.produce(get_uptime_config_topic(), payload)
-    # Wait to make sure we successfully produced to Kafka
-    result.result()
+    produce_config_removal(subscription_id)

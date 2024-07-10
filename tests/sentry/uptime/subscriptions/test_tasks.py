@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import abc
 from unittest.mock import patch
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 
@@ -15,10 +15,8 @@ from sentry.uptime.subscriptions.tasks import (
     create_remote_uptime_subscription,
     delete_remote_uptime_subscription,
     send_uptime_config_deletion,
-    send_uptime_config_message,
     uptime_subscription_to_check_config,
 )
-from sentry.utils.hashlib import md5_text
 
 pytestmark = [requires_kafka]
 
@@ -28,8 +26,8 @@ class ProducerTestMixin(TestCase):
 
     @pytest.fixture(autouse=True)
     def _setup_producer(self):
-        with patch("sentry.uptime.subscriptions.tasks._get_subscription_producer") as producer:
-            self.producer = producer.return_value
+        with patch("sentry.uptime.config_producer._configs_producer") as producer:
+            self.producer = producer
             yield
 
     def assert_producer_calls(self, *args: UptimeSubscription | str):
@@ -37,13 +35,11 @@ class ProducerTestMixin(TestCase):
         expected_payloads = [
             codec.encode(uptime_subscription_to_check_config(arg, str(arg.subscription_id)))
             if isinstance(arg, UptimeSubscription)
-            else b""
+            else None
             for arg in args
         ]
         expected_message_ids = [
-            md5_text(arg.subscription_id if isinstance(arg, UptimeSubscription) else arg)
-            .hexdigest()
-            .encode()
+            UUID(arg.subscription_id if isinstance(arg, UptimeSubscription) else arg).bytes
             for arg in args
         ]
         passed_message_ids = [ca[0][1].key for ca in self.producer.produce.call_args_list]
@@ -160,13 +156,3 @@ class SendUptimeConfigDeletionTest(ProducerTestMixin):
         subscription_id = uuid4().hex
         send_uptime_config_deletion(subscription_id)
         self.assert_producer_calls(subscription_id)
-
-
-class SendUptimeConfigMessageTest(ProducerTestMixin):
-    def test(self):
-        subscription_id = uuid4().hex
-        sub = self.create_uptime_subscription()
-        check_config = uptime_subscription_to_check_config(sub, subscription_id)
-        send_uptime_config_message(subscription_id, _get_config_codec().encode(check_config))
-        sub.subscription_id = subscription_id
-        self.assert_producer_calls(sub)
