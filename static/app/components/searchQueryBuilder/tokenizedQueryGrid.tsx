@@ -11,6 +11,7 @@ import {SearchQueryBuilderFilter} from 'sentry/components/searchQueryBuilder/fil
 import {SearchQueryBuilderInput} from 'sentry/components/searchQueryBuilder/input';
 import {SearchQueryBuilderParen} from 'sentry/components/searchQueryBuilder/paren';
 import {useQueryBuilderGrid} from 'sentry/components/searchQueryBuilder/useQueryBuilderGrid';
+import {useSelectOnDrag} from 'sentry/components/searchQueryBuilder/useSelectOnDrag';
 import {makeTokenKey} from 'sentry/components/searchQueryBuilder/utils';
 import {type ParseResultToken, Token} from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
@@ -39,12 +40,14 @@ function useApplyFocusOverride(state: ListState<ParseResultToken>) {
 
 function Grid(props: GridProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const {size} = useSearchQueryBuilder();
   const {state, gridProps} = useQueryBuilderGrid(props, ref);
 
   useApplyFocusOverride(state);
+  useSelectOnDrag(state);
 
   return (
-    <SearchQueryGridWrapper {...gridProps} ref={ref}>
+    <SearchQueryGridWrapper {...gridProps} ref={ref} size={size}>
       {[...state.collection].map(item => {
         const token = item.value;
 
@@ -119,8 +122,9 @@ export function TokenizedQueryGrid({label}: TokenizedQueryGridProps) {
   );
 }
 
-const SearchQueryGridWrapper = styled('div')`
-  padding: ${space(0.75)} 34px ${space(0.75)} 32px;
+const SearchQueryGridWrapper = styled('div')<{size: 'small' | 'normal'}>`
+  padding: ${p =>
+    p.size === 'small' ? space(0.75) : `${space(0.75)} 34px ${space(0.75)} 32px`};
   display: flex;
   align-items: stretch;
   row-gap: ${space(0.5)};

@@ -10,6 +10,19 @@ import {
 } from 'sentry/components/events/breadcrumbs/testUtils';
 import {EntryType} from 'sentry/types';
 
+// Needed to mock useVirtualizer lists.
+jest.spyOn(window.Element.prototype, 'getBoundingClientRect').mockImplementation(() => ({
+  x: 0,
+  y: 0,
+  width: 0,
+  height: 30,
+  left: 0,
+  top: 0,
+  right: 0,
+  bottom: 0,
+  toJSON: jest.fn(),
+}));
+
 describe('BreadcrumbsDataSection', function () {
   it('renders a summary of breadcrumbs with a button to view them all', async function () {
     render(<BreadcrumbsDataSection {...MOCK_DATA_SECTION_PROPS} />);
@@ -63,10 +76,10 @@ describe('BreadcrumbsDataSection', function () {
 
     // From virtual crumb
     expect(screen.getByText('0ms')).toBeInTheDocument();
-    expect(screen.queryByText('18:01:48')).not.toBeInTheDocument();
+    expect(screen.queryByText('06:01:48.762')).not.toBeInTheDocument();
     // From event breadcrumb
-    expect(screen.getByText('-1min')).toBeInTheDocument();
-    expect(screen.queryByText('18:00:48')).not.toBeInTheDocument();
+    expect(screen.getByText('-1min 2ms')).toBeInTheDocument();
+    expect(screen.queryByText('06:00:48.760')).not.toBeInTheDocument();
 
     const timeControl = screen.getByRole('button', {
       name: 'Change Time Format for Breadcrumbs',
@@ -74,16 +87,16 @@ describe('BreadcrumbsDataSection', function () {
     await userEvent.click(timeControl);
 
     expect(screen.queryByText('0ms')).not.toBeInTheDocument();
-    expect(screen.getByText('18:01:48')).toBeInTheDocument();
-    expect(screen.queryByText('-1min')).not.toBeInTheDocument();
-    expect(screen.getByText('18:00:48')).toBeInTheDocument();
+    expect(screen.getByText('06:01:48.762')).toBeInTheDocument();
+    expect(screen.queryByText('-1min 2ms')).not.toBeInTheDocument();
+    expect(screen.getByText('06:00:48.760')).toBeInTheDocument();
 
     await userEvent.click(timeControl);
 
     expect(screen.getByText('0ms')).toBeInTheDocument();
-    expect(screen.queryByText('18:01:48')).not.toBeInTheDocument();
-    expect(screen.getByText('-1min')).toBeInTheDocument();
-    expect(screen.queryByText('18:00:48')).not.toBeInTheDocument();
+    expect(screen.queryByText('06:01:48.762')).not.toBeInTheDocument();
+    expect(screen.getByText('-1min 2ms')).toBeInTheDocument();
+    expect(screen.queryByText('06:00:48.760')).not.toBeInTheDocument();
   });
 
   it.each([

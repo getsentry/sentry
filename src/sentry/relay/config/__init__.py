@@ -13,15 +13,6 @@ from sentry import features, killswitches, options, quotas, utils
 from sentry.constants import HEALTH_CHECK_GLOBS, ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.dynamic_sampling import generate_rules
-from sentry.dynamic_sampling.rules.utils import (
-    Condition,
-    EqCondition,
-    GlobCondition,
-    GtCondition,
-    GteCondition,
-    LtCondition,
-    LteCondition,
-)
 from sentry.grouping.api import get_grouping_config_dict_for_project
 from sentry.ingest.inbound_filters import (
     FilterStatKeys,
@@ -29,6 +20,7 @@ from sentry.ingest.inbound_filters import (
     _FilterSpec,
     get_all_filter_specs,
     get_filter_key,
+    get_generic_filters,
 )
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
@@ -54,7 +46,7 @@ from sentry.utils.options import sample_modulo
 
 from .measurements import CUSTOM_MEASUREMENT_LIMIT
 
-#: These features will be listed in the project config.
+# These features will be listed in the project config.
 #
 # NOTE: These features must be sorted or the tests will fail!
 EXPOSABLE_FEATURES = [
@@ -64,13 +56,13 @@ EXPOSABLE_FEATURES = [
     "organizations:profiling",
     "organizations:session-replay-combined-envelope-items",
     "organizations:session-replay-recording-scrubbing",
+    "organizations:session-replay-video-disabled",
     "organizations:session-replay",
     "organizations:standalone-span-ingestion",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
     "organizations:transaction-name-normalize",
     "organizations:user-feedback-ingest",
     "projects:discard-transaction",
-    "projects:extract-transaction-from-segment-span",
     "projects:profiling-ingest-unsampled-profiles",
     "projects:span-metrics-extraction",
     "projects:span-metrics-extraction-addons",
@@ -150,6 +142,9 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
 
         error_messages += project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}") or []
 
+    # TODO: remove both error message filters when the generic filters implementation is proved to be on par when it
+    #   comes to filtering capabilities. When both generic and non-generic filters are applied, the generic ones take
+    #   precedence.
     # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
     # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
     # why the value true is determined by either "1" or True.
@@ -187,44 +182,20 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     if csp_disallowed_sources:
         filter_settings["csp"] = {"disallowedSources": csp_disallowed_sources}
 
-    try:
-        generic_filters = _get_generic_project_filters()
-    except Exception:
-        logger.exception(
-            "Exception while building Relay project config: error building generic filters"
-        )
-    else:
-        if generic_filters and len(generic_filters["filters"]) > 0:
-            filter_settings["generic"] = generic_filters
+    if options.get("relay.emit-generic-inbound-filters"):
+        try:
+            # At the end we compute the generic inbound filters, which are inbound filters expressible with a
+            # conditional DSL that Relay understands.
+            generic_filters = get_generic_filters(project)
+            if generic_filters is not None:
+                filter_settings["generic"] = generic_filters
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            logger.exception(
+                "Exception while building Relay project config: error building generic filters"
+            )
 
     return filter_settings
-
-
-class GenericFilter(TypedDict):
-    id: str
-    isEnabled: bool
-    condition: (
-        Condition
-        | EqCondition
-        | GteCondition
-        | GtCondition
-        | LteCondition
-        | LtCondition
-        | GlobCondition
-        | None
-    )
-
-
-class GenericFiltersConfig(TypedDict):
-    version: int
-    filters: Sequence[GenericFilter]
-
-
-def _get_generic_project_filters() -> GenericFiltersConfig:
-    return {
-        "version": 1,
-        "filters": [],
-    }
 
 
 def get_quotas(project: Project, keys: Iterable[ProjectKey] | None = None) -> list[str]:
@@ -351,6 +322,10 @@ def get_project_config(
 
 
 def get_dynamic_sampling_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
+    if options.get("dynamic-sampling.config.killswitch"):
+        # This killswitch will cause extra load, and should only be used for AM1->AM2 migration.
+        return None
+
     if features.has("organizations:dynamic-sampling", project.organization):
         return {"version": 2, "rules": generate_rules(project)}
 
@@ -422,7 +397,14 @@ def _should_extract_abnormal_mechanism(project: Project) -> bool:
     )
 
 
+def _should_performance_profiles_web_vitals_be_optional(organization: Organization) -> bool:
+    return features.has(
+        "organizations:insights-browser-webvitals-optional-components", organization
+    )
+
+
 def _get_desktop_browser_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
+    optional = _should_performance_profiles_web_vitals_be_optional(organization)
     return [
         {
             "name": "Chrome",
@@ -432,28 +414,28 @@ def _get_desktop_browser_performance_profiles(organization: Organization) -> lis
                     "weight": 0.15,
                     "p10": 900.0,
                     "p50": 1600.0,
-                    "optional": False,
+                    "optional": optional,
                 },
                 {
                     "measurement": "lcp",
                     "weight": 0.30,
                     "p10": 1200.0,
                     "p50": 2400.0,
-                    "optional": False,
+                    "optional": optional,
                 },
                 {
                     "measurement": "cls",
                     "weight": 0.15,
                     "p10": 0.1,
                     "p50": 0.25,
-                    "optional": False,
+                    "optional": optional,
                 },
                 {
                     "measurement": "ttfb",
                     "weight": 0.10,
                     "p10": 200.0,
                     "p50": 400.0,
-                    "optional": False,
+                    "optional": optional,
                 },
             ],
             "condition": {
@@ -470,14 +452,14 @@ def _get_desktop_browser_performance_profiles(organization: Organization) -> lis
                     "weight": 0.15,
                     "p10": 900.0,
                     "p50": 1600.0,
-                    "optional": False,
+                    "optional": optional,
                 },
                 {
                     "measurement": "lcp",
                     "weight": 0.30,
                     "p10": 1200.0,
                     "p50": 2400.0,
-                    "optional": True,
+                    "optional": True,  # Only available on Firefox 122 and beyond
                 },
                 {
                     "measurement": "cls",
@@ -491,7 +473,7 @@ def _get_desktop_browser_performance_profiles(organization: Organization) -> lis
                     "weight": 0.10,
                     "p10": 200.0,
                     "p50": 400.0,
-                    "optional": False,
+                    "optional": optional,
                 },
             ],
             "condition": {
@@ -508,7 +490,7 @@ def _get_desktop_browser_performance_profiles(organization: Organization) -> lis
                     "weight": 0.15,
                     "p10": 900.0,
                     "p50": 1600.0,
-                    "optional": False,
+                    "optional": optional,
                 },
                 {
                     "measurement": "lcp",
@@ -529,7 +511,7 @@ def _get_desktop_browser_performance_profiles(organization: Organization) -> lis
                     "weight": 0.10,
                     "p10": 200.0,
                     "p50": 400.0,
-                    "optional": False,
+                    "optional": optional,
                 },
             ],
             "condition": {
@@ -546,28 +528,28 @@ def _get_desktop_browser_performance_profiles(organization: Organization) -> lis
                     "weight": 0.15,
                     "p10": 900.0,
                     "p50": 1600.0,
-                    "optional": False,
+                    "optional": optional,
                 },
                 {
                     "measurement": "lcp",
                     "weight": 0.30,
                     "p10": 1200.0,
                     "p50": 2400.0,
-                    "optional": False,
+                    "optional": optional,
                 },
                 {
                     "measurement": "cls",
                     "weight": 0.15,
                     "p10": 0.1,
                     "p50": 0.25,
-                    "optional": False,
+                    "optional": optional,
                 },
                 {
                     "measurement": "ttfb",
                     "weight": 0.10,
                     "p10": 200.0,
                     "p50": 400.0,
-                    "optional": False,
+                    "optional": optional,
                 },
             ],
             "condition": {
@@ -584,28 +566,28 @@ def _get_desktop_browser_performance_profiles(organization: Organization) -> lis
                     "weight": 0.15,
                     "p10": 900.0,
                     "p50": 1600.0,
-                    "optional": False,
+                    "optional": optional,
                 },
                 {
                     "measurement": "lcp",
                     "weight": 0.30,
                     "p10": 1200.0,
                     "p50": 2400.0,
-                    "optional": False,
+                    "optional": optional,
                 },
                 {
                     "measurement": "cls",
                     "weight": 0.15,
                     "p10": 0.1,
                     "p50": 0.25,
-                    "optional": False,
+                    "optional": optional,
                 },
                 {
                     "measurement": "ttfb",
                     "weight": 0.10,
                     "p10": 200.0,
                     "p50": 400.0,
-                    "optional": False,
+                    "optional": optional,
                 },
             ],
             "condition": {
@@ -679,6 +661,7 @@ def _get_desktop_browser_performance_profiles(organization: Organization) -> lis
 
 
 def _get_mobile_browser_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
+    optional = _should_performance_profiles_web_vitals_be_optional(organization)
     return [
         {
             "name": "Chrome Mobile",
@@ -688,28 +671,28 @@ def _get_mobile_browser_performance_profiles(organization: Organization) -> list
                     "weight": 0.15,
                     "p10": 1800.0,
                     "p50": 3000.0,
-                    "optional": False,
+                    "optional": optional,
                 },
                 {
                     "measurement": "lcp",
                     "weight": 0.30,
                     "p10": 2500.0,
                     "p50": 4000.0,
-                    "optional": False,
+                    "optional": optional,
                 },
                 {
                     "measurement": "cls",
                     "weight": 0.15,
                     "p10": 0.1,
                     "p50": 0.25,
-                    "optional": False,
+                    "optional": optional,
                 },
                 {
                     "measurement": "ttfb",
                     "weight": 0.10,
                     "p10": 800.0,
                     "p50": 1800.0,
-                    "optional": False,
+                    "optional": optional,
                 },
             ],
             "condition": {
@@ -726,14 +709,14 @@ def _get_mobile_browser_performance_profiles(organization: Organization) -> list
                     "weight": 0.15,
                     "p10": 1800.0,
                     "p50": 3000.0,
-                    "optional": False,
+                    "optional": optional,
                 },
                 {
                     "measurement": "lcp",
                     "weight": 0.30,
                     "p10": 2500.0,
                     "p50": 4000.0,
-                    "optional": False,
+                    "optional": True,  # Only available on Firefox 122 and beyond
                 },
                 {
                     "measurement": "cls",
@@ -747,7 +730,7 @@ def _get_mobile_browser_performance_profiles(organization: Organization) -> list
                     "weight": 0.10,
                     "p10": 800.0,
                     "p50": 1800.0,
-                    "optional": False,
+                    "optional": optional,
                 },
             ],
             "condition": {
@@ -764,7 +747,7 @@ def _get_mobile_browser_performance_profiles(organization: Organization) -> list
                     "weight": 0.15,
                     "p10": 1800.0,
                     "p50": 3000.0,
-                    "optional": False,
+                    "optional": optional,
                 },
                 {
                     "measurement": "lcp",
@@ -785,7 +768,7 @@ def _get_mobile_browser_performance_profiles(organization: Organization) -> list
                     "weight": 0.10,
                     "p10": 800.0,
                     "p50": 1800.0,
-                    "optional": False,
+                    "optional": optional,
                 },
             ],
             "condition": {
@@ -802,28 +785,28 @@ def _get_mobile_browser_performance_profiles(organization: Organization) -> list
                     "weight": 0.15,
                     "p10": 1800.0,
                     "p50": 3000.0,
-                    "optional": False,
+                    "optional": optional,
                 },
                 {
                     "measurement": "lcp",
                     "weight": 0.30,
                     "p10": 2500.0,
                     "p50": 4000.0,
-                    "optional": False,
+                    "optional": optional,
                 },
                 {
                     "measurement": "cls",
                     "weight": 0.15,
                     "p10": 0.1,
                     "p50": 0.25,
-                    "optional": False,
+                    "optional": optional,
                 },
                 {
                     "measurement": "ttfb",
                     "weight": 0.10,
                     "p10": 800.0,
                     "p50": 1800.0,
-                    "optional": False,
+                    "optional": optional,
                 },
             ],
             "condition": {
@@ -840,28 +823,28 @@ def _get_mobile_browser_performance_profiles(organization: Organization) -> list
                     "weight": 0.15,
                     "p10": 1800.0,
                     "p50": 3000.0,
-                    "optional": False,
+                    "optional": optional,
                 },
                 {
                     "measurement": "lcp",
                     "weight": 0.30,
                     "p10": 2500.0,
                     "p50": 4000.0,
-                    "optional": False,
+                    "optional": optional,
                 },
                 {
                     "measurement": "cls",
                     "weight": 0.15,
                     "p10": 0.1,
                     "p50": 0.25,
-                    "optional": False,
+                    "optional": optional,
                 },
                 {
                     "measurement": "ttfb",
                     "weight": 0.10,
                     "p10": 800.0,
                     "p50": 1800.0,
-                    "optional": False,
+                    "optional": optional,
                 },
             ],
             "condition": {

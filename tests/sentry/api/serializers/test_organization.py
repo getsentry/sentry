@@ -94,7 +94,6 @@ class OrganizationSerializerTest(TestCase):
             "open-membership",
             "relay",
             "shared-issues",
-            "session-replay-video",
             "session-replay-ui",
             "sso-basic",
             "sso-saml2",
@@ -164,6 +163,7 @@ class DetailedOrganizationSerializerTest(TestCase):
         assert result["relayPiiConfig"] is None
         assert isinstance(result["orgRoleList"], list)
         assert isinstance(result["teamRoleList"], list)
+        assert result["requiresSso"] == acc.requires_sso
 
 
 class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):

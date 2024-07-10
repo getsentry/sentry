@@ -3,7 +3,7 @@ __all__ = [
     "SpanAttributeExtractionRuleConfig",
 ]
 
-from .metricsextractionrules import (
+from .spanattributeextractionrules import (
     SpanAttributeExtractionRuleCondition,
     SpanAttributeExtractionRuleConfig,
 )

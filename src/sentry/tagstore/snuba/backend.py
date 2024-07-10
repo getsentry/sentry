@@ -1179,7 +1179,7 @@ class SnubaTagStorage(TagStorage):
         key,
         start=None,
         end=None,
-        query=None,
+        query: str | None = None,
         order_by="-last_seen",
         include_transactions: bool = False,
         include_sessions: bool = False,
@@ -1339,6 +1339,7 @@ class SnubaTagStorage(TagStorage):
                 end=end,
                 environment=filters.get("environment"),
                 tag_key=key,
+                tag_substr_query=query,
                 tenant_ids=tenant_ids,
             )
             results = {

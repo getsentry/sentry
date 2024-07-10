@@ -7,6 +7,20 @@ import {
 } from 'sentry/components/events/breadcrumbs/testUtils';
 
 async function renderBreadcrumbDrawer() {
+  // Needed to mock useVirtualizer lists.
+  jest
+    .spyOn(window.Element.prototype, 'getBoundingClientRect')
+    .mockImplementation(() => ({
+      x: 0,
+      y: 0,
+      width: 0,
+      height: 30,
+      left: 0,
+      top: 0,
+      right: 0,
+      bottom: 0,
+      toJSON: jest.fn(),
+    }));
   render(<BreadcrumbsDataSection {...MOCK_DATA_SECTION_PROPS} />);
   await userEvent.click(screen.getByRole('button', {name: 'View All Breadcrumbs'}));
   return within(screen.getByRole('complementary', {name: 'breadcrumb drawer'}));
@@ -39,11 +53,12 @@ describe('BreadcrumbsDrawerContent', function () {
     ).toBeInTheDocument();
 
     // Contents
-    for (const {message, category} of MOCK_BREADCRUMBS) {
-      expect(drawerScreen.getByText(message)).toBeInTheDocument();
+    for (const {category, level, message} of MOCK_BREADCRUMBS) {
       expect(drawerScreen.getByText(category)).toBeInTheDocument();
+      expect(drawerScreen.getByText(level)).toBeInTheDocument();
+      expect(drawerScreen.getByText(message)).toBeInTheDocument();
     }
-    expect(drawerScreen.getAllByText('-1min')).toHaveLength(MOCK_BREADCRUMBS.length);
+    expect(drawerScreen.getAllByText('-1min 2ms')).toHaveLength(MOCK_BREADCRUMBS.length);
   });
 
   it('allows search to affect displayed crumbs', async function () {
@@ -114,9 +129,8 @@ describe('BreadcrumbsDrawerContent', function () {
 
   it('allows time display dropdown to change all displayed crumbs', async function () {
     const drawerScreen = await renderBreadcrumbDrawer();
-
-    expect(drawerScreen.getAllByText('-1min')).toHaveLength(MOCK_BREADCRUMBS.length);
-    expect(drawerScreen.queryByText('18:00:48')).not.toBeInTheDocument();
+    expect(drawerScreen.getAllByText('-1min 2ms')).toHaveLength(MOCK_BREADCRUMBS.length);
+    expect(drawerScreen.queryByText('06:00:48.760')).not.toBeInTheDocument();
 
     const timeControl = drawerScreen.getByRole('button', {
       name: 'Change Time Format for All Breadcrumbs',
@@ -124,13 +138,15 @@ describe('BreadcrumbsDrawerContent', function () {
     await userEvent.click(timeControl);
     await userEvent.click(drawerScreen.getByRole('option', {name: 'Absolute'}));
 
-    expect(drawerScreen.queryByText('-1min')).not.toBeInTheDocument();
-    expect(drawerScreen.getAllByText('18:00:48')).toHaveLength(MOCK_BREADCRUMBS.length);
+    expect(drawerScreen.queryByText('-1min 2ms')).not.toBeInTheDocument();
+    expect(drawerScreen.getAllByText('06:00:48.760')).toHaveLength(
+      MOCK_BREADCRUMBS.length
+    );
 
     await userEvent.click(timeControl);
     await userEvent.click(drawerScreen.getByRole('option', {name: 'Relative'}));
 
-    expect(drawerScreen.getAllByText('-1min')).toHaveLength(MOCK_BREADCRUMBS.length);
-    expect(drawerScreen.queryByText('18:00:48')).not.toBeInTheDocument();
+    expect(drawerScreen.getAllByText('-1min 2ms')).toHaveLength(MOCK_BREADCRUMBS.length);
+    expect(drawerScreen.queryByText('06:00:48.760')).not.toBeInTheDocument();
   });
 });

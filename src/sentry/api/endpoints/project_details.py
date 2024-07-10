@@ -331,6 +331,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             # This should only apply to sources which are being fed to symbolicator.
             # App Store Connect in particular is managed in a completely different
             # way, and needs its `id` to stay valid for a longer time.
+            # TODO(@anonrig): Remove this when all AppStore connect data is removed.
             if source["type"] != "appStoreConnect":
                 source["id"] = str(uuid4())
 
@@ -344,15 +345,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         if not has_sources:
             raise serializers.ValidationError(
                 "Organization is not allowed to set custom symbol sources"
-            )
-
-        has_multiple_appconnect = features.has(
-            "organizations:app-store-connect-multiple", organization, actor=request.user
-        )
-        appconnect_sources = [s for s in sources if s.get("type") == "appStoreConnect"]
-        if not has_multiple_appconnect and len(appconnect_sources) > 1:
-            raise serializers.ValidationError(
-                "Only one Apple App Store Connect application is allowed in this project"
             )
 
         return sources_json
@@ -839,11 +831,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 project.update_option(
                     "sentry:feedback_ai_spam_detection",
                     bool(options["sentry:feedback_ai_spam_detection"]),
-                )
-            if "sentry:reprocessing_active" in options:
-                project.update_option(
-                    "sentry:reprocessing_active",
-                    bool(options["sentry:reprocessing_active"]),
                 )
             if "filters:react-hydration-errors" in options:
                 project.update_option(

@@ -33,6 +33,7 @@ export type InsightEventParameters = {
   'insight.vital.overview.open_transaction_summary': {};
   'insight.vital.overview.toggle_data_type': {type: string};
   'insight.vital.overview.toggle_tab': {tab: string};
+  'insight.vital.select_browser_value': {browsers: string[]};
   'insight.vital.vital_sidebar_opened': {vital: string};
 };
 
@@ -75,4 +76,5 @@ export const insightEventMap: Record<InsightEventKey, string | null> = {
     'Insights: Web Vitals Overview - open full waterfall',
   'insight.vital.overview.toggle_data_type':
     'Insights: Web Vitals Overview - toggle data type',
+  'insight.vital.select_browser_value': 'Insights: Web Vitals - filter by browser type',
 };

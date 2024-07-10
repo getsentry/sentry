@@ -7,15 +7,11 @@ import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import BreadcrumbItem from 'sentry/components/replays/breadcrumbs/breadcrumbItem';
 import hydrateBreadcrumbs from 'sentry/utils/replays/hydrateBreadcrumbs';
 
-const [MOCK_FRAME] = hydrateBreadcrumbs(
-  ReplayRecordFixture(),
-  [
-    ReplayClickFrameFixture({
-      timestamp: new Date('2024/06/21'),
-    }),
-  ],
-  []
-);
+const [MOCK_FRAME] = hydrateBreadcrumbs(ReplayRecordFixture(), [
+  ReplayClickFrameFixture({
+    timestamp: new Date('2024/06/21'),
+  }),
+]);
 
 describe('BreadcrumbItem', function () {
   const organization = OrganizationFixture({features: ['new-timeline-ui']});

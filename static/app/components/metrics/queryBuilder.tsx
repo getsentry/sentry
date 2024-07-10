@@ -12,19 +12,21 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MRI} from 'sentry/types/metrics';
+import type {MetricsExtractionCondition, MRI} from 'sentry/types/metrics';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDefaultAggregation, isAllowedAggregation} from 'sentry/utils/metrics';
-import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
+import {DEFAULT_METRICS_CARDINALITY_LIMIT} from 'sentry/utils/metrics/constants';
+import {parseMRI} from 'sentry/utils/metrics/mri';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
+import {useMetricsCardinality} from 'sentry/utils/metrics/useMetricsCardinality';
 import {useVirtualizedMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSelectedProjects} from 'sentry/views/metrics/utils/useSelectedProjects';
+import {openExtractionRuleEditModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleEditModal';
 
 type QueryBuilderProps = {
   index: number;
@@ -42,6 +44,7 @@ export const QueryBuilder = memo(function QueryBuilder({
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const {getConditions, getVirtualMeta, resolveVirtualMRI} = useVirtualMetricsContext();
+  const {data: cardinality} = useMetricsCardinality(pageFilters.selection);
 
   const {
     data: meta,
@@ -111,6 +114,7 @@ export const QueryBuilder = memo(function QueryBuilder({
         queryChanges.aggregation = getDefaultAggregation(mriValue);
       }
 
+      // If it is a virtual MRI we need to check for the new conditions and aggregations
       if (newMRI.type === 'v') {
         const spanConditions = getConditions(mriValue);
         const virtualMeta = getVirtualMeta(mriValue);
@@ -189,6 +193,13 @@ export const QueryBuilder = memo(function QueryBuilder({
   const projectIdStrings = useMemo(() => projectIds.map(String), [projectIds]);
   const spanConditions = getConditions(metricsQuery.mri);
 
+  const getMaxCardinality = (condition?: MetricsExtractionCondition) => {
+    if (!cardinality || !condition) {
+      return 0;
+    }
+    return condition.mris.reduce((acc, mri) => Math.max(acc, cardinality[mri] || 0), 0);
+  };
+
   return (
     <QueryBuilderWrapper>
       <FlexBlock>
@@ -207,7 +218,15 @@ export const QueryBuilder = memo(function QueryBuilder({
           {selectedMeta?.type === 'v' ? (
             <CompactSelect
               size="md"
-              triggerProps={{prefix: t('Query')}}
+              triggerProps={{
+                prefix: t('Query'),
+                icon:
+                  getMaxCardinality(
+                    spanConditions.find(c => c.id === metricsQuery.condition)
+                  ) > DEFAULT_METRICS_CARDINALITY_LIMIT ? (
+                    <CardinalityWarningIcon />
+                  ) : null,
+              }}
               options={spanConditions.map(condition => ({
                 label: condition.value ? (
                   <Tooltip showOnlyOnOverflow title={condition.value} skipWrapper>
@@ -216,6 +235,11 @@ export const QueryBuilder = memo(function QueryBuilder({
                 ) : (
                   t('All spans')
                 ),
+                trailingItems: [
+                  getMaxCardinality(condition) > DEFAULT_METRICS_CARDINALITY_LIMIT ? (
+                    <CardinalityWarningIcon key="cardinality-warning" />
+                  ) : undefined,
+                ],
                 textValue: condition.value || t('All spans'),
                 value: condition.id,
               }))}
@@ -282,6 +306,20 @@ export const QueryBuilder = memo(function QueryBuilder({
   );
 });
 
+function CardinalityWarningIcon() {
+  return (
+    <Tooltip
+      isHoverable
+      title={t(
+        "This query is exeeding the cardinality limit. Remove tags or add more filters in the metric's settings to receive accurate data."
+      )}
+      skipWrapper
+    >
+      <IconWarning size="xs" color="yellow300" />
+    </Tooltip>
+  );
+}
+
 function TagWarningIcon() {
   return (
     <TooltipIconWrapper>
@@ -295,9 +333,8 @@ function TagWarningIcon() {
 }
 
 function QueryFooter({mri, closeOverlay}) {
-  const {getVirtualMeta} = useVirtualMetricsContext();
+  const {getVirtualMeta, getExtractionRule} = useVirtualMetricsContext();
   const selectedProjects = useSelectedProjects();
-  const navigate = useNavigate();
 
   const metricMeta = getVirtualMeta(mri);
   const project = selectedProjects.find(p => p.id === String(metricMeta.projectIds[0]));
@@ -312,7 +349,11 @@ function QueryFooter({mri, closeOverlay}) {
         icon={<IconAdd isCircled />}
         onClick={() => {
           closeOverlay();
-          navigate(`/settings/projects/${project.slug}/metrics/${formatMRI(mri)}/edit`);
+          const extractionRule = getExtractionRule(mri);
+          if (!extractionRule) {
+            return;
+          }
+          openExtractionRuleEditModal({metricExtractionRule: extractionRule});
         }}
       >
         {t('Add Query')}

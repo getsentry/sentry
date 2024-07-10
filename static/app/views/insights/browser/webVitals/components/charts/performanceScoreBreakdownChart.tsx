@@ -6,7 +6,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import type {BrowserType} from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
@@ -15,12 +14,13 @@ import {
   type WebVitalsScoreBreakdown,
 } from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresTimeseriesQuery';
 import {applyStaticWeightsToTimeseries} from 'sentry/views/insights/browser/webVitals/utils/applyStaticWeightsToTimeseries';
+import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
 import {useStaticWeightsSetting} from 'sentry/views/insights/browser/webVitals/utils/useStaticWeightsSetting';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 
 type Props = {
-  browserType?: BrowserType;
+  browserTypes?: BrowserType[];
   transaction?: string;
 };
 
@@ -46,16 +46,16 @@ export const formatTimeSeriesResultsToChartData = (
   });
 };
 
-export function PerformanceScoreBreakdownChart({transaction, browserType}: Props) {
+export function PerformanceScoreBreakdownChart({transaction, browserTypes}: Props) {
   const theme = useTheme();
   const segmentColors = [...theme.charts.getColorPalette(3).slice(0, 5)];
 
   const pageFilters = usePageFilters();
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
-    useProjectWebVitalsScoresTimeseriesQuery({transaction, browserType});
+    useProjectWebVitalsScoresTimeseriesQuery({transaction, browserTypes});
   const {data: projectScores, isLoading: isProjectScoresLoading} =
-    useProjectWebVitalsScoresQuery({transaction, browserType});
+    useProjectWebVitalsScoresQuery({transaction, browserTypes});
 
   const projectScore = isProjectScoresLoading
     ? undefined

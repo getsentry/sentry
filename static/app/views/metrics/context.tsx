@@ -11,7 +11,7 @@ import isEqual from 'lodash/isEqual';
 
 import type {FocusAreaSelection} from 'sentry/components/metrics/chart/types';
 import type {Field} from 'sentry/components/metrics/metricSamplesTable';
-import type {MRI} from 'sentry/types/metrics';
+import type {MetricMeta} from 'sentry/types/metrics';
 import {useInstantRef, useUpdateQuery} from 'sentry/utils/metrics';
 import {
   emptyMetricsFormulaWidget,
@@ -23,7 +23,7 @@ import {
   MetricExpressionType,
   type MetricsWidget,
 } from 'sentry/utils/metrics/types';
-import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
+import {useVirtualizedMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import type {MetricsSamplesResults} from 'sentry/utils/metrics/useMetricsSamples';
 import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import {decodeInteger, decodeScalar} from 'sentry/utils/queryString';
@@ -31,6 +31,7 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
+import {getNewMetricsWidget} from 'sentry/views/metrics/utils/getNewMetricsWidget';
 import {parseMetricWidgetsQueryParam} from 'sentry/views/metrics/utils/parseMetricWidgetsQueryParam';
 import {useStructuralSharing} from 'sentry/views/metrics/utils/useStructuralSharing';
 
@@ -95,15 +96,23 @@ export function useMetricsContext() {
   return useContext(MetricsContext);
 }
 
-export function useMetricWidgets(mri: MRI) {
+export function useMetricWidgets(
+  firstCustomMeta: MetricMeta | undefined,
+  defaultCondition?: number
+) {
   const {widgets: urlWidgets} = useLocationQuery({fields: {widgets: decodeScalar}});
   const updateQuery = useUpdateQuery();
 
   const widgets = useStructuralSharing(
-    useMemo<MetricsWidget[]>(
-      () => parseMetricWidgetsQueryParam(urlWidgets, mri),
-      [urlWidgets, mri]
-    )
+    useMemo<MetricsWidget[]>(() => {
+      const parseResult = parseMetricWidgetsQueryParam(urlWidgets);
+      if (parseResult.length === 0) {
+        const widget = getNewMetricsWidget(firstCustomMeta, defaultCondition);
+        widget.id = 0;
+        return [widget];
+      }
+      return parseResult;
+    }, [defaultCondition, firstCustomMeta, urlWidgets])
   );
 
   // We want to have it as a ref, so that we can use it in the setWidget callback
@@ -236,26 +245,33 @@ const useDefaultQuery = () => {
 export function MetricsContextProvider({children}: {children: React.ReactNode}) {
   const router = useRouter();
   const updateQuery = useUpdateQuery();
-  const {getVirtualMRI} = useVirtualMetricsContext();
+  const {getConditions} = useVirtualMetricsContext();
   const {multiChartMode} = useLocationQuery({fields: {multiChartMode: decodeInteger}});
   const pageFilters = usePageFilters();
-  const {data: metaCustom, isLoading: isMetaCustomLoading} = useMetricsMeta(
+  const {data: metaCustom, isLoading: isMetaCustomLoading} = useVirtualizedMetricsMeta(
     pageFilters.selection,
-    ['custom']
+    ['custom'],
+    true,
+    pageFilters.isReady
   );
-  const {data: metaPerformance, isLoading: isMetaPerformanceLoading} = useMetricsMeta(
-    pageFilters.selection,
-    ['transactions', 'spans']
-  );
+  const {data: metaPerformance, isLoading: isMetaPerformanceLoading} =
+    useVirtualizedMetricsMeta(
+      pageFilters.selection,
+      ['transactions', 'spans'],
+      true,
+      pageFilters.isReady
+    );
   const isMultiChartMode = multiChartMode === 1;
-  const firstCustomMetric =
-    metaCustom[0]?.mri && (getVirtualMRI(metaCustom[0]?.mri) ?? metaCustom[0]?.mri);
+  const firstCustomMetric: MetricMeta | undefined = metaCustom[0];
 
   const {setDefaultQuery, isDefaultQuery} = useDefaultQuery();
 
   const [selectedWidgetIndex, setSelectedWidgetIndex] = useState(0);
   const {widgets, updateWidget, addWidget, removeWidget, duplicateWidget, setWidgets} =
-    useMetricWidgets(firstCustomMetric);
+    useMetricWidgets(
+      firstCustomMetric,
+      firstCustomMetric && getConditions(firstCustomMetric.mri)[0]?.id
+    );
 
   const [metricsSamples, setMetricsSamples] = useState<
     MetricsSamplesResults<Field>['data'] | undefined

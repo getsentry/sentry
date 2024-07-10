@@ -25,6 +25,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
+import BrowserTypeSelector from 'sentry/views/insights/browser/webVitals/components/browserTypeSelector';
 import {PerformanceScoreBreakdownChart} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreBreakdownChart';
 import {PageOverviewSidebar} from 'sentry/views/insights/browser/webVitals/components/pageOverviewSidebar';
 import {PageOverviewWebVitalsDetailPanel} from 'sentry/views/insights/browser/webVitals/components/pageOverviewWebVitalsDetailPanel';
@@ -34,9 +35,11 @@ import {useProjectRawWebVitalsQuery} from 'sentry/views/insights/browser/webVita
 import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
 import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
+import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
+import {SpanIndexedField} from 'sentry/views/insights/types';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 
 export enum LandingDisplayField {
@@ -91,10 +94,14 @@ export function PageOverview() {
   const crumbs = useModuleBreadcrumbs('vital');
 
   const query = decodeScalar(location.query.query);
+  const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
 
-  const {data: pageData, isLoading} = useProjectRawWebVitalsQuery({transaction});
+  const {data: pageData, isLoading} = useProjectRawWebVitalsQuery({
+    transaction,
+    browserTypes,
+  });
   const {data: projectScores, isLoading: isProjectScoresLoading} =
-    useProjectWebVitalsScoresQuery({transaction});
+    useProjectWebVitalsScoresQuery({transaction, browserTypes});
 
   if (transaction === undefined) {
     // redirect user to webvitals landing page
@@ -196,6 +203,7 @@ export function PageOverview() {
                   <EnvironmentPageFilter />
                   <DatePageFilter />
                 </PageFilterBar>
+                <BrowserTypeSelector />
               </TopMenuContainer>
               <Flex>
                 <PerformanceScoreBreakdownChart transaction={transaction} />
@@ -228,6 +236,7 @@ export function PageOverview() {
                 projectScore={projectScore}
                 transaction={transaction}
                 projectScoreIsLoading={isLoading}
+                browserTypes={browserTypes}
               />
             </Layout.Side>
           </Layout.Body>
@@ -264,6 +273,7 @@ const ViewAllPagesButton = styled(LinkButton)`
 const TopMenuContainer = styled('div')`
   margin-bottom: ${space(1)};
   display: flex;
+  gap: ${space(2)};
 `;
 
 const Flex = styled('div')`

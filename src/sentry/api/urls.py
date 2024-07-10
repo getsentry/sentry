@@ -445,10 +445,10 @@ from .endpoints.organization_onboarding_continuation_email import (
 )
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
-from .endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
 from .endpoints.organization_profiling_functions import OrganizationProfilingFunctionTrendsEndpoint
 from .endpoints.organization_profiling_profiles import (
     OrganizationProfilingChunksEndpoint,
+    OrganizationProfilingChunksFlamegraphEndpoint,
     OrganizationProfilingFiltersEndpoint,
     OrganizationProfilingFlamegraphEndpoint,
 )
@@ -508,13 +508,6 @@ from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
 from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleConditionsEndpoint
-from .endpoints.project_app_store_connect_credentials import (
-    AppStoreConnectAppsEndpoint,
-    AppStoreConnectCreateCredentialsEndpoint,
-    AppStoreConnectRefreshEndpoint,
-    AppStoreConnectStatusEndpoint,
-    AppStoreConnectUpdateCredentialsEndpoint,
-)
 from .endpoints.project_artifact_bundle_file_details import ProjectArtifactBundleFileDetailsEndpoint
 from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesEndpoint
 from .endpoints.project_autofix_codebase_index_status import (
@@ -553,10 +546,6 @@ from .endpoints.project_performance_issue_settings import ProjectPerformanceIssu
 from .endpoints.project_platforms import ProjectPlatformsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
 from .endpoints.project_plugins import ProjectPluginsEndpoint
-from .endpoints.project_processingissues import (
-    ProjectProcessingIssuesDiscardEndpoint,
-    ProjectProcessingIssuesEndpoint,
-)
 from .endpoints.project_profiling_profile import (
     ProjectProfilingEventEndpoint,
     ProjectProfilingProfileEndpoint,
@@ -1777,11 +1766,6 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-onboarding-continuation-email",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/processingissues/$",
-        OrganizationProcessingIssuesEndpoint.as_view(),
-        name="sentry-api-0-organization-processing-issues",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/projects/$",
         OrganizationProjectsEndpoint.as_view(),
         name="sentry-api-0-organization-projects",
@@ -2113,6 +2097,11 @@ ORGANIZATION_URLS = [
                     r"^flamegraph/$",
                     OrganizationProfilingFlamegraphEndpoint.as_view(),
                     name="sentry-api-0-organization-profiling-flamegraph",
+                ),
+                re_path(
+                    r"^chunks-flamegraph/$",
+                    OrganizationProfilingChunksFlamegraphEndpoint.as_view(),
+                    name="sentry-api-0-organization-profiling-chunks-flamegraph",
                 ),
                 re_path(
                     r"^function-trends/$",
@@ -2639,19 +2628,9 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-userstats",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/processingissues/$",
-        ProjectProcessingIssuesEndpoint.as_view(),
-        name="sentry-api-0-project-processing-issues",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/reprocessing/$",
         ProjectReprocessingEndpoint.as_view(),
         name="sentry-api-0-project-reprocessing",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/processingissues/discard/$",
-        ProjectProcessingIssuesDiscardEndpoint.as_view(),
-        name="sentry-api-0-project-discard-processing-issues",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/ownership/$",
@@ -2734,31 +2713,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/grouping-configs/$",
         ProjectGroupingConfigsEndpoint.as_view(),
         name="sentry-api-0-project-grouping-configs",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/appstoreconnect/$",
-        AppStoreConnectCreateCredentialsEndpoint.as_view(),
-        name="sentry-api-0-project-appstoreconnect-credentials-create",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/appstoreconnect/apps/$",
-        AppStoreConnectAppsEndpoint.as_view(),
-        name="sentry-api-0-project-appstoreconnect-apps",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/appstoreconnect/status/$",
-        AppStoreConnectStatusEndpoint.as_view(),
-        name="sentry-api-0-project-appstoreconnect-status",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/$",
-        AppStoreConnectUpdateCredentialsEndpoint.as_view(),
-        name="sentry-api-0-project-appstoreconnect-credentials-update",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/refresh/$",
-        AppStoreConnectRefreshEndpoint.as_view(),
-        name="sentry-api-0-project-appstoreconnect-refresh",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/profiling/profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",

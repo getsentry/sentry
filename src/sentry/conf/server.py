@@ -740,6 +740,7 @@ CELERY_IMPORTS = (
     "sentry.replays.tasks",
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
+    # TODO(@anonrig): Remove this when AppStore integration is removed.
     "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
@@ -843,6 +844,7 @@ CELERY_QUEUES_REGION = [
     Queue("auth", routing_key="auth"),
     Queue("alerts", routing_key="alerts"),
     Queue("app_platform", routing_key="app_platform"),
+    # TODO(@anonrig): Remove this when all AppStore connect data is removed.
     Queue("appstoreconnect", routing_key="sentry.tasks.app_store_connect.#"),
     Queue("assemble", routing_key="assemble"),
     Queue("backfill_seer_grouping_records", routing_key="backfill_seer_grouping_records"),
@@ -1145,12 +1147,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.release_registry.fetch_release_registry_data",
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
-        "options": {"expires": 3600},
-    },
-    "fetch-appstore-builds": {
-        "task": "sentry.tasks.app_store_connect.refresh_all_builds",
-        # Run every 1 hour
-        "schedule": crontab(minute="0", hour="*/1"),
         "options": {"expires": 3600},
     },
     "snuba-subscription-checker": {
@@ -1536,6 +1532,7 @@ SENTRY_RELAY_TASK_APM_SAMPLING = 0
 # sample rate for ingest consumer processing functions
 SENTRY_INGEST_CONSUMER_APM_SAMPLING = 0
 
+# TODO(@anonrig): Remove this when all AppStore connect data is removed.
 # sample rate for Apple App Store Connect tasks transactions
 SENTRY_APPCONNECT_APM_SAMPLING = SENTRY_BACKEND_APM_SAMPLING
 
@@ -2474,9 +2471,6 @@ SENTRY_MAX_SERIALIZED_FILE_SIZE = 5000000
 # Max file size for avatar photo uploads
 SENTRY_MAX_AVATAR_SIZE = 5000000
 
-# The maximum age of raw events before they are deleted
-SENTRY_RAW_EVENT_MAX_AGE_DAYS = 10
-
 # statuspage.io support
 STATUS_PAGE_ID: str | None = None
 STATUS_PAGE_API_HOST = "statuspage.io"
@@ -2893,6 +2887,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "monitors-clock-tick": "default",
     "monitors-clock-tasks": "default",
     "uptime-results": "default",
+    "uptime-configs": "default",
     "generic-events": "default",
     "snuba-generic-events-commit-log": "default",
     "group-attributes": "default",
@@ -3073,17 +3068,16 @@ SENTRY_LPQ_OPTIONS = {
     # There is one budget for each of the symbolication platforms: native, js, and jvm.
     # The "project_budget" value exists for backward compatibility.
     #
-    # This has been arbitrarily chosen as `5.0` for native and js, which means an average of:
+    # This has been arbitrarily chosen as `5.0`, which means an average of:
     # -  1x 5-second event per second, or
     # -  5x 1-second events per second, or
     # - 10x 0.5-second events per second
     #
-    # For jvm events we use a higher budget of `7.5`.
     # Cost increases quadratically with symbolication time.
     "project_budget": 5.0,
     "project_budget_native": 5.0,
     "project_budget_js": 5.0,
-    "project_budget_jvm": 7.5,
+    "project_budget_jvm": 5.0,
 }
 
 # XXX(meredith): Temporary metrics indexer
