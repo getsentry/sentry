@@ -1,4 +1,5 @@
 import uuid
+from unittest.mock import patch
 
 from django.urls import reverse
 
@@ -79,6 +80,68 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
             assert len(conditions) == 2
             assert conditions[0]["value"] == "foo:bar"
             assert conditions[1]["value"] == "baz:faz"
+
+    @django_db_all
+    @with_feature("organizations:custom-metrics-extraction-rule")
+    @patch(
+        "sentry.api.endpoints.project_metrics_extraction_rules.ProjectMetricsExtractionRulesEndpoint.create_audit_entry"
+    )
+    def test_audit_log_entry_emitted(self, create_audit_entry):
+        new_rule = {
+            "metricsExtractionRules": [
+                {
+                    "spanAttribute": "count_clicks",
+                    "aggregates": ["count"],
+                    "unit": "none",
+                    "tags": ["tag1", "tag2", "tag3"],
+                    "conditions": [
+                        {"value": "foo:bar"},
+                        {"value": "baz:faz"},
+                    ],
+                }
+            ]
+        }
+
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            method="post",
+            **new_rule,
+        )
+        create_audit_entry.assert_called()
+        create_audit_entry.reset_mock()
+
+        updated_rule = {
+            "metricsExtractionRules": [
+                {
+                    "spanAttribute": "count_clicks",
+                    "aggregates": ["count"],
+                    "unit": "none",
+                    "tags": ["tag1", "tag2", "tag3"],
+                    "conditions": [
+                        {"id": 1, "value": "other:condition"},
+                    ],
+                }
+            ]
+        }
+
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            method="put",
+            **updated_rule,
+        )
+        create_audit_entry.assert_called()
+        create_audit_entry.reset_mock()
+
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            method="delete",
+            **updated_rule,
+        )
+        create_audit_entry.assert_called()
+        create_audit_entry.reset_mock()
 
     @django_db_all
     @with_feature("organizations:custom-metrics-extraction-rule")
