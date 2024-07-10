@@ -142,6 +142,8 @@ class NoGroupsHandler extends Component<Props, State> {
             'dotnet-aspnetcore',
             'flutter',
             'go',
+            'java',
+            'java-spring-boot',
             'javascript',
             'javascript-angular',
             'javascript-react',
