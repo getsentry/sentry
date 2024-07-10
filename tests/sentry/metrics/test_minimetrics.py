@@ -373,6 +373,7 @@ def test_to_minimetrics_unit(unit, default, expected_result):
         "delightful_metrics.enable_capture_envelope": True,
         "delightful_metrics.enable_common_tags": True,
         "delightful_metrics.enable_span_attributes": True,
+        "delightful_metrics.enable_code_locations": True,
     }
 )
 def test_span_attribute_is_correctly_if_no_transaction_exists(backend, scope):
@@ -393,6 +394,7 @@ def test_span_attribute_is_correctly_if_no_transaction_exists(backend, scope):
         "delightful_metrics.enable_capture_envelope": True,
         "delightful_metrics.enable_common_tags": True,
         "delightful_metrics.enable_span_attributes": True,
+        "delightful_metrics.enable_code_locations": True,
     }
 )
 def test_span_attribute_is_correctly_if_no_span_exists(backend, scope):
@@ -414,6 +416,7 @@ def test_span_attribute_is_correctly_if_no_span_exists(backend, scope):
         "delightful_metrics.enable_capture_envelope": True,
         "delightful_metrics.enable_common_tags": True,
         "delightful_metrics.enable_span_attributes": True,
+        "delightful_metrics.enable_code_locations": True,
     }
 )
 def test_span_attribute_is_correctly_if_span_exists(backend, scope):
