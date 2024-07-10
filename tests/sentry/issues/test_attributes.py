@@ -33,12 +33,16 @@ class GroupAttributesTest(TestCase):
             substatus=group.substatus,
             first_seen=group.first_seen,
             num_comments=group.num_comments,
+            priority=group.priority,
+            first_release_id=None,
         )
 
     def test_bulk_retrieve_group_values(self) -> None:
         group = self.create_group()
+        release = self.create_release(project=group.project)
+        group.update(first_release=release)
         group_2 = self.create_group(
-            status=GroupStatus.RESOLVED,
+            status=GroupStatus.UNRESOLVED,
             substatus=GroupSubStatus.ESCALATING,
             first_seen=timezone.now() - timedelta(days=5),
             num_comments=50,
@@ -51,6 +55,8 @@ class GroupAttributesTest(TestCase):
                 substatus=group.substatus,
                 first_seen=group.first_seen,
                 num_comments=group.num_comments,
+                priority=group.priority,
+                first_release_id=release.id,
             ),
             GroupValues(
                 id=group_2.id,
@@ -59,11 +65,15 @@ class GroupAttributesTest(TestCase):
                 substatus=group_2.substatus,
                 first_seen=group_2.first_seen,
                 num_comments=group_2.num_comments,
+                priority=group_2.priority,
+                first_release_id=None,
             ),
         ]
 
     def test_bulk_retrieve_snapshot_values_group_owner(self) -> None:
         group = self.create_group()
+        release = self.create_release(project=group.project)
+        group.update(first_release=release)
         GroupOwner.objects.create(
             group=group,
             project=group.project,
@@ -111,6 +121,8 @@ class GroupAttributesTest(TestCase):
                 "group_id": group.id,
                 "status": group.status,
                 "substatus": group.substatus,
+                "priority": group.priority,
+                "first_release": release.id,
                 "first_seen": group.first_seen.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                 "num_comments": group.num_comments,
                 "assignee_user_id": self.user.id,
@@ -127,6 +139,8 @@ class GroupAttributesTest(TestCase):
                 "group_id": group_2.id,
                 "status": group_2.status,
                 "substatus": group_2.substatus,
+                "priority": group_2.priority,
+                "first_release": None,
                 "first_seen": group_2.first_seen.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
                 "num_comments": group_2.num_comments,
                 "assignee_user_id": None,
@@ -148,11 +162,12 @@ class PostSaveLogGroupAttributesChangedTest(TestCase):
         self.run_attr_test(self.group, ["status", "substatus"], "status-substatus")
 
     def run_attr_test(self, group: Group, update_fields: Sequence[str], expected_str: str) -> None:
-        with patch(
-            "sentry.issues.attributes._log_group_attributes_changed"
-        ) as _log_group_attributes_changed, patch(
-            "sentry.issues.attributes.send_snapshot_values"
-        ) as send_snapshot_values:
+        with (
+            patch(
+                "sentry.issues.attributes._log_group_attributes_changed"
+            ) as _log_group_attributes_changed,
+            patch("sentry.issues.attributes.send_snapshot_values") as send_snapshot_values,
+        ):
             kwargs = {}
             if update_fields:
                 kwargs["update_fields"] = update_fields
@@ -163,22 +178,24 @@ class PostSaveLogGroupAttributesChangedTest(TestCase):
             send_snapshot_values.assert_called_with(None, group, False)
 
     def test_new(self) -> None:
-        with patch(
-            "sentry.issues.attributes._log_group_attributes_changed"
-        ) as _log_group_attributes_changed, patch(
-            "sentry.issues.attributes.send_snapshot_values"
-        ) as send_snapshot_values:
+        with (
+            patch(
+                "sentry.issues.attributes._log_group_attributes_changed"
+            ) as _log_group_attributes_changed,
+            patch("sentry.issues.attributes.send_snapshot_values") as send_snapshot_values,
+        ):
             new_group = self.create_group(self.project)
             _log_group_attributes_changed.assert_called_with(Operation.CREATED, "group", None)
 
             send_snapshot_values.assert_called_with(None, new_group, False)
 
     def test_model_update(self) -> None:
-        with patch(
-            "sentry.issues.attributes._log_group_attributes_changed"
-        ) as _log_group_attributes_changed, patch(
-            "sentry.issues.attributes.send_snapshot_values"
-        ) as send_snapshot_values:
+        with (
+            patch(
+                "sentry.issues.attributes._log_group_attributes_changed"
+            ) as _log_group_attributes_changed,
+            patch("sentry.issues.attributes.send_snapshot_values") as send_snapshot_values,
+        ):
             self.group.update(status=2)
             _log_group_attributes_changed.assert_called_with(Operation.UPDATED, "group", "status")
             send_snapshot_values.assert_called_with(None, self.group, False)
