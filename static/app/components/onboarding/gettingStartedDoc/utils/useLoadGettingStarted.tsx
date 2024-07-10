@@ -6,34 +6,48 @@ import {
   feedbackOnboardingPlatforms,
   replayPlatforms,
 } from 'sentry/data/platformCategories';
-import type {PlatformKey} from 'sentry/types/project';
+import type {Organization, PlatformIntegration, Project} from 'sentry/types';
+import {getPlatformPath} from 'sentry/utils/gettingStartedDocs/getPlatformPath';
+import {useProjectKeys} from 'sentry/utils/useProjectKeys';
 
-export default function useLoadGettingStarted({
-  platformId,
-  platformPath,
-  productType,
-}: {
-  platformId: PlatformKey;
-  platformPath: string;
+type Props = {
+  orgSlug: Organization['slug'];
+  platform: PlatformIntegration;
   productType?: 'feedback' | 'replay';
-}) {
-  const [module, setModule] = useState<
-    | null
-    | {
-        default: Docs<any>;
-      }
-    | 'none'
-  >(null);
+  projSlug?: Project['slug'];
+};
+
+export function useLoadGettingStarted({
+  platform,
+  productType,
+  orgSlug,
+  projSlug,
+}: Props): {
+  cdn: string | undefined;
+  docs: Docs<any> | null;
+  dsn: string | undefined;
+  isError: boolean;
+  isLoading: boolean;
+  refetch: () => void;
+} {
+  const [module, setModule] = useState<undefined | 'none' | {default: Docs<any>}>(
+    undefined
+  );
+
+  const projectKeys = useProjectKeys({orgSlug, projSlug});
+
+  const platformPath = getPlatformPath(platform);
 
   useEffect(() => {
     async function getGettingStartedDoc() {
       if (
-        (productType === 'replay' && !replayPlatforms.includes(platformId)) ||
-        (productType === 'feedback' && !feedbackOnboardingPlatforms.includes(platformId))
+        (productType === 'replay' && !replayPlatforms.includes(platform.id)) ||
+        (productType === 'feedback' && !feedbackOnboardingPlatforms.includes(platform.id))
       ) {
         setModule('none');
         return;
       }
+
       try {
         const mod = await import(
           /* webpackExclude: /.spec/ */
@@ -41,14 +55,24 @@ export default function useLoadGettingStarted({
         );
         setModule(mod);
       } catch (err) {
+        setModule(undefined);
         Sentry.captureException(err);
       }
     }
-    getGettingStartedDoc();
-    return () => {
-      setModule(null);
-    };
-  }, [platformPath, platformId, productType]);
 
-  return module;
+    getGettingStartedDoc();
+
+    return () => {
+      setModule(undefined);
+    };
+  }, [platformPath, platform.id, productType]);
+
+  return {
+    refetch: projectKeys.refetch,
+    isLoading: projectKeys.isLoading || module === undefined,
+    isError: projectKeys.isError,
+    docs: module === 'none' ? null : module?.default ?? null,
+    dsn: projectKeys.data?.[0]?.dsn.public,
+    cdn: projectKeys.data?.[0]?.dsn.cdn,
+  };
 }

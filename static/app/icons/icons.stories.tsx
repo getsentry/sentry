@@ -505,13 +505,6 @@ const SECTIONS: TSection[] = [
         defaultProps: {},
       },
       {
-        id: 'frozen',
-        groups: ['status'],
-        keywords: ['frame', 'mobile'],
-        name: 'Frozen',
-        defaultProps: {},
-      },
-      {
         id: 'slow',
         groups: ['status'],
         keywords: ['frame', 'mobile'],
@@ -1201,13 +1194,6 @@ const SECTIONS: TSection[] = [
         groups: ['device'],
         keywords: ['text'],
         name: 'Input',
-        defaultProps: {},
-      },
-      {
-        id: 'option',
-        groups: ['device'],
-        keywords: [''],
-        name: 'Option',
         defaultProps: {},
       },
       {

@@ -1,11 +1,9 @@
-import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {openModal} from 'sentry/actionCreators/modal';
-import {Button, LinkButton} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
 import {openConfirmModal} from 'sentry/components/confirm';
-import {modalCss} from 'sentry/components/featureFeedback/feedbackModal';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -19,15 +17,13 @@ import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
 import {DEFAULT_METRICS_CARDINALITY_LIMIT} from 'sentry/utils/metrics/constants';
 import {useMetricsCardinality} from 'sentry/utils/metrics/useMetricsCardinality';
-import {useLocation} from 'sentry/utils/useLocation';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
-import {MetricsExtractionRuleEditModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleEditModal';
+import {openExtractionRuleCreateModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleCreateModal';
+import {openExtractionRuleEditModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleEditModal';
 import {
   useDeleteMetricsExtractionRules,
   useMetricsExtractionRules,
-} from 'sentry/views/settings/projectMetrics/utils/api';
+} from 'sentry/views/settings/projectMetrics/utils/useMetricsExtractionRules';
 import {useSearchQueryParam} from 'sentry/views/settings/projectMetrics/utils/useSearchQueryParam';
 
 type Props = {
@@ -36,26 +32,17 @@ type Props = {
 
 export function MetricsExtractionRulesTable({project}: Props) {
   const organization = useOrganization();
-  const location = useLocation();
-  const params = useParams();
-  const navigate = useNavigate();
   const [query, setQuery] = useSearchQueryParam('query');
 
   const {data: extractionRules, isLoading: isLoadingExtractionRules} =
-    useMetricsExtractionRules(organization.slug, project.slug);
+    useMetricsExtractionRules(organization.slug, project.id, {query});
   const {mutate: deleteMetricsExtractionRules} = useDeleteMetricsExtractionRules(
     organization.slug,
-    project.slug
+    project.id
   );
   const {data: cardinality, isLoading: isLoadingCardinality} = useMetricsCardinality({
-    projects: [parseInt(project.id, 10)],
+    projects: [project.id],
   });
-
-  const filteredExtractionRules = useMemo(() => {
-    return (extractionRules || []).filter(rule =>
-      rule.spanAttribute.toLowerCase().includes(query.toLowerCase())
-    );
-  }, [extractionRules, query]);
 
   const handleDelete = useCallback(
     (rule: MetricsExtractionRule) => {
@@ -79,48 +66,15 @@ export function MetricsExtractionRulesTable({project}: Props) {
     [deleteMetricsExtractionRules]
   );
 
-  const handleEdit = useCallback(
-    (rule: MetricsExtractionRule) => {
-      navigate(`/settings/projects/${project.slug}/metrics/${rule.spanAttribute}/edit/`);
-    },
-    [project.slug, navigate]
-  );
+  const handleEdit = useCallback((rule: MetricsExtractionRule) => {
+    openExtractionRuleEditModal({
+      metricExtractionRule: rule,
+    });
+  }, []);
 
-  useEffect(() => {
-    const editPath = `/settings/projects/${project.slug}/metrics/${params.spanAttribute}/edit/`;
-
-    if (location.pathname !== editPath) {
-      return;
-    }
-
-    const rule = filteredExtractionRules.find(
-      r => r.spanAttribute === params.spanAttribute
-    );
-
-    if (!rule) {
-      return;
-    }
-
-    openModal(
-      props => (
-        <MetricsExtractionRuleEditModal
-          project={project}
-          metricExtractionRule={rule}
-          {...props}
-        />
-      ),
-      {
-        modalCss,
-        onClose: () => navigate(`/settings/projects/${project.slug}/metrics/`),
-      }
-    );
-  }, [
-    filteredExtractionRules,
-    project,
-    location.pathname,
-    params.spanAttribute,
-    navigate,
-  ]);
+  const handleCreate = useCallback(() => {
+    openExtractionRuleCreateModal({projectId: project.id});
+  }, [project]);
 
   return (
     <Fragment>
@@ -133,19 +87,15 @@ export function MetricsExtractionRulesTable({project}: Props) {
           query={query}
           size="sm"
         />
-        <LinkButton
-          to={`/settings/projects/${project.slug}/metrics/extract-metric`}
-          priority="primary"
-          size="sm"
-        >
+        <Button onClick={handleCreate} priority="primary" size="sm">
           {t('Add Metric')}
-        </LinkButton>
+        </Button>
       </SearchWrapper>
       <RulesTable
         isLoading={isLoadingExtractionRules || isLoadingCardinality}
         onDelete={handleDelete}
         onEdit={handleEdit}
-        extractionRules={filteredExtractionRules}
+        extractionRules={extractionRules || []}
         cardinality={cardinality || {}}
         hasSearch={!!query}
       />

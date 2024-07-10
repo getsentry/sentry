@@ -37,7 +37,7 @@ from sentry.utils import json, metrics
 from sentry.utils.iterators import chunked
 from sentry.utils.query import RangeQuerySetWrapper
 from sentry.utils.safe import get_path
-from sentry.utils.snuba import bulk_snuba_queries
+from sentry.utils.snuba import RateLimitExceeded, bulk_snuba_queries
 
 BACKFILL_NAME = "backfill_grouping_records"
 BULK_DELETE_METADATA_CHUNK_SIZE = 100
@@ -236,10 +236,36 @@ def get_data_from_snuba(project, groups_to_backfill_with_no_embedding):
             snuba_requests.append(request)
 
         with metrics.timer(f"{BACKFILL_NAME}.bulk_snuba_queries", sample_rate=1.0):
-            snuba_results_chunk = bulk_snuba_queries(
-                snuba_requests, referrer=Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
+            snuba_results_chunk = _make_snuba_call(
+                project, snuba_requests, Referrer.GROUPING_RECORDS_BACKFILL_REFERRER.value
             )
+
         snuba_results += snuba_results_chunk
+
+    return snuba_results
+
+
+def _make_snuba_call(project, snuba_requests, referrer):
+    try:
+        snuba_results = _retry_operation(
+            bulk_snuba_queries,
+            snuba_requests,
+            referrer,
+            retries=3,
+            delay=2,
+            exceptions=RateLimitExceeded,
+        )
+    except RateLimitExceeded:
+        extra = {
+            "organization_id": project.organization.id,
+            "project_id": project.id,
+            "error": "Snuba Rate Limit Exceeded",
+        }
+        logger.exception(
+            "tasks.backfill_seer_grouping_records.snuba_query_exception",
+            extra=extra,
+        )
+        raise
 
     return snuba_results
 
@@ -446,6 +472,7 @@ def _make_nodestore_call(project, node_keys):
             node_keys,
             retries=3,
             delay=2,
+            exceptions=(ServiceUnavailable, DeadlineExceeded),
         )
     except (ServiceUnavailable, DeadlineExceeded) as e:
         extra = {
@@ -526,6 +553,7 @@ def lookup_group_data_stacktrace_bulk(
                     Event.generate_node_id(project_id, event_id),
                     retries=3,
                     delay=2,
+                    exceptions=(ServiceUnavailable, DeadlineExceeded),
                 )
                 if data is None:
                     extra = {
@@ -551,17 +579,18 @@ def lookup_group_data_stacktrace_bulk(
     return groups_to_event
 
 
-def _retry_operation(operation, *args, retries, delay, **kwargs):
+def _retry_operation(operation, *args, retries, delay, exceptions, **kwargs):
     for attempt in range(retries):
         try:
             return operation(*args, **kwargs)
-        except (ServiceUnavailable, DeadlineExceeded):
+        except exceptions:
             if attempt < retries - 1:
                 time.sleep(delay * (2**attempt))
             else:
                 raise
 
 
+# TODO: delete this and its tests
 def lookup_event(project_id: int, event_id: str, group_id: int) -> Event:
     data = nodestore.backend.get(Event.generate_node_id(project_id, event_id))
     if data is None:

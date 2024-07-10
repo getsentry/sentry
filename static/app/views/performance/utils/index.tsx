@@ -22,10 +22,10 @@ import getCurrentSentryReactRootSpan from 'sentry/utils/getCurrentSentryReactRoo
 import {useQuery} from 'sentry/utils/queryClient';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import {DEFAULT_MAX_DURATION} from '../trends/utils';
 

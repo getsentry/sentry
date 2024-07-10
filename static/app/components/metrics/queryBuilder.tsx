@@ -16,17 +16,17 @@ import type {MetricsExtractionCondition, MRI} from 'sentry/types/metrics';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDefaultAggregation, isAllowedAggregation} from 'sentry/utils/metrics';
 import {DEFAULT_METRICS_CARDINALITY_LIMIT} from 'sentry/utils/metrics/constants';
-import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
+import {parseMRI} from 'sentry/utils/metrics/mri';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
 import {useMetricsCardinality} from 'sentry/utils/metrics/useMetricsCardinality';
 import {useVirtualizedMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
-import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSelectedProjects} from 'sentry/views/metrics/utils/useSelectedProjects';
+import {openExtractionRuleEditModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleEditModal';
 
 type QueryBuilderProps = {
   index: number;
@@ -114,6 +114,7 @@ export const QueryBuilder = memo(function QueryBuilder({
         queryChanges.aggregation = getDefaultAggregation(mriValue);
       }
 
+      // If it is a virtual MRI we need to check for the new conditions and aggregations
       if (newMRI.type === 'v') {
         const spanConditions = getConditions(mriValue);
         const virtualMeta = getVirtualMeta(mriValue);
@@ -332,9 +333,8 @@ function TagWarningIcon() {
 }
 
 function QueryFooter({mri, closeOverlay}) {
-  const {getVirtualMeta} = useVirtualMetricsContext();
+  const {getVirtualMeta, getExtractionRule} = useVirtualMetricsContext();
   const selectedProjects = useSelectedProjects();
-  const navigate = useNavigate();
 
   const metricMeta = getVirtualMeta(mri);
   const project = selectedProjects.find(p => p.id === String(metricMeta.projectIds[0]));
@@ -349,7 +349,11 @@ function QueryFooter({mri, closeOverlay}) {
         icon={<IconAdd isCircled />}
         onClick={() => {
           closeOverlay();
-          navigate(`/settings/projects/${project.slug}/metrics/${formatMRI(mri)}/edit`);
+          const extractionRule = getExtractionRule(mri);
+          if (!extractionRule) {
+            return;
+          }
+          openExtractionRuleEditModal({metricExtractionRule: extractionRule});
         }}
       >
         {t('Add Query')}

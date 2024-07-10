@@ -121,6 +121,65 @@ describe('Discover > QueryList', function () {
     await waitFor(() => {
       expect(screen.getAllByTestId(/card-.*/)).toHaveLength(5);
     });
+
+    expect(eventsStatsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: {
+          environment: [],
+          interval: '30m',
+          partial: '1',
+          project: [],
+          query: '',
+          referrer: 'api.discover.default-chart',
+          statsPeriod: '14d',
+          yAxis: ['count()'],
+        },
+      })
+    );
+  });
+
+  it('passes dataset to the query if flag is enabled', async function () {
+    const org = OrganizationFixture({
+      features: [
+        'discover-basic',
+        'discover-query',
+        'performance-discover-dataset-selector',
+      ],
+    });
+    render(
+      <QueryList
+        savedQuerySearchQuery=""
+        router={RouterFixture()}
+        organization={org}
+        savedQueries={savedQueries}
+        renderPrebuilt
+        pageLinks=""
+        onQueryChange={queryChangeMock}
+        location={location}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getAllByTestId(/card-.*/)).toHaveLength(5);
+    });
+
+    expect(eventsStatsMock).toHaveBeenCalledWith(
+      '/organizations/org-slug/events-stats/',
+      expect.objectContaining({
+        query: {
+          environment: [],
+          interval: '30m',
+          partial: '1',
+          project: [],
+          query: '',
+          referrer: 'api.discover.default-chart',
+          statsPeriod: '14d',
+          yAxis: ['count()'],
+          dataset: 'transactions',
+        },
+      })
+    );
   });
 
   it('can duplicate and trigger change callback', async function () {

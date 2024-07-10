@@ -13,13 +13,12 @@ import {IconAdd, IconClose, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricAggregation, MetricsExtractionCondition} from 'sentry/types/metrics';
-import type {Project} from 'sentry/types/project';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {DEFAULT_METRICS_CARDINALITY_LIMIT} from 'sentry/utils/metrics/constants';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
-import {useMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/api';
+import {useMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/useMetricsExtractionRules';
 
 export type AggregateGroup = 'count' | 'count_unique' | 'min_max' | 'percentiles';
 export interface FormData {
@@ -31,7 +30,7 @@ export interface FormData {
 
 interface Props extends Omit<FormProps, 'onSubmit'> {
   initialData: FormData;
-  project: Project;
+  projectId: string | number;
   cardinality?: Record<string, number>;
   isEdit?: boolean;
   onSubmit?: (
@@ -145,7 +144,7 @@ const SPAN_SEARCH_CONFIG = {
 
 export function MetricsExtractionRuleForm({
   isEdit,
-  project,
+  projectId,
   onSubmit,
   cardinality,
   ...props
@@ -157,11 +156,8 @@ export function MetricsExtractionRuleForm({
     return [...new Set(spanAttribute ? [...tags, spanAttribute] : tags)];
   });
 
-  const {data: extractionRules} = useMetricsExtractionRules(
-    organization.slug,
-    project.slug
-  );
-  const tags = useSpanFieldSupportedTags({projects: [parseInt(project.id, 10)]});
+  const {data: extractionRules} = useMetricsExtractionRules(organization.slug, projectId);
+  const tags = useSpanFieldSupportedTags({projects: [Number(projectId)]});
 
   // TODO(aknaus): Make this nicer
   const supportedTags = useMemo(() => {
@@ -219,6 +215,20 @@ export function MetricsExtractionRuleForm({
       event: React.FormEvent,
       model: FormModel
     ) => {
+      const errors: Record<string, [string]> = {};
+
+      if (!data.spanAttribute) {
+        errors.spanAttribute = [t('Span attribute is required.')];
+      }
+
+      if (!data.aggregates.length) {
+        errors.aggregates = [t('At least one aggregate is required.')];
+      }
+
+      if (Object.keys(errors).length) {
+        onSubmitError({responseJSON: errors});
+        return;
+      }
       onSubmit?.(data as FormData, onSubmitSuccess, onSubmitError, event, model);
     },
     [onSubmit]
@@ -362,7 +372,7 @@ export function MetricsExtractionRuleForm({
                               metricAlert={false}
                               supportedTags={supportedTags}
                               dataset={DiscoverDatasets.SPANS_INDEXED}
-                              projectIds={[parseInt(project.id, 10)]}
+                              projectIds={[Number(projectId)]}
                               hasRecentSearches={false}
                               savedSearchType={undefined}
                               useFormWrapper={false}
@@ -441,5 +451,4 @@ const StyledIconWarning = styled(IconWarning)`
 
 const ConditionsButtonBar = styled('div')`
   margin-top: ${space(1)};
-  height: ${space(3)};
 `;

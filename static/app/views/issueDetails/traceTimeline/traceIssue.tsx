@@ -10,7 +10,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjectFromSlug from 'sentry/utils/useProjectFromSlug';
 
-import type {TimelineDiscoverEvent, TimelineEvent} from './useTraceTimelineEvents';
+import type {TimelineEvent} from './useTraceTimelineEvents';
 
 interface TraceIssueEventProps {
   event: TimelineEvent;
@@ -82,23 +82,25 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
 // however, we currently don't support it and it is extremely slow
 export function getTitleSubtitleMessage(event: TimelineEvent) {
   let title = event.title.trimEnd();
-  // XXX: This is not fully correct but it will make following PRs easier to review
-  let subtitle = event.transaction;
-  let message = event.message;
+  let subtitle = event.culprit;
+  let message = '';
   try {
     if (event['event.type'] === 'error') {
       if (title[title.length - 1] !== ':') {
         title = event.title.split(':')[0];
       }
+      // It uses metadata.value which could differ depending on what error.value is used in the event manager
+      // TODO: Add support for chained exceptions since we grab the value from the first stack trace
+      // https://github.com/getsentry/sentry/blob/a221f399d2b4190f2631fcca311bdb5b3748838b/src/sentry/eventtypes/error.py#L115-L134
+      message = event['error.value'].at(-1) ?? '';
     } else if (event['event.type'] === 'default') {
       // See getTitle() and getMessage() in sentry/utils/events.tsx
       subtitle = '';
-      const errorEvent = event as TimelineDiscoverEvent;
-      message = errorEvent.culprit;
+      message = event.culprit;
     } else {
       // It is suspected that this value is calculated somewhere in Relay
       // and we deconstruct it here to match what the Issue details page shows
-      message = event.message.replace(event.transaction, '').replace(title, '');
+      message = event.message.replace(event.culprit, '').replace(title, '').trimStart();
     }
   } catch (error) {
     // If we fail, report it so we can figure it out
