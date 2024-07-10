@@ -1,11 +1,10 @@
 from django.conf import settings
-from sentry_sdk import Hub
 from snuba_sdk.legacy import json_to_snql
 
 from sentry.testutils.cases import SnubaTestCase, TestMigrations
 from sentry.types.group import PriorityLevel
-from sentry.utils import json, redis
-from sentry.utils.snuba import _snuba_query
+from sentry.utils import redis
+from sentry.utils.snuba import raw_snql_query
 
 
 def run_test(expected_groups):
@@ -29,10 +28,8 @@ def run_test(expected_groups):
     }
     request = json_to_snql(json_body, "group_attributes")
     request.validate()
-    identity = lambda x: x
-    resp = _snuba_query(((request, identity, identity), Hub(Hub.current), {}, "test_api"))[0]
-    assert resp.status == 200
-    data = json.loads(resp.data)["data"]
+    result = raw_snql_query(request)
+    data = result["data"]
 
     assert {g.id for g in expected_groups} == {d["group_id"] for d in data}
     assert {g.priority for g in expected_groups} == {d["group_priority"] for d in data}
