@@ -119,7 +119,6 @@ def save_userreport(
                 "ingest.user_report.shim_to_feedback",
                 extra={"project_id": project.id, "event_id": report["event_id"]},
             )
-
             shim_to_feedback(report, event, project, source)
 
         return report_instance
