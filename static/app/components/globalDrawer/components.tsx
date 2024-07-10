@@ -1,22 +1,36 @@
-import {forwardRef, Fragment} from 'react';
+import {createContext, forwardRef, Fragment, useContext} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import type {DrawerOptions} from 'sentry/components/globalDrawer';
-import SlideOverPanel, {type SlideOverPanelProps} from 'sentry/components/slideOverPanel';
+import SlideOverPanel from 'sentry/components/slideOverPanel';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
+interface DrawerContentContextType {
+  ariaLabel: string;
+  onClose: DrawerOptions['onClose'];
+}
+
+const DrawerContentContext = createContext<DrawerContentContextType>({
+  onClose: () => {},
+  ariaLabel: 'slide out drawer',
+});
+
+function useDrawerContentContext() {
+  return useContext(DrawerContentContext);
+}
+
 interface DrawerPanelProps {
+  ariaLabel: DrawerContentContextType['ariaLabel'];
   children: React.ReactNode;
   headerContent: React.ReactNode;
-  onClose: DrawerOptions['onClose'];
-  ariaLabel?: SlideOverPanelProps['ariaLabel'];
+  onClose: DrawerContentContextType['onClose'];
 }
 
 export const DrawerPanel = forwardRef(function _DrawerPanel(
-  {ariaLabel, children, headerContent, onClose}: DrawerPanelProps,
+  {ariaLabel, children, onClose}: DrawerPanelProps,
   ref: React.ForwardedRef<HTMLDivElement>
 ) {
   return (
@@ -27,7 +41,41 @@ export const DrawerPanel = forwardRef(function _DrawerPanel(
         collapsed={false}
         ref={ref}
       >
-        <DrawerHeader>
+        {/*
+          This provider allows data passed to openDrawer to be accessed by drawer components.
+          For example: <DrawerHeader />, will trigger the custom onClose callback set in openDrawer
+          when it's button is pressed.
+        */}
+        <DrawerContentContext.Provider value={{onClose, ariaLabel}}>
+          {children}
+        </DrawerContentContext.Provider>
+      </SlideOverPanel>
+    </DrawerContainer>
+  );
+});
+
+interface DrawerHeaderProps {
+  children?: React.ReactNode;
+  /**
+   * If true, hides the spacer bar separating close button from custom header content
+   */
+  hideBar?: boolean;
+  /**
+   * If true, hides the close button
+   */
+  hideCloseButton?: boolean;
+}
+
+export const DrawerHeader = forwardRef(function _DrawerHeader(
+  {children = null, hideBar = false, hideCloseButton = false}: DrawerHeaderProps,
+  ref: React.ForwardedRef<HTMLHeadingElement>
+) {
+  const {onClose} = useDrawerContentContext();
+
+  return (
+    <Header ref={ref}>
+      {!hideCloseButton && (
+        <Fragment>
           <CloseButton
             priority="link"
             size="xs"
@@ -38,16 +86,11 @@ export const DrawerPanel = forwardRef(function _DrawerPanel(
           >
             {t('Close')}
           </CloseButton>
-          {headerContent && (
-            <Fragment>
-              <HeaderBar />
-              {headerContent}
-            </Fragment>
-          )}
-        </DrawerHeader>
-        {children}
-      </SlideOverPanel>
-    </DrawerContainer>
+          {!hideBar && <HeaderBar />}
+        </Fragment>
+      )}
+      {children}
+    </Header>
   );
 });
 
@@ -57,12 +100,13 @@ const CloseButton = styled(Button)`
     color: ${p => p.theme.textColor};
   }
 `;
+
 const HeaderBar = styled('div')`
   margin: 0 ${space(2)};
   border-right: 1px solid ${p => p.theme.border};
 `;
 
-const DrawerHeader = styled('header')`
+const Header = styled('header')`
   position: sticky;
   top: 0;
   z-index: ${p => p.theme.zIndex.drawer + 1};
@@ -89,6 +133,7 @@ const DrawerContainer = styled('div')`
 
 export const DrawerComponents = {
   DrawerBody,
+  DrawerHeader,
   DrawerPanel,
 };
 

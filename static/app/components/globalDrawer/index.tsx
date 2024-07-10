@@ -48,6 +48,10 @@ interface DrawerRenderProps {
    */
   Body: typeof DrawerComponents.DrawerBody;
   /**
+   * Header with a close button for the drawer
+   */
+  Header: typeof DrawerComponents.DrawerHeader;
+  /**
    * Close the drawer
    */
   closeDrawer: () => void;
@@ -117,6 +121,7 @@ export function GlobalDrawer({children}) {
   const renderedChild = currentDrawerConfig?.renderer
     ? currentDrawerConfig.renderer({
         Body: DrawerComponents.DrawerBody,
+        Header: DrawerComponents.DrawerHeader,
         closeDrawer: handleClose,
       })
     : null;

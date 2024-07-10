@@ -1,4 +1,4 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -33,6 +33,7 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getShortEventId} from 'sentry/utils/events';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -75,35 +76,33 @@ export default function BreadcrumbsDataSection({
         organization,
       });
       openDrawer(
-        ({Body}) => (
-          <Body>
-            <BreadcrumbsDrawerContent
-              breadcrumbs={enhancedCrumbs}
-              focusControl={focusControl}
-            />
-          </Body>
+        ({Header, Body}) => (
+          <Fragment>
+            <Header>
+              <NavigationCrumbs
+                crumbs={[
+                  {
+                    label: (
+                      <CrumbContainer>
+                        <ProjectAvatar project={project} />
+                        <ShortId>{group.shortId}</ShortId>
+                      </CrumbContainer>
+                    ),
+                  },
+                  {label: getShortEventId(event.id)},
+                  {label: t('Breadcrumbs')},
+                ]}
+              />
+            </Header>
+            <Body>
+              <BreadcrumbsDrawerContent
+                breadcrumbs={enhancedCrumbs}
+                focusControl={focusControl}
+              />
+            </Body>
+          </Fragment>
         ),
-        {
-          ariaLabel: 'breadcrumb drawer',
-          headerContent: (
-            <NavigationCrumbs
-              crumbs={[
-                {
-                  label: (
-                    <CrumbContainer>
-                      <ProjectAvatar project={project} />
-                      <GroupShortId>{group.shortId}</GroupShortId>
-                    </CrumbContainer>
-                  ),
-                },
-                {
-                  label: <GroupShortId>{event.id.substring(0, 8)}</GroupShortId>,
-                },
-                {label: t('Breadcrumbs')},
-              ]}
-            />
-          ),
-        }
+        {ariaLabel: 'breadcrumb drawer'}
       );
     },
     [group, event, project, openDrawer, enhancedCrumbs, organization]
@@ -174,6 +173,7 @@ export default function BreadcrumbsDataSection({
           startTimeString={startTimeString}
           // We want the timeline to appear connected to the 'View All' button
           showLastLine={hasViewAll}
+          isCompact
         />
         {hasViewAll && (
           <ViewAllContainer>
@@ -232,7 +232,7 @@ const CrumbContainer = styled('div')`
   align-items: center;
 `;
 
-const GroupShortId = styled('div')`
+const ShortId = styled('div')`
   font-family: ${p => p.theme.text.family};
   font-size: ${p => p.theme.fontSizeMedium};
   line-height: 1;

@@ -18,9 +18,9 @@ import {shouldUse24Hours} from 'sentry/utils/dates';
 interface BreadcrumbsTimelineProps {
   breadcrumbs: EnhancedCrumb[];
   /**
-   * Fully expands the contents of the breadcrumb's data payload.
+   * If false, expands the contents of the breadcrumb's data payload, adds padding.
    */
-  fullyExpanded?: boolean;
+  isCompact?: boolean;
   /**
    * Shows the line after the last breadcrumbs icon.
    * Useful for connecting timeline to components rendered after it.
@@ -35,7 +35,7 @@ interface BreadcrumbsTimelineProps {
 export default function BreadcrumbsTimeline({
   breadcrumbs,
   startTimeString,
-  fullyExpanded = false,
+  isCompact = false,
   showLastLine = false,
 }: BreadcrumbsTimelineProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -99,11 +99,13 @@ export default function BreadcrumbsTimeline({
         style={showLastLine ? {background: 'transparent'} : {}}
         data-index={virtualizedRow.index}
       >
-        <BreadcrumbsItemContent
-          breadcrumb={breadcrumb}
-          meta={meta}
-          fullyExpanded={fullyExpanded}
-        />
+        <ContentWrapper isCompact={isCompact}>
+          <BreadcrumbsItemContent
+            breadcrumb={breadcrumb}
+            meta={meta}
+            fullyExpanded={!isCompact}
+          />
+        </ContentWrapper>
       </Timeline.Item>
     );
   });
@@ -133,6 +135,10 @@ const Timestamp = styled('div')`
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
   span {
-    text-decoration: underline dashed ${p => p.theme.subText};
+    text-decoration: underline dashed ${p => p.theme.translucentBorder};
   }
+`;
+
+const ContentWrapper = styled('div')<{isCompact: boolean}>`
+  padding-bottom: ${p => space(p.isCompact ? 0.5 : 1.5)};
 `;

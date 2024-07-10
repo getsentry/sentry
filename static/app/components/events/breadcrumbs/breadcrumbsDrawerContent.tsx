@@ -33,6 +33,21 @@ export const enum BreadcrumbControlOptions {
   SORT = 'sort',
 }
 
+function useFocusControl(initialFocusControl?: BreadcrumbControlOptions) {
+  const [focusControl, setFocusControl] = useState(initialFocusControl);
+  // If the focused control element is blurred, unset the state to remove styles
+  // This will allow us to simulate :focus-visible on the button elements.
+  const getFocusProps = useCallback(
+    (option: BreadcrumbControlOptions) => {
+      return option === focusControl
+        ? {autoFocus: true, onBlur: () => setFocusControl(undefined)}
+        : {};
+    },
+    [focusControl]
+  );
+  return {getFocusProps};
+}
+
 interface BreadcrumbsDrawerContentProps {
   breadcrumbs: EnhancedCrumb[];
   focusControl?: BreadcrumbControlOptions;
@@ -51,8 +66,7 @@ export function BreadcrumbsDrawerContent({
     BREADCRUMB_SORT_LOCALSTORAGE_KEY,
     BreadcrumbSort.NEWEST
   );
-
-  const [focusControl, setFocusControl] = useState(initialFocusControl);
+  const {getFocusProps} = useFocusControl(initialFocusControl);
 
   const [timeDisplay, setTimeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
     BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
@@ -79,17 +93,6 @@ export function BreadcrumbsDrawerContent({
         ? displayCrumbs?.at(0)?.breadcrumb?.timestamp
         : undefined,
     [displayCrumbs, timeDisplay]
-  );
-
-  // If the focused control element is blurred, unset the state to remove styles
-  // This will allow us to simulate :focus-visible on the button elements.
-  const getFocusProps = useCallback(
-    (option: BreadcrumbControlOptions) => {
-      return option === focusControl
-        ? {autoFocus: true, onBlur: () => setFocusControl(undefined)}
-        : {};
-    },
-    [focusControl]
   );
 
   const actions = (
@@ -223,7 +226,6 @@ export function BreadcrumbsDrawerContent({
           <BreadcrumbsTimeline
             breadcrumbs={displayCrumbs}
             startTimeString={startTimeString}
-            fullyExpanded
           />
         )}
       </TimelineContainer>
