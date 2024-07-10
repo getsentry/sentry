@@ -334,9 +334,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:releases-v2-st", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable playing replays from the replay tab
     manager.add("organizations:replay-play-from-replay-tab", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Mobile replay killswitch
-    # TODO: Delete me on or before public beta.
-    manager.add("organizations:session-replay-video", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Enable version 2 of reprocessing (completely distinct from v1)
     manager.add("organizations:reprocessing-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:required-email-verification", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -369,6 +366,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:session-replay-materialized-view", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False)
     # Enable mobile replay player
     manager.add("organizations:session-replay-mobile-player", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    # Disable select orgs from ingesting mobile replay events.
+    manager.add("organizations:session-replay-video-disabled", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable mobile replay player network tab
     manager.add("organizations:session-replay-mobile-network-tab", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable the new event linking columns to be queried
@@ -398,8 +397,6 @@ def register_temporary_features(manager: FeatureManager):
     # Feature flags for migrating to the Slack SDK WebClient
     # Use new Slack SDK Client in get_channel_id_with_timeout
     manager.add("organizations:slack-sdk-get-channel-id", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
-    # Use new Slack SDK Client to respond to link commands
-    manager.add("organizations:slack-sdk-link-commands", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Use new Slack SDK Client in SlackActionEndpoint
     manager.add("organizations:slack-sdk-webhook-handling", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Use new Slack SDK Client in SlackActionEndpoint's `view.open`

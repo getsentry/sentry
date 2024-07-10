@@ -18,7 +18,7 @@ import {
   type FormData,
   MetricsExtractionRuleForm,
 } from 'sentry/views/settings/projectMetrics/metricsExtractionRuleForm';
-import {useUpdateMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/api';
+import {useUpdateMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/useMetricsExtractionRules';
 
 interface Props {
   metricExtractionRule: MetricsExtractionRule;

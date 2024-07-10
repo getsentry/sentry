@@ -383,7 +383,17 @@ class DatabaseBackedIntegrationService(IntegrationService):
         metric_value: str | None = None,
         notification_uuid: str | None = None,
     ) -> bool:
-        sentry_app = SentryApp.objects.get(id=sentry_app_id)
+        try:
+            sentry_app = SentryApp.objects.get(id=sentry_app_id)
+        except SentryApp.DoesNotExist:
+            logger.info(
+                "metric_alert_webhook.missing_sentryapp",
+                extra={
+                    "sentry_app_id": sentry_app_id,
+                    "organization_id": organization_id,
+                },
+            )
+            return False
 
         metrics.incr("notifications.sent", instance=sentry_app.slug, skip_internal=False)
 

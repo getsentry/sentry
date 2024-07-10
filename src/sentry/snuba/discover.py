@@ -363,6 +363,7 @@ def query(
     extra_columns=None,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type=None,
+    fallback_to_transactions=False,
 ) -> EventsResponse:
     """
     High-level API for doing arbitrary user queries against events.
@@ -394,6 +395,8 @@ def query(
     transform_alias_to_input_format (bool) Whether aggregate columns should be returned in the originally
                                 requested function format.
     sample (float) The sample rate to run the query with
+    fallback_to_transactions (bool) Whether to fallback to the transactions dataset if the query
+                    fails in metrics enhanced requests. To be removed once the discover dataset is split.
     """
     return _query(
         selected_columns,

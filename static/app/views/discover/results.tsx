@@ -11,6 +11,7 @@ import {fetchTotalCount} from 'sentry/actionCreators/events';
 import {fetchProjectsCount} from 'sentry/actionCreators/projects';
 import {loadOrganizationTags} from 'sentry/actionCreators/tags';
 import {Client} from 'sentry/api';
+import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
@@ -55,7 +56,10 @@ import withApi from 'sentry/utils/withApi';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
-import {DATASET_LABEL_MAP} from 'sentry/views/discover/savedQuery/datasetSelector';
+import {
+  DATASET_LABEL_MAP,
+  DatasetSelector,
+} from 'sentry/views/discover/savedQuery/datasetSelector';
 import {
   getDatasetFromLocationOrSavedQueryDataset,
   getSavedQueryDataset,
@@ -93,6 +97,7 @@ type State = {
   showTags: boolean;
   tips: string[];
   totalValues: null | number;
+  homepageQuery?: SavedQuery;
   savedQuery?: SavedQuery;
   savedQueryDataset?: SavedQueryDatasets;
   showForcedDatasetAlert?: boolean;
@@ -140,6 +145,7 @@ export class Results extends Component<Props, State> {
       undefined
     ),
     error: '',
+    homepageQuery: undefined,
     errorCode: 200,
     totalValues: null,
     showTags: readShowTagsState(),
@@ -671,7 +677,6 @@ export class Results extends Component<Props, State> {
             yAxis={yAxisArray}
             router={router}
             isHomepage={isHomepage}
-            splitDecision={splitDecision}
           />
           <Layout.Body>
             <CustomMeasurementsProvider organization={organization} selection={selection}>
@@ -680,11 +685,29 @@ export class Results extends Component<Props, State> {
                 {this.renderError(error)}
                 {this.renderTips()}
                 {this.renderForcedDatasetBanner()}
-                <StyledPageFilterBar condensed>
-                  <ProjectPageFilter />
-                  <EnvironmentPageFilter />
-                  <DatePageFilter />
-                </StyledPageFilterBar>
+
+                <Wrapper>
+                  <Feature
+                    organization={organization}
+                    features="performance-discover-dataset-selector"
+                  >
+                    {({hasFeature}) =>
+                      hasFeature && (
+                        <DatasetSelector
+                          isHomepage={isHomepage}
+                          savedQuery={savedQuery}
+                          splitDecision={splitDecision}
+                          eventView={eventView}
+                        />
+                      )
+                    }
+                  </Feature>
+                  <PageFilterBar condensed>
+                    <ProjectPageFilter />
+                    <EnvironmentPageFilter />
+                    <DatePageFilter />
+                  </PageFilterBar>
+                </Wrapper>
                 <CustomMeasurementsContext.Consumer>
                   {contextValue => (
                     <StyledSearchBar
@@ -788,8 +811,16 @@ export class Results extends Component<Props, State> {
   }
 }
 
-const StyledPageFilterBar = styled(PageFilterBar)`
+const Wrapper = styled('div')`
+  display: flex;
+  flex-direction: row;
+  gap: ${space(1)};
   margin-bottom: ${space(2)};
+
+  @media (max-width: ${p => p.theme.breakpoints.small}) {
+    display: grid;
+    grid-auto-flow: row;
+  }
 `;
 
 const StyledSearchBar = styled(SearchBar)`

@@ -18,6 +18,8 @@ interface ContextData {
   parsedQuery: ParseResult | null;
   query: string;
   searchSource: string;
+  size: 'small' | 'normal';
+  wrapperRef: React.RefObject<HTMLDivElement>;
 }
 
 export function useSearchQueryBuilder() {
@@ -32,6 +34,8 @@ export const SearchQueryBuilerContext = createContext<ContextData>({
   getTagValues: () => Promise.resolve([]),
   dispatch: () => {},
   parsedQuery: null,
+  wrapperRef: {current: null},
   handleSearch: () => {},
   searchSource: '',
+  size: 'normal',
 });

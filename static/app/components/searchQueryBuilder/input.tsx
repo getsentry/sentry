@@ -14,7 +14,7 @@ import type {
   FocusOverride,
 } from 'sentry/components/searchQueryBuilder/types';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/useQueryBuilderGridItem';
-import {replaceTokenWithPadding} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
+import {replaceTokensWithPadding} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
 import {useShiftFocusToChild} from 'sentry/components/searchQueryBuilder/utils';
 import {
   type ParseResultToken,
@@ -368,8 +368,8 @@ function SearchQueryBuilderInputInternal({
       const text = e.clipboardData.getData('text/plain').replace('\n', '').trim();
 
       dispatch({
-        type: 'PASTE_FREE_TEXT',
-        token,
+        type: 'REPLACE_TOKENS_WITH_TEXT',
+        tokens: [token],
         text: replaceAliasedFilterKeys(text, aliasToKeyMap),
       });
       resetInputValue();
@@ -388,27 +388,27 @@ function SearchQueryBuilderInputInternal({
       onOptionSelected={value => {
         dispatch({
           type: 'UPDATE_FREE_TEXT',
-          token,
+          tokens: [token],
           text: replaceFocusedWordWithFilter(inputValue, selectionIndex, value),
           focusOverride: calculateNextFocusForFilter(state),
         });
         resetInputValue();
       }}
       onCustomValueBlurred={value => {
-        dispatch({type: 'UPDATE_FREE_TEXT', token, text: value});
+        dispatch({type: 'UPDATE_FREE_TEXT', tokens: [token], text: value});
         resetInputValue();
       }}
       onCustomValueCommitted={value => {
-        dispatch({type: 'UPDATE_FREE_TEXT', token, text: value});
+        dispatch({type: 'UPDATE_FREE_TEXT', tokens: [token], text: value});
         resetInputValue();
 
         // Because the query does not change until a subsequent render,
         // we need to do the replacement that is does in the reducer here
-        handleSearch(replaceTokenWithPadding(query, token, value));
+        handleSearch(replaceTokensWithPadding(query, [token], value));
       }}
       onExit={() => {
         if (inputValue !== token.value.trim()) {
-          dispatch({type: 'UPDATE_FREE_TEXT', token, text: inputValue});
+          dispatch({type: 'UPDATE_FREE_TEXT', tokens: [token], text: inputValue});
           resetInputValue();
         }
       }}
@@ -419,7 +419,7 @@ function SearchQueryBuilderInputInternal({
         if (e.target.value.includes('(') || e.target.value.includes(')')) {
           dispatch({
             type: 'UPDATE_FREE_TEXT',
-            token,
+            tokens: [token],
             text: e.target.value,
             focusOverride: calculateNextFocusForParen(item),
           });
@@ -430,7 +430,7 @@ function SearchQueryBuilderInputInternal({
         if (e.target.value.includes(':')) {
           dispatch({
             type: 'UPDATE_FREE_TEXT',
-            token,
+            tokens: [token],
             text: replaceAliasedFilterKeys(e.target.value, aliasToKeyMap),
             focusOverride: calculateNextFocusForFilter(state),
           });
@@ -502,6 +502,7 @@ export function SearchQueryBuilderInput({
 }
 
 const Row = styled('div')`
+  position: relative;
   display: flex;
   align-items: stretch;
   height: 24px;
@@ -511,12 +512,20 @@ const Row = styled('div')`
   }
 
   &[aria-selected='true'] {
-    background-color: ${p => p.theme.blue200};
+    &::before {
+      content: '';
+      position: absolute;
+      left: ${space(0.5)};
+      right: ${space(0.5)};
+      top: 0;
+      bottom: 0;
+      background-color: ${p => p.theme.gray100};
+    }
   }
 
   input {
     &::selection {
-      background-color: ${p => p.theme.blue200};
+      background-color: ${p => p.theme.gray100};
     }
   }
 `;

@@ -11,9 +11,9 @@ import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
+import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/replaysOnboarding/platformOptionDropdown';
 import {ReplayOnboardingLayout} from 'sentry/components/replaysOnboarding/replayOnboardingLayout';
-import useLoadReplayOnboardingDoc from 'sentry/components/replaysOnboarding/useLoadReplayOnboardingDoc';
 import {replayJsFrameworkOptions} from 'sentry/components/replaysOnboarding/utils';
 import SidebarPanel from 'sentry/components/sidebar/sidebarPanel';
 import type {CommonSidebarProps} from 'sentry/components/sidebar/types';
@@ -207,23 +207,30 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     : otherPlatform;
 
   // New onboarding docs
-  const {docs, dsn, cdn, isProjKeysLoading} = useLoadReplayOnboardingDoc({
+  const {
+    docs,
+    dsn,
+    cdn,
+    isLoading: isProjKeysLoading,
+  } = useLoadGettingStarted({
     platform:
       showJsFrameworkInstructions && setupMode() === 'npm'
         ? replayJsFrameworkOptions.find(p => p.id === jsFramework.value) ??
           replayJsFrameworkOptions[0]
         : currentPlatform,
-    organization,
-    projectSlug: currentProject.slug,
+    projSlug: currentProject.slug,
+    orgSlug: organization.slug,
+    productType: 'replay',
   });
 
   // New onboarding docs for initial loading of JS Framework options
-  const {docs: jsFrameworkDocs} = useLoadReplayOnboardingDoc({
+  const {docs: jsFrameworkDocs} = useLoadGettingStarted({
     platform:
       replayJsFrameworkOptions.find(p => p.id === jsFramework.value) ??
       replayJsFrameworkOptions[0],
-    organization,
-    projectSlug: currentProject.slug,
+    projSlug: currentProject.slug,
+    orgSlug: organization.slug,
+    productType: 'replay',
   });
 
   const radioButtons = (
@@ -318,7 +325,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   }
 
   // No platform or no docs
-  if (!currentPlatform || !docs) {
+  if (!currentPlatform || !docs || !dsn) {
     return (
       <Fragment>
         <div>

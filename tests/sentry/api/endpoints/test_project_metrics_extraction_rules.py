@@ -1,4 +1,6 @@
+import datetime
 import uuid
+from unittest.mock import patch
 
 from django.urls import reverse
 
@@ -6,6 +8,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import override_options, with_feature
+from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import assume_test_silo_mode
 
@@ -36,6 +39,7 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         response = self.send_put_request(token, self.endpoint)
         assert response.status_code != 403
 
+    @freeze_time("2018-08-24 07:30:00")
     @django_db_all(reset_sequences=True)
     @with_feature("organizations:custom-metrics-extraction-rule")
     def test_create_new_extraction_rule(self):
@@ -74,11 +78,81 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
             assert data[0]["aggregates"] == ["count"]
             assert data[0]["unit"] == "none"
             assert set(data[0]["tags"]) == {"tag1", "tag2", "tag3"}
+            assert data[0]["createdById"] == self.user.id
+
+            assert data[0]["dateAdded"] == datetime.datetime(
+                2018, 8, 24, 7, 30, 0, tzinfo=datetime.UTC
+            )
+            assert data[0]["dateUpdated"] == datetime.datetime(
+                2018, 8, 24, 7, 30, 0, tzinfo=datetime.UTC
+            )
 
             conditions = data[0]["conditions"]
             assert len(conditions) == 2
             assert conditions[0]["value"] == "foo:bar"
             assert conditions[1]["value"] == "baz:faz"
+
+    @django_db_all
+    @with_feature("organizations:custom-metrics-extraction-rule")
+    @patch(
+        "sentry.api.endpoints.project_metrics_extraction_rules.ProjectMetricsExtractionRulesEndpoint.create_audit_entry"
+    )
+    def test_audit_log_entry_emitted(self, create_audit_entry):
+        new_rule = {
+            "metricsExtractionRules": [
+                {
+                    "spanAttribute": "count_clicks",
+                    "aggregates": ["count"],
+                    "unit": "none",
+                    "tags": ["tag1", "tag2", "tag3"],
+                    "conditions": [
+                        {"value": "foo:bar"},
+                        {"value": "baz:faz"},
+                    ],
+                }
+            ]
+        }
+
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            method="post",
+            **new_rule,
+        )
+        create_audit_entry.assert_called()
+        create_audit_entry.reset_mock()
+
+        updated_rule = {
+            "metricsExtractionRules": [
+                {
+                    "spanAttribute": "count_clicks",
+                    "aggregates": ["count"],
+                    "unit": "none",
+                    "tags": ["tag1", "tag2", "tag3"],
+                    "conditions": [
+                        {"id": 1, "value": "other:condition"},
+                    ],
+                }
+            ]
+        }
+
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            method="put",
+            **updated_rule,
+        )
+        create_audit_entry.assert_called()
+        create_audit_entry.reset_mock()
+
+        self.get_success_response(
+            self.organization.slug,
+            self.project.slug,
+            method="delete",
+            **updated_rule,
+        )
+        create_audit_entry.assert_called()
+        create_audit_entry.reset_mock()
 
     @django_db_all
     @with_feature("organizations:custom-metrics-extraction-rule")
