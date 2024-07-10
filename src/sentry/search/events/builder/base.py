@@ -84,7 +84,11 @@ class BaseQueryBuilder:
     entity: Entity | None = None
     config_class: type[DatasetConfig] | None = None
     duration_fields: set[str] = set()
+    """A mapping of the uuid fields to a human readable label.
+    Used in the validation error messages"""
     uuid_fields: Mapping[str, str] = {}
+    """A mapping of the span id fields to a human readable label.
+    Used in the validation error messages"""
     span_id_fields: Mapping[str, str] = {}
 
     def get_middle(self):
