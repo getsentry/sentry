@@ -931,6 +931,22 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.create_organization(slug="taken")
         self.get_error_response(self.organization.slug, slug="taken", status_code=400)
 
+    @with_feature("organizations:metrics-extrapolation")
+    def test_extrapolate_metrics_with_permission(self):
+        # test when the value is set to False
+        resp = self.get_success_response(self.organization.slug, **{"extrapolateMetrics": False})
+        assert self.organization.get_option("sentry:extrapolate_metrics") is False
+        assert b"extrapolateMetrics" in resp.content
+
+        # test when the value is set to True
+        resp = self.get_success_response(self.organization.slug, **{"extrapolateMetrics": True})
+        assert self.organization.get_option("sentry:extrapolate_metrics") is True
+        assert b"extrapolateMetrics" in resp.content
+
+    def test_extrapolate_metrics_without_permission(self):
+        resp = self.get_response(self.organization.slug, **{"extrapolateMetrics": False})
+        assert resp.status_code == 400
+
 
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"
