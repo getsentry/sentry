@@ -412,7 +412,6 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 if original_results.get("data"):
                     dataset_meta = original_results.get("meta", {})
                 else:
-                    # TODO: What use case does this serve? Is the .get("data") extra here as well?
                     dataset_meta = list(original_results.values())[0].get("data").get("meta", {})
                 using_metrics = dataset_meta.get("isMetricsData", False) or dataset_meta.get(
                     "isMetricsExtractedData", False
