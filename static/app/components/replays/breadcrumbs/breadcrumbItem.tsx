@@ -8,11 +8,11 @@ import {CodeSnippet} from 'sentry/components/codeSnippet';
 import {Flex} from 'sentry/components/container/flex';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import Link from 'sentry/components/links/link';
+import ObjectInspector from 'sentry/components/objectInspector';
 import PanelItem from 'sentry/components/panels/panelItem';
 import {OpenReplayComparisonButton} from 'sentry/components/replays/breadcrumbs/openReplayComparisonButton';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {useReplayGroupContext} from 'sentry/components/replays/replayGroupContext';
-import StructuredEventData from 'sentry/components/structuredEventData';
 import Timeline from 'sentry/components/timeline';
 import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -86,18 +86,18 @@ function BreadcrumbItem({
       </Description>
     ) : (
       <InspectorWrapper>
-        <StructuredEventData
+        <ObjectInspector
           data={description}
-          // expandPaths={expandPaths}
-          // onExpand={onInspectorExpanded}
-          // theme={{
-          //   TREENODE_FONT_SIZE: '0.7rem',
-          //   ARROW_FONT_SIZE: '0.5rem',
-          // }}
+          expandPaths={expandPaths}
+          onExpand={onInspectorExpanded}
+          theme={{
+            TREENODE_FONT_SIZE: '0.7rem',
+            ARROW_FONT_SIZE: '0.5rem',
+          }}
         />
       </InspectorWrapper>
     );
-  }, [description]);
+  }, [description, expandPaths, onInspectorExpanded]);
 
   const renderComparisonButton = useCallback(() => {
     return isBreadcrumbFrame(frame) && isHydrationErrorFrame(frame) ? (

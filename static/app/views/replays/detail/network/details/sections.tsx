@@ -255,7 +255,7 @@ export function ResponsePayloadSection({item}: SectionProps) {
             data={body}
             forceDefaultExpand
             maxDefaultDepth={2}
-            showCopyButton /* expandLevel={2} showCopyButton */
+            showCopyButton
           />
         ) : (
           t('Response body not found.')

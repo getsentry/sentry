@@ -22,7 +22,7 @@
 import {Fragment} from 'react';
 
 import type {OnExpandCallback} from 'sentry/components/objectInspector';
-import StructuredEventData from 'sentry/components/structuredEventData';
+import ObjectInspector from 'sentry/components/objectInspector';
 
 const formatRegExp = /%[csdj%]/g;
 
@@ -46,11 +46,11 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
     const objects: any[] = [];
     for (let i = 0; i < args.length; i++) {
       objects.push(
-        <StructuredEventData
+        <ObjectInspector
           key={i}
           data={args[i]}
-          // expandPaths={expandPaths}
-          // onExpand={onExpand}
+          expandPaths={expandPaths}
+          onExpand={onExpand}
         />
       );
     }
@@ -136,12 +136,7 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
     } else {
       pieces.push(' ');
       pieces.push(
-        <StructuredEventData
-          key={i}
-          data={x}
-          // expandPaths={expandPaths}
-          // onExpand={onExpand}
-        />
+        <ObjectInspector key={i} data={x} expandPaths={expandPaths} onExpand={onExpand} />
       );
     }
   }
