@@ -135,7 +135,7 @@ const STATIC_FIELD_TAGS = Object.keys(FIELD_TAGS).reduce((tags, key) => {
 
 const STATIC_FIELD_TAGS_WITHOUT_TRACING = omit(STATIC_FIELD_TAGS, TRACING_FIELDS);
 const STATIC_FIELD_TAGS_WITHOUT_ERROR_FIELDS = omit(STATIC_FIELD_TAGS, ERROR_ONLY_FIELDS);
-const STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS = omit(
+export const STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS = omit(
   STATIC_FIELD_TAGS,
   TRANSACTION_ONLY_FIELDS
 );
@@ -175,7 +175,6 @@ export type SearchBarProps = Omit<React.ComponentProps<typeof SmartSearchBar>, '
    */
   maxMenuHeight?: number;
   maxSearchItems?: React.ComponentProps<typeof SmartSearchBar>['maxSearchItems'];
-  metricAlert?: boolean;
   omitTags?: string[];
   projectIds?: number[] | Readonly<number[]>;
   savedSearchType?: SavedSearchType;
@@ -187,9 +186,7 @@ function SearchBar(props: SearchBarProps) {
     maxSearchItems,
     organization,
     tags,
-    metricAlert = false,
     omitTags,
-    supportedTags,
     fields,
     projectIds,
     includeSessionTagsValues,
@@ -277,12 +274,6 @@ function SearchBar(props: SearchBarProps) {
     const measurementsWithKind = getMeasurementTags(measurements, customMeasurements);
     const orgHasPerformanceView = organization.features.includes('performance-view');
 
-    // If it is not a metric alert search bar and supportedTags has a value, return supportedTags
-    // If it is a metric alert search bar, combine supportedTags with getTagList tags
-    if (metricAlert === false && supportedTags !== undefined) {
-      return supportedTags;
-    }
-
     const combinedTags: TagCollection =
       dataset === DiscoverDatasets.ERRORS
         ? Object.assign({}, functionTags, STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS)
@@ -304,7 +295,7 @@ function SearchBar(props: SearchBarProps) {
               )
             : Object.assign({}, STATIC_FIELD_TAGS_WITHOUT_TRACING);
 
-    Object.assign(combinedTags, tagsWithKind, STATIC_SEMVER_TAGS, supportedTags);
+    Object.assign(combinedTags, tagsWithKind, STATIC_FIELD_TAGS, STATIC_SEMVER_TAGS);
 
     combinedTags.has = getHasTag(combinedTags);
 
@@ -326,6 +317,7 @@ function SearchBar(props: SearchBarProps) {
           savedSearchType={savedSearchType}
           projectIds={projectIds}
           onGetTagValues={getEventFieldValues}
+          supportedTags={getTagList(measurements)}
           prepareQuery={query => {
             // Prepare query string (e.g. strip special characters like negation operator)
             return query.replace(SEARCH_SPECIAL_CHARS_REGEXP, '');
@@ -335,7 +327,6 @@ function SearchBar(props: SearchBarProps) {
           maxMenuHeight={maxMenuHeight ?? 300}
           {...customPerformanceMetricsSearchConfig}
           {...props}
-          supportedTags={getTagList(measurements)}
         />
       )}
     </Measurements>
