@@ -33,26 +33,29 @@ def run_test(expected_groups):
 
     assert {g.id for g in expected_groups} == {d["group_id"] for d in data}
     assert {g.priority for g in expected_groups} == {d["group_priority"] for d in data}
-    assert {g.first_release for g in expected_groups} == {d["group_first_release"] for d in data}
+    assert {g.first_release.id if g.first_release else None for g in expected_groups} == {
+        d["group_first_release"] for d in data
+    }
 
 
 class TestBackfillGroupAttributes(SnubaTestCase, TestMigrations):
-    migrate_from = "0733_relocation_provenance"
-    migrate_to = "0734_backfill_group_info_to_group_attributes"
+    migrate_from = "0734_rm_reprocessing_step1"
+    migrate_to = "0735_backfill_group_info_to_group_attributes"
 
     def setup_initial_state(self):
-        release = self.create_release(project=self.group.project)
-        self.group = self.create_group(priority=PriorityLevel.HIGH, first_release=release)
-
+        self.group = self.create_group(priority=PriorityLevel.HIGH)
         self.group_2 = self.create_group(priority=PriorityLevel.LOW)
+        release = self.create_release(project=self.group.project)
+
+        self.group.update(first_release=release)
 
     def test(self):
         run_test([self.group, self.group_2])
 
 
 class TestBackfillGroupAttributesRetry(SnubaTestCase, TestMigrations):
-    migrate_from = "0733_relocation_provenance"
-    migrate_to = "0734_backfill_group_info_to_group_attributes"
+    migrate_from = "0734_rm_reprocessing_step1"
+    migrate_to = "0735_backfill_group_info_to_group_attributes"
 
     def setup_initial_state(self):
         self.group = self.create_group(priority=PriorityLevel.HIGH)
