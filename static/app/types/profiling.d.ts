@@ -118,12 +118,7 @@ declare namespace Profiling {
     };
     platform: string;
     measurements?: Measurements;
-    profile: {
-      samples: SentrySampledProfileChunkSample[];
-      frames: SentrySampledProfileFrame[];
-      stacks: SentrySampledProfileStack[];
-      thread_metadata?: Record<string, {name?: string; priority?: number}>;
-    };
+    profile: ContinuousProfile;
   }
 
   ////////////////
@@ -151,6 +146,13 @@ declare namespace Profiling {
     sample_durations_ns?: number[];
     type: 'sampled';
   }
+
+  type ContinuousProfile = {
+    samples: SentrySampledProfileChunkSample[];
+    frames: SentrySampledProfileFrame[];
+    stacks: SentrySampledProfileStack[];
+    thread_metadata?: Record<string, {name?: string; priority?: number}>;
+  };
 
   type Event = {at: number; frame: number; type: 'O' | 'C'};
 

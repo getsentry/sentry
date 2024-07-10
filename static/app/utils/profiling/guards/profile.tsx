@@ -31,6 +31,18 @@ export function isSentrySampledProfile(
   );
 }
 
+export function isSentryContinuousProfile(
+  profile: any
+): profile is Profiling.ContinuousProfile {
+  return (
+    'samples' in profile &&
+    'stacks' in profile &&
+    'frames' in profile &&
+    !('type' in profile) &&
+    !Array.isArray(profile.resources)
+  );
+}
+
 export function isSentryContinuousProfileChunk(
   profile: any
 ): profile is Profiling.SentryContinousProfileChunk {

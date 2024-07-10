@@ -2,6 +2,7 @@ import * as Sentry from '@sentry/react';
 import type {Span} from '@sentry/types';
 
 import type {Image} from 'sentry/types/debugImage';
+import {ContinuousProfile} from 'sentry/utils/profiling/profile/continuousProfile';
 
 import type {Frame} from '../frame';
 import {
@@ -9,6 +10,8 @@ import {
   isJSProfile,
   isSampledProfile,
   isSchema,
+  isSentryContinuousProfile,
+  isSentryContinuousProfileChunk,
   isSentrySampledProfile,
 } from '../guards/profile';
 
@@ -18,6 +21,7 @@ import type {Profile} from './profile';
 import {SampledProfile} from './sampledProfile';
 import {SentrySampledProfile} from './sentrySampledProfile';
 import {
+  createContinuousProfileFrameIndex,
   createFrameIndex,
   createSentrySampleProfileFrameIndex,
   wrapWithSpan,
@@ -54,6 +58,14 @@ export function importProfile(
     });
 
     try {
+      if (isSentryContinuousProfileChunk(input)) {
+        scope.setTag('profile.type', 'sentry-continuous');
+        return importSentryContinuousProfileChunk(input, traceID, {
+          span,
+          type,
+          frameFilter,
+        });
+      }
       if (isJSProfile(input)) {
         scope.setTag('profile.type', 'js-self-profile');
         return importJSSelfProfile(input, traceID, {span, type});
@@ -154,7 +166,7 @@ function importSentrySampledProfile(
           }),
         {
           op: 'profile.import',
-          description: 'evented',
+          description: 'sampled',
         }
       )
     );
@@ -219,11 +231,52 @@ export function importSchema(
   };
 }
 
+export function importSentryContinuousProfileChunk(
+  input: Readonly<Profiling.SentryContinousProfileChunk>,
+  traceID: string,
+  options: ImportOptions
+): ProfileGroup {
+  const frameIndex = createContinuousProfileFrameIndex(
+    input.profile.frames,
+    input.platform
+  );
+
+  return {
+    traceID,
+    name: '',
+    transactionID: null,
+    activeProfileIndex: 0,
+    profiles: [importSingleProfile(input.profile, frameIndex, options)],
+    measurements: {},
+    metadata: {
+      platform: input.platform,
+    },
+  };
+}
+
 function importSingleProfile(
-  profile: Profiling.EventedProfile | Profiling.SampledProfile | JSSelfProfiling.Trace,
-  frameIndex: ReturnType<typeof createFrameIndex>,
+  profile:
+    | Profiling.ContinuousProfile
+    | Profiling.EventedProfile
+    | Profiling.SampledProfile
+    | JSSelfProfiling.Trace,
+  frameIndex:
+    | ReturnType<typeof createFrameIndex>
+    | ReturnType<typeof createContinuousProfileFrameIndex>
+    | ReturnType<typeof createSentrySampleProfileFrameIndex>,
   {span, type, frameFilter, profileIds}: ImportOptions
 ): Profile {
+  if (isSentryContinuousProfile(profile)) {
+    // In some cases, the SDK may return spans as undefined and we dont want to throw there.
+    if (!span) {
+      return ContinuousProfile.FromProfile(profile, frameIndex);
+    }
+
+    return wrapWithSpan(span, () => ContinuousProfile.FromProfile(profile, frameIndex), {
+      op: 'profile.import',
+      description: 'continuous-profile',
+    });
+  }
   if (isEventedProfile(profile)) {
     // In some cases, the SDK may return spans as undefined and we dont want to throw there.
     if (!span) {
