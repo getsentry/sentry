@@ -401,7 +401,7 @@ const ValueObjectKey = styled('span')`
 
 const StyledCopyButton = styled(CopyToClipboardButton)`
   position: absolute;
-  right: ${space(0.5)};
+  right: ${space(1.5)};
   z-index: 2;
-  margin: ${space(0.75)} ${space(1.5)};
+  margin: ${space(0.75)} ${space(1)};
 `;
