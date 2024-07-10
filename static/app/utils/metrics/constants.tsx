@@ -42,6 +42,7 @@ export const emptyMetricsQueryWidget: MetricsQueryWidget = {
   id: NO_QUERY_ID,
   mri: 'd:transactions/duration@millisecond' satisfies MRI,
   aggregation: 'avg',
+  condition: undefined,
   query: '',
   groupBy: [],
   sort: DEFAULT_SORT_STATE,

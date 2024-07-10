@@ -1,4 +1,3 @@
-import {emptyMetricsQueryWidget} from 'sentry/utils/metrics/constants';
 import {
   MetricChartOverlayType,
   MetricDisplayType,
@@ -12,17 +11,14 @@ function testParsing(input: any, result: MetricsWidget[]) {
 }
 
 describe('parseMetricWidgetsQueryParam', () => {
-  const defaultState = [{...emptyMetricsQueryWidget, id: 0}];
-  it('returns default widget for invalid param', () => {
-    testParsing(undefined, defaultState);
-    testParsing({}, defaultState);
-    testParsing(true, defaultState);
-    testParsing(2, defaultState);
-    testParsing('', defaultState);
-    testParsing('test', defaultState);
-
-    // empty array is not valid
-    testParsing([], defaultState);
+  it('returns empty array for invalid param', () => {
+    testParsing(undefined, []);
+    testParsing({}, []);
+    testParsing(true, []);
+    testParsing(2, []);
+    testParsing('', []);
+    testParsing('test', []);
+    testParsing([], []);
   });
 
   it('returns a single widget', () => {
@@ -285,7 +281,7 @@ describe('parseMetricWidgetsQueryParam', () => {
     );
   });
 
-  it('returns default widget if there is no valid widget', () => {
+  it('returns empty array if there is no valid widget', () => {
     testParsing(
       // INPUT
       [
@@ -298,7 +294,7 @@ describe('parseMetricWidgetsQueryParam', () => {
         },
       ],
       // RESULT
-      defaultState
+      []
     );
   });
 
