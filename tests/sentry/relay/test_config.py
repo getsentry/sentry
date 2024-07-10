@@ -951,7 +951,7 @@ def test_mobile_performance_calculate_score(default_project):
         "name": "Firefox Mobile",
         "scoreComponents": [
             {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": False},
-            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": False},
+            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": True},
             {"measurement": "cls", "weight": 0.0, "p10": 0.1, "p50": 0.25, "optional": False},
             {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": False},
         ],

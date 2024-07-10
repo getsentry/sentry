@@ -9,31 +9,16 @@ import {OnboardingCodeSnippet} from 'sentry/components/onboarding/gettingStarted
 import {TabbedCodeSnippet} from 'sentry/components/onboarding/gettingStartedDoc/step';
 import type {DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
-import useLoadGettingStarted from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
+import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PlatformIntegration, Project, ProjectKey} from 'sentry/types/project';
-import {defined} from 'sentry/utils';
-import {getPlatformPath} from 'sentry/utils/gettingStartedDocs/getPlatformPath';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import type {PlatformIntegration, Project} from 'sentry/types/project';
 import useOrganization from 'sentry/utils/useOrganization';
 import FirstEventIndicator from 'sentry/views/onboarding/components/firstEventIndicator';
 
 export default function UpdatedEmptyState({project}: {project?: Project}) {
   const organization = useOrganization();
-
-  const {
-    data: projectKeys,
-    isError: projectKeysIsError,
-    isLoading: projectKeysIsLoading,
-  } = useApiQuery<ProjectKey[]>(
-    [`/projects/${organization.slug}/${project?.slug}/keys/`],
-    {
-      staleTime: Infinity,
-      enabled: defined(project),
-    }
-  );
 
   const {isLoading: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
@@ -43,32 +28,27 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     p => p.id === currentPlatformKey
   ) as PlatformIntegration;
 
-  const platformPath = getPlatformPath(currentPlatform);
-
-  const module = useLoadGettingStarted({
-    platformId: currentPlatform.id,
-    platformPath,
+  const loadGettingStarted = useLoadGettingStarted({
+    platform: currentPlatform,
+    orgSlug: organization.slug,
+    projSlug: project?.slug,
   });
 
   if (
-    !project ||
-    projectKeysIsError ||
-    projectKeysIsLoading ||
-    !projectKeys ||
-    projectKeys.length === 0 ||
-    !module ||
     !currentPlatform ||
-    module === 'none'
+    !project ||
+    loadGettingStarted.isError ||
+    loadGettingStarted.isLoading ||
+    !loadGettingStarted.docs ||
+    !loadGettingStarted.cdn ||
+    !loadGettingStarted.dsn
   ) {
     return null;
   }
 
-  const dsn = projectKeys[0].dsn.public;
-  const {default: docs} = module;
-
   const docParams: DocsParams<any> = {
-    cdn: projectKeys[0].dsn.cdn,
-    dsn,
+    cdn: loadGettingStarted.cdn,
+    dsn: loadGettingStarted.dsn,
     organization,
     platformKey: currentPlatformKey,
     projectId: project.id,
@@ -86,19 +66,22 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     replayOptions: {block: true, mask: true},
   };
 
-  const install = docs.onboarding.install(docParams)[0];
-  const configure = docs.onboarding.configure(docParams);
-  const verify = docs.onboarding.verify(docParams);
+  const install = loadGettingStarted.docs.onboarding.install(docParams)[0];
+  const configure = loadGettingStarted.docs.onboarding.configure(docParams);
+  const verify = loadGettingStarted.docs.onboarding.verify(docParams);
 
   const {description: installDescription} = install;
 
   const installConfigurations = install.configurations ?? [];
 
   const {configurations, description: configureDescription} = configure[0] ?? {};
-  const {configurations: sourceMapConfigurations, description: sourcemapDescription} =
-    configure[1] ?? {};
+  const {
+    configurations: extraConfigurations,
+    description: extraConfigDescription,
+    title: extraConfigTitle,
+  } = configure[1] ?? {};
 
-  const {description: verifyDescription, configurations: verifyConfigutations} =
+  const {description: verifyDescription, configurations: verifyConfigurations} =
     verify[0] ?? {};
 
   return (
@@ -135,23 +118,25 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                       </CodeSnippetWrapper>
                     </div>
                   ))}
-                  {verify.length === 0 && (
-                    <FirstEventIndicator
-                      organization={organization}
-                      project={project}
-                      eventType="error"
-                    >
-                      {({indicator, firstEventButton}) => (
-                        <div>
-                          <IndicatorWrapper>{indicator}</IndicatorWrapper>
-                          <StyledButtonBar gap={1}>
-                            <GuidedSteps.BackButton size="md" />
-                            {firstEventButton}
-                          </StyledButtonBar>
-                        </div>
-                      )}
-                    </FirstEventIndicator>
-                  )}
+                  {!configurations &&
+                    !extraConfigDescription &&
+                    !verifyConfigurations && (
+                      <FirstEventIndicator
+                        organization={organization}
+                        project={project}
+                        eventType="error"
+                      >
+                        {({indicator, firstEventButton}) => (
+                          <div>
+                            <IndicatorWrapper>{indicator}</IndicatorWrapper>
+                            <StyledButtonBar gap={1}>
+                              <GuidedSteps.BackButton size="md" />
+                              {firstEventButton}
+                            </StyledButtonBar>
+                          </div>
+                        )}
+                      </FirstEventIndicator>
+                    )}
                 </div>
                 <GuidedSteps.ButtonWrapper>
                   <GuidedSteps.BackButton size="md" />
@@ -180,6 +165,9 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                             )
                           ) : null}
                         </CodeSnippetWrapper>
+                        <DescriptionWrapper>
+                          {configuration.additionalInfo}
+                        </DescriptionWrapper>
                       </div>
                     ))}
                   </div>
@@ -192,43 +180,66 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
             ) : (
               <Fragment />
             )}
-            {sourcemapDescription ? (
+            {extraConfigDescription ? (
               <GuidedSteps.Step
-                stepKey="sourcemaps-sentry"
-                title={t('Upload Sourcemaps')}
+                stepKey="extra-configuration-sentry"
+                title={extraConfigTitle || t('Upload Source Maps')}
               >
                 <div>
-                  <DescriptionWrapper>{sourcemapDescription}</DescriptionWrapper>
-                  {sourceMapConfigurations?.map((configuration, index) => (
-                    <div key={index}>
-                      <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
-                      <CodeSnippetWrapper>
-                        {configuration.code ? (
-                          Array.isArray(configuration.code) ? (
-                            <TabbedCodeSnippet tabs={configuration.code} />
-                          ) : (
-                            <OnboardingCodeSnippet language={configuration.language}>
-                              {configuration.code}
-                            </OnboardingCodeSnippet>
-                          )
-                        ) : null}
-                      </CodeSnippetWrapper>
-                    </div>
-                  ))}
-                  <GuidedSteps.ButtonWrapper>
-                    <GuidedSteps.BackButton size="md" />
-                    <GuidedSteps.NextButton size="md" />
-                  </GuidedSteps.ButtonWrapper>
+                  <div>
+                    <DescriptionWrapper>{extraConfigDescription}</DescriptionWrapper>
+                    {extraConfigurations?.map((configuration, index) => (
+                      <div key={index}>
+                        <DescriptionWrapper>
+                          {configuration.description}
+                        </DescriptionWrapper>
+                        <CodeSnippetWrapper>
+                          {configuration.code ? (
+                            Array.isArray(configuration.code) ? (
+                              <TabbedCodeSnippet tabs={configuration.code} />
+                            ) : (
+                              <OnboardingCodeSnippet language={configuration.language}>
+                                {configuration.code}
+                              </OnboardingCodeSnippet>
+                            )
+                          ) : null}
+                        </CodeSnippetWrapper>
+                      </div>
+                    ))}
+                    {!verifyConfigurations && !verifyDescription && (
+                      <FirstEventIndicator
+                        organization={organization}
+                        project={project}
+                        eventType="error"
+                      >
+                        {({indicator, firstEventButton}) => (
+                          <div>
+                            <IndicatorWrapper>{indicator}</IndicatorWrapper>
+                            <StyledButtonBar gap={1}>
+                              <GuidedSteps.BackButton size="md" />
+                              {firstEventButton}
+                            </StyledButtonBar>
+                          </div>
+                        )}
+                      </FirstEventIndicator>
+                    )}
+                  </div>
+                  {(verifyConfigurations || verifyDescription) && (
+                    <GuidedSteps.ButtonWrapper>
+                      <GuidedSteps.BackButton size="md" />
+                      <GuidedSteps.NextButton size="md" />
+                    </GuidedSteps.ButtonWrapper>
+                  )}
                 </div>
               </GuidedSteps.Step>
             ) : (
               <Fragment />
             )}
-            {verifyConfigutations ? (
+            {verifyConfigurations || verifyDescription ? (
               <GuidedSteps.Step stepKey="verify-sentry" title={t('Verify')}>
                 <div>
                   <DescriptionWrapper>{verifyDescription}</DescriptionWrapper>
-                  {verifyConfigutations.map((configuration, index) => (
+                  {verifyConfigurations?.map((configuration, index) => (
                     <div key={index}>
                       <DescriptionWrapper>{configuration.description}</DescriptionWrapper>
                       <CodeSnippetWrapper>
