@@ -18,7 +18,7 @@ import {DEFAULT_METRICS_CARDINALITY_LIMIT} from 'sentry/utils/metrics/constants'
 import useOrganization from 'sentry/utils/useOrganization';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
-import {useMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/api';
+import {useMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/useMetricsExtractionRules';
 
 export type AggregateGroup = 'count' | 'count_unique' | 'min_max' | 'percentiles';
 export interface FormData {
