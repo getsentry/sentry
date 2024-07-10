@@ -25,7 +25,6 @@ import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLay
 import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
-import {MODULE_TITLE} from 'sentry/views/insights/database/settings';
 import {
   MODULE_DATA_TYPES,
   MODULE_DATA_TYPES_PLURAL,
@@ -54,7 +53,7 @@ export function ModulesOnboarding({
   if (hasEmptyStateFeature && (onboardingProject || !hasData)) {
     return (
       <ModuleLayout.Full>
-        <ModulesOnboardingPanel moduleName={'cache'} />
+        <ModulesOnboardingPanel moduleName={moduleName} />
       </ModuleLayout.Full>
     );
   }
@@ -88,7 +87,7 @@ function OldModulesOnboardingPanel({children}: {children: React.ReactNode}) {
   );
 }
 
-function ModulesOnboardingPanel({moduleName}: {moduleName: TitleableModuleNames}) {
+function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
 
   return (
@@ -129,7 +128,7 @@ function ModulesOnboardingPanel({moduleName}: {moduleName: TitleableModuleNames}
   );
 }
 
-type ModulePreviewProps = {moduleName: TitleableModuleNames};
+type ModulePreviewProps = {moduleName: ModuleName};
 
 function ModulePreview({moduleName}: ModulePreviewProps) {
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
@@ -242,13 +241,17 @@ type EmptyStateContent = {
 
 const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
   app_start: {
-    heading: t(
-      'Monitor cold and warm starts and track down the dependency containing the regression. '
+    heading: t('Don’t lose the race at the starting line'),
+    description: tct(
+      'Monitor cold and warm [dataTypePlural] and track down the operations and releases contributing regression.',
+      {
+        dataTypePlural:
+          MODULE_DATA_TYPES_PLURAL[ModuleName.APP_START].toLocaleLowerCase(),
+      }
     ),
-    description: t(
-      'Monitor cold and warm starts and track down the operations and releases contributing regression.'
-    ),
-    valuePropDescription: t(`Mobile App Start insights give you visibility into:`),
+    valuePropDescription: tct(`Mobile [dataType] insights give you visibility into:`, {
+      dataType: MODULE_DATA_TYPES[ModuleName.APP_START],
+    }),
     valuePropPoints: [
       t('Application start duration broken down by release.'),
       t('Performance by device class.'),
@@ -257,29 +260,40 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: appStartPreviewImg,
   },
   ai: {
-    heading: t('TODO'),
-    description: t(
-      'Get insights into critical LLM metrics, like token usage, to monitor and fix issues with AI pipelines.'
+    heading: t('Find out what your LLM model is actually saying'),
+    description: tct(
+      'Get insights into critical [dataType] metrics, like token usage, to monitor and fix issues with AI pipelines.',
+      {
+        dataType: MODULE_DATA_TYPES[ModuleName.AI],
+      }
     ),
-    valuePropDescription: t('See what your LLMs are doing in production by monitoring:'),
+    valuePropDescription: tct(
+      'See what your [dataTypePlural] are doing in production by monitoring:',
+      {
+        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.AI],
+      }
+    ),
     valuePropPoints: [
       t('Token cost and usage per-provider and per-pipeline.'),
-      t('The inputs and outputs of LLM calls.'),
-      t('Performance and timing information about LLMs in production.'),
+      tct('The inputs and outputs of [dataType] calls.', {
+        dataType: MODULE_DATA_TYPES[ModuleName.AI],
+      }),
+      tct('Performance and timing information about [dataTypePlural] in production.', {
+        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.AI],
+      }),
     ],
     imageSrc: llmPreviewImg,
   },
+  // Mobile UI is not released yet
   'mobile-ui': {
     heading: t('TODO'),
     description: t('TODO'),
-    valuePropDescription: t('Screen load insights include:'),
+    valuePropDescription: t('Mobile UI load insights include:'),
     valuePropPoints: [],
     imageSrc: screenLoadsPreviewImg,
   },
   cache: {
-    heading: tct('Make Sure Your Application [dataTypePlural] are Behaving Properly', {
-      dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.CACHE],
-    }),
+    heading: t('Bringing you one less hard problem in computer science'),
     description: t(
       'We’ll tell you if the parts of your application that interact with caches are hitting cache as often as intended, and whether caching is providing the performance improvements expected.'
     ),
@@ -288,7 +302,9 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     }),
     valuePropPoints: [
       t('Throughput of your cached endpoints.'),
-      t('Average cache hit and miss duration.'),
+      tct('Average [dataType] hit and miss duration.', {
+        dataType: MODULE_DATA_TYPES[ModuleName.CACHE].toLocaleLowerCase(),
+      }),
       t('Hit / miss ratio of keys accessed by your application.'),
     ],
     imageSrc: cachesPreviewImg,
@@ -304,25 +320,37 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     ],
   },
   db: {
-    heading: t('TODO'),
-    description: t(
-      'Investigate the performance of database queries and get the information necessary to improve them.'
+    heading: tct(
+      'Fix the slow [dataTypePlural] you honestly intended to get back to later',
+      {dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.DB].toLocaleLowerCase()}
     ),
-    valuePropDescription: t('Query insights give you visibility into:'),
+    description: tct(
+      'Investigate the performance of database [dataTypePlural] and get the information necessary to improve them.',
+      {dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.DB].toLocaleLowerCase()}
+    ),
+    valuePropDescription: tct('[dataType] insights give you visibility into:', {
+      dataType: MODULE_DATA_TYPES[ModuleName.DB],
+    }),
     valuePropPoints: [
-      t('Slow queries.'),
-      t('High volume queries.'),
+      tct('Slow [dataTypePlural].', {
+        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.DB].toLocaleLowerCase(),
+      }),
+      tct('High volume [dataTypePlural].', {
+        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.DB].toLocaleLowerCase(),
+      }),
       t('Outlier database spans.'),
     ],
     imageSrc: queriesPreviewImg,
   },
   http: {
-    heading: t('TODO'),
-    description: t(
-      'See the outbound HTTP requests being made to internal and external APIs, allowing you to understand trends in status codes, latency, and throughput. '
+    heading: t(
+      'Are your API dependencies working as well as their landing page promised? '
     ),
-    valuePropDescription: tct('[moduleTitle] insights give you visibility into:', {
-      moduleTitle: MODULE_TITLE[ModuleName.HTTP],
+    description: t(
+      'See the outbound HTTP requests being made to internal and external APIs, allowing you to understand trends in status codes, latency, and throughput.'
+    ),
+    valuePropDescription: tct('[dataType] insights give you visibility into:', {
+      dataType: MODULE_DATA_TYPES[ModuleName.HTTP],
     }),
     valuePropPoints: [
       t('Anomalies in status codes by domain.'),
@@ -332,56 +360,76 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: requestPreviewImg,
   },
   resource: {
-    heading: t('TODO'),
-    description: t(
-      'Find large and slow-to-load resources used by your application and understand their impact on page performance.'
+    heading: t('Is your favourite animated gif worth the time it takes to load?'),
+    description: tct(
+      'Find large and slow-to-load [dataTypePlurl] used by your application and understand their impact on page performance.',
+      {dataTypePlurl: MODULE_DATA_TYPES_PLURAL[ModuleName.RESOURCE].toLocaleLowerCase()}
     ),
-    valuePropDescription: t('Asset insights give you visibility into:'),
+    valuePropDescription: tct('[dataType] insights give you visibility into:', {
+      dataType: MODULE_DATA_TYPES[ModuleName.RESOURCE],
+    }),
     valuePropPoints: [
-      t('Asset performance broken down by category and domain.'),
-      t('Which routes are loading assets, and whether they’re blocking rendering.'),
-      t('Asset size and whether it’s growing over time.'),
+      tct('[dataType] performance broken down by category and domain.', {
+        dataType: MODULE_DATA_TYPES[ModuleName.RESOURCE],
+      }),
+      tct(
+        'Which routes are loading [dataTypePlural], and whether they’re blocking rendering.',
+        {
+          dataTypePlural:
+            MODULE_DATA_TYPES_PLURAL[ModuleName.RESOURCE].toLocaleLowerCase(),
+        }
+      ),
+      tct('[dataType] size and whether it’s growing over time.', {
+        dataType: MODULE_DATA_TYPES[ModuleName.RESOURCE],
+      }),
     ],
     imageSrc: assetsPreviewImg,
   },
   vital: {
-    heading: t(
-      'Monitor cold and warm starts and track down the dependency containing the regression. '
-    ),
+    heading: t('Finally answer, is this page slow for everyone or just me?'),
     description: t(
-      'App Starts provide insights into your mobile app’s cold start performance:'
+      'Get industry standard metrics telling you the quality of user experience on a web page and see what needs improving.'
     ),
-    valuePropDescription: t('Screen load insights include:'),
+    valuePropDescription: tct('[dataType] insights give you visibility into:', {
+      dataType: MODULE_DATA_TYPES[ModuleName.VITAL],
+    }),
     valuePropPoints: [
-      t('Compare metrics across releases, root causing performance degradations.'),
-      t('See performance by device class.'),
+      t('Performance scores broken down by route.'),
+      t('Performance metrics for operations that affect screen load performance.'),
       t('Drill down to real user sessions.'),
     ],
     imageSrc: webVitalsPreviewImg,
   },
   queue: {
-    heading: t(
-      'Monitor cold and warm starts and track down the dependency containing the regression. '
+    heading: t('Ensure your background jobs aren’t being sent to /dev/null'),
+    description: tct(
+      'Understand the health and performance impact that [dataTypePlural] have on your application and diagnose errors tied to jobs.',
+      {
+        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.QUEUE].toLocaleLowerCase(),
+      }
     ),
-    description: t(
-      'App Starts provide insights into your mobile app’s cold start performance:'
-    ),
-    valuePropDescription: t('Screen load insights include:'),
+    valuePropDescription: tct('[dataType] insights give you visibility into:', {
+      dataType: MODULE_DATA_TYPES[ModuleName.QUEUE],
+    }),
     valuePropPoints: [
-      t('Compare metrics across releases, root causing performance degradations.'),
-      t('See performance by device class.'),
-      t('Drill down to real user sessions.'),
+      t('Metrics for how long jobs spend processing and waiting in queue.'),
+      t('Job error rates and retry counts.'),
+      t('Published vs., processed job volume.'),
     ],
     imageSrc: queuesPreviewImg,
   },
   screen_load: {
-    heading: t(
-      'Monitor cold and warm starts and track down the dependency containing the regression. '
+    heading: t('Perhaps 255 items was too large of a pagination size'),
+    description: tct(
+      'View the most active [dataTypePlural] in your mobile application and monitor your releases for screen load performance.',
+      {
+        dataTypePlural:
+          MODULE_DATA_TYPES_PLURAL[ModuleName.SCREEN_LOAD].toLocaleLowerCase(),
+      }
     ),
-    description: t(
-      'App Starts provide insights into your mobile app’s cold start performance:'
-    ),
-    valuePropDescription: t('Screen load insights include:'),
+    valuePropDescription: tct('[dataType] insights include:', {
+      dataType: MODULE_DATA_TYPES[ModuleName.RESOURCE],
+    }),
     valuePropPoints: [
       t('Compare metrics across releases, root causing performance degradations.'),
       t('See performance by device class.'),

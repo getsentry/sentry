@@ -4,7 +4,11 @@ import {
   DATA_TYPE_PLURAL as RESOURCE_DATA_TYPE_PLURAL,
   MODULE_TITLE as RESOURCES_MODULE_TITLE,
 } from 'sentry/views/insights/browser/resources/settings';
-import {MODULE_TITLE as VITALS_MODULE_TITLE} from 'sentry/views/insights/browser/webVitals/settings';
+import {
+  DATA_TYPE as WEB_VITALS_DATA_TYPE,
+  DATA_TYPE_PLURAL as WEB_VITALS_DATA_TYPE_PLURAL,
+  MODULE_TITLE as VITALS_MODULE_TITLE,
+} from 'sentry/views/insights/browser/webVitals/settings';
 import {
   DATA_TYPE as CACHE_DATA_TYPE,
   DATA_TYPE_PLURAL as CACHE_DATA_TYPE_PLURAL,
@@ -21,7 +25,11 @@ import {
   DATA_TYPE_PLURAL as HTTP_DATA_TYPE_PLURAL,
   MODULE_TITLE as HTTP_MODULE_TITLE,
 } from 'sentry/views/insights/http/settings';
-import {MODULE_TITLE as AI_MODULE_TITLE} from 'sentry/views/insights/llmMonitoring/settings';
+import {
+  DATA_TYPE as AI_DATA_TYPE,
+  DATA_TYPE_PLURAL as AI_DATA_TYPE_PLURAL,
+  MODULE_TITLE as AI_MODULE_TITLE,
+} from 'sentry/views/insights/llmMonitoring/settings';
 import {
   DATA_TYPE as APP_STARTS_DATA_TYPE,
   DATA_TYPE_PLURAL as APP_STARTS_DATA_TYPE_PLURAL,
@@ -68,9 +76,9 @@ export const MODULE_DATA_TYPES: Record<ModuleName, string> = {
   [ModuleName.QUEUE]: QUEUE_DATA_TYPE,
   [ModuleName.SCREEN_LOAD]: SCREEN_LOAD_DATA_TYPE,
   [ModuleName.APP_START]: APP_STARTS_DATA_TYPE,
-  [ModuleName.VITAL]: t('Web Vitals'),
+  [ModuleName.VITAL]: WEB_VITALS_DATA_TYPE,
   [ModuleName.RESOURCE]: RESOURCE_DATA_TYPE,
-  [ModuleName.AI]: t('AI'),
+  [ModuleName.AI]: AI_DATA_TYPE,
   [ModuleName.MOBILE_UI]: t('Mobile UI'),
   [ModuleName.OTHER]: '',
   [ModuleName.ALL]: '',
@@ -83,9 +91,9 @@ export const MODULE_DATA_TYPES_PLURAL: Record<ModuleName, string> = {
   [ModuleName.QUEUE]: QUEUE_DATA_TYPE_PLURAL,
   [ModuleName.SCREEN_LOAD]: SCREEN_LOAD_DATA_TYPE_PLURAL,
   [ModuleName.APP_START]: APP_STARTS_DATA_TYPE_PLURAL,
-  [ModuleName.VITAL]: t('Web Vitals'),
+  [ModuleName.VITAL]: WEB_VITALS_DATA_TYPE_PLURAL,
   [ModuleName.RESOURCE]: RESOURCE_DATA_TYPE_PLURAL,
-  [ModuleName.AI]: t('AI'),
+  [ModuleName.AI]: AI_DATA_TYPE_PLURAL,
   [ModuleName.MOBILE_UI]: t('Mobile UI'),
   [ModuleName.OTHER]: '',
   [ModuleName.ALL]: '',
@@ -101,7 +109,7 @@ export const MODULE_PRODUCT_DOC_LINKS: Record<ModuleName, string> = {
   [ModuleName.APP_START]:
     'https://docs.sentry.io/product/insights/mobile-vitals/app-starts/',
   [ModuleName.VITAL]: 'https://docs.sentry.io/product/insights/web-vitals/',
-  [ModuleName.RESOURCE]: 'https://docs.sentry.io/product/insights/browser-resources/',
+  [ModuleName.RESOURCE]: 'https://docs.sentry.io/product/insights/assets/',
   [ModuleName.AI]: 'https://docs.sentry.io/product/insights/llm-monitoring/',
   [ModuleName.MOBILE_UI]: 'https://docs.sentry.io/product/insights/mobile-vitals/ui/',
   [ModuleName.OTHER]: '',
