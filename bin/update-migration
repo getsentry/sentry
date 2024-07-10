@@ -7,6 +7,7 @@ import re
 
 import click
 from django.apps import apps
+from django.conf import settings
 
 from sentry.runner import configure
 
@@ -121,7 +122,7 @@ def main(migration: str, app_label: str):
     click.echo("> Migration file rename complete")
 
     # Update lockfile
-    lockfile = os.path.join(app_path, "..", "..", "migrations_lockfile.txt")
+    lockfile = os.path.join(settings.MIGRATIONS_LOCKFILE_PATH, "migrations_lockfile.txt")
     with open(lockfile) as f:
         contents = f.read()
         contents = contents.replace(current_head.full_name, new_name)
