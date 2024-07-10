@@ -2,11 +2,13 @@ import {Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {CollapsibleValue} from 'sentry/components/structuredEventData/collapsibleValue';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {isUrl} from 'sentry/utils/string/isUrl';
 
@@ -43,6 +45,8 @@ export type StructuredEventDataProps = {
   forceDefaultExpand?: boolean;
   maxDefaultDepth?: number;
   meta?: Record<any, any>;
+  onCopy?: (copiedCode: string) => void;
+  showCopyButton?: boolean;
   withAnnotatedText?: boolean;
 };
 
@@ -107,6 +111,7 @@ export function StructuredData({
   config?: StructedEventDataConfig;
   forceDefaultExpand?: boolean;
   objectKey?: string;
+  showCopyButton?: boolean;
   // TODO(TS): What possible types can `value` be?
   value?: any;
   withOnlyFormattedText?: boolean;
@@ -324,10 +329,12 @@ export default function StructuredEventData({
   data = null,
   withAnnotatedText = false,
   forceDefaultExpand,
+  showCopyButton,
+  onCopy,
   ...props
 }: StructuredEventDataProps) {
   return (
-    <pre {...props}>
+    <StructuredDataWrapper {...props}>
       <StructuredData
         config={config}
         value={data}
@@ -338,7 +345,16 @@ export default function StructuredEventData({
         forceDefaultExpand={forceDefaultExpand}
       />
       {children}
-    </pre>
+      {showCopyButton && (
+        <StyledCopyButton
+          borderless
+          iconSize="xs"
+          onCopy={onCopy}
+          size="xs"
+          text={JSON.stringify(data, null, '\t')}
+        />
+      )}
+    </StructuredDataWrapper>
   );
 }
 
@@ -379,4 +395,14 @@ const ValueNumber = styled('span')`
 
 const ValueObjectKey = styled('span')`
   color: var(--prism-keyword);
+`;
+
+const StyledCopyButton = styled(CopyToClipboardButton)`
+  position: absolute;
+  right: ${space(1.5)};
+  top: ${space(0.75)};
+`;
+
+const StructuredDataWrapper = styled('pre')`
+  position: relative;
 `;
