@@ -327,7 +327,7 @@ def _error_message_condition(values: Sequence[tuple[str | None, str | None]]) ->
         RuleCondition,
         {
             "op": "any",
-            "name": "event.exceptions",
+            "name": "event.exception.values",
             "inner": {
                 "op": "or",
                 "inner": conditions,
