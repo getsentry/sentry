@@ -138,7 +138,7 @@ class LeakyBucketRateLimiterTest(TestCase):
             assert "Could not get bucket state" in caplog.text
 
     def test_validate(self):
-        assert self.limiter.validate() is None
+        self.limiter.validate()
 
         with mock.patch.object(self.limiter, "client") as redis_client:
             redis_client.ping.side_effect = Exception("Boom")
