@@ -44,7 +44,7 @@ export class ContinuousProfile extends Profile {
     for (let i = 0; i < chunk.profile.samples.length; i++) {
       const sample = chunk.profile.samples[i];
       const nextSampleTimestamp =
-        chunk.profile.samples[i - 1]?.timestamp ?? sample.timestamp;
+        chunk.profile.samples[i + 1]?.timestamp ?? sample.timestamp;
 
       const stack = chunk.profile.stacks[sample.stack_id];
       let size = 0;
