@@ -136,12 +136,17 @@ def process_issue_email_reply(shard_identifier: int, payload: Any, **kwds):
 # how this outbox drain handler fits into the entire SAAS->SAAS relocation workflow.
 @receiver(process_control_outbox, sender=OutboxCategory.RELOCATION_EXPORT_REQUEST)
 def process_relocation_request_new_export(payload: Mapping[str, Any], **kwds):
+    encrypt_with_public_key = (
+        payload["encrypt_with_public_key"].encode("utf-8")
+        if isinstance(payload["encrypt_with_public_key"], str)
+        else payload["encrypt_with_public_key"]
+    )
     region_relocation_export_service.request_new_export(
         relocation_uuid=payload["relocation_uuid"],
         requesting_region_name=payload["requesting_region_name"],
         replying_region_name=payload["replying_region_name"],
         org_slug=payload["org_slug"],
-        encrypt_with_public_key=payload["encrypt_with_public_key"],
+        encrypt_with_public_key=encrypt_with_public_key,
     )
 
 
@@ -167,5 +172,5 @@ def process_relocation_reply_with_export(payload: Mapping[str, Any], **kwds):
             requesting_region_name=payload["requesting_region_name"],
             replying_region_name=payload["replying_region_name"],
             org_slug=payload["org_slug"],
-            encrypted_contents=encrypted_contents,
+            encrypted_contents=encrypted_contents.read(),
         )

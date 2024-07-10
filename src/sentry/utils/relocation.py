@@ -698,6 +698,6 @@ def create_cloudbuild_validation_step(
 
 def uuid_to_identifier(uuid: UUID) -> int:
     """
-    Take a UUID object and generated a unique 64-bit identifier from it's final 64 bits.
+    Take a UUID object and generated a unique-enough 64-bit identifier from it's final 64 bits.
     """
-    return uuid.int & ((1 << 64) - 1)
+    return uuid.int & ((1 << 63) - 1)

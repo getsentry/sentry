@@ -4,7 +4,7 @@ import logging
 import re
 from collections import defaultdict
 from dataclasses import dataclass
-from datetime import UTC, datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from string import Template
 from typing import Any
@@ -113,7 +113,7 @@ RELOCATION_FILES_TO_BE_VALIDATED = [
 ERR_UPLOADING_FAILED = "Internal error during file upload."
 ERR_UPLOADING_NO_SAAS_TO_SAAS_ORG_SLUG = "SAAS->SAAS relocations must specify an org slug."
 ERR_UPLOADING_CROSS_REGION_TIMEOUT = Template(
-    "Cross-region relocation export request timed out after $min minutes."
+    "Cross-region relocation export request timed out after $delta."
 )
 
 ERR_PREPROCESSING_DECRYPTION = """Could not decrypt the imported JSON - are you sure you used the
@@ -336,8 +336,8 @@ def fulfill_cross_region_export_request(
     # persistent bug, like an error in the export logic. So, if `CROSS_REGION_EXPORT_TIMEOUT` time
     # has elapsed, always fail this task. Note that we don't report proactively back this failure,
     # and instead wait for the timeout check to pick it up on the other end.
-    scheduled_at_dt = datetime.fromtimestamp(scheduled_at, tz=timezone.utc)
-    if scheduled_at_dt + CROSS_REGION_EXPORT_TIMEOUT < datetime.now(tz=timezone.utc):
+    scheduled_at_dt = datetime.fromtimestamp(scheduled_at, tz=UTC)
+    if scheduled_at_dt + CROSS_REGION_EXPORT_TIMEOUT < datetime.now(tz=UTC):
         logger.error(
             "Cross region relocation fulfillment timeout",
             extra={
@@ -349,7 +349,7 @@ def fulfill_cross_region_export_request(
                 "scheduled_at": scheduled_at,
             },
         )
-        raise Exception("Cross region relocation fulfillment timeout")
+        return
 
     log_gcp_credentials_details(logger)
     path = f"runs/{uuid}/saas_to_saas_export/{org_slug}.tar"
@@ -427,16 +427,14 @@ def cross_region_export_timeout_check(
         )
         return
 
-    reason = ERR_UPLOADING_CROSS_REGION_TIMEOUT.substitute(mins=CROSS_REGION_EXPORT_TIMEOUT)
-    relocation.failure_reason = reason
-    relocation.status = Relocation.Status.FAILURE.value
-    relocation.save()
-
+    reason = ERR_UPLOADING_CROSS_REGION_TIMEOUT.substitute(delta=CROSS_REGION_EXPORT_TIMEOUT)
     logger_data["reason"] = reason
     logger.error(
         "Cross region timeout check: timeout detected",
         extra=logger_data,
     )
+
+    return fail_relocation(relocation, OrderedTask.UPLOADING_START, reason)
 
 
 @instrumented_task(

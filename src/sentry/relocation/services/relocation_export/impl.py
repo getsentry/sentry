@@ -4,7 +4,7 @@
 # defined, because we want to reflect on type annotations and avoid forward references.
 
 import logging
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from io import BytesIO
 from uuid import UUID
 
@@ -63,7 +63,7 @@ class DBBackedRelocationExportService(RegionRelocationExportService):
                 replying_region_name,
                 org_slug,
                 encrypt_with_public_key,
-                datetime.now(tz=timezone.utc),
+                int(round(datetime.now(tz=UTC).timestamp())),
             ]
         )
         logger.info("SaaS -> SaaS exporting task scheduled", extra=logger_data)
@@ -143,19 +143,20 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
 
         # Saving this outbox "proxies" the request to the correct region.
         identifier = uuid_to_identifier(UUID(relocation_uuid))
+        payload = RelocationExportRequestNewExportParameters(
+            relocation_uuid=relocation_uuid,
+            requesting_region_name=requesting_region_name,
+            replying_region_name=replying_region_name,
+            org_slug=org_slug,
+            encrypt_with_public_key=encrypt_with_public_key,
+        ).dict()
         ControlOutbox(
             region_name=replying_region_name,
             shard_scope=OutboxScope.RELOCATION_SCOPE,
             category=OutboxCategory.RELOCATION_EXPORT_REQUEST,
             shard_identifier=identifier,
             object_identifier=identifier,
-            payload=RelocationExportRequestNewExportParameters(
-                relocation_uuid=relocation_uuid,
-                requesting_region_name=requesting_region_name,
-                replying_region_name=replying_region_name,
-                org_slug=org_slug,
-                encrypt_with_public_key=encrypt_with_public_key,
-            ).dict(),
+            payload=payload,
         ).save()
         logger.info("SaaS -> SaaS request proxy outbox saved", extra=logger_data)
 
@@ -187,17 +188,18 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
 
         # Saving this outbox "proxies" the reply to the correct region.
         identifier = uuid_to_identifier(UUID(relocation_uuid))
+        payload = RelocationExportReplyWithExportParameters(
+            relocation_uuid=relocation_uuid,
+            requesting_region_name=requesting_region_name,
+            replying_region_name=replying_region_name,
+            org_slug=org_slug,
+        ).dict()
         ControlOutbox(
             region_name=requesting_region_name,
             shard_scope=OutboxScope.RELOCATION_SCOPE,
             category=OutboxCategory.RELOCATION_EXPORT_REPLY,
             shard_identifier=identifier,
             object_identifier=identifier,
-            payload=RelocationExportReplyWithExportParameters(
-                relocation_uuid=relocation_uuid,
-                requesting_region_name=requesting_region_name,
-                replying_region_name=replying_region_name,
-                org_slug=org_slug,
-            ).dict(),
+            payload=payload,
         ).save()
         logger.info("SaaS -> SaaS reply proxy outbox saved", extra=logger_data)
