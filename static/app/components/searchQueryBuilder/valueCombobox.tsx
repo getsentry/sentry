@@ -30,11 +30,12 @@ import {
 import {IconArrow} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Tag, TagCollection} from 'sentry/types';
+import type {Tag, TagCollection} from 'sentry/types/group';
 import {uniq} from 'sentry/utils/array/uniq';
 import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {type QueryKey, useQuery} from 'sentry/utils/queryClient';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 type SearchQueryValueBuilderProps = {
   onCommit: () => void;
@@ -509,9 +510,16 @@ function useFilterSuggestions({
   const shouldFetchValues = key && !key.predefined && !predefinedValues.length;
   const canSelectMultipleValues = tokenSupportsMultipleValues(token, filterKeys);
 
+  const queryKey = useMemo<QueryKey>(
+    () => ['search-query-builder-tag-values', token.key.text, filterValue],
+    [filterValue, token.key]
+  );
+
+  const debouncedQueryKey = useDebouncedValue(queryKey);
+
   // TODO(malwilley): Display error states
   const {data, isFetching} = useQuery<string[]>({
-    queryKey: ['search-query-builder', token.key, filterValue] as QueryKey,
+    queryKey: debouncedQueryKey,
     queryFn: () => getTagValues(key, filterValue),
     keepPreviousData: true,
     enabled: shouldFetchValues,
