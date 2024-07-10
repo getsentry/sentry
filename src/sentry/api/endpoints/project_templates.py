@@ -6,7 +6,7 @@ from rest_framework.response import Response
 from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project_template import (
@@ -14,6 +14,7 @@ from sentry.api.serializers.models.project_template import (
     ProjectTemplateSerializer,
 )
 from sentry.models.organization import Organization
+from sentry.models.organizationmember import OrganizationMember
 from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.user import User
 
@@ -22,12 +23,58 @@ def is_org_in_rollout(organization: Organization, user: AnonymousUser | User) ->
     return features.has("organizations:project-templates", organization, actor=user)
 
 
+def authenticated_endpoint(func):
+    def wrapper(*args, **kwargs):
+        request = args[1]
+        request_organization_id = kwargs["organization"].id
+        user = request.user
+
+        if not user.is_authenticated:
+            return Response({"detail": "This endpoint requires user info"}, status=401)
+
+        if request.auth is not None and request.auth.organization_id:
+            authorized_organizations = [request.auth.organization_id]
+        else:
+            authorized_organizations = OrganizationMember.objects.filter(
+                user_id=user.id
+            ).values_list("organization_id", flat=True)
+
+        if request_organization_id not in authorized_organizations:
+            return Response(
+                {"detail": "This endpoint requires user to be authenticated to the organization"},
+                status=401,
+            )
+
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
+def authenticated_organization_admin(func):
+    @authenticated_endpoint
+    def wrapper(*args, **kwargs):
+        request = args[1]
+        user = request.user
+
+        if features.has("organization:create", actor=user):
+            return Response(
+                {"detail": "Project Templates are not allowed to be created by this user."},
+                status=401,
+            )
+
+        return func(*args, **kwargs)
+
+    return wrapper
+
+
 @region_silo_endpoint
 class OrganizationProjectTemplatesIndexEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
+    permission_classes = (OrganizationPermission,)
 
+    @authenticated_endpoint
     def get(self, request: Request, organization: Organization) -> Response:
         """
         List of Project Templates, does not include the options for the project template.
@@ -37,8 +84,6 @@ class OrganizationProjectTemplatesIndexEndpoint(OrganizationEndpoint):
         if not is_org_in_rollout(organization, request.user):
             return Response(status=404)
 
-        # TODO verify that this will autenticate the user to the organization,
-        # otherwise, add a filter to ensure the user is in the organization or is a superuser.
         queryset = ProjectTemplate.objects.filter(organization=organization)
 
         return self.paginate(
@@ -55,7 +100,9 @@ class OrganizationProjectTemplateDetailEndpoint(OrganizationEndpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
+    permission_classes = (OrganizationPermission,)
 
+    @authenticated_endpoint
     def get(self, request: Request, organization: Organization, template_id: str) -> Response:
         """
         Retrieve a project template by its ID.
@@ -65,8 +112,6 @@ class OrganizationProjectTemplateDetailEndpoint(OrganizationEndpoint):
         if not is_org_in_rollout(organization, request.user):
             return Response(status=404)
 
-        # TODO verify that this will autenticate the user to the organization, (need to run as getsentry)
-        # otherwise, add a filter to ensure the user is in the organization or is a superuser.
         project_template = get_object_or_404(
             ProjectTemplate, id=template_id, organization=organization
         )
