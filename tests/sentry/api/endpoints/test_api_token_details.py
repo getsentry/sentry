@@ -6,6 +6,42 @@ from sentry.testutils.silo import control_silo_test
 
 
 @control_silo_test
+class ApiTokenDetailTest(APITestCase):
+    endpoint = "sentry-api-0-api-token-details"
+
+    def test_simple(self):
+        token = ApiToken.objects.create(user=self.user, name="token 1", scope_list=["event:read"])
+
+        self.login_as(self.user)
+        response = self.get_success_response(token.id, status_code=status.HTTP_200_OK)
+        assert response.content
+
+        res = response.data
+
+        assert res.get("id") == str(token.id)
+        assert res.get("name") == "token 1"
+        assert res.get("scopes") == ["event:read"]
+
+    def test_never_cache(self):
+        token = ApiToken.objects.create(user=self.user, name="token 1")
+
+        self.login_as(self.user)
+        response = self.get_success_response(token.id, status_code=status.HTTP_200_OK)
+        assert (
+            response.get("cache-control")
+            == "max-age=0, no-cache, no-store, must-revalidate, private"
+        )
+
+    def test_not_exists(self):
+        self.login_as(self.user)
+        self.get_error_response(-1, status_code=status.HTTP_404_NOT_FOUND)
+
+    def test_no_auth(self):
+        token = ApiToken.objects.create(user=self.user, name="token 1")
+        self.get_error_response(token.id, status_code=status.HTTP_401_UNAUTHORIZED)
+
+
+@control_silo_test
 class ApiTokenEditTest(APITestCase):
     endpoint = "sentry-api-0-api-token-details"
     method = "PUT"
@@ -75,9 +111,13 @@ class ApiTokenEditTest(APITestCase):
         assert response.data == {"error": "Only auth token name can be edited after creation"}
 
     def test_invalid_token_id(self):
-        token = ApiToken.objects.create(user=self.user)
         payload = {"name": "new token"}
 
         self.login_as(self.user)
-        self.get_error_response(-1, status_code=status.HTTP_400_BAD_REQUEST, **payload)
-        assert ApiToken.objects.filter(id=token.id).exists()
+        self.get_error_response(-1, status_code=status.HTTP_404_NOT_FOUND, **payload)
+
+    def test_no_auth(self):
+        token = ApiToken.objects.create(user=self.user, name="token 1")
+        payload = {"name": "new token"}
+
+        self.get_error_response(token.id, status_code=status.HTTP_401_UNAUTHORIZED, **payload)
