@@ -55,8 +55,8 @@ class MessagingIntegrationSpec(ABC):
         if self.notification_sent:
             analytics.register(self.notification_sent)
 
-    @abstractmethod
     @property
+    @abstractmethod
     def integration_provider(self) -> type[IntegrationProvider]:
         """Define the class of the integration provider.
 
@@ -70,8 +70,8 @@ class MessagingIntegrationSpec(ABC):
         """
         raise NotImplementedError
 
-    @abstractmethod
     @property
+    @abstractmethod
     def identity_view_set(self) -> MessagingIdentityLinkViewSet:
         """Define the view classes for linking and unlinking identities."""
         raise NotImplementedError
@@ -105,14 +105,14 @@ class MessagingIntegrationSpec(ABC):
         ]
         return [path for path in paths if path is not None]
 
-    @abstractmethod
     @property
+    @abstractmethod
     def notify_service_action(self) -> type[IntegrationEventAction] | None:
         """Define the event action to be added to the global RuleRegistry."""
         raise NotImplementedError
 
-    @abstractmethod
     @property
+    @abstractmethod
     def notification_sent(self) -> type[analytics.Event] | None:
         """Define an analytics event for a notification being sent.
 
