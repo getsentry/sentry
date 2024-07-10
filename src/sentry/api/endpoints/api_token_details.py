@@ -10,7 +10,7 @@ from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
-from sentry.api.endpoints.api_tokens import _get_appropriate_user_id
+from sentry.api.endpoints.api_tokens import ApiTokensEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models.apitoken import ApiToken
@@ -35,7 +35,7 @@ class ApiTokenDetailsEndpoint(Endpoint):
     @method_decorator(never_cache)
     def get(self, request: Request, token_id: int) -> Response:
 
-        user_id = _get_appropriate_user_id(request=request)
+        user_id = ApiTokensEndpoint._get_appropriate_user_id(request=request)
 
         try:
             instance = ApiToken.objects.get(id=token_id, application__isnull=True, user_id=user_id)
@@ -57,7 +57,7 @@ class ApiTokenDetailsEndpoint(Endpoint):
         if serializer.is_valid():
             result = serializer.validated_data
 
-            user_id = _get_appropriate_user_id(request=request)
+            user_id = ApiTokensEndpoint._get_appropriate_user_id(request=request)
 
             try:
                 token_to_rename = ApiToken.objects.get(
@@ -75,7 +75,7 @@ class ApiTokenDetailsEndpoint(Endpoint):
 
     @method_decorator(never_cache)
     def delete(self, request: Request, token_id: int) -> Response:
-        user_id = _get_appropriate_user_id(request=request)
+        user_id = ApiTokensEndpoint._get_appropriate_user_id(request=request)
 
         try:
             token_to_delete = ApiToken.objects.get(
