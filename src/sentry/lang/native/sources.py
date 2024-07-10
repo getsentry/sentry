@@ -354,9 +354,6 @@ def parse_sources(config):
 
     validate_sources(sources)
 
-    # TODO(@anonrig): Remove this when AppStore connect related datas are removed.
-    filter(lambda src: src.get("type") != "appStoreConnect", sources)
-
     return sources
 
 
@@ -449,12 +446,7 @@ def get_sources_for_project(project):
     if sources_config:
         try:
             custom_sources = parse_sources(sources_config)
-            sources.extend(
-                normalize_user_source(source)
-                for source in custom_sources
-                if source["type"] != "appStoreConnect"
-                # TODO(@anonrig): Remove this when all AppStore data is removed.
-            )
+            sources.extend(normalize_user_source(source) for source in custom_sources)
         except InvalidSourcesError:
             # Source configs should be validated when they are saved. If this
             # did not happen, this indicates a bug. Record this, but do not stop
