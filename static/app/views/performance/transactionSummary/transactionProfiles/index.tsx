@@ -8,7 +8,6 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
 import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
-import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,13 +15,11 @@ import {defined} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
-import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
 import {formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
 import type {ProfilingFieldType} from 'sentry/views/profiling/profileSummary/content';
@@ -34,7 +31,6 @@ function Profiles(): React.ReactElement {
   const location = useLocation();
   const organization = useOrganization();
   const projects = useProjects();
-  const {selection} = usePageFilters();
 
   const profilesCursor = useMemo(
     () => decodeScalar(location.query.cursor),
@@ -87,16 +83,6 @@ function Profiles(): React.ReactElement {
     [location]
   );
 
-  const profilingUsingTransactions = organization.features.includes(
-    'profiling-using-transactions'
-  );
-
-  const profileFilters = useProfileFilters({
-    query: '',
-    selection,
-    disabled: profilingUsingTransactions,
-  });
-
   const transaction = decodeScalar(location.query.transaction);
 
   return (
@@ -115,27 +101,14 @@ function Profiles(): React.ReactElement {
                 <EnvironmentPageFilter />
                 <DatePageFilter />
               </PageFilterBar>
-              {profilingUsingTransactions ? (
-                <SearchBar
-                  searchSource="profile_landing"
-                  organization={organization}
-                  projectIds={projects.projects.map(p => parseInt(p.id, 10))}
-                  query={query.formatString()}
-                  onSearch={handleSearch}
-                  maxQueryLength={MAX_QUERY_LENGTH}
-                />
-              ) : (
-                <SmartSearchBar
-                  organization={organization}
-                  hasRecentSearches
-                  projectIds={projects.projects.map(p => parseInt(p.id, 10))}
-                  searchSource="profile_landing"
-                  supportedTags={profileFilters}
-                  query={query.formatString()}
-                  onSearch={handleSearch}
-                  maxQueryLength={MAX_QUERY_LENGTH}
-                />
-              )}
+              <SearchBar
+                searchSource="profile_landing"
+                organization={organization}
+                projectIds={projects.projects.map(p => parseInt(p.id, 10))}
+                query={query.formatString()}
+                onSearch={handleSearch}
+                maxQueryLength={MAX_QUERY_LENGTH}
+              />
             </FilterActions>
             <ProfileEventsTable
               columns={fields}

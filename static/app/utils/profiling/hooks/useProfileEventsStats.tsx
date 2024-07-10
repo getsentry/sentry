@@ -31,10 +31,7 @@ export function useProfileEventsStats<F extends string>({
 
   // when using the profiles dataset and the feature flag is enabled,
   // switch over to the discover dataset under the hood
-  if (
-    dataset === 'profiles' &&
-    organization.features.includes('profiling-using-transactions')
-  ) {
+  if (dataset === 'profiles') {
     dataset = 'discover';
   }
 
