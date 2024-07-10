@@ -4,6 +4,9 @@ from rest_framework.response import Response
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
+from sentry.api.paginator import OffsetPaginator
+from sentry.api.serializers import serialize
+from sentry.api.serializers.models.project_template import ProjectTemplateSerializer
 from sentry.models.organization import Organization
 from sentry.models.projecttemplate import ProjectTemplate
 
@@ -16,31 +19,19 @@ class OrganizationProjectTemplatesIndexEndpoint(OrganizationEndpoint):
 
     def get(self, request: Request, organization: Organization) -> Response:
         """
-        List your Project Templates
-        ``````````````````
-        Return a list of project templates available to the authenticated
-        session in a region.
+        List of Project Templates, does not include the options for the project template.
 
-        :auth: required
+        Return a list of project templates available to the authenticated user.
         """
+
+        # TODO verify that this will autenticate the user to the organization,
+        # otherwise, add a filter to ensure the user is in the organization or is a superuser.
         queryset = ProjectTemplate.objects.filter(organization=organization)
 
-        # TODO - Use self.paginate() to handle pagination
-        # TODO - Create a serializer for the ProjectTemplate model
-        # TODO - Create a serializer for the ProjectTemplateOption model
-
-        return Response(
-            {
-                "id": project_template.id,
-                "name": project_template.name,
-                "organization": project_template.organization.slug,
-            }
-            for project_template in queryset
+        return self.paginate(
+            request=request,
+            queryset=queryset,
+            order_by="name",
+            on_results=lambda x: serialize(x, request.user, ProjectTemplateSerializer()),
+            paginator_cls=OffsetPaginator,
         )
-
-        # return self.paginate(
-        #     request=request,
-        #     queryset=queryset,
-        #     order_by="name",
-        #     on_results=lambda x: serialize(x, request.user),
-        # )
