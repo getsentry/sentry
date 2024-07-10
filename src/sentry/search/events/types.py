@@ -19,6 +19,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.users.services.user import RpcUser
+from sentry.utils.validators import INVALID_SPAN_ID, is_span_id
 
 WhereType = Union[Condition, BooleanCondition]
 
@@ -55,14 +56,18 @@ class QueryFramework:
     entity: Entity
 
 
+SnubaRow = dict[str, Any]
+SnubaData = list[SnubaRow]
+
+
 class EventsMeta(TypedDict):
     fields: dict[str, str]
-    tips: dict[str, str]
+    tips: dict[str, str | None]
     isMetricsData: NotRequired[bool]
 
 
 class EventsResponse(TypedDict):
-    data: list[dict[str, Any]]
+    data: SnubaData
     meta: EventsMeta
 
 
@@ -142,3 +147,20 @@ class QueryBuilderConfig:
     on_demand_metrics_type: Any | None = None
     skip_field_validation_for_entity_subscription_deletion: bool = False
     allow_metric_aggregates: bool | None = False
+
+
+@dataclass(frozen=True)
+class Span:
+    op: str
+    group: str
+
+    @staticmethod
+    def from_str(s: str) -> Span:
+        parts = s.rsplit(":", 1)
+        if len(parts) != 2:
+            raise ValueError(
+                "span must consist of of a span op and a valid 16 character hex delimited by a colon (:)"
+            )
+        if not is_span_id(parts[1]):
+            raise ValueError(INVALID_SPAN_ID.format("spanGroup"))
+        return Span(op=parts[0], group=parts[1])

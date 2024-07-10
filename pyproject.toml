@@ -393,7 +393,6 @@ module = [
     "sentry.shared_integrations.client.base",
     "sentry.shared_integrations.client.proxy",
     "sentry.similarity.features",
-    "sentry.snuba.discover",
     "sentry.snuba.errors",
     "sentry.snuba.issue_platform",
     "sentry.snuba.metrics.datasource",
