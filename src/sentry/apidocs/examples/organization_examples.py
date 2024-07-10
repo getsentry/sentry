@@ -36,6 +36,7 @@ class OrganizationExamples:
                 "dateCreated": "2018-11-06T21:19:55.101Z",
                 "isEarlyAdopter": False,
                 "require2FA": False,
+                "requiresSso": False,
                 "avatar": {"avatarType": "letter_avatar", "avatarUuid": None, "avatarUrl": None},
                 "links": {
                     "organizationUrl": "https://the-interstellar-jurisdiction.sentry.io",
