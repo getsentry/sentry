@@ -1,4 +1,5 @@
 import type {Series} from 'sentry/types/echarts';
+import type {Sort} from 'sentry/utils/discover/fields';
 import type {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {getSeriesEventView} from 'sentry/views/insights/common/queries/getSeriesEventView';
@@ -16,6 +17,7 @@ interface UseSpanMetricsSeriesOptions<Fields> {
   fields?: Fields;
   referrer?: string;
   search?: MutableSearch;
+  sorts?: Sort[];
   yAxis?: Fields;
 }
 
@@ -27,6 +29,7 @@ export const useSpanMetricsTopNSeries = <Fields extends SpanMetricsProperty[]>(
     fields = [],
     yAxis = [],
     topEvents,
+    sorts = [],
     referrer = 'span-metrics-top-n-series',
   } = options;
 
@@ -45,6 +48,10 @@ export const useSpanMetricsTopNSeries = <Fields extends SpanMetricsProperty[]>(
     yAxis,
     topEvents
   );
+
+  if (sorts.length > 0) {
+    eventView.sorts = sorts;
+  }
 
   const result = useWrappedDiscoverTimeseriesQuery<SpanMetricTimeseriesRow[]>({
     eventView,
