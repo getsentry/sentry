@@ -10,7 +10,7 @@ from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project_template import (
-    ProjectOptionsAttributes,
+    ProjectTemplateAttributes,
     ProjectTemplateSerializer,
 )
 from sentry.models.organization import Organization
@@ -75,6 +75,6 @@ class OrganizationProjectTemplateDetailEndpoint(OrganizationEndpoint):
             serialize(
                 project_template,
                 request.user,
-                ProjectTemplateSerializer(expand=[ProjectOptionsAttributes.OPTIONS]),
+                ProjectTemplateSerializer(expand=[ProjectTemplateAttributes.OPTIONS]),
             )
         )

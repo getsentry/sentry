@@ -10,7 +10,7 @@ from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.user import User
 
 
-class ProjectOptionsAttributes(StrEnum):
+class ProjectTemplateAttributes(StrEnum):
     OPTIONS = "options"
 
 
@@ -38,7 +38,7 @@ class ProjectTemplateSerializer(Serializer):
         attrs = super().get_attrs(item_list, user, **kwargs)
         all_attrs: dict[ProjectTemplate, dict[str, Any]] = defaultdict(dict)
 
-        if self._expand(ProjectOptionsAttributes.OPTIONS):
+        if self._expand(ProjectTemplateAttributes.OPTIONS):
             for template in item_list:
                 options = template.options.all()
                 # TODO - serialize ProjectTemplateOptions
@@ -46,7 +46,7 @@ class ProjectTemplateSerializer(Serializer):
                     option.key: option.value for option in options
                 }
 
-                all_attrs[template][ProjectOptionsAttributes.OPTIONS] = serialized_options
+                all_attrs[template][ProjectTemplateAttributes.OPTIONS] = serialized_options
 
                 # Merge the attrs from the parent with the options
                 for key in attrs.get(template, {}).keys():
@@ -64,7 +64,7 @@ class ProjectTemplateSerializer(Serializer):
             "updatedAt": obj.date_updated,
         }
 
-        if (options := attrs.get(ProjectOptionsAttributes.OPTIONS)) is not None:
+        if (options := attrs.get(ProjectTemplateAttributes.OPTIONS)) is not None:
             response["options"] = options
 
         return response
