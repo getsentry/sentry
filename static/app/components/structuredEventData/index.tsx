@@ -334,7 +334,17 @@ export default function StructuredEventData({
   ...props
 }: StructuredEventDataProps) {
   return (
-    <Fragment>
+    <pre {...props} style={{position: 'relative'}}>
+      <StructuredData
+        config={config}
+        value={data}
+        depth={0}
+        maxDefaultDepth={maxDefaultDepth}
+        meta={meta}
+        withAnnotatedText={withAnnotatedText}
+        forceDefaultExpand={forceDefaultExpand}
+      />
+      {children}
       {showCopyButton && (
         <StyledCopyButton
           borderless
@@ -344,19 +354,7 @@ export default function StructuredEventData({
           text={JSON.stringify(data, null, '\t')}
         />
       )}
-      <pre {...props}>
-        <StructuredData
-          config={config}
-          value={data}
-          depth={0}
-          maxDefaultDepth={maxDefaultDepth}
-          meta={meta}
-          withAnnotatedText={withAnnotatedText}
-          forceDefaultExpand={forceDefaultExpand}
-        />
-        {children}
-      </pre>
-    </Fragment>
+    </pre>
   );
 }
 
@@ -402,6 +400,5 @@ const ValueObjectKey = styled('span')`
 const StyledCopyButton = styled(CopyToClipboardButton)`
   position: absolute;
   right: ${space(1.5)};
-  z-index: 2;
-  margin: ${space(0.75)} ${space(1)};
+  top: ${space(0.75)};
 `;
