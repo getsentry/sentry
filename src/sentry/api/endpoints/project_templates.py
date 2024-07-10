@@ -1,3 +1,4 @@
+from django.shortcuts import get_object_or_404
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -34,4 +35,28 @@ class OrganizationProjectTemplatesIndexEndpoint(OrganizationEndpoint):
             order_by="name",
             on_results=lambda x: serialize(x, request.user, ProjectTemplateSerializer()),
             paginator_cls=OffsetPaginator,
+        )
+
+
+@region_silo_endpoint
+class OrganizationProjectTemplateDetailEndpoint(OrganizationEndpoint):
+    publish_status = {
+        "GET": ApiPublishStatus.PRIVATE,
+    }
+
+    def get(self, request: Request, organization: Organization, template_id: str) -> Response:
+        """
+        Retrieve a project template by its ID.
+
+        Return details on an individual project template.
+        """
+
+        # TODO verify that this will autenticate the user to the organization,
+        # otherwise, add a filter to ensure the user is in the organization or is a superuser.
+        project_template = get_object_or_404(
+            ProjectTemplate, id=template_id, organization=organization
+        )
+
+        return Response(
+            serialize(project_template, request.user, ProjectTemplateSerializer(expand=["options"]))
         )
