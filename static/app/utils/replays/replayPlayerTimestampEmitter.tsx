@@ -31,7 +31,7 @@ class ReplayPlayerTimestampEmitter {
 }
 
 /**
- * @deprecated This emitter is a singlton that sends some global state around.
+ * @deprecated This emitter is a singleton that sends some global state around.
  * If there are multiple replay instances on the page values will be confusing.
  * A better implementation would nest the consumer under the same
  * <ReplayCurrentTimeContextProvider> ancestor node.
