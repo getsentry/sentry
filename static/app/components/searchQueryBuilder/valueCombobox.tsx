@@ -777,7 +777,7 @@ export function SearchQueryBuilderValueCombobox({
         e.continuePropagation();
       }
 
-      // If at the start of the input and backspace is pressed, delete the last selected value
+      // If there's nothing in the input and we hit a delete key, we should focus the filter
       if ((e.key === 'Backspace' || e.key === 'Delete') && !inputRef.current?.value) {
         onDelete();
       }
