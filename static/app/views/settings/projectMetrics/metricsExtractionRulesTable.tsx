@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -35,7 +35,7 @@ export function MetricsExtractionRulesTable({project}: Props) {
   const [query, setQuery] = useSearchQueryParam('query');
 
   const {data: extractionRules, isLoading: isLoadingExtractionRules} =
-    useMetricsExtractionRules(organization.slug, project.id);
+    useMetricsExtractionRules(organization.slug, project.id, {query});
   const {mutate: deleteMetricsExtractionRules} = useDeleteMetricsExtractionRules(
     organization.slug,
     project.id
@@ -43,12 +43,6 @@ export function MetricsExtractionRulesTable({project}: Props) {
   const {data: cardinality, isLoading: isLoadingCardinality} = useMetricsCardinality({
     projects: [project.id],
   });
-
-  const filteredExtractionRules = useMemo(() => {
-    return (extractionRules || []).filter(rule =>
-      rule.spanAttribute.toLowerCase().includes(query.toLowerCase())
-    );
-  }, [extractionRules, query]);
 
   const handleDelete = useCallback(
     (rule: MetricsExtractionRule) => {
@@ -101,7 +95,7 @@ export function MetricsExtractionRulesTable({project}: Props) {
         isLoading={isLoadingExtractionRules || isLoadingCardinality}
         onDelete={handleDelete}
         onEdit={handleEdit}
-        extractionRules={filteredExtractionRules}
+        extractionRules={extractionRules || []}
         cardinality={cardinality || {}}
         hasSearch={!!query}
       />
