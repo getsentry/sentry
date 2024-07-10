@@ -717,7 +717,7 @@ describe('SearchQueryBuilder', function () {
       ).toHaveFocus();
     });
 
-    it('backspace does nothing when input is empty', async function () {
+    it('backspace focuses filter when input is empty', async function () {
       const mockOnChange = jest.fn();
       render(
         <SearchQueryBuilder
@@ -734,8 +734,8 @@ describe('SearchQueryBuilder', function () {
 
       await userEvent.keyboard('{Backspace}');
 
-      // Input should still have focus, and no changes should have been made
-      expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+      // Filter should now have focus, and no changes should have been made
+      expect(screen.getByRole('row', {name: 'age:-24h'})).toHaveFocus();
       expect(mockOnChange).not.toHaveBeenCalled();
     });
 
