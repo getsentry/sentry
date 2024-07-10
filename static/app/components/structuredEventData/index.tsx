@@ -334,7 +334,7 @@ export default function StructuredEventData({
   ...props
 }: StructuredEventDataProps) {
   return (
-    <pre {...props} style={{position: 'relative'}}>
+    <StructuredDataWrapper {...props}>
       <StructuredData
         config={config}
         value={data}
@@ -354,7 +354,7 @@ export default function StructuredEventData({
           text={JSON.stringify(data, null, '\t')}
         />
       )}
-    </pre>
+    </StructuredDataWrapper>
   );
 }
 
@@ -401,4 +401,8 @@ const StyledCopyButton = styled(CopyToClipboardButton)`
   position: absolute;
   right: ${space(1.5)};
   top: ${space(0.75)};
+`;
+
+const StructuredDataWrapper = styled('pre')`
+  position: relative;
 `;
