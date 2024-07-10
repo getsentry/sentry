@@ -5,7 +5,6 @@ from .apigrant import *  # NOQA
 from .apikey import *  # NOQA
 from .apiscopes import *  # NOQA
 from .apitoken import *  # NOQA
-from .appconnectbuilds import *  # NOQA
 from .artifactbundle import *  # NOQA
 from .assistant import *  # NOQA
 from .auditlogentry import *  # NOQA
@@ -62,7 +61,6 @@ from .grouptombstone import *  # NOQA
 from .identity import *  # NOQA
 from .importchunk import *  # NOQA
 from .integrations import *  # NOQA
-from .latestappconnectbuildscheck import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
 from .lostpasswordhash import *  # NOQA
 from .notificationmessage import *  # NOQA
