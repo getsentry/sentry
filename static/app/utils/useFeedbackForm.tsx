@@ -83,6 +83,9 @@ function useOpenForm() {
   return feedback ? openForm : null;
 }
 
+/**
+ * Provider for the global feedback form context. Should only be rendered in the app root.
+ */
 export function GlobalFeedbackForm({children}: Props) {
   const openForm = useOpenForm();
 
