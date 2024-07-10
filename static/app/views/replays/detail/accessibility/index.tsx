@@ -15,6 +15,7 @@ import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useA11yData from 'sentry/utils/replays/hooks/useA11yData';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import useOrganization from 'sentry/utils/useOrganization';
 import AccessibilityFilters from 'sentry/views/replays/detail/accessibility/accessibilityFilters';
 import AccessibilityHeaderCell, {
@@ -43,7 +44,8 @@ const cellMeasurer = {
 
 function AccessibilityList() {
   const organization = useOrganization();
-  const {currentTime, currentHoverTime} = useReplayContext();
+  const {currentTime} = useReplayContext();
+  const [currentHoverTime] = useCurrentHoverTime();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
   const {

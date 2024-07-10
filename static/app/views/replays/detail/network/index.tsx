@@ -13,6 +13,7 @@ import useDetailsSplit from 'sentry/components/replays/virtualizedGrid/useDetail
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
+import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
 import useOrganization from 'sentry/utils/useOrganization';
 import FilterLoadingIndicator from 'sentry/views/replays/detail/filterLoadingIndicator';
@@ -41,7 +42,8 @@ const cellMeasurer = {
 
 function NetworkList() {
   const organization = useOrganization();
-  const {currentTime, currentHoverTime, replay} = useReplayContext();
+  const {currentTime, replay} = useReplayContext();
+  const [currentHoverTime] = useCurrentHoverTime();
   const {onMouseEnter, onMouseLeave, onClickTimestamp} = useCrumbHandlers();
 
   const isNetworkDetailsSetup = Boolean(replay?.isNetworkDetailsSetup());

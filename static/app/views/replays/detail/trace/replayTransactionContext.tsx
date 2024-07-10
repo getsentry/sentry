@@ -25,6 +25,7 @@ import {
   getTraceRequestPayload,
   makeEventView,
 } from 'sentry/utils/performance/quickTrace/utils';
+import useEmitTimestampChanges from 'sentry/utils/replays/playback/hooks/useEmitTimestampChanges';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getTraceSplitResults} from 'sentry/views/performance/traceDetails/utils';
@@ -82,6 +83,7 @@ const TxnContext = createContext<TxnContextProps>({
 function ReplayTransactionContext({children, replayRecord}: Options) {
   const api = useApi();
   const organization = useOrganization();
+  useEmitTimestampChanges();
 
   const [state, setState] = useState<InternalState>(INITIAL_STATE);
 

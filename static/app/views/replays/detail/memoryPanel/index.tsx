@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {useQuery} from 'sentry/utils/queryClient';
 import countDomNodes from 'sentry/utils/replays/countDomNodes';
+import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 import DomNodesChart from 'sentry/views/replays/detail/memoryPanel/domNodesChart';
 import MemoryChart from 'sentry/views/replays/detail/memoryPanel/memoryChart';
@@ -26,14 +27,8 @@ function useCountDomNodes({replay}: {replay: null | ReplayReader}) {
 }
 
 export default function MemoryPanel() {
-  const {
-    currentTime,
-    currentHoverTime,
-    isFetching,
-    replay,
-    setCurrentHoverTime,
-    setCurrentTime,
-  } = useReplayContext();
+  const {currentTime, isFetching, replay, setCurrentTime} = useReplayContext();
+  const [currentHoverTime, setCurrentHoverTime] = useCurrentHoverTime();
 
   const memoryFrames = replay?.getMemoryFrames();
 
