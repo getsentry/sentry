@@ -17,7 +17,7 @@ from sentry.db.models import (
 class ProcessingIssue(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    project = FlexibleForeignKey("sentry.Project", db_index=True)
+    project = FlexibleForeignKey("sentry.Project", db_index=True, db_constraint=False)
     checksum = models.CharField(max_length=40, db_index=True)
     type = models.CharField(max_length=30)
     data = GzippedDictField()
@@ -43,8 +43,8 @@ class ProcessingIssue(Model):
 class EventProcessingIssue(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    raw_event = FlexibleForeignKey("sentry.RawEvent")
-    processing_issue = FlexibleForeignKey("sentry.ProcessingIssue")
+    raw_event = FlexibleForeignKey("sentry.RawEvent", db_constraint=False)
+    processing_issue = FlexibleForeignKey("sentry.ProcessingIssue", db_constraint=False)
 
     class Meta:
         app_label = "sentry"
