@@ -1,7 +1,7 @@
 import {useCallback, useEffect, useRef} from 'react';
 import type {LocationDescriptor} from 'history';
 
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 import useRouter from './useRouter';
 

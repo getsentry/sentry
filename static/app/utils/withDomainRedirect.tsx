@@ -6,7 +6,7 @@ import trimStart from 'lodash/trimStart';
 import Redirect from 'sentry/components/redirect';
 import ConfigStore from 'sentry/stores/configStore';
 import recreateRoute from 'sentry/utils/recreateRoute';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 import useOrganization from './useOrganization';
 

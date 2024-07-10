@@ -11,7 +11,7 @@ import PanelHeader from 'sentry/components/panels/panelHeader';
 import {t} from 'sentry/locale';
 import type {Organization, ServiceHook} from 'sentry/types';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 const EVENT_CHOICES = ['event.alert', 'event.created'];
 

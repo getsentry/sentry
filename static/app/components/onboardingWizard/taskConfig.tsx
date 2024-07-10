@@ -21,8 +21,8 @@ import type {
 import {OnboardingTaskKey} from 'sentry/types/onboarding';
 import {isDemoWalkthrough} from 'sentry/utils/demoMode';
 import EventWaiter from 'sentry/utils/eventWaiter';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import OnboardingProjectsCard from './onboardingProjectsCard';
 

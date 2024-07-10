@@ -8,8 +8,8 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group, Organization, Project} from 'sentry/types';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 interface ShortIdBreadcrumbProps {
   group: Group;

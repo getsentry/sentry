@@ -29,7 +29,7 @@ import {space} from 'sentry/styles/space';
 import type {Member, Organization} from 'sentry/types/organization';
 import isMemberDisabledFromLimit from 'sentry/utils/isMemberDisabledFromLimit';
 import Teams from 'sentry/utils/teams';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
 import type {AsyncViewState} from 'sentry/views/deprecatedAsyncView';
 import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';

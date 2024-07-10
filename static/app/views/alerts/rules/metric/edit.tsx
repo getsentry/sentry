@@ -12,8 +12,8 @@ import type {Project} from 'sentry/types/project';
 import {metric} from 'sentry/utils/analytics';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import routeTitleGen from 'sentry/utils/routeTitle';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useNavigate} from 'sentry/utils/useNavigate';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import RuleForm from 'sentry/views/alerts/rules/metric/ruleForm';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
 
