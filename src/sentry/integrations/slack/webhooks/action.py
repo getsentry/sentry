@@ -633,42 +633,27 @@ class SlackActionEndpoint(Endpoint):
                 issue_details=True,
                 skip_fallback=True,
             ).build()
-            body = self.construct_reply(
-                blocks, is_message=slack_request.callback_data["is_message"]
-            )
-            # use the original response_url to update the link attachment
-            if not features.has(
-                "organizations:slack-sdk-webhook-handling", group.project.organization
-            ):
-                slack_client = SlackClient(integration_id=slack_request.integration.id)
-                try:
-                    private_metadata = orjson.loads(
-                        slack_request.data["view"]["private_metadata"],
-                    )
-                    slack_client.post(private_metadata["orig_response_url"], data=body, json=True)
-                except ApiError as e:
-                    logger.error("slack.action.response-error", extra={"error": str(e)})
 
-            else:
-                json_blocks = orjson.dumps(blocks.get("blocks")).decode()
-                view = View(**slack_request.data["view"])
-                try:
-                    private_metadata = orjson.loads(view.private_metadata)
-                    webhook_client = WebhookClient(private_metadata["orig_response_url"])
-                    webhook_client.send(
-                        blocks=json_blocks, delete_original=False, replace_original=True
-                    )
-                    logger.info(
-                        "slack.webhook.view_submission.success",
-                        extra={
-                            "integration_id": slack_request.integration.id,
-                            "blocks": json_blocks,
-                        },
-                    )
-                except SlackApiError as e:
-                    logger.error(
-                        "slack.webhook.view_submission.response-error", extra={"error": str(e)}
-                    )
+            # use the original response_url to update the link attachment
+            json_blocks = orjson.dumps(blocks.get("blocks")).decode()
+            view = View(**slack_request.data["view"])
+            try:
+                private_metadata = orjson.loads(view.private_metadata)
+                webhook_client = WebhookClient(private_metadata["orig_response_url"])
+                webhook_client.send(
+                    blocks=json_blocks, delete_original=False, replace_original=True
+                )
+                logger.info(
+                    "slack.webhook.view_submission.success",
+                    extra={
+                        "integration_id": slack_request.integration.id,
+                        "blocks": json_blocks,
+                    },
+                )
+            except SlackApiError as e:
+                logger.error(
+                    "slack.webhook.view_submission.response-error", extra={"error": str(e)}
+                )
 
             return self.respond()
 
