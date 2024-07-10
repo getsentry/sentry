@@ -54,6 +54,7 @@ class ProjectTemplateSerializer(Serializer):
         }
 
         if (options := attrs.get("options")) is not None:
+            # TODO - serialize ProjectTemplateOptions
             response["options"] = options
 
         return response

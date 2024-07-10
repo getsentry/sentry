@@ -51,7 +51,7 @@ class OrganizationProjectTemplateDetailEndpoint(OrganizationEndpoint):
         Return details on an individual project template.
         """
 
-        # TODO verify that this will autenticate the user to the organization,
+        # TODO verify that this will autenticate the user to the organization, (need to run as getsentry)
         # otherwise, add a filter to ensure the user is in the organization or is a superuser.
         project_template = get_object_or_404(
             ProjectTemplate, id=template_id, organization=organization

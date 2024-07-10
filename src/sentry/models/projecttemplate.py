@@ -31,4 +31,6 @@ class ProjectTemplate(DefaultFieldsModel):
     __repr__ = sane_repr("name", "organization_id")
 
     def get_options(self) -> TProjectOptions:
+        # TODO use self.options.all() instead, and return the QuerySet.
+        # TODO cause refactoring types.
         return ProjectTemplateOption.objects.get_all_values(project_template=self)
