@@ -23,13 +23,27 @@ function filterTempIds(rules: MetricsExtractionRule[]) {
     })),
   }));
 }
+interface MetricRulesAPIOptions {
+  query?: string;
+}
 
-export const getMetricsExtractionRulesApiKey = (orgSlug: string, projectSlug: string) =>
-  [`/projects/${orgSlug}/${projectSlug}/metrics/extraction-rules/`] as const;
+export const getMetricsExtractionRulesApiKey = (
+  orgSlug: string,
+  projectSlug: string,
+  options?: MetricRulesAPIOptions
+) =>
+  [
+    `/projects/${orgSlug}/${projectSlug}/metrics/extraction-rules/`,
+    {query: {query: options?.query || undefined}},
+  ] as const;
 
-export function useMetricsExtractionRules(orgSlug: string, projectSlug: string) {
+export function useMetricsExtractionRules(
+  orgSlug: string,
+  projectSlug: string,
+  options?: MetricRulesAPIOptions
+) {
   return useApiQuery<MetricsExtractionRule[]>(
-    getMetricsExtractionRulesApiKey(orgSlug, projectSlug),
+    getMetricsExtractionRulesApiKey(orgSlug, projectSlug, options),
     {
       staleTime: 0,
       retry: false,

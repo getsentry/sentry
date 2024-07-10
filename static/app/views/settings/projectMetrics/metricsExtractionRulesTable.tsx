@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useEffect, useMemo} from 'react';
+import {Fragment, useCallback, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -42,7 +42,7 @@ export function MetricsExtractionRulesTable({project}: Props) {
   const [query, setQuery] = useSearchQueryParam('query');
 
   const {data: extractionRules, isLoading: isLoadingExtractionRules} =
-    useMetricsExtractionRules(organization.slug, project.slug);
+    useMetricsExtractionRules(organization.slug, project.slug, {query});
   const {mutate: deleteMetricsExtractionRules} = useDeleteMetricsExtractionRules(
     organization.slug,
     project.slug
@@ -50,12 +50,6 @@ export function MetricsExtractionRulesTable({project}: Props) {
   const {data: cardinality, isLoading: isLoadingCardinality} = useMetricsCardinality({
     projects: [parseInt(project.id, 10)],
   });
-
-  const filteredExtractionRules = useMemo(() => {
-    return (extractionRules || []).filter(rule =>
-      rule.spanAttribute.toLowerCase().includes(query.toLowerCase())
-    );
-  }, [extractionRules, query]);
 
   const handleDelete = useCallback(
     (rule: MetricsExtractionRule) => {
@@ -93,9 +87,7 @@ export function MetricsExtractionRulesTable({project}: Props) {
       return;
     }
 
-    const rule = filteredExtractionRules.find(
-      r => r.spanAttribute === params.spanAttribute
-    );
+    const rule = extractionRules?.find(r => r.spanAttribute === params.spanAttribute);
 
     if (!rule) {
       return;
@@ -114,13 +106,7 @@ export function MetricsExtractionRulesTable({project}: Props) {
         onClose: () => navigate(`/settings/projects/${project.slug}/metrics/`),
       }
     );
-  }, [
-    filteredExtractionRules,
-    project,
-    location.pathname,
-    params.spanAttribute,
-    navigate,
-  ]);
+  }, [extractionRules, project, location.pathname, params.spanAttribute, navigate]);
 
   return (
     <Fragment>
@@ -145,7 +131,7 @@ export function MetricsExtractionRulesTable({project}: Props) {
         isLoading={isLoadingExtractionRules || isLoadingCardinality}
         onDelete={handleDelete}
         onEdit={handleEdit}
-        extractionRules={filteredExtractionRules}
+        extractionRules={extractionRules || []}
         cardinality={cardinality || {}}
         hasSearch={!!query}
       />
