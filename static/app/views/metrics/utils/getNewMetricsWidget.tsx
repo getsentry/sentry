@@ -1,7 +1,11 @@
 import * as Sentry from '@sentry/react';
 
 import type {MetricMeta} from 'sentry/types/metrics';
-import {getDefaultAggregation, isVirtualMetric} from 'sentry/utils/metrics';
+import {
+  getDefaultAggregation,
+  isAllowedAggregation,
+  isVirtualMetric,
+} from 'sentry/utils/metrics';
 import {emptyMetricsQueryWidget} from 'sentry/utils/metrics/constants';
 
 /**
@@ -25,7 +29,16 @@ export function getNewMetricsWidget(metricsMeta?: MetricMeta, defaultCondition?:
     }
 
     condition = defaultCondition;
-    aggregation = metricsMeta.operations[0];
+
+    const allowedAggregation = metricsMeta.operations.find(isAllowedAggregation);
+    if (!allowedAggregation) {
+      Sentry.captureMessage(
+        'Metrics: No allowed aggregations available for virtual metric found'
+      );
+      // Invalid data -> falling back to default
+      return emptyMetricsQueryWidget;
+    }
+    aggregation = allowedAggregation;
   }
 
   return {

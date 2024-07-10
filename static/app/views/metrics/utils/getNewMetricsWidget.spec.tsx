@@ -66,6 +66,17 @@ describe('getNewMetricsWidget', () => {
       'Metrics: Trying to create widget from virtual MRI without condition'
     );
   });
+
+  it('logs message and falls back to default if there is no allowed aggregation', () => {
+    const sentrySpy = jest.spyOn(Sentry, 'captureMessage');
+    const meta = createMeta('v', ['max_timestamp' as MetricAggregation] as const);
+    expect(getNewMetricsWidget(meta, 42)).toEqual(emptyMetricsQueryWidget);
+
+    expect(sentrySpy).toHaveBeenCalledTimes(1);
+    expect(sentrySpy).toHaveBeenCalledWith(
+      'Metrics: No allowed aggregations available for virtual metric found'
+    );
+  });
 });
 
 function createMeta(type: MetricType, operations: MetricAggregation[] = []): MetricMeta {
