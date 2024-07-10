@@ -11,7 +11,7 @@ import isEqual from 'lodash/isEqual';
 
 import type {FocusAreaSelection} from 'sentry/components/metrics/chart/types';
 import type {Field} from 'sentry/components/metrics/metricSamplesTable';
-import type {MetricAggregation, MetricMeta, MRI} from 'sentry/types/metrics';
+import type {MetricMeta} from 'sentry/types/metrics';
 import {useInstantRef, useUpdateQuery} from 'sentry/utils/metrics';
 import {
   emptyMetricsFormulaWidget,
@@ -31,6 +31,7 @@ import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
+import {getNewMetricsWidget} from 'sentry/views/metrics/utils/getNewMetricsWidget';
 import {parseMetricWidgetsQueryParam} from 'sentry/views/metrics/utils/parseMetricWidgetsQueryParam';
 import {useStructuralSharing} from 'sentry/views/metrics/utils/useStructuralSharing';
 
@@ -96,18 +97,22 @@ export function useMetricsContext() {
 }
 
 export function useMetricWidgets(
-  mri: MRI,
-  condition?: number,
-  aggregation?: MetricAggregation
+  firstCustomMeta: MetricMeta | undefined,
+  defaultCondition?: number
 ) {
   const {widgets: urlWidgets} = useLocationQuery({fields: {widgets: decodeScalar}});
   const updateQuery = useUpdateQuery();
 
   const widgets = useStructuralSharing(
-    useMemo<MetricsWidget[]>(
-      () => parseMetricWidgetsQueryParam(urlWidgets, {mri, condition, aggregation}),
-      [urlWidgets, mri, condition, aggregation]
-    )
+    useMemo<MetricsWidget[]>(() => {
+      const parseResult = parseMetricWidgetsQueryParam(urlWidgets);
+      if (parseResult.length === 0) {
+        const widget = getNewMetricsWidget(firstCustomMeta, defaultCondition);
+        widget.id = 0;
+        return [widget];
+      }
+      return parseResult;
+    }, [defaultCondition, firstCustomMeta, urlWidgets])
   );
 
   // We want to have it as a ref, so that we can use it in the setWidget callback
@@ -264,9 +269,8 @@ export function MetricsContextProvider({children}: {children: React.ReactNode}) 
   const [selectedWidgetIndex, setSelectedWidgetIndex] = useState(0);
   const {widgets, updateWidget, addWidget, removeWidget, duplicateWidget, setWidgets} =
     useMetricWidgets(
-      firstCustomMetric?.mri,
-      firstCustomMetric && getConditions(firstCustomMetric.mri)[0]?.id,
-      firstCustomMetric?.operations[0]
+      firstCustomMetric,
+      firstCustomMetric && getConditions(firstCustomMetric.mri)[0]?.id
     );
 
   const [metricsSamples, setMetricsSamples] = useState<

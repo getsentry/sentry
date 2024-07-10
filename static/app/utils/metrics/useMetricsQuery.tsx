@@ -200,20 +200,26 @@ export function useMetricsQuery(
 
   const resolvedQueries = useMemo(
     () =>
-      queries.map(query => {
-        if (isMetricFormula(query)) {
-          return query;
-        }
-        if (!isVirtualMetric(query) || !query.condition) {
-          return query;
-        }
-        const {mri, aggregation} = resolveVirtualMRI(
-          query.mri,
-          query.condition,
-          query.aggregation
-        );
-        return {...query, mri, aggregation};
-      }),
+      queries
+        .map(query => {
+          if (isMetricFormula(query)) {
+            return query;
+          }
+          if (!isVirtualMetric(query)) {
+            return query;
+          }
+          if (!query.condition) {
+            // Invalid state. A virtual metric always need to have a condition
+            return null;
+          }
+          const {mri, aggregation} = resolveVirtualMRI(
+            query.mri,
+            query.condition,
+            query.aggregation
+          );
+          return {...query, mri, aggregation};
+        })
+        .filter(query => query !== null),
     [queries, resolveVirtualMRI]
   );
 
