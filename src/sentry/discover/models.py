@@ -51,9 +51,13 @@ class DatasetSourcesTypes(Enum):
     """
     INFERRED = 1
     """
-     Canonical dataset- user explicitly selected it.
+     Canonical dataset, user explicitly selected it.
     """
     USER = 2
+    """
+     Was an ambiguous dataset forced to split (i.e. we picked a default)
+    """
+    FORCED = 3
 
     @classmethod
     def as_choices(cls):
