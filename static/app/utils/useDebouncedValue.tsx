@@ -17,15 +17,7 @@ export function useDebouncedValue<T>(
   options?: DebounceSettings
 ): T {
   const [internalValue, setInternalValue] = useState(value);
-  const debounceRef = useRef(
-    debounce(
-      nextVal => {
-        setInternalValue(nextVal);
-      },
-      delay,
-      options
-    )
-  );
+  const debounceRef = useRef(debounce(setInternalValue, delay, options));
 
   const debounceFn = debounceRef.current;
 

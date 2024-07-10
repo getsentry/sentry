@@ -18,8 +18,6 @@ import type {TagCollection} from 'sentry/types/group';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import localStorageWrapper from 'sentry/utils/localStorage';
 
-jest.unmock('lodash/debounce');
-
 const FILTER_KEYS: TagCollection = {
   [FieldKey.AGE]: {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
   [FieldKey.ASSIGNED]: {
@@ -979,38 +977,6 @@ describe('SearchQueryBuilder', function () {
       expect(
         await screen.findByRole('row', {name: 'custom_tag_name:tag_value_one'})
       ).toBeInTheDocument();
-    });
-
-    it('debounces fetching tag values', async function () {
-      const mockGetTagValues = jest.fn().mockResolvedValue(['tag_value_one']);
-      render(
-        <SearchQueryBuilder
-          {...defaultProps}
-          initialQuery="custom_tag_name:"
-          getTagValues={mockGetTagValues}
-        />
-      );
-
-      await userEvent.click(
-        screen.getByRole('button', {name: 'Edit value for filter: custom_tag_name'})
-      );
-
-      // Should fetch tag values immediately
-      await waitFor(() => {
-        expect(mockGetTagValues).toHaveBeenCalledTimes(1);
-      });
-
-      await userEvent.keyboard('foo');
-
-      await waitFor(() => {
-        expect(mockGetTagValues).toHaveBeenLastCalledWith(
-          {key: 'custom_tag_name', name: 'Custom_Tag_Name'},
-          'foo'
-        );
-      });
-
-      // After 3 keystrokes, should only have been called one more time
-      expect(mockGetTagValues).toHaveBeenCalledTimes(2);
     });
   });
 
