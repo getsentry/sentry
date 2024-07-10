@@ -23,18 +23,36 @@ function filterTempIds(rules: MetricsExtractionRule[]) {
     })),
   }));
 }
+interface MetricRulesAPIOptions {
+  query?: string;
+}
 
 export const getMetricsExtractionRulesApiKey = (
   orgSlug: string,
-  projectId: string | number
-) => [`/projects/${orgSlug}/${projectId}/metrics/extraction-rules/`] as const;
+  projectId: string | number,
+  options?: MetricRulesAPIOptions
+) => {
+  if (Object.keys(options ?? {}).length === 0) {
+    // when no options are provided, return only endpoint path as a key
+    return [`/projects/${orgSlug}/${projectId}/metrics/extraction-rules/`] as const;
+  }
+
+  return [
+    `/projects/${orgSlug}/${projectId}/metrics/extraction-rules/`,
+    {query: options},
+  ] as const;
+};
 
 export const getMetricsExtractionOrgApiKey = (orgSlug: string) =>
   [`/organizations/${orgSlug}/metrics/extraction-rules/`] as const;
 
-export function useMetricsExtractionRules(orgSlug: string, projectId: string | number) {
+export function useMetricsExtractionRules(
+  orgSlug: string,
+  projectId: string | number,
+  options?: MetricRulesAPIOptions
+) {
   return useApiQuery<MetricsExtractionRule[]>(
-    getMetricsExtractionRulesApiKey(orgSlug, projectId),
+    getMetricsExtractionRulesApiKey(orgSlug, projectId, options),
     {
       staleTime: 0,
       retry: false,
