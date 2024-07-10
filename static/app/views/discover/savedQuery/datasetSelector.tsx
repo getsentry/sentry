@@ -80,7 +80,6 @@ export function DatasetSelector(props: Props) {
           },
         });
       }}
-      size="sm"
     />
   );
 }
