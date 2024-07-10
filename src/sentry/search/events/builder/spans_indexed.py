@@ -21,12 +21,12 @@ SPAN_UUID_FIELDS = {
 
 
 SPAN_ID_FIELDS = {
-    "id": "Filter Span ID",
-    "span_id": "Filter Span ID",
-    "parent_span": "Filter Parent Span ID",
-    "parent_span_id": "Filter Parent Span ID",
-    "segment.id": "Filter Segment ID",
-    "segment_id": "Filter Segment ID",
+    "id",
+    "span_id",
+    "parent_span",
+    "parent_span_id",
+    "segment.id",
+    "segment_id",
 }
 
 
