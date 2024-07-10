@@ -13,10 +13,6 @@ import {
   type UseFeedbackOptions,
 } from 'sentry/components/feedback/widget/useFeedback';
 
-interface Props {
-  children: ReactNode;
-}
-
 /**
  * A function that opens the feedback form. It accepts some option overrides
  * to change how the form is displayed.
@@ -24,9 +20,9 @@ interface Props {
  * If `openForm` is `null`, then the feedback integration is not available
  * and feedback triggers should not be rendered.
  */
-type ContextType = ((options?: UseFeedbackOptions) => Promise<void>) | null;
+type OpenForm = ((options?: UseFeedbackOptions) => Promise<void>) | null;
 
-const GlobalFeedbackFormContext = createContext<ContextType>(null);
+const GlobalFeedbackFormContext = createContext<OpenForm>(null);
 
 /**
  * Returns a function used to open the feedback form. If the return value is null,
@@ -86,7 +82,7 @@ function useOpenForm() {
 /**
  * Provider for the global feedback form context. Should only be rendered in the app root.
  */
-export function GlobalFeedbackForm({children}: Props) {
+export function GlobalFeedbackForm({children}: {children: ReactNode}) {
   const openForm = useOpenForm();
 
   return (
