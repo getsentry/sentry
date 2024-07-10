@@ -259,7 +259,7 @@ def register_temporary_features(manager: FeatureManager):
     # Enable span search bar in Insights module sample panels
     manager.add("organizations:performance-sample-panel-search", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enables new empty state for insight modules
-    manager.add("organizations:insights-empty-state-page", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:insights-empty-state-page", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable platform selector for screens flow
     manager.add("organizations:performance-screens-platform-selector", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable screens view powered by span metrics
