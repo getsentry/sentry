@@ -56,7 +56,7 @@ EXPOSABLE_FEATURES = [
     "organizations:profiling",
     "organizations:session-replay-combined-envelope-items",
     "organizations:session-replay-recording-scrubbing",
-    "organizations:session-replay-video-denylist",
+    "organizations:session-replay-video-disabled",
     "organizations:session-replay",
     "organizations:standalone-span-ingestion",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
