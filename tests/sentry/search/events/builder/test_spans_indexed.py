@@ -403,38 +403,36 @@ def test_free_text_search(params, query, expected):
 
 
 @pytest.mark.parametrize(
-    ["column", "query", "message", "label"],
+    ["column", "query", "message"],
     [
-        pytest.param(column, f"{column}:bad_span_id", "valid 16 character hex", label, id=column)
-        for column, label in SPAN_ID_FIELDS.items()
+        pytest.param(column, f"{column}:bad_span_id", "valid 16 character hex", id=column)
+        for column in SPAN_ID_FIELDS
     ]
     + [
         pytest.param(
             column,
             f"{column}:*wild*card*",
             "Wildcard conditions are not permitted",
-            label,
             id=column,
         )
-        for column, label in SPAN_ID_FIELDS.items()
+        for column in SPAN_ID_FIELDS
     ]
     + [
-        pytest.param(column, f"{column}:bad_span_id", "valid UUID hex", label, id=column)
-        for column, label in SPAN_UUID_FIELDS.items()
+        pytest.param(column, f"{column}:bad_span_id", "valid UUID hex", id=column)
+        for column in SPAN_UUID_FIELDS
     ]
     + [
         pytest.param(
             column,
             f"{column}:*wild*card*",
             "Wildcard conditions are not permitted",
-            label,
             id=column,
         )
-        for column, label in SPAN_UUID_FIELDS.items()
+        for column in SPAN_UUID_FIELDS
     ],
 )
 @django_db_all
-def test_column_validation_failed(params, column, query, message, label):
+def test_column_validation_failed(params, column, query, message):
     with pytest.raises(InvalidSearchQuery) as err:
         SpansIndexedQueryBuilder(
             Dataset.SpansIndexed,
@@ -444,4 +442,4 @@ def test_column_validation_failed(params, column, query, message, label):
         )
 
     assert message in str(err)
-    assert label in str(err)
+    assert f"`{column}`" in str(err)

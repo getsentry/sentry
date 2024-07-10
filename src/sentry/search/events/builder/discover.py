@@ -41,14 +41,14 @@ class DiscoverQueryBuilder(BaseQueryBuilder):
     """Builds a discover query"""
 
     uuid_fields = {
-        "id": "Filter ID",
-        "trace": "Filter Trace ID",
-        "profile.id": "Filter Profile ID",
-        "replay.id": "Filter Replay ID",
+        "id",
+        "trace",
+        "profile.id",
+        "replay.id",
     }
     span_id_fields = {
-        "trace.span": "Filter Trace Span ID",
-        "trace.parent_span": "Filter Trace Parent Span ID",
+        "trace.span",
+        "trace.parent_span",
     }
     duration_fields = {"transaction.duration"}
 

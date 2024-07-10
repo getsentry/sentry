@@ -1212,21 +1212,21 @@ class BaseQueryBuilder:
         name = search_filter.key.name
         value = search_filter.value
 
-        if label := self.uuid_fields.get(name):
+        if name in self.uuid_fields:
             if value.is_wildcard():
-                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(label))
+                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
             if not value.is_event_id():
-                raise InvalidSearchQuery(INVALID_ID_DETAILS.format(label))
+                raise InvalidSearchQuery(INVALID_ID_DETAILS.format(name))
 
     def validate_span_id_like_filters(self, search_filter: event_search.SearchFilter):
         name = search_filter.key.name
         value = search_filter.value
 
-        if label := self.span_id_fields.get(name):
+        if name in self.span_id_fields:
             if value.is_wildcard():
-                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(label))
+                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
             if not value.is_span_id():
-                raise InvalidSearchQuery(INVALID_SPAN_ID.format(label))
+                raise InvalidSearchQuery(INVALID_SPAN_ID.format(name))
 
     def default_filter_converter(
         self, search_filter: event_search.SearchFilter

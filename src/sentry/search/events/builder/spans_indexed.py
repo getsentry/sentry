@@ -9,14 +9,14 @@ from sentry.search.events.fields import custom_time_processor
 from sentry.search.events.types import SelectType
 
 SPAN_UUID_FIELDS = {
-    "trace": "Filter Trace ID",
-    "trace_id": "Filter Trace ID",
-    "transaction.id": "Filter Transaction ID",
-    "transaction_id": "Filter Transaction ID",
-    "profile.id": "Filter Profile ID",
-    "profile_id": "Filter Profile ID",
-    "replay.id": "Filter Replay ID",
-    "replay_id": "Filter Replay ID",
+    "trace",
+    "trace_id",
+    "transaction.id",
+    "transaction_id",
+    "profile.id",
+    "profile_id",
+    "replay.id",
+    "replay_id",
 }
 
 
