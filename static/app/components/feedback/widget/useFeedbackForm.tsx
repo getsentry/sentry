@@ -10,20 +10,22 @@ export function useFeedbackForm(props: UseFeedbackOptions) {
   const formRef = useRef<FeedbackDialog | null>(null);
   const {feedback, options} = useFeedback(props);
 
-  const openForm = useCallback(async () => {
-    if (!feedback) {
-      return;
-    }
+  const openForm = useCallback(
+    async (optionOverrides?: UseFeedbackOptions) => {
+      if (!feedback) {
+        return;
+      }
 
-    if (formRef.current) {
+      if (formRef.current) {
+        formRef.current.removeFromDom();
+      }
+
+      formRef.current = await feedback.createForm({...options, ...optionOverrides});
+      formRef.current.appendToDom();
       formRef.current.open();
-      return;
-    }
-
-    formRef.current = await feedback.createForm(options);
-    formRef.current.appendToDom();
-    formRef.current.open();
-  }, [feedback, options]);
+    },
+    [feedback, options]
+  );
 
   // Cleanup the leftover form element when the component unmounts
   useEffect(() => {
