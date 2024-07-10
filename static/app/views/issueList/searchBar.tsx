@@ -212,6 +212,7 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
         }}
         searchSource={props.searchSource ?? 'issues'}
         savedSearchType={SavedSearchType.ISSUE}
+        disallowLogicalOperators
       />
     );
   }
