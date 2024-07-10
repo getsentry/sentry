@@ -6,7 +6,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import useAsyncSDKIntegrationStore from 'sentry/views/app/asyncSDKIntegrationProvider';
 
-type FeedbackIntegration = NonNullable<ReturnType<typeof Sentry.getFeedback>>;
+export type FeedbackIntegration = NonNullable<ReturnType<typeof Sentry.getFeedback>>;
 
 export type UseFeedbackOptions = {
   formTitle?: string;
