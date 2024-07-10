@@ -66,7 +66,7 @@ class ApiTokenDetailsEndpoint(Endpoint):
             except ApiToken.DoesNotExist:
                 raise ResourceDoesNotExist
 
-            token_to_rename.name = result.get("name", None)
+            token_to_rename.name = result.get("name")
             token_to_rename.save()
 
             return Response(status=204)
