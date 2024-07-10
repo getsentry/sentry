@@ -94,7 +94,6 @@ class OrganizationSerializerTest(TestCase):
             "open-membership",
             "relay",
             "shared-issues",
-            "session-replay-video",
             "session-replay-ui",
             "sso-basic",
             "sso-saml2",
