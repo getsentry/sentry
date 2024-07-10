@@ -4,8 +4,8 @@ import type {SelectOption} from 'sentry/components/compactSelect';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
 import type {SpanFrame} from 'sentry/utils/replays/types';
-import useSetQueryFieldInLocation from 'sentry/utils/url/useFiltersInLocationQuery';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import useSetQueryFieldInLocation from 'sentry/utils/url/useSetQueryFieldInLocation';
 import {filterItems, operationName} from 'sentry/views/replays/detail/utils';
 
 export interface NetworkSelectOption extends SelectOption<string> {

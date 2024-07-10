@@ -5,8 +5,8 @@ import type {SelectOption} from 'sentry/components/compactSelect';
 import {defined} from 'sentry/utils';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
-import useSetQueryFieldInLocation from 'sentry/utils/url/useFiltersInLocationQuery';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import useSetQueryFieldInLocation from 'sentry/utils/url/useSetQueryFieldInLocation';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 
 export interface ConsoleSelectOption extends SelectOption<string> {

@@ -6,8 +6,8 @@ import {uniq} from 'sentry/utils/array/uniq';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {getFrameOpOrCategory} from 'sentry/utils/replays/types';
-import useSetQueryFieldInLocation from 'sentry/utils/url/useFiltersInLocationQuery';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import useSetQueryFieldInLocation from 'sentry/utils/url/useSetQueryFieldInLocation';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 
 export type FilterFields = {

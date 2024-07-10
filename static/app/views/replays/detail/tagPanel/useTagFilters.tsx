@@ -1,8 +1,8 @@
 import {useCallback, useMemo} from 'react';
 
 import {decodeScalar} from 'sentry/utils/queryString';
-import useSetQueryFieldInLocation from 'sentry/utils/url/useFiltersInLocationQuery';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
+import useSetQueryFieldInLocation from 'sentry/utils/url/useSetQueryFieldInLocation';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
