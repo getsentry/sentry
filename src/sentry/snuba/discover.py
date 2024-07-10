@@ -1427,7 +1427,6 @@ def normalize_histogram_results(
     histogram_params: HistogramParams,
     results: EventsResponse,
     array_column: str | None,
-    # TODO(wmak): type this better
 ) -> HistogramResults:
     """
     Normalizes the histogram results by renaming the columns to key and bin
