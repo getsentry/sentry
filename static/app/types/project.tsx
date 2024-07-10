@@ -66,6 +66,7 @@ export type Project = {
   subjectTemplate: string;
   team: Team;
   teams: Team[];
+  uptimeAutodetection: boolean;
   verifySSL: boolean;
   builtinSymbolSources?: string[];
   defaultEnvironment?: string;

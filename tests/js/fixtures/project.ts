@@ -58,6 +58,7 @@ export function ProjectFixture(params: Partial<Project> = {}): Project {
     scrubIPAddresses: false,
     sensitiveFields: [],
     subjectTemplate: '',
+    uptimeAutodetection: true,
     verifySSL: false,
     extrapolateMetrics: false,
     ...params,

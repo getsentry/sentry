@@ -8,6 +8,7 @@ import {
   transferProject,
 } from 'sentry/actionCreators/projects';
 import {hasEveryAccess} from 'sentry/components/acl/access';
+import Feature from 'sentry/components/acl/feature';
 import {Button} from 'sentry/components/button';
 import Confirm from 'sentry/components/confirm';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -376,8 +377,14 @@ class ProjectGeneralSettings extends DeprecatedAsyncView<Props, State> {
               </PanelAlert>
             )}
           />
+          <Feature features="organizations:uptime-settings">
+            <JsonForm
+              {...jsonFormProps}
+              title={t('Uptime Checks')}
+              fields={[fields.uptimeAutodetection]}
+            />
+          </Feature>
         </Form>
-
         <Panel>
           <PanelHeader>{t('Project Administration')}</PanelHeader>
           {this.renderRemoveProject()}

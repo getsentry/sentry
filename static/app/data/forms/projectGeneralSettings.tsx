@@ -180,4 +180,12 @@ export const fields: Record<string, Field> = {
     label: t('Verify TLS/SSL'),
     help: t('Outbound requests will verify TLS (sometimes known as SSL) connections'),
   },
+  uptimeAutodetection: {
+    name: 'uptimeAutodetection',
+    type: 'boolean',
+    label: t('Enable Automatic Uptime Checks'),
+    help: t(
+      'Sentry will attempt to auto-detect important urls to monitor for any downtime'
+    ),
+  },
 };
