@@ -1421,16 +1421,14 @@ def link_event_to_user_report(job: PostProcessJob) -> None:
                 project,
                 FeedbackCreationSource.USER_REPORT_ENVELOPE,
             )
+            metrics.incr("event_manager.save._update_user_reports_with_event_link.shim_to_feedback")
 
         user_reports_updated = user_reports_without_group.update(
             group_id=group.id, environment_id=event.get_environment().id
         )
 
         if user_reports_updated:
-            metrics.incr(
-                "event_manager.save._update_user_reports_with_event_link_updated",
-                amount=user_reports_updated.count(),
-            )
+            metrics.incr("event_manager.save._update_user_reports_with_event_link_updated")
 
     else:
         UserReport.objects.filter(project_id=project.id, event_id=job["event"].event_id).update(
