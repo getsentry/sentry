@@ -72,18 +72,20 @@ from sentry.utils.snuba import (
     raw_snql_query,
     resolve_column,
 )
+from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 
 class BaseQueryBuilder:
     requires_organization_condition: bool = False
     organization_column: str = "organization.id"
-    uuid_fields = {"id", "trace", "profile.id", "replay.id"}
     function_alias_prefix: str | None = None
     spans_metrics_builder = False
     profile_functions_metrics_builder = False
     entity: Entity | None = None
     config_class: type[DatasetConfig] | None = None
     duration_fields: set[str] = set()
+    uuid_fields: set[str] = set()
+    span_id_fields: set[str] = set()
 
     def get_middle(self):
         """Get the middle for comparison functions"""
@@ -1202,9 +1204,32 @@ class BaseQueryBuilder:
         converter = self.search_filter_converter.get(name, self.default_filter_converter)
         return converter(search_filter)
 
+    def validate_uuid_like_filters(self, search_filter: event_search.SearchFilter):
+        name = search_filter.key.name
+        value = search_filter.value
+
+        if name in self.uuid_fields:
+            if value.is_wildcard():
+                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
+            if not value.is_event_id():
+                raise InvalidSearchQuery(INVALID_ID_DETAILS.format(name))
+
+    def validate_span_id_like_filters(self, search_filter: event_search.SearchFilter):
+        name = search_filter.key.name
+        value = search_filter.value
+
+        if name in self.span_id_fields:
+            if value.is_wildcard():
+                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
+            if not value.is_span_id():
+                raise InvalidSearchQuery(INVALID_SPAN_ID.format(name))
+
     def default_filter_converter(
         self, search_filter: event_search.SearchFilter
     ) -> WhereType | None:
+        self.validate_uuid_like_filters(search_filter)
+        self.validate_span_id_like_filters(search_filter)
+
         name = search_filter.key.name
         operator = search_filter.operator
         value = search_filter.value.value

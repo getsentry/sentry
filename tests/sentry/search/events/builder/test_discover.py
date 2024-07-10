@@ -847,9 +847,7 @@ class DiscoverQueryBuilderTest(TestCase):
             )
 
     def test_id_filter_non_uuid(self):
-        with pytest.raises(
-            InvalidSearchQuery, match=re.escape(INVALID_ID_DETAILS.format("Filter ID"))
-        ):
+        with pytest.raises(InvalidSearchQuery, match=re.escape(INVALID_ID_DETAILS.format("id"))):
             DiscoverQueryBuilder(
                 Dataset.Discover,
                 self.params,
@@ -858,9 +856,7 @@ class DiscoverQueryBuilderTest(TestCase):
             )
 
     def test_trace_id_filter_non_uuid(self):
-        with pytest.raises(
-            InvalidSearchQuery, match=re.escape(INVALID_ID_DETAILS.format("Filter Trace ID"))
-        ):
+        with pytest.raises(InvalidSearchQuery, match=re.escape(INVALID_ID_DETAILS.format("trace"))):
             DiscoverQueryBuilder(
                 Dataset.Discover,
                 self.params,
@@ -870,7 +866,7 @@ class DiscoverQueryBuilderTest(TestCase):
 
     def test_profile_id_filter_non_uuid(self):
         with pytest.raises(
-            InvalidSearchQuery, match=re.escape(INVALID_ID_DETAILS.format("Filter Profile ID"))
+            InvalidSearchQuery, match=re.escape(INVALID_ID_DETAILS.format("profile.id"))
         ):
             DiscoverQueryBuilder(
                 Dataset.Discover,
