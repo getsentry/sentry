@@ -40,6 +40,7 @@ class SlackNotifyBasicMixin(NotifyBasicMixin):
         else:
             try:
                 client.chat_postMessage(channel=channel_id, text=message)
+                logger.info("slack.slash-notify.success", extra={"channel_id": channel_id})
             except SlackApiError as e:
                 error = str(e)
                 message = error.split("\n")[0]
