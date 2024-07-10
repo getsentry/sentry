@@ -157,30 +157,17 @@ export class ContinuousProfile extends Profile {
   }
 }
 
-const COCOA_MAIN_THREAD = 'com.apple.main-thread';
 function getThreadData(profile: Profiling.SentryContinousProfileChunk): {
   threadId: number;
   threadName: string;
 } {
-  const {samples, queue_metadata = {}, thread_metadata = {}} = profile.profile;
+  const {samples, thread_metadata = {}} = profile.profile;
   const sample = samples[0];
   const threadId = parseInt(sample.thread_id, 10);
   const threadName = thread_metadata?.[threadId]?.name;
 
   if (threadName) {
     return {threadId, threadName};
-  }
-
-  // cocoa has a queue address that we fall back to to try to get a thread name
-  // is this the only platform string to check for?
-  if (profile.platform === 'cocoa') {
-    const queueName =
-      sample.queue_address && queue_metadata?.[sample.queue_address]?.label;
-
-    // if a queue has the main thread name, we discard it
-    if (queueName && queueName !== COCOA_MAIN_THREAD) {
-      return {threadId, threadName: queueName};
-    }
   }
 
   return {threadId, threadName: ''};
