@@ -2,8 +2,9 @@ import {useCallback, useMemo} from 'react';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
+import useSetQueryFieldInLocation from 'sentry/utils/url/useFiltersInLocationQuery';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 
 export interface AccessibilitySelectOption extends SelectOption<string> {
@@ -54,20 +55,28 @@ const IMPACT_SORT_ORDER = {
 };
 
 function useAccessibilityFilters({accessibilityData}: Options): Return {
-  const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
+  const setQueryParam = useSetQueryFieldInLocation<FilterFields>();
 
-  const impact = useMemo(() => decodeList(query.f_a_impact), [query.f_a_impact]);
-  const type = useMemo(() => decodeList(query.f_a_type), [query.f_a_type]);
-  const searchTerm = decodeScalar(query.f_a_search, '')?.toLowerCase();
+  const {
+    f_a_impact: impact,
+    f_a_type: type,
+    f_a_search: searchTerm,
+  } = useLocationQuery({
+    fields: {
+      f_a_impact: decodeList,
+      f_a_type: decodeList,
+      f_a_search: decodeScalar,
+    },
+  });
 
   const setFilterAndClearDetails = useCallback(
     arg => {
-      setFilter({
+      setQueryParam({
         ...arg,
         a_detail_row: undefined,
       });
     },
-    [setFilter]
+    [setQueryParam]
   );
 
   const items = useMemo(
@@ -75,7 +84,7 @@ function useAccessibilityFilters({accessibilityData}: Options): Return {
       filterItems({
         items: accessibilityData,
         filterFns: FILTERS,
-        filterVals: {impact, type, searchTerm},
+        filterVals: {impact, type, searchTerm: searchTerm.toLowerCase()},
       }),
     [accessibilityData, impact, type, searchTerm]
   );

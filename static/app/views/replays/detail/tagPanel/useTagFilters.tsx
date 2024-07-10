@@ -1,7 +1,8 @@
 import {useCallback, useMemo} from 'react';
 
 import {decodeScalar} from 'sentry/utils/queryString';
-import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
+import useSetQueryFieldInLocation from 'sentry/utils/url/useFiltersInLocationQuery';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
@@ -27,23 +28,27 @@ const FILTERS = {
 };
 
 function useTagFilters({tags}: Options): Return {
-  const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
+  const setQueryParam = useSetQueryFieldInLocation<FilterFields>();
 
-  const searchTerm = decodeScalar(query.f_t_search, '').toLowerCase();
+  const {f_t_search: searchTerm} = useLocationQuery({
+    fields: {
+      f_t_search: decodeScalar,
+    },
+  });
 
   const filteredItems = useMemo(
     () =>
       filterItems<Record<string, string[]>, string>({
         items: Object.entries(tags).map(([key, val]) => Object.fromEntries([[key, val]])),
         filterFns: FILTERS,
-        filterVals: {searchTerm},
+        filterVals: {searchTerm: searchTerm.toLowerCase()},
       }),
     [tags, searchTerm]
   );
 
   const setSearchTerm = useCallback(
-    (f_t_search: string) => setFilter({f_t_search: f_t_search || undefined}),
-    [setFilter]
+    (f_t_search: string) => setQueryParam({f_t_search: f_t_search || undefined}),
+    [setQueryParam]
   );
 
   // Get from type Record<string, string[]>[] to Record<string, string[]>

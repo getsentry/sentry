@@ -2,9 +2,10 @@ import {useCallback, useMemo} from 'react';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import {getFrameMethod, getFrameStatus} from 'sentry/utils/replays/resourceFrame';
 import type {SpanFrame} from 'sentry/utils/replays/types';
+import useSetQueryFieldInLocation from 'sentry/utils/url/useFiltersInLocationQuery';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {filterItems, operationName} from 'sentry/views/replays/detail/utils';
 
 export interface NetworkSelectOption extends SelectOption<string> {
@@ -59,25 +60,34 @@ const FILTERS = {
 };
 
 function useNetworkFilters({networkFrames}: Options): Return {
-  const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
+  const setQueryParam = useSetQueryFieldInLocation<FilterFields>();
 
-  const method = useMemo(() => decodeList(query.f_n_method), [query.f_n_method]);
-  const status = useMemo(() => decodeList(query.f_n_status), [query.f_n_status]);
-  const type = useMemo(() => decodeList(query.f_n_type), [query.f_n_type]);
-  const searchTerm = decodeScalar(query.f_n_search, '').toLowerCase();
+  const {
+    f_n_method: method,
+    f_n_status: status,
+    f_n_type: type,
+    f_n_search: searchTerm,
+  } = useLocationQuery({
+    fields: {
+      f_n_method: decodeList,
+      f_n_status: decodeList,
+      f_n_type: decodeList,
+      f_n_search: decodeScalar,
+    },
+  });
 
   // Need to clear Network Details URL params when we filter, otherwise you can
   // get into a state where it is trying to load details for a non fetch/xhr
   // request.
   const setFilterAndClearDetails = useCallback(
     arg => {
-      setFilter({
+      setQueryParam({
         ...arg,
         n_detail_row: undefined,
         n_detail_tab: undefined,
       });
     },
-    [setFilter]
+    [setQueryParam]
   );
 
   const items = useMemo(
@@ -85,7 +95,7 @@ function useNetworkFilters({networkFrames}: Options): Return {
       filterItems({
         items: networkFrames,
         filterFns: FILTERS,
-        filterVals: {method, status, type, searchTerm},
+        filterVals: {method, status, type, searchTerm: searchTerm.toLowerCase()},
       }),
     [networkFrames, method, status, type, searchTerm]
   );

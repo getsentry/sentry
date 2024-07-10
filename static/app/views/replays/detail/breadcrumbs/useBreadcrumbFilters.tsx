@@ -4,9 +4,10 @@ import * as Sentry from '@sentry/react';
 
 import {uniq} from 'sentry/utils/array/uniq';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import type {ReplayFrame} from 'sentry/utils/replays/types';
 import {getFrameOpOrCategory} from 'sentry/utils/replays/types';
+import useSetQueryFieldInLocation from 'sentry/utils/url/useFiltersInLocationQuery';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 
 export type FilterFields = {
@@ -100,7 +101,7 @@ const FILTERS = {
 };
 
 function useBreadcrumbFilters({frames}: Options): Return {
-  const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
+  const setQueryParam = useSetQueryFieldInLocation<FilterFields>();
 
   // Keep a reference of object paths that are expanded (via <ObjectInspector>)
   // by log row, so they they can be restored as the Console pane is scrolling.
@@ -111,8 +112,12 @@ function useBreadcrumbFilters({frames}: Options): Return {
   // re-render when items are expanded/collapsed, though it may work in state as well.
   const expandPathsRef = useRef(new Map<number, Set<string>>());
 
-  const type = useMemo(() => decodeList(query.f_b_type), [query.f_b_type]);
-  const searchTerm = decodeScalar(query.f_b_search, '').toLowerCase();
+  const {f_b_type: type, f_b_search: searchTerm} = useLocationQuery({
+    fields: {
+      f_b_type: decodeList,
+      f_b_search: decodeScalar,
+    },
+  });
 
   const items = useMemo(() => {
     // flips OPORCATERGORY_TO_TYPE and prevents overwriting nav entry, nav entry becomes nav: ['navigation','navigation.push']
@@ -129,7 +134,7 @@ function useBreadcrumbFilters({frames}: Options): Return {
       filterFns: FILTERS,
       filterVals: {
         type: OpOrCategory,
-        searchTerm,
+        searchTerm: searchTerm.toLowerCase(),
       },
     });
   }, [frames, type, searchTerm]);
@@ -149,11 +154,14 @@ function useBreadcrumbFilters({frames}: Options): Return {
     [frames, type]
   );
 
-  const setType = useCallback((f_b_type: string[]) => setFilter({f_b_type}), [setFilter]);
+  const setType = useCallback(
+    (f_b_type: string[]) => setQueryParam({f_b_type}),
+    [setQueryParam]
+  );
 
   const setSearchTerm = useCallback(
-    (f_b_search: string) => setFilter({f_b_search: f_b_search || undefined}),
-    [setFilter]
+    (f_b_search: string) => setQueryParam({f_b_search: f_b_search || undefined}),
+    [setQueryParam]
   );
 
   return {

@@ -2,8 +2,9 @@ import {useCallback, useMemo} from 'react';
 
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import type {ErrorFrame} from 'sentry/utils/replays/types';
+import useSetQueryFieldInLocation from 'sentry/utils/url/useFiltersInLocationQuery';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 
 export interface ErrorSelectOption extends SelectOption<string> {
@@ -41,17 +42,21 @@ const FILTERS = {
 };
 
 function useErrorFilters({errorFrames}: Options): Return {
-  const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
+  const setQueryParam = useSetQueryFieldInLocation<FilterFields>();
 
-  const project = useMemo(() => decodeList(query.f_e_project), [query.f_e_project]);
-  const searchTerm = decodeScalar(query.f_e_search, '').toLowerCase();
+  const {f_e_project: project, f_e_search: searchTerm} = useLocationQuery({
+    fields: {
+      f_e_project: decodeList,
+      f_e_search: decodeScalar,
+    },
+  });
 
   const items = useMemo(
     () =>
       filterItems({
         items: errorFrames,
         filterFns: FILTERS,
-        filterVals: {project, searchTerm},
+        filterVals: {project, searchTerm: searchTerm.toLowerCase()},
       }),
     [errorFrames, project, searchTerm]
   );
@@ -74,8 +79,8 @@ function useErrorFilters({errorFrames}: Options): Return {
   );
 
   const setSearchTerm = useCallback(
-    (f_e_search: string) => setFilter({f_e_search: f_e_search || undefined}),
-    [setFilter]
+    (f_e_search: string) => setQueryParam({f_e_search: f_e_search || undefined}),
+    [setQueryParam]
   );
 
   const setFilters = useCallback(
@@ -86,9 +91,9 @@ function useErrorFilters({errorFrames}: Options): Return {
           [selection.qs]: [...state[selection.qs], selection.value],
         };
       }, DEFAULT_FILTERS);
-      setFilter(groupedValues);
+      setQueryParam(groupedValues);
     },
-    [setFilter]
+    [setQueryParam]
   );
 
   return {

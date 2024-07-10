@@ -4,8 +4,9 @@ import {useCallback, useMemo, useRef} from 'react';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {defined} from 'sentry/utils';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
-import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
 import type {BreadcrumbFrame, ConsoleFrame} from 'sentry/utils/replays/types';
+import useSetQueryFieldInLocation from 'sentry/utils/url/useFiltersInLocationQuery';
+import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 
 export interface ConsoleSelectOption extends SelectOption<string> {
@@ -67,7 +68,7 @@ function sortBySeverity(a: string, b: string) {
 }
 
 function useConsoleFilters({frames}: Options): Return {
-  const {setFilter, query} = useFiltersInLocationQuery<FilterFields>();
+  const setQueryParam = useSetQueryFieldInLocation<FilterFields>();
 
   // Keep a reference of object paths that are expanded (via <ObjectInspector>)
   // by log row, so they they can be restored as the Console pane is scrolling.
@@ -78,15 +79,19 @@ function useConsoleFilters({frames}: Options): Return {
   // re-render when items are expanded/collapsed, though it may work in state as well.
   const expandPathsRef = useRef(new Map<number, Set<string>>());
 
-  const logLevel = useMemo(() => decodeList(query.f_c_logLevel), [query.f_c_logLevel]);
-  const searchTerm = decodeScalar(query.f_c_search, '').toLowerCase();
+  const {f_c_logLevel: logLevel, f_c_search: searchTerm} = useLocationQuery({
+    fields: {
+      f_c_logLevel: decodeList,
+      f_c_search: decodeScalar,
+    },
+  });
 
   const items = useMemo(
     () =>
       filterItems({
         items: frames,
         filterFns: FILTERS,
-        filterVals: {logLevel, searchTerm},
+        filterVals: {logLevel, searchTerm: searchTerm.toLowerCase()},
       }),
     [frames, logLevel, searchTerm]
   );
@@ -111,20 +116,20 @@ function useConsoleFilters({frames}: Options): Return {
 
   const setLogLevel = useCallback(
     (f_c_logLevel: string[]) => {
-      setFilter({f_c_logLevel});
+      setQueryParam({f_c_logLevel});
       // Need to reset `expandPaths` when filtering
       expandPathsRef.current = new Map();
     },
-    [setFilter, expandPathsRef]
+    [setQueryParam, expandPathsRef]
   );
 
   const setSearchTerm = useCallback(
     (f_c_search: string) => {
-      setFilter({f_c_search: f_c_search || undefined});
+      setQueryParam({f_c_search: f_c_search || undefined});
       // Need to reset `expandPaths` when filtering
       expandPathsRef.current = new Map();
     },
-    [setFilter, expandPathsRef]
+    [setQueryParam, expandPathsRef]
   );
 
   return {
