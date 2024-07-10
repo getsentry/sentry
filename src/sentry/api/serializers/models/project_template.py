@@ -36,13 +36,14 @@ class ProjectTemplateSerializer(Serializer):
 
     def get_attrs(self, item_list: Sequence[ProjectTemplate], user: User, **kwargs: Any):
         attrs = super().get_attrs(item_list, user, **kwargs)
-        all_attrs: dict[ProjectTemplate, dict[str, Any]] = defaultdict(dict)
+        all_attrs: dict[ProjectTemplate, dict[ProjectTemplateAttributes, Any]] = defaultdict(dict)
 
         if self._expand(ProjectTemplateAttributes.OPTIONS):
             for template in item_list:
                 options = template.options.all()
+
                 # TODO - serialize ProjectTemplateOptions
-                serialized_options: dict[str, Any] = {
+                serialized_options: TProjectOptions = {
                     option.key: option.value for option in options
                 }
 
