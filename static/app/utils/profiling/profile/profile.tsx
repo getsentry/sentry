@@ -31,6 +31,9 @@ export class Profile {
   // Min duration of a single frame in our profile
   minFrameDuration = Number.POSITIVE_INFINITY;
 
+  // Max stack size of each sample
+  readonly MAX_STACK_SIZE = 256;
+
   samples: CallTreeNode[] = [];
   sample_durations_ns: number[] = [];
   weights: number[] = [];
@@ -58,7 +61,7 @@ export class Profile {
     name: string;
     startedAt: number;
     threadId: number;
-    type: string;
+    type: 'flamechart' | 'flamegraph' | 'empty';
     unit: string;
     timestamp?: number;
   }) {
@@ -79,7 +82,7 @@ export class Profile {
     name: 'Empty Profile',
     unit: 'milliseconds',
     threadId: 0,
-    type: '',
+    type: 'empty',
   }).build();
 
   isEmpty(): boolean {

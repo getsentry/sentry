@@ -104,7 +104,7 @@ declare namespace Profiling {
     measurements?: Measurements;
   };
 
-  interface SentryContinousProfile {
+  interface SentryContinousProfileChunk {
     chunk_id: string;
     environment: string;
     project_id: number;
