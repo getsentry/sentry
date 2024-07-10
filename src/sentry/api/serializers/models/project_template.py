@@ -24,10 +24,6 @@ class SerializedProjectTemplate(TypedDict, total=False):
 
 @register(ProjectTemplate)
 class ProjectTemplateSerializer(Serializer):
-    """
-    This is used to serialize the project template model
-    """
-
     def __init__(self, expand: Iterable[str] | None = None) -> None:
         self.expand = expand
 
