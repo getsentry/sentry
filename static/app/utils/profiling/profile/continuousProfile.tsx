@@ -1,4 +1,4 @@
-import type {createFrameIndex} from 'sentry/utils/profiling/profile/utils';
+import type {createContinuousProfileFrameIndex} from 'sentry/utils/profiling/profile/utils';
 
 import {CallTreeNode} from '../callTreeNode';
 import type {Frame} from '../frame';
@@ -8,7 +8,7 @@ import {Profile} from './profile';
 export class ContinuousProfile extends Profile {
   static FromChunk(
     chunk: Profiling.SentryContinousProfileChunk,
-    frameIndex: ReturnType<typeof createFrameIndex>
+    frameIndex: ReturnType<typeof createContinuousProfileFrameIndex>
   ): Profile {
     if (chunk.profile.samples.length <= 1) {
       return Profile.Empty;
