@@ -750,26 +750,21 @@ class SlackActionEndpoint(Endpoint):
             return self.respond()
 
         response_url = slack_request.data["response_url"]
-        if not features.has("organizations:slack-sdk-webhook-handling", group.project.organization):
-            slack_client = SlackClient(integration_id=slack_request.integration.id)
-            try:
-                slack_client.post(response_url, data=response, json=True)
-            except ApiError as e:
-                logger.error("slack.action.response-error", extra={"error": str(e)})
-
-        else:
-            json_blocks = orjson.dumps(response.get("blocks")).decode()
-            webhook_client = WebhookClient(response_url)
-            try:
-                webhook_client.send(
-                    blocks=json_blocks, delete_original=False, replace_original=True
-                )
-                logger.info(
-                    "slack.webhook.update_status.success",
-                    extra={"integration_id": slack_request.integration.id, "blocks": json_blocks},
-                )
-            except SlackApiError as e:
-                logger.error("slack.webhook.update_status.response-error", extra={"error": str(e)})
+        json_blocks = orjson.dumps(response.get("blocks")).decode()
+        webhook_client = WebhookClient(response_url)
+        try:
+            webhook_client.send(
+                blocks=json_blocks,
+                text=response.get("text"),
+                delete_original=False,
+                replace_original=True,
+            )
+            logger.info(
+                "slack.webhook.update_status.success",
+                extra={"integration_id": slack_request.integration.id, "blocks": json_blocks},
+            )
+        except SlackApiError as e:
+            logger.error("slack.webhook.update_status.response-error", extra={"error": str(e)})
 
         return self.respond(response)
 
