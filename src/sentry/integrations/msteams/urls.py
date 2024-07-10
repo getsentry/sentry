@@ -1,8 +1,8 @@
 from django.urls import re_path
 
+from sentry.integrations.msteams.spec import MsTeamsMessagingSpec
 from sentry.web.frontend.msteams_extension_configuration import MsTeamsExtensionConfigurationView
 
-from . import MsTeamsMessagingSpec
 from .webhook import MsTeamsWebhookEndpoint
 
 urlpatterns = [
