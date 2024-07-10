@@ -162,6 +162,7 @@ def _do_preprocess_event(
     # one after the other, so we handle mixed stacktraces.
     stacktraces = find_stacktraces_in_data(data)
     symbolicate_platforms = get_symbolication_platforms(data, stacktraces)
+    print(f"symbolicate platforms: {symbolicate_platforms}\n")
     should_symbolicate = len(symbolicate_platforms) > 0
     if should_symbolicate:
         first_platform = symbolicate_platforms.pop(0)

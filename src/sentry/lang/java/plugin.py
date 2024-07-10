@@ -19,6 +19,6 @@ class JavaPlugin(Plugin2):
 
     def get_event_preprocessors(self, data: Mapping[str, Any]) -> Sequence[EventPreprocessor]:
         if has_proguard_file(data):
-            return [deobfuscate_exception_value, deobfuscate_view_hierarchy]
+            return [deobfuscate_exception_value]
         else:
             return []

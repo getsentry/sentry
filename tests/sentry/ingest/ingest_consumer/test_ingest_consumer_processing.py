@@ -30,6 +30,7 @@ from sentry.models.userreport import UserReport
 from sentry.options import set
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
+from sentry.testutils.skips import requires_symbolicator
 from sentry.usage_accountant import accountant
 from sentry.utils.eventuser import EventUser
 from sentry.utils.json import loads
@@ -324,6 +325,8 @@ def test_with_attachments(default_project, task_runner, missing_chunks, monkeypa
 
 
 @django_db_all
+@requires_symbolicator
+@pytest.mark.symbolicator
 def test_deobfuscate_view_hierarchy(default_project, task_runner):
     payload = get_normalized_event(
         {
@@ -397,6 +400,7 @@ def test_deobfuscate_view_hierarchy(default_project, task_runner):
     assert attachment.content_type == "application/json"
     assert attachment.name == "view_hierarchy.json"
     with attachment.getfile() as file:
+        print(file.read())
         assert file.read() == expected_response
 
 

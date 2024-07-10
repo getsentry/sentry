@@ -241,6 +241,7 @@ class Symbolicator:
         stacktraces,
         modules,
         release_package,
+        class_names,
         apply_source_context=True,
     ):
         """
@@ -262,6 +263,7 @@ class Symbolicator:
             "exceptions": exceptions,
             "stacktraces": stacktraces,
             "modules": modules,
+            "class_names": class_names,
             "options": {"apply_source_context": apply_source_context},
         }
 

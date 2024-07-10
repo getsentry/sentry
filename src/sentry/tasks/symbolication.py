@@ -104,6 +104,7 @@ def get_symbolication_platforms(
     """Returns a list of Symbolicator platforms
     that apply to this event."""
 
+    print("get_symbolication_platforms\n")
     from sentry.lang.java.utils import is_jvm_event
     from sentry.lang.javascript.utils import is_js_event
 
@@ -203,6 +204,7 @@ def _do_symbolicate_event(
         symbolication_function = None
 
     symbolication_function_name = getattr(symbolication_function, "__name__", "none")
+    print("symbolication function:", symbolication_function_name)
 
     if symbolication_function is None or killswitch_matches_context(
         "store.load-shed-symbolicate-event-projects",
