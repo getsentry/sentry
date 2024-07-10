@@ -107,7 +107,8 @@ class GroupAttributesTest(TestCase):
             date_added=timezone.now(),
         )
 
-        snapshot_values = _bulk_retrieve_snapshot_values([group, group_2], False)
+        group_values = _bulk_retrieve_group_values([group.id, group_2.id])
+        snapshot_values = _bulk_retrieve_snapshot_values(group_values, False)
         for g, sv in zip([group, group_2], snapshot_values):
             assert "timestamp" in sv
             del sv["timestamp"]  # type: ignore[misc]
