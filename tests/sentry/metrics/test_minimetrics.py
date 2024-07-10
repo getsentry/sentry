@@ -86,7 +86,6 @@ def scope():
                 "enable_metrics": True,
                 "before_emit_metric": before_emit_metric,  # type: ignore[typeddict-item]
             },
-            debug=True,
             traces_sample_rate=1.0,
         ),
     )
