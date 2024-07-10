@@ -1,3 +1,4 @@
+from datetime import timedelta
 from functools import cached_property
 from io import BytesIO
 from pathlib import Path
@@ -9,6 +10,7 @@ from uuid import uuid4
 import pytest
 import yaml
 from django.core.files.storage import Storage
+from django.test import override_settings
 from google.cloud.devtools.cloudbuild_v1 import Build
 from google_crc32c import value as crc32c
 
@@ -39,6 +41,7 @@ from sentry.models.relocation import (
     ValidationStatus,
 )
 from sentry.models.user import User
+from sentry.relocation.services.relocation_export.service import control_relocation_export_service
 from sentry.silo.base import SiloMode
 from sentry.tasks.relocation import (
     ERR_NOTIFYING_INTERNAL,
@@ -52,7 +55,9 @@ from sentry.tasks.relocation import (
     ERR_PREPROCESSING_NO_USERS,
     ERR_PREPROCESSING_TOO_MANY_ORGS,
     ERR_PREPROCESSING_TOO_MANY_USERS,
+    ERR_UPLOADING_CROSS_REGION_TIMEOUT,
     ERR_UPLOADING_FAILED,
+    ERR_UPLOADING_NO_SAAS_TO_SAAS_ORG_SLUG,
     ERR_VALIDATING_INTERNAL,
     ERR_VALIDATING_MAX_RUNS,
     MAX_FAST_TASK_ATTEMPTS,
@@ -79,12 +84,21 @@ from sentry.tasks.relocation import (
 from sentry.testutils.cases import TestCase, TransactionTestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import FakeKeyManagementServiceClient, generate_rsa_key_pair
-from sentry.testutils.helpers.task_runner import BurstTaskRunner, BurstTaskRunnerRetryError
-from sentry.testutils.silo import assume_test_silo_mode
+from sentry.testutils.helpers.task_runner import (
+    BurstTaskRunner,
+    BurstTaskRunnerRetryError,
+    TaskRunner,
+)
+from sentry.testutils.outbox import outbox_runner
+from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
 from sentry.utils import json
 from sentry.utils.relocation import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE, OrderedTask
 
 IMPORT_JSON_FILE_PATH = get_fixture_path("backup", "fresh-install.json")
+
+REQUESTING_TEST_REGION = "requesting"
+EXPORTING_TEST_REGION = "exporting"
+SAAS_TO_SAAS_TEST_REGIONS = create_test_regions(REQUESTING_TEST_REGION, EXPORTING_TEST_REGION)
 
 
 class FakeCloudBuildClient:
@@ -108,7 +122,9 @@ class RelocationTaskTestCase(TestCase):
             is_staff=False,
             is_active=True,
         )
-        self.existing_org = self.create_organization(name=self.requested_org_slug)
+        self.existing_org = self.create_organization(
+            name=self.requested_org_slug, owner=self.existing_org_owner
+        )
 
         self.owner = self.create_user(
             email="owner@example.com", is_superuser=False, is_staff=False, is_active=True
@@ -120,7 +136,7 @@ class RelocationTaskTestCase(TestCase):
         self.relocation: Relocation = Relocation.objects.create(
             creator_id=self.superuser.id,
             owner_id=self.owner.id,
-            want_org_slugs=["testing"],
+            want_org_slugs=[self.requested_org_slug],
             step=Relocation.Step.UPLOADING.value,
         )
         self.relocation_file = RelocationFile.objects.create(
@@ -176,6 +192,8 @@ class RelocationTaskTestCase(TestCase):
     def mock_kms_client(self, fake_kms_client: FakeKeyManagementServiceClient):
         fake_kms_client.asymmetric_decrypt.call_count = 0
         fake_kms_client.get_public_key.call_count = 0
+        if not hasattr(self, "tarball"):
+            _ = self.file
 
         unwrapped = unwrap_encrypted_export_tarball(BytesIO(self.tarball))
         plaintext_dek = LocalFileDecryptor.from_bytes(
@@ -211,11 +229,300 @@ class RelocationTaskTestCase(TestCase):
         fake_message_builder.return_value.send_async.return_value = Mock()
 
 
+@patch(
+    "sentry.backup.crypto.KeyManagementServiceClient",
+    new_callable=lambda: FakeKeyManagementServiceClient,
+)
+@patch("sentry.utils.relocation.MessageBuilder")
+@patch("sentry.tasks.relocation.uploading_complete.apply_async")
+@region_silo_test(regions=SAAS_TO_SAAS_TEST_REGIONS)
+class UploadingStartTest(RelocationTaskTestCase):
+    def setUp(self):
+        self.owner = self.create_user(
+            email="owner@example.com", is_superuser=False, is_staff=False, is_active=True
+        )
+        self.superuser = self.create_user(
+            email="superuser@example.com", is_superuser=True, is_staff=True, is_active=True
+        )
+        self.login_as(user=self.superuser, superuser=True)
+
+        with assume_test_silo_mode(SiloMode.REGION, region_name=EXPORTING_TEST_REGION):
+            self.requested_org_slug = "testing"
+            self.existing_org_owner = self.create_user(
+                email="existing_org_owner@example.com",
+                is_superuser=False,
+                is_staff=False,
+                is_active=True,
+            )
+            self.existing_org = self.create_organization(
+                name=self.requested_org_slug, owner=self.existing_org_owner
+            )
+
+        with assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION):
+            self.relocation: Relocation = Relocation.objects.create(
+                creator_id=self.superuser.id,
+                owner_id=self.owner.id,
+                want_org_slugs=[self.requested_org_slug],
+                step=Relocation.Step.UPLOADING.value,
+                latest_task=OrderedTask.UPLOADING_START.name,
+                provenance=Relocation.Provenance.SAAS_TO_SAAS,
+            )
+            self.uuid = str(self.relocation.uuid)
+
+    @override_settings(
+        SENTRY_MONOLITH_REGION=REQUESTING_TEST_REGION, SENTRY_REGION=REQUESTING_TEST_REGION
+    )
+    @patch("sentry.tasks.relocation.cross_region_export_timeout_check.apply_async")
+    def test_success_saas_to_saas(
+        self,
+        cross_region_export_timeout_check_mock: Mock,
+        uploading_complete_mock: Mock,
+        fake_message_builder: Mock,
+        fake_kms_client: FakeKeyManagementServiceClient,
+    ):
+        self.mock_message_builder(fake_message_builder)
+        self.mock_kms_client(fake_kms_client)
+
+        assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
+        with assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION):
+            uploading_start(self.uuid, EXPORTING_TEST_REGION, self.requested_org_slug)
+
+            assert uploading_complete_mock.call_count == 0
+            with outbox_runner():
+                pass
+
+        assert uploading_complete_mock.call_count == 1
+        assert cross_region_export_timeout_check_mock.call_count == 1
+        assert fake_message_builder.call_count == 0
+        assert fake_kms_client.get_public_key.call_count == 1
+        assert fake_kms_client.asymmetric_decrypt.call_count == 0
+
+        assert RelocationFile.objects.filter(
+            relocation=self.relocation,
+            kind=RelocationFile.Kind.RAW_USER_DATA.value,
+        ).exists()
+
+    @override_settings(
+        SENTRY_MONOLITH_REGION=REQUESTING_TEST_REGION, SENTRY_REGION=REQUESTING_TEST_REGION
+    )
+    @patch("sentry.tasks.relocation.cross_region_export_timeout_check.apply_async")
+    def test_success_saas_to_saas_racing(
+        self,
+        cross_region_export_timeout_check_mock: Mock,
+        uploading_complete_mock: Mock,
+        fake_message_builder: Mock,
+        fake_kms_client: FakeKeyManagementServiceClient,
+    ):
+        self.mock_message_builder(fake_message_builder)
+        self.mock_kms_client(fake_kms_client)
+
+        assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
+        with assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION):
+            uploading_start(self.uuid, EXPORTING_TEST_REGION, self.requested_org_slug)
+
+            # Create a racing call, due to ex: outbox retry. These must be deduped when
+            # receiving the reply back in the requesting region.
+            control_relocation_export_service.request_new_export(
+                relocation_uuid=str(self.uuid),
+                requesting_region_name=REQUESTING_TEST_REGION,
+                replying_region_name=EXPORTING_TEST_REGION,
+                org_slug=self.requested_org_slug,
+                encrypt_with_public_key=fake_kms_client.get_public_key().pem.encode(),
+            )
+
+            assert uploading_complete_mock.call_count == 0
+            with outbox_runner():
+                pass
+
+        assert uploading_complete_mock.call_count == 1
+        assert cross_region_export_timeout_check_mock.call_count == 1
+        assert fake_message_builder.call_count == 0
+        assert fake_kms_client.get_public_key.call_count == 2
+        assert fake_kms_client.asymmetric_decrypt.call_count == 0
+
+        assert (
+            RelocationFile.objects.filter(
+                relocation=self.relocation,
+                kind=RelocationFile.Kind.RAW_USER_DATA.value,
+            ).count()
+            == 1
+        )
+
+    @patch("sentry.tasks.relocation.cross_region_export_timeout_check.apply_async")
+    def test_success_self_hosted(
+        self,
+        cross_region_export_timeout_check_mock: Mock,
+        uploading_complete_mock: Mock,
+        fake_message_builder: Mock,
+        fake_kms_client: FakeKeyManagementServiceClient,
+    ):
+        self.mock_message_builder(fake_message_builder)
+        self.mock_kms_client(fake_kms_client)
+
+        self.relocation.provenance = Relocation.Provenance.SELF_HOSTED
+        self.relocation.save()
+
+        assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
+        with assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION):
+            uploading_start(self.uuid, None, None)
+
+            assert uploading_complete_mock.call_count == 1
+            with outbox_runner():
+                pass
+
+        assert uploading_complete_mock.call_count == 1
+        assert cross_region_export_timeout_check_mock.call_count == 0
+        assert fake_message_builder.call_count == 0
+        assert fake_kms_client.get_public_key.call_count == 0
+        assert fake_kms_client.asymmetric_decrypt.call_count == 0
+
+        assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
+
+    @patch("sentry.tasks.relocation.cross_region_export_timeout_check.apply_async")
+    def test_retry_if_attempts_left(
+        self,
+        cross_region_export_timeout_check_mock: Mock,
+        uploading_complete_mock: Mock,
+        fake_message_builder: Mock,
+        fake_kms_client: FakeKeyManagementServiceClient,
+    ):
+        self.mock_message_builder(fake_message_builder)
+        self.mock_kms_client(fake_kms_client)
+
+        # An exception being raised will trigger a retry in celery.
+        with pytest.raises(Exception):
+            fake_kms_client.get_public_key.side_effect = Exception("Test")
+            with assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION):
+                uploading_start(self.uuid, EXPORTING_TEST_REGION, self.requested_org_slug)
+
+        assert uploading_complete_mock.call_count == 0
+        assert cross_region_export_timeout_check_mock.call_count == 0
+        assert fake_message_builder.call_count == 0
+        assert fake_kms_client.get_public_key.call_count == 1
+        assert fake_kms_client.asymmetric_decrypt.call_count == 0
+
+        relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.IN_PROGRESS.value
+        assert not relocation.failure_reason
+
+    @patch("sentry.tasks.relocation.cross_region_export_timeout_check.apply_async")
+    def test_fail_if_no_attempts_left(
+        self,
+        cross_region_export_timeout_check_mock: Mock,
+        uploading_complete_mock: Mock,
+        fake_message_builder: Mock,
+        fake_kms_client: FakeKeyManagementServiceClient,
+    ):
+        self.mock_message_builder(fake_message_builder)
+        self.mock_kms_client(fake_kms_client)
+        self.relocation.latest_task = OrderedTask.UPLOADING_START.name
+        self.relocation.latest_task_attempts = MAX_FAST_TASK_RETRIES
+        self.relocation.save()
+
+        with pytest.raises(Exception):
+            fake_kms_client.get_public_key.side_effect = Exception("Test")
+            with assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION):
+                uploading_start(self.uuid, EXPORTING_TEST_REGION, self.requested_org_slug)
+
+        assert fake_message_builder.call_count == 1
+        assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
+        fake_message_builder.return_value.send_async.assert_called_once_with(
+            to=[self.owner.email, self.superuser.email]
+        )
+
+        assert uploading_complete_mock.call_count == 0
+        assert cross_region_export_timeout_check_mock.call_count == 0
+        assert fake_kms_client.get_public_key.call_count == 1
+        assert fake_kms_client.asymmetric_decrypt.call_count == 0
+
+        relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.failure_reason == ERR_UPLOADING_FAILED
+
+    @patch("sentry.tasks.relocation.cross_region_export_timeout_check.apply_async")
+    def test_fail_no_org_slug_when_saas_to_saas(
+        self,
+        cross_region_export_timeout_check_mock: Mock,
+        uploading_complete_mock: Mock,
+        fake_message_builder: Mock,
+        fake_kms_client: FakeKeyManagementServiceClient,
+    ):
+        self.mock_message_builder(fake_message_builder)
+        self.mock_kms_client(fake_kms_client)
+
+        assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
+        with assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION):
+            # Will fail, because we do not supply an `org_slug` argument for a `SAAS_TO_SAAS`
+            # relocation.
+            uploading_start(self.uuid, EXPORTING_TEST_REGION, None)
+
+            assert uploading_complete_mock.call_count == 0
+            with outbox_runner():
+                pass
+
+        assert uploading_complete_mock.call_count == 0
+        assert cross_region_export_timeout_check_mock.call_count == 0
+        assert fake_message_builder.call_count == 1
+        assert fake_kms_client.get_public_key.call_count == 0
+        assert fake_kms_client.asymmetric_decrypt.call_count == 0
+
+        relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.FAILURE.value
+        assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
+        assert relocation.failure_reason == ERR_UPLOADING_NO_SAAS_TO_SAAS_ORG_SLUG
+        assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
+
+    # -1 minutes guarantees a timeout, even during synchronous execution.
+    @patch("sentry.tasks.relocation.CROSS_REGION_EXPORT_TIMEOUT", timedelta(minutes=-1))
+    def test_fail_due_to_timeout(
+        self,
+        uploading_complete_mock: Mock,
+        fake_message_builder: Mock,
+        fake_kms_client: FakeKeyManagementServiceClient,
+    ):
+        self.mock_message_builder(fake_message_builder)
+        self.mock_kms_client(fake_kms_client)
+
+        assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
+        with (
+            TaskRunner(),
+            assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION),
+        ):
+            uploading_start(self.uuid, EXPORTING_TEST_REGION, self.requested_org_slug)
+
+            assert uploading_complete_mock.call_count == 0
+            with outbox_runner():
+                pass
+
+            # No reply due to server-side timeout.
+            assert uploading_complete_mock.call_count == 0
+
+            # Ensure that the relocation has been marked as failed via the timeout handler on the
+            # client-side.
+            relocation = Relocation.objects.get(uuid=self.uuid)
+            assert relocation.status == Relocation.Status.FAILURE.value
+            assert relocation.latest_notified == Relocation.EmailKind.FAILED.value
+            assert relocation.failure_reason == ERR_UPLOADING_CROSS_REGION_TIMEOUT.substitute(
+                delta=timedelta(minutes=-1)
+            )
+            assert fake_message_builder.call_count == 1
+            assert fake_message_builder.call_args.kwargs["type"] == "relocation.failed"
+            fake_message_builder.return_value.send_async.assert_called_once_with(
+                to=[self.owner.email, self.superuser.email]
+            )
+
+        assert fake_kms_client.get_public_key.call_count == 1
+        assert fake_kms_client.asymmetric_decrypt.call_count == 0
+
+        assert not RelocationFile.objects.filter(relocation=self.relocation).exists()
+
+
 @patch("sentry.utils.relocation.MessageBuilder")
 @patch("sentry.tasks.relocation.preprocessing_scan.apply_async")
 class UploadingCompleteTest(RelocationTaskTestCase):
     def setUp(self):
         super().setUp()
+        self.relocation.step = Relocation.Step.UPLOADING.value
         self.relocation.latest_task = OrderedTask.UPLOADING_START.name
         self.relocation.save()
 
