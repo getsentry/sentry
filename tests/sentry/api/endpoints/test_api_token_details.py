@@ -1,0 +1,83 @@
+from rest_framework import status
+
+from sentry.models.apitoken import ApiToken
+from sentry.testutils.cases import APITestCase
+from sentry.testutils.silo import control_silo_test
+
+
+@control_silo_test
+class ApiTokenEditTest(APITestCase):
+    endpoint = "sentry-api-0-api-token-details"
+    method = "PUT"
+
+    def test_simple(self):
+        token = ApiToken.objects.create(user=self.user, name="token 1")
+        payload = {"name": "new token"}
+
+        self.login_as(self.user)
+        self.get_success_response(token.id, status_code=status.HTTP_204_NO_CONTENT, **payload)
+
+        tokenNew = ApiToken.objects.get(user=self.user)
+        assert tokenNew.name == "new token"
+        assert tokenNew.get_scopes() == token.get_scopes()
+
+    def test_never_cache(self):
+        token = ApiToken.objects.create(user=self.user, name="token 1")
+        payload = {"name": "new token"}
+
+        self.login_as(self.user)
+        response = self.get_success_response(
+            token.id, status_code=status.HTTP_204_NO_CONTENT, **payload
+        )
+        assert (
+            response.get("cache-control")
+            == "max-age=0, no-cache, no-store, must-revalidate, private"
+        )
+
+    def test_delete_name(self):
+        token = ApiToken.objects.create(user=self.user, name="name")
+        payload = {"name": ""}
+
+        self.login_as(self.user)
+        self.get_success_response(token.id, status_code=status.HTTP_204_NO_CONTENT, **payload)
+
+        token = ApiToken.objects.get(user=self.user)
+        assert token.name == ""
+
+    def test_add_name(self):
+        token = ApiToken.objects.create(user=self.user)
+        payload = {"name": "new token"}
+
+        self.login_as(self.user)
+        self.get_success_response(token.id, status_code=status.HTTP_204_NO_CONTENT, **payload)
+
+        token = ApiToken.objects.get(user=self.user)
+        assert token.name == "new token"
+
+    def test_invalid_name(self):
+        token = ApiToken.objects.create(user=self.user)
+        payload = {
+            "name": "Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in"
+        }
+
+        self.login_as(self.user)
+        self.get_error_response(token.id, status_code=status.HTTP_400_BAD_REQUEST, **payload)
+
+    def test_editing_scopes(self):
+        token = ApiToken.objects.create(user=self.user)
+        payload = {"name": "new token", "scopes": ["event:read"]}
+
+        self.login_as(self.user)
+        response = self.get_error_response(
+            token.id, status_code=status.HTTP_403_FORBIDDEN, **payload
+        )
+        assert response.content
+        assert response.data == {"error": "Only auth token name can be edited after creation"}
+
+    def test_invalid_token_id(self):
+        token = ApiToken.objects.create(user=self.user)
+        payload = {"name": "new token"}
+
+        self.login_as(self.user)
+        self.get_error_response(-1, status_code=status.HTTP_400_BAD_REQUEST, **payload)
+        assert ApiToken.objects.filter(id=token.id).exists()

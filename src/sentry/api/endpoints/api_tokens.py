@@ -24,11 +24,8 @@ from sentry.types.token import AuthTokenType
 ALLOWED_FIELDS = ["name", "tokenId"]
 
 
-class ApiTokenNameSerializer(serializers.Serializer):
+class ApiTokenSerializer(serializers.Serializer):
     name = CharField(max_length=255, allow_blank=True, required=False)
-
-
-class ApiTokenSerializer(ApiTokenNameSerializer):
     scopes = MultipleChoiceField(required=True, choices=settings.SENTRY_SCOPES)
 
 
@@ -39,7 +36,6 @@ class ApiTokensEndpoint(Endpoint):
         "DELETE": ApiPublishStatus.PRIVATE,
         "GET": ApiPublishStatus.PRIVATE,
         "POST": ApiPublishStatus.PRIVATE,
-        "PUT": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (IsAuthenticated,)
@@ -102,40 +98,6 @@ class ApiTokensEndpoint(Endpoint):
             analytics.record("api_token.created", user_id=request.user.id)
 
             return Response(serialize(token, request.user), status=201)
-        return Response(serializer.errors, status=400)
-
-    @method_decorator(never_cache)
-    def put(self, request: Request) -> Response:
-        keys = list(request.data.keys())
-
-        if any(key not in ALLOWED_FIELDS for key in keys):
-            return Response(
-                {"error": "Only auth token name can be edited after creation"}, status=403
-            )
-
-        serializer = ApiTokenNameSerializer(data=request.data)
-
-        if serializer.is_valid():
-            result = serializer.validated_data
-
-            user_id = self._get_appropriate_user_id(request=request)
-            token_id = request.data.get("tokenId", None)
-
-            if token_id is None:
-                return Response({"tokenId": token_id}, status=400)
-
-            with outbox_context(transaction.atomic(router.db_for_write(ApiToken)), flush=False):
-                token_to_rename: ApiToken | None = ApiToken.objects.filter(
-                    id=token_id, application__isnull=True, user_id=user_id
-                ).first()
-
-                if token_to_rename is None:
-                    return Response({"tokenId": token_id, "userId": user_id}, status=400)
-
-                token_to_rename.name = result.get("name", None)
-                token_to_rename.save()
-
-            return Response(status=204)
         return Response(serializer.errors, status=400)
 
     @method_decorator(never_cache)
