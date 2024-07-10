@@ -6,7 +6,7 @@ from django.db import IntegrityError, router, transaction
 from rest_framework.request import Request
 from rest_framework.response import Response
 
-from sentry import features, options
+from sentry import audit_log, features, options
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
@@ -61,6 +61,18 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
             "organizations:custom-metrics-extraction-rule", organization, actor=request.user
         )
 
+    def _create_audit_entry(self, event: str, project: Project, span_attribute: str):
+        self.create_audit_entry(
+            request=self.request,
+            organization=project.organization,
+            target_object=project.id,
+            event=audit_log.get_event_id(event),
+            data={
+                "span_attribute": span_attribute,
+                "project_slug": project.slug,
+            },
+        )
+
     def delete(self, request: Request, project: Project) -> Response:
         """DELETE an extraction rule in a project. Returns 204 No Data on success."""
         if not self.has_feature(project.organization, request):
@@ -76,6 +88,10 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                 schedule_invalidate_project_config(
                     project_id=project.id, trigger="span_attribute_extraction_configs"
                 )
+                for config in config_update:
+                    self._create_audit_entry(
+                        "SPAN_BASED_METRIC_DELETE", project, config["spanAttribute"]
+                    )
 
             return Response(status=204)
 
@@ -119,6 +135,10 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                 schedule_invalidate_project_config(
                     project_id=project.id, trigger="span_attribute_extraction_configs"
                 )
+                for config in configs:
+                    self._create_audit_entry(
+                        "SPAN_BASED_METRIC_CREATE", project, config.span_attribute
+                    )
 
             persisted_config = serialize(
                 configs, request.user, SpanAttributeExtractionRuleConfigSerializer()
@@ -141,6 +161,8 @@ class ProjectMetricsExtractionRulesEndpoint(ProjectEndpoint):
                 schedule_invalidate_project_config(
                     project_id=project.id, trigger="span_attribute_extraction_configs"
                 )
+            for config in configs:
+                self._create_audit_entry("SPAN_BASED_METRIC_UPDATE", project, config.span_attribute)
 
             persisted_config = serialize(
                 configs,
