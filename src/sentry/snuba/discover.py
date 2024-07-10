@@ -152,7 +152,7 @@ def zerofill(
     rollup: int,
     orderby: list[str],
     time_col_name: str | None = None,
-):
+) -> SnubaData:
     """Fill in all the gaps in a timeseries response with a zero value so graphs render all the buckets"""
     return_value: SnubaData = []
     start = int(to_naive_timestamp(naiveify_datetime(start_param)) / rollup) * rollup
