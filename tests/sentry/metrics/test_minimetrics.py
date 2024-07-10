@@ -59,6 +59,12 @@ class DummyTransport(Transport):
     def capture_envelope(self, envelope):
         self.captured.append(envelope)
 
+    def get_spans(self):
+        for envelope in self.captured:
+            for item in envelope.items:
+                if item.headers.get("type") == "transaction":
+                    return item.payload.json["spans"]
+
     def get_metrics(self):
         result = []
         for envelope in self.captured:
@@ -80,6 +86,7 @@ def scope():
                 "enable_metrics": True,
                 "before_emit_metric": before_emit_metric,  # type: ignore[typeddict-item]
             },
+            traces_sample_rate=1.0,
         ),
     )
     with sentry_sdk.scope.use_isolation_scope(scope):
@@ -102,6 +109,7 @@ def backend():
         "delightful_metrics.enable_capture_envelope": True,
         "delightful_metrics.enable_common_tags": True,
         "delightful_metrics.enable_code_locations": True,
+        "delightful_metrics.enable_span_attributes": False,
     }
 )
 def test_incr_called_with_no_tags(backend, scope):
@@ -126,6 +134,7 @@ def test_incr_called_with_no_tags(backend, scope):
         "delightful_metrics.enable_capture_envelope": True,
         "delightful_metrics.enable_common_tags": False,
         "delightful_metrics.enable_code_locations": True,
+        "delightful_metrics.enable_span_attributes": False,
     }
 )
 def test_incr_called_with_no_tags_and_no_common_tags(backend, scope):
@@ -150,6 +159,7 @@ def test_incr_called_with_no_tags_and_no_common_tags(backend, scope):
         "delightful_metrics.enable_capture_envelope": True,
         "delightful_metrics.enable_common_tags": True,
         "delightful_metrics.enable_code_locations": True,
+        "delightful_metrics.enable_span_attributes": False,
     }
 )
 def test_incr_called_with_tag_value_as_list(backend, scope):
@@ -172,6 +182,7 @@ def test_incr_called_with_tag_value_as_list(backend, scope):
         "delightful_metrics.enable_common_tags": True,
         "delightful_metrics.emit_gauges": False,
         "delightful_metrics.enable_code_locations": True,
+        "delightful_metrics.enable_span_attributes": False,
     }
 )
 def test_gauge_as_count(backend, scope):
@@ -195,6 +206,7 @@ def test_gauge_as_count(backend, scope):
         "delightful_metrics.enable_common_tags": True,
         "delightful_metrics.emit_gauges": True,
         "delightful_metrics.enable_code_locations": True,
+        "delightful_metrics.enable_span_attributes": False,
     }
 )
 def test_gauge(backend, scope):
@@ -218,6 +230,7 @@ def test_gauge(backend, scope):
         "delightful_metrics.enable_common_tags": True,
         "delightful_metrics.minimetrics_sample_rate": 1.0,
         "delightful_metrics.enable_code_locations": True,
+        "delightful_metrics.enable_span_attributes": False,
     }
 )
 def test_composite_backend_does_not_recurse(scope):
@@ -254,6 +267,7 @@ def test_composite_backend_does_not_recurse(scope):
 @override_options(
     {
         "delightful_metrics.minimetrics_sample_rate": 1.0,
+        "delightful_metrics.enable_span_attributes": False,
     }
 )
 @patch("sentry.metrics.minimetrics.sentry_sdk")
@@ -278,6 +292,7 @@ def test_unit_is_correctly_propagated_for_incr(sentry_sdk, unit, expected_unit):
 @override_options(
     {
         "delightful_metrics.minimetrics_sample_rate": 1.0,
+        "delightful_metrics.enable_span_attributes": False,
     }
 )
 @patch("sentry.metrics.minimetrics.sentry_sdk")
@@ -296,7 +311,11 @@ def test_unit_is_correctly_propagated_for_timing(sentry_sdk, unit, expected_unit
 
 
 @override_options(
-    {"delightful_metrics.minimetrics_sample_rate": 1.0, "delightful_metrics.emit_gauges": True}
+    {
+        "delightful_metrics.minimetrics_sample_rate": 1.0,
+        "delightful_metrics.emit_gauges": True,
+        "delightful_metrics.enable_span_attributes": False,
+    }
 )
 @patch("sentry.metrics.minimetrics.sentry_sdk")
 @pytest.mark.parametrize("unit,expected_unit", [(None, "none"), ("second", "second")])
@@ -316,6 +335,7 @@ def test_unit_is_correctly_propagated_for_gauge(sentry_sdk, unit, expected_unit)
 @override_options(
     {
         "delightful_metrics.minimetrics_sample_rate": 1.0,
+        "delightful_metrics.enable_span_attributes": False,
     }
 )
 @patch("sentry.metrics.minimetrics.sentry_sdk")
@@ -345,3 +365,69 @@ def test_unit_is_correctly_propagated_for_distribution(sentry_sdk, unit, expecte
 def test_to_minimetrics_unit(unit, default, expected_result):
     result = MiniMetricsMetricsBackend._to_minimetrics_unit(unit, default)
     assert result == expected_result
+
+
+@override_options(
+    {
+        "delightful_metrics.enable_capture_envelope": True,
+        "delightful_metrics.enable_common_tags": True,
+        "delightful_metrics.enable_span_attributes": True,
+        "delightful_metrics.enable_code_locations": True,
+    }
+)
+def test_span_attribute_is_correctly_if_no_transaction_exists(backend, scope):
+    backend.incr(key="metric_withspan", tags={"x": "bar"})
+    full_flush(scope)
+
+    spans = scope.client.transport.get_spans()
+
+    assert len(spans) == 1
+    span = spans[0]
+    assert span["op"] == "minimetrics.incr"
+    assert span["tags"] == {"x": "bar"}
+    assert span["data"]["metric_withspan"] == 1
+
+
+@override_options(
+    {
+        "delightful_metrics.enable_capture_envelope": True,
+        "delightful_metrics.enable_common_tags": True,
+        "delightful_metrics.enable_span_attributes": True,
+        "delightful_metrics.enable_code_locations": True,
+    }
+)
+def test_span_attribute_is_correctly_if_no_span_exists(backend, scope):
+    with scope.start_transaction():
+        backend.incr(key="metric_withspan", tags={"x": "bar"})
+        full_flush(scope)
+
+    spans = scope.client.transport.get_spans()
+
+    assert len(spans) == 1
+    span = spans[0]
+    assert span["op"] == "minimetrics.incr"
+    assert span["tags"] == {"x": "bar"}
+    assert span["data"]["metric_withspan"] == 1
+
+
+@override_options(
+    {
+        "delightful_metrics.enable_capture_envelope": True,
+        "delightful_metrics.enable_common_tags": True,
+        "delightful_metrics.enable_span_attributes": True,
+        "delightful_metrics.enable_code_locations": True,
+    }
+)
+def test_span_attribute_is_correctly_if_span_exists(backend, scope):
+    with scope.start_transaction():
+        with scope.start_span(op="test.incr"):
+            backend.incr(key="metric_withspan", tags={"x": "bar"})
+            full_flush(scope)
+
+    spans = scope.client.transport.get_spans()
+
+    assert len(spans) == 1
+    span = spans[0]
+    assert span["op"] == "test.incr"
+    assert span["tags"] == {"x": "bar"}
+    assert span["data"]["metric_withspan"] == 1
