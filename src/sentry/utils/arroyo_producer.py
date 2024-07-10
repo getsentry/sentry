@@ -29,9 +29,10 @@ class SingletonProducer:
         self._futures: Deque[ProducerFuture] = deque()
         self.max_futures = max_futures
 
-    def produce(self, destination: Topic | Partition, payload: KafkaPayload) -> None:
+    def produce(self, destination: Topic | Partition, payload: KafkaPayload) -> ProducerFuture:
         future = self._get().produce(destination, payload)
         self._track_futures(future)
+        return future
 
     def _get(self) -> KafkaProducer:
         if self._producer is None:
