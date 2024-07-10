@@ -1427,7 +1427,10 @@ def link_event_to_user_report(job: PostProcessJob) -> None:
         )
 
         if user_reports_updated:
-            metrics.incr("event_manager.save._update_user_reports_with_event_link_updated")
+            metrics.incr(
+                "event_manager.save._update_user_reports_with_event_link_updated",
+                amount=user_reports_updated.count(),
+            )
 
     else:
         UserReport.objects.filter(project_id=project.id, event_id=job["event"].event_id).update(
