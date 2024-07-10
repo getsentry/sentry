@@ -99,9 +99,6 @@
     "sentry.apiapplication",
     "sentry.user"
   ],
-  "sentry.appconnectbuild": [
-    "sentry.project"
-  ],
   "sentry.artifactbundle": [
     "sentry.file",
     "sentry.organization"
@@ -431,9 +428,6 @@
     "sentry.organizationintegration"
   ],
   "sentry.integrationfeature": [],
-  "sentry.latestappconnectbuildscheck": [
-    "sentry.project"
-  ],
   "sentry.latestreporeleaseenvironment": [
     "sentry.commit",
     "sentry.deploy",
