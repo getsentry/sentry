@@ -114,6 +114,7 @@ export const QueryBuilder = memo(function QueryBuilder({
         queryChanges.aggregation = getDefaultAggregation(mriValue);
       }
 
+      // If it is a virtual MRI we need to check for the new conditions and aggregations
       if (newMRI.type === 'v') {
         const spanConditions = getConditions(mriValue);
         const virtualMeta = getVirtualMeta(mriValue);
