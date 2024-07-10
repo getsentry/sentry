@@ -61,7 +61,7 @@ export class Profile {
     name: string;
     startedAt: number;
     threadId: number;
-    type: 'flamechart' | 'flamegraph' | '';
+    type: 'flamechart' | 'flamegraph' | 'empty';
     unit: string;
     timestamp?: number;
   }) {
@@ -82,7 +82,7 @@ export class Profile {
     name: 'Empty Profile',
     unit: 'milliseconds',
     threadId: 0,
-    type: '',
+    type: 'empty',
   }).build();
 
   isEmpty(): boolean {
