@@ -197,7 +197,8 @@ declare namespace Profiling {
   type ProfileInput =
     | Profiling.Schema
     | JSSelfProfiling.Trace
-    | Profiling.SentrySampledProfile;
+    | Profiling.SentrySampledProfile
+    | Profiling.SentryContinousProfileChunk;
 
   type ImportedProfiles = {
     name: string;

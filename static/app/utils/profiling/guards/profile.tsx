@@ -30,3 +30,9 @@ export function isSentrySampledProfile(
     'frames' in profile.profile
   );
 }
+
+export function isSentryContinuousProfileChunk(
+  profile: any
+): profile is Profiling.SentryContinousProfileChunk {
+  return 'chunk_id' in profile;
+}
