@@ -42,7 +42,6 @@ class ProjectTemplateSerializer(Serializer):
             for template in item_list:
                 options = template.options.all()
 
-                # TODO - serialize ProjectTemplateOptions
                 serialized_options: TProjectOptions = {
                     option.key: option.value for option in options
                 }
