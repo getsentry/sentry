@@ -21,8 +21,8 @@ DM_COMMANDS = {
     "unlink": "Unlink your Slack identity from your Sentry account.",
 }
 CHANNEL_COMMANDS = {
-    "link team": "Get your Sentry team's issue alert notifications in the channel this command is typed in.",
-    "unlink team": "Unlink a team from the channel this command is typed in.",
+    "link team": "Get your Sentry team's issue alert notifications in this channel.",
+    "unlink team": "Unlink a team from this channel.",
 }
 HELP_COMMANDS = {
     "support": "Get support resources.",
