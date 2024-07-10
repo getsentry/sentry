@@ -113,7 +113,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
     }
     sunba_methods = ["GET"]
 
-    def get_features(self, organization: Organization, request: Request) -> Mapping[str, bool]:
+    def get_features(
+        self, organization: Organization, request: Request
+    ) -> Mapping[str, bool | None]:
         feature_names = [
             "organizations:performance-chart-interpolation",
             "organizations:performance-use-metrics",
@@ -257,7 +259,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
             rollup: int,
             zerofill_results: bool,
             comparison_delta: datetime | None,
-        ) -> SnubaTSResult:
+        ) -> SnubaTSResult | dict[str, SnubaTSResult]:
             if top_events > 0:
                 return scoped_dataset.top_events_timeseries(
                     timeseries_columns=query_columns,
@@ -318,7 +320,7 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                 rollup: int,
                 zerofill_results: bool,
                 comparison_delta: datetime | None,
-            ) -> SnubaTSResult:
+            ) -> SnubaTSResult | dict[str, SnubaTSResult]:
 
                 if not (metrics_enhanced and dashboard_widget_id):
                     return _get_event_stats(
@@ -393,7 +395,10 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                     if isinstance(original_results, SnubaTSResult):
                         dataset_meta = original_results.data.get("meta", {})
                     else:
-                        dataset_meta = list(original_results.values())[0].data.get("meta", {})
+                        if len(original_results) > 0:
+                            dataset_meta = list(original_results.values())[0].data.get("meta", {})
+                        else:
+                            dataset_meta = {}
 
                     using_metrics = dataset_meta.get("isMetricsData", False) or dataset_meta.get(
                         "isMetricsExtractedData", False

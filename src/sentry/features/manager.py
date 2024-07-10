@@ -20,6 +20,8 @@ from .base import Feature, FeatureHandlerStrategy
 from .exceptions import FeatureNotRegistered
 
 if TYPE_CHECKING:
+    from django.contrib.auth.models import AnonymousUser
+
     from sentry.features.handler import FeatureHandler
     from sentry.models.organization import Organization
     from sentry.models.project import Project
@@ -299,7 +301,7 @@ class FeatureManager(RegisteredFeatureManager):
     def batch_has(
         self,
         feature_names: Sequence[str],
-        actor: User | None = None,
+        actor: User | AnonymousUser | None = None,
         projects: Sequence[Project] | None = None,
         organization: Organization | None = None,
     ) -> Mapping[str, Mapping[str, bool | None]] | None:
