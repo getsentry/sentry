@@ -32,7 +32,7 @@ class GroupAttributesTest(TestCase):
             first_seen=group.first_seen,
             num_comments=group.num_comments,
             priority=group.priority,
-            first_release=None,
+            first_release_id=None,
         )
 
     def test_bulk_retrieve_group_values(self) -> None:
@@ -54,7 +54,7 @@ class GroupAttributesTest(TestCase):
                 first_seen=group.first_seen,
                 num_comments=group.num_comments,
                 priority=group.priority,
-                first_release=release.id,
+                first_release_id=release.id,
             ),
             GroupValues(
                 id=group_2.id,
@@ -64,7 +64,7 @@ class GroupAttributesTest(TestCase):
                 first_seen=group_2.first_seen,
                 num_comments=group_2.num_comments,
                 priority=group_2.priority,
-                first_release=None,
+                first_release_id=None,
             ),
         ]
 
@@ -107,8 +107,7 @@ class GroupAttributesTest(TestCase):
             date_added=timezone.now(),
         )
 
-        group_values = _bulk_retrieve_group_values([group.id, group_2.id])
-        snapshot_values = _bulk_retrieve_snapshot_values(group_values, False)
+        snapshot_values = _bulk_retrieve_snapshot_values([group, group_2], False)
         for g, sv in zip([group, group_2], snapshot_values):
             assert "timestamp" in sv
             del sv["timestamp"]  # type: ignore[misc]
