@@ -20,6 +20,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import useOrganization from 'sentry/utils/useOrganization';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import type {TitleableModuleNames} from 'sentry/views/insights/common/components/modulePageProviders';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
@@ -37,17 +38,31 @@ type PlatformIcons = keyof typeof PLATFORM_TO_ICON;
 export function ModulesOnboarding({
   children,
   moduleName,
+  onboardingContent,
 }: {
   children: React.ReactNode;
   moduleName: ModuleName;
+  onboardingContent?: React.ReactNode;
 }) {
+  const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
   const hasData = useHasFirstSpan(moduleName);
+  const hasEmptyStateFeature = organization.features.includes(
+    'insights-empty-state-page'
+  );
 
-  if (onboardingProject || !hasData) {
+  if (hasEmptyStateFeature && (onboardingProject || !hasData)) {
     return (
       <ModuleLayout.Full>
         <ModulesOnboardingPanel moduleName={'cache'} />
+      </ModuleLayout.Full>
+    );
+  }
+
+  if (onboardingContent && (onboardingProject || !hasData)) {
+    return (
+      <ModuleLayout.Full>
+        <OldModulesOnboardingPanel>{onboardingContent}</OldModulesOnboardingPanel>
       </ModuleLayout.Full>
     );
   }
@@ -59,6 +74,17 @@ export function ModulesOnboarding({
     <ModuleLayout.Full>
       <LoadingIndicator />
     </ModuleLayout.Full>
+  );
+}
+
+function OldModulesOnboardingPanel({children}: {children: React.ReactNode}) {
+  return (
+    <Panel>
+      <Container>
+        <ContentContainer>{children}</ContentContainer>
+        <PerfImage src={emptyStateImg} />
+      </Container>
+    </Panel>
   );
 }
 

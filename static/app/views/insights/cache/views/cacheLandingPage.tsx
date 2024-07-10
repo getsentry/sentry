@@ -35,10 +35,12 @@ import {
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
   MODULE_TITLE,
+  ONBOARDING_CONTENT,
 } from 'sentry/views/insights/cache/settings';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
+import {OnboardingContent} from 'sentry/views/insights/common/components/onboardingContent';
 import {
   useMetrics,
   useSpanMetrics,
@@ -216,7 +218,10 @@ export function CacheLandingPage() {
                 <DatePageFilter />
               </PageFilterBar>
             </ModuleLayout.Full>
-            <ModulesOnboarding moduleName={ModuleName.CACHE}>
+            <ModulesOnboarding
+              moduleName={ModuleName.CACHE}
+              onboardingContent={<OnboardingContent {...ONBOARDING_CONTENT} />}
+            >
               <ModuleLayout.Half>
                 <CacheHitMissChart
                   series={{
