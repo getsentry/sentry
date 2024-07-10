@@ -1,7 +1,9 @@
+from django.contrib.auth.models import AnonymousUser
 from django.shortcuts import get_object_or_404
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import features
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
@@ -13,6 +15,11 @@ from sentry.api.serializers.models.project_template import (
 )
 from sentry.models.organization import Organization
 from sentry.models.projecttemplate import ProjectTemplate
+from sentry.models.user import User
+
+
+def is_org_in_rollout(organization: Organization, user: AnonymousUser | User) -> bool:
+    return features.has("organizations:project-templates", organization, actor=user)
 
 
 @region_silo_endpoint
@@ -27,6 +34,8 @@ class OrganizationProjectTemplatesIndexEndpoint(OrganizationEndpoint):
 
         Return a list of project templates available to the authenticated user.
         """
+        if not is_org_in_rollout(organization, request.user):
+            return Response(status=404)
 
         # TODO verify that this will autenticate the user to the organization,
         # otherwise, add a filter to ensure the user is in the organization or is a superuser.
@@ -53,6 +62,8 @@ class OrganizationProjectTemplateDetailEndpoint(OrganizationEndpoint):
 
         Return details on an individual project template.
         """
+        if not is_org_in_rollout(organization, request.user):
+            return Response(status=404)
 
         # TODO verify that this will autenticate the user to the organization, (need to run as getsentry)
         # otherwise, add a filter to ensure the user is in the organization or is a superuser.
