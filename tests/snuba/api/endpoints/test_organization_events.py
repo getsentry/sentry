@@ -189,7 +189,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 400, response.content
         assert (
             response.data["detail"]
-            == "trace.span must be a valid 16 character hex (containing only digits, or a-f characters)"
+            == "`trace.span` must be a valid 16 character hex (containing only digits, or a-f characters)"
         )
 
         query = {"field": ["id"], "query": "trace.parent_span:invalid"}
@@ -197,7 +197,7 @@ class OrganizationEventsEndpointTest(OrganizationEventsEndpointTestBase, Perform
         assert response.status_code == 400, response.content
         assert (
             response.data["detail"]
-            == "trace.parent_span must be a valid 16 character hex (containing only digits, or a-f characters)"
+            == "`trace.parent_span` must be a valid 16 character hex (containing only digits, or a-f characters)"
         )
 
         query = {"field": ["id"], "query": "trace.span:*"}
