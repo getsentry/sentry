@@ -13,7 +13,6 @@ export interface ColorConfig {
 
 export interface TimelineItemProps {
   icon: React.ReactNode;
-  timestamp: React.ReactNode;
   title: React.ReactNode;
   children?: React.ReactNode;
   className?: string;
@@ -23,6 +22,7 @@ export interface TimelineItemProps {
   onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;
   onMouseLeave?: React.MouseEventHandler<HTMLDivElement>;
   style?: CSSProperties;
+  timestamp?: React.ReactNode;
 }
 
 export const Item = forwardRef(function _Item(
