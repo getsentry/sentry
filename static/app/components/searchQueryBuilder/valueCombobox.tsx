@@ -39,6 +39,7 @@ import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
 
 type SearchQueryValueBuilderProps = {
   onCommit: () => void;
+  onDelete: () => void;
   token: TokenResult<Token.FILTER>;
   wrapperRef: React.RefObject<HTMLDivElement>;
 };
@@ -134,7 +135,7 @@ function prepareInputValueForSaving(
     inputValue
       .split(',')
       .map(v => cleanFilterValue(token.key.text, v.trim()))
-      .filter(v => v.length > 0)
+      .filter(v => v && v.length > 0)
   );
 
   return values.length > 1 ? `[${values.join(',')}]` : values[0] ?? '""';
@@ -430,7 +431,7 @@ function tokenSupportsMultipleValues(
   }
 }
 
-function cleanFilterValue(key: string, value: string): string {
+function cleanFilterValue(key: string, value: string): string | null {
   const fieldDef = getFieldDefinition(key);
   if (!fieldDef) {
     return escapeTagValue(value);
@@ -441,17 +442,17 @@ function cleanFilterValue(key: string, value: string): string {
       if (FILTER_VALUE_NUMERIC.test(value)) {
         return value;
       }
-      return '';
+      return null;
     case FieldValueType.INTEGER:
       if (FILTER_VALUE_INT.test(value)) {
         return value;
       }
-      return '';
+      return null;
     case FieldValueType.DATE:
       const parsed = parseFilterValueDate(value);
 
       if (!parsed) {
-        return '';
+        return null;
       }
       return value;
     default:
@@ -638,6 +639,7 @@ function ItemCheckbox({
 
 export function SearchQueryBuilderValueCombobox({
   token,
+  onDelete,
   onCommit,
   wrapperRef,
 }: SearchQueryValueBuilderProps) {
@@ -783,17 +785,12 @@ export function SearchQueryBuilderValueCombobox({
         e.continuePropagation();
       }
 
-      // If at the start of the input and backspace is pressed, delete the last selected value
-      if (
-        e.key === 'Backspace' &&
-        e.currentTarget.selectionStart === 0 &&
-        e.currentTarget.selectionEnd === 0 &&
-        canSelectMultipleValues
-      ) {
-        dispatch({type: 'DELETE_LAST_MULTI_SELECT_FILTER_VALUE', token});
+      // If there's nothing in the input and we hit a delete key, we should focus the filter
+      if ((e.key === 'Backspace' || e.key === 'Delete') && !inputRef.current?.value) {
+        onDelete();
       }
     },
-    [canSelectMultipleValues, dispatch, token]
+    [onDelete]
   );
 
   // Ensure that the menu stays open when clicking on the selected items

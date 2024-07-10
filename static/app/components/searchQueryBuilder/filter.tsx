@@ -23,11 +23,15 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 
-type SearchQueryTokenProps = {
+interface SearchQueryTokenProps {
   item: Node<ParseResultToken>;
   state: ListState<ParseResultToken>;
   token: TokenResult<Token.FILTER>;
-};
+}
+
+interface FilterValueProps extends SearchQueryTokenProps {
+  filterRef: React.RefObject<HTMLDivElement>;
+}
 
 function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
   const {size} = useSearchQueryBuilder();
@@ -77,7 +81,7 @@ function FilterValueText({token}: {token: TokenResult<Token.FILTER>}) {
   }
 }
 
-function FilterValue({token, state, item}: SearchQueryTokenProps) {
+function FilterValue({token, state, item, filterRef}: FilterValueProps) {
   const ref = useRef<HTMLDivElement>(null);
   const {dispatch, focusOverride} = useSearchQueryBuilder();
 
@@ -108,6 +112,11 @@ function FilterValue({token, state, item}: SearchQueryTokenProps) {
         <SearchQueryBuilderValueCombobox
           token={token}
           wrapperRef={ref}
+          onDelete={() => {
+            filterRef.current?.focus();
+            state.selectionManager.setFocusedKey(item.key);
+            setIsEditing(false);
+          }}
           onCommit={() => {
             setIsEditing(false);
             if (state.collection.getKeyAfter(item.key)) {
@@ -190,7 +199,7 @@ export function SearchQueryBuilderFilter({item, state, token}: SearchQueryTokenP
         <FilterKeyOperator token={token} state={state} item={item} />
       </BaseGridCell>
       <FilterValueGridCell {...gridCellProps}>
-        <FilterValue token={token} state={state} item={item} />
+        <FilterValue token={token} state={state} item={item} filterRef={ref} />
       </FilterValueGridCell>
       <BaseGridCell {...gridCellProps}>
         <FilterDelete token={token} state={state} item={item} />
