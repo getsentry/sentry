@@ -31,11 +31,12 @@ describe('GlobalFeedbackForm', function () {
 
   it('can open the form using useFeedbackForm', async function () {
     const {result} = renderHook(useFeedbackForm, {wrapper: GlobalFeedbackForm});
+    const openForm = result.current;
 
-    expect(result.current.feedback).toBe(mockFeedback);
+    expect(openForm).not.toBe(null);
 
     // Calling openForm() should create a form and append it to the DOM
-    await result.current.openForm();
+    await openForm!();
 
     expect(mockFeedback.createForm).toHaveBeenCalledTimes(1);
     expect(mockForm.appendToDom).toHaveBeenCalledTimes(1);
@@ -44,17 +45,16 @@ describe('GlobalFeedbackForm', function () {
 
   it('uses a new form instance each time', async function () {
     const {result} = renderHook(useFeedbackForm, {wrapper: GlobalFeedbackForm});
+    const openForm = result.current;
 
-    expect(result.current.feedback).toBe(mockFeedback);
-
-    await result.current.openForm({formTitle: 'foo'});
+    await openForm!({formTitle: 'foo'});
     expect(mockFeedback.createForm).toHaveBeenLastCalledWith(
       expect.objectContaining({...defaultOptions, formTitle: 'foo'})
     );
 
     expect(mockForm.removeFromDom).not.toHaveBeenCalled();
 
-    await result.current.openForm({formTitle: 'bar'});
+    await openForm!({formTitle: 'bar'});
     expect(mockFeedback.createForm).toHaveBeenLastCalledWith(
       expect.objectContaining({...defaultOptions, formTitle: 'bar'})
     );
@@ -68,8 +68,9 @@ describe('GlobalFeedbackForm', function () {
 
   it('cleans up on unmount', async function () {
     const {result, unmount} = renderHook(useFeedbackForm, {wrapper: GlobalFeedbackForm});
+    const openForm = result.current;
 
-    await result.current.openForm();
+    await openForm!();
     unmount();
 
     await waitFor(() => {
