@@ -37,6 +37,7 @@ declare namespace Profiling {
     stack_id: number;
     thread_id: string;
     timestamp: number;
+    queue_address?: string;
   };
 
   type SentrySampledProfileFrame = {
@@ -104,7 +105,7 @@ declare namespace Profiling {
     measurements?: Measurements;
   };
 
-  interface SentryContinousProfile {
+  interface SentryContinousProfileChunk {
     chunk_id: string;
     environment: string;
     project_id: number;
@@ -123,6 +124,7 @@ declare namespace Profiling {
       frames: SentrySampledProfileFrame[];
       stacks: SentrySampledProfileStack[];
       thread_metadata?: Record<string, {name?: string; priority?: number}>;
+      queue_metadata?: Record<string, {label: string}>;
     };
   }
 
