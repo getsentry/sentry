@@ -56,8 +56,8 @@ class DatasetSourcesTypes(Enum):
     USER = 2
 
     @classmethod
-    def get_choices(cls):
-        return tuple((_.value, _.name.lower()) for _ in DatasetSourcesTypes)
+    def as_choices(cls):
+        return tuple((source.value, source.name.lower()) for source in cls)
 
 
 @region_silo_model
@@ -96,7 +96,7 @@ class DiscoverSavedQuery(Model):
         choices=DiscoverSavedQueryTypes.as_choices(), default=DiscoverSavedQueryTypes.DISCOVER
     )
     dataset_source = BoundedPositiveIntegerField(
-        choices=DiscoverSavedQueryTypes.as_choices(), default=DatasetSourcesTypes.UNKNOWN.value
+        choices=DatasetSourcesTypes.as_choices(), default=DatasetSourcesTypes.UNKNOWN.value
     )
 
     class Meta:
