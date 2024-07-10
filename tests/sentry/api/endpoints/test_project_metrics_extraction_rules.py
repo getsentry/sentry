@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from unittest.mock import patch
 
 from django.urls import reverse
@@ -75,6 +76,12 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
             assert data[0]["aggregates"] == ["count"]
             assert data[0]["unit"] == "none"
             assert set(data[0]["tags"]) == {"tag1", "tag2", "tag3"}
+            assert data[0]["createdById"] == self.user.id
+
+            deserialized_date_added = datetime.fromisoformat(response.json()[0]["dateAdded"])
+            deserialized_date_updated = datetime.fromisoformat(response.json()[0]["dateUpdated"])
+            assert deserialized_date_added == data[0]["dateAdded"]
+            assert deserialized_date_updated == data[0]["dateUpdated"]
 
             conditions = data[0]["conditions"]
             assert len(conditions) == 2
