@@ -2,11 +2,13 @@ import {Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
+import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {CollapsibleValue} from 'sentry/components/structuredEventData/collapsibleValue';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {isUrl} from 'sentry/utils/string/isUrl';
 
@@ -43,6 +45,8 @@ export type StructuredEventDataProps = {
   forceDefaultExpand?: boolean;
   maxDefaultDepth?: number;
   meta?: Record<any, any>;
+  onCopy?: (copiedCode: string) => void;
+  showCopyButton?: boolean;
   withAnnotatedText?: boolean;
 };
 
@@ -107,6 +111,7 @@ export function StructuredData({
   config?: StructedEventDataConfig;
   forceDefaultExpand?: boolean;
   objectKey?: string;
+  showCopyButton?: boolean;
   // TODO(TS): What possible types can `value` be?
   value?: any;
   withOnlyFormattedText?: boolean;
@@ -324,21 +329,34 @@ export default function StructuredEventData({
   data = null,
   withAnnotatedText = false,
   forceDefaultExpand,
+  showCopyButton,
+  onCopy,
   ...props
 }: StructuredEventDataProps) {
   return (
-    <pre {...props}>
-      <StructuredData
-        config={config}
-        value={data}
-        depth={0}
-        maxDefaultDepth={maxDefaultDepth}
-        meta={meta}
-        withAnnotatedText={withAnnotatedText}
-        forceDefaultExpand={forceDefaultExpand}
-      />
-      {children}
-    </pre>
+    <Fragment>
+      {showCopyButton && (
+        <StyledCopyButton
+          borderless
+          iconSize="xs"
+          onCopy={onCopy}
+          size="xs"
+          text={JSON.stringify(data, null, '\t')}
+        />
+      )}
+      <pre {...props}>
+        <StructuredData
+          config={config}
+          value={data}
+          depth={0}
+          maxDefaultDepth={maxDefaultDepth}
+          meta={meta}
+          withAnnotatedText={withAnnotatedText}
+          forceDefaultExpand={forceDefaultExpand}
+        />
+        {children}
+      </pre>
+    </Fragment>
   );
 }
 
@@ -379,4 +397,11 @@ const ValueNumber = styled('span')`
 
 const ValueObjectKey = styled('span')`
   color: var(--prism-keyword);
+`;
+
+const StyledCopyButton = styled(CopyToClipboardButton)`
+  position: absolute;
+  right: ${space(0.5)};
+  z-index: 2;
+  margin: ${space(0.75)} ${space(1.5)};
 `;
