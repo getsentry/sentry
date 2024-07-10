@@ -74,7 +74,7 @@ function ModulesOnboardingPanel({moduleName}: {moduleName: TitleableModuleNames}
             <p>
               {emptyStateContent.description}{' '}
               <ExternalLink href={MODULE_PRODUCT_DOC_LINKS[moduleName]}>
-                {t('Learn more')}
+                {t('Read Docs')}
               </ExternalLink>
             </p>
           </Fragment>
