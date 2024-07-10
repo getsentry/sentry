@@ -43,8 +43,8 @@ export class ContinuousProfile extends Profile {
 
     for (let i = 0; i < chunk.profile.samples.length; i++) {
       const sample = chunk.profile.samples[i];
-      const previousSampleTimestamp =
-        chunk.profile.samples[i - 1]?.timestamp ?? firstSample.timestamp;
+      const nextSampleTimestamp =
+        chunk.profile.samples[i - 1]?.timestamp ?? sample.timestamp;
 
       const stack = chunk.profile.stacks[sample.stack_id];
       let size = 0;
@@ -56,7 +56,7 @@ export class ContinuousProfile extends Profile {
 
       profile.appendSample(
         resolvedStack,
-        (sample.timestamp - previousSampleTimestamp) * 1e3,
+        (nextSampleTimestamp - sample.timestamp) * 1e3,
         size
       );
     }
