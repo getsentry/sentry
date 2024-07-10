@@ -20,7 +20,6 @@ import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
 import PerformanceDuration from 'sentry/components/performanceDuration';
-import {IconArrow} from 'sentry/icons/iconArrow';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {IconClose} from 'sentry/icons/iconClose';
 import {IconWarning} from 'sentry/icons/iconWarning';
@@ -75,8 +74,6 @@ const ONE_MINUTE = 60 * 1000; // in milliseconds
 
 export function Content() {
   const location = useLocation();
-
-  const organization = useOrganization();
 
   const limit = useMemo(() => {
     return decodeInteger(location.query.perPage, DEFAULT_PER_PAGE);
@@ -140,14 +137,9 @@ export function Content() {
     [location, queries]
   );
 
-  const sortByTimestamp = organization.features.includes(
-    'performance-trace-explorer-sorting'
-  );
-
   const tracesQuery = useTraces({
     limit,
     query: queries,
-    sort: sortByTimestamp ? '-timestamp' : undefined,
     mri: hasMetric ? mri : undefined,
     metricsMax: hasMetric ? metricsMax : undefined,
     metricsMin: hasMetric ? metricsMin : undefined,
@@ -159,7 +151,7 @@ export function Content() {
   const isError = !isLoading && tracesQuery.isError;
   const isEmpty = !isLoading && !isError && (tracesQuery?.data?.data?.length ?? 0) === 0;
   const rawData = !isLoading && !isError ? tracesQuery?.data?.data : undefined;
-  const data = sortByTimestamp ? rawData : normalizeTraces(rawData);
+  const data = normalizeTraces(rawData);
 
   return (
     <LayoutMain fullWidth>
@@ -220,7 +212,6 @@ export function Content() {
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
             {t('Timestamp')}
-            {sortByTimestamp ? <IconArrow size="xs" direction="down" /> : null}
           </StyledPanelHeader>
           <StyledPanelHeader align="right" lightText>
             {t('Issues')}

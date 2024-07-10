@@ -63,7 +63,6 @@ interface UseTracesOptions {
   metricsQuery?: string;
   mri?: string;
   query?: string | string[];
-  sort?: '-timestamp';
 }
 
 export function useTraces({
@@ -76,7 +75,6 @@ export function useTraces({
   metricsOp,
   metricsQuery,
   query,
-  sort,
 }: UseTracesOptions) {
   const organization = useOrganization();
   const {projects} = useProjects();
@@ -90,7 +88,6 @@ export function useTraces({
       environment: selection.environments,
       ...(datetime ?? normalizeDateTimeParams(selection.datetime)),
       query,
-      sort,
       per_page: limit,
       breakdownSlices: BREAKDOWN_SLICES,
       mri,
