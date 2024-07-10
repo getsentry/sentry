@@ -17,7 +17,7 @@ from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.issues.grouptype import ErrorGroupType
 from sentry.issues.occurrence_consumer import EventLookupError
-from sentry.models.group import Group, GroupStatus
+from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.seer.similarity.grouping_records import (
     CreateGroupingRecordData,
@@ -138,7 +138,6 @@ def get_current_batch_groups_from_postgres(project, last_processed_group_index, 
             times_seen__gt=1,
             last_seen__gt=(datetime.now(UTC) - timedelta(days=90)),
         )
-        .exclude(status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS])
         .values_list("id", "data")
         .order_by("-times_seen", "id")
     )
