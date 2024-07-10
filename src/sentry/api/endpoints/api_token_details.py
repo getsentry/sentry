@@ -10,7 +10,7 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
-from sentry.auth.elevated_mode import has_elevated_mode
+from sentry.api.endpoints.api_tokens import _get_appropriate_user_id
 from sentry.models.apitoken import ApiToken
 from sentry.models.outbox import outbox_context
 
@@ -29,15 +29,6 @@ class ApiTokenDetailsEndpoint(Endpoint):
     owner = ApiOwner.SECURITY
     permission_classes = (IsAuthenticated,)
 
-    @classmethod
-    def _get_appropriate_user_id(cls, request: Request) -> int:
-        user_id = request.user.id
-        if has_elevated_mode(request):
-            datastore = request.GET if request.GET else request.data
-            user_id = int(datastore.get("userId", user_id))
-
-        return user_id
-
     @method_decorator(never_cache)
     def put(self, request: Request, token_id: int) -> Response:
         keys = list(request.data.keys())
@@ -52,7 +43,7 @@ class ApiTokenDetailsEndpoint(Endpoint):
         if serializer.is_valid():
             result = serializer.validated_data
 
-            user_id = self._get_appropriate_user_id(request=request)
+            user_id = _get_appropriate_user_id(request=request)
 
             with outbox_context(transaction.atomic(router.db_for_write(ApiToken)), flush=False):
                 token_to_rename: ApiToken | None = ApiToken.objects.filter(
