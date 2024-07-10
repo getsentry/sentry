@@ -17,7 +17,7 @@ from sentry.eventstore.models import Event
 from sentry.grouping.grouping_info import get_grouping_info
 from sentry.issues.grouptype import ErrorGroupType
 from sentry.issues.occurrence_consumer import EventLookupError
-from sentry.models.group import Group
+from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.seer.similarity.grouping_records import (
     CreateGroupingRecordData,
@@ -138,7 +138,7 @@ def get_current_batch_groups_from_postgres(project, last_processed_group_index, 
             times_seen__gt=1,
             last_seen__gt=(datetime.now(UTC) - timedelta(days=90)),
         )
-        .values_list("id", "data")
+        .values_list("id", "data", "status")
         .order_by("-times_seen", "id")
     )
     total_groups_to_backfill_length = groups_to_backfill_query.count()
@@ -167,17 +167,33 @@ def get_current_batch_groups_from_postgres(project, last_processed_group_index, 
             total_groups_to_backfill_length,
         )
 
+    groups_to_backfill_not_deleted_status = [
+        (group_id, data)
+        for (group_id, data, status) in groups_to_backfill_batch
+        if status not in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
+    ]
+    if len(groups_to_backfill_batch) != len(groups_to_backfill_not_deleted_status):
+        logger.info(
+            "backfill_seer_grouping_records.groups_have_delete_status",
+            extra={
+                "project_id": project.id,
+                "num_groups": len(groups_to_backfill_batch)
+                - len(groups_to_backfill_not_deleted_status),
+            },
+        )
+
     groups_to_backfill_with_no_embedding = [
         group_id
-        for (group_id, data) in groups_to_backfill_batch
+        for (group_id, data) in groups_to_backfill_not_deleted_status
         if get_path(data, "metadata", "seer_similarity", "similarity_model_version") is None
     ]
-    if len(groups_to_backfill_batch) != len(groups_to_backfill_with_no_embedding):
+    if len(groups_to_backfill_not_deleted_status) != len(groups_to_backfill_with_no_embedding):
         logger.info(
             "backfill_seer_grouping_records.groups_already_had_embedding",
             extra={
                 "project_id": project.id,
-                "num_groups": len(groups_to_backfill_with_no_embedding),
+                "num_groups": len(groups_to_backfill_not_deleted_status)
+                - len(groups_to_backfill_with_no_embedding),
             },
         )
     return (
