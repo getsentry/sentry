@@ -7,7 +7,10 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.project_template import ProjectTemplateSerializer
+from sentry.api.serializers.models.project_template import (
+    ProjectOptionsAttributes,
+    ProjectTemplateSerializer,
+)
 from sentry.models.organization import Organization
 from sentry.models.projecttemplate import ProjectTemplate
 
@@ -58,5 +61,9 @@ class OrganizationProjectTemplateDetailEndpoint(OrganizationEndpoint):
         )
 
         return Response(
-            serialize(project_template, request.user, ProjectTemplateSerializer(expand=["options"]))
+            serialize(
+                project_template,
+                request.user,
+                ProjectTemplateSerializer(expand=[ProjectOptionsAttributes.OPTIONS]),
+            )
         )

@@ -1,12 +1,17 @@
 from collections import defaultdict
 from collections.abc import Iterable, Mapping, Sequence
 from datetime import datetime
+from enum import StrEnum
 from typing import Any, TypedDict
 
 from sentry.api.serializers import Serializer, register
 from sentry.models.options.project_template_option import TProjectOptions
 from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.user import User
+
+
+class ProjectOptionsAttributes(StrEnum):
+    OPTIONS = "options"
 
 
 class SerializedProjectTemplate(TypedDict, total=False):
@@ -33,9 +38,15 @@ class ProjectTemplateSerializer(Serializer):
         attrs = super().get_attrs(item_list, user, **kwargs)
         all_attrs: dict[ProjectTemplate, dict[str, Any]] = defaultdict(dict)
 
-        if self._expand("options"):
+        if self._expand(ProjectOptionsAttributes.OPTIONS):
             for template in item_list:
-                all_attrs[template]["options"] = template.get_options()
+                options = template.options.all()
+                # TODO - serialize ProjectTemplateOptions
+                serialized_options: dict[str, Any] = {
+                    option.key: option.value for option in options
+                }
+
+                all_attrs[template][ProjectOptionsAttributes.OPTIONS] = serialized_options
 
                 # Merge the attrs from the parent with the options
                 for key in attrs.get(template, {}).keys():
@@ -53,8 +64,7 @@ class ProjectTemplateSerializer(Serializer):
             "updatedAt": obj.date_updated,
         }
 
-        if (options := attrs.get("options")) is not None:
-            # TODO - serialize ProjectTemplateOptions
+        if (options := attrs.get(ProjectOptionsAttributes.OPTIONS)) is not None:
             response["options"] = options
 
         return response

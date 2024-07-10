@@ -2,7 +2,6 @@ from django.db import models
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo_model, sane_repr
-from sentry.models.options.project_template_option import ProjectTemplateOption, TProjectOptions
 
 
 @region_silo_model
@@ -29,8 +28,3 @@ class ProjectTemplate(DefaultFieldsModel):
         ]
 
     __repr__ = sane_repr("name", "organization_id")
-
-    def get_options(self) -> TProjectOptions:
-        # TODO use self.options.all() instead, and return the QuerySet.
-        # TODO cause refactoring types.
-        return ProjectTemplateOption.objects.get_all_values(project_template=self)
