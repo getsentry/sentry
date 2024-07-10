@@ -52,15 +52,13 @@ describe('TraceTimeline & TraceRelated Issue', () => {
         'project.name': project.name,
         title: 'Slow DB Query',
         id: 'abc',
-        transaction: 'n/a',
-        culprit: '/api/slow/',
+        transaction: '/api/slow/',
         'event.type': '',
       },
     ],
     meta: {fields: {}, units: {}},
   };
   const mainError: TimelineErrorEvent = {
-    culprit: 'n/a',
     'error.value': ['some-other-error-value', 'The last error value'],
     timestamp: firstEventTimestamp,
     'issue.id': event['issue.id'],
@@ -73,7 +71,6 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     'stack.function': ['important.task', 'task.run'],
   };
   const secondError: TimelineErrorEvent = {
-    culprit: 'billiard.pool in foo', // Used for subtitle
     'error.value': ['some-other-error-value', 'The last error value'],
     timestamp: '2024-01-24T09:09:04+00:00',
     'issue.id': 9999,
@@ -81,7 +78,7 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     'project.name': project.name,
     title: 'someTitle',
     id: '12345',
-    transaction: 'foo',
+    transaction: '',
     'event.type': 'error',
     'stack.function': ['n/a'],
   };
@@ -340,29 +337,28 @@ describe('TraceTimeline & TraceRelated Issue', () => {
 });
 
 function createEvent({
-  culprit,
+  transaction,
   title,
-  error_value,
+  error_value = [''], // We always get a non-empty array
   event_type = 'error',
   stack_function = [],
   message = 'n/a',
 }: {
-  culprit: string;
   title: string;
+  transaction: string;
   error_value?: string[];
   event_type?: 'default' | 'error' | '';
   message?: string;
   stack_function?: string[];
 }) {
   const event = {
-    culprit: culprit,
     timestamp: '2024-01-24T09:09:04+00:00',
     'issue.id': 9999,
     project: 'foo',
     'project.name': 'bar',
     title: title,
     id: '12345',
-    transaction: 'n/a',
+    transaction: transaction,
     'event.type': event_type,
   };
 
@@ -390,7 +386,7 @@ describe('getTitleSubtitleMessage()', () => {
     expect(
       getTitleSubtitleMessage(
         createEvent({
-          culprit: '/api/0/sentry-app-installations/{uuid}/',
+          transaction: '/api/0/sentry-app-installations/{uuid}/',
           title:
             'ClientError: 404 Client Error: for url: https://api.clickup.com/sentry/webhook',
           error_value: [
@@ -409,14 +405,14 @@ describe('getTitleSubtitleMessage()', () => {
     expect(
       getTitleSubtitleMessage(
         createEvent({
-          culprit: 'billiard.pool in foo',
+          transaction: '',
           title: 'WorkerLostError: ',
           error_value: ['some-other-error-value', 'The last error value'],
         })
       )
     ).toEqual({
       title: 'WorkerLostError:', // The colon is kept
-      subtitle: 'billiard.pool in foo',
+      subtitle: '', // XXX: Fix events.tsx to use transaction instead of culprit
       message: 'The last error value',
     });
   });
@@ -426,8 +422,7 @@ describe('getTitleSubtitleMessage()', () => {
       getTitleSubtitleMessage(
         createEvent({
           title: 'foo',
-          culprit: 'bar',
-          error_value: [''], // We always get a non-empty array
+          transaction: 'bar',
         })
       )
     ).toEqual({
@@ -441,7 +436,7 @@ describe('getTitleSubtitleMessage()', () => {
     expect(
       getTitleSubtitleMessage(
         createEvent({
-          culprit: '/api/0/organizations/{organization_id_or_slug}/issues/',
+          transaction: '/api/0/organizations/{organization_id_or_slug}/issues/',
           title: 'Query from referrer search.group_index is throttled',
           event_type: 'default',
         })
@@ -458,7 +453,7 @@ describe('getTitleSubtitleMessage()', () => {
       getTitleSubtitleMessage(
         createEvent({
           message: '/api/slow/ Slow DB Query SELECT "sentry_monitorcheckin"."monitor_id"',
-          culprit: '/api/slow/',
+          transaction: '/api/slow/',
           title: 'Slow DB Query',
           event_type: '',
         })

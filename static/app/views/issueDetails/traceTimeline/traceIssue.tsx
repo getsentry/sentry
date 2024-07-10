@@ -82,7 +82,7 @@ export function TraceIssueEvent({event}: TraceIssueEventProps) {
 // however, we currently don't support it and it is extremely slow
 export function getTitleSubtitleMessage(event: TimelineEvent) {
   let title = event.title.trimEnd();
-  let subtitle = event.culprit;
+  let subtitle = event.transaction ?? '';
   let message = '';
   try {
     if (event['event.type'] === 'error') {
@@ -96,11 +96,14 @@ export function getTitleSubtitleMessage(event: TimelineEvent) {
     } else if (event['event.type'] === 'default') {
       // See getTitle() and getMessage() in sentry/utils/events.tsx
       subtitle = '';
-      message = event.culprit;
+      message = event.transaction;
     } else {
       // It is suspected that this value is calculated somewhere in Relay
       // and we deconstruct it here to match what the Issue details page shows
-      message = event.message.replace(event.culprit, '').replace(title, '').trimStart();
+      message = event.message
+        .replace(event.transaction, '')
+        .replace(title, '')
+        .trimStart();
     }
   } catch (error) {
     // If we fail, report it so we can figure it out

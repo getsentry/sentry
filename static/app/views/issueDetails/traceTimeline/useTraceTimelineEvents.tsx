@@ -7,7 +7,6 @@ import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface BaseEvent {
-  culprit: string; // Used for default events & subtitles
   id: string;
   'issue.id': number;
   project: string;
@@ -78,8 +77,7 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
             'project',
             'timestamp',
             'issue.id',
-            'transaction',
-            'culprit', // Used for the subtitle
+            'transaction', // Used for the subtitle
             'event.type', // This is useful for typing TimelineEvent
           ],
           per_page: 100,
@@ -113,10 +111,9 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
             'project',
             'timestamp',
             'issue.id',
-            'transaction',
+            'transaction', // Used for default events and subtitles
             'event.type',
             'stack.function',
-            'culprit', // Used for default events and subtitles
             'error.value', // Used for message for error events
           ],
           per_page: 100,
@@ -155,7 +152,6 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
     const hasCurrentEvent = events.some(e => e.id === event.id);
     if (!hasCurrentEvent) {
       events.push({
-        culprit: event.culprit,
         id: event.id,
         'issue.id': Number(event.groupID),
         message: event.message,
@@ -164,7 +160,9 @@ export function useTraceTimelineEvents({event}: UseTraceTimelineEventsOptions): 
         'project.name': '',
         timestamp: event.dateCreated!,
         title: event.title,
+        // The event variable comes from a call to the issues endpoint
         transaction: '',
+        // XXX: Typing is not working here; this should event.type
         'event.type': event['event.type'],
       });
     }
