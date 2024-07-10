@@ -12,7 +12,7 @@ type Opts<T extends Element> = {
 class AbortError extends Error {}
 
 /**
- * Replace `elem.getBoundingClientRect()` which is too laggy for onPositionChange
+ * Replacement for `elem.getBoundingClientRect()` which is too laggy for onPositionChange
  */
 function getBoundingRect(
   elem: Element,
