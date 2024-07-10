@@ -1,4 +1,5 @@
-from django.contrib.auth.models import AnonymousUser
+from functools import wraps
+
 from django.shortcuts import get_object_or_404
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -16,14 +17,28 @@ from sentry.api.serializers.models.project_template import (
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.projecttemplate import ProjectTemplate
-from sentry.models.user import User
 
 
-def is_org_in_rollout(organization: Organization, user: AnonymousUser | User) -> bool:
-    return features.has("organizations:project-templates", organization, actor=user)
+def ensure_rollout_enabled(flag):
+    def decoartor(func):
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            request = args[1]
+            organization = kwargs["organization"]
+            user = request.user
+
+            if not features.has(flag, organization, actor=user):
+                return Response(status=404)
+
+            return func(*args, **kwargs)
+
+        return wrapper
+
+    return decoartor
 
 
 def authenticated_endpoint(func):
+    @ensure_rollout_enabled("organizations:project-templates")
     def wrapper(*args, **kwargs):
         request = args[1]
         request_organization_id = kwargs["organization"].id
@@ -81,9 +96,6 @@ class OrganizationProjectTemplatesIndexEndpoint(OrganizationEndpoint):
 
         Return a list of project templates available to the authenticated user.
         """
-        if not is_org_in_rollout(organization, request.user):
-            return Response(status=404)
-
         queryset = ProjectTemplate.objects.filter(organization=organization)
 
         return self.paginate(
@@ -109,9 +121,6 @@ class OrganizationProjectTemplateDetailEndpoint(OrganizationEndpoint):
 
         Return details on an individual project template.
         """
-        if not is_org_in_rollout(organization, request.user):
-            return Response(status=404)
-
         project_template = get_object_or_404(
             ProjectTemplate, id=template_id, organization=organization
         )

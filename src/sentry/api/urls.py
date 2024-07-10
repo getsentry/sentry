@@ -1404,7 +1404,6 @@ ORGANIZATION_URLS = [
         OrganizationEventsStatsEndpoint.as_view(),
         name="sentry-api-0-organization-events-stats",
     ),
-    # TODO - Add feature flag for this endpoint - only expose to users with the feature flag enabled
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/project-templates/$",
         OrganizationProjectTemplatesIndexEndpoint.as_view(),
