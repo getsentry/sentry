@@ -6,6 +6,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
@@ -26,6 +27,7 @@ class ApiTokenDetailsEndpoint(Endpoint):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
         "PUT": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.PRIVATE,
     }
     owner = ApiOwner.SECURITY
     permission_classes = (IsAuthenticated,)
@@ -68,4 +70,23 @@ class ApiTokenDetailsEndpoint(Endpoint):
             token_to_rename.save()
 
             return Response(status=204)
+
         return Response(serializer.errors, status=400)
+
+    @method_decorator(never_cache)
+    def delete(self, request: Request, token_id: int) -> Response:
+        user_id = _get_appropriate_user_id(request=request)
+
+        try:
+            token_to_delete = ApiToken.objects.get(
+                id=token_id, application__isnull=True, user_id=user_id
+            )
+        except ApiToken.DoesNotExist:
+            raise ResourceDoesNotExist
+
+        token_to_delete.delete()
+        analytics.record(
+            "api_token.deleted",
+            user_id=user_id,
+        )
+        return Response(status=204)
