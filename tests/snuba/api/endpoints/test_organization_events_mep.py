@@ -3649,6 +3649,185 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         self._assert_on_demand_response(response, expected_on_demand_query=True)
         assert response.data["data"] == [{"count_unique(user)": 2}]
 
+    @mock.patch("sentry.snuba.errors.query")
+    def test_errors_request_made_for_saved_error_dashboard_widget_type(self, mock_errors_query):
+        mock_errors_query.return_value = {
+            "data": [],
+            "meta": {},
+        }
+        _, widget, __ = create_widget(
+            ["count()"], "", self.project, discover_widget_split=DashboardWidgetTypes.ERROR_EVENTS
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "count()",
+                ],
+                "query": "",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": widget.id,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        mock_errors_query.assert_called_once()
+
+    @mock.patch("sentry.snuba.metrics_enhanced_performance.query")
+    def test_metrics_enhanced_request_made_for_saved_transaction_like_dashboard_widget_type(
+        self, mock_mep_query
+    ):
+        mock_mep_query.return_value = {
+            "data": [],
+            "meta": {},
+        }
+        _, widget, __ = create_widget(
+            ["count()"],
+            "",
+            self.project,
+            discover_widget_split=DashboardWidgetTypes.TRANSACTION_LIKE,
+        )
+
+        response = self.do_request(
+            {
+                "field": [
+                    "count()",
+                ],
+                "query": "",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": widget.id,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        mock_mep_query.assert_called_once()
+
+    def test_split_decision_for_errors_widget(self):
+        error_data = load_data("python", timestamp=before_now(minutes=1))
+        self.store_event(
+            data={
+                **error_data,
+                "exception": {"values": [{"type": "blah", "data": {"values": []}}]},
+            },
+            project_id=self.project.id,
+        )
+        _, widget, __ = create_widget(
+            ["count()", "error.type"], "error.type:blah", self.project, discover_widget_split=None
+        )
+
+        response = self.do_request(
+            {
+                "field": ["count()", "error.type"],
+                "query": "error.type:blah",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": widget.id,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+        widget.refresh_from_db()
+        assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
+
+    def test_split_decision_for_transactions_widget(self):
+        transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
+        self.store_event(
+            data={
+                **transaction_data,
+            },
+            project_id=self.project.id,
+        )
+        _, widget, __ = create_widget(
+            ["count()", "transaction.name"], "", self.project, discover_widget_split=None
+        )
+
+        assert widget.discover_widget_split is None
+
+        response = self.do_request(
+            {
+                "field": ["count()", "transaction.name"],
+                "query": "",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": widget.id,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+        widget.refresh_from_db()
+        assert widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
+
+    def test_split_decision_for_ambiguous_widget_without_data(self):
+        _, widget, __ = create_widget(
+            ["count()", "transaction.name", "error.type"],
+            "",
+            self.project,
+            discover_widget_split=None,
+        )
+        assert widget.discover_widget_split is None
+
+        response = self.do_request(
+            {
+                "field": ["count()", "transaction.name", "error.type"],
+                "query": "",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": widget.id,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+        widget.refresh_from_db()
+        assert widget.discover_widget_split is None
+
+    def test_split_decision_for_ambiguous_widget_with_data(self):
+        # Store a transaction
+        transaction_data = load_data("transaction", timestamp=before_now(minutes=1))
+        self.store_event(
+            data={
+                **transaction_data,
+            },
+            project_id=self.project.id,
+        )
+
+        # Store an event
+        error_data = load_data("python", timestamp=before_now(minutes=1))
+        self.store_event(
+            data={
+                **error_data,
+                "exception": {"values": [{"type": "blah", "data": {"values": []}}]},
+            },
+            project_id=self.project.id,
+        )
+
+        _, widget, __ = create_widget(
+            ["count()"],
+            "",
+            self.project,
+            discover_widget_split=None,
+        )
+        assert widget.discover_widget_split is None
+
+        response = self.do_request(
+            {
+                "field": ["count()"],
+                "query": "",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": widget.id,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+
+        widget.refresh_from_db()
+        assert widget.discover_widget_split is DashboardWidgetTypes.DISCOVER
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
