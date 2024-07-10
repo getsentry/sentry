@@ -39,8 +39,8 @@ def run_test(expected_groups):
 
 
 class TestBackfillGroupAttributes(SnubaTestCase, TestMigrations):
-    migrate_from = "0734_rm_reprocessing_step1"
-    migrate_to = "0735_backfill_group_info_to_group_attributes"
+    migrate_from = "0735_sunset_appstore_connect_integration"
+    migrate_to = "0736_backfill_group_info_to_group_attributes"
 
     def setup_initial_state(self):
         self.group = self.create_group(priority=PriorityLevel.HIGH)
@@ -54,8 +54,8 @@ class TestBackfillGroupAttributes(SnubaTestCase, TestMigrations):
 
 
 class TestBackfillGroupAttributesRetry(SnubaTestCase, TestMigrations):
-    migrate_from = "0734_rm_reprocessing_step1"
-    migrate_to = "0735_backfill_group_info_to_group_attributes"
+    migrate_from = "0735_sunset_appstore_connect_integration"
+    migrate_to = "0736_backfill_group_info_to_group_attributes"
 
     def setup_initial_state(self):
         self.group = self.create_group(priority=PriorityLevel.HIGH)
