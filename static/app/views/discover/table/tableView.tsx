@@ -190,13 +190,7 @@ function TableView(props: TableViewProps) {
 
       let target;
 
-      if (dataRow.trace === null || dataRow.trace === undefined) {
-        if (dataRow['event.type'] === 'transaction') {
-          throw new Error(
-            'Transaction event should always have a trace associated with it.'
-          );
-        }
-
+      if (dataRow['event.type'] !== 'transaction') {
         const project = dataRow.project || dataRow['project.name'];
         target = {
           // NOTE: This uses a legacy redirect for project event to the issue group event link
@@ -207,6 +201,12 @@ function TableView(props: TableViewProps) {
           query: {...location.query, referrer: 'discover-events-table'},
         };
       } else {
+        if (!dataRow.trace) {
+          throw new Error(
+            'Transaction event should always have a trace associated with it.'
+          );
+        }
+
         target = generateLinkToEventInTraceView({
           traceSlug: dataRow.trace,
           eventId: dataRow.id,
@@ -321,13 +321,7 @@ function TableView(props: TableViewProps) {
     if (columnKey === 'id') {
       let target;
 
-      if (dataRow.trace === null || dataRow.trace === undefined) {
-        if (dataRow['event.type'] === 'transaction') {
-          throw new Error(
-            'Transaction event should always have a trace associated with it.'
-          );
-        }
-
+      if (dataRow['event.type'] !== 'transaction') {
         const project = dataRow.project || dataRow['project.name'];
 
         target = {
@@ -339,6 +333,12 @@ function TableView(props: TableViewProps) {
           query: {...location.query, referrer: 'discover-events-table'},
         };
       } else {
+        if (!dataRow.trace) {
+          throw new Error(
+            'Transaction event should always have a trace associated with it.'
+          );
+        }
+
         target = generateLinkToEventInTraceView({
           traceSlug: dataRow.trace?.toString(),
           eventId: dataRow.id,

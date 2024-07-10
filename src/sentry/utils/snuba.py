@@ -1116,7 +1116,7 @@ def _bulk_snuba_query(snuba_requests: Sequence[SnubaRequest]) -> ResultSet:
                     if random.random() < 0.01:
                         logger.warning("Query is throttled", extra={"response.data": response.data})
                         sentry_sdk.capture_message(
-                            f"Query from referrer {referrer} is throttled", level="info"
+                            f"Query from referrer {referrer} is throttled", level="warning"
                         )
 
             if response.status != 200:

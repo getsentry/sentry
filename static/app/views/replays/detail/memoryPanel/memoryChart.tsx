@@ -1,3 +1,4 @@
+import type {Dispatch, SetStateAction} from 'react';
 import {useMemo, useRef} from 'react';
 import {useTheme} from '@emotion/react';
 
@@ -18,12 +19,11 @@ import formatReplayDuration from 'sentry/utils/duration/formatReplayDuration';
 import type {MemoryFrame} from 'sentry/utils/replays/types';
 
 interface Props
-  extends Pick<
-    ReturnType<typeof useReplayContext>,
-    'currentTime' | 'currentHoverTime' | 'setCurrentTime' | 'setCurrentHoverTime'
-  > {
+  extends Pick<ReturnType<typeof useReplayContext>, 'currentTime' | 'setCurrentTime'> {
+  currentHoverTime: undefined | number;
   durationMs: number;
   memoryFrames: MemoryFrame[];
+  setCurrentHoverTime: Dispatch<SetStateAction<number | undefined>>;
   startTimestampMs: number;
 }
 

@@ -10,7 +10,10 @@ import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyti
 
 import {getTitleSubtitleMessage} from './traceTimeline/traceIssue';
 import {TraceTimeline} from './traceTimeline/traceTimeline';
-import type {TraceEventResponse} from './traceTimeline/useTraceTimelineEvents';
+import type {
+  TimelineErrorEvent,
+  TraceEventResponse,
+} from './traceTimeline/useTraceTimelineEvents';
 import {TraceTimeLineOrRelatedIssue} from './traceTimelineOrRelatedIssue';
 
 jest.mock('sentry/utils/routeAnalytics/useRouteAnalyticsParams');
@@ -49,14 +52,16 @@ describe('TraceTimeline & TraceRelated Issue', () => {
         'project.name': project.name,
         title: 'Slow DB Query',
         id: 'abc',
-        transaction: '/api/slow/',
+        transaction: 'n/a',
+        culprit: '/api/slow/',
+        'event.type': '',
       },
     ],
     meta: {fields: {}, units: {}},
   };
-  const mainError = {
-    message: 'This is the message for the issue',
+  const mainError: TimelineErrorEvent = {
     culprit: 'n/a',
+    'error.value': ['some-other-error-value', 'The last error value'],
     timestamp: firstEventTimestamp,
     'issue.id': event['issue.id'],
     project: project.slug,
@@ -64,12 +69,12 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     title: event.title,
     id: event.id,
     transaction: 'important.task',
-    'event.type': event.type,
+    'event.type': 'error',
     'stack.function': ['important.task', 'task.run'],
   };
-  const secondError = {
-    message: 'Message of the second issue',
-    culprit: 'n/a',
+  const secondError: TimelineErrorEvent = {
+    culprit: 'billiard.pool in foo', // Used for subtitle
+    'error.value': ['some-other-error-value', 'The last error value'],
     timestamp: '2024-01-24T09:09:04+00:00',
     'issue.id': 9999,
     project: project.slug,
@@ -77,7 +82,8 @@ describe('TraceTimeline & TraceRelated Issue', () => {
     title: 'someTitle',
     id: '12345',
     transaction: 'foo',
-    'event.type': event.type,
+    'event.type': 'error',
+    'stack.function': ['n/a'],
   };
   const discoverBody: TraceEventResponse = {
     data: [mainError],
@@ -335,29 +341,48 @@ describe('TraceTimeline & TraceRelated Issue', () => {
 
 function createEvent({
   culprit,
-  message,
   title,
-  transaction,
+  error_value,
   event_type = 'error',
+  stack_function = [],
+  message = 'n/a',
 }: {
   culprit: string;
-  message: string;
   title: string;
-  transaction: string;
-  event_type?: string;
+  error_value?: string[];
+  event_type?: 'default' | 'error' | '';
+  message?: string;
+  stack_function?: string[];
 }) {
-  return {
+  const event = {
     culprit: culprit,
-    message: message,
     timestamp: '2024-01-24T09:09:04+00:00',
     'issue.id': 9999,
     project: 'foo',
     'project.name': 'bar',
     title: title,
     id: '12345',
-    transaction: transaction,
+    transaction: 'n/a',
     'event.type': event_type,
   };
+
+  // Using this intermediary variable helps typescript
+  let return_event;
+  if (event['event.type'] === 'error') {
+    return_event = {
+      ...event,
+      'stack.function': stack_function,
+      'error.value': error_value,
+    };
+  } else if (event['event.type'] === '') {
+    return_event = {
+      ...event,
+      message: message,
+    };
+  } else {
+    return_event = event;
+  }
+  return return_event;
 }
 
 describe('getTitleSubtitleMessage()', () => {
@@ -365,17 +390,18 @@ describe('getTitleSubtitleMessage()', () => {
     expect(
       getTitleSubtitleMessage(
         createEvent({
-          culprit: 'n/a',
+          culprit: '/api/0/sentry-app-installations/{uuid}/',
           title:
             'ClientError: 404 Client Error: for url: https://api.clickup.com/sentry/webhook',
-          message: 'Message of the second issue',
-          transaction: 'foo',
+          error_value: [
+            '404 Client Error: for url: https://api.clickup.com/sentry/webhook',
+          ],
         })
       )
     ).toEqual({
       title: 'ClientError', // The colon and remainder of string are removed
-      subtitle: 'foo',
-      message: 'Message of the second issue',
+      subtitle: '/api/0/sentry-app-installations/{uuid}/',
+      message: '404 Client Error: for url: https://api.clickup.com/sentry/webhook',
     });
   });
 
@@ -383,16 +409,31 @@ describe('getTitleSubtitleMessage()', () => {
     expect(
       getTitleSubtitleMessage(
         createEvent({
-          culprit: 'n/a',
+          culprit: 'billiard.pool in foo',
           title: 'WorkerLostError: ',
-          message: 'Message of the second issue',
-          transaction: 'foo',
+          error_value: ['some-other-error-value', 'The last error value'],
         })
       )
     ).toEqual({
       title: 'WorkerLostError:', // The colon is kept
-      subtitle: 'foo',
-      message: 'Message of the second issue',
+      subtitle: 'billiard.pool in foo',
+      message: 'The last error value',
+    });
+  });
+
+  it('error event: No error_value', () => {
+    expect(
+      getTitleSubtitleMessage(
+        createEvent({
+          title: 'foo',
+          culprit: 'bar',
+          error_value: [''], // We always get a non-empty array
+        })
+      )
+    ).toEqual({
+      title: 'foo',
+      subtitle: 'bar',
+      message: '',
     });
   });
 
@@ -401,9 +442,7 @@ describe('getTitleSubtitleMessage()', () => {
       getTitleSubtitleMessage(
         createEvent({
           culprit: '/api/0/organizations/{organization_id_or_slug}/issues/',
-          message: 'n/a',
           title: 'Query from referrer search.group_index is throttled',
-          transaction: 'n/a',
           event_type: 'default',
         })
       )
@@ -411,6 +450,23 @@ describe('getTitleSubtitleMessage()', () => {
       title: 'Query from referrer search.group_index is throttled',
       subtitle: '',
       message: '/api/0/organizations/{organization_id_or_slug}/issues/',
+    });
+  });
+
+  it('issue platform event', () => {
+    expect(
+      getTitleSubtitleMessage(
+        createEvent({
+          message: '/api/slow/ Slow DB Query SELECT "sentry_monitorcheckin"."monitor_id"',
+          culprit: '/api/slow/',
+          title: 'Slow DB Query',
+          event_type: '',
+        })
+      )
+    ).toEqual({
+      title: 'Slow DB Query',
+      subtitle: '/api/slow/',
+      message: 'SELECT "sentry_monitorcheckin"."monitor_id"',
     });
   });
 });

@@ -11,13 +11,15 @@ import type {Tag, TagCollection} from 'sentry/types/group';
 interface ContextData {
   dispatch: Dispatch<QueryBuilderActions>;
   filterKeySections: FilterKeySection[];
+  filterKeys: TagCollection;
   focusOverride: FocusOverride | null;
   getTagValues: (tag: Tag, query: string) => Promise<string[]>;
   handleSearch: (query: string) => void;
-  keys: TagCollection;
   parsedQuery: ParseResult | null;
   query: string;
   searchSource: string;
+  size: 'small' | 'normal';
+  wrapperRef: React.RefObject<HTMLDivElement>;
 }
 
 export function useSearchQueryBuilder() {
@@ -27,11 +29,13 @@ export function useSearchQueryBuilder() {
 export const SearchQueryBuilerContext = createContext<ContextData>({
   query: '',
   focusOverride: null,
-  keys: {},
+  filterKeys: {},
   filterKeySections: [],
   getTagValues: () => Promise.resolve([]),
   dispatch: () => {},
   parsedQuery: null,
+  wrapperRef: {current: null},
   handleSearch: () => {},
   searchSource: '',
+  size: 'normal',
 });

@@ -33,7 +33,7 @@ from sentry import (
 from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attachment_cache
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
-    INSIGHT_MODULE_SPAN_FILTERS,
+    INSIGHT_MODULE_FILTERS,
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
     PLACEHOLDER_EVENT_TITLES,
@@ -109,6 +109,7 @@ from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
 from sentry.reprocessing2 import is_reprocessed_event
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.signals import (
     first_event_received,
     first_event_with_minified_stack_trace_received,
@@ -499,10 +500,8 @@ class EventManager:
                     project=project, event=jobs[0]["event"], sender=Project
                 )
 
-            for module, is_module_span in INSIGHT_MODULE_SPAN_FILTERS.items():
-                if not get_project_insight_flag(project, module) and any(
-                    [is_module_span(span) for span in job["data"]["spans"]]
-                ):
+            for module, is_module in INSIGHT_MODULE_FILTERS.items():
+                if not get_project_insight_flag(project, module) and is_module(job["data"]):
                     first_insight_span_received.send_robust(
                         project=project, module=module, sender=Project
                     )
@@ -2563,11 +2562,10 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                     "issues.severity.seer-timout",
                     settings.SEER_SEVERITY_TIMEOUT / 1000,
                 )
-                response = severity_connection_pool.urlopen(
-                    "POST",
+                response = make_signed_seer_api_request(
+                    severity_connection_pool,
                     "/v0/issues/severity-score",
                     body=orjson.dumps(payload),
-                    headers={"content-type": "application/json;charset=utf-8"},
                     timeout=timeout,
                 )
                 severity = orjson.loads(response.data).get("severity")

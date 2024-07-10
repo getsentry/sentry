@@ -9,7 +9,7 @@ from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_
 class ReprocessingReport(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
-    project = FlexibleForeignKey("sentry.Project")
+    project = FlexibleForeignKey("sentry.Project", db_constraint=False)
     event_id = models.CharField(max_length=32, null=True)
     datetime = models.DateTimeField(default=timezone.now, db_index=True)
 

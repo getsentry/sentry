@@ -11,7 +11,7 @@ class OrganizationGroupSearchViewsGetTest(APITestCase):
     endpoint = "sentry-api-0-organization-group-search-views"
     method = "get"
 
-    def create_base_data(self):
+    def create_base_data(self) -> dict[str, list[GroupSearchView]]:
         user_1 = self.user
         self.user_2 = self.create_user()
         self.user_3 = self.create_user()
@@ -75,7 +75,7 @@ class OrganizationGroupSearchViewsGetTest(APITestCase):
         }
 
     @with_feature({"organizations:issue-stream-custom-views": True})
-    def test_get_user_one_custom_views(self):
+    def test_get_user_one_custom_views(self) -> None:
         objs = self.create_base_data()
 
         self.login_as(user=self.user)
@@ -84,7 +84,7 @@ class OrganizationGroupSearchViewsGetTest(APITestCase):
         assert response.data == serialize(objs["user_one_views"])
 
     @with_feature({"organizations:issue-stream-custom-views": True})
-    def test_get_user_two_custom_views(self):
+    def test_get_user_two_custom_views(self) -> None:
         objs = self.create_base_data()
 
         self.login_as(user=self.user_2)
@@ -93,7 +93,7 @@ class OrganizationGroupSearchViewsGetTest(APITestCase):
         assert response.data == serialize(objs["user_two_views"])
 
     @with_feature({"organizations:issue-stream-custom-views": True})
-    def test_get_default_views(self):
+    def test_get_default_views(self) -> None:
         self.create_base_data()
 
         self.login_as(user=self.user_3)
@@ -112,7 +112,7 @@ class OrganizationGroupSearchViewsPutTest(APITestCase):
     endpoint = "sentry-api-0-organization-group-search-views"
     method = "put"
 
-    def create_base_data(self):
+    def create_base_data(self) -> dict[str, list[GroupSearchView]]:
         self.custom_view_one = GroupSearchView.objects.create(
             name="Custom View One",
             organization=self.organization,
@@ -148,7 +148,7 @@ class OrganizationGroupSearchViewsPutTest(APITestCase):
             ]
         }
 
-    def setUp(self):
+    def setUp(self) -> None:
         self.login_as(user=self.user)
         self.base_data = self.create_base_data()
 
@@ -158,7 +158,7 @@ class OrganizationGroupSearchViewsPutTest(APITestCase):
         )
 
     @with_feature({"organizations:issue-stream-custom-views": True})
-    def test_deletes_missing_views(self):
+    def test_deletes_missing_views(self) -> None:
         views = self.client.get(self.url).data
 
         update_custom_view_three = views[2]
@@ -176,7 +176,7 @@ class OrganizationGroupSearchViewsPutTest(APITestCase):
         assert response.data[1] == update_custom_view_three
 
     @with_feature({"organizations:issue-stream-custom-views": True})
-    def test_adds_view_with_no_id(self):
+    def test_adds_view_with_no_id(self) -> None:
         views = self.client.get(self.url).data
         views.append(
             {
@@ -194,7 +194,7 @@ class OrganizationGroupSearchViewsPutTest(APITestCase):
         assert response.data[3]["querySort"] == "date"
 
     @with_feature({"organizations:issue-stream-custom-views": True})
-    def test_reorder_views(self):
+    def test_reorder_views(self) -> None:
         views = self.client.get(self.url).data
         view_one = views[0]
         view_two = views[1]
@@ -213,7 +213,7 @@ class OrganizationGroupSearchViewsPutTest(APITestCase):
         assert response.data[2] == views[2]
 
     @with_feature({"organizations:issue-stream-custom-views": True})
-    def test_rename_views(self):
+    def test_rename_views(self) -> None:
         views = self.client.get(self.url).data
         view = views[0]
         view["name"] = "New Name"
@@ -224,7 +224,7 @@ class OrganizationGroupSearchViewsPutTest(APITestCase):
         assert response.data[0]["querySort"] == view["querySort"]
 
     @with_feature({"organizations:issue-stream-custom-views": True})
-    def test_change_query(self):
+    def test_change_query(self) -> None:
         views = self.client.get(self.url).data
         view = views[0]
         view["query"] = "is:resolved"
@@ -235,7 +235,7 @@ class OrganizationGroupSearchViewsPutTest(APITestCase):
         assert response.data[0]["querySort"] == view["querySort"]
 
     @with_feature({"organizations:issue-stream-custom-views": True})
-    def test_change_sort(self):
+    def test_change_sort(self) -> None:
         views = self.client.get(self.url).data
         view = views[0]
         view["querySort"] = "freq"
@@ -246,7 +246,7 @@ class OrganizationGroupSearchViewsPutTest(APITestCase):
         assert response.data[0]["querySort"] == "freq"
 
     @with_feature({"organizations:issue-stream-custom-views": True})
-    def test_change_everything(self):
+    def test_change_everything(self) -> None:
         views = self.client.get(self.url).data
         view = views[0]
         view["name"] = "New Name"
@@ -259,7 +259,7 @@ class OrganizationGroupSearchViewsPutTest(APITestCase):
         assert response.data[0]["querySort"] == "freq"
 
     @with_feature({"organizations:issue-stream-custom-views": True})
-    def test_invalid_no_views(self):
+    def test_invalid_no_views(self) -> None:
         response = self.get_error_response(self.organization.slug, views=[])
 
         assert response.data == {
@@ -269,7 +269,7 @@ class OrganizationGroupSearchViewsPutTest(APITestCase):
         }
 
     @with_feature({"organizations:issue-stream-custom-views": True})
-    def test_invalid_sort(self):
+    def test_invalid_sort(self) -> None:
         views = self.client.get(self.url).data
         view = views[0]
         view["querySort"] = "alphabetically"
@@ -286,7 +286,7 @@ class OrganizationGroupSearchViewsPutTest(APITestCase):
         }
 
     @with_feature({"organizations:issue-stream-custom-views": True})
-    def test_invalid_over_max_views(self):
+    def test_invalid_over_max_views(self) -> None:
         from sentry.api.serializers.rest_framework.groupsearchview import MAX_VIEWS
 
         views = [

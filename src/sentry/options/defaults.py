@@ -347,14 +347,6 @@ register(
 register("filestore.control.backend", default="", flags=FLAG_NOSTORE)
 register("filestore.control.options", default={}, flags=FLAG_NOSTORE)
 
-# Throttle filestore access in proguard processing. This is in response to
-# INC-635.
-register(
-    "filestore.proguard-throttle",
-    default=1.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
-)
-
 # Whether to use a redis lock on fileblob uploads and deletes
 register("fileblob.upload.use_lock", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Whether to use redis to cache `FileBlob.id` lookups
@@ -458,12 +450,6 @@ register(
     default=True,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "replay.organizations.video-slug-denylist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # User Feedback Options
 register(
@@ -511,13 +497,6 @@ register(
     type=Sequence,
     default=[],
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-
-# Use Slack SDK in `validate_channel_id`
-register("slack-sdk.valid_channel_id", type=Bool, default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register(
-    "slack-sdk.valid_channel_id_la_integration_ids", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
 # Codecov Integration
@@ -683,25 +662,6 @@ register(
     default=0.0,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
-
-# Enable use of Symbolicator proguard processing for specific projects.
-#
-# TODO: Unused as of #73905, remove this.
-register(
-    "symbolicator.proguard-processing-projects",
-    type=Sequence,
-    default=[],
-    flags=FLAG_AUTOMATOR_MODIFIABLE,
-)
-# Enable use of Symbolicator proguard processing for fraction of projects.
-#
-# TODO: Unused as of #73905, remove this.
-register(
-    "symbolicator.proguard-processing-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-# TODO: Unused as of #73905, remove this.
-register("symbolicator.proguard-processing-ab-test", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
 
 # Transaction events
 # True => kill switch to disable ingestion of transaction events for internal project.
@@ -1103,6 +1063,9 @@ register(
     "relay.compute-metrics-summaries.sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
+# Controls whether generic inbound filters are sent to Relay.
+register("relay.emit-generic-inbound-filters", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
+
 # Write new kafka headers in eventstream
 register("eventstream:kafka-headers", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
@@ -1468,6 +1431,18 @@ register(
 register(
     "sentry-metrics.synchronized-rebalance-delay",
     default=15,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry-metrics.extrapolation.enable_transactions",
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "sentry-metrics.extrapolation.enable_spans",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
@@ -2083,6 +2058,12 @@ register(
 register(
     "delightful_metrics.metrics_summary_sample_rate",
     default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "delightful_metrics.enable_span_attributes",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 
