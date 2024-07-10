@@ -9,9 +9,9 @@ import pytest
 from sentry.testutils.abstract import Abstract
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_kafka
+from sentry.uptime.config_producer import UPTIME_CONFIGS_CODEC
 from sentry.uptime.models import UptimeSubscription
 from sentry.uptime.subscriptions.tasks import (
-    _get_config_codec,
     create_remote_uptime_subscription,
     delete_remote_uptime_subscription,
     send_uptime_config_deletion,
@@ -31,9 +31,10 @@ class ProducerTestMixin(TestCase):
             yield
 
     def assert_producer_calls(self, *args: UptimeSubscription | str):
-        codec = _get_config_codec()
         expected_payloads = [
-            codec.encode(uptime_subscription_to_check_config(arg, str(arg.subscription_id)))
+            UPTIME_CONFIGS_CODEC.encode(
+                uptime_subscription_to_check_config(arg, str(arg.subscription_id))
+            )
             if isinstance(arg, UptimeSubscription)
             else None
             for arg in args

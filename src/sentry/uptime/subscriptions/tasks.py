@@ -4,51 +4,18 @@ import logging
 from datetime import timedelta
 from uuid import uuid4
 
-from arroyo import Topic as ArroyoTopic
-from arroyo.backends.kafka.configuration import build_kafka_configuration
-from arroyo.backends.kafka.consumer import KafkaProducer
-from sentry_kafka_schemas.codecs import Codec
 from sentry_kafka_schemas.schema_types.uptime_configs_v1 import CheckConfig
 
-from sentry.conf.types.kafka_definition import Topic, get_topic_codec
 from sentry.snuba.models import QuerySubscription
 from sentry.tasks.base import instrumented_task
 from sentry.uptime.config_producer import produce_config, produce_config_removal
 from sentry.uptime.models import UptimeSubscription
 from sentry.utils import metrics
-from sentry.utils.kafka_config import get_kafka_producer_cluster_options, get_topic_definition
 
 logger = logging.getLogger(__name__)
 
 
 SUBSCRIPTION_STATUS_MAX_AGE = timedelta(minutes=10)
-uptime_config_producer: KafkaProducer | None = None
-uptime_config_codec: Codec | None = None
-
-
-def _get_subscription_producer() -> KafkaProducer:
-    global uptime_config_producer
-    if uptime_config_producer is None:
-        cluster_name = get_topic_definition(Topic.UPTIME_CONFIG)["cluster"]
-        producer_config = get_kafka_producer_cluster_options(cluster_name)
-        producer_config.pop("compression.type", None)
-        producer_config.pop("message.max.bytes", None)
-        uptime_config_producer = KafkaProducer(
-            build_kafka_configuration(default_config=producer_config)
-        )
-
-    return uptime_config_producer
-
-
-def _get_config_codec() -> Codec:
-    global uptime_config_codec
-    if uptime_config_codec is None:
-        uptime_config_codec = get_topic_codec(Topic.UPTIME_CONFIG)
-    return uptime_config_codec
-
-
-def get_uptime_config_topic() -> ArroyoTopic:
-    return ArroyoTopic(get_topic_definition(Topic.UPTIME_CONFIG)["real_topic_name"])
 
 
 @instrumented_task(
