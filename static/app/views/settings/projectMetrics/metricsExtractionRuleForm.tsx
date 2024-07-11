@@ -283,7 +283,9 @@ export function MetricsExtractionRuleForm({
             label={t('Group and filter by')}
             multiple
             placeholder={t('Select tags')}
-            help={t('Select the tags that can be used to group and filter the metric.')}
+            help={t(
+              'Select the tags that can be used to group and filter the metric. Tag values have to be non-numeric.'
+            )}
             creatable
             formatCreateLabel={value => `Custom: "${value}"`}
             onCreateOption={value => {
