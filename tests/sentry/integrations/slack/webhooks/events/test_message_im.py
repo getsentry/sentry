@@ -75,16 +75,6 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         ) as self.mock_post:
             yield
 
-    @responses.activate
-    def test_identifying_channel_correctly(self):
-        responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
-        event_data = orjson.loads(MESSAGE_IM_EVENT)
-        self.post_webhook(event_data=event_data)
-        request = responses.calls[0].request
-        data = orjson.loads(request.body)
-        assert data.get("channel") == event_data["channel"]
-
-    @override_options({"slack.event-endpoint-sdk": True})
     def test_identifying_channel_correctly_sdk(self):
         event_data = orjson.loads(MESSAGE_IM_EVENT)
         self.post_webhook(event_data=event_data)
@@ -98,24 +88,6 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
             data = self.mock_post.call_args[1]
             assert data.get("channel") == event_data["channel"]
 
-    @responses.activate
-    def test_user_message_im_notification_platform(self):
-        responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
-        resp = self.post_webhook(event_data=orjson.loads(MESSAGE_IM_EVENT))
-        assert resp.status_code == 200, resp.content
-
-        assert len(responses.calls) == 1
-        request = responses.calls[0].request
-        assert request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-        data = orjson.loads(request.body)
-        heading, contents = self.get_block_section_text(data)
-        assert heading == "Unknown command: `helloo`"
-        assert (
-            contents
-            == "Here are the commands you can use. Commands not working? Re-install the app!"
-        )
-
-    @override_options({"slack.event-endpoint-sdk": True})
     def test_user_message_im_notification_platform_sdk(self):
         resp = self.post_webhook(event_data=orjson.loads(MESSAGE_IM_EVENT))
         assert resp.status_code == 200, resp.content
@@ -128,25 +100,6 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
             == "Here are the commands you can use. Commands not working? Re-install the app!"
         )
 
-    @responses.activate
-    def test_user_message_link(self):
-        """
-        Test that when a user types in "link" to the DM we reply with the correct response.
-        """
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
-
-        responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
-        resp = self.post_webhook(event_data=orjson.loads(MESSAGE_IM_EVENT_LINK))
-        assert resp.status_code == 200, resp.content
-
-        assert len(responses.calls) == 1
-        request = responses.calls[0].request
-        assert request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-        data = orjson.loads(request.body)
-        assert "Link your Slack identity" in get_response_text(data)
-
-    @override_options({"slack.event-endpoint-sdk": True})
     def test_user_message_link_sdk(self):
         """
         Test that when a user types in "link" to the DM we reply with the correct response.
@@ -160,33 +113,6 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         data = self.mock_post.call_args[1]
         assert "Link your Slack identity" in get_response_text(data)
 
-    @responses.activate
-    def test_user_message_already_linked(self):
-        """
-        Test that when a user who has already linked their identity types in
-        "link" to the DM we reply with the correct response.
-        """
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
-            Identity.objects.create(
-                external_id="UXXXXXXX1",
-                idp=idp,
-                user=self.user,
-                status=IdentityStatus.VALID,
-                scopes=[],
-            )
-
-        responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
-        resp = self.post_webhook(event_data=orjson.loads(MESSAGE_IM_EVENT_LINK))
-        assert resp.status_code == 200, resp.content
-
-        assert len(responses.calls) == 1
-        request = responses.calls[0].request
-        assert request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-        data = orjson.loads(request.body)
-        assert "You are already linked" in get_response_text(data)
-
-    @override_options({"slack.event-endpoint-sdk": True})
     def test_user_message_already_linked_sdk(self):
         """
         Test that when a user who has already linked their identity types in
@@ -208,32 +134,6 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         data = self.mock_post.call_args[1]
         assert "You are already linked" in get_response_text(data)
 
-    @responses.activate
-    def test_user_message_unlink(self):
-        """
-        Test that when a user types in "unlink" to the DM we reply with the correct response.
-        """
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            idp = self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
-            Identity.objects.create(
-                external_id="UXXXXXXX1",
-                idp=idp,
-                user=self.user,
-                status=IdentityStatus.VALID,
-                scopes=[],
-            )
-
-        responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
-        resp = self.post_webhook(event_data=orjson.loads(MESSAGE_IM_EVENT_UNLINK))
-        assert resp.status_code == 200, resp.content
-
-        assert len(responses.calls) == 1
-        request = responses.calls[0].request
-        assert request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-        data = orjson.loads(request.body)
-        assert "Click here to unlink your identity" in get_response_text(data)
-
-    @override_options({"slack.event-endpoint-sdk": True})
     def test_user_message_unlink_sdk(self):
         """
         Test that when a user types in "unlink" to the DM we reply with the correct response.
@@ -254,26 +154,6 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         data = self.mock_post.call_args[1]
         assert "Click here to unlink your identity" in get_response_text(data)
 
-    @responses.activate
-    def test_user_message_already_unlinked(self):
-        """
-        Test that when a user without an Identity types in "unlink" to the DM we
-        reply with the correct response.
-        """
-        with assume_test_silo_mode(SiloMode.CONTROL):
-            self.create_identity_provider(type="slack", external_id="TXXXXXXX1")
-
-        responses.add(responses.POST, "https://slack.com/api/chat.postMessage", json={"ok": True})
-        resp = self.post_webhook(event_data=orjson.loads(MESSAGE_IM_EVENT_UNLINK))
-        assert resp.status_code == 200, resp.content
-
-        assert len(responses.calls) == 1
-        request = responses.calls[0].request
-        assert request.headers["Authorization"] == "Bearer xoxb-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
-        data = orjson.loads(request.body)
-        assert "You do not have a linked identity to unlink" in get_response_text(data)
-
-    @override_options({"slack.event-endpoint-sdk": True})
     def test_user_message_already_unlinked_sdk(self):
         """
         Test that when a user without an Identity types in "unlink" to the DM we
@@ -299,7 +179,6 @@ class MessageIMEventTest(BaseEventTest, IntegratedApiTestCase):
         assert resp.status_code == 200, resp.content
         assert len(responses.calls) == 0
 
-    @override_options({"slack.event-endpoint-sdk": True})
     def test_user_message_im_no_text_sdk(self):
         resp = self.post_webhook(event_data=orjson.loads(MESSAGE_IM_EVENT_NO_TEXT))
         assert resp.status_code == 200, resp.content
