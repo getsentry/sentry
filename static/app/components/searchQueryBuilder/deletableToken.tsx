@@ -12,7 +12,11 @@ import {
   shiftFocusToChild,
   useShiftFocusToChild,
 } from 'sentry/components/searchQueryBuilder/utils';
-import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
+import type {
+  InvalidReason,
+  ParseResultToken,
+} from 'sentry/components/searchSyntax/parser';
+import {Tooltip} from 'sentry/components/tooltip';
 import {IconClose} from 'sentry/icons';
 import {t} from 'sentry/locale';
 
@@ -22,6 +26,7 @@ type DeletableTokenProps = {
   label: string;
   state: ListState<ParseResultToken>;
   token: ParseResultToken;
+  invalid?: {type: InvalidReason; reason?: string} | null;
 };
 
 export function DeletableToken({
@@ -30,6 +35,7 @@ export function DeletableToken({
   token,
   label,
   children,
+  invalid,
 }: DeletableTokenProps) {
   const ref = useRef<HTMLDivElement>(null);
   const {dispatch} = useSearchQueryBuilder();
@@ -49,23 +55,39 @@ export function DeletableToken({
     shiftFocusToChild(e.currentTarget, item, state);
   };
 
+  const isFocused =
+    state.selectionManager.isFocused && state.selectionManager.focusedKey === item.key;
+  const isInvalid = Boolean(invalid);
+
   return (
-    <Wrapper {...mergeProps(rowProps, shiftFocusProps, {onKeyDown, onClick})} ref={ref}>
+    <Wrapper
+      {...mergeProps(rowProps, shiftFocusProps, {onKeyDown, onClick})}
+      aria-invalid={isInvalid}
+      ref={ref}
+    >
       {children}
-      <HoverFocusBorder>
-        <FloatingCloseButton
-          {...gridCellProps}
-          tabIndex={-1}
-          aria-label={t('Delete %s', label)}
-          onClick={e => {
-            e.stopPropagation();
-            dispatch({type: 'DELETE_TOKEN', token});
-          }}
-        >
-          <InteractionStateLayer />
-          <IconClose legacySize="10px" />
-        </FloatingCloseButton>
-      </HoverFocusBorder>
+      <Tooltip
+        skipWrapper
+        disabled={!isInvalid}
+        forceVisible={isFocused ? true : undefined}
+        position="bottom"
+        title={invalid?.reason ?? t('This token is invalid')}
+      >
+        <HoverFocusBorder>
+          <FloatingCloseButton
+            {...gridCellProps}
+            tabIndex={-1}
+            aria-label={t('Delete %s', label)}
+            onClick={e => {
+              e.stopPropagation();
+              dispatch({type: 'DELETE_TOKEN', token});
+            }}
+          >
+            <InteractionStateLayer />
+            <IconClose legacySize="10px" />
+          </FloatingCloseButton>
+        </HoverFocusBorder>
+      </Tooltip>
     </Wrapper>
   );
 }
@@ -112,9 +134,21 @@ const Wrapper = styled('div')`
     outline: none;
   }
 
+  &[aria-selected='true'] {
+    background-color: ${p => p.theme.gray100};
+  }
+
+  &[aria-invalid='true'] {
+    color: ${p => p.theme.red400};
+  }
+
   /* Need to hide visually but keep focusable */
   &:not(:hover):not(:focus-within) {
     color: ${p => p.theme.subText};
+
+    &[aria-invalid='true'] {
+      color: ${p => p.theme.red400};
+    }
 
     ${FloatingCloseButton} {
       clip: rect(0 0 0 0);

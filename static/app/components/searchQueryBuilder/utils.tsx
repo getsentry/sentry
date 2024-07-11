@@ -4,6 +4,7 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import {
+  BooleanOperator,
   FilterType,
   filterTypeConfig,
   interchangeableFilterOperators,
@@ -62,11 +63,15 @@ function getSearchConfigFromKeys(keys: TagCollection): Partial<SearchConfig> {
 
 export function parseQueryBuilderValue(
   value: string,
-  options?: {filterKeys: TagCollection}
+  options?: {filterKeys: TagCollection; disallowLogicalOperators?: boolean}
 ): ParseResult | null {
   return collapseTextTokens(
     parseSearch(value || ' ', {
       flattenParenGroups: true,
+      disallowedLogicalOperators: options?.disallowLogicalOperators
+        ? new Set([BooleanOperator.AND, BooleanOperator.OR])
+        : undefined,
+      disallowParens: options?.disallowLogicalOperators,
       ...getSearchConfigFromKeys(options?.filterKeys ?? {}),
     })
   );

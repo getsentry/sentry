@@ -1474,4 +1474,71 @@ describe('SearchQueryBuilder', function () {
       });
     });
   });
+
+  describe('disallowLogicalOperators', function () {
+    it('should mark AND invalid', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowLogicalOperators
+          initialQuery="and"
+        />
+      );
+
+      expect(screen.getByRole('row', {name: 'and'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(screen.getByRole('row', {name: 'and'}));
+      expect(
+        await screen.findByText('The AND operator is not allowed in this search')
+      ).toBeInTheDocument();
+    });
+
+    it('should mark OR invalid', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowLogicalOperators
+          initialQuery="or"
+        />
+      );
+
+      expect(screen.getByRole('row', {name: 'or'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(screen.getByRole('row', {name: 'or'}));
+      expect(
+        await screen.findByText('The OR operator is not allowed in this search')
+      ).toBeInTheDocument();
+    });
+
+    it('should mark parens invalid', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowLogicalOperators
+          initialQuery="()"
+        />
+      );
+
+      expect(screen.getByRole('row', {name: '('})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      expect(screen.getByRole('row', {name: ')'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(screen.getByRole('row', {name: '('}));
+      expect(
+        await screen.findByText('Parentheses are not supported in this search')
+      ).toBeInTheDocument();
+    });
+  });
 });

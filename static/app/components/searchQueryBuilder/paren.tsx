@@ -21,7 +21,13 @@ export function SearchQueryBuilderParen({
   token,
 }: SearchQueryBuilderParenProps) {
   return (
-    <DeletableToken item={item} state={state} token={token} label={token.value}>
+    <DeletableToken
+      item={item}
+      state={state}
+      token={token}
+      label={token.value}
+      invalid={token.invalid}
+    >
       <IconParenthesis
         side={token.type === Token.L_PAREN ? 'left' : 'right'}
         height={26}
