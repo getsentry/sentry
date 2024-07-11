@@ -239,6 +239,22 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
 
         return data
 
+    def validate_extrapolateMetrics(self, value):
+        organization = self.context["project"].organization
+        request = self.context["request"]
+
+        # Metrics extrapolation can only be toggled when the metrics-extrapolation flag is enabled.
+        has_metrics_extrapolation = features.has(
+            "organizations:metrics-extrapolation", organization, actor=request.user
+        )
+
+        if not has_metrics_extrapolation:
+            raise serializers.ValidationError(
+                "Organization does not have the metrics extrapolation feature enabled"
+            )
+        else:
+            return value
+
     def validate_allowedDomains(self, value):
         value = list(filter(bool, value))
         if len(value) == 0:
@@ -310,7 +326,8 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             # We should really only grab and parse if there are sources in sources_json whose
             # secrets are set to {"hidden-secret":true}
             orig_sources = parse_sources(
-                self.context["project"].get_option("sentry:symbol_sources")
+                self.context["project"].get_option("sentry:symbol_sources"),
+                filter_appconnect=True,
             )
             sources = parse_backfill_sources(sources_json.strip(), orig_sources)
         except InvalidSourcesError as e:
@@ -706,7 +723,7 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 # Redact secrets so they don't get logged directly to the Audit Log
                 sources_json = result["symbolSources"] or None
                 try:
-                    sources = parse_sources(sources_json)
+                    sources = parse_sources(sources_json, filter_appconnect=True)
                 except Exception:
                     sources = []
                 redacted_sources = redact_source_secrets(sources)

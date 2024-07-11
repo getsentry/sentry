@@ -21,6 +21,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
@@ -183,64 +184,66 @@ export function HTTPLandingPage() {
               </PageFilterBar>
             </ModuleLayout.Full>
 
-            {onboardingProject && (
-              <ModuleLayout.Full>
-                <Onboarding organization={organization} project={onboardingProject} />
-              </ModuleLayout.Full>
-            )}
-
-            {!onboardingProject && (
-              <Fragment>
-                <ModuleLayout.Third>
-                  <ThroughputChart
-                    series={throughputData['spm()']}
-                    isLoading={isThroughputDataLoading}
-                    error={throughputError}
-                  />
-                </ModuleLayout.Third>
-
-                <ModuleLayout.Third>
-                  <DurationChart
-                    series={[durationData[`avg(span.self_time)`]]}
-                    isLoading={isDurationDataLoading}
-                    error={durationError}
-                  />
-                </ModuleLayout.Third>
-
-                <ModuleLayout.Third>
-                  <ResponseRateChart
-                    series={[
-                      {
-                        ...responseCodeData[`http_response_rate(3)`],
-                        seriesName: t('3XX'),
-                      },
-                      {
-                        ...responseCodeData[`http_response_rate(4)`],
-                        seriesName: t('4XX'),
-                      },
-                      {
-                        ...responseCodeData[`http_response_rate(5)`],
-                        seriesName: t('5XX'),
-                      },
-                    ]}
-                    isLoading={isResponseCodeDataLoading}
-                    error={responseCodeError}
-                  />
-                </ModuleLayout.Third>
-
+            <ModulesOnboarding moduleName={ModuleName.HTTP}>
+              {onboardingProject && (
                 <ModuleLayout.Full>
-                  <SearchBar
-                    query={query['span.domain']}
-                    placeholder={t('Search for more domains')}
-                    onSearch={handleSearch}
-                  />
+                  <Onboarding organization={organization} project={onboardingProject} />
                 </ModuleLayout.Full>
+              )}
 
-                <ModuleLayout.Full>
-                  <DomainsTable response={domainsListResponse} sort={sort} />
-                </ModuleLayout.Full>
-              </Fragment>
-            )}
+              {!onboardingProject && (
+                <Fragment>
+                  <ModuleLayout.Third>
+                    <ThroughputChart
+                      series={throughputData['spm()']}
+                      isLoading={isThroughputDataLoading}
+                      error={throughputError}
+                    />
+                  </ModuleLayout.Third>
+
+                  <ModuleLayout.Third>
+                    <DurationChart
+                      series={[durationData[`avg(span.self_time)`]]}
+                      isLoading={isDurationDataLoading}
+                      error={durationError}
+                    />
+                  </ModuleLayout.Third>
+
+                  <ModuleLayout.Third>
+                    <ResponseRateChart
+                      series={[
+                        {
+                          ...responseCodeData[`http_response_rate(3)`],
+                          seriesName: t('3XX'),
+                        },
+                        {
+                          ...responseCodeData[`http_response_rate(4)`],
+                          seriesName: t('4XX'),
+                        },
+                        {
+                          ...responseCodeData[`http_response_rate(5)`],
+                          seriesName: t('5XX'),
+                        },
+                      ]}
+                      isLoading={isResponseCodeDataLoading}
+                      error={responseCodeError}
+                    />
+                  </ModuleLayout.Third>
+
+                  <ModuleLayout.Full>
+                    <SearchBar
+                      query={query['span.domain']}
+                      placeholder={t('Search for more domains')}
+                      onSearch={handleSearch}
+                    />
+                  </ModuleLayout.Full>
+
+                  <ModuleLayout.Full>
+                    <DomainsTable response={domainsListResponse} sort={sort} />
+                  </ModuleLayout.Full>
+                </Fragment>
+              )}
+            </ModulesOnboarding>
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>
