@@ -39,6 +39,12 @@ export type SectionProps = {
   startTimestampMs: number;
 };
 
+const config = {
+  isString: (v: any) => {
+    return typeof v === 'string';
+  },
+};
+
 const UNKNOWN_STATUS = 'unknown';
 
 export function GeneralSection({item, startTimestampMs}: SectionProps) {
@@ -183,6 +189,7 @@ export function QueryParamsSection({item}: SectionProps) {
           showCopyButton
           forceDefaultExpand
           maxDefaultDepth={3}
+          config={config}
         />
       </Indent>
     </SectionItem>
@@ -218,6 +225,7 @@ export function RequestPayloadSection({item}: SectionProps) {
             forceDefaultExpand
             maxDefaultDepth={2}
             showCopyButton
+            config={config}
           />
         ) : (
           t('Request body not found.')
@@ -256,6 +264,7 @@ export function ResponsePayloadSection({item}: SectionProps) {
             forceDefaultExpand
             maxDefaultDepth={2}
             showCopyButton
+            config={config}
           />
         ) : (
           t('Response body not found.')
