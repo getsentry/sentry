@@ -59,12 +59,12 @@ export function MetricsExtractionRuleEditModal({
       onSubmitError: (error: any) => void
     ) => {
       const extractionRule: MetricsExtractionRule = {
+        ...metricExtractionRule,
         spanAttribute: data.spanAttribute!,
         tags: data.tags,
         aggregates: data.aggregates.flatMap(explodeAggregateGroup),
         unit: 'none',
         conditions: data.conditions,
-        projectId: metricExtractionRule.projectId,
       };
 
       updateExtractionRuleMutation.mutate(
@@ -88,7 +88,7 @@ export function MetricsExtractionRuleEditModal({
       );
       onSubmitSuccess(data);
     },
-    [closeModal, metricExtractionRule.projectId, updateExtractionRuleMutation]
+    [closeModal, metricExtractionRule, updateExtractionRuleMutation]
   );
 
   return (

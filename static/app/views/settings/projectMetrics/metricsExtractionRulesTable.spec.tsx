@@ -21,6 +21,9 @@ describe('Metrics Extraction Rules Table', function () {
         {
           spanAttribute: 'span.duration',
           projectId: Number(project.id),
+          createdById: null,
+          dateAdded: '2021-09-29T20:00:00',
+          dateUpdated: '2021-09-29T20:00:00',
           aggregates: [
             'count',
             'count_unique',
