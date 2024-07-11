@@ -13,6 +13,7 @@ from django.db import models
 from django.db.models import QuerySet
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
+from django.utils.translation import gettext_lazy
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
@@ -75,6 +76,28 @@ class AlertRuleStatus(Enum):
     PENDING = 0
     SNAPSHOT = 4
     DISABLED = 5
+
+
+class AlertRuleDetectionType(models.IntegerChoices):
+    STATIC = 0, gettext_lazy("Static")
+    DYNAMIC = 1, gettext_lazy("Dynamic")
+
+
+class AlertRuleSensitivity(models.IntegerChoices):
+    LOW = 0, gettext_lazy("Low")
+    MEDIUM = 1, gettext_lazy("Medium")
+    HIGH = 2, gettext_lazy("High")
+
+
+class AlertRuleSeasonality(models.IntegerChoices):
+    AUTO = 0, gettext_lazy("Auto")
+    HOURLY = 1, gettext_lazy("Hourly")
+    DAILY = 2, gettext_lazy("Daily")
+    WEEKLY = 3, gettext_lazy("Weekly")
+    HOURLY_DAILY = 4, gettext_lazy("Hourly & Daily")
+    HOURLY_WEEKLY = 5, gettext_lazy(" Hourly & Weekly")
+    HOURLY_DAILY_WEEKLY = 6, gettext_lazy("Hourly, Daily, & Weekly")
+    DAILY_WEEKLY = 7, gettext_lazy("Daily & Weekly")
 
 
 class AlertRuleManager(BaseManager["AlertRule"]):
@@ -251,17 +274,17 @@ class AlertRule(Model):
     excluded_projects = models.ManyToManyField(
         "sentry.Project", related_name="alert_rule_exclusions", through=AlertRuleExcludedProjects
     )  # NOTE: This feature is not currently utilized.
-    name = models.TextField()
-    status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
     # Determines whether we include all current and future projects from this
     # organization in this rule.
     include_all_projects = models.BooleanField(
         default=False
     )  # NOTE: This feature is not currently utilized.
+    name = models.TextField()
+    status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
     threshold_type = models.SmallIntegerField(null=True)
     resolve_threshold = models.FloatField(null=True)
     # How many times an alert value must exceed the threshold to fire/resolve the alert
-    threshold_period = models.IntegerField()
+    threshold_period = models.IntegerField(null=True)
     # This represents a time delta, in seconds. If not null, this is used to determine which time
     # window to query to compare the result from the current time_window to.
     comparison_delta = models.IntegerField(null=True)
@@ -269,6 +292,13 @@ class AlertRule(Model):
     date_added = models.DateTimeField(default=timezone.now)
     monitor_type = models.IntegerField(default=AlertRuleMonitorTypeInt.CONTINUOUS)
     description = models.CharField(max_length=1000, null=True)
+    detection_type = models.SmallIntegerField(
+        default=AlertRuleDetectionType.STATIC, choices=AlertRuleDetectionType.choices
+    )
+    sensitivity = models.SmallIntegerField(choices=AlertRuleSensitivity.choices, null=True)
+    seasonality = models.SmallIntegerField(
+        default=AlertRuleSeasonality.AUTO, choices=AlertRuleSeasonality.choices, null=True
+    )
 
     class Meta:
         app_label = "sentry"
