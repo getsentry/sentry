@@ -126,6 +126,7 @@ class ProjectMemberSerializer(serializers.Serializer):
         "highlightContext",
         "highlightTags",
         "extrapolateMetrics",
+        "uptimeAutodetection",
     ]
 )
 class ProjectAdminSerializer(ProjectMemberSerializer):
@@ -212,6 +213,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
     performanceIssueCreationThroughPlatform = serializers.BooleanField(required=False)
     performanceIssueSendToPlatform = serializers.BooleanField(required=False)
     extrapolateMetrics = serializers.BooleanField(required=False)
+    uptimeAutodetection = serializers.BooleanField(required=False)
 
     # DO NOT ADD MORE TO OPTIONS
     # Each param should be a field in the serializer like above.
@@ -758,6 +760,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if project.update_option("sentry:extrapolate_metrics", result["extrapolateMetrics"]):
                 changed_proj_settings["sentry:extrapolate_metrics"] = result["extrapolateMetrics"]
 
+        if result.get("uptimeAutodetection") is not None:
+            if project.update_option("sentry:uptime_autodetection", result["uptimeAutodetection"]):
+                changed_proj_settings["sentry:uptime_autodetection"] = result["uptimeAutodetection"]
+
         if has_elevated_scopes:
             options = result.get("options", {})
             if "sentry:origins" in options:
@@ -901,6 +907,10 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
             if "sentry:extrapolate_metrics" in options:
                 project.update_option(
                     "sentry:extrapolate_metrics", bool(options["sentry:extrapolate_metrics"])
+                )
+            if "sentry:uptime_autodetection" in options:
+                project.update_option(
+                    "sentry:uptime_autodetection", bool(options["sentry:uptime_autodetection"])
                 )
 
         self.create_audit_entry(
