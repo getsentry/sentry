@@ -23,9 +23,11 @@ _CATEGORIES_BY_MESSAGE = {c.message: c for c in SLACK_SDK_ERROR_CATEGORIES}
 
 def unpack_slack_api_error(exc: SlackApiError | SlackRequestError) -> SlackSdkErrorCategory | None:
     if isinstance(exc, SlackApiError):
-        category = _CATEGORIES_BY_MESSAGE.get(exc.response["error"])
-        if category:
-            return category
+        try:
+            error_attr = exc.response["error"]
+            return _CATEGORIES_BY_MESSAGE[error_attr]
+        except KeyError:
+            pass
 
     dump = str(exc)
     category = _CATEGORIES_BY_MESSAGE.get(dump.split("\n")[0])
