@@ -78,9 +78,9 @@ class InvalidFeatureFlagConfiguration(Exception):
 
 class Feature(BaseModel):
     name: constr(min_length=1, to_lower=True) = Field(
-        description="The feature name"
+        description="The feature name."
     )  # type:ignore[valid-type]
-    """The feature name"""
+    """The feature name."""
     owner: constr(min_length=1) = Field(
         description="The owner of this feature. Either an email address or team name, preferably."
     )  # type:ignore[valid-type]

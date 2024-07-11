@@ -50,12 +50,15 @@ def create_case_insensitive_set_from_list(values: list[T]) -> set[T]:
 
 class ConditionBase(BaseModel):
     property: str = Field(description="The evaluation context property to match against.")
+    """The evaluation context property to match against."""
     operator: ConditionOperatorKind = Field(
         description="The operator to use when comparing the evaluation context property to the condition's value."
     )
+    """The operator to use when comparing the evaluation context property to the condition's value."""
     value: Any = Field(
-        description="The value to compare against the provided evaluation context property."
+        description="The value to compare against the condition's evaluation context property."
     )
+    """The value to compare against the condition's evaluation context property."""
 
     def match(self, context: EvaluationContext, segment_name: str) -> bool:
         return self._operator_match(
@@ -174,7 +177,11 @@ EqualsOperatorValueTypes = (
 class EqualsCondition(ConditionBase):
     operator: Literal[ConditionOperatorKind.EQUALS] = ConditionOperatorKind.EQUALS
     value: EqualsOperatorValueTypes
-    strict_validation: bool = False
+    strict_validation: bool = Field(
+        description="Whether the condition should enable strict validation, raising an exception if the evaluation context property is missing",
+        default=False,
+    )
+    """Whether the condition should enable strict validation, raising an exception if the evaluation context property is missing"""
 
     def _operator_match(self, condition_property: Any, segment_name: str):
         return self._evaluate_equals(
@@ -187,7 +194,11 @@ class EqualsCondition(ConditionBase):
 class NotEqualsCondition(ConditionBase):
     operator: Literal[ConditionOperatorKind.NOT_EQUALS] = ConditionOperatorKind.NOT_EQUALS
     value: EqualsOperatorValueTypes
-    strict_validation: bool = False
+    strict_validation: bool = Field(
+        description="Whether the condition should enable strict validation, raising an exception if the evaluation context property is missing",
+        default=False,
+    )
+    """Whether the condition should enable strict validation, raising an exception if the evaluation context property is missing"""
 
     def _operator_match(self, condition_property: Any, segment_name: str):
         return not self._evaluate_equals(
