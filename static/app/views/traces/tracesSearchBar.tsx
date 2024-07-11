@@ -52,7 +52,6 @@ export function TracesSearchBar({
             onSearch={(queryString: string) => handleSearch(index, queryString)}
             placeholder={t('Search for span attributes')}
             organization={organization}
-            metricAlert={false}
             supportedTags={supportedTags}
             dataset={DiscoverDatasets.SPANS_INDEXED}
             projectIds={selection.projects}

@@ -247,10 +247,6 @@
     "sentry.group",
     "sentry.project"
   ],
-  "sentry.eventprocessingissue": [
-    "sentry.processingissue",
-    "sentry.rawevent"
-  ],
   "sentry.exporteddata": [
     "sentry.file",
     "sentry.organization",
@@ -553,9 +549,6 @@
     "sentry.group",
     "sentry.project"
   ],
-  "sentry.processingissue": [
-    "sentry.project"
-  ],
   "sentry.proguardartifactrelease": [
     "sentry.organization",
     "sentry.project",
@@ -643,9 +636,6 @@
     "sentry.project",
     "sentry.snubaquery"
   ],
-  "sentry.rawevent": [
-    "sentry.project"
-  ],
   "sentry.recentsearch": [
     "sentry.organization",
     "sentry.user"
@@ -730,9 +720,6 @@
     "sentry.organizationintegration",
     "sentry.project",
     "sentry.repository"
-  ],
-  "sentry.reprocessingreport": [
-    "sentry.project"
   ],
   "sentry.rule": [
     "sentry.environment",
