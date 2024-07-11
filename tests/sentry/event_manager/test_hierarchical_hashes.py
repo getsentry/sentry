@@ -202,9 +202,6 @@ def test_partial_move(default_project, fast_save):
 
 
 class EventManagerGroupingTest(TestCase):
-    def setUp(self):
-        super().setUp()
-
     def save_event(self):
         manager = EventManager(
             make_event(
