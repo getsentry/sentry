@@ -31,9 +31,11 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
 
         if request.GET.get("dataset"):
             try:
-                dataset = Dataset(request.GET.get("dataset", "discover"))
+                dataset = Dataset(request.GET.get("dataset"))
             except ValueError:
                 raise ParseError(detail="Invalid dataset parameter")
+        else:
+            dataset = Dataset.Discover
 
         with sentry_sdk.start_span(op="tagstore", description="get_tag_keys_for_projects"):
             with handle_query_errors():
