@@ -78,14 +78,6 @@ sudo-askpass() {
     fi
 }
 
-pip-install() {
-    pip install --constraint "${HERE}/../requirements-dev-frozen.txt" "$@"
-}
-
-upgrade-pip() {
-    pip-install pip
-}
-
 node-version-check() {
     # Checks to see if node's version matches the one specified in package.json for Volta.
     node -pe "process.exit(Number(!(process.version == 'v' + require('./.volta.json').volta.node )))" ||

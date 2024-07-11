@@ -116,12 +116,17 @@ def main(context: dict[str, str]) -> int:
         reporoot,
         venv_dir,
         (
-            ("javascript dependencies", ("make", "install-js-dev")),
-            # could opt out of syncing python if FRONTEND_ONLY but only if repo-local devenv
-            # and pre-commit were moved to inside devenv and not the sentry venv
+            # TODO: devenv should provide a job runner (jobs run in parallel, tasks run sequentially)
             (
-                "python dependencies (1/3)",
-                ("pip", "uninstall", "-qqy", "djangorestframework-stubs", "django-stubs"),
+                "python dependencies (1/4)",
+                (
+                    # upgrading pip first
+                    "pip",
+                    "install",
+                    "--constraint",
+                    "requirements-dev-frozen.txt",
+                    "pip",
+                ),
             ),
         ),
     ):
@@ -132,9 +137,30 @@ def main(context: dict[str, str]) -> int:
         reporoot,
         venv_dir,
         (
-            # TODO: devenv should provide a job runner (jobs run in parallel, tasks run sequentially)
             (
-                "python dependencies (2/3)",
+                "python dependencies (2/4)",
+                (
+                    "pip",
+                    "uninstall",
+                    "-qqy",
+                    "djangorestframework-stubs",
+                    "django-stubs",
+                ),
+            ),
+        ),
+    ):
+        return 1
+
+    if not run_procs(
+        repo,
+        reporoot,
+        venv_dir,
+        (
+            ("javascript dependencies", ("make", "install-js-dev")),
+            # could opt out of syncing python if FRONTEND_ONLY but only if repo-local devenv
+            # and pre-commit were moved to inside devenv and not the sentry venv
+            (
+                "python dependencies (3/4)",
                 (
                     "pip",
                     "install",
@@ -153,8 +179,7 @@ def main(context: dict[str, str]) -> int:
         reporoot,
         venv_dir,
         (
-            # TODO: devenv should provide a job runner (jobs run in parallel, tasks run sequentially)
-            ("python dependencies (3/3)", ("python3", "-m", "tools.fast_editable", "--path", ".")),
+            ("python dependencies (4/4)", ("python3", "-m", "tools.fast_editable", "--path", ".")),
             ("pre-commit dependencies", ("pre-commit", "install", "--install-hooks", "-f")),
         ),
     ):
