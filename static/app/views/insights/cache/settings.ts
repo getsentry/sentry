@@ -3,6 +3,8 @@ import type {SpanMetricsQueryFilters} from 'sentry/views/insights/types';
 
 export const MODULE_TITLE = t('Caches');
 export const BASE_URL = 'caches';
+export const DATA_TYPE = t('Cache');
+export const DATA_TYPE_PLURAL = t('Caches');
 
 // NOTE: Awkward typing, but without it `RELEASE_LEVEL` is narrowed and the comparison is not allowed
 export const releaseLevelAsBadgeProps = {

@@ -127,11 +127,9 @@ function QueuesLandingPage() {
               <ModuleLayout.Half>
                 <LatencyChart referrer={Referrer.QUEUES_LANDING_CHARTS} />
               </ModuleLayout.Half>
-
               <ModuleLayout.Half>
                 <ThroughputChart referrer={Referrer.QUEUES_LANDING_CHARTS} />
               </ModuleLayout.Half>
-
               <ModuleLayout.Full>
                 <Flex>
                   <SearchBar

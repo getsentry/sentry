@@ -23,6 +23,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
@@ -192,55 +193,62 @@ export function DatabaseLandingPage() {
                 <DatePageFilter />
               </PageFilterBar>
             </ModuleLayout.Full>
-
-            {onboardingProject && (
-              <ModuleLayout.Full>
-                <Onboarding organization={organization} project={onboardingProject} />
-              </ModuleLayout.Full>
-            )}
-            {!onboardingProject && (
-              <Fragment>
-                <ModuleLayout.Half>
-                  <ThroughputChart
-                    series={throughputData['spm()']}
-                    isLoading={isThroughputDataLoading}
-                    error={throughputError}
-                  />
-                </ModuleLayout.Half>
-
-                <ModuleLayout.Half>
-                  <DurationChart
-                    series={[durationData[`${selectedAggregate}(span.self_time)`]]}
-                    isLoading={isDurationDataLoading}
-                    error={durationError}
-                  />
-                </ModuleLayout.Half>
-
+            <ModulesOnboarding moduleName={ModuleName.DB}>
+              {onboardingProject && (
                 <ModuleLayout.Full>
-                  <FilterOptionsContainer>
-                    <SelectorContainer>
-                      <ActionSelector moduleName={moduleName} value={spanAction ?? ''} />
-                    </SelectorContainer>
-
-                    <SelectorContainer>
-                      <DomainSelector moduleName={moduleName} value={spanDomain ?? ''} />
-                    </SelectorContainer>
-                  </FilterOptionsContainer>
+                  <Onboarding organization={organization} project={onboardingProject} />
                 </ModuleLayout.Full>
+              )}
+              {!onboardingProject && (
+                <Fragment>
+                  <ModuleLayout.Half>
+                    <ThroughputChart
+                      series={throughputData['spm()']}
+                      isLoading={isThroughputDataLoading}
+                      error={throughputError}
+                    />
+                  </ModuleLayout.Half>
 
-                <ModuleLayout.Full>
-                  <SearchBar
-                    query={spanDescription}
-                    placeholder={t('Search for more Queries')}
-                    onSearch={handleSearch}
-                  />
-                </ModuleLayout.Full>
+                  <ModuleLayout.Half>
+                    <DurationChart
+                      series={[durationData[`${selectedAggregate}(span.self_time)`]]}
+                      isLoading={isDurationDataLoading}
+                      error={durationError}
+                    />
+                  </ModuleLayout.Half>
 
-                <ModuleLayout.Full>
-                  <QueriesTable response={queryListResponse} sort={sort} />
-                </ModuleLayout.Full>
-              </Fragment>
-            )}
+                  <ModuleLayout.Full>
+                    <FilterOptionsContainer>
+                      <SelectorContainer>
+                        <ActionSelector
+                          moduleName={moduleName}
+                          value={spanAction ?? ''}
+                        />
+                      </SelectorContainer>
+
+                      <SelectorContainer>
+                        <DomainSelector
+                          moduleName={moduleName}
+                          value={spanDomain ?? ''}
+                        />
+                      </SelectorContainer>
+                    </FilterOptionsContainer>
+                  </ModuleLayout.Full>
+
+                  <ModuleLayout.Full>
+                    <SearchBar
+                      query={spanDescription}
+                      placeholder={t('Search for more Queries')}
+                      onSearch={handleSearch}
+                    />
+                  </ModuleLayout.Full>
+
+                  <ModuleLayout.Full>
+                    <QueriesTable response={queryListResponse} sort={sort} />
+                  </ModuleLayout.Full>
+                </Fragment>
+              )}
+            </ModulesOnboarding>
           </ModuleLayout.Layout>
         </Layout.Main>
       </Layout.Body>

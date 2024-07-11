@@ -17,6 +17,7 @@ import {browserHistory} from 'sentry/utils/browserHistory';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
@@ -93,10 +94,12 @@ export default function ScreensTemplate({
             </Container>
             <PageAlert />
             <ErrorBoundary mini>
-              {onboardingProject && (
-                <Onboarding organization={organization} project={onboardingProject} />
-              )}
-              {!onboardingProject && content}
+              <ModulesOnboarding moduleName={moduleName}>
+                {onboardingProject && (
+                  <Onboarding organization={organization} project={onboardingProject} />
+                )}
+                {!onboardingProject && content}
+              </ModulesOnboarding>
             </ErrorBoundary>
           </Layout.Main>
         </Layout.Body>
