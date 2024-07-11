@@ -426,7 +426,7 @@ def parse_backfill_sources(sources_json, original_sources):
     for source in sources:
         backfill_source(source, orig_by_id)
 
-    validate_sources(sources, schema=SOURCE_SCHEMA)
+    validate_sources(sources, schema=SOURCES_SCHEMA)
 
     return sources
 
