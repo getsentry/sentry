@@ -155,7 +155,7 @@ export function SpanSamplesContainer({
         )}
       </PaddedTitle>
 
-      <Container>
+      <MetricsRibbon>
         <MetricReadout
           title={DataTitles.avg}
           align="left"
@@ -168,7 +168,7 @@ export function SpanSamplesContainer({
           value={spanMetrics?.['count()'] ?? 0}
           unit="count"
         />
-      </Container>
+      </MetricsRibbon>
 
       <DurationChart
         spanSearch={spanSearch}
@@ -251,8 +251,10 @@ const PaddedTitle = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const Container = styled('div')`
+const MetricsRibbon = styled('div')`
   display: flex;
+  flex-wrap: wrap;
+  gap: ${space(4)};
 `;
 
 const StyledSearchBar = styled(SearchBar)`
