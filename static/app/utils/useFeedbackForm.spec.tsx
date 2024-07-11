@@ -20,6 +20,7 @@ const defaultOptions = {
   submitButtonLabel: '',
   messagePlaceholder: '',
   formTitle: '',
+  tags: {},
 };
 
 describe('useFeedbackForm', function () {
