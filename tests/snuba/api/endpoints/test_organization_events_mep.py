@@ -3672,6 +3672,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         )
 
         assert response.status_code == 200, response.content
+        assert response.data.get("meta").get(
+            "discoverSplitDecision"
+        ) is DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
         mock_errors_query.assert_called_once()
 
     @mock.patch("sentry.snuba.metrics_enhanced_performance.query")
@@ -3702,6 +3705,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         )
 
         assert response.status_code == 200, response.content
+        assert response.data.get("meta").get(
+            "discoverSplitDecision"
+        ) is DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.TRANSACTION_LIKE)
         mock_mep_query.assert_called_once()
 
     def test_split_decision_for_errors_widget(self):
