@@ -1,7 +1,6 @@
 import logging
 
 from sentry.models.project import Project
-from sentry.snuba.models import QuerySubscription
 from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
 from sentry.uptime.subscriptions.tasks import (
     create_remote_uptime_subscription,
@@ -20,15 +19,23 @@ def create_uptime_subscription(
     Creates a new uptime subscription. This creates the row in postgres, and fires a task that will send the config
     to the uptime check system.
     """
-
-    subscription = UptimeSubscription.objects.create(
-        status=UptimeSubscription.Status.CREATING.value,
-        type=UPTIME_SUBSCRIPTION_TYPE,
+    subscription, created = UptimeSubscription.objects.get_or_create(
         url=url,
         interval_seconds=interval_seconds,
-        timeout_ms=timeout_ms,
+        defaults={
+            "status": UptimeSubscription.Status.CREATING.value,
+            "type": UPTIME_SUBSCRIPTION_TYPE,
+            "timeout_ms": timeout_ms,
+        },
     )
-    create_remote_uptime_subscription.delay(subscription.id)
+    if subscription.status == UptimeSubscription.Status.DELETING.value:
+        # This is pretty unlikely to happen, but we should avoid deleting the subscription here and just confirm it
+        # exists in the checker.
+        subscription.update(status=UptimeSubscription.Status.CREATING.value)
+        created = True
+
+    if created:
+        create_remote_uptime_subscription.delay(subscription.id)
     return subscription
 
 
@@ -37,7 +44,7 @@ def delete_uptime_subscription(uptime_subscription: UptimeSubscription):
     Deletes an existing uptime subscription. This updates the row in postgres, and fires a task that will send the
     deletion to the external system and remove the row once successful.
     """
-    uptime_subscription.update(status=QuerySubscription.Status.DELETING.value)
+    uptime_subscription.update(status=UptimeSubscription.Status.DELETING.value)
     delete_remote_uptime_subscription.delay(uptime_subscription.id)
 
 
