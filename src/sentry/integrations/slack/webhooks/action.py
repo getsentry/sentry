@@ -648,13 +648,6 @@ class SlackActionEndpoint(Endpoint):
                 webhook_client.send(
                     blocks=json_blocks, delete_original=False, replace_original=True
                 )
-                logger.info(
-                    "slack.webhook.view_submission.success",
-                    extra={
-                        "integration_id": slack_request.integration.id,
-                        "blocks": json_blocks,
-                    },
-                )
                 metrics.incr(
                     SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
                     sample_rate=1.0,
@@ -667,7 +660,12 @@ class SlackActionEndpoint(Endpoint):
                     tags={"type": "submit_modal"},
                 )
                 logger.error(
-                    "slack.webhook.view_submission.response-error", extra={"error": str(e)}
+                    "slack.webhook.view_submission.response-error",
+                    extra={
+                        "error": str(e),
+                        "integration_id": slack_request.integration.id,
+                        "organization_id": group.project.organization_id,
+                    },
                 )
 
             return self.respond()
