@@ -509,14 +509,14 @@ def register_temporary_features(manager: FeatureManager):
     # Enable alternative version of group creation that is supposed to be less racy.
     manager.add("projects:race-free-group-creation", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Enable similarity embeddings API call
-    manager.add("projects:similarity-embeddings", ProjectFeature, FeatureHandlerStrategy.OPTIONS)
+    manager.add("projects:similarity-embeddings", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=False)
     # Enable similarity embeddings backfill
     manager.add("projects:similarity-embeddings-backfill", ProjectFeature, FeatureHandlerStrategy.OPTIONS)
     manager.add("projects:similarity-embeddings-delete-by-hash", ProjectFeature, FeatureHandlerStrategy.OPTIONS)
     # Enable similarity embeddings grouping
-    manager.add("projects:similarity-embeddings-grouping", ProjectFeature, FeatureHandlerStrategy.OPTIONS)
+    manager.add("projects:similarity-embeddings-grouping", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=False)
     # Enable adding seer grouping metadata to new groups
-    manager.add("projects:similarity-embeddings-metadata", ProjectFeature, FeatureHandlerStrategy.OPTIONS)
+    manager.add("projects:similarity-embeddings-metadata", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=False)
     manager.add("projects:similarity-indexing", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("projects:similarity-view", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     # Starfish: extract metrics from the spans
