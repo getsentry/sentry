@@ -33,10 +33,8 @@ from sentry.api.endpoints.project_backfill_similar_issues_embeddings_records imp
 )
 from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
-from sentry.api.endpoints.project_templates import (
-    OrganizationProjectTemplateDetailEndpoint,
-    OrganizationProjectTemplatesIndexEndpoint,
-)
+from sentry.api.endpoints.project_template_detail import OrganizationProjectTemplateDetailEndpoint
+from sentry.api.endpoints.project_templates_index import OrganizationProjectTemplatesIndexEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThresholdEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold_details import (
     ReleaseThresholdDetailsEndpoint,
