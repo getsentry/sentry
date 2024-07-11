@@ -202,13 +202,14 @@ def test_partial_move(default_project, fast_save):
 
 
 class EventManagerGroupingTest(TestCase):
-    def save_event(self, timestamp, ts_offset):
-        ts = timestamp + ts_offset
+    def setUp(self):
+        super().setUp()
+
+    def save_event(self):
         manager = EventManager(
             make_event(
                 message="foo 123",
-                event_id=hex(2**127 + int(ts))[-32:],
-                timestamp=ts,
+                event_id=hex(2**127)[-32:],
                 exception={
                     "values": [
                         {
@@ -232,7 +233,7 @@ class EventManagerGroupingTest(TestCase):
         self.project.update_option("sentry:grouping_config", primary_config)
         self.project.update_option("sentry:secondary_grouping_expiry", 0)
 
-    def change_configuration(self, new_config):
+    def transition_to_new_config(self, new_config):
         original_config = self.project.get_option("sentry:grouping_config")
         self.project.update_option("sentry:grouping_config", new_config)
         self.project.update_option("sentry:secondary_grouping_config", original_config)
@@ -241,18 +242,24 @@ class EventManagerGroupingTest(TestCase):
         )
 
     def test_applies_secondary_grouping_hierarchical(self):
-        self.set_options("legacy:2019-03-12")
+        self.set_options("legacy:2019-03-12")  # Starting configuration
+        event = self.save_event()
+        assert event.get_hashes().hashes == ["8b1a9953c4611296a827abf8c47804d7"]
+        assert event.get_hashes().hierarchical_hashes == []
 
-        timestamp = time.time() - 300
-        event = self.save_event(timestamp, 0)
-
-        self.change_configuration("mobile:2021-02-12")
-
-        # Switching to newstyle grouping changes hashes as 123 will be removed
-        event2 = self.save_event(timestamp, 2)
-
-        # make sure that events did get into same group because of fallback grouping, not because of hashes which come from primary grouping only
+        self.transition_to_new_config("mobile:2021-02-12")
+        # This event will have two sets of hashes
+        event2 = self.save_event()
+        hierarchical_hashes = [
+            "be778d6d6543432ae89b3e0f94ebff80",
+            "4e536cc423da0e1e2101b30688aab6b1",
+        ]
+        # The hashes propery gets the last hierarchical hash assigned
+        assert event2.get_hashes().hashes == [hierarchical_hashes[-1]]
+        assert event2.get_hashes().hierarchical_hashes == hierarchical_hashes
+        # The hashes property between the two events do not intersect
         assert not set(event.get_hashes().hashes) & set(event2.get_hashes().hashes)
+        # They both belong to the same group be
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=event.group_id)
@@ -262,20 +269,15 @@ class EventManagerGroupingTest(TestCase):
 
         # After expiry, new events are still assigned to the same group:
         self.project.update_option("sentry:secondary_grouping_expiry", 0)
-        event3 = self.save_event(timestamp, 4)
+        event3 = self.save_event()
         assert event3.group_id == event2.group_id
 
     def test_applies_downgrade_hierarchical(self):
         self.set_options("mobile:2021-02-12")
-
-        timestamp = time.time() - 300
-
-        event = self.save_event(timestamp, 0)
-
-        self.change_configuration("mobile:2021-02-12")
-
+        event = self.save_event()
+        self.transition_to_new_config("legacy:2019-03-12")
         # Switching to newstyle grouping changes hashes as 123 will be removed
-        event2 = self.save_event(timestamp, 2)
+        event2 = self.save_event()
 
         # make sure that events did get into same group because of fallback grouping, not because of hashes which come from primary grouping only
         assert not set(event.get_hashes().hashes) & set(event2.get_hashes().hashes)
@@ -295,5 +297,5 @@ class EventManagerGroupingTest(TestCase):
 
         # After expiry, new events are still assigned to the same group:
         self.project.update_option("sentry:secondary_grouping_expiry", 0)
-        event3 = self.save_event(timestamp, 4)
+        event3 = self.save_event()
         assert event3.group_id == event2.group_id
