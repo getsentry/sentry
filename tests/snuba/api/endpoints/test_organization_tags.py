@@ -2,6 +2,7 @@ import uuid
 from unittest import mock
 
 from django.urls import reverse
+from rest_framework.exceptions import ErrorDetail
 
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -235,6 +236,31 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             {"name": "Level", "key": "level", "totalValues": 1},
             {"name": "Stone Fruit", "key": "stone_fruit", "totalValues": 1},
         ]
+
+    def test_invalid_dataset(self):
+        user = self.create_user()
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        self.create_member(organization=org, user=user, teams=[team])
+        self.login_as(user=user)
+        project = self.create_project(organization=org, teams=[team])
+
+        self.store_event(
+            data={"event_id": "a" * 32, "tags": {"berry": "raspberry"}, "timestamp": self.min_ago},
+            project_id=project.id,
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-tags", kwargs={"organization_id_or_slug": org.slug}
+        )
+
+        response = self.client.get(
+            url, {"statsPeriod": "14d", "dataset": "invalid_dataset"}, format="json"
+        )
+        assert response.status_code == 400
+        assert response.data == {
+            "detail": ErrorDetail(string="Invalid dataset parameter", code="parse_error")
+        }
 
     def test_no_projects(self):
         user = self.create_user()
