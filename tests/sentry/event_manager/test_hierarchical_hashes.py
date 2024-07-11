@@ -208,12 +208,13 @@ class EventManagerGroupingTest(TestCase):
         event = self.save_event()
 
         self.transition_to_new_config("mobile:2021-02-12")
+
         # This event will have two sets of hashes
         event2 = self.save_event()
 
         # The hashes property between the two events do not intersect
         assert not set(event.get_hashes().hashes) & set(event2.get_hashes().hashes)
-        # They both belong to the same group be
+        # They are both grouped together
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=event.group_id)
@@ -232,12 +233,13 @@ class EventManagerGroupingTest(TestCase):
         event = self.save_event()
 
         self.transition_to_new_config("legacy:2019-03-12")
+
         # This event will have two sets of hashes
         event2 = self.save_event()
 
         # The hashes property between the two events do not intersect
         assert not set(event.get_hashes().hashes) & set(event2.get_hashes().hashes)
-        # They both belong to the same group be
+        # They are both grouped together
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=event.group_id)
