@@ -48,7 +48,7 @@ export const BREADCRUMB_TIME_DISPLAY_OPTIONS = [
 export const BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY = 'event-breadcrumb-time-display';
 
 const Color = styled('span')<{colorConfig: ColorConfig}>`
-  color: ${p => p.theme[p.colorConfig.primary]};
+  color: ${p => p.theme[p.colorConfig.icon]};
 `;
 
 /**
@@ -179,26 +179,26 @@ function getBreadcrumbTitle(category: RawCrumb['category']) {
 function getBreadcrumbColorConfig(type?: BreadcrumbType): ColorConfig {
   switch (type) {
     case BreadcrumbType.ERROR:
-      return {primary: 'red400', secondary: 'red200'};
+      return {title: 'red400', icon: 'red400', iconBorder: 'red200'};
     case BreadcrumbType.WARNING:
-      return {primary: 'yellow400', secondary: 'yellow200'};
+      return {title: 'yellow400', icon: 'yellow400', iconBorder: 'yellow200'};
     case BreadcrumbType.NAVIGATION:
     case BreadcrumbType.HTTP:
     case BreadcrumbType.QUERY:
     case BreadcrumbType.TRANSACTION:
-      return {primary: 'green400', secondary: 'green200'};
+      return {title: 'green400', icon: 'green400', iconBorder: 'green200'};
     case BreadcrumbType.USER:
     case BreadcrumbType.UI:
-      return {primary: 'purple400', secondary: 'purple200'};
+      return {title: 'purple400', icon: 'purple400', iconBorder: 'purple200'};
     case BreadcrumbType.SYSTEM:
     case BreadcrumbType.SESSION:
     case BreadcrumbType.DEVICE:
     case BreadcrumbType.NETWORK:
-      return {primary: 'pink400', secondary: 'pink200'};
+      return {title: 'pink400', icon: 'pink400', iconBorder: 'pink200'};
     case BreadcrumbType.DEBUG:
     case BreadcrumbType.INFO:
     default:
-      return {primary: 'gray300', secondary: 'gray200'};
+      return {title: 'gray400', icon: 'gray300', iconBorder: 'gray200'};
   }
 }
 

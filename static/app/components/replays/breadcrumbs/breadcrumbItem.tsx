@@ -131,7 +131,7 @@ function BreadcrumbItem({
       <StyledTimelineItem
         icon={icon}
         title={title}
-        colorConfig={{primary: darkColor, secondary: color}}
+        colorConfig={{title: darkColor, icon: darkColor, iconBorder: color}}
         timestamp={
           <ReplayTimestamp>
             <TimestampButton
