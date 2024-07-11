@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
@@ -38,6 +39,8 @@ def ensure_rollout_enabled(flag):
 
 @region_silo_endpoint
 class OrganizationProjectTemplatesIndexEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ALERTS_NOTIFICATIONS
+
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -63,6 +66,8 @@ class OrganizationProjectTemplatesIndexEndpoint(OrganizationEndpoint):
 
 @region_silo_endpoint
 class OrganizationProjectTemplateDetailEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ALERTS_NOTIFICATIONS
+
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
