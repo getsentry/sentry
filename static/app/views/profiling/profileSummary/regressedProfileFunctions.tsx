@@ -48,14 +48,11 @@ function trendToPoints(trend: FunctionTrend): {timestamp: number; value: number}
   });
 }
 
-function findBreakPointIndex(
-  breakpoint: number,
-  worst: FunctionTrend['worst']
-): number | undefined {
+function findBreakPointIndex(breakpoint: number, worst: FunctionTrend['worst']): number {
   let low = 0;
   let high = worst.length - 1;
   let mid = 0;
-  let bestMatch: number | undefined;
+  let bestMatch: number = worst.length;
 
   // eslint-disable-next-line
   while (low <= high) {
@@ -68,9 +65,10 @@ function findBreakPointIndex(
 
     if (breakpoint > value) {
       low = mid + 1;
-      bestMatch = mid;
+      bestMatch = mid + 1;
     } else if (breakpoint < value) {
       high = mid - 1;
+      bestMatch = mid;
     }
   }
 
@@ -80,20 +78,19 @@ function findBreakPointIndex(
 }
 
 function findWorstProfileIDBeforeAndAfter(trend: FunctionTrend): {
-  after: string;
-  before: string;
+  after: string | null;
+  before: string | null;
 } {
   const breakPointIndex = findBreakPointIndex(trend.breakpoint, trend.worst);
 
-  if (breakPointIndex === undefined) {
-    throw new Error('Could not find breakpoint index');
-  }
-
-  let beforeProfileID = '';
-  let afterProfileID = '';
+  let beforeProfileID: string | null = null;
+  let afterProfileID: string | null = null;
 
   const STABILITY_WINDOW = 2 * 60 * 1000;
   for (let i = breakPointIndex; i >= 0; i--) {
+    if (!defined(trend.worst[i])) {
+      continue;
+    }
     if (trend.worst[i][0] < trend.breakpoint - STABILITY_WINDOW) {
       break;
     }
@@ -102,6 +99,9 @@ function findWorstProfileIDBeforeAndAfter(trend: FunctionTrend): {
   }
 
   for (let i = breakPointIndex; i < trend.worst.length; i++) {
+    if (!defined(trend.worst[i])) {
+      continue;
+    }
     if (trend.worst[i][0] > trend.breakpoint + STABILITY_WINDOW) {
       break;
     }
@@ -156,9 +156,8 @@ export function MostRegressedProfileFunctions(props: MostRegressedProfileFunctio
 
   const onChangeTrendType = useCallback(v => setTrendType(v.value), []);
 
-  const hasDifferentialFlamegraphPageFeature = organization.features.includes(
-    'profiling-differential-flamegraph-page'
-  );
+  const hasDifferentialFlamegraphPageFeature =
+    false && organization.features.includes('profiling-differential-flamegraph-page');
 
   return (
     <RegressedFunctionsContainer>
@@ -306,8 +305,8 @@ function RegressedFunctionDifferentialFlamegraph(
 }
 
 interface RegressedFunctionBeforeAfterProps {
-  after: string;
-  before: string;
+  after: string | null;
+  before: string | null;
   fn: FunctionTrend;
   organization: Organization;
   project: Project | null;
@@ -345,49 +344,67 @@ function RegressedFunctionBeforeAfterFlamechart(
     );
   }
 
+  let before = (
+    <PerformanceDuration
+      abbreviation
+      nanoseconds={props.fn.aggregate_range_1 as number}
+    />
+  );
+  if (props.before) {
+    before = (
+      <Link
+        onClick={onRegressedFunctionClick}
+        to={generateProfileFlamechartRouteWithQuery({
+          orgSlug: props.organization.slug,
+          projectSlug: props.project?.slug ?? '',
+          profileId: props.before,
+          query: {
+            // specify the frame to focus, the flamegraph will switch
+            // to the appropriate thread when these are specified
+            frameName: props.fn.function as string,
+            framePackage: props.fn.package as string,
+          },
+        })}
+      >
+        {before}
+      </Link>
+    );
+  }
+
+  let after = (
+    <PerformanceDuration
+      abbreviation
+      nanoseconds={props.fn.aggregate_range_2 as number}
+    />
+  );
+  if (props.after) {
+    after = (
+      <Link
+        onClick={onRegressedFunctionClick}
+        to={generateProfileFlamechartRouteWithQuery({
+          orgSlug: props.organization.slug,
+          projectSlug: props.project?.slug ?? '',
+          profileId: props.after,
+          query: {
+            // specify the frame to focus, the flamegraph will switch
+            // to the appropriate thread when these are specified
+            frameName: props.fn.function as string,
+            framePackage: props.fn.package as string,
+          },
+        })}
+      >
+        {after}
+      </Link>
+    );
+  }
+
   return (
     <RegressedFunctionMainRow>
       <div>{rendered}</div>
       <div>
-        <Link
-          onClick={onRegressedFunctionClick}
-          to={generateProfileFlamechartRouteWithQuery({
-            orgSlug: props.organization.slug,
-            projectSlug: props.project?.slug ?? '',
-            profileId: props.before,
-            query: {
-              // specify the frame to focus, the flamegraph will switch
-              // to the appropriate thread when these are specified
-              frameName: props.fn.function as string,
-              framePackage: props.fn.package as string,
-            },
-          })}
-        >
-          <PerformanceDuration
-            abbreviation
-            nanoseconds={props.fn.aggregate_range_1 as number}
-          />
-        </Link>
+        {before}
         <ChangeArrow>{' \u2192 '}</ChangeArrow>
-        <Link
-          onClick={onRegressedFunctionClick}
-          to={generateProfileFlamechartRouteWithQuery({
-            orgSlug: props.organization.slug,
-            projectSlug: props.project?.slug ?? '',
-            profileId: props.after,
-            query: {
-              // specify the frame to focus, the flamegraph will switch
-              // to the appropriate thread when these are specified
-              frameName: props.fn.function as string,
-              framePackage: props.fn.package as string,
-            },
-          })}
-        >
-          <PerformanceDuration
-            abbreviation
-            nanoseconds={props.fn.aggregate_range_2 as number}
-          />
-        </Link>
+        {after}
       </div>
     </RegressedFunctionMainRow>
   );
