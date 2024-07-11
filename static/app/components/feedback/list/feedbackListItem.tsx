@@ -181,7 +181,7 @@ const LinkedFeedbackCard = styled(Link)`
     'checkbox user time'
     'unread message message'
     '. bottom bottom';
-  gap: ${space(1)};
+  gap: ${space(0.5)} ${space(1)};
   place-items: stretch;
   align-items: center;
 `;
@@ -205,7 +205,7 @@ const StyledProjectBadge = styled(ProjectBadge)`
 `;
 
 const PreviewRow = styled(Row)`
-  height: 1.4em;
+  height: 1.6em;
   align-items: flex-start;
   font-size: ${p => p.theme.fontSizeSmall};
 `;
@@ -233,6 +233,7 @@ const ContactRow = styled(TextOverflow)`
 
 const ShortId = styled(TextOverflow)`
   font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray300};
 `;
 
 const StyledTimeSince = styled(TimeSince)`
