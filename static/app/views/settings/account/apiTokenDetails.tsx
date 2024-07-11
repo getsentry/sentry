@@ -136,7 +136,6 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
       <TextField
         name="name"
         label={t('Name')}
-        required
         help={t('A name to help you identify this token.')}
       />
 
@@ -157,7 +156,7 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
   );
 }
 
-export function ApiTokensDetails({params}: Props) {
+export function ApiTokenDetails({params}: Props) {
   const {tokenId} = params;
 
   const {
@@ -207,4 +206,4 @@ export function ApiTokensDetails({params}: Props) {
   );
 }
 
-export default ApiTokensDetails;
+export default ApiTokenDetails;

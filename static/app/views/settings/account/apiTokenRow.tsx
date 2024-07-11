@@ -22,7 +22,11 @@ function ApiTokenRow({token, onRemove, tokenPrefix = ''}: Props) {
   return (
     <StyledPanelItem>
       <Controls>
-        <Link to={`/settings/account/api/auth-tokens/${token.id}/`}>{token.name}</Link>
+        <LinkWrapper name={token.name}>
+          <Link to={`/settings/account/api/auth-tokens/${token.id}/`}>
+            {token.name ? token.name : 'unnamed token'}
+          </Link>
+        </LinkWrapper>
         <ButtonWrapper>
           <Confirm
             onConfirm={() => onRemove(token)}
@@ -119,6 +123,10 @@ const Heading = styled('div')`
 
 const TokenPreview = styled('div')`
   color: ${p => p.theme.gray300};
+`;
+
+const LinkWrapper = styled('div')<{name: string}>`
+  font-style: ${p => (p.name ? 'normal' : 'italic')};
 `;
 
 const ButtonWrapper = styled('div')`
