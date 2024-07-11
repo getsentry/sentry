@@ -46,17 +46,6 @@ class Migration(CheckedMigration):
                     """,
                     hints={"tables": ["sentry_alertrule"]},
                 ),
-            ],
-            state_operations=[
-                migrations.AddField(
-                    model_name="alertrule",
-                    name="detection_type",
-                    field=models.SmallIntegerField(default=0),
-                ),
-            ],
-        ),
-        migrations.SeparateDatabaseAndState(
-            database_operations=[
                 migrations.RunSQL(
                     """
                     ALTER TABLE "sentry_alertrule" ADD COLUMN "seasonality" integer NOT NULL DEFAULT 0;
@@ -68,6 +57,11 @@ class Migration(CheckedMigration):
                 ),
             ],
             state_operations=[
+                migrations.AddField(
+                    model_name="alertrule",
+                    name="detection_type",
+                    field=models.SmallIntegerField(default=0),
+                ),
                 migrations.AddField(
                     model_name="alertrule",
                     name="seasonality",
