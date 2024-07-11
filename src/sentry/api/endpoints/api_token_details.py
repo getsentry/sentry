@@ -71,7 +71,7 @@ class ApiTokenDetailsEndpoint(Endpoint):
         token_to_rename.name = result.get("name")
         token_to_rename.save()
 
-        return Response(serialize(token_to_rename, request.user, token=None), status=200)
+        return Response(serialize(token_to_rename, request.user, include_token=False), status=200)
 
     @method_decorator(never_cache)
     def delete(self, request: Request, token_id: int) -> Response:
