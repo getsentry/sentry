@@ -78,7 +78,6 @@ export function LLMMonitoringPage() {
                   />
                 }
               >
-                {' '}
                 <ModuleLayout.Third>
                   <TotalTokensUsedChart />
                 </ModuleLayout.Third>
