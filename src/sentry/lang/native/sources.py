@@ -375,8 +375,8 @@ def validate_sources(sources, schema=SOURCES_SCHEMA):
     """
     try:
         jsonschema.validate(sources, schema)
-    except jsonschema.ValidationError as e:
-        raise InvalidSourcesError(f"{e}")
+    except jsonschema.ValidationError:
+        raise InvalidSourcesError(f"Failed to validate source {redact_source_secrets(sources)}")
 
     ids = set()
     for source in sources:
@@ -398,7 +398,7 @@ def parse_sources(config, filter_appconnect):
     try:
         sources = orjson.loads(config)
     except Exception as e:
-        raise InvalidSourcesError(f"{e}")
+        raise InvalidSourcesError("Sources are not valid serialised JSON") from e
 
     validate_sources(sources)
 
