@@ -233,6 +233,7 @@ export type ChartStats = {
   accepted: NonNullable<BarSeriesOption['data']>;
   projected: NonNullable<BarSeriesOption['data']>;
   clientDiscard?: NonNullable<BarSeriesOption['data']>;
+  dropped?: NonNullable<BarSeriesOption['data']>;
   filtered?: NonNullable<BarSeriesOption['data']>;
   invalid?: NonNullable<BarSeriesOption['data']>;
   onDemand?: NonNullable<BarSeriesOption['data']>;
