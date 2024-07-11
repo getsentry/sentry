@@ -15,7 +15,6 @@ import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-
 import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
 
 import {LinkButton} from 'sentry/components/button';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
@@ -101,12 +100,7 @@ function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
         <ContentContainer>
           <Fragment>
             <Header>{emptyStateContent.heading}</Header>
-            <p>
-              {emptyStateContent.description}{' '}
-              <ExternalLink href={MODULE_PRODUCT_DOC_LINKS[moduleName]}>
-                {t('Read Docs')}
-              </ExternalLink>
-            </p>
+            <p>{emptyStateContent.description}</p>
           </Fragment>
           <SplitContainer>
             <ModulePreview moduleName={moduleName} />

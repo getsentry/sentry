@@ -1,4 +1,4 @@
-import {type ReactNode, useCallback} from 'react';
+import {Fragment, type ReactNode, useCallback} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -19,6 +19,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
+import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
@@ -47,6 +48,7 @@ export default function ScreensTemplate({
   const onboardingProject = useOnboardingProject();
   const location = useLocation();
   const {isProjectCrossPlatform} = useCrossPlatformProject();
+  const hasModuleData = useHasFirstSpan(moduleName);
 
   const handleProjectChange = useCallback(() => {
     browserHistory.replace({
@@ -89,8 +91,12 @@ export default function ScreensTemplate({
                 <EnvironmentPageFilter />
                 <DatePageFilter />
               </PageFilterBar>
-              <ReleaseComparisonSelector />
-              {additionalSelectors}
+              {hasModuleData && (
+                <Fragment>
+                  <ReleaseComparisonSelector />
+                  {additionalSelectors}
+                </Fragment>
+              )}
             </Container>
             <PageAlert />
             <ErrorBoundary mini>

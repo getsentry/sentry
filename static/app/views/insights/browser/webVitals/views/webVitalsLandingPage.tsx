@@ -37,6 +37,7 @@ import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
+import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
@@ -47,6 +48,7 @@ export function WebVitalsLandingPage() {
   const organization = useOrganization();
   const location = useLocation();
   const onboardingProject = useOnboardingProject();
+  const hasModuleData = useHasFirstSpan(ModuleName.VITAL);
 
   const router = useRouter();
 
@@ -98,7 +100,7 @@ export function WebVitalsLandingPage() {
               <EnvironmentPageFilter />
               <DatePageFilter />
             </PageFilterBar>
-            <BrowserTypeSelector />
+            {hasModuleData && <BrowserTypeSelector />}
           </TopMenuContainer>
           <ModulesOnboarding moduleName={ModuleName.VITAL}>
             {onboardingProject && (

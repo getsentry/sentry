@@ -16,6 +16,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
+import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
@@ -33,6 +34,7 @@ import Onboarding from 'sentry/views/performance/onboarding';
 export function PageloadModule() {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
+  const hasModuleData = useHasFirstSpan(ModuleName.SCREEN_LOAD);
   const {isProjectCrossPlatform} = useCrossPlatformProject();
 
   const crumbs = useModuleBreadcrumbs('screen_load');
@@ -69,7 +71,7 @@ export function PageloadModule() {
                 <EnvironmentPageFilter />
                 <DatePageFilter />
               </PageFilterBar>
-              <ReleaseComparisonSelector />
+              {hasModuleData && <ReleaseComparisonSelector />}
             </Container>
             <PageAlert />
             <ErrorBoundary mini>
