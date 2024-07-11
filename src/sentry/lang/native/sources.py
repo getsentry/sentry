@@ -368,7 +368,7 @@ def secret_fields(source_type):
     yield from []
 
 
-def validate_sources(sources, schema=SOURCES_SCHEMA):
+def validate_sources(sources, schema=SOURCES_WITHOUT_APPSTORE_CONNECT):
     """
     Validates sources against the JSON schema and checks that
     their IDs are ok.
@@ -400,12 +400,12 @@ def parse_sources(config, filter_appconnect):
     except Exception as e:
         raise InvalidSourcesError("Sources are not valid serialised JSON") from e
 
-    validate_sources(sources)
-
     # TODO(@anonrig): Remove this when AppStore connect related datas are removed.
     # remove App Store Connect sources (we don't need them in Symbolicator)
     if filter_appconnect:
         filter(lambda src: src.get("type") != "appStoreConnect", sources)
+
+    validate_sources(sources)
 
     return sources
 
@@ -429,7 +429,7 @@ def parse_backfill_sources(sources_json, original_sources):
     for source in sources:
         backfill_source(source, orig_by_id)
 
-    validate_sources(sources)
+    validate_sources(sources, schema=SOURCE_SCHEMA)
 
     return sources
 
