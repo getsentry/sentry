@@ -11,8 +11,9 @@ def get_chunk_ids(
     params: ParamsType,
     profiler_id: str,
     project_id: int,
-) -> list[dict[str, str]]:
+) -> list[str]:
     max_chunks = options.get("profiling.continuous-profiling.chunks-set.size")
+
     query = Query(
         match=Storage(StorageKey.ProfileChunks.value),
         select=[
@@ -24,8 +25,9 @@ def get_chunk_ids(
             Condition(Column("project_id"), Op.EQ, project_id),
             Condition(Column("profiler_id"), Op.EQ, profiler_id),
         ],
-        orderby=[OrderBy(Column("start_timestamp"), Direction.DESC)],
+        orderby=[OrderBy(Column("start_timestamp"), Direction.ASC)],
     ).set_limit(max_chunks)
+
     request = Request(
         dataset=Dataset.Profiles.value,
         app_id="default",
@@ -35,7 +37,9 @@ def get_chunk_ids(
             "organization_id": params["organization_id"],
         },
     )
-    return raw_snql_query(
+    result = raw_snql_query(
         request,
         referrer=Referrer.API_PROFILING_CONTINUOUS_PROFILING_FLAMECHART.value,
-    )["data"]
+    )
+
+    return [row["chunk_id"] for row in result["data"]]
