@@ -11,7 +11,7 @@ import Link from 'sentry/components/links/link';
 import TextOverflow from 'sentry/components/textOverflow';
 import TimeSince from 'sentry/components/timeSince';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconChat, IconFatal, IconImage, IconPlay} from 'sentry/icons';
+import {IconChat, IconCircleFill, IconFatal, IconImage, IconPlay} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
@@ -84,13 +84,19 @@ function FeedbackListItem({feedbackItem, isSelected, onSelect, style}: Props) {
         />
       </Row>
 
-      <ContactRow style={{fontWeight: feedbackItem.hasSeen ? undefined : 'bold'}}>
+      <ContactRow>
         {feedbackItem.metadata.name ??
           feedbackItem.metadata.contact_email ??
           t('Anonymous User')}
       </ContactRow>
 
       <StyledTimeSince date={feedbackItem.firstSeen} />
+
+      {feedbackItem.hasSeen ? null : (
+        <DotRow style={{gridArea: 'unread'}}>
+          <IconCircleFill size="xs" color="purple400" />
+        </DotRow>
+      )}
 
       <PreviewRow
         align="flex-start"
@@ -163,16 +169,9 @@ const LinkedFeedbackCard = styled(Link)`
   }
   &[data-selected='true'] {
     background: ${p => p.theme.purple100};
-  }
-  &[data-selected='true']::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 100%;
-    background: ${p => p.theme.purple300};
-    width: ${space(0.5)};
-    z-index: 10;
+    border: 1px solid ${p => p.theme.purple200};
+    border-radius: ${space(0.75)};
+    color: ${p => p.theme.purple300};
   }
 
   display: grid;
@@ -206,15 +205,21 @@ const StyledProjectBadge = styled(ProjectBadge)`
 `;
 
 const PreviewRow = styled(Row)`
-  height: 2.8em;
+  height: 1.4em;
   align-items: flex-start;
   font-size: ${p => p.theme.fontSizeSmall};
 `;
 
+const DotRow = styled(Row)`
+  height: 1.1em;
+  align-items: flex-start;
+  justify-content: center;
+`;
+
 const StyledTextOverflow = styled(TextOverflow)`
   white-space: initial;
-  height: 2.8em;
-  -webkit-line-clamp: 2;
+  height: 1.4em;
+  -webkit-line-clamp: 1;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   line-height: ${p => p.theme.text.lineHeightBody};
@@ -223,6 +228,7 @@ const StyledTextOverflow = styled(TextOverflow)`
 const ContactRow = styled(TextOverflow)`
   font-size: ${p => p.theme.fontSizeMedium};
   grid-area: 'user';
+  font-weight: bold;
 `;
 
 const ShortId = styled(TextOverflow)`
