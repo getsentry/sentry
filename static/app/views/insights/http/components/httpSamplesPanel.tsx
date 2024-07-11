@@ -21,13 +21,13 @@ import {
   escapeFilterValue,
   MutableSearch,
 } from 'sentry/utils/tokenizeSearch';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
@@ -207,6 +207,12 @@ export function HTTPSamplesPanel() {
     fields: ['span.status_code', 'count()'],
     yAxis: ['count()'],
     topEvents: 5,
+    sorts: [
+      {
+        kind: 'desc',
+        field: 'count()',
+      },
+    ],
     enabled: isPanelOpen && query.panel === 'status',
     referrer: Referrer.SAMPLES_PANEL_RESPONSE_CODE_CHART,
   });
@@ -489,7 +495,6 @@ export function HTTPSamplesPanel() {
                 onSearch={handleSearch}
                 placeholder={t('Search for span attributes')}
                 organization={organization}
-                metricAlert={false}
                 supportedTags={supportedTags}
                 dataset={DiscoverDatasets.SPANS_INDEXED}
                 projectIds={selection.projects}

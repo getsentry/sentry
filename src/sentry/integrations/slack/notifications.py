@@ -45,6 +45,7 @@ class SlackNotifyBasicMixin(NotifyBasicMixin):
         else:
             try:
                 client.chat_postMessage(channel=channel_id, text=message)
+                logger.info("slack.slash-notify.success", extra={"channel_id": channel_id})
             except SlackApiError as e:
                 if unpack_slack_api_error(e) not in (EXPIRED_URL, CHANNEL_NOT_FOUND):
                     logger.exception(

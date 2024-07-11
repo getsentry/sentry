@@ -641,16 +641,9 @@ INSIGHT_MODULE_FILTERS = {
             for span in transaction["spans"]
         ]
     ),
-    InsightModules.VITAL: lambda transaction: transaction.get("op") == "pageload"
-    or any(
+    InsightModules.VITAL: lambda transaction: any(
         [
-            span.get("op")
-            in [
-                "ui.interaction.click",
-                "ui.interaction.hover",
-                "ui.interaction.drag",
-                "ui.interaction.press",
-            ]
+            span.get("sentry_tags", {}).get("transaction.op") == "pageload"
             for span in transaction["spans"]
         ]
     ),

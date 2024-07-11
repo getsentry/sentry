@@ -1034,7 +1034,7 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
 
         custom_symbol_sources_json = attrs["options"].get("sentry:symbol_sources")
         try:
-            sources = parse_sources(custom_symbol_sources_json, False)
+            sources = parse_sources(custom_symbol_sources_json, filter_appconnect=False)
         except Exception:
             # In theory sources stored on the project should be valid. If they are invalid, we don't
             # want to abort serialization just for sources, so just return an empty list instead of
