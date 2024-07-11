@@ -7,8 +7,9 @@ import {space} from 'sentry/styles/space';
 import type {Color} from 'sentry/utils/theme';
 
 export interface ColorConfig {
-  primary: Color;
-  secondary: Color;
+  icon: Color;
+  iconBorder: Color;
+  title: Color;
 }
 
 export interface TimelineItemProps {
@@ -30,7 +31,7 @@ export const Item = forwardRef(function _Item(
     title,
     children,
     icon,
-    colorConfig = {primary: 'gray300', secondary: 'gray200'},
+    colorConfig = {title: 'gray400', icon: 'gray300', iconBorder: 'gray200'},
     timestamp,
     isActive = false,
     style,
@@ -39,12 +40,10 @@ export const Item = forwardRef(function _Item(
   ref: React.ForwardedRef<HTMLDivElement>
 ) {
   const theme = useTheme();
-  const {primary, secondary} = colorConfig;
   return (
     <Row
-      color={secondary}
       style={{
-        borderBottom: `1px solid ${isActive ? theme[secondary] : 'transparent'}`,
+        borderBottom: `1px solid ${isActive ? theme[colorConfig.icon] : 'transparent'}`,
         ...style,
       }}
       ref={ref}
@@ -52,14 +51,14 @@ export const Item = forwardRef(function _Item(
     >
       <IconWrapper
         style={{
-          borderColor: isActive ? theme[secondary] : 'transparent',
-          color: theme[primary],
+          borderColor: isActive ? theme[colorConfig.iconBorder] : 'transparent',
+          color: theme[colorConfig.icon],
         }}
         className="icon-wrapper"
       >
         {icon}
       </IconWrapper>
-      <Title style={{color: theme[primary]}}>{title}</Title>
+      <Title style={{color: theme[colorConfig.title]}}>{title}</Title>
       {timestamp ?? <div />}
       <Spacer
         style={{borderLeft: `1px solid ${isActive ? theme.border : 'transparent'}`}}

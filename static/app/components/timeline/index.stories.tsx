@@ -41,8 +41,9 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
         icon={<IconFire size="xs" />}
         timestamp={<DateTime date={now} />}
         colorConfig={{
-          primary: 'red400',
-          secondary: 'red200',
+          title: 'red400',
+          icon: 'red400',
+          iconBorder: 'red200',
         }}
         isActive
       >
@@ -73,8 +74,9 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
         icon={<IconSort rotated size="xs" />}
         timestamp={<DateTime date={now} />}
         colorConfig={{
-          primary: 'green400',
-          secondary: 'green200',
+          title: 'green400',
+          icon: 'green400',
+          iconBorder: 'green200',
         }}
       >
         <Timeline.Data>
@@ -134,16 +136,18 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
         icon={<IconFire size="xs" />}
         timestamp={<span style={{color: 'blue'}}>my cool timestamp</span>}
         colorConfig={{
-          primary: 'red400',
-          secondary: 'red200',
+          title: 'red400',
+          icon: 'red400',
+          iconBorder: 'red200',
         }}
       />
       <Timeline.Item
         title={'Active Item'}
         icon={<IconCursorArrow size="xs" />}
         colorConfig={{
-          primary: 'blue400',
-          secondary: 'blue200',
+          title: 'blue400',
+          icon: 'blue400',
+          iconBorder: 'blue200',
         }}
         isActive
       >
@@ -160,8 +164,9 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
           </Button>
         }
         colorConfig={{
-          primary: 'pink400',
-          secondary: 'pink200',
+          title: 'pink400',
+          icon: 'pink400',
+          iconBorder: 'pink200',
         }}
       >
         <Timeline.Data>
@@ -179,8 +184,9 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
         title={'Another Event'}
         icon={<IconClock size="xs" />}
         colorConfig={{
-          primary: 'purple400',
-          secondary: 'purple200',
+          title: 'purple400',
+          icon: 'purple400',
+          iconBorder: 'purple200',
         }}
       >
         <Timeline.Text>This is a description of the error</Timeline.Text>
@@ -201,8 +207,9 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
           title={'Error'}
           icon={<IconFire size="xs" />}
           colorConfig={{
-            primary: 'red400',
-            secondary: 'red200',
+            title: 'red400',
+            icon: 'red400',
+            iconBorder: 'red200',
           }}
         >
           <Timeline.Text>This is a description of the error</Timeline.Text>
@@ -213,8 +220,9 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
           icon={<IconSort rotated size="xs" />}
           timestamp={<DateTime date={now} />}
           colorConfig={{
-            primary: 'green400',
-            secondary: 'green200',
+            title: 'green400',
+            icon: 'green400',
+            iconBorder: 'green200',
           }}
         >
           {' '}
@@ -235,8 +243,9 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
           icon={<IconCursorArrow size="xs" />}
           timestamp={<DateTime date={now} />}
           colorConfig={{
-            primary: 'blue400',
-            secondary: 'blue200',
+            title: 'blue400',
+            icon: 'blue400',
+            iconBorder: 'blue200',
           }}
         >
           <Timeline.Text>{'div.abc123 > xyz > somethingsomething'}</Timeline.Text>
@@ -247,8 +256,9 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
           icon={<IconSentry size="xs" />}
           timestamp={<DateTime date={now} />}
           colorConfig={{
-            primary: 'purple400',
-            secondary: 'purple200',
+            title: 'purple400',
+            icon: 'purple400',
+            iconBorder: 'purple200',
           }}
         >
           <Timeline.Text>
