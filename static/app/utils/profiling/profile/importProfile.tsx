@@ -30,6 +30,7 @@ import {
 export interface ImportOptions {
   span: Span | undefined;
   type: 'flamegraph' | 'flamechart';
+  continuous?: boolean;
   frameFilter?: (frame: Frame) => boolean;
   profileIds?: Readonly<string[]>;
 }
@@ -64,6 +65,7 @@ export function importProfile(
           span,
           type,
           frameFilter,
+          continuous: true,
         });
       }
       if (isJSProfile(input)) {
@@ -264,9 +266,9 @@ function importSingleProfile(
     | ReturnType<typeof createFrameIndex>
     | ReturnType<typeof createContinuousProfileFrameIndex>
     | ReturnType<typeof createSentrySampleProfileFrameIndex>,
-  {span, type, frameFilter, profileIds}: ImportOptions
+  {span, type, continuous, frameFilter, profileIds}: ImportOptions
 ): Profile {
-  if (isSentryContinuousProfile(profile)) {
+  if (continuous && isSentryContinuousProfile(profile)) {
     // In some cases, the SDK may return spans as undefined and we dont want to throw there.
     if (!span) {
       return ContinuousProfile.FromProfile(profile, frameIndex);
