@@ -1407,12 +1407,12 @@ ORGANIZATION_URLS = [
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/project-templates/$",
         OrganizationProjectTemplatesIndexEndpoint.as_view(),
-        name="sentry-api-0-organization-templates",
+        name="sentry-api-0-organization-project-templates",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/project-templates/(?P<template_id>[^\/]+)/$",
         OrganizationProjectTemplateDetailEndpoint.as_view(),
-        name="sentry-api-0-organization-template-detail",
+        name="sentry-api-0-organization-project-template-detail",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/spans/$",
