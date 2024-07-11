@@ -239,6 +239,22 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
 
         return data
 
+    def validate_extrapolateMetrics(self, value):
+        organization = self.context["project"].organization
+        request = self.context["request"]
+
+        # Metrics extrapolation can only be toggled when the metrics-extrapolation flag is enabled.
+        has_metrics_extrapolation = features.has(
+            "organizations:metrics-extrapolation", organization, actor=request.user
+        )
+
+        if not has_metrics_extrapolation:
+            raise serializers.ValidationError(
+                "Organization does not have the metrics extrapolation feature enabled"
+            )
+        else:
+            return value
+
     def validate_allowedDomains(self, value):
         value = list(filter(bool, value))
         if len(value) == 0:
