@@ -25,9 +25,9 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.roles import organization_roles, team_roles
 from sentry.scim.endpoints.constants import SCIM_SCHEMA_GROUP
+from sentry.users.models.user import User
 from sentry.utils.query import RangeQuerySetWrapper
 
 if TYPE_CHECKING:

@@ -39,7 +39,6 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.environment import Environment
-from sentry.models.user import User
 from sentry.sentry_apps.services.app import app_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
@@ -49,6 +48,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
+from sentry.users.models.user import User
 from sentry.utils import json
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]

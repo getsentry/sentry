@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from django.utils.functional import _StrPromise
 
     from sentry.models.authenticator import Authenticator
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
 
 class ActivationResult:

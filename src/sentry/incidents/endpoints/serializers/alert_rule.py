@@ -26,10 +26,10 @@ from sentry.incidents.models.incident import Incident
 from sentry.models.integrations.sentry_app_installation import prepare_ui_component
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
-from sentry.models.user import User
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
 from sentry.snuba.models import SnubaQueryEventType
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 

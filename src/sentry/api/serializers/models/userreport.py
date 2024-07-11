@@ -3,8 +3,8 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.eventstore.models import Event
 from sentry.models.group import Group
 from sentry.models.project import Project
-from sentry.models.userreport import UserReport
 from sentry.snuba.dataset import Dataset
+from sentry.users.models.userreport import UserReport
 from sentry.utils.eventuser import EventUser
 
 

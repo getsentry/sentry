@@ -7,9 +7,9 @@ from django.utils import timezone
 from sentry import eventstore, features
 from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, shim_to_feedback
 from sentry.models.project import Project
-from sentry.models.userreport import UserReport
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.users.models.userreport import UserReport
 from sentry.utils.iterators import chunked
 
 logger = logging.getLogger(__name__)

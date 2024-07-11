@@ -32,13 +32,13 @@ from sentry.models.integrations.sentry_app import (
 )
 from sentry.models.integrations.sentry_app_component import SentryAppComponent
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
-from sentry.models.user import User
 from sentry.receivers.tokens import add_scope_hierarchy
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
 )
 from sentry.sentry_apps.services.hook import hook_service
+from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 
 Schema = Mapping[str, Any]

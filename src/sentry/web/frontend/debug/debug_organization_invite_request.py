@@ -3,8 +3,8 @@ from django.views.generic import View
 
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.user import User
 from sentry.notifications.notifications.organization_request import InviteRequestNotification
+from sentry.users.models.user import User
 
 from .mail import render_preview_email_for_notification
 

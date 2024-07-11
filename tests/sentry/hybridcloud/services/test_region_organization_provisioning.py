@@ -15,7 +15,6 @@ from sentry.models.organizationslugreservation import (
 )
 from sentry.models.outbox import outbox_context
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.services.organization import (
     OrganizationOptions,
     OrganizationProvisioningOptions,
@@ -24,6 +23,7 @@ from sentry.services.organization import (
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, create_test_regions
+from sentry.users.models.user import User
 
 
 @control_silo_test(regions=create_test_regions("us"))

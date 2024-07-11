@@ -1,5 +1,5 @@
 from sentry.api.serializers import Serializer, register
-from sentry.models.userip import UserIP
+from sentry.users.models.userip import UserIP
 
 
 @register(UserIP)

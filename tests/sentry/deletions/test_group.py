@@ -11,11 +11,11 @@ from sentry.models.groupassignee import GroupAssignee
 from sentry.models.grouphash import GroupHash
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupredirect import GroupRedirect
-from sentry.models.userreport import UserReport
 from sentry.tasks.deletion.groups import delete_groups
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.helpers.features import with_feature
+from sentry.users.models.userreport import UserReport
 
 
 class DeleteGroupTest(TestCase, SnubaTestCase):

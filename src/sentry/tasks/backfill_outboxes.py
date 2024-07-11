@@ -14,8 +14,8 @@ from django.db.models import Max, Min, Model
 from sentry import options
 from sentry.db.models.outboxes import ControlOutboxProducingModel, RegionOutboxProducingModel
 from sentry.models.outbox import outbox_context
-from sentry.models.user import User
 from sentry.silo.base import SiloMode
+from sentry.users.models.user import User
 from sentry.utils import json, metrics, redis
 
 

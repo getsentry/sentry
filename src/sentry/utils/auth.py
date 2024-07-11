@@ -18,8 +18,8 @@ from rest_framework.request import Request
 from sentry import options
 from sentry.models.organization import Organization
 from sentry.models.outbox import outbox_context
-from sentry.models.user import User
 from sentry.organizations.services.organization import RpcOrganization
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics

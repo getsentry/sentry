@@ -7,10 +7,10 @@ from django.test import override_settings
 from django.urls import reverse
 
 from sentry.models.environment import Environment
-from sentry.models.userreport import UserReport
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.region import get_local_region
+from sentry.users.models.userreport import UserReport
 
 
 @override_settings(ROOT_URLCONF="sentry.conf.urls")

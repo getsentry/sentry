@@ -11,9 +11,9 @@ from sentry.models.groupinbox import (
     remove_group_from_inbox,
 )
 from sentry.models.project import Project
-from sentry.models.user import User
 from sentry.signals import issue_mark_reviewed
 from sentry.types.group import GroupSubStatus
+from sentry.users.models.user import User
 
 
 def update_inbox(

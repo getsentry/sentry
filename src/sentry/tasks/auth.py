@@ -12,13 +12,13 @@ from sentry.auth import manager
 from sentry.auth.exceptions import ProviderNotRegistered
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
-from sentry.models.user import User
-from sentry.models.useremail import UserEmail
 from sentry.organizations.services.organization.service import organization_service
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.tasks.base import instrumented_task, retry
 from sentry.types.region import RegionMappingNotFound
+from sentry.users.models.user import User
+from sentry.users.models.useremail import UserEmail
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.audit import create_audit_entry_from_user

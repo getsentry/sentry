@@ -7,7 +7,6 @@ from django.db import router, transaction
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviderEnum, ExternalProviders
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
-from sentry.models.user import User
 from sentry.notifications.notificationcontroller import NotificationController
 from sentry.notifications.services import NotificationsService
 from sentry.notifications.services.model import RpcSubscriptionStatus
@@ -17,6 +16,7 @@ from sentry.notifications.types import (
     NotificationSettingsOptionEnum,
 )
 from sentry.types.actor import Actor, ActorType
+from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
 
 

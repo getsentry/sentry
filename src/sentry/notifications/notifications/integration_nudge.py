@@ -13,7 +13,7 @@ from sentry.types.actor import Actor
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
 logger = logging.getLogger(__name__)
 

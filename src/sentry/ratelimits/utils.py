@@ -23,7 +23,7 @@ logger = logging.getLogger("sentry.api.rate-limit")
 if TYPE_CHECKING:
     from sentry.models.apitoken import ApiToken
     from sentry.models.organization import Organization
-    from sentry.models.user import User
+    from sentry.users.models.user import User
 
 # TODO(mgaeta): It's not currently possible to type a Callable's args with kwargs.
 EndpointFunction = Callable[..., Response]

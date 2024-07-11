@@ -18,7 +18,6 @@ from sentry.models.project import Project
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,
@@ -41,6 +40,7 @@ from sentry.testutils.helpers.slack import link_team
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.actor import Actor
+from sentry.users.models.user import User
 from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
 from tests.sentry.mail import make_event_data

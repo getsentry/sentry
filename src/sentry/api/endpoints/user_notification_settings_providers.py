@@ -12,10 +12,10 @@ from sentry.api.serializers import serialize
 from sentry.api.validators.notifications import validate_type
 from sentry.integrations.types import PERSONAL_NOTIFICATION_PROVIDERS
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
-from sentry.models.user import User
 from sentry.notifications.serializers import NotificationSettingsProviderSerializer
 from sentry.notifications.types import NotificationSettingsOptionEnum
 from sentry.notifications.validators import UserNotificationSettingsProvidersDetailsSerializer
+from sentry.users.models.user import User
 
 
 @control_silo_endpoint

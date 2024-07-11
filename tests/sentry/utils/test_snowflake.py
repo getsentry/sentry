@@ -7,12 +7,12 @@ from django.test import override_settings
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.models.user import User
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.region import override_regions
 from sentry.types.region import Region, RegionCategory
+from sentry.users.models.user import User
 from sentry.utils import snowflake
 from sentry.utils.snowflake import (
     _TTL,

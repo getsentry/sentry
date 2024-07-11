@@ -12,9 +12,9 @@ from sentry.auth.services.auth.model import RpcAuthProvider
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
-from sentry.models.user import User
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import PipelineProvider
+from sentry.users.models.user import User
 
 from .view import AuthView, ConfigureView
 

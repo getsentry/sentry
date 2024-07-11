@@ -10,7 +10,7 @@ from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageB
 from sentry.models.group import Group
 from sentry.models.integrations.integration import Integration
 from sentry.models.project import Project
-from sentry.models.user import User
+from sentry.users.models.user import User
 
 from . import Handler, UnfurlableUrl, UnfurledUrl, make_type_coercer
 
