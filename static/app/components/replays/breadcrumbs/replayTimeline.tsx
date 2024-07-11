@@ -17,10 +17,12 @@ import divide from 'sentry/utils/number/divide';
 import toPercent from 'sentry/utils/number/toPercent';
 import useTimelineScale from 'sentry/utils/replays/hooks/useTimelineScale';
 import {useDimensions} from 'sentry/utils/useDimensions';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export default function ReplayTimeline() {
   const {replay, currentTime} = useReplayContext();
   const [timelineScale] = useTimelineScale();
+  const organization = useOrganization();
 
   const panelRef = useRef<HTMLDivElement>(null);
   const mouseTrackingProps = useTimelineScrubberMouseTracking(
@@ -75,14 +77,16 @@ export default function ReplayTimeline() {
           totalFrames={chapterFrames.length}
           width={width}
         />
-        <TimelineEventsContainer>
-          <ReplayTimelineEvents
-            durationMs={durationMs}
-            frames={chapterFrames}
-            startTimestampMs={startTimestampMs}
-            width={width}
-          />
-        </TimelineEventsContainer>
+        {organization.features.includes('session-replay-timeline-gap') ? (
+          <TimelineEventsContainer>
+            <ReplayTimelineEvents
+              durationMs={durationMs}
+              frames={chapterFrames}
+              startTimestampMs={startTimestampMs}
+              width={width}
+            />
+          </TimelineEventsContainer>
+        ) : null}
       </Stacked>
     </VisiblePanel>
   );
