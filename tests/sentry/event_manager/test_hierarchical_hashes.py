@@ -204,6 +204,7 @@ def test_partial_move(default_project, fast_save):
 class EventManagerGroupingTest(TestCase):
     def test_can_upgrade_to_hierarchical_config(self):
         self.set_options("legacy:2019-03-12")  # Starting configuration
+
         event = self.save_event()
 
         self.transition_to_new_config("mobile:2021-02-12")
