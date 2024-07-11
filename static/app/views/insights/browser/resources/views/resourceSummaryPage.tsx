@@ -50,7 +50,7 @@ function ResourceSummary() {
   const {
     query: {transaction},
   } = useLocation();
-  const {data} = useSpanMetrics(
+  const {data, isLoading} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject({
         'span.group': groupId,
@@ -121,6 +121,7 @@ function ResourceSummary() {
               />
             </FilterOptionsContainer>
             <ResourceInfo
+              isLoading={isLoading}
               avgContentLength={spanMetrics[`avg(${HTTP_RESPONSE_CONTENT_LENGTH})`]}
               avgDecodedContentLength={
                 spanMetrics[`avg(${HTTP_DECODED_RESPONSE_CONTENT_LENGTH})`]
