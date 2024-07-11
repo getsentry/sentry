@@ -31,7 +31,6 @@ type MRISelectProps = {
   metricsMeta: MetricMeta[];
   onChange: (mri: MRI) => void;
   onOpenMenu: (isOpen: boolean) => void;
-  onTagClick: (mri: MRI, tag: string) => void;
   projects: number[];
   value: MRI;
 };
@@ -144,7 +143,6 @@ function useFilteredMRIs(
 export const MRISelect = memo(function MRISelect({
   projects: projectIds,
   onChange,
-  onTagClick,
   onOpenMenu,
   metricsMeta,
   isLoading,
@@ -267,7 +265,6 @@ export const MRISelect = memo(function MRISelect({
               <MetricListItemDetails
                 metric={metric}
                 selectedProjects={selectedProjects}
-                onTagClick={onTagClick}
                 isDuplicateWithDifferentUnit={isDuplicateWithDifferentUnit}
               />
             ) : null,
@@ -280,7 +277,6 @@ export const MRISelect = memo(function MRISelect({
       hasExtractionRules,
       metricsWithDuplicateNames,
       mriMode,
-      onTagClick,
       projects,
       selectedProjects,
     ]

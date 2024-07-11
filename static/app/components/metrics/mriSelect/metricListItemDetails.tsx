@@ -15,7 +15,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {IconInfo, IconSettings, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricMeta, MRI} from 'sentry/types/metrics';
+import type {MetricMeta} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
@@ -40,12 +40,10 @@ function stopPropagationAndPreventDefault(e: SyntheticEvent) {
 export function MetricListItemDetails({
   metric,
   selectedProjects,
-  onTagClick,
   isDuplicateWithDifferentUnit,
 }: {
   isDuplicateWithDifferentUnit: boolean;
   metric: MetricMeta;
-  onTagClick: (mri: MRI, tag: string) => void;
   selectedProjects: Project[];
 }) {
   const router = useRouter();
@@ -207,12 +205,7 @@ export function MetricListItemDetails({
                 return (
                   <Fragment key={tag.key}>
                     <TagWrapper>
-                      <Button
-                        priority="link"
-                        onClick={() => onTagClick(metric.mri, tag.key)}
-                      >
-                        {tag.key}
-                      </Button>
+                      {tag.key}
                       {/* Make the comma stick to the Button when the text wraps to the next line */}
                       {shouldAddDelimiter ? ',' : null}
                     </TagWrapper>

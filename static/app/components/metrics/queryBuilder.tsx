@@ -171,13 +171,6 @@ export const QueryBuilder = memo(function QueryBuilder({
     [incrementQueryMetric, onChange, organization]
   );
 
-  const handleMetricTagClick = useCallback(
-    (mri: MRI, tag: string) => {
-      onChange({mri, groupBy: [tag]});
-    },
-    [onChange]
-  );
-
   const handleOpenMetricsMenu = useCallback(
     (isOpen: boolean) => {
       if (isOpen && !isMetaLoading && !isMetaRefetching) {
@@ -204,7 +197,6 @@ export const QueryBuilder = memo(function QueryBuilder({
           <GuideAnchor target="metrics_selector" position="bottom" disabled={index !== 0}>
             <MRISelect
               onChange={handleMRIChange}
-              onTagClick={handleMetricTagClick}
               onOpenMenu={handleOpenMetricsMenu}
               isLoading={isMetaLoading}
               metricsMeta={meta}
