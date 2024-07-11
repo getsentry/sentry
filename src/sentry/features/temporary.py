@@ -52,7 +52,7 @@ def register_temporary_features(manager: FeatureManager):
     # Enables the migration of alerts (checked in a migration script).
     manager.add("organizations:alerts-migration-enabled", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable anomaly detection alerts
-    manager.add("organizations:anomaly-detection-alerts")
+    manager.add("organizations:anomaly-detection-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable anr frame analysis
     manager.add("organizations:anr-analyze-frames", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable anr improvements ui
