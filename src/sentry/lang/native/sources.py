@@ -328,6 +328,9 @@ def validate_sources(sources, schema=SOURCES_SCHEMA):
     try:
         jsonschema.validate(sources, schema)
     except jsonschema.ValidationError as e:
+        if sources.get("type") == "appStoreConnect":
+            raise InvalidSourcesError("appStoreConnect is being decomissioned")
+
         raise InvalidSourcesError(f"{e}")
 
     ids = set()
