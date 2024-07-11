@@ -23,7 +23,7 @@ class ConditionOperatorKind(str, Enum):
     """Comprare a value to another. Values are compared with types"""
 
     NOT_EQUALS = "not_equals"
-    """Comprare a value to not be equal to another. Values are compared with types"""
+    """Compare a value to not be equal to another. Values are compared with types"""
 
 
 class ConditionTypeMismatchException(Exception):
@@ -49,9 +49,13 @@ def create_case_insensitive_set_from_list(values: list[T]) -> set[T]:
 
 
 class ConditionBase(BaseModel):
-    property: str
-    operator: ConditionOperatorKind
-    value: Any
+    property: str = Field(description="The evaluation context property to match against.")
+    operator: ConditionOperatorKind = Field(
+        description="The operator to use when comparing the evaluation context property to the condition's value."
+    )
+    value: Any = Field(
+        description="The value to compare against the provided evaluation context property."
+    )
 
     def match(self, context: EvaluationContext, segment_name: str) -> bool:
         return self._operator_match(
@@ -208,8 +212,12 @@ AvailableConditions = Annotated[
 
 
 class Segment(BaseModel):
-    name: constr(min_length=1)  # type:ignore[valid-type]
-    conditions: list[AvailableConditions]
+    name: constr(min_length=1) = Field(
+        description="A brief description or identifier for the segment"
+    )  # type:ignore[valid-type]
+    conditions: list[AvailableConditions] = Field(
+        description="The list of conditions that the segment must be matched in order for this segment to be active"
+    )
     rollout: int | None = 0
 
     def match(self, context: EvaluationContext) -> bool:
