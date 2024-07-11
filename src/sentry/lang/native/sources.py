@@ -400,7 +400,7 @@ def parse_sources(config, filter_appconnect):
 
     # remove App Store Connect sources (we don't need them in Symbolicator)
     if filter_appconnect:
-        filter(lambda src: src.get("type") != "appStoreConnect", sources)
+        sources = [src for src in sources if src.get("type") != "appStoreConnect"]
 
     validate_sources(sources)
 
