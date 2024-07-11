@@ -112,7 +112,7 @@ export function SpanSamplesContainer({
     filters['span.op'] = spanOp;
   }
 
-  const {data} = useSpanMetrics(
+  const {data, isLoading} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
       fields: [`avg(${SPAN_SELF_TIME})`, 'count()', SPAN_OP],
@@ -161,12 +161,14 @@ export function SpanSamplesContainer({
           align="left"
           value={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
           unit={DurationUnit.MILLISECOND}
+          isLoading={isLoading}
         />
         <MetricReadout
           title={DataTitles.count}
           align="left"
           value={spanMetrics?.['count()'] ?? 0}
           unit="count"
+          isLoading={isLoading}
         />
       </Container>
 
