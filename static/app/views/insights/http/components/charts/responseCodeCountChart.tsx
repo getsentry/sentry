@@ -12,7 +12,7 @@ interface Props {
 
 export function ResponseCodeCountChart({series, isLoading, error}: Props) {
   return (
-    <ChartPanel title={t('Response Codes')}>
+    <ChartPanel title={t('Top 5 Response Codes')}>
       <Chart
         showLegend
         height={CHART_HEIGHT}
