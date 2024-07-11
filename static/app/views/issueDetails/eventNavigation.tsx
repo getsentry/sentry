@@ -4,6 +4,7 @@ import scrollToElement from 'scroll-to-element';
 
 import {Button, LinkButton} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import {TabList, Tabs} from 'sentry/components/tabs';
 import TimeSince from 'sentry/components/timeSince';
 import {IconChevron} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
@@ -14,13 +15,34 @@ import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-import {useParams} from 'sentry/utils/useParams';
+// import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 type EventNavigationProps = {
   event: Event;
   group: Group;
 };
+
+enum EventNavOptions {
+  RECOMMENDED = 'recommended',
+  LATEST = 'latest',
+  OLDEST = 'oldest',
+}
+
+const EventNavLabels = {
+  [EventNavOptions.RECOMMENDED]: 'Recommended Event',
+  [EventNavOptions.LATEST]: 'Last Event',
+  [EventNavOptions.OLDEST]: 'First Event',
+};
+
+const jumpToSections = [
+  {section: '#event-highlights', label: 'Event Highlights'},
+  {section: '#stacktrace', label: 'Stack Trace'},
+  {section: '#exception', label: 'Exception'},
+  {section: '#breadcrumbs', label: 'Replay & Breadcrumbs'},
+  {section: '#tags', label: 'Tags'},
+  {section: '#context', label: 'Context'},
+];
 
 function handleClick(section: string) {
   scrollToElement(section);
@@ -29,7 +51,7 @@ function handleClick(section: string) {
 export default function EventNavigation({event, group}: EventNavigationProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  const params = useParams<{eventId?: string}>();
+  // const params = useParams<{eventId?: string}>();
   const organization = useOrganization();
 
   const hasPreviousEvent = defined(event.previousEventID);
@@ -37,55 +59,33 @@ export default function EventNavigation({event, group}: EventNavigationProps) {
 
   const baseEventsPath = `/organizations/${organization.slug}/issues/${group.id}/events/`;
 
-  const buttonClicked = params.eventId;
-
-  function handleEventClick(selectedOption: string) {
-    navigate({
-      pathname: normalizeUrl(baseEventsPath + selectedOption + '/'),
-      query: {...location.query, referrer: `${selectedOption}-event`},
-    });
-  }
-
   return (
     <div>
       <EventNavigationWrapper>
-        <ButtonBar gap={1}>
-          <Button
-            disabled={buttonClicked === 'recommended'}
-            busy={buttonClicked === 'recommended'}
-            borderless
-            size="xs"
-            onClick={() => handleEventClick('recommended')}
-          >
-            Recommended Event
-          </Button>
-
-          <Button
-            disabled={buttonClicked === 'latest'}
-            busy={buttonClicked === 'latest'}
-            borderless
-            size="xs"
-            onClick={() => handleEventClick('latest')}
-          >
-            Last Event
-          </Button>
-          <Button
-            disabled={buttonClicked === 'oldest'}
-            busy={buttonClicked === 'oldest'}
-            borderless
-            size="xs"
-            onClick={() => handleEventClick('oldest')}
-          >
-            First Event
-          </Button>
-        </ButtonBar>
+        <Tabs>
+          <TabList hideBorder>
+            {Object.keys(EventNavLabels).map(label => {
+              return (
+                <TabList.Item
+                  to={{
+                    pathname: normalizeUrl(baseEventsPath + label + '/'),
+                    query: {...location.query, referrer: `${label}-event`},
+                  }}
+                  key={label}
+                >
+                  {EventNavLabels[label]}
+                </TabList.Item>
+              );
+            })}
+          </TabList>
+        </Tabs>
         <NavigationWrapper>
           <Navigation>
             <LinkButton
               title={'Previous Event'}
               aria-label="Previous Event"
               borderless
-              size="xs"
+              size="sm"
               icon={<IconChevron direction="left" />}
               disabled={!hasPreviousEvent}
               to={{
@@ -97,7 +97,7 @@ export default function EventNavigation({event, group}: EventNavigationProps) {
               title={'Next Event'}
               aria-label="Next Event"
               borderless
-              size="xs"
+              size="sm"
               icon={<IconChevron direction="right" />}
               disabled={!hasNextEvent}
               to={{
@@ -117,7 +117,7 @@ export default function EventNavigation({event, group}: EventNavigationProps) {
               });
             }}
             borderless
-            size="xs"
+            size="sm"
           >
             View All Events
           </Button>
@@ -126,28 +126,27 @@ export default function EventNavigation({event, group}: EventNavigationProps) {
       <Divider />
       <EventInfoJumpToWrapper>
         <EventInfo>
-          <div>Event</div>
-          <div>{getShortEventId(event.id)}</div>
+          <EventID>Event {getShortEventId(event.id)}</EventID>
           <TimeSince date={event.dateCreated ?? event.dateReceived} />
         </EventInfo>
         <JumpTo>
           <div>Jump to: </div>
           <ButtonBar>
-            <Button onClick={() => handleClick('#event-highlight')} borderless size="xs">
-              Event Hightlights
-            </Button>
-            <Button onClick={() => handleClick('#stacktrace')} borderless size="xs">
-              Stack Trace
-            </Button>
-            <Button onClick={() => handleClick('#breadcrumbs')} borderless size="xs">
-              Replay & Breadcrumbs
-            </Button>
-            <Button onClick={() => handleClick('#tags')} borderless size="xs">
-              Tags
-            </Button>
-            <Button onClick={() => handleClick('#context')} borderless size="xs">
-              Context
-            </Button>
+            {jumpToSections.map(jump => {
+              if (!document.getElementById(jump.section.replace('#', ''))) {
+                return null;
+              }
+              return (
+                <Button
+                  key={jump.section}
+                  onClick={() => handleClick(jump.section)}
+                  borderless
+                  size="sm"
+                >
+                  {jump.label}
+                </Button>
+              );
+            })}
           </ButtonBar>
         </JumpTo>
       </EventInfoJumpToWrapper>
@@ -174,12 +173,15 @@ const EventInfoJumpToWrapper = styled('div')`
   gap: ${space(1)};
   flex-direction: row;
   justify-content: space-between;
+  align-items: center;
 `;
 
 const EventInfo = styled('div')`
   display: flex;
   gap: ${space(1)};
   flex-direction: row;
+  padding-left: ${space(1)};
+  align-items: center;
 `;
 
 const JumpTo = styled('div')`
@@ -196,4 +198,9 @@ const Divider = styled('hr')`
   border: none;
   margin-top: ${space(1)};
   margin-bottom: ${space(1)};
+`;
+
+const EventID = styled('div')`
+  font-weight: bold;
+  font-size: ${p => p.theme.fontSizeLarge};
 `;

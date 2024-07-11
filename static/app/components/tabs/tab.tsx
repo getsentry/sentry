@@ -85,10 +85,10 @@ function BaseTab(
         <StyledInteractionStateLayer
           orientation={orientation}
           higherOpacity={isSelected}
+          isPressed={isSelected}
         />
         <FocusLayer orientation={orientation} />
         {rendered}
-        <TabSelectionIndicator orientation={orientation} selected={isSelected} />
       </InnerWrap>
     </TabWrap>
   );
@@ -201,36 +201,36 @@ const FocusLayer = styled('div')<{orientation: Orientation}>`
   }
 `;
 
-const TabSelectionIndicator = styled('div')<{
-  orientation: Orientation;
-  selected: boolean;
-}>`
-  position: absolute;
-  border-radius: 2px;
-  pointer-events: none;
-  background: ${p => (p.selected ? p.theme.active : 'transparent')};
-  transition: background 0.1s ease-out;
+// const TabSelectionIndicator = styled('div')<{
+//   orientation: Orientation;
+//   selected: boolean;
+// }>`
+//   position: absolute;
+//   border-radius: 2px;
+//   pointer-events: none;
+//   background: ${p => (p.selected ? p.theme.active : 'transparent')};
+//   transition: background 0.1s ease-out;
 
-  li[aria-disabled='true'] & {
-    background: ${p => (p.selected ? p.theme.subText : 'transparent')};
-  }
+//   li[aria-disabled='true'] & {
+//     background: ${p => (p.selected ? p.theme.subText : 'transparent')};
+//   }
 
-  ${p =>
-    p.orientation === 'horizontal'
-      ? `
-        width: calc(100% - ${space(2)});
-        height: 3px;
+//   ${p =>
+//     p.orientation === 'horizontal'
+//       ? `
+//         width: calc(100% - ${space(2)});
+//         height: 3px;
 
-        bottom: 0;
-        left: 50%;
-        transform: translateX(-50%);
-      `
-      : `
-        width: 3px;
-        height: 50%;
+//         bottom: 0;
+//         left: 50%;
+//         transform: translateX(-50%);
+//       `
+//       : `
+//         width: 3px;
+//         height: 50%;
 
-        left: 0;
-        top: 50%;
-        transform: translateY(-50%);
-      `};
-`;
+//         left: 0;
+//         top: 50%;
+//         transform: translateY(-50%);
+//       `};
+// `;
