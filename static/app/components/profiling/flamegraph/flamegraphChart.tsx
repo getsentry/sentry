@@ -52,8 +52,8 @@ export function FlamegraphChart({
   canvasBounds,
   noMeasurementMessage,
 }: FlamegraphChartProps) {
-  const scheduler = useCanvasScheduler(canvasPoolManager);
   const theme = useFlamegraphTheme();
+  const scheduler = useCanvasScheduler(canvasPoolManager);
 
   const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
   const [startInteractionVector, setStartInteractionVector] = useState<vec2 | null>(null);
