@@ -18,6 +18,8 @@ from sentry.api.serializers.models.project_template import (
 from sentry.models.organization import Organization
 from sentry.models.projecttemplate import ProjectTemplate
 
+PROJECT_TEMPLATE_FEATURE_FLAG = "organizations:project-templates"
+
 
 def ensure_rollout_enabled(flag):
     def decoartor(func):
@@ -46,7 +48,7 @@ class OrganizationProjectTemplatesIndexEndpoint(OrganizationEndpoint):
     }
     permission_classes = (OrganizationPermission,)
 
-    @ensure_rollout_enabled("organizations:project-templates")
+    @ensure_rollout_enabled(PROJECT_TEMPLATE_FEATURE_FLAG)
     def get(self, request: Request, organization: Organization) -> Response:
         """
         List of Project Templates, does not include the options for the project template.
@@ -58,7 +60,7 @@ class OrganizationProjectTemplatesIndexEndpoint(OrganizationEndpoint):
         return self.paginate(
             request=request,
             queryset=queryset,
-            order_by="name",
+            order_by="date_added",
             on_results=lambda x: serialize(x, request.user, ProjectTemplateSerializer()),
             paginator_cls=OffsetPaginator,
         )
@@ -73,7 +75,7 @@ class OrganizationProjectTemplateDetailEndpoint(OrganizationEndpoint):
     }
     permission_classes = (OrganizationPermission,)
 
-    @ensure_rollout_enabled("organizations:project-templates")
+    @ensure_rollout_enabled(PROJECT_TEMPLATE_FEATURE_FLAG)
     def get(self, request: Request, organization: Organization, template_id: str) -> Response:
         """
         Retrieve a project template by its ID.
