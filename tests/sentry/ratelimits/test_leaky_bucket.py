@@ -1,22 +1,23 @@
+from typing import Any
 from unittest import mock
 
 import pytest
 
 from sentry.exceptions import InvalidConfiguration
-from sentry.ratelimits.leaky_bucket import LeakyBucketRateLimiter
+from sentry.ratelimits.leaky_bucket import LeakyBucketLimitInfo, LeakyBucketRateLimiter
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 
 
 class LeakyBucketRateLimiterTest(TestCase):
-    def setUp(self):
+    def setUp(self) -> None:
         self.limiter = LeakyBucketRateLimiter(burst_limit=5, drip_rate=2)
 
     @pytest.fixture(autouse=True)
-    def inject_fixtures(self, caplog):
+    def inject_fixtures(self, caplog: pytest.LogCaptureFixture) -> None:
         self._caplog = caplog
 
-    def test_basic(self):
+    def test_basic(self) -> None:
         with freeze_time("2077-09-13"):
             # burst limit is 5, so we should be able to get 5 requests in
             for _ in range(5):
@@ -28,7 +29,7 @@ class LeakyBucketRateLimiterTest(TestCase):
             for _ in range(3):
                 assert self.limiter.is_limited("foo")
 
-    def test_drip_rate(self):
+    def test_drip_rate(self) -> None:
         with freeze_time("2077-09-13") as time_traveler:
             # exhaust the burst limit
             for _ in range(5):
@@ -41,7 +42,7 @@ class LeakyBucketRateLimiterTest(TestCase):
                 else:
                     assert not self.limiter.is_limited("foo")
 
-    def test_context_manager(self):
+    def test_context_manager(self) -> None:
         with freeze_time("2077-09-13"):
             with self.limiter.context("foo") as info:
                 assert info.current_level == 0.0
@@ -59,7 +60,7 @@ class LeakyBucketRateLimiterTest(TestCase):
                 assert info.current_level == 5
                 assert info.wait_time != 0
 
-    def test_decorator(self):
+    def test_decorator(self) -> None:
         @self.limiter("foo")
         def foo() -> None:
             assert False, "This should not be executed when limited"
@@ -83,9 +84,9 @@ class LeakyBucketRateLimiterTest(TestCase):
             with pytest.raises(self.limiter.LimitExceeded):
                 bar()
 
-        last_info = []
+        last_info: list[LeakyBucketLimitInfo] = []
 
-        def callback(info, context):
+        def callback(info: LeakyBucketLimitInfo, context: dict[str, Any]) -> LeakyBucketLimitInfo:
             last_info.append(info)
             return info
 
@@ -105,7 +106,7 @@ class LeakyBucketRateLimiterTest(TestCase):
             assert info.wait_time > 0
             assert info.current_level == 5
 
-    def test_get_bucket_state(self):
+    def test_get_bucket_state(self) -> None:
         with freeze_time("2077-09-13"):
 
             info = self.limiter.get_bucket_state("foo")
@@ -117,7 +118,7 @@ class LeakyBucketRateLimiterTest(TestCase):
                 info = self.limiter.get_bucket_state("foo")
                 assert info.current_level == i
 
-    def test_redis_failures(self):
+    def test_redis_failures(self) -> None:
         caplog = self._caplog
 
         with mock.patch("sentry.ratelimits.leaky_bucket.leaky_bucket_info") as lua_script:
@@ -137,7 +138,7 @@ class LeakyBucketRateLimiterTest(TestCase):
             assert info.current_level == 0
             assert "Could not get bucket state" in caplog.text
 
-    def test_validate(self):
+    def test_validate(self) -> None:
         self.limiter.validate()
 
         with mock.patch.object(self.limiter, "client") as redis_client:

@@ -195,9 +195,9 @@ class LeakyBucketRateLimiter:
 
         """
 
-        def decorator(func):
+        def decorator(func: Callable[[Any], Any]) -> Callable[[Any], Any]:
             @functools.wraps(func)
-            def wrapper(*args, **kwargs):
+            def wrapper(*args: Any, **kwargs: Any) -> Any:
                 try:
                     with self.context(key):
                         return func(*args, **kwargs)
