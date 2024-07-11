@@ -6,11 +6,9 @@ import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import useAsyncSDKIntegrationStore from 'sentry/views/app/asyncSDKIntegrationProvider';
 
-type ArgumentTypes<F extends Function> = F extends (...args: infer A) => any ? A : never;
-
 export type FeedbackIntegration = NonNullable<ReturnType<typeof Sentry.getFeedback>>;
 
-export type UseFeedbackOptions = ArgumentTypes<FeedbackIntegration['createForm']>[0];
+export type UseFeedbackOptions = Parameters<FeedbackIntegration['createForm']>[0];
 
 export function useFeedback({
   formTitle,
