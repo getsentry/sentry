@@ -21,6 +21,7 @@ from sentry.apidocs.parameters import GlobalParams, ProjectParams
 from sentry.lang.native.sources import (
     REDACTED_SOURCE_SCHEMA,
     REDACTED_SOURCES_SCHEMA,
+    SOURCES_WITHOUT_APPSTORE_CONNECT,
     VALID_CASINGS,
     VALID_LAYOUTS,
     InvalidSourcesError,
@@ -212,7 +213,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         """
         id = request.GET.get("id")
         custom_symbol_sources_json = project.get_option("sentry:symbol_sources") or []
-        sources = parse_sources(custom_symbol_sources_json)
+        sources = parse_sources(custom_symbol_sources_json, filter_appconnect=False)
         redacted = redact_source_secrets(sources)
 
         if id:
@@ -244,7 +245,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         id = request.GET.get("id")
         custom_symbol_sources_json = project.get_option("sentry:symbol_sources") or []
 
-        sources = parse_sources(custom_symbol_sources_json)
+        sources = parse_sources(custom_symbol_sources_json, filter_appconnect=False)
 
         if id:
             filtered_sources = [src for src in sources if src["id"] != id]
@@ -273,7 +274,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         Add a custom symbol source to a project.
         """
         custom_symbol_sources_json = project.get_option("sentry:symbol_sources") or []
-        sources = parse_sources(custom_symbol_sources_json)
+        sources = parse_sources(custom_symbol_sources_json, filter_appconnect=False)
 
         source = request.data
 
@@ -286,7 +287,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         sources.append(source)
 
         try:
-            validate_sources(sources)
+            validate_sources(sources, schema=SOURCES_WITHOUT_APPSTORE_CONNECT)
         except InvalidSourcesError:
             return Response(status=400)
 
@@ -320,7 +321,7 @@ class ProjectSymbolSourcesEndpoint(ProjectEndpoint):
         source = request.data
 
         custom_symbol_sources_json = project.get_option("sentry:symbol_sources") or []
-        sources = parse_sources(custom_symbol_sources_json)
+        sources = parse_sources(custom_symbol_sources_json, filter_appconnect=False)
 
         if id is None:
             return Response(data={"error": "Missing source id"}, status=404)
