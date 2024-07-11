@@ -1,5 +1,6 @@
 import mapValues from 'lodash/mapValues';
 
+import {STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS} from 'sentry/components/events/searchBarFieldConstants';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import type {TagCollection} from 'sentry/types/group';
@@ -273,6 +274,13 @@ const INDEXED_PERFORMANCE_ALERTS_OMITTED_TAGS = [
   ...Object.values(ReplayClickFieldKey),
 ];
 
+const ERROR_SUPPORTED_TAGS = [
+  FieldKey.IS,
+  ...Object.keys(STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS).map(
+    key => key as FieldKey
+  ),
+];
+
 // Some data sets support a very limited number of tags. For these cases,
 // define all supported tags explicitly
 export function datasetSupportedTags(
@@ -281,7 +289,7 @@ export function datasetSupportedTags(
 ): TagCollection | undefined {
   return mapValues(
     {
-      [Dataset.ERRORS]: [FieldKey.IS],
+      [Dataset.ERRORS]: ERROR_SUPPORTED_TAGS,
       [Dataset.TRANSACTIONS]: org.features.includes('alert-allow-indexed')
         ? undefined
         : transactionSupportedTags(org),

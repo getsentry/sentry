@@ -370,7 +370,6 @@ describe('Events > SearchBar', function () {
     render(
       <SearchBar
         {...props}
-        metricAlert
         supportedTags={datasetSupportedTags(Dataset.ERRORS, OrganizationIs)}
       />
     );
@@ -385,7 +384,6 @@ describe('Events > SearchBar', function () {
     render(
       <SearchBar
         {...props}
-        metricAlert
         supportedTags={datasetSupportedTags(Dataset.ERRORS, OrganizationIs)}
       />
     );

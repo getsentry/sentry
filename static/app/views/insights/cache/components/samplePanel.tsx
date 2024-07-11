@@ -404,7 +404,6 @@ export function CacheSamplePanel() {
                 onSearch={handleSearch}
                 placeholder={t('Search for span attributes')}
                 organization={organization}
-                metricAlert={false}
                 supportedTags={supportedTags}
                 dataset={DiscoverDatasets.SPANS_INDEXED}
                 projectIds={selection.projects}
