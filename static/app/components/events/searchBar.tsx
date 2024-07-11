@@ -34,7 +34,7 @@ import {
   STATIC_FIELD_TAGS_WITHOUT_TRANSACTION_FIELDS,
   STATIC_SEMVER_TAGS,
   STATIC_SPAN_TAGS,
-} from './searchBarFields';
+} from './searchBarFieldConstants';
 
 const getFunctionTags = (fields: Readonly<Field[]> | undefined) => {
   if (!fields?.length) {
