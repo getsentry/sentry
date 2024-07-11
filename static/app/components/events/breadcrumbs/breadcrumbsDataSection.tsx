@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo, useRef} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -18,7 +18,6 @@ import {
   getSummaryBreadcrumbs,
 } from 'sentry/components/events/breadcrumbs/utils';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
-import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import useDrawer from 'sentry/components/globalDrawer';
 import {
   IconClock,
@@ -36,6 +35,7 @@ import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getShortEventId} from 'sentry/utils/events';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -51,6 +51,7 @@ export default function BreadcrumbsDataSection({
   project,
 }: BreadcrumbsDataSectionProps) {
   const {openDrawer} = useDrawer();
+  const openForm = useFeedbackForm();
   const organization = useOrganization();
   // Use the local storage preferences, but allow the drawer to do updates
   const [timeDisplay, setTimeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
@@ -96,7 +97,25 @@ export default function BreadcrumbsDataSection({
                     {label: t('Breadcrumbs')},
                   ]}
                 />
-                <BreadcrumbsFeedback />
+                {openForm && (
+                  <Button
+                    aria-label={t('Give Feedback')}
+                    icon={<IconMegaphone />}
+                    size={'xs'}
+                    onClick={() => {
+                      openForm({
+                        messagePlaceholder: t(
+                          'How can we make breadcrumbs more useful to you?'
+                        ),
+                        tags: {
+                          feedback_source: 'issue_breadcrumbs',
+                        },
+                      });
+                    }}
+                  >
+                    {t('Feedback')}
+                  </Button>
+                )}
               </BreadcrumbHeader>
             </Header>
             <Body>
@@ -110,7 +129,7 @@ export default function BreadcrumbsDataSection({
         {ariaLabel: 'breadcrumb drawer', closeOnOutsideClick: false}
       );
     },
-    [group, event, project, openDrawer, enhancedCrumbs, organization]
+    [group, event, project, openDrawer, openForm, enhancedCrumbs, organization]
   );
 
   if (enhancedCrumbs.length === 0) {
@@ -196,29 +215,6 @@ export default function BreadcrumbsDataSection({
         )}
       </ErrorBoundary>
     </EventDataSection>
-  );
-}
-
-function BreadcrumbsFeedback() {
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const feedback = useFeedbackWidget({
-    buttonRef,
-    messagePlaceholder: t('How can we make breadcrumbs more useful to you?'),
-  });
-
-  if (!feedback) {
-    return null;
-  }
-
-  return (
-    <Button
-      ref={buttonRef}
-      aria-label={t('Give Feedback')}
-      icon={<IconMegaphone />}
-      size={'xs'}
-    >
-      {t('Feedback')}
-    </Button>
   );
 }
 
