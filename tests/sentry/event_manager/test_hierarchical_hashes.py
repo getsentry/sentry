@@ -241,7 +241,11 @@ class EventManagerGroupingTest(TestCase):
             "sentry:secondary_grouping_expiry", time.time() + (24 * 90 * 3600)
         )
 
-    def test_applies_secondary_grouping_hierarchical(self):
+    def test_can_upgrade_to_hierarchical_config(self):
+        hierarchical_hashes = [
+            "be778d6d6543432ae89b3e0f94ebff80",
+            "4e536cc423da0e1e2101b30688aab6b1",
+        ]
         self.set_options("legacy:2019-03-12")  # Starting configuration
         event = self.save_event()
         assert event.get_hashes().hashes == ["8b1a9953c4611296a827abf8c47804d7"]
@@ -250,10 +254,6 @@ class EventManagerGroupingTest(TestCase):
         self.transition_to_new_config("mobile:2021-02-12")
         # This event will have two sets of hashes
         event2 = self.save_event()
-        hierarchical_hashes = [
-            "be778d6d6543432ae89b3e0f94ebff80",
-            "4e536cc423da0e1e2101b30688aab6b1",
-        ]
         # The hashes propery gets the last hierarchical hash assigned
         assert event2.get_hashes().hashes == [hierarchical_hashes[-1]]
         assert event2.get_hashes().hierarchical_hashes == hierarchical_hashes
@@ -272,15 +272,26 @@ class EventManagerGroupingTest(TestCase):
         event3 = self.save_event()
         assert event3.group_id == event2.group_id
 
-    def test_applies_downgrade_hierarchical(self):
-        self.set_options("mobile:2021-02-12")
+    def test_can_downgrade_from_hierarchical_config(self):
+        hierarchical_hashes = [
+            "be778d6d6543432ae89b3e0f94ebff80",
+            "4e536cc423da0e1e2101b30688aab6b1",
+        ]
+        self.set_options("mobile:2021-02-12")  # Starting configuration
         event = self.save_event()
+        assert event.get_hashes().hashes == ["4e536cc423da0e1e2101b30688aab6b1"]
+        assert event.get_hashes().hierarchical_hashes == hierarchical_hashes
+
         self.transition_to_new_config("legacy:2019-03-12")
-        # Switching to newstyle grouping changes hashes as 123 will be removed
+        # This event will have two sets of hashes
         event2 = self.save_event()
 
-        # make sure that events did get into same group because of fallback grouping, not because of hashes which come from primary grouping only
+        # The hashes propery gets the last hierarchical hash assigned
+        assert event2.get_hashes().hashes == ["8b1a9953c4611296a827abf8c47804d7"]
+        assert event2.get_hashes().hierarchical_hashes == []
+        # The hashes property between the two events do not intersect
         assert not set(event.get_hashes().hashes) & set(event2.get_hashes().hashes)
+        # They both belong to the same group be
         assert event.group_id == event2.group_id
 
         group = Group.objects.get(id=event.group_id)
