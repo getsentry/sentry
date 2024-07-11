@@ -548,15 +548,7 @@ class TracesExecutor:
             )
 
             # restrict the query to just this subset of trace ids
-            query.add_conditions(
-                [
-                    Condition(
-                        Column("trace_id"),
-                        Op.IN,
-                        Function("splitByChar", [",", ",".join(chunk)]),
-                    )
-                ]
-            )
+            query.add_conditions([Condition(Column("trace_id"), Op.IN, chunk)])
 
             all_queries.append(query)
 
@@ -821,15 +813,7 @@ class TracesExecutor:
         )
 
         # restrict the query to just this subset of trace ids
-        query.add_conditions(
-            [
-                Condition(
-                    Column("trace_id"),
-                    Op.IN,
-                    Function("splitByChar", [",", ",".join(trace_ids)]),
-                )
-            ]
-        )
+        query.add_conditions([Condition(Column("trace_id"), Op.IN, trace_ids)])
 
         return query, Referrer.API_TRACE_EXPLORER_TRACES_BREAKDOWNS
 
@@ -858,15 +842,7 @@ class TracesExecutor:
         )
 
         # restrict the query to just this subset of trace ids
-        query.add_conditions(
-            [
-                Condition(
-                    Column("trace_id"),
-                    Op.IN,
-                    Function("splitByChar", [",", ",".join(trace_ids)]),
-                )
-            ]
-        )
+        query.add_conditions([Condition(Column("trace_id"), Op.IN, trace_ids)])
 
         """
         We want to get a count of the number of matching spans. To do this, we have to
@@ -920,15 +896,7 @@ class TracesExecutor:
         )
 
         # restrict the query to just this subset of trace ids
-        query.add_conditions(
-            [
-                Condition(
-                    Column("trace_id"),
-                    Op.IN,
-                    Function("splitByChar", [",", ",".join(trace_ids)]),
-                )
-            ]
-        )
+        query.add_conditions([Condition(Column("trace_id"), Op.IN, trace_ids)])
 
         return query, Referrer.API_TRACE_EXPLORER_TRACES_ERRORS
 
@@ -951,15 +919,7 @@ class TracesExecutor:
         )
 
         # restrict the query to just this subset of trace ids
-        query.add_conditions(
-            [
-                Condition(
-                    Column("trace_id"),
-                    Op.IN,
-                    Function("splitByChar", [",", ",".join(trace_ids)]),
-                )
-            ]
-        )
+        query.add_conditions([Condition(Column("trace_id"), Op.IN, trace_ids)])
 
         return query, Referrer.API_TRACE_EXPLORER_TRACES_OCCURRENCES
 
