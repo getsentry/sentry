@@ -138,8 +138,6 @@ SOURCES_SCHEMA = {
     "items": SOURCE_SCHEMA,
 }
 
-# TODO(@anonrig): Remove this when AppStore connect integration is sunset.
-# Ref: https://github.com/getsentry/sentry/issues/51994
 SOURCES_WITHOUT_APPSTORE_CONNECT = {
     "type": "array",
     "items": {
@@ -400,7 +398,6 @@ def parse_sources(config, filter_appconnect):
     except Exception as e:
         raise InvalidSourcesError("Sources are not valid serialised JSON") from e
 
-    # TODO(@anonrig): Remove this when AppStore connect related datas are removed.
     # remove App Store Connect sources (we don't need them in Symbolicator)
     if filter_appconnect:
         filter(lambda src: src.get("type") != "appStoreConnect", sources)
@@ -503,7 +500,6 @@ def get_sources_for_project(project):
                 normalize_user_source(source)
                 for source in custom_sources
                 if source["type"] != "appStoreConnect"
-                # TODO(@anonrig): Remove this when all AppStore data is removed.
             )
         except InvalidSourcesError:
             # Source configs should be validated when they are saved. If this
