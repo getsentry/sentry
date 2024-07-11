@@ -453,6 +453,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "metricsActivatePercentiles": False,
             "metricsActivateLastForGauges": True,
             "extrapolateMetrics": True,
+            "uptimeAutodetection": False,
         }
 
         # needed to set require2FA
@@ -489,6 +490,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:metrics_activate_percentiles") is False
         assert options.get("sentry:metrics_activate_last_for_gauges") is True
         assert options.get("sentry:extrapolate_metrics") is True
+        assert options.get("sentry:uptime_autodetection") is False
 
         # log created
         with assume_test_silo_mode_of(AuditLogEntry):
@@ -530,6 +532,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             in log.data["metricsActivateLastForGauges"]
         )
         assert "to {}".format(data["extrapolateMetrics"]) in log.data["extrapolateMetrics"]
+        assert "to {}".format(data["uptimeAutodetection"]) in log.data["uptimeAutodetection"]
 
     @responses.activate
     @patch(
