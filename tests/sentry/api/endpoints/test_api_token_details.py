@@ -51,7 +51,7 @@ class ApiTokenPutTest(APITestCase):
         payload = {"name": "new token"}
 
         self.login_as(self.user)
-        self.get_success_response(token.id, status_code=status.HTTP_204_NO_CONTENT, **payload)
+        self.get_success_response(token.id, status_code=status.HTTP_200_OK, **payload)
 
         tokenNew = ApiToken.objects.get(user=self.user)
         assert tokenNew.name == "new token"
@@ -62,9 +62,7 @@ class ApiTokenPutTest(APITestCase):
         payload = {"name": "new token"}
 
         self.login_as(self.user)
-        response = self.get_success_response(
-            token.id, status_code=status.HTTP_204_NO_CONTENT, **payload
-        )
+        response = self.get_success_response(token.id, status_code=status.HTTP_200_OK, **payload)
         assert (
             response.get("cache-control")
             == "max-age=0, no-cache, no-store, must-revalidate, private"
@@ -75,7 +73,7 @@ class ApiTokenPutTest(APITestCase):
         payload = {"name": ""}
 
         self.login_as(self.user)
-        self.get_success_response(token.id, status_code=status.HTTP_204_NO_CONTENT, **payload)
+        self.get_success_response(token.id, status_code=status.HTTP_200_OK, **payload)
 
         token = ApiToken.objects.get(user=self.user)
         assert token.name == ""
@@ -85,7 +83,7 @@ class ApiTokenPutTest(APITestCase):
         payload = {"name": "new token"}
 
         self.login_as(self.user)
-        self.get_success_response(token.id, status_code=status.HTTP_204_NO_CONTENT, **payload)
+        self.get_success_response(token.id, status_code=status.HTTP_200_OK, **payload)
 
         token = ApiToken.objects.get(user=self.user)
         assert token.name == "new token"

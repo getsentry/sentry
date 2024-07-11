@@ -54,24 +54,24 @@ class ApiTokenDetailsEndpoint(Endpoint):
 
         serializer = ApiTokenNameSerializer(data=request.data)
 
-        if serializer.is_valid():
-            result = serializer.validated_data
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=400)
 
-            user_id = ApiTokensEndpoint.get_appropriate_user_id(request=request)
+        result = serializer.validated_data
 
-            try:
-                token_to_rename = ApiToken.objects.get(
-                    id=token_id, application__isnull=True, user_id=user_id
-                )
-            except ApiToken.DoesNotExist:
-                raise ResourceDoesNotExist
+        user_id = ApiTokensEndpoint.get_appropriate_user_id(request=request)
 
-            token_to_rename.name = result.get("name")
-            token_to_rename.save()
+        try:
+            token_to_rename = ApiToken.objects.get(
+                id=token_id, application__isnull=True, user_id=user_id
+            )
+        except ApiToken.DoesNotExist:
+            raise ResourceDoesNotExist
 
-            return Response(status=204)
+        token_to_rename.name = result.get("name")
+        token_to_rename.save()
 
-        return Response(serializer.errors, status=400)
+        return Response(serialize(token_to_rename, request.user, token=None), status=200)
 
     @method_decorator(never_cache)
     def delete(self, request: Request, token_id: int) -> Response:
