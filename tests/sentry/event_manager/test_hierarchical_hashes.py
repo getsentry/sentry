@@ -228,18 +228,25 @@ class EventManagerGroupingTest(TestCase):
         with self.tasks():
             return manager.save(self.project.id)
 
+    def set_options(self, primary_config):
+        self.project.update_option("sentry:grouping_config", primary_config)
+        self.project.update_option("sentry:secondary_grouping_expiry", 0)
+
+    def change_configuration(self, new_config):
+        original_config = self.project.get_option("sentry:grouping_config")
+        self.project.update_option("sentry:grouping_config", new_config)
+        self.project.update_option("sentry:secondary_grouping_config", original_config)
+        self.project.update_option(
+            "sentry:secondary_grouping_expiry", time.time() + (24 * 90 * 3600)
+        )
+
     def test_applies_secondary_grouping_hierarchical(self):
-        project = self.project
-        project.update_option("sentry:grouping_config", "legacy:2019-03-12")
-        project.update_option("sentry:secondary_grouping_expiry", 0)
+        self.set_options("legacy:2019-03-12")
 
         timestamp = time.time() - 300
-
         event = self.save_event(timestamp, 0)
 
-        project.update_option("sentry:grouping_config", "mobile:2021-02-12")
-        project.update_option("sentry:secondary_grouping_config", "legacy:2019-03-12")
-        project.update_option("sentry:secondary_grouping_expiry", time.time() + (24 * 90 * 3600))
+        self.change_configuration("mobile:2021-02-12")
 
         # Switching to newstyle grouping changes hashes as 123 will be removed
         event2 = self.save_event(timestamp, 2)
@@ -254,22 +261,18 @@ class EventManagerGroupingTest(TestCase):
         assert group.last_seen == event2.datetime
 
         # After expiry, new events are still assigned to the same group:
-        project.update_option("sentry:secondary_grouping_expiry", 0)
+        self.project.update_option("sentry:secondary_grouping_expiry", 0)
         event3 = self.save_event(timestamp, 4)
         assert event3.group_id == event2.group_id
 
     def test_applies_downgrade_hierarchical(self):
-        project = self.project
-        project.update_option("sentry:grouping_config", "mobile:2021-02-12")
-        project.update_option("sentry:secondary_grouping_expiry", 0)
+        self.set_options("mobile:2021-02-12")
 
         timestamp = time.time() - 300
 
         event = self.save_event(timestamp, 0)
 
-        project.update_option("sentry:grouping_config", "legacy:2019-03-12")
-        project.update_option("sentry:secondary_grouping_config", "mobile:2021-02-12")
-        project.update_option("sentry:secondary_grouping_expiry", time.time() + (24 * 90 * 3600))
+        self.change_configuration("mobile:2021-02-12")
 
         # Switching to newstyle grouping changes hashes as 123 will be removed
         event2 = self.save_event(timestamp, 2)
@@ -291,6 +294,6 @@ class EventManagerGroupingTest(TestCase):
         assert group.last_seen == event2.datetime
 
         # After expiry, new events are still assigned to the same group:
-        project.update_option("sentry:secondary_grouping_expiry", 0)
+        self.project.update_option("sentry:secondary_grouping_expiry", 0)
         event3 = self.save_event(timestamp, 4)
         assert event3.group_id == event2.group_id
