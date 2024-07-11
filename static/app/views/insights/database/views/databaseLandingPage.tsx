@@ -26,6 +26,7 @@ import {ModulePageProviders} from 'sentry/views/insights/common/components/modul
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
+import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
@@ -54,6 +55,7 @@ export function DatabaseLandingPage() {
   const moduleName = ModuleName.DB;
   const location = useLocation();
   const onboardingProject = useOnboardingProject();
+  const hasModuleData = useHasFirstSpan(moduleName);
 
   const selectedAggregate = DEFAULT_DURATION_AGGREGATE;
   const spanDescription = decodeScalar(location.query?.['span.description'], '');
@@ -177,7 +179,7 @@ export function DatabaseLandingPage() {
       <Layout.Body>
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
-            {!onboardingProject && !isCriticalDataLoading && (
+            {hasModuleData && !onboardingProject && !isCriticalDataLoading && (
               <ModuleLayout.Full>
                 <NoDataMessage
                   Wrapper={AlertBanner}
