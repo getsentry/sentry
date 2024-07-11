@@ -119,6 +119,7 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
             format="json",
         )
         assert discoverResponse.status_code == 200, discoverResponse.content
+        # Other tags are added by default, just check that the one we added exists
         assert {"name": "Apple", "key": "apple", "totalValues": 1} in discoverResponse.data
 
     def test_dataset_issue_platform(self):
@@ -160,6 +161,77 @@ class OrganizationTagsTest(APITestCase, OccurrenceTestMixin, SnubaTestCase):
         data = response.data
         data.sort(key=lambda val: val["name"])
         assert data == [
+            {"name": "Level", "key": "level", "totalValues": 1},
+            {"name": "Stone Fruit", "key": "stone_fruit", "totalValues": 1},
+        ]
+
+    def test_dataset_combination(self):
+        user = self.create_user()
+        org = self.create_organization()
+        team = self.create_team(organization=org)
+        self.create_member(organization=org, user=user, teams=[team])
+        self.login_as(user=user)
+        project = self.create_project(organization=org, teams=[team])
+        # Added to Events AND Discover Datasets
+        self.store_event(
+            data={"event_id": "a" * 32, "tags": {"berry": "raspberry"}, "timestamp": self.min_ago},
+            project_id=project.id,
+        )
+        # Added to Discover Dataset
+        discoverEvent = load_data("transaction")
+        discoverEvent["tags"].extend([["apple", "fuji"]])
+        discoverEvent.update(
+            {
+                "transaction": "example_transaction",
+                "event_id": uuid.uuid4().hex,
+                "start_timestamp": self.min_ago,
+                "timestamp": self.min_ago,
+            }
+        )
+        discoverEvent["measurements"]["lcp"]["value"] = 5000
+        self.store_event(data=discoverEvent, project_id=project.id)
+        # Added to IssuePlatform Dataset
+        self.process_occurrence(
+            event_id=uuid.uuid4().hex,
+            project_id=project.id,
+            event_data={
+                "title": "some problem",
+                "platform": "python",
+                "tags": {"stone_fruit": "cherry"},
+                "timestamp": before_now(minutes=1).isoformat(),
+                "received": before_now(minutes=1).isoformat(),
+            },
+        )
+
+        url = reverse(
+            "sentry-api-0-organization-tags", kwargs={"organization_id_or_slug": org.slug}
+        )
+
+        eventsResponse = self.client.get(
+            url, {"statsPeriod": "14d", "dataset": "events"}, format="json"
+        )
+
+        assert eventsResponse.status_code == 200, eventsResponse.content
+        eventsData = eventsResponse.data
+        eventsData.sort(key=lambda val: val["name"])
+        assert eventsData == [
+            {"name": "Berry", "key": "berry", "totalValues": 1},
+            {"name": "Level", "key": "level", "totalValues": 1},
+        ]
+
+        discoverResponse = self.client.get(
+            url, {"statsPeriod": "14d", "dataset": "discover"}, format="json"
+        )
+        discoverData = discoverResponse.data
+        assert {"name": "Berry", "key": "berry", "totalValues": 1} in discoverData
+        assert {"name": "Apple", "key": "apple", "totalValues": 1} in discoverData
+
+        issuePlatformResponse = self.client.get(
+            url, {"statsPeriod": "14d", "dataset": "search_issues"}, format="json"
+        )
+        issuePlatformData = issuePlatformResponse.data
+        issuePlatformData.sort(key=lambda val: val["name"])
+        assert issuePlatformData == [
             {"name": "Level", "key": "level", "totalValues": 1},
             {"name": "Stone Fruit", "key": "stone_fruit", "totalValues": 1},
         ]
