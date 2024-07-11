@@ -239,6 +239,22 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
 
         return data
 
+    def validate_extrapolateMetrics(self, value):
+        organization = self.context["project"].organization
+        request = self.context["request"]
+
+        # Metrics extrapolation can only be toggled when the metrics-extrapolation flag is enabled.
+        has_metrics_extrapolation = features.has(
+            "organizations:metrics-extrapolation", organization, actor=request.user
+        )
+
+        if not has_metrics_extrapolation:
+            raise serializers.ValidationError(
+                "Organization does not have the metrics extrapolation feature enabled"
+            )
+        else:
+            return value
+
     def validate_allowedDomains(self, value):
         value = list(filter(bool, value))
         if len(value) == 0:
@@ -331,6 +347,7 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
             # This should only apply to sources which are being fed to symbolicator.
             # App Store Connect in particular is managed in a completely different
             # way, and needs its `id` to stay valid for a longer time.
+            # TODO(@anonrig): Remove this when all AppStore connect data is removed.
             if source["type"] != "appStoreConnect":
                 source["id"] = str(uuid4())
 
@@ -344,15 +361,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         if not has_sources:
             raise serializers.ValidationError(
                 "Organization is not allowed to set custom symbol sources"
-            )
-
-        has_multiple_appconnect = features.has(
-            "organizations:app-store-connect-multiple", organization, actor=request.user
-        )
-        appconnect_sources = [s for s in sources if s.get("type") == "appStoreConnect"]
-        if not has_multiple_appconnect and len(appconnect_sources) > 1:
-            raise serializers.ValidationError(
-                "Only one Apple App Store Connect application is allowed in this project"
             )
 
         return sources_json

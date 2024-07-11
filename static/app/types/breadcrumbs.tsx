@@ -27,6 +27,8 @@ export enum BreadcrumbType {
   SESSION = 'session',
   TRANSACTION = 'transaction',
   INIT = 'init',
+  NETWORK = 'network',
+  DEVICE = 'device',
 }
 
 export enum BreadcrumbMessageFormat {

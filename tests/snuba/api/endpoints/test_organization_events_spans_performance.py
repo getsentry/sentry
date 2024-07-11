@@ -879,7 +879,7 @@ class OrganizationEventsSpansPerformanceEndpointTest(OrganizationEventsSpansEndp
         assert response.data == {
             "spanGroup": [
                 ErrorDetail(
-                    "spanGroup must be a valid 16 character hex (containing only digits, or a-f characters)",
+                    "`spanGroup` must be a valid 16 character hex (containing only digits, or a-f characters)",
                     code="invalid",
                 )
             ]
@@ -1197,7 +1197,7 @@ class OrganizationEventsSpansExamplesEndpointTest(OrganizationEventsSpansEndpoin
         assert response.data == {
             "span": [
                 ErrorDetail(
-                    "spanGroup must be a valid 16 character hex (containing only digits, or a-f characters)",
+                    "`spanGroup` must be a valid 16 character hex (containing only digits, or a-f characters)",
                     code="invalid",
                 )
             ]
@@ -1824,7 +1824,7 @@ class OrganizationEventsSpansStatsEndpointTest(OrganizationEventsSpansEndpointTe
         assert response.data == {
             "span": [
                 ErrorDetail(
-                    "spanGroup must be a valid 16 character hex (containing only digits, or a-f characters)",
+                    "`spanGroup` must be a valid 16 character hex (containing only digits, or a-f characters)",
                     code="invalid",
                 )
             ]

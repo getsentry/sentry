@@ -1,6 +1,8 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -17,13 +19,21 @@ import {
 } from 'sentry/components/events/breadcrumbs/utils';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
 import useDrawer from 'sentry/components/globalDrawer';
-import {IconClock, IconEllipsis, IconFilter, IconSearch, IconSort} from 'sentry/icons';
+import {
+  IconClock,
+  IconEllipsis,
+  IconFilter,
+  IconSearch,
+  IconSort,
+  IconTimer,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getShortEventId} from 'sentry/utils/events';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -66,16 +76,31 @@ export default function BreadcrumbsDataSection({
         organization,
       });
       openDrawer(
-        ({Body}) => (
-          <Body>
-            <BreadcrumbsDrawerContent
-              breadcrumbs={enhancedCrumbs}
-              group={group}
-              event={event}
-              project={project}
-              focusControl={focusControl}
-            />
-          </Body>
+        ({Header, Body}) => (
+          <Fragment>
+            <Header>
+              <NavigationCrumbs
+                crumbs={[
+                  {
+                    label: (
+                      <CrumbContainer>
+                        <ProjectAvatar project={project} />
+                        <ShortId>{group.shortId}</ShortId>
+                      </CrumbContainer>
+                    ),
+                  },
+                  {label: getShortEventId(event.id)},
+                  {label: t('Breadcrumbs')},
+                ]}
+              />
+            </Header>
+            <Body>
+              <BreadcrumbsDrawerContent
+                breadcrumbs={enhancedCrumbs}
+                focusControl={focusControl}
+              />
+            </Body>
+          </Fragment>
         ),
         {ariaLabel: 'breadcrumb drawer'}
       );
@@ -109,7 +134,13 @@ export default function BreadcrumbsDataSection({
       />
       <Button
         aria-label={t('Change Time Format for Breadcrumbs')}
-        icon={<IconClock size="xs" />}
+        icon={
+          timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE ? (
+            <IconClock size="xs" />
+          ) : (
+            <IconTimer size="xs" />
+          )
+        }
         onClick={() => {
           const nextTimeDisplay =
             timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE
@@ -142,6 +173,7 @@ export default function BreadcrumbsDataSection({
           startTimeString={startTimeString}
           // We want the timeline to appear connected to the 'View All' button
           showLastLine={hasViewAll}
+          isCompact
         />
         {hasViewAll && (
           <ViewAllContainer>
@@ -187,4 +219,21 @@ const VerticalEllipsis = styled(IconEllipsis)`
 
 const ViewAllButton = styled(Button)`
   padding: ${space(0.75)} ${space(1)};
+`;
+
+const NavigationCrumbs = styled(NavigationBreadcrumbs)`
+  margin: 0;
+  padding: 0;
+`;
+
+const CrumbContainer = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+`;
+
+const ShortId = styled('div')`
+  font-family: ${p => p.theme.text.family};
+  font-size: ${p => p.theme.fontSizeMedium};
+  line-height: 1;
 `;
