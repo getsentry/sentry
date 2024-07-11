@@ -55,6 +55,7 @@ export class ContinuousProfile extends Profile {
 
       profile.appendSample(
         resolvedStack,
+        // Chunk timestamps are in seconds, convert them to ms
         (nextSampleTimestamp - sample.timestamp) * 1e3,
         size
       );
