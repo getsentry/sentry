@@ -131,6 +131,7 @@ export function SearchQueryBuilder({
       onSearch,
       wrapperRef,
       handleSearch,
+      savedSearchType,
       searchSource,
       size,
     };
@@ -143,6 +144,7 @@ export function SearchQueryBuilder({
     dispatch,
     onSearch,
     handleSearch,
+    savedSearchType,
     searchSource,
     size,
   ]);
