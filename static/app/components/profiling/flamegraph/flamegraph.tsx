@@ -1385,6 +1385,7 @@ function Flamegraph(): ReactElement {
         batteryChart={
           hasBatteryChart ? (
             <FlamegraphChart
+              configViewUnit={flamegraph.profile.unit}
               status={profiles.type}
               chartCanvasRef={batteryChartCanvasRef}
               chartCanvas={batteryChartCanvas}
@@ -1406,6 +1407,7 @@ function Flamegraph(): ReactElement {
         memoryChart={
           hasMemoryChart ? (
             <FlamegraphChart
+              configViewUnit={flamegraph.profile.unit}
               status={profiles.type}
               chartCanvasRef={memoryChartCanvasRef}
               chartCanvas={memoryChartCanvas}
@@ -1431,6 +1433,7 @@ function Flamegraph(): ReactElement {
         cpuChart={
           hasCPUChart ? (
             <FlamegraphChart
+              configViewUnit={flamegraph.profile.unit}
               status={profiles.type}
               chartCanvasRef={cpuChartCanvasRef}
               chartCanvas={cpuChartCanvas}
