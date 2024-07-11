@@ -31,7 +31,7 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
 
         if request.GET.get("dataset"):
             try:
-                Dataset(request.GET.get("dataset"))
+                dataset = Dataset(request.GET.get("dataset", "discover"))
             except ValueError:
                 raise ParseError("Invalid dataset parameter")
 
@@ -43,7 +43,7 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
                     filter_params["start"],
                     filter_params["end"],
                     use_cache=request.GET.get("use_cache", "0") == "1",
-                    dataset=Dataset(request.GET.get("dataset", "discover")),
+                    dataset=dataset,
                     tenant_ids={"organization_id": organization.id},
                 )
 
@@ -57,7 +57,7 @@ class OrganizationTagsEndpoint(OrganizationEndpoint):
                     "custom_tags.count.grouped",
                     format_grouped_length(len(results), [1, 10, 50, 100]),
                 )
-                sentry_sdk.set_tag("dataset_queried", request.GET.get("dataset", "discover"))
+                sentry_sdk.set_tag("dataset_queried", dataset)
                 set_measurement("custom_tags.count", len(results))
 
         return Response(serialize(results, request.user))
