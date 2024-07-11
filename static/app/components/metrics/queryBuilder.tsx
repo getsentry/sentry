@@ -70,12 +70,9 @@ export const QueryBuilder = memo(function QueryBuilder({
     resolveVirtualMRI,
   ]);
 
-  const {data: tagsData = [], isLoading: tagsIsLoading} = useMetricsTags(
-    metricsQuery.mri,
-    {
-      projects: projectIds,
-    }
-  );
+  const {data: tagsData = [], isLoading: tagsIsLoading} = useMetricsTags(resolvedMRI, {
+    projects: projectIds,
+  });
 
   const groupByOptions = useMemo(() => {
     return uniqBy(tagsData, 'key').map(tag => ({
