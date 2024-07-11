@@ -912,6 +912,67 @@ def _get_mobile_browser_performance_profiles(organization: Organization) -> list
     ]
 
 
+def _get_default_browser_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
+    if not features.has("organizations:insights-default-performance-score-profiles", organization):
+        return []
+    optional = _should_performance_profiles_web_vitals_be_optional(organization)
+    return [
+        {
+            "name": "Default",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 900.0,
+                    "p50": 1600.0,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 1200.0,
+                    "p50": 2400.0,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.15,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 200.0,
+                    "p50": 400.0,
+                    "optional": optional,
+                },
+            ],
+            "condition": {
+                "op": "and",
+                "inner": [],
+            },
+        },
+        {
+            "name": "Default INP",
+            "scoreComponents": [
+                {
+                    "measurement": "inp",
+                    "weight": 1.0,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "and",
+                "inner": [],
+            },
+        },
+    ]
+
+
 def _get_mobile_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
     if not features.has(
         "organizations:performance-calculate-mobile-perf-score-relay", organization
@@ -1053,6 +1114,7 @@ def _get_project_config(
         *_get_desktop_browser_performance_profiles(project.organization),
         *_get_mobile_browser_performance_profiles(project.organization),
         *_get_mobile_performance_profiles(project.organization),
+        *_get_default_browser_performance_profiles(project.organization),
     ]
     if performance_score_profiles:
         config["performanceScore"] = {"profiles": performance_score_profiles}
