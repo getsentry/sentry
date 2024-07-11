@@ -6,7 +6,7 @@ from sentry.testutils.silo import control_silo_test
 
 
 @control_silo_test
-class ApiTokenDetailTest(APITestCase):
+class ApiTokenGetTest(APITestCase):
     endpoint = "sentry-api-0-api-token-details"
 
     def test_simple(self):
@@ -42,7 +42,7 @@ class ApiTokenDetailTest(APITestCase):
 
 
 @control_silo_test
-class ApiTokenEditTest(APITestCase):
+class ApiTokenPutTest(APITestCase):
     endpoint = "sentry-api-0-api-token-details"
     method = "PUT"
 
@@ -70,7 +70,7 @@ class ApiTokenEditTest(APITestCase):
             == "max-age=0, no-cache, no-store, must-revalidate, private"
         )
 
-    def test_delete_name(self):
+    def test_remove_name(self):
         token = ApiToken.objects.create(user=self.user, name="name")
         payload = {"name": ""}
 
