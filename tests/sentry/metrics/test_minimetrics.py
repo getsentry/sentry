@@ -78,7 +78,7 @@ class DummyTransport(Transport):
 @pytest.fixture(scope="function")
 def scope():
     scope = sentry_sdk.Scope(
-        ty=sentry_sdk.scope.ScopeType.ISOLATION,
+        ty=sentry_sdk.scope.ScopeType.CURRENT,
         client=Client(
             dsn="http://foo@example.invalid/42",
             transport=DummyTransport,
@@ -89,7 +89,7 @@ def scope():
             traces_sample_rate=1.0,
         ),
     )
-    with sentry_sdk.scope.use_isolation_scope(scope):
+    with sentry_sdk.scope.use_scope(scope):
         yield scope
 
 
