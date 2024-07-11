@@ -185,7 +185,7 @@ export function StructuredData({
     );
   }
 
-  if (typeof value === 'string' || config?.isString?.(value)) {
+  if (typeof value === 'string') {
     if (config?.isString?.(value)) {
       const stringValue = config.renderString?.(value) ?? value;
 
