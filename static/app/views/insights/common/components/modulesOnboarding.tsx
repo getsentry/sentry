@@ -121,7 +121,7 @@ function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
           external
           href={MODULE_PRODUCT_DOC_LINKS[moduleName]}
         >
-          {t('Learn More')}
+          {t('Read the docs')}
         </LinkButton>
       </Container>
     </Panel>
