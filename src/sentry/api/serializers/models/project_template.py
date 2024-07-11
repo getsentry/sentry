@@ -24,15 +24,18 @@ class SerializedProjectTemplate(TypedDict, total=False):
 
 @register(ProjectTemplate)
 class ProjectTemplateSerializer(Serializer):
-    def __init__(self, expand: Iterable[str] | None = None) -> None:
+    def __init__(self, expand: Iterable[ProjectTemplateAttributes] | None = None) -> None:
         self.expand = expand
 
-    def _expand(self, key: str) -> bool:
+    def _expand(self, key: ProjectTemplateAttributes) -> bool:
         return self.expand is not None and key in self.expand
 
     def get_attrs(self, item_list: Sequence[ProjectTemplate], user: User, **kwargs: Any):
         attrs = super().get_attrs(item_list, user, **kwargs)
         all_attrs: dict[ProjectTemplate, dict[ProjectTemplateAttributes, Any]] = defaultdict(dict)
+
+        for template in item_list:
+            all_attrs[template] = attrs.get(template, {})
 
         if self._expand(ProjectTemplateAttributes.OPTIONS):
             for template in item_list:
@@ -43,10 +46,6 @@ class ProjectTemplateSerializer(Serializer):
                 }
 
                 all_attrs[template][ProjectTemplateAttributes.OPTIONS] = serialized_options
-
-                # Merge the attrs from the parent with the options
-                for key in attrs.get(template, {}).keys():
-                    all_attrs[template][key] = attrs.get(template, {}).get(key)
 
         return all_attrs
 
