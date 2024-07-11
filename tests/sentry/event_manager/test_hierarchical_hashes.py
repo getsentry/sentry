@@ -202,42 +202,6 @@ def test_partial_move(default_project, fast_save):
 
 
 class EventManagerGroupingTest(TestCase):
-    def save_event(self):
-        manager = EventManager(
-            make_event(
-                message="foo 123",
-                event_id=hex(2**127)[-32:],
-                exception={
-                    "values": [
-                        {
-                            "type": "Hello",
-                            "stacktrace": {
-                                "frames": [
-                                    {"function": "not_in_app_function"},
-                                    {"function": "in_app_function"},
-                                ]
-                            },
-                        }
-                    ]
-                },
-            )
-        )
-        manager.normalize()
-        with self.tasks():
-            return manager.save(self.project.id)
-
-    def set_options(self, primary_config):
-        self.project.update_option("sentry:grouping_config", primary_config)
-        self.project.update_option("sentry:secondary_grouping_expiry", 0)
-
-    def transition_to_new_config(self, new_config):
-        original_config = self.project.get_option("sentry:grouping_config")
-        self.project.update_option("sentry:grouping_config", new_config)
-        self.project.update_option("sentry:secondary_grouping_config", original_config)
-        self.project.update_option(
-            "sentry:secondary_grouping_expiry", time.time() + (24 * 90 * 3600)
-        )
-
     def test_can_upgrade_to_hierarchical_config(self):
         hierarchical_hashes = [
             "be778d6d6543432ae89b3e0f94ebff80",
@@ -307,3 +271,39 @@ class EventManagerGroupingTest(TestCase):
         self.project.update_option("sentry:secondary_grouping_expiry", 0)
         event3 = self.save_event()
         assert event3.group_id == event2.group_id
+
+    def save_event(self):
+        manager = EventManager(
+            make_event(
+                message="foo 123",
+                event_id=hex(2**127)[-32:],
+                exception={
+                    "values": [
+                        {
+                            "type": "Hello",
+                            "stacktrace": {
+                                "frames": [
+                                    {"function": "not_in_app_function"},
+                                    {"function": "in_app_function"},
+                                ]
+                            },
+                        }
+                    ]
+                },
+            )
+        )
+        manager.normalize()
+        with self.tasks():
+            return manager.save(self.project.id)
+
+    def set_options(self, primary_config):
+        self.project.update_option("sentry:grouping_config", primary_config)
+        self.project.update_option("sentry:secondary_grouping_expiry", 0)
+
+    def transition_to_new_config(self, new_config):
+        original_config = self.project.get_option("sentry:grouping_config")
+        self.project.update_option("sentry:grouping_config", new_config)
+        self.project.update_option("sentry:secondary_grouping_config", original_config)
+        self.project.update_option(
+            "sentry:secondary_grouping_expiry", time.time() + (24 * 90 * 3600)
+        )
