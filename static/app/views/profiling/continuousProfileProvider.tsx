@@ -32,7 +32,7 @@ function fetchContinuousProfileFlamegraph(
       },
       includeAllArgs: true,
     })
-    .then(([data]) => data);
+    .then(([data]) => data.chunk);
 }
 
 type ContinuousProfileProviderValue = RequestState<Profiling.ProfileInput>;

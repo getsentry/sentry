@@ -1,3 +1,4 @@
+import {ContinuousProfile} from 'sentry/utils/profiling/profile/continuousProfile';
 import {EventedProfile} from 'sentry/utils/profiling/profile/eventedProfile';
 import {
   importProfile,
@@ -6,6 +7,7 @@ import {
 import {JSSelfProfile} from 'sentry/utils/profiling/profile/jsSelfProfile';
 import {SampledProfile} from 'sentry/utils/profiling/profile/sampledProfile';
 
+import {makeSentryContinuousProfile} from './continuousProfile.spec';
 import {SentrySampledProfile} from './sentrySampledProfile';
 import {makeSentrySampledProfile} from './sentrySampledProfile.spec';
 
@@ -138,6 +140,14 @@ describe('importProfile', () => {
     const imported = importProfile(sentrySampledProfile, 'profile', 'flamegraph');
 
     expect(imported.profiles[0]).toBeInstanceOf(SentrySampledProfile);
+  });
+
+  it('imports sentry continuous profile', () => {
+    const continuousProfile = makeSentryContinuousProfile();
+
+    const imported = importProfile(continuousProfile, 'profile', 'flamegraph');
+
+    expect(imported.profiles[0]).toBeInstanceOf(ContinuousProfile);
   });
 
   it('throws on unrecognized profile type', () => {

@@ -1967,7 +1967,7 @@ function buildRoutes() {
         <Route
           path="flamegraph/"
           component={make(
-            () => import('sentry/views/profiling/continuousProfileFlamechart')
+            () => import('sentry/views/profiling/continuousProfileFlamegraph')
           )}
         />
       </Route>
