@@ -65,7 +65,12 @@ export function ModulesOnboarding({
       </ModuleLayout.Full>
     );
   }
+
   if (!onboardingProject && hasData) {
+    return children;
+  }
+
+  if (!onboardingContent) {
     return children;
   }
   // TODO: Add an error state?
