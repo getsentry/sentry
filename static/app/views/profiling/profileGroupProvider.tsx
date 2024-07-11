@@ -2,10 +2,13 @@ import {createContext, useContext, useMemo} from 'react';
 import * as Sentry from '@sentry/react';
 
 import type {Frame} from 'sentry/utils/profiling/frame';
-import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import type {
+  ContinuousProfileGroup,
+  ProfileGroup,
+} from 'sentry/utils/profiling/profile/importProfile';
 import {importProfile} from 'sentry/utils/profiling/profile/importProfile';
 
-type ProfileGroupContextValue = ProfileGroup;
+type ProfileGroupContextValue = ContinuousProfileGroup | ProfileGroup;
 
 const ProfileGroupContext = createContext<ProfileGroupContextValue | null>(null);
 
@@ -49,7 +52,7 @@ export function ProfileGroupProvider(props: ProfileGroupProviderProps) {
   }, [props.input, props.traceID, props.type, props.frameFilter]);
 
   return (
-    <ProfileGroupContext.Provider value={profileGroup}>
+    <ProfileGroupContext.Provider value={profileGroup as ContinuousProfileGroup}>
       {props.children}
     </ProfileGroupContext.Provider>
   );

@@ -202,7 +202,7 @@ function Flamegraph(): ReactElement {
 
   const profiles = useProfiles();
   const setProfiles = useSetProfiles();
-  const profileGroup = useProfileGroup();
+  const profileGroup = useProfileGroup() as ProfileGroup;
 
   const flamegraphTheme = useFlamegraphTheme();
   const position = useFlamegraphZoomPosition();
@@ -391,7 +391,7 @@ function Flamegraph(): ReactElement {
           ...profileGroup.measurements[key]!,
           values: profileGroup.measurements[key]!.values.map(v => {
             return {
-              elapsed_since_start_ns: v.elapsed_since_start_ns,
+              elapsed: v.elapsed_since_start_ns,
               value: fromNanoJoulesToWatts(v.value, 0.1),
             };
           }),
@@ -414,7 +414,7 @@ function Flamegraph(): ReactElement {
       return LOADING_OR_FALLBACK_CPU_CHART;
     }
 
-    const measures: ProfileSeriesMeasurement[] = [];
+    const cpuMeasurements: ProfileSeriesMeasurement[] = [];
 
     for (const key in profileGroup.measurements) {
       if (key.startsWith('cpu_usage')) {
@@ -422,13 +422,24 @@ function Flamegraph(): ReactElement {
           key === 'cpu_usage'
             ? 'Average CPU usage'
             : `CPU Core ${key.replace('cpu_usage_', '')}`;
-        measures.push({...profileGroup.measurements[key]!, name});
+
+        const measurements = profileGroup.measurements[key]!;
+        const values: ProfileSeriesMeasurement['values'] = [];
+
+        for (let i = 0; i < measurements.values.length; i++) {
+          const value = measurements.values[i];
+          values.push({
+            value: value.value,
+            elapsed: value.elapsed_since_start_ns,
+          });
+        }
+        cpuMeasurements.push({name, unit: measurements?.unit, values});
       }
     }
 
     return new FlamegraphChartModel(
       Rect.From(flamegraph.configSpace),
-      measures.length > 0 ? measures : [],
+      cpuMeasurements.length > 0 ? cpuMeasurements : [],
       flamegraphTheme.COLORS.CPU_CHART_COLORS
     );
   }, [profileGroup.measurements, flamegraph.configSpace, flamegraphTheme, hasCPUChart]);
@@ -442,17 +453,39 @@ function Flamegraph(): ReactElement {
 
     const memory_footprint = profileGroup.measurements?.memory_footprint;
     if (memory_footprint) {
+      const values: ProfileSeriesMeasurement['values'] = [];
+
+      for (let i = 0; i < memory_footprint.values.length; i++) {
+        const value = memory_footprint.values[i];
+        values.push({
+          value: value.value,
+          elapsed: value.elapsed_since_start_ns,
+        });
+      }
+
       measures.push({
-        ...memory_footprint!,
+        unit: memory_footprint.unit,
         name: 'Heap Usage',
+        values,
       });
     }
 
     const native_memory_footprint = profileGroup.measurements?.memory_native_footprint;
     if (native_memory_footprint) {
+      const values: ProfileSeriesMeasurement['values'] = [];
+
+      for (let i = 0; i < native_memory_footprint.values.length; i++) {
+        const value = native_memory_footprint.values[i];
+        values.push({
+          value: value.value,
+          elapsed: value.elapsed_since_start_ns,
+        });
+      }
+
       measures.push({
-        ...native_memory_footprint!,
+        unit: native_memory_footprint.unit,
         name: 'Native Heap Usage',
+        values,
       });
     }
 
