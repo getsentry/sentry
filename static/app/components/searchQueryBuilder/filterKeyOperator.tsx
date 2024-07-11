@@ -21,6 +21,8 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type FilterOperatorProps = {
   item: Node<ParseResultToken>;
@@ -186,7 +188,8 @@ function getOperatorInfo(token: TokenResult<Token.FILTER>): {
 }
 
 export function FilterKeyOperator({token, state, item}: FilterOperatorProps) {
-  const {dispatch} = useSearchQueryBuilder();
+  const organization = useOrganization();
+  const {dispatch, searchSource, query, savedSearchType} = useSearchQueryBuilder();
   const filterButtonProps = useFilterButtonProps({state, item});
 
   const {operator, label, options} = useMemo(() => getOperatorInfo(token), [token]);
@@ -206,6 +209,15 @@ export function FilterKeyOperator({token, state, item}: FilterOperatorProps) {
       options={options}
       value={operator}
       onChange={option => {
+        trackAnalytics('search.operator_autocompleted', {
+          organization,
+          query,
+          search_type: savedSearchType === 0 ? 'issues' : 'events',
+          search_source: searchSource,
+          new_experience: true,
+          search_operator: option.value,
+          filter_key: token.key.text,
+        });
         dispatch({
           type: 'UPDATE_FILTER_OP',
           token,

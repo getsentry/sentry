@@ -54,7 +54,11 @@ export default function BreadcrumbsItemContent({
 
   if (bc?.type === BreadcrumbType.HTTP) {
     return (
-      <HTTPCrumbContent breadcrumb={bc} meta={meta} fullyExpanded={fullyExpanded}>
+      <HTTPCrumbContent
+        breadcrumb={bc}
+        meta={meta}
+        structuredDataProps={structuredDataProps}
+      >
         {defaultMessage}
       </HTTPCrumbContent>
     );
@@ -84,11 +88,11 @@ function HTTPCrumbContent({
   breadcrumb,
   meta,
   children = null,
-  fullyExpanded,
+  structuredDataProps,
 }: {
   breadcrumb: BreadcrumbTypeHTTP;
   children: React.ReactNode;
-  fullyExpanded: boolean;
+  structuredDataProps: typeof DEFAULT_STRUCTURED_DATA_PROPS;
   meta?: Record<string, any>;
 }) {
   const {method, url, status_code: statusCode, ...otherData} = breadcrumb?.data ?? {};
@@ -109,12 +113,7 @@ function HTTPCrumbContent({
       </Timeline.Text>
       {Object.keys(otherData).length > 0 ? (
         <Timeline.Data>
-          <StructuredData
-            value={otherData}
-            meta={meta}
-            {...DEFAULT_STRUCTURED_DATA_PROPS}
-            forceDefaultExpand={fullyExpanded}
-          />
+          <StructuredData value={otherData} meta={meta} {...structuredDataProps} />
         </Timeline.Data>
       ) : null}
     </Fragment>

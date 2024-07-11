@@ -151,6 +151,10 @@ function FormWrapper({
         unit: 'none',
         conditions: data.conditions,
         projectId: Number(projectId),
+        // Will be set by the backend
+        createdById: null,
+        dateAdded: '',
+        dateUpdated: '',
       };
 
       createExtractionRuleMutation.mutate(

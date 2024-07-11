@@ -517,7 +517,6 @@ describe('SearchQueryBuilder', function () {
       // jsdom does not support clipboard API
       Object.assign(navigator, {
         clipboard: {
-          readText: jest.fn().mockResolvedValue(''),
           writeText: jest.fn().mockResolvedValue(''),
         },
       });
@@ -757,8 +756,8 @@ describe('SearchQueryBuilder', function () {
         expect(token).toHaveAttribute('aria-selected', 'true');
       }
 
-      // Focus should be on the grid container
-      expect(screen.getByRole('grid')).toHaveFocus();
+      // Focus should be on the selection key handler input
+      expect(screen.getByTestId('selection-key-handler')).toHaveFocus();
 
       // Pressing delete should remove all selected tokens
       await userEvent.keyboard('{Backspace}');
@@ -816,7 +815,6 @@ describe('SearchQueryBuilder', function () {
     });
 
     it('replaces selection with pasted content with ctrl+v', async function () {
-      jest.spyOn(navigator.clipboard, 'readText').mockResolvedValue('foo');
       const mockOnChange = jest.fn();
       render(
         <SearchQueryBuilder
@@ -828,7 +826,7 @@ describe('SearchQueryBuilder', function () {
 
       await userEvent.click(getLastInput());
       await userEvent.keyboard('{Control>}a{/Control}');
-      await userEvent.keyboard('{Control>}v{/Control}');
+      await userEvent.paste('foo');
       expect(
         screen.queryByRole('row', {name: 'browser.name:firefox'})
       ).not.toBeInTheDocument();
@@ -1474,6 +1472,73 @@ describe('SearchQueryBuilder', function () {
         expect(screen.getByText('is on or after')).toBeInTheDocument();
         expect(screen.getByText('Oct 17, 2:00 PM UTC')).toBeInTheDocument();
       });
+    });
+  });
+
+  describe('disallowLogicalOperators', function () {
+    it('should mark AND invalid', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowLogicalOperators
+          initialQuery="and"
+        />
+      );
+
+      expect(screen.getByRole('row', {name: 'and'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(screen.getByRole('row', {name: 'and'}));
+      expect(
+        await screen.findByText('The AND operator is not allowed in this search')
+      ).toBeInTheDocument();
+    });
+
+    it('should mark OR invalid', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowLogicalOperators
+          initialQuery="or"
+        />
+      );
+
+      expect(screen.getByRole('row', {name: 'or'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(screen.getByRole('row', {name: 'or'}));
+      expect(
+        await screen.findByText('The OR operator is not allowed in this search')
+      ).toBeInTheDocument();
+    });
+
+    it('should mark parens invalid', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowLogicalOperators
+          initialQuery="()"
+        />
+      );
+
+      expect(screen.getByRole('row', {name: '('})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      expect(screen.getByRole('row', {name: ')'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(screen.getByRole('row', {name: '('}));
+      expect(
+        await screen.findByText('Parentheses are not supported in this search')
+      ).toBeInTheDocument();
     });
   });
 });

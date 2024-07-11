@@ -207,6 +207,12 @@ export function HTTPSamplesPanel() {
     fields: ['span.status_code', 'count()'],
     yAxis: ['count()'],
     topEvents: 5,
+    sorts: [
+      {
+        kind: 'desc',
+        field: 'count()',
+      },
+    ],
     enabled: isPanelOpen && query.panel === 'status',
     referrer: Referrer.SAMPLES_PANEL_RESPONSE_CODE_CHART,
   });
@@ -489,7 +495,6 @@ export function HTTPSamplesPanel() {
                 onSearch={handleSearch}
                 placeholder={t('Search for span attributes')}
                 organization={organization}
-                metricAlert={false}
                 supportedTags={supportedTags}
                 dataset={DiscoverDatasets.SPANS_INDEXED}
                 projectIds={selection.projects}

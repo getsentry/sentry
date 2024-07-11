@@ -52,6 +52,7 @@ from sentry.constants import (
     SAFE_FIELDS_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     SENSITIVE_FIELDS_DEFAULT,
+    UPTIME_AUTODETECTION,
 )
 from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
 from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
@@ -206,6 +207,7 @@ ORG_OPTIONS = (
         METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
     ),
     ("extrapolateMetrics", "sentry:extrapolate_metrics", bool, EXTRAPOLATE_METRICS_DEFAULT),
+    ("uptimeAutodetection", "sentry:uptime_autodetection", bool, UPTIME_AUTODETECTION),
 )
 
 DELETION_STATUSES = frozenset(
@@ -266,6 +268,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
     extrapolateMetrics = serializers.BooleanField(required=False)
+    uptimeAutodetection = serializers.BooleanField(required=False)
 
     @cached_property
     def _has_legacy_rate_limits(self):
@@ -278,6 +281,24 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         org = self.context["organization"]
         org_auth_provider = auth_service.get_auth_provider(organization_id=org.id)
         return org_auth_provider is not None
+
+    def validate_extrapolateMetrics(self, value):
+        from sentry import features
+
+        organization = self.context["organization"]
+        request = self.context["request"]
+
+        # Metrics extrapolation can only be toggled when the metrics-extrapolation flag is enabled.
+        has_metrics_extrapolation = features.has(
+            "organizations:metrics-extrapolation", organization, actor=request.user
+        )
+
+        if not has_metrics_extrapolation:
+            raise serializers.ValidationError(
+                "Organization does not have the metrics extrapolation feature enabled"
+            )
+        else:
+            return value
 
     def validate_relayPiiConfig(self, value):
         organization = self.context["organization"]
