@@ -20,6 +20,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
+import {Ribbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/centerTruncate';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
@@ -155,7 +156,7 @@ export function SpanSamplesContainer({
         )}
       </PaddedTitle>
 
-      <MetricsRibbon>
+      <Ribbon>
         <MetricReadout
           title={DataTitles.avg}
           align="left"
@@ -168,7 +169,7 @@ export function SpanSamplesContainer({
           value={spanMetrics?.['count()'] ?? 0}
           unit="count"
         />
-      </MetricsRibbon>
+      </Ribbon>
 
       <DurationChart
         spanSearch={spanSearch}
@@ -249,12 +250,6 @@ const SectionTitle = styled('div')`
 
 const PaddedTitle = styled('div')`
   margin-bottom: ${space(1)};
-`;
-
-const MetricsRibbon = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(4)};
 `;
 
 const StyledSearchBar = styled(SearchBar)`
