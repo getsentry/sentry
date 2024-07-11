@@ -312,7 +312,7 @@ class ProjectGeneralSettings extends DeprecatedAsyncView<Props, State> {
       setValue(_, _name) {
         return project.id;
       },
-      help: `This is the project's unique identifier. It cannot be changed.`,
+      help: `The unique identifier for this project. It cannot be modified.`,
     };
 
     return (

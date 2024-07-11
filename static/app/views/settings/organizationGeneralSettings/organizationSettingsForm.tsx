@@ -57,7 +57,7 @@ function OrganizationSettingsForm({initialData, onSave}: Props) {
       setValue(_, _name) {
         return organization.id;
       },
-      help: `This is the organization's unique identifier. It cannot be changed.`,
+      help: `The unique identifier for this organization. It cannot be modified.`,
     };
 
     formsConfig[0].fields = [
