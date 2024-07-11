@@ -89,6 +89,8 @@ describe('OrganizationStats', function () {
   it('renders the base view', async () => {
     render(<OrganizationStats {...defaultProps} />, {router});
 
+    expect(await screen.findByTestId('usage-stats-chart')).toBeInTheDocument();
+
     // Default to Errors category
     expect(screen.getAllByText('Errors')[0]).toBeInTheDocument();
 
@@ -98,7 +100,7 @@ describe('OrganizationStats', function () {
 
     // Render the cards
     expect(screen.getAllByText('Total')[0]).toBeInTheDocument();
-    expect(screen.getByText('64')).toBeInTheDocument();
+    expect(screen.getByText('67')).toBeInTheDocument();
 
     expect(screen.getAllByText('Accepted')[0]).toBeInTheDocument();
     expect(screen.getByText('28')).toBeInTheDocument();
@@ -107,8 +109,11 @@ describe('OrganizationStats', function () {
     expect(screen.getAllByText('Filtered')[0]).toBeInTheDocument();
     expect(screen.getAllByText('7')[0]).toBeInTheDocument();
 
-    expect(screen.getAllByText('Dropped')[0]).toBeInTheDocument();
-    expect(screen.getAllByText('29')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('Rate Limited')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('17')[0]).toBeInTheDocument();
+
+    expect(screen.getAllByText('Invalid')[0]).toBeInTheDocument();
+    expect(screen.getAllByText('15')[0]).toBeInTheDocument();
 
     // Correct API Calls
     const mockExpectations = {
@@ -482,6 +487,32 @@ const mockStatsResponse = {
       },
       series: {
         'sum(quantity)': [2, 2, 2, 2, 2, 2, 2],
+      },
+    },
+    {
+      by: {
+        project: 1,
+        category: 'error',
+        outcome: 'abuse',
+      },
+      totals: {
+        'sum(quantity)': 2,
+      },
+      series: {
+        'sum(quantity)': [2, 0, 0, 0, 0, 0, 0],
+      },
+    },
+    {
+      by: {
+        project: 1,
+        category: 'error',
+        outcome: 'cardinality_limited',
+      },
+      totals: {
+        'sum(quantity)': 1,
+      },
+      series: {
+        'sum(quantity)': [1, 0, 0, 0, 0, 0, 0],
       },
     },
     {

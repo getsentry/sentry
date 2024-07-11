@@ -3,7 +3,6 @@ import color from 'color';
 
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
-import {Outcome} from 'sentry/types';
 
 const lightColors = {
   black: '#1D1127',
@@ -418,15 +417,6 @@ const dataCategory = {
   [DATA_CATEGORY_INFO.attachment.plural]: CHART_PALETTE[4][1],
   [DATA_CATEGORY_INFO.replay.plural]: CHART_PALETTE[4][4],
   [DATA_CATEGORY_INFO.monitorSeat.plural]: CHART_PALETTE[4][5],
-};
-
-/**
- * Default colors for data usage outcomes
- */
-const outcome = {
-  [Outcome.ACCEPTED]: CHART_PALETTE[0][0],
-  [Outcome.FILTERED]: CHART_PALETTE[1][1],
-  [Outcome.DROPPED]: CHART_PALETTE[5][3],
 };
 
 const generateAlertTheme = (colors: BaseColors, alias: Aliases) => ({
@@ -884,7 +874,6 @@ const commonTheme = {
   },
 
   dataCategory,
-  outcome,
 
   tag: generateTagTheme(lightColors),
 

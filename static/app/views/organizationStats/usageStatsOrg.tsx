@@ -130,8 +130,9 @@ class UsageStatsOrganization<
   get chartData(): {
     cardStats: {
       accepted?: string;
-      dropped?: string;
       filtered?: string;
+      invalid?: string;
+      rateLimited?: string;
       total?: string;
     };
     chartDateEnd: string;
@@ -268,7 +269,7 @@ class UsageStatsOrganization<
 
   get cardMetadata() {
     const {dataCategory, dataCategoryName, organization, projectIds, router} = this.props;
-    const {total, accepted, dropped, filtered} = this.chartData.cardStats;
+    const {total, accepted, invalid, rateLimited, filtered} = this.chartData.cardStats;
 
     const navigateToInboundFilterSettings = (event: ReactMouseEvent) => {
       event.preventDefault();
@@ -310,13 +311,21 @@ class UsageStatsOrganization<
         ),
         score: filtered,
       },
-      dropped: {
-        title: tct('Dropped [dataCategory]', {dataCategory: dataCategoryName}),
+      rateLimited: {
+        title: tct('Rate Limited [dataCategory]', {dataCategory: dataCategoryName}),
         help: tct(
-          'Dropped [dataCategory] were discarded due to invalid data, rate-limits, quota limits, or spike protection',
+          'Rate Limited [dataCategory] were discarded due to rate-limits, abuse, or cardinality limits',
           {dataCategory}
         ),
-        score: dropped,
+        score: rateLimited,
+      },
+      invalid: {
+        title: tct('Invalid [dataCategory]', {dataCategory: dataCategoryName}),
+        help: tct(
+          'Invalid [dataCategory] were sent by the SDK and were discarded because the data did not meet the basic schema requirements',
+          {dataCategory}
+        ),
+        score: invalid,
       },
     };
     return cardMetadata;
@@ -325,8 +334,9 @@ class UsageStatsOrganization<
   mapSeriesToChart(orgStats?: UsageSeries): {
     cardStats: {
       accepted?: string;
-      dropped?: string;
       filtered?: string;
+      invalid?: string;
+      rateLimited?: string;
       total?: string;
     };
     chartStats: ChartStats;
@@ -336,14 +346,17 @@ class UsageStatsOrganization<
     const cardStats = {
       total: undefined,
       accepted: undefined,
-      dropped: undefined,
       filtered: undefined,
+      invalid: undefined,
+      rateLimited: undefined,
     };
     const chartStats: ChartStats = {
       accepted: [],
-      dropped: [],
-      projected: [],
       filtered: [],
+      rateLimited: [],
+      invalid: [],
+      clientDiscard: [],
+      projected: [],
     };
     const chartSubLabels: TooltipSubLabel[] = [];
 
@@ -363,20 +376,22 @@ class UsageStatsOrganization<
           total: 0,
           accepted: 0,
           filtered: 0,
-          dropped: {total: 0},
+          rateLimited: 0,
+          invalid: 0,
+          clientDiscard: 0,
         };
       });
 
       // Tally totals for card data
-      const count: Record<'total' | Outcome, number> = {
+      const count = {
         total: 0,
         [Outcome.ACCEPTED]: 0,
         [Outcome.FILTERED]: 0,
-        [Outcome.DROPPED]: 0,
-        [Outcome.INVALID]: 0, // Combined with dropped later
+        [Outcome.INVALID]: 0,
         [Outcome.RATE_LIMITED]: 0, // Combined with dropped later
-        [Outcome.CLIENT_DISCARD]: 0, // Not exposed yet
+        [Outcome.CLIENT_DISCARD]: 0,
         [Outcome.CARDINALITY_LIMITED]: 0, // Combined with dropped later
+        [Outcome.ABUSE]: 0, // Combined with dropped later
       };
 
       orgStats.groups.forEach(group => {
@@ -408,70 +423,72 @@ class UsageStatsOrganization<
             subLabel => subLabel.label === label
           );
 
-          if (outcome === Outcome.FILTERED) {
-            usageStats[i][outcome] += stat;
+          // Combine rate limited counts
+          count[Outcome.RATE_LIMITED] +=
+            count[Outcome.ABUSE] + count[Outcome.CARDINALITY_LIMITED];
 
+          // Function to handle chart sub-label updates
+          const updateChartSubLabels = (parentLabel: SeriesTypes) => {
             if (existingSubLabel) {
-              existingSubLabel.data.push({
-                ...dataObject,
-                value: dataObject.value,
+              existingSubLabel.data.push(dataObject);
+            } else {
+              chartSubLabels.push({
+                parentLabel,
+                label,
+                data: [dataObject],
               });
-              return;
             }
+          };
 
-            chartSubLabels.push({
-              parentLabel: SeriesTypes.FILTERED,
-              label,
-              data: [dataObject],
-            });
-
-            return;
-          }
-
-          if (outcome === Outcome.ACCEPTED) {
-            usageStats[i][outcome] += stat;
-            return;
-          }
-
-          if (
-            outcome === Outcome.DROPPED ||
-            outcome === Outcome.RATE_LIMITED ||
-            outcome === Outcome.CARDINALITY_LIMITED ||
-            outcome === Outcome.INVALID
-          ) {
-            usageStats[i].dropped.total += stat;
-
-            if (existingSubLabel) {
-              existingSubLabel.data.push({
-                ...dataObject,
-                value: dataObject.value,
-              });
-              return;
-            }
-
-            chartSubLabels.push({
-              parentLabel: SeriesTypes.DROPPED,
-              label,
-              data: [dataObject],
-            });
+          switch (outcome) {
+            case Outcome.FILTERED:
+              usageStats[i].filtered += stat;
+              updateChartSubLabels(SeriesTypes.FILTERED);
+              break;
+            case Outcome.ACCEPTED:
+              usageStats[i].accepted += stat;
+              break;
+            case Outcome.CARDINALITY_LIMITED:
+            case Outcome.RATE_LIMITED:
+            case Outcome.ABUSE:
+              usageStats[i].rateLimited += stat;
+              updateChartSubLabels(SeriesTypes.RATE_LIMITED);
+              break;
+            case Outcome.CLIENT_DISCARD:
+              usageStats[i].clientDiscard += stat;
+              updateChartSubLabels(SeriesTypes.CLIENT_DISCARD);
+              break;
+            case Outcome.INVALID:
+              usageStats[i].invalid += stat;
+              updateChartSubLabels(SeriesTypes.INVALID);
+              break;
+            default:
+              break;
           }
         });
       });
 
-      // Invalid and rate_limited data is combined with dropped
-      count[Outcome.DROPPED] += count[Outcome.INVALID];
-      count[Outcome.DROPPED] += count[Outcome.RATE_LIMITED];
-      count[Outcome.DROPPED] += count[Outcome.CARDINALITY_LIMITED];
-
       usageStats.forEach(stat => {
-        stat.total = stat.accepted + stat.filtered + stat.dropped.total;
+        stat.total = [
+          stat.accepted,
+          stat.filtered,
+          stat.rateLimited,
+          stat.invalid,
+          stat.clientDiscard,
+        ].reduce((acc, val) => acc + val, 0);
 
         // Chart Data
-        (chartStats.accepted as any[]).push({value: [stat.date, stat.accepted]});
-        (chartStats.dropped as any[]).push({
-          value: [stat.date, stat.dropped.total],
-        } as any);
-        (chartStats.filtered as any[])?.push({value: [stat.date, stat.filtered]});
+        const chartData = [
+          {key: 'accepted', value: stat.accepted},
+          {key: 'filtered', value: stat.filtered},
+          {key: 'rateLimited', value: stat.rateLimited},
+          {key: 'invalid', value: stat.invalid},
+          {key: 'clientDiscard', value: stat.clientDiscard},
+        ];
+
+        chartData.forEach(data => {
+          (chartStats[data.key] as any[]).push({value: [stat.date, data.value]});
+        });
       });
 
       return {
@@ -491,8 +508,13 @@ class UsageStatsOrganization<
             dataCategory,
             getFormatUsageOptions(dataCategory)
           ),
-          dropped: formatUsageWithUnits(
-            count[Outcome.DROPPED],
+          invalid: formatUsageWithUnits(
+            count[Outcome.INVALID],
+            dataCategory,
+            getFormatUsageOptions(dataCategory)
+          ),
+          rateLimited: formatUsageWithUnits(
+            count[Outcome.RATE_LIMITED],
             dataCategory,
             getFormatUsageOptions(dataCategory)
           ),
@@ -618,7 +640,7 @@ const PageGrid = styled('div')`
     grid-template-columns: repeat(2, 1fr);
   }
   @media (min-width: ${p => p.theme.breakpoints.large}) {
-    grid-template-columns: repeat(4, 1fr);
+    grid-template-columns: repeat(5, 1fr);
   }
 `;
 

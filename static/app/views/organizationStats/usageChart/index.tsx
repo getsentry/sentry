@@ -38,9 +38,10 @@ const COLOR_TRANSACTIONS = Color(commonTheme.dataCategory.transactions)
 const COLOR_ATTACHMENTS = Color(commonTheme.dataCategory.attachments)
   .lighten(0.65)
   .string();
-
-const COLOR_DROPPED = commonTheme.red300;
-const COLOR_FILTERED = commonTheme.pink100;
+const COLOR_FILTERED = commonTheme.purple200;
+const COLOR_RATE_LIMITED = commonTheme.green200;
+const COLOR_INVALID = commonTheme.red300;
+const COLOR_CLIENT_DISCARD = commonTheme.yellow300;
 
 export type CategoryOption = {
   /**
@@ -120,9 +121,11 @@ export const CHART_OPTIONS_DATA_TRANSFORM: SelectValue<ChartDataTransform>[] = [
 
 export const enum SeriesTypes {
   ACCEPTED = 'Accepted',
-  DROPPED = 'Dropped',
-  PROJECTED = 'Projected',
   FILTERED = 'Filtered',
+  RATE_LIMITED = 'Rate Limited',
+  INVALID = 'Invalid',
+  CLIENT_DISCARD = 'Client Discard',
+  PROJECTED = 'Projected',
 }
 
 export type UsageChartProps = {
@@ -192,9 +195,11 @@ const cumulativeTotalDataTransformation: UsageChartProps['handleDataTransformati
 ) => {
   const chartData: ChartStats = {
     accepted: [],
-    dropped: [],
-    projected: [],
     filtered: [],
+    rateLimited: [],
+    invalid: [],
+    clientDiscard: [],
+    projected: [],
     reserved: [],
     onDemand: [],
   };
@@ -226,10 +231,12 @@ const getUnitYaxisFormatter =
 
 export type ChartStats = {
   accepted: NonNullable<BarSeriesOption['data']>;
-  dropped: NonNullable<BarSeriesOption['data']>;
   projected: NonNullable<BarSeriesOption['data']>;
+  clientDiscard?: NonNullable<BarSeriesOption['data']>;
   filtered?: NonNullable<BarSeriesOption['data']>;
+  invalid?: NonNullable<BarSeriesOption['data']>;
   onDemand?: NonNullable<BarSeriesOption['data']>;
+  rateLimited?: NonNullable<BarSeriesOption['data']>;
   reserved?: NonNullable<BarSeriesOption['data']>;
 };
 
@@ -331,14 +338,35 @@ function chartColors(theme: Theme, dataCategory: UsageChartProps['dataCategory']
   const COLOR_PROJECTED = theme.chartOther;
 
   if (dataCategory === DATA_CATEGORY_INFO.error.plural) {
-    return [COLOR_ERRORS, COLOR_FILTERED, COLOR_DROPPED, COLOR_PROJECTED];
+    return [
+      COLOR_ERRORS,
+      COLOR_FILTERED,
+      COLOR_RATE_LIMITED,
+      COLOR_INVALID,
+      COLOR_CLIENT_DISCARD,
+      COLOR_PROJECTED,
+    ];
   }
 
   if (dataCategory === DATA_CATEGORY_INFO.attachment.plural) {
-    return [COLOR_ATTACHMENTS, COLOR_FILTERED, COLOR_DROPPED, COLOR_PROJECTED];
+    return [
+      COLOR_ATTACHMENTS,
+      COLOR_FILTERED,
+      COLOR_RATE_LIMITED,
+      COLOR_INVALID,
+      COLOR_CLIENT_DISCARD,
+      COLOR_PROJECTED,
+    ];
   }
 
-  return [COLOR_TRANSACTIONS, COLOR_FILTERED, COLOR_DROPPED, COLOR_PROJECTED];
+  return [
+    COLOR_TRANSACTIONS,
+    COLOR_FILTERED,
+    COLOR_RATE_LIMITED,
+    COLOR_INVALID,
+    COLOR_CLIENT_DISCARD,
+    COLOR_PROJECTED,
+  ];
 }
 
 function UsageChartBody({
@@ -401,34 +429,31 @@ function UsageChartBody({
     usageDateInterval,
     usageDateShowUtc,
   });
+  function chartLegendData(): LegendComponentOption['data'] {
+    const legend: LegendComponentOption['data'] = [];
 
-  function chartLegendData() {
-    const legend: LegendComponentOption['data'] = [
-      ...(chartData.reserved && chartData.reserved.length > 0
-        ? []
-        : [
-            {
-              name: SeriesTypes.ACCEPTED,
-            },
-          ]),
-    ];
-
-    if (chartData.filtered && chartData.filtered.length > 0) {
-      legend.push({
-        name: SeriesTypes.FILTERED,
-      });
+    if (!chartData.reserved || chartData.reserved.length === 0) {
+      legend.push({name: SeriesTypes.ACCEPTED});
     }
 
-    if (chartData.dropped.length > 0) {
-      legend.push({
-        name: SeriesTypes.DROPPED,
-      });
+    if ((chartData.filtered ?? []).length > 0) {
+      legend.push({name: SeriesTypes.FILTERED});
+    }
+
+    if ((chartData.rateLimited ?? []).length > 0) {
+      legend.push({name: SeriesTypes.RATE_LIMITED});
+    }
+
+    if ((chartData.invalid ?? []).length > 0) {
+      legend.push({name: SeriesTypes.INVALID});
+    }
+
+    if ((chartData.clientDiscard ?? []).length > 0) {
+      legend.push({name: SeriesTypes.CLIENT_DISCARD});
     }
 
     if (chartData.projected.length > 0) {
-      legend.push({
-        name: SeriesTypes.PROJECTED,
-      });
+      legend.push({name: SeriesTypes.PROJECTED});
     }
 
     if (chartSeries) {
@@ -462,8 +487,21 @@ function UsageChartBody({
       legendHoverLink: false,
     }),
     barSeries({
-      name: SeriesTypes.DROPPED,
-      data: chartData.dropped,
+      name: SeriesTypes.RATE_LIMITED,
+      data: chartData.rateLimited,
+      barMinHeight: 1,
+      stack: 'usage',
+      legendHoverLink: false,
+    }),
+    barSeries({
+      name: SeriesTypes.INVALID,
+      data: chartData.invalid,
+      stack: 'usage',
+      legendHoverLink: false,
+    }),
+    barSeries({
+      name: SeriesTypes.CLIENT_DISCARD,
+      data: chartData.clientDiscard,
       stack: 'usage',
       legendHoverLink: false,
     }),
@@ -522,6 +560,14 @@ function UsageChartBody({
         top: 5,
         data: chartLegendData(),
         theme,
+        selected: {
+          [SeriesTypes.ACCEPTED]: true,
+          [SeriesTypes.FILTERED]: true,
+          [SeriesTypes.RATE_LIMITED]: true,
+          [SeriesTypes.INVALID]: true,
+          [SeriesTypes.CLIENT_DISCARD]: false,
+          [SeriesTypes.PROJECTED]: true,
+        },
       })}
     />
   );
