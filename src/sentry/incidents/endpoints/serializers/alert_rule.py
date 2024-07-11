@@ -81,7 +81,7 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     aggregate: str
     timeWindow: int
     resolution: float
-    thresholdPeriod: int
+    thresholdPeriod: int | None
     triggers: list[dict]
     includeAllProjects: bool
     dateModified: datetime
