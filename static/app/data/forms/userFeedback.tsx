@@ -28,13 +28,16 @@ const formGroups: JsonFormObject[] = [
         label: t('Enable Crash Report Notifications'),
         help: () =>
           tct(
-            'Get notified on [crashReportModalDocsLink: Crash Report Modal and User Report API submissions]. [feedbackWidgetDocsLink: Feedback widget] notifications are not affected by this setting and are on by default.',
+            'Get notified on feedback submissions from the [crashReportModalDocsLink: Crash Report Modal], [webApiEndpointLink: web endpoint], and JS SDK (pre-v8). [feedbackWidgetDocsLink: Feedback widget] notifications are not affected by this setting and are on by default.',
             {
               crashReportModalDocsLink: (
                 <a href="https://docs.sentry.io/platforms/javascript/user-feedback/#crash-report-modal" />
               ),
               feedbackWidgetDocsLink: (
                 <a href="https://docs.sentry.io/product/user-feedback/#user-feedback-widget" />
+              ),
+              webApiEndpointLink: (
+                <a href="https://docs.sentry.io/api/projects/submit-user-feedback/" />
               ),
             }
           ),
