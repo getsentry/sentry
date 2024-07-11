@@ -71,22 +71,22 @@ export default function ReplayTimeline() {
         <MinorGridlines durationMs={durationMs} width={width} />
         <MajorGridlines durationMs={durationMs} width={width} />
         <TimelineScrubber />
-        <TimelineGaps
-          durationMs={durationMs}
-          frames={appFrames}
-          totalFrames={chapterFrames.length}
-          width={width}
-        />
         {organization.features.includes('session-replay-timeline-gap') ? (
-          <TimelineEventsContainer>
-            <ReplayTimelineEvents
-              durationMs={durationMs}
-              frames={chapterFrames}
-              startTimestampMs={startTimestampMs}
-              width={width}
-            />
-          </TimelineEventsContainer>
+          <TimelineGaps
+            durationMs={durationMs}
+            frames={appFrames}
+            totalFrames={chapterFrames.length}
+            width={width}
+          />
         ) : null}
+        <TimelineEventsContainer>
+          <ReplayTimelineEvents
+            durationMs={durationMs}
+            frames={chapterFrames}
+            startTimestampMs={startTimestampMs}
+            width={width}
+          />
+        </TimelineEventsContainer>
       </Stacked>
     </VisiblePanel>
   );
