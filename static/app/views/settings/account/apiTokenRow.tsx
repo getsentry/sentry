@@ -1,3 +1,4 @@
+import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -21,7 +22,7 @@ function ApiTokenRow({token, onRemove, tokenPrefix = ''}: Props) {
   return (
     <StyledPanelItem>
       <Controls>
-        {token.name ? token.name : ''}
+        <Link to={`/settings/account/api/auth-tokens/${token.id}/`}>{token.name}</Link>
         <ButtonWrapper>
           <Confirm
             onConfirm={() => onRemove(token)}
