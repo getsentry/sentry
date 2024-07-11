@@ -3,8 +3,7 @@ import type {LocationDescriptor, Query} from 'history';
 import {spanTargetHash} from 'sentry/components/events/interfaces/spans/utils';
 import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
-
-import {normalizeUrl} from '../withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 /**
  * Routes to the transaction event details view.

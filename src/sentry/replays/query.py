@@ -192,12 +192,14 @@ def query_replays_dataset_tagkey_values(
     end: datetime,
     environment: str | None,
     tag_key: str,
-    tag_like: str | None,
+    tag_substr_query: str | None,
     tenant_ids: dict[str, Any] | None,
 ):
     """
     Query replay tagkey values. Like our other tag functionality, aggregates do not work here.
     This function is used by the tagstore backend, which expects a `tag_value` key in each result object.
+
+    @param tag_substr_query: used to filter tag values with a case-insensitive substring.
     """
 
     where = []
@@ -220,8 +222,14 @@ def query_replays_dataset_tagkey_values(
         # using identity to alias the column
         aggregated_column = Function("identity", parameters=[grouped_column], alias="tag_value")
 
-    if tag_like:
-        where.append(Condition(grouped_column, Op.LIKE, tag_like))
+    if tag_substr_query:
+        where.append(
+            Condition(
+                Function("positionCaseInsensitive", parameters=[grouped_column, tag_substr_query]),
+                Op.NEQ,
+                0,
+            )
+        )
 
     snuba_request = Request(
         dataset="replays",

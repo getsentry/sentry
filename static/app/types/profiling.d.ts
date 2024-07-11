@@ -33,7 +33,11 @@ declare namespace Profiling {
     queue_address?: string;
   };
 
-  type SentrySampledProfileStack = number[];
+  type SentrySampledProfileChunkSample = {
+    stack_id: number;
+    thread_id: string;
+    timestamp: number;
+  };
 
   type SentrySampledProfileFrame = {
     in_app: boolean;
@@ -99,6 +103,28 @@ declare namespace Profiling {
     transaction: SentrySampledProfileTransaction;
     measurements?: Measurements;
   };
+
+  interface SentryContinousProfileChunk {
+    chunk_id: string;
+    environment: string;
+    project_id: number;
+    received: number;
+    release: string;
+    organization_id: number;
+    retention_days: number;
+    version: '2';
+    debug_meta?: {
+      images: Image[];
+    };
+    platform: string;
+    measurements?: Measurements;
+    profile: {
+      samples: SentrySampledProfileChunkSample[];
+      frames: SentrySampledProfileFrame[];
+      stacks: SentrySampledProfileStack[];
+      thread_metadata?: Record<string, {name?: string; priority?: number}>;
+    };
+  }
 
   ////////////////
   interface RawProfileBase {

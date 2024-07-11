@@ -740,6 +740,7 @@ CELERY_IMPORTS = (
     "sentry.replays.tasks",
     "sentry.monitors.tasks.clock_pulse",
     "sentry.monitors.tasks.detect_broken_monitor_envs",
+    # TODO(@anonrig): Remove this when AppStore integration is removed.
     "sentry.tasks.app_store_connect",
     "sentry.tasks.assemble",
     "sentry.tasks.auth",
@@ -808,6 +809,7 @@ CELERY_IMPORTS = (
     "sentry.replays.usecases.ingest.issue_creation",
     "sentry.integrations.slack.tasks",
     "sentry.uptime.detectors.tasks",
+    "sentry.uptime.subscriptions.tasks",
 )
 
 default_exchange = Exchange("default", type="direct")
@@ -843,6 +845,7 @@ CELERY_QUEUES_REGION = [
     Queue("auth", routing_key="auth"),
     Queue("alerts", routing_key="alerts"),
     Queue("app_platform", routing_key="app_platform"),
+    # TODO(@anonrig): Remove this when all AppStore connect data is removed.
     Queue("appstoreconnect", routing_key="sentry.tasks.app_store_connect.#"),
     Queue("assemble", routing_key="assemble"),
     Queue("backfill_seer_grouping_records", routing_key="backfill_seer_grouping_records"),
@@ -1145,12 +1148,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "task": "sentry.tasks.release_registry.fetch_release_registry_data",
         # Run every 5 minutes
         "schedule": crontab(minute="*/5"),
-        "options": {"expires": 3600},
-    },
-    "fetch-appstore-builds": {
-        "task": "sentry.tasks.app_store_connect.refresh_all_builds",
-        # Run every 1 hour
-        "schedule": crontab(minute="0", hour="*/1"),
         "options": {"expires": 3600},
     },
     "snuba-subscription-checker": {
@@ -1536,6 +1533,7 @@ SENTRY_RELAY_TASK_APM_SAMPLING = 0
 # sample rate for ingest consumer processing functions
 SENTRY_INGEST_CONSUMER_APM_SAMPLING = 0
 
+# TODO(@anonrig): Remove this when all AppStore connect data is removed.
 # sample rate for Apple App Store Connect tasks transactions
 SENTRY_APPCONNECT_APM_SAMPLING = SENTRY_BACKEND_APM_SAMPLING
 
@@ -2889,6 +2887,7 @@ KAFKA_TOPIC_TO_CLUSTER: Mapping[str, str] = {
     "ingest-monitors": "default",
     "monitors-clock-tick": "default",
     "monitors-clock-tasks": "default",
+    "uptime-configs": "default",
     "uptime-results": "default",
     "uptime-configs": "default",
     "generic-events": "default",

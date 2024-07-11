@@ -14,7 +14,7 @@ import {
   QueryInterfaceType,
 } from 'sentry/components/searchQueryBuilder/types';
 import {INTERFACE_TYPE_LOCALSTORAGE_KEY} from 'sentry/components/searchQueryBuilder/utils';
-import type {TagCollection} from 'sentry/types';
+import type {TagCollection} from 'sentry/types/group';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import localStorageWrapper from 'sentry/utils/localStorage';
 
@@ -517,7 +517,6 @@ describe('SearchQueryBuilder', function () {
       // jsdom does not support clipboard API
       Object.assign(navigator, {
         clipboard: {
-          readText: jest.fn().mockResolvedValue(''),
           writeText: jest.fn().mockResolvedValue(''),
         },
       });
@@ -717,7 +716,7 @@ describe('SearchQueryBuilder', function () {
       ).toHaveFocus();
     });
 
-    it('backspace does nothing when input is empty', async function () {
+    it('backspace focuses filter when input is empty', async function () {
       const mockOnChange = jest.fn();
       render(
         <SearchQueryBuilder
@@ -734,8 +733,8 @@ describe('SearchQueryBuilder', function () {
 
       await userEvent.keyboard('{Backspace}');
 
-      // Input should still have focus, and no changes should have been made
-      expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+      // Filter should now have focus, and no changes should have been made
+      expect(screen.getByRole('row', {name: 'age:-24h'})).toHaveFocus();
       expect(mockOnChange).not.toHaveBeenCalled();
     });
 
@@ -757,8 +756,8 @@ describe('SearchQueryBuilder', function () {
         expect(token).toHaveAttribute('aria-selected', 'true');
       }
 
-      // Focus should be on the grid container
-      expect(screen.getByRole('grid')).toHaveFocus();
+      // Focus should be on the selection key handler input
+      expect(screen.getByTestId('selection-key-handler')).toHaveFocus();
 
       // Pressing delete should remove all selected tokens
       await userEvent.keyboard('{Backspace}');
@@ -816,7 +815,6 @@ describe('SearchQueryBuilder', function () {
     });
 
     it('replaces selection with pasted content with ctrl+v', async function () {
-      jest.spyOn(navigator.clipboard, 'readText').mockResolvedValue('foo');
       const mockOnChange = jest.fn();
       render(
         <SearchQueryBuilder
@@ -828,7 +826,7 @@ describe('SearchQueryBuilder', function () {
 
       await userEvent.click(getLastInput());
       await userEvent.keyboard('{Control>}a{/Control}');
-      await userEvent.keyboard('{Control>}v{/Control}');
+      await userEvent.paste('foo');
       expect(
         screen.queryByRole('row', {name: 'browser.name:firefox'})
       ).not.toBeInTheDocument();
