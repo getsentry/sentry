@@ -22,6 +22,14 @@ _CATEGORIES_BY_MESSAGE = {c.message: c for c in SLACK_SDK_ERROR_CATEGORIES}
 
 
 def unpack_slack_api_error(exc: SlackApiError | SlackRequestError) -> SlackSdkErrorCategory | None:
+    """Retrieve the Slack API error category from an exception object.
+
+    Check three places in priority order:
+    1. the error field of the server response;
+    2. the first line of the message body; and,
+    3. for categories with the `check_body` flag, the rest of the message.
+    """
+
     if isinstance(exc, SlackApiError):
         try:
             error_attr = exc.response["error"]
