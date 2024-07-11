@@ -78,26 +78,31 @@ class AlertRuleStatus(Enum):
     DISABLED = 5
 
 
-class AlertRuleDetectionType(models.IntegerChoices):
-    STATIC = 0, gettext_lazy("Static")
-    DYNAMIC = 1, gettext_lazy("Dynamic")
+class AlertRuleDetectionType(models.TextChoices):
+    STATIC = "Static", gettext_lazy("Static")
+    PERCENT = "Percent", gettext_lazy("Percent")
+    DYNAMIC = "Dynamic", gettext_lazy("Dynamic")
 
 
-class AlertRuleSensitivity(models.IntegerChoices):
-    LOW = 0, gettext_lazy("Low")
-    MEDIUM = 1, gettext_lazy("Medium")
-    HIGH = 2, gettext_lazy("High")
+class AlertRuleSensitivity(models.TextChoices):
+    LOW = "Low", gettext_lazy("Low")
+    MEDIUM = "Medium", gettext_lazy("Medium")
+    HIGH = "High", gettext_lazy("High")
 
 
-class AlertRuleSeasonality(models.IntegerChoices):
-    AUTO = 0, gettext_lazy("Auto")
-    HOURLY = 1, gettext_lazy("Hourly")
-    DAILY = 2, gettext_lazy("Daily")
-    WEEKLY = 3, gettext_lazy("Weekly")
-    HOURLY_DAILY = 4, gettext_lazy("Hourly & Daily")
-    HOURLY_WEEKLY = 5, gettext_lazy(" Hourly & Weekly")
-    HOURLY_DAILY_WEEKLY = 6, gettext_lazy("Hourly, Daily, & Weekly")
-    DAILY_WEEKLY = 7, gettext_lazy("Daily & Weekly")
+class AlertRuleSeasonality(models.TextChoices):
+    """All combinations of multi select fields for anomaly detection alerts
+    We do not anticipate adding more
+    """
+
+    AUTO = "Auto", gettext_lazy("Auto")
+    HOURLY = "Hourly", gettext_lazy("Hourly")
+    DAILY = "Daily", gettext_lazy("Daily")
+    WEEKLY = "Weekly", gettext_lazy("Weekly")
+    HOURLY_DAILY = "Hourly & Daily", gettext_lazy("Hourly & Daily")
+    HOURLY_WEEKLY = "Hourly & Weekly", gettext_lazy("Hourly & Weekly")
+    HOURLY_DAILY_WEEKLY = "Hourly, Daily, & Weekly", gettext_lazy("Hourly, Daily, & Weekly")
+    DAILY_WEEKLY = "Daily & Weekly", gettext_lazy("Daily & Weekly")
 
 
 class AlertRuleManager(BaseManager["AlertRule"]):
@@ -296,9 +301,7 @@ class AlertRule(Model):
         default=AlertRuleDetectionType.STATIC, choices=AlertRuleDetectionType.choices
     )
     sensitivity = models.SmallIntegerField(choices=AlertRuleSensitivity.choices, null=True)
-    seasonality = models.SmallIntegerField(
-        default=AlertRuleSeasonality.AUTO, choices=AlertRuleSeasonality.choices, null=True
-    )
+    seasonality = models.SmallIntegerField(choices=AlertRuleSeasonality.choices, null=True)
 
     class Meta:
         app_label = "sentry"
