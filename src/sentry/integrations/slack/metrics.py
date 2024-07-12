@@ -36,6 +36,12 @@ SLACK_WEBHOOK_DM_ENDPOINT_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.dm
 SLACK_WEBHOOK_DM_ENDPOINT_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.dm_endpoint.failure"
 SLACK_EVENT_ENDPOINT_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.event_endpoint.success"
 SLACK_EVENT_ENDPOINT_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.event_endpoint.failure"
+SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC = (
+    "sentry.integrations.slack.group_actions.success"
+)
+SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC = (
+    "sentry.integrations.slack.group_actions.failure"
+)
 
 # Slack Commands
 SLACK_COMMANDS_ENDPOINT_SUCCESS_DATADOG_METRIC = (
