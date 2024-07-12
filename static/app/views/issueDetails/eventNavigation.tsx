@@ -106,7 +106,7 @@ export default function EventNavigation({event, group}: EventNavigationProps) {
               }}
             />
           </Navigation>
-          <Button
+          <StyledButton
             onClick={() => {
               const searchTermWithoutQuery = omit(location.query, 'query');
               navigate({
@@ -120,7 +120,7 @@ export default function EventNavigation({event, group}: EventNavigationProps) {
             size="sm"
           >
             View All Events
-          </Button>
+          </StyledButton>
         </NavigationWrapper>
       </EventNavigationWrapper>
       <Divider />
@@ -137,14 +137,14 @@ export default function EventNavigation({event, group}: EventNavigationProps) {
                 return null;
               }
               return (
-                <Button
+                <StyledButton
                   key={jump.section}
                   onClick={() => handleClick(jump.section)}
                   borderless
                   size="sm"
                 >
                   {jump.label}
-                </Button>
+                </StyledButton>
               );
             })}
           </ButtonBar>
@@ -180,7 +180,6 @@ const EventInfo = styled('div')`
   display: flex;
   gap: ${space(1)};
   flex-direction: row;
-  padding-left: ${space(1)};
   align-items: center;
 `;
 
@@ -203,4 +202,8 @@ const Divider = styled('hr')`
 const EventID = styled('div')`
   font-weight: bold;
   font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+const StyledButton = styled(Button)`
+  color: ${p => p.theme.gray300};
 `;
