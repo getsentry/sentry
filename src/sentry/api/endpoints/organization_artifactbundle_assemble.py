@@ -56,19 +56,41 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         except Exception:
             return Response({"error": "Invalid json body"}, status=400)
 
-        projects = set(data.get("projects", []))
-        if len(projects) == 0:
+        input_projects = set(data.get("projects", []))
+        if len(input_projects) == 0:
             return Response({"error": "You need to specify at least one project"}, status=400)
 
-        project_ids = list(
+        input_project_slug = set()
+        input_project_id = set()
+        for project in input_projects:
+            # IDs are always numeric, slugs cannot be numeric
+            if str(project).isnumeric():
+                input_project_id.add(project)
+            else:
+                input_project_slug.add(project)
+
+        matched_projects_by_slug = set(
             Project.objects.filter(
-                organization=organization, status=ObjectStatus.ACTIVE, slug__in=projects
+                organization=organization,
+                status=ObjectStatus.ACTIVE,
+                slug__in=input_project_slug,
             ).values_list("id", flat=True)
         )
-        if len(project_ids) != len(projects):
+
+        matched_projects_by_id = set(
+            Project.objects.filter(
+                organization=organization,
+                status=ObjectStatus.ACTIVE,
+                id__in=input_project_id,
+            ).values_list("id", flat=True)
+        )
+
+        project_ids = matched_projects_by_slug.union(matched_projects_by_id)
+
+        if len(project_ids) != len(input_projects):
             return Response({"error": "One or more projects are invalid"}, status=400)
 
-        if not self.has_release_permission(request, organization, project_ids=set(project_ids)):
+        if not self.has_release_permission(request, organization, project_ids=project_ids):
             raise ResourceDoesNotExist
 
         checksum = data.get("checksum")
@@ -131,6 +153,6 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         )
 
         if is_org_auth_token_auth(request.auth):
-            update_org_auth_token_last_used(request.auth, project_ids)
+            update_org_auth_token_last_used(request.auth, list(project_ids))
 
         return Response({"state": ChunkFileState.CREATED, "missingChunks": []}, status=200)
