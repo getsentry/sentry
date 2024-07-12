@@ -149,13 +149,11 @@ def is_jvm_event(data: Any, stacktraces: list[StacktraceInfo]) -> bool:
         filter=lambda x: is_valid_jvm_image(x) or is_valid_proguard_image(x),
         default=(),
     )
-    print(f"images: {images}\n")
     if images:
         return True
     else:
         return False
 
-    print("platform: ", data.get("platform"))
     if data.get("platform") == "java":
         return True
 

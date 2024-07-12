@@ -2,6 +2,7 @@ import logging
 import re
 from collections.abc import Mapping
 from typing import Any
+
 import orjson
 
 from sentry.attachments import CachedAttachment, attachment_cache
@@ -144,7 +145,6 @@ def _get_release_package(project: Project, release_name: str | None) -> str | No
 
 
 def _get_window_class_names(attachments: list[any]) -> list[str]:
-    print("getting class names")
     class_names = []
     windows_to_deobfuscate = []
 
@@ -155,7 +155,6 @@ def _get_window_class_names(attachments: list[any]) -> list[str]:
 
     while windows_to_deobfuscate:
         window = windows_to_deobfuscate.pop()
-        print(window)
         if window.get("type") is not None:
             class_names.append(window["type"])
         if children := window.get("children"):
@@ -164,13 +163,11 @@ def _get_window_class_names(attachments: list[any]) -> list[str]:
     return class_names
 
 
-def _deobfuscate_view_hierarchy(view_hierarchy: Any, class_names : dict[str, str]):
-    print("deobfuscating windows")
+def _deobfuscate_view_hierarchy(view_hierarchy: Any, class_names: dict[str, str]):
     windows_to_deobfuscate = [*view_hierarchy.get("windows")]
 
     while windows_to_deobfuscate:
         window = windows_to_deobfuscate.pop()
-        print(window)
         if window.get("type") is not None and class_names.get(window["type"]) is not None:
             window["type"] = class_names.get(window["type"])
         if children := window.get("children"):
@@ -259,17 +256,19 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
     cache_key = cache_key_for_event(data)
     attachments = [*attachment_cache.get(cache_key)]
     window_class_names = _get_window_class_names(attachments)
-    print(window_class_names)
 
     metrics.incr("proguard.symbolicator.events")
 
-    if not any(stacktrace["frames"] for stacktrace in stacktraces) and not processable_exceptions and not window_class_names:
+    if (
+        not any(stacktrace["frames"] for stacktrace in stacktraces)
+        and not processable_exceptions
+        and not window_class_names
+    ):
         metrics.incr("proguard.symbolicator.events.skipped")
         return
 
     release_package = _get_release_package(symbolicator.project, data.get("release"))
     metrics.incr("process.java.symbolicate.request")
-    print("calling symbolicator\n")
     response = symbolicator.process_jvm(
         exceptions=[
             {"module": exc["module"], "type": exc["type"]} for exc in processable_exceptions
@@ -316,7 +315,6 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         raw_exc["type"] = exc["type"]
 
     classes = response.get("classes")
-    print(f"classes: {classes}\n")
     new_attachments = _deobfuscate_view_hierarchies(attachments, classes)
     attachment_cache.set(cache_key, attachments=new_attachments, timeout=CACHE_TIMEOUT)
 
