@@ -346,8 +346,8 @@ def test_matcher_test_platform_react_native():
     assert Matcher("codeowners", "*.tsx").test(data)
     assert not Matcher("url", "*.tsx").test(data)
 
-    # external lib matching still works
-    assert Matcher("path", "**/Libraries/BatchedBridge/MessageQueue.js").test(data)
+    # external lib should not match
+    assert not Matcher("path", "**/Libraries/BatchedBridge/MessageQueue.js").test(data)
 
     # we search on filename and abs_path, if a user explicitly tests on the abs_path, we let them
     assert Matcher("path", "app:///src/screens/EndToEndTestsScreen.tsx").test(data)
@@ -415,8 +415,8 @@ def test_matcher_test_platform_other_flutter():
     assert Matcher("codeowners", "*.dart").test(data)
     assert not Matcher("url", "*.dart").test(data)
 
-    # non in-app/user code still works here,
-    assert Matcher("path", "src/material/ink_well.dart").test(data)
+    # non in-app/user code should not match
+    assert not Matcher("path", "src/material/ink_well.dart").test(data)
 
     # we search on filename and abs_path, if a user explicitly tests on the abs_path, we let them
     assert Matcher("path", "package:sentry_flutter_example/a/b/test.dart").test(data)

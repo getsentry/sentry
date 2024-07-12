@@ -121,7 +121,7 @@ class Matcher(namedtuple("Matcher", "type pattern")):
         keys = ["filename", "abs_path"]
         platform = data.get("platform")
         sdk_name = get_sdk_name(data)
-        frames = find_stack_frames(data)
+        frames = _find_in_app_stack_frames(data)
         if platform:
             munged = munged_filename_and_frames(platform, frames, "munged_filename", sdk_name)
             if munged:
@@ -204,6 +204,10 @@ class Matcher(namedtuple("Matcher", "type pattern")):
             ):
                 return True
         return False
+
+
+def _find_in_app_stack_frames(data: PathSearchable) -> Sequence[Mapping[str, Any]]:
+    return [frame for frame in find_stack_frames(data) if frame.get("in_app", True)]
 
 
 class Owner(namedtuple("Owner", "type identifier")):
