@@ -3,6 +3,7 @@ import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {ContinuousFlamegraph} from 'sentry/components/profiling/flamegraph/continuousFlamegraph';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import type {DeepPartial} from 'sentry/types/utils';
@@ -99,6 +100,7 @@ function ContinuousProfileFlamegraph(): React.ReactElement {
                   <LoadingIndicator />
                 </LoadingIndicatorContainer>
               ) : null}
+              <ContinuousFlamegraph />
             </FlamegraphContainer>
           </FlamegraphThemeProvider>
         </ProfileGroupTypeProvider>
