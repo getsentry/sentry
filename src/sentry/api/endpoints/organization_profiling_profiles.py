@@ -106,7 +106,8 @@ class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
         if not features.has("organizations:continuous-profiling", organization, actor=request.user):
             return Response(status=404)
 
-        params = self.get_snuba_params(request, organization)
+        # We disable the date quantizing here because we need the timestamps to be precise.
+        params = self.get_snuba_params(request, organization, quantize_date_params=False)
 
         project_ids = params.get("project_id")
         if project_ids is None or len(project_ids) != 1:
@@ -117,12 +118,15 @@ class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
             raise ParseError(detail="profiler_id must be specified.")
 
         chunk_ids = get_chunk_ids(params, profiler_id, project_ids[0])
+
         return proxy_profiling_service(
             method="POST",
             path=f"/organizations/{organization.id}/projects/{project_ids[0]}/chunks",
             json_data={
                 "profiler_id": profiler_id,
-                "chunk_ids": [el["chunk_id"] for el in chunk_ids],
+                "chunk_ids": chunk_ids,
+                "start": str(int(params["start"].timestamp() * 1e9)),
+                "end": str(int(params["end"].timestamp() * 1e9)),
             },
         )
 
