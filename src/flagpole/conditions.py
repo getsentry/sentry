@@ -50,8 +50,13 @@ def create_case_insensitive_set_from_list(values: list[T]) -> set[T]:
 
 class ConditionBase(BaseModel):
     property: str
+    """The context property this condition reads from"""
+
     operator: ConditionOperatorKind
+    """The operator name. One of ConditionOperatorKind"""
+
     value: Any
+    """The value to compare the context property with."""
 
     def match(self, context: EvaluationContext, segment_name: str) -> bool:
         return self._operator_match(
@@ -209,8 +214,18 @@ AvailableConditions = Annotated[
 
 class Segment(BaseModel):
     name: constr(min_length=1)  # type:ignore[valid-type]
+    """Operator friendly name for the segment & conditions"""
+
     conditions: list[AvailableConditions]
+    """A list of conditions. All conditions must pass for the segment to pass"""
+
     rollout: int | None = 0
+    """
+    Rollout rate controls how many buckets will be granted a feature when this segment matches.
+
+    Rollout rates range from 0 (off) to 100 (all users). Rollout rates use `context.id`
+    to determine bucket membership consistently over time.
+    """
 
     def match(self, context: EvaluationContext) -> bool:
         for condition in self.conditions:

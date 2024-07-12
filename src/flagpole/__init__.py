@@ -78,11 +78,17 @@ class InvalidFeatureFlagConfiguration(Exception):
 
 class Feature(BaseModel):
     name: constr(min_length=1, to_lower=True)  # type:ignore[valid-type]
+    """Name of the feature flag"""
+
     owner: constr(min_length=1)  # type:ignore[valid-type]
+    """The owners name or team that created a feature flag"""
+
     segments: list[Segment]
     """A list of segments to evaluate against the provided data"""
+
     enabled: bool = True
     """Defines whether or not the feature is enabled."""
+
     created_at: datetime = Field(default_factory=datetime.now)
     """This datetime is when this instance was created. It can be used to decide when to re-read configuration data"""
 
