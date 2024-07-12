@@ -85,7 +85,7 @@ class GroupUserFeedback extends Component<Props, State> {
 
   render() {
     const {reportList, loading, error} = this.state;
-    const {organization, group} = this.props;
+    const {organization, project, group} = this.props;
 
     if (loading) {
       return <LoadingIndicator />;
@@ -103,7 +103,8 @@ class GroupUserFeedback extends Component<Props, State> {
               <StyledEventUserFeedback
                 key={idx}
                 report={item}
-                orgSlug={organization.slug}
+                organization={organization}
+                projectId={project.id}
                 issueId={group.id}
               />
             ))}

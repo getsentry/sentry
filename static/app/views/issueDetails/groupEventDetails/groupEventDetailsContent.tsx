@@ -134,7 +134,8 @@ function DefaultGroupEventDetailsContent({
         <EventDataSection title={t('User Feedback')} type="user-feedback">
           <EventUserFeedback
             report={event.userReport}
-            orgSlug={organization.slug}
+            organization={organization}
+            projectId={project.id}
             issueId={group.id}
             showEventLink={false}
           />

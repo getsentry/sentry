@@ -146,6 +146,17 @@ export function usePrompt({
   options?: Partial<UseApiQueryOptions<PromptResponse>>;
   projectId?: string;
 }) {
+  // if (organization === undefined) {
+  //   return {
+  //     isLoading: true,
+  //     isError: false,
+  //     isPromptDismissed: false,
+  //     dismissPrompt: () => {},
+  //     snoozePrompt: () => {},
+  //     showPrompt: () => {},
+  //   };
+  // }
+
   const api = useApi({persistInFlight: true});
   const prompt = usePromptsCheck({feature, organization, projectId}, options);
   const queryClient = useQueryClient();
