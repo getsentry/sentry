@@ -521,6 +521,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
 
   const state = useComboBoxState<T>({
     children,
+    allowsEmptyCollection: true,
     // We handle closing on blur ourselves to prevent the combobox from closing
     // when the user clicks inside the tabbed menu
     shouldCloseOnBlur: false,
