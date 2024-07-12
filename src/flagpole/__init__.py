@@ -80,21 +80,25 @@ class Feature(BaseModel):
     name: constr(min_length=1, to_lower=True) = Field(
         description="The feature name."
     )  # type:ignore[valid-type]
-    """The feature name."""
+    "The feature name."
+
     owner: constr(min_length=1) = Field(
         description="The owner of this feature. Either an email address or team name, preferably."
     )  # type:ignore[valid-type]
-    """The owner of this feature, either an email address or team name."""
+    "The owner of this feature. Either an email address or team name, preferably."
+
     segments: list[Segment] = Field(
         description="The list of segments to evaluate for the feature. An empty list will always evaluate to False."
     )
-    """The list of segments to evaluate for the feature. An empty list will always evaluate to False."""
+    "The list of segments to evaluate for the feature. An empty list will always evaluate to False."
+
     enabled: bool = Field(default=True, description="Whether or not the feature is enabled.")
-    """Whether or not the feature is enabled."""
+    "Whether or not the feature is enabled."
+
     created_at: datetime = Field(
         description="The datetime when this feature was created.", default_factory=datetime.now
     )
-    """The datetime when this feature was created."""
+    "The datetime when this feature was created."
 
     def match(self, context: EvaluationContext) -> bool:
         if not self.enabled:

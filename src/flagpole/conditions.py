@@ -51,10 +51,12 @@ def create_case_insensitive_set_from_list(values: list[T]) -> set[T]:
 class ConditionBase(BaseModel):
     property: str = Field(description="The evaluation context property to match against.")
     """The evaluation context property to match against."""
+
     operator: ConditionOperatorKind = Field(
         description="The operator to use when comparing the evaluation context property to the condition's value."
     )
     """The operator to use when comparing the evaluation context property to the condition's value."""
+
     value: Any = Field(
         description="The value to compare against the condition's evaluation context property."
     )
@@ -226,10 +228,28 @@ class Segment(BaseModel):
     name: constr(min_length=1) = Field(
         description="A brief description or identifier for the segment"
     )  # type:ignore[valid-type]
+    "A brief description or identifier for the segment"
+
     conditions: list[AvailableConditions] = Field(
         description="The list of conditions that the segment must be matched in order for this segment to be active"
     )
-    rollout: int | None = 0
+    "The list of conditions that the segment must be matched in order for this segment to be active"
+
+    rollout: int | None = Field(
+        default=0,
+        description="""
+        Rollout rate controls how many buckets will be granted a feature when this segment matches.
+
+        Rollout rates range from 0 (off) to 100 (all users). Rollout rates use `context.id`
+        to determine bucket membership consistently over time.
+        """,
+    )
+    """
+    Rollout rate controls how many buckets will be granted a feature when this segment matches.
+
+    Rollout rates range from 0 (off) to 100 (all users). Rollout rates use `context.id`
+    to determine bucket membership consistently over time.
+    """
 
     def match(self, context: EvaluationContext) -> bool:
         for condition in self.conditions:
