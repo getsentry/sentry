@@ -440,7 +440,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             if isinstance(original_results, dict)
                             else [original_results]
                         ):
-                            result.data.get("meta")[
+                            if not result.data.get("meta"):
+                                result.data["meta"] = {}
+                            result.data["meta"][
                                 "discoverSplitDecision"
                             ] = DashboardWidgetTypes.get_type_name(
                                 DashboardWidgetTypes.TRANSACTION_LIKE
@@ -452,7 +454,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             if isinstance(error_results, dict)
                             else [error_results]
                         ):
-                            result.data.get("meta")[
+                            if not result.data.get("meta"):
+                                result.data["meta"] = {}
+                            result.data["meta"][
                                 "discoverSplitDecision"
                             ] = DashboardWidgetTypes.get_type_name(
                                 DashboardWidgetTypes.ERROR_EVENTS
