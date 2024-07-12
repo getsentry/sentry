@@ -14,7 +14,7 @@ from slack_sdk.errors import SlackApiError
 from slack_sdk.models.views import View
 from slack_sdk.webhook import WebhookClient
 
-from sentry import analytics, features
+from sentry import analytics
 from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -24,7 +24,6 @@ from sentry.api.helpers.group_index import update_groups
 from sentry.auth.access import from_member
 from sentry.exceptions import UnableToAcceptMemberInvitationException
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.message_builder import SlackBody
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.metrics import (
