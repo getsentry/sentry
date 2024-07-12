@@ -245,12 +245,13 @@ class OrganizationSerializer(Serializer):
         self, obj: Organization, attrs: Mapping[str, Any], user: User, **kwargs: Any
     ) -> set[str]:
         from sentry import features
-        from sentry.features.base import OrganizationFeature
 
         # Retrieve all registered organization features
         org_features = [
             feature
-            for feature in features.all(feature_type=OrganizationFeature).keys()
+            for feature in features.all(
+                feature_type=features.OrganizationFeature, api_expose=True
+            ).keys()
             if feature.startswith(_ORGANIZATION_SCOPE_PREFIX)
         ]
         feature_set = set()

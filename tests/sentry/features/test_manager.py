@@ -74,6 +74,23 @@ class FeatureManagerTest(TestCase):
             "projects:feature3",
         }
 
+    def test_feature_registry_api_expose(self):
+        manager = features.FeatureManager()
+        assert manager.all() == {}
+
+        manager.add("organizations:feature1", OrganizationFeature)
+        manager.add("organizations:feature2", OrganizationFeature, api_expose=True)
+        manager.add("organizations:feature3", OrganizationFeature, api_expose=False)
+        assert set(manager.all(OrganizationFeature).keys()) == {
+            "organizations:feature1",
+            "organizations:feature2",
+            "organizations:feature3",
+        }
+        assert set(manager.all(feature_type=OrganizationFeature, api_expose=True).keys()) == {
+            "organizations:feature1",
+            "organizations:feature2",
+        }
+
     def test_feature_register_default(self):
         manager = features.FeatureManager()
         manager.add("organizations:red-paint", OrganizationFeature, default=False)

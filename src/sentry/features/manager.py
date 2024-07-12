@@ -138,17 +138,33 @@ class FeatureManager(RegisteredFeatureManager):
     def __init__(self) -> None:
         super().__init__()
         self._feature_registry: MutableMapping[str, type[Feature]] = {}
+        # Deprecated: Remove entity_features once flagr has been removed.
         self.entity_features: MutableSet[str] = set()
+        self.exposed_features: MutableSet[str] = set()
         self.option_features: MutableSet[str] = set()
         self.flagpole_features: MutableSet[str] = set()
         self._entity_handler: FeatureHandler | None = None
 
-    def all(self, feature_type: type[Feature] = Feature) -> Mapping[str, type[Feature]]:
+    def all(
+        self, feature_type: type[Feature] = Feature, api_expose: bool | None = None
+    ) -> Mapping[str, type[Feature]]:
         """
         Get a mapping of feature name -> feature class, optionally specific to a
         particular feature type.
+
+        :param feature_type: The feature class you want to filter by. eg. (OrganizationFeature | ProjectFeature | SystemFeature)
+        :param api_expose: Only include features that were registered with `api_expose`.
         """
-        return {k: v for k, v in self._feature_registry.items() if issubclass(v, feature_type)}
+        output: dict[str, type[Feature]] = {}
+        for name, feature in self._feature_registry.items():
+            match = False
+            if issubclass(feature, feature_type):
+                match = True
+            if match and api_expose and name not in self.exposed_features:
+                match = False
+            if match:
+                output[name] = feature
+        return output
 
     def add(
         self,
@@ -156,6 +172,7 @@ class FeatureManager(RegisteredFeatureManager):
         cls: type[Feature] = Feature,
         entity_feature_strategy: bool | FeatureHandlerStrategy = False,
         default: bool = False,
+        api_expose: bool = True,
     ) -> None:
         """
         Register a feature.
@@ -198,6 +215,8 @@ class FeatureManager(RegisteredFeatureManager):
             settings.SENTRY_FEATURES[name] = default
 
         self._feature_registry[name] = cls
+        if api_expose:
+            self.exposed_features.add(name)
 
     def _get_feature_class(self, name: str) -> type[Feature]:
         try:
