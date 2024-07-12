@@ -393,6 +393,19 @@ def get_group_to_groupevent(
     return group_to_groupevent
 
 
+def bucket_num_groups(num_groups: int) -> str:
+    if num_groups > 10000:
+        return ">10000"
+    elif num_groups > 1000:
+        return ">1000"
+    elif num_groups > 100:
+        return ">100"
+    elif num_groups > 10:
+        return ">10"
+    elif num_groups > 1:
+        return ">1"
+
+
 def process_delayed_alert_conditions() -> None:
     with metrics.timer("delayed_processing.process_all_conditions.duration"):
         fetch_time = datetime.now(tz=timezone.utc)
@@ -428,6 +441,9 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     rulegroup_to_event_data = buffer.backend.get_hash(
         model=Project, field={"project_id": project.id}
     )
+    num_groups = len(rulegroup_to_event_data.keys())
+    num_groups_bucketed = bucket_num_groups(num_groups)
+    metrics.incr("delayed_processing.num_groups", tags={"num_groups": num_groups_bucketed})
     logger.info(
         "delayed_processing.rulegroupeventdata",
         extra={"rulegroupdata": rulegroup_to_event_data, "project_id": project_id},
