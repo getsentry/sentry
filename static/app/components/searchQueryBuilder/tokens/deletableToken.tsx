@@ -7,11 +7,11 @@ import type {Node} from '@react-types/shared';
 
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/useQueryBuilderGridItem';
+import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {
   shiftFocusToChild,
   useShiftFocusToChild,
-} from 'sentry/components/searchQueryBuilder/utils';
+} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {
   InvalidReason,
   ParseResultToken,
