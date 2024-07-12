@@ -18,6 +18,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {Ribbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {
@@ -115,7 +116,7 @@ export function LLMMonitoringPage({params}: Props) {
                     <EnvironmentPageFilter />
                     <DatePageFilter />
                   </PageFilterBar>
-                  <MetricsRibbon>
+                  <Ribbon>
                     <MetricReadout
                       title={t('Total Tokens Used')}
                       value={tokenUsedMetric['sum(ai.total_tokens.used)']}
@@ -143,7 +144,7 @@ export function LLMMonitoringPage({params}: Props) {
                       unit={RateUnit.PER_MINUTE}
                       isLoading={areSpanMetricsLoading}
                     />
-                  </MetricsRibbon>
+                  </Ribbon>
                 </SpaceBetweenWrap>
               </ModuleLayout.Full>
               <ModuleLayout.Third>
@@ -185,10 +186,4 @@ const SpaceBetweenWrap = styled('div')`
   justify-content: space-between;
   flex-wrap: wrap;
   gap: ${space(2)};
-`;
-
-const MetricsRibbon = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(4)};
 `;

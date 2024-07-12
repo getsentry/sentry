@@ -18,6 +18,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {Ribbon} from 'sentry/views/insights/common/components/ribbon';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
@@ -79,7 +80,7 @@ function DestinationSummaryPage() {
                 </PageFilterBar>
 
                 {!onboardingProject && (
-                  <MetricsRibbon>
+                  <Ribbon>
                     <MetricReadout
                       title={t('Avg Time In Queue')}
                       value={data[0]?.['avg(messaging.message.receive.latency)']}
@@ -119,7 +120,7 @@ function DestinationSummaryPage() {
                       )}
                       isLoading={isLoading}
                     />
-                  </MetricsRibbon>
+                  </Ribbon>
                 )}
               </HeaderContainer>
             </ModuleLayout.Full>
@@ -176,12 +177,6 @@ const Flex = styled('div')`
   display: flex;
   flex-direction: column;
   gap: ${space(2)};
-`;
-
-const MetricsRibbon = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(4)};
 `;
 
 const HeaderContainer = styled('div')`

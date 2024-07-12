@@ -29,7 +29,7 @@ import {
   StartTypeSelector,
 } from 'sentry/views/insights/mobile/appStarts/components/startTypeSelector';
 import {SpanSamplesPanel} from 'sentry/views/insights/mobile/common/components/spanSamplesPanel';
-import {MetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
+import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
 
 import AppStartWidgets from '../components/widgets';
@@ -105,7 +105,7 @@ export function ScreenSummary() {
                 <ReleaseComparisonSelector />
                 <StartTypeSelector />
               </ControlsContainer>
-              <MetricsRibbon
+              <MobileMetricsRibbon
                 dataset={DiscoverDatasets.SPANS_METRICS}
                 filters={[
                   `transaction:${transactionName}`,

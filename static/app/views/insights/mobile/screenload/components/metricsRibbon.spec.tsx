@@ -6,7 +6,7 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 import {DurationUnit} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {MetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
+import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
 
 jest.mock('sentry/utils/usePageFilters');
 
@@ -56,7 +56,7 @@ describe('MetricsRibbon', function () {
     });
 
     render(
-      <MetricsRibbon
+      <MobileMetricsRibbon
         dataset={DiscoverDatasets.SPANS_METRICS}
         filters={[
           'duration:>0',
