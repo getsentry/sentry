@@ -13,7 +13,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import TerserPlugin from 'terser-webpack-plugin';
 import webpack from 'webpack';
-import {BundleAnalyzerPlugin} from 'webpack-bundle-analyzer';
+// import {BundleAnalyzerPlugin} from 'webpack-bundle-analyzer';
 import type {ProxyConfigArray, Static} from 'webpack-dev-server';
 import FixStyleOnlyEntriesPlugin from 'webpack-remove-empty-scripts';
 
@@ -312,7 +312,7 @@ const appConfig: webpack.Configuration = {
     /**
      * Analyze bundle size
      */
-    new BundleAnalyzerPlugin(),
+    // new BundleAnalyzerPlugin(),
 
     // Do not bundle moment's locale files as we will lazy load them using
     // dynamic imports in the application code
