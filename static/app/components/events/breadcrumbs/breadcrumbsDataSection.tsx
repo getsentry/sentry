@@ -52,7 +52,6 @@ export default function BreadcrumbsDataSection({
 }: BreadcrumbsDataSectionProps) {
   const {openDrawer} = useDrawer();
   const organization = useOrganization();
-  // Use the local storage preferences, but allow the drawer to do updates
   const [timeDisplay, setTimeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
     BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
     BreadcrumbTimeDisplay.RELATIVE

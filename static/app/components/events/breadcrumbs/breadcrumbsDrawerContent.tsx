@@ -27,6 +27,61 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 
+/**
+ * Highly opinionated hook for breadcrumb controls.
+ * Used to share controls across trace view and issue details so they do not diverge.
+ * The controls appearances are different though, so components cannot be shared directly.
+ */
+export function useBreadcrumbControls({
+  enhancedCrumbs: breadcrumbs,
+}: {
+  enhancedCrumbs: EnhancedCrumb[];
+}) {
+  const [search, setSearch] = useState('');
+  const [filterSet, setFilterSet] = useState(new Set<string>());
+  const [sort, setSort] = useLocalStorageState<BreadcrumbSort>(
+    BREADCRUMB_SORT_LOCALSTORAGE_KEY,
+    BreadcrumbSort.NEWEST
+  );
+  const [timeDisplay, setTimeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
+    BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
+    BreadcrumbTimeDisplay.RELATIVE
+  );
+  const filterOptions = useMemo(
+    () => getBreadcrumbFilterOptions(breadcrumbs),
+    [breadcrumbs]
+  );
+  const displayCrumbs = useMemo(() => {
+    const sortedCrumbs =
+      sort === BreadcrumbSort.OLDEST ? breadcrumbs : [...breadcrumbs].reverse();
+    const filteredCrumbs = sortedCrumbs.filter(ec =>
+      filterSet.size === 0 ? true : filterSet.has(ec.filter)
+    );
+    const searchedCrumbs = applyBreadcrumbSearch(search, filteredCrumbs);
+    return searchedCrumbs;
+  }, [breadcrumbs, sort, filterSet, search]);
+  const startTimeString = useMemo(
+    () =>
+      timeDisplay === BreadcrumbTimeDisplay.RELATIVE
+        ? displayCrumbs?.at(0)?.breadcrumb?.timestamp
+        : undefined,
+    [displayCrumbs, timeDisplay]
+  );
+  return {
+    search,
+    setSearch,
+    filterSet,
+    setFilterSet,
+    filterOptions,
+    sort,
+    setSort,
+    timeDisplay,
+    setTimeDisplay,
+    displayCrumbs,
+    startTimeString,
+  };
+}
+
 export const enum BreadcrumbControlOptions {
   SEARCH = 'search',
   FILTER = 'filter',
@@ -59,41 +114,21 @@ export function BreadcrumbsDrawerContent({
 }: BreadcrumbsDrawerContentProps) {
   const organization = useOrganization();
   const theme = useTheme();
-
-  const [search, setSearch] = useState('');
-  const [filterSet, setFilterSet] = useState(new Set<string>());
-  const [sort, setSort] = useLocalStorageState<BreadcrumbSort>(
-    BREADCRUMB_SORT_LOCALSTORAGE_KEY,
-    BreadcrumbSort.NEWEST
-  );
   const {getFocusProps} = useFocusControl(initialFocusControl);
 
-  const [timeDisplay, setTimeDisplay] = useLocalStorageState<BreadcrumbTimeDisplay>(
-    BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY,
-    BreadcrumbTimeDisplay.RELATIVE
-  );
-  const filterOptions = useMemo(
-    () => getBreadcrumbFilterOptions(breadcrumbs),
-    [breadcrumbs]
-  );
-
-  const displayCrumbs = useMemo(() => {
-    const sortedCrumbs =
-      sort === BreadcrumbSort.OLDEST ? breadcrumbs : [...breadcrumbs].reverse();
-    const filteredCrumbs = sortedCrumbs.filter(ec =>
-      filterSet.size === 0 ? true : filterSet.has(ec.filter)
-    );
-    const searchedCrumbs = applyBreadcrumbSearch(search, filteredCrumbs);
-    return searchedCrumbs;
-  }, [breadcrumbs, sort, filterSet, search]);
-
-  const startTimeString = useMemo(
-    () =>
-      timeDisplay === BreadcrumbTimeDisplay.RELATIVE
-        ? displayCrumbs?.at(0)?.breadcrumb?.timestamp
-        : undefined,
-    [displayCrumbs, timeDisplay]
-  );
+  const {
+    search,
+    setSearch,
+    filterSet,
+    setFilterSet,
+    filterOptions,
+    sort,
+    setSort,
+    timeDisplay,
+    setTimeDisplay,
+    displayCrumbs,
+    startTimeString,
+  } = useBreadcrumbControls({enhancedCrumbs: breadcrumbs});
 
   const actions = (
     <ButtonBar gap={1}>
@@ -192,9 +227,7 @@ export function BreadcrumbsDrawerContent({
         }}
         value={timeDisplay}
         options={BREADCRUMB_TIME_DISPLAY_OPTIONS}
-      >
-        {null}
-      </CompactSelect>
+      />
     </ButtonBar>
   );
 
@@ -206,22 +239,16 @@ export function BreadcrumbsDrawerContent({
       </HeaderGrid>
       <TimelineContainer>
         {displayCrumbs.length === 0 ? (
-          <EmptyMessage>
-            {t('No breadcrumbs found.')}
-            <Button
-              priority="link"
-              onClick={() => {
-                setFilterSet(new Set());
-                setSearch('');
-                trackAnalytics('breadcrumbs.drawer.action', {
-                  control: 'clear_filters',
-                  organization,
-                });
-              }}
-            >
-              {t('Clear Filters?')}
-            </Button>
-          </EmptyMessage>
+          <EmptyBreadcrumbMessage
+            onClear={() => {
+              setFilterSet(new Set());
+              setSearch('');
+              trackAnalytics('breadcrumbs.drawer.action', {
+                control: 'clear_filters',
+                organization,
+              });
+            }}
+          />
         ) : (
           <BreadcrumbsTimeline
             breadcrumbs={displayCrumbs}
@@ -230,6 +257,16 @@ export function BreadcrumbsDrawerContent({
         )}
       </TimelineContainer>
     </Fragment>
+  );
+}
+export function EmptyBreadcrumbMessage({onClear}: {onClear: () => void}) {
+  return (
+    <EmptyMessage>
+      {t('No breadcrumbs found.')}
+      <Button priority="link" onClick={onClear}>
+        {t('Clear Filters?')}
+      </Button>
+    </EmptyMessage>
   );
 }
 
