@@ -161,10 +161,14 @@ export type UsageChartProps = {
   isLoading?: boolean;
 
   /**
+   * Selected map of each legend item.
+   * Default to be selected if item is not in the map
+   */
+  legendSelected?: Record<string, boolean>;
+  /**
    * Intervals between the x-axis values
    */
   usageDateInterval?: IntervalPeriod;
-
   /**
    * Display datetime in UTC
    */
@@ -339,6 +343,7 @@ function UsageChartBody({
   usageDateShowUtc = true,
   yAxisFormatter,
   handleDataTransformation = cumulativeTotalDataTransformation,
+  legendSelected,
 }: UsageChartProps) {
   const theme = useTheme();
 
@@ -520,14 +525,7 @@ function UsageChartBody({
         top: 5,
         data: chartLegendData(),
         theme,
-        selected: {
-          [SeriesTypes.ACCEPTED]: true,
-          [SeriesTypes.FILTERED]: true,
-          [SeriesTypes.RATE_LIMITED]: true,
-          [SeriesTypes.INVALID]: true,
-          [SeriesTypes.CLIENT_DISCARD]: false,
-          [SeriesTypes.PROJECTED]: true,
-        },
+        selected: legendSelected,
       })}
     />
   );
