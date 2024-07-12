@@ -23,11 +23,46 @@ class CreateUptimeSubscriptionTest(TestCase):
             uptime_sub = create_uptime_subscription(url, interval_seconds, timeout_ms)
         # Subscription.subscription_id ends up set in the task, so refresh
         uptime_sub.refresh_from_db()
+        assert uptime_sub.subscription_id is not None
         assert uptime_sub.status == UptimeSubscription.Status.ACTIVE.value
         assert uptime_sub.type == UPTIME_SUBSCRIPTION_TYPE
         assert uptime_sub.url == url
         assert uptime_sub.interval_seconds == uptime_sub.interval_seconds
         assert uptime_sub.timeout_ms == timeout_ms
+
+    def test_duplicate(self):
+        url = "https://sentry.io"
+        interval_seconds = 300
+        timeout_ms = 500
+        with self.tasks():
+            uptime_sub = create_uptime_subscription(url, interval_seconds, timeout_ms)
+        # Subscription.subscription_id ends up set in the task, so refresh
+        uptime_sub.refresh_from_db()
+        assert uptime_sub.subscription_id is not None
+        with self.tasks():
+            second_sub = create_uptime_subscription(url, interval_seconds, timeout_ms)
+        second_sub.refresh_from_db()
+
+        assert uptime_sub.id == second_sub.id
+        assert uptime_sub.subscription_id == second_sub.subscription_id
+
+    def test_deleting_status(self):
+        url = "https://sentry.io"
+        interval_seconds = 300
+        timeout_ms = 500
+        with self.tasks():
+            uptime_sub = create_uptime_subscription(url, interval_seconds, timeout_ms)
+        # Subscription.subscription_id ends up set in the task, so refresh
+        uptime_sub.refresh_from_db()
+        uptime_sub.update(status=UptimeSubscription.Status.DELETING.value)
+        with self.tasks():
+            new_sub = create_uptime_subscription(url, interval_seconds, timeout_ms)
+        # Should be the same sub
+        new_sub.refresh_from_db()
+        assert uptime_sub.id == new_sub.id
+        assert new_sub.status == UptimeSubscription.Status.ACTIVE.value
+        assert new_sub.subscription_id is not None
+        assert new_sub.subscription_id != uptime_sub.subscription_id
 
     def test_without_task(self):
         url = "https://sentry.io"

@@ -431,8 +431,14 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                 if decision == DashboardWidgetTypes.DISCOVER:
                     return _data_fn(discover, offset, limit, scoped_query)
                 elif decision == DashboardWidgetTypes.TRANSACTION_LIKE:
+                    original_results["meta"][
+                        "discoverSplitDecision"
+                    ] = DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.TRANSACTION_LIKE)
                     return original_results
                 elif decision == DashboardWidgetTypes.ERROR_EVENTS and error_results:
+                    error_results["meta"][
+                        "discoverSplitDecision"
+                    ] = DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
                     return error_results
                 else:
                     return original_results
