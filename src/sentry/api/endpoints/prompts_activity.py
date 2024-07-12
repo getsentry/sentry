@@ -16,7 +16,7 @@ from sentry.models.project import Project
 from sentry.models.promptsactivity import PromptsActivity
 from sentry.utils.prompts import prompt_config
 
-VALID_STATUSES = frozenset(("snoozed", "dismissed"))
+VALID_STATUSES = frozenset(("snoozed", "dismissed", "visible"))
 
 
 # Endpoint to retrieve multiple PromptsActivity at once
@@ -106,6 +106,9 @@ class PromptsActivityEndpoint(Endpoint):
             data["snoozed_ts"] = now
         elif status == "dismissed":
             data["dismissed_ts"] = now
+        elif status == "visible":
+            data["snoozed_ts"] = None
+            data["dismissed_ts"] = None
 
         try:
             with transaction.atomic(router.db_for_write(PromptsActivity)):
