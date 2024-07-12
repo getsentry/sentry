@@ -16,7 +16,7 @@ from django.utils import timezone
 from sentry import release_health, tsdb
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_user_group_model
-from sentry.issues.grouptype import GroupCategory
+from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.rules import EventState
@@ -334,10 +334,8 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         environment_id: int,
         referrer_suffix: str,
     ) -> Mapping[int, int]:
-        org_id = (
-            Group.objects.filter(id=group_id)
-            .select_related("project__organization")
-            .values_list("id", flat=True)
+        org_id = Group.objects.filter(id=group_id).values_list(
+            "project__organization_id", flat=True
         )
         result: Mapping[int, int] = tsdb_function(
             model=model,
@@ -378,6 +376,24 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             batch_totals.update(result)
         return batch_totals
 
+    def get_group_category_by_type_id(self, type_id: int) -> GroupCategory:
+        issue_type = get_group_type_by_type_id(type_id)
+        return GroupCategory(issue_type.category)
+
+    def get_error_and_generic_group_ids(self, groups: list[tuple[int]]) -> tuple[list[int]]:
+        """
+        Separate group ids into error group ids and generic group ids
+        """
+        generic_issue_ids = []
+        error_issue_ids = []
+
+        for group in groups:
+            if self.get_group_category_by_type_id(group[1]) == GroupCategory.ERROR:
+                error_issue_ids.append(group[0])
+            else:
+                generic_issue_ids.append(group[0])
+        return error_issue_ids, generic_issue_ids
+
 
 class EventFrequencyCondition(BaseEventFrequencyCondition):
     id = "sentry.rules.conditions.event_frequency.EventFrequencyCondition"
@@ -403,8 +419,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
     ) -> dict[int, int]:
         batch_sums: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values_list("id", "type")
-        error_issue_ids = [group[0] for group in groups if group[1] == GroupCategory.ERROR.value]
-        generic_issue_ids = [group[0] for group in groups if group[1] != GroupCategory.ERROR.value]
+        error_issue_ids, generic_issue_ids = self.get_error_and_generic_group_ids(groups)
 
         if error_issue_ids:
             error_sums = self.get_chunked_result(
@@ -461,8 +476,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values_list("id", "type")
-        error_issue_ids = [group[0] for group in groups if group[1] == GroupCategory.ERROR.value]
-        generic_issue_ids = [group[0] for group in groups if group[1] != GroupCategory.ERROR.value]
+        error_issue_ids, generic_issue_ids = self.get_error_and_generic_group_ids(groups)
 
         if error_issue_ids:
             error_totals = self.get_chunked_result(
@@ -633,9 +647,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
             session_count_last_hour, self.get_option("interval")
         )
         if avg_sessions_in_interval:
-            error_issue_ids = [
-                group[0] for group in groups if group[1] == GroupCategory.ERROR.value
-            ]
+            error_issue_ids, _ = self.get_error_and_generic_group_ids(groups)
             if error_issue_ids:
                 error_issue_count = self.get_chunked_result(
                     tsdb_function=self.tsdb.get_sums,
