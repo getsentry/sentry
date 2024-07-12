@@ -21,14 +21,6 @@ Job = MutableMapping[str, Any]
 CONFIGS_TO_DEPRECATE: list[str] = []
 
 
-def upgrade_deprecated_configs():
-    queryset = Project.objects.filter(
-        projectoption__key="sentry:grouping_config", projectoption__value__in=CONFIGS_TO_DEPRECATE
-    )
-    for project in queryset:
-        _auto_update_grouping(project)
-
-
 def update_grouping_config_if_needed(project: Project) -> None:
     if _project_should_update_grouping(project):
         _auto_update_grouping(project)

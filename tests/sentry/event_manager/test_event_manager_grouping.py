@@ -12,7 +12,7 @@ from sentry import audit_log
 from sentry.conf.server import SENTRY_GROUPING_UPDATE_MIGRATION_PHASE
 from sentry.event_manager import _get_updated_group_title
 from sentry.eventtypes.base import DefaultEvent
-from sentry.grouping.ingest.config import upgrade_deprecated_configs
+from sentry.grouping.ingest.config import update_grouping_config_if_needed
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.group import Group
@@ -187,7 +187,7 @@ class EventManagerGroupingTest(TestCase):
         self.project.update_option("sentry:grouping_auto_update", False)
 
         with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=True):
-            upgrade_deprecated_configs()
+            update_grouping_config_if_needed(self.project)
             # Nothing changes
             assert self.project.get_option("sentry:grouping_config") == "mobile:2021-02-12"
             assert self.project.get_option("sentry:grouping_auto_update") is False
@@ -197,7 +197,7 @@ class EventManagerGroupingTest(TestCase):
                 "sentry.grouping.ingest.config.CONFIGS_TO_DEPRECATE",
                 new=["mobile:2021-02-12"],
             ):
-                upgrade_deprecated_configs()
+                update_grouping_config_if_needed(self.project)
                 # Even though auto update is disabled we have upgraded the project
                 assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
                 # We have also updated the auto_update option
