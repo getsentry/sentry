@@ -609,10 +609,28 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
         assert (
             "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
-            in blocks[1]["text"]["text"]
+            in update_data["blocks"][2]["text"]["text"]
         )
-        assert blocks[2]["text"]["text"] == expect_status
-        assert ":white_circle: :chart_with_upwards_trend:" in blocks[0]["text"]["text"]
+        assert update_data["blocks"][3]["text"]["text"] == expect_status
+        assert (
+            ":white_circle: :chart_with_upwards_trend:" in update_data["blocks"][0]["text"]["text"]
+        )
+
+    @responses.activate
+    def test_resolve_issue_through_unfurl(self):
+        original_message = self.get_original_message(self.group.id)
+        payload_data = self.get_unfurl_data(original_message["blocks"])
+        self.resolve_issue(original_message, "resolved", payload_data)
+
+        self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.RESOLVED
+        assert not GroupResolution.objects.filter(group=self.group)
+
+        update_data = orjson.loads(responses.calls[1].request.body)
+
+        expect_status = f"*Issue resolved by <@{self.external_id}>*"
+        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
+        assert update_data["blocks"][2]["text"]["text"] == expect_status
 
     @responses.activate
     @with_feature("organizations:slack-sdk-action-view-open")
