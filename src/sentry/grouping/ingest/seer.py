@@ -14,6 +14,7 @@ from sentry.seer.similarity.utils import (
     event_content_is_seer_eligible,
     filter_null_from_event_title,
     get_stacktrace_string,
+    killswitch_enabled,
 )
 from sentry.utils import metrics
 from sentry.utils.safe import get_path
@@ -53,7 +54,7 @@ def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes
     # and rate limiting friends instead happens in the `with_circuit_breaker` helper used where
     # `get_seer_similar_issues` is actually called. (It has to be there in order for it to track
     # errors arising from that call.)
-    if _killswitch_enabled(event, project) or _ratelimiting_enabled(event, project):
+    if killswitch_enabled(project.id, event) or _ratelimiting_enabled(event, project):
         return False
 
     return True
@@ -90,42 +91,6 @@ def _has_customized_fingerprint(event: Event, primary_hashes: CalculatedHashes) 
             "grouping.similarity.did_call_seer",
             sample_rate=1.0,
             tags={"call_made": False, "blocker": fingerprint_variant.type},
-        )
-        return True
-
-    return False
-
-
-def _killswitch_enabled(event: Event, project: Project) -> bool:
-    """
-    Check both the global and similarity-specific Seer killswitches.
-    """
-
-    logger_extra = {"event_id": event.event_id, "project_id": project.id}
-
-    if options.get("seer.global-killswitch.enabled"):
-        logger.warning(
-            "should_call_seer_for_grouping.seer_global_killswitch_enabled",
-            extra=logger_extra,
-        )
-        metrics.incr("grouping.similarity.seer_global_killswitch_enabled")
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=1.0,
-            tags={"call_made": False, "blocker": "global-killswitch"},
-        )
-        return True
-
-    if options.get("seer.similarity-killswitch.enabled"):
-        logger.warning(
-            "should_call_seer_for_grouping.seer_similarity_killswitch_enabled",
-            extra=logger_extra,
-        )
-        metrics.incr("grouping.similarity.seer_similarity_killswitch_enabled")
-        metrics.incr(
-            "grouping.similarity.did_call_seer",
-            sample_rate=1.0,
-            tags={"call_made": False, "blocker": "similarity-killswitch"},
         )
         return True
 
