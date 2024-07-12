@@ -146,6 +146,11 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.region import Region, get_local_region, get_region_by_name
 from sentry.types.token import AuthTokenType
+from sentry.uptime.models import (
+    ProjectUptimeSubscription,
+    ProjectUptimeSubscriptionMode,
+    UptimeSubscription,
+)
 from sentry.users.models.user import User
 from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.models.user_option import UserOption
@@ -153,11 +158,6 @@ from sentry.users.models.useremail import UserEmail
 from sentry.users.models.userpermission import UserPermission
 from sentry.users.models.userreport import UserReport
 from sentry.users.models.userrole import UserRole
-from sentry.uptime.models import (
-    ProjectUptimeSubscription,
-    ProjectUptimeSubscriptionMode,
-    UptimeSubscription,
-)
 from sentry.users.services.user import RpcUser
 from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem

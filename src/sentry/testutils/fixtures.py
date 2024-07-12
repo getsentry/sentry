@@ -33,12 +33,12 @@ from sentry.testutils.silo import assume_test_silo_mode
 # all of the memoized fixtures are copypasta due to our inability to use pytest fixtures
 # on a per-class method basis
 from sentry.types.activity import ActivityType
-from sentry.users.models.user import User
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
     UptimeSubscription,
 )
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
 
