@@ -69,7 +69,7 @@ describe('ApiNewToken', function () {
       url: `/api-tokens/1/`,
     });
 
-    await userEvent.clear(screen.getByLabelText('Name'));
+    await userEvent.clear(screen.getByRole('textbox', {name: /name/i}));
 
     await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
