@@ -5,6 +5,7 @@ import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
 import ExternalLink from 'sentry/components/links/externalLink';
+import type {OnExpandCallback} from 'sentry/components/objectInspector';
 import {CollapsibleValue} from 'sentry/components/structuredEventData/collapsibleValue';
 import {IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -39,6 +40,7 @@ export type StructuredEventDataProps = {
   // TODO(TS): What possible types can `data` be?
   data?: any;
   'data-test-id'?: string;
+  expandPaths?: string[];
   /**
    * Forces objects to default to expanded when rendered
    */
@@ -46,6 +48,10 @@ export type StructuredEventDataProps = {
   maxDefaultDepth?: number;
   meta?: Record<any, any>;
   onCopy?: (copiedCode: string) => void;
+  /**
+   * Specify behavior when a layer is expanded
+   */
+  onExpand?: OnExpandCallback;
   showCopyButton?: boolean;
   withAnnotatedText?: boolean;
 };
@@ -103,14 +109,18 @@ export function StructuredData({
   meta,
   objectKey,
   forceDefaultExpand,
+  onExpand,
+  expandPaths,
 }: {
   depth: number;
   maxDefaultDepth: number;
   meta: Record<any, any> | undefined;
   withAnnotatedText: boolean;
   config?: StructedEventDataConfig;
+  expandPaths?: string[];
   forceDefaultExpand?: boolean;
   objectKey?: string;
+  onExpand?: OnExpandCallback;
   showCopyButton?: boolean;
   // TODO(TS): What possible types can `value` be?
   value?: any;
@@ -258,6 +268,8 @@ export function StructuredData({
       children.push(
         <div key={i}>
           <StructuredData
+            onExpand={onExpand}
+            expandPaths={expandPaths}
             config={config}
             value={value[i]}
             depth={depth + 1}
@@ -271,11 +283,13 @@ export function StructuredData({
     }
     return (
       <CollapsibleValue
+        onExpand={onExpand}
         openTag="["
         closeTag="]"
         prefix={formattedObjectKey}
         maxDefaultDepth={maxDefaultDepth}
         depth={depth}
+        expandPaths={expandPaths}
       >
         {children}
       </CollapsibleValue>
@@ -301,6 +315,8 @@ export function StructuredData({
           meta={meta?.[key]}
           maxDefaultDepth={maxDefaultDepth}
           objectKey={key}
+          expandPaths={expandPaths}
+          onExpand={onExpand}
         />
         {i < keys.length - 1 ? <span>{','}</span> : null}
       </div>
@@ -309,12 +325,14 @@ export function StructuredData({
 
   return (
     <CollapsibleValue
+      onExpand={onExpand}
       openTag="{"
       closeTag="}"
       prefix={formattedObjectKey}
       maxDefaultDepth={maxDefaultDepth}
       depth={depth}
       forceDefaultExpand={forceDefaultExpand}
+      expandPaths={expandPaths}
     >
       {children}
     </CollapsibleValue>
@@ -330,12 +348,15 @@ export default function StructuredEventData({
   withAnnotatedText = false,
   forceDefaultExpand,
   showCopyButton,
+  expandPaths,
+  onExpand,
   onCopy,
   ...props
 }: StructuredEventDataProps) {
   return (
     <StructuredDataWrapper {...props}>
       <StructuredData
+        onExpand={onExpand}
         config={config}
         value={data}
         depth={0}
@@ -343,6 +364,7 @@ export default function StructuredEventData({
         meta={meta}
         withAnnotatedText={withAnnotatedText}
         forceDefaultExpand={forceDefaultExpand}
+        expandPaths={expandPaths}
       />
       {children}
       {showCopyButton && (

@@ -3,6 +3,7 @@ import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import type {OnExpandCallback} from 'sentry/components/objectInspector';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -13,11 +14,16 @@ type CollapsibleValueProps = {
   depth: number;
   maxDefaultDepth: number;
   openTag: string;
+  expandPaths?: string[];
   /**
    * Forces the value to start expanded, otherwise it will expand if there are
    * less than 5 (MAX_ITEMS_BEFORE_AUTOCOLLAPSE) items
    */
   forceDefaultExpand?: boolean;
+  /**
+   * Specify behavior when a layer is expanded
+   */
+  onExpand?: OnExpandCallback;
   prefix?: React.ReactNode;
 };
 
@@ -31,6 +37,8 @@ export function CollapsibleValue({
   depth,
   maxDefaultDepth,
   forceDefaultExpand,
+  onExpand,
+  // expandPaths,
 }: CollapsibleValueProps) {
   const numChildren = Children.count(children);
   const [isExpanded, setIsExpanded] = useState(
@@ -51,7 +59,14 @@ export function CollapsibleValue({
         <ToggleButton
           size="zero"
           aria-label={isExpanded ? t('Collapse') : t('Expand')}
-          onClick={() => setIsExpanded(oldValue => !oldValue)}
+          onClick={e => {
+            setIsExpanded(oldValue => !oldValue);
+            onExpand?.(
+              '??',
+              {},
+              e.nativeEvent as unknown as React.MouseEvent<HTMLDivElement, MouseEvent>
+            );
+          }}
           icon={
             <IconChevron direction={isExpanded ? 'down' : 'right'} legacySize="10px" />
           }

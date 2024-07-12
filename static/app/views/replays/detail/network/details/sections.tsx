@@ -39,7 +39,7 @@ export type SectionProps = {
   startTimestampMs: number;
 };
 
-const config = {
+export const replayDataConfig = {
   isString: (v: any) => {
     return typeof v === 'string';
   },
@@ -189,7 +189,7 @@ export function QueryParamsSection({item}: SectionProps) {
           showCopyButton
           forceDefaultExpand
           maxDefaultDepth={3}
-          config={config}
+          config={replayDataConfig}
         />
       </Indent>
     </SectionItem>
@@ -225,7 +225,7 @@ export function RequestPayloadSection({item}: SectionProps) {
             forceDefaultExpand
             maxDefaultDepth={2}
             showCopyButton
-            config={config}
+            config={replayDataConfig}
           />
         ) : (
           t('Request body not found.')
@@ -264,7 +264,7 @@ export function ResponsePayloadSection({item}: SectionProps) {
             forceDefaultExpand
             maxDefaultDepth={2}
             showCopyButton
-            config={config}
+            config={replayDataConfig}
           />
         ) : (
           t('Response body not found.')

@@ -20,9 +20,11 @@
 // OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE
 // USE OR OTHER DEALINGS IN THE SOFTWARE.
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import type {OnExpandCallback} from 'sentry/components/objectInspector';
-import ObjectInspector from 'sentry/components/objectInspector';
+import StructuredEventData from 'sentry/components/structuredEventData';
+import {replayDataConfig} from 'sentry/views/replays/detail/network/details/sections';
 
 const formatRegExp = /%[csdj%]/g;
 
@@ -46,7 +48,8 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
     const objects: any[] = [];
     for (let i = 0; i < args.length; i++) {
       objects.push(
-        <ObjectInspector
+        <StyledStructuredEventData
+          forceDefaultExpand={false}
           key={i}
           data={args[i]}
           expandPaths={expandPaths}
@@ -136,10 +139,24 @@ export default function Format({onExpand, expandPaths, args}: FormatProps) {
     } else {
       pieces.push(' ');
       pieces.push(
-        <ObjectInspector key={i} data={x} expandPaths={expandPaths} onExpand={onExpand} />
+        <StyledStructuredEventData
+          forceDefaultExpand={false}
+          key={i}
+          data={x}
+          config={replayDataConfig}
+          onExpand={onExpand}
+          expandPaths={expandPaths}
+        />
       );
     }
   }
 
   return <Fragment>{pieces}</Fragment>;
 }
+
+const StyledStructuredEventData = styled(StructuredEventData)`
+  background: transparent;
+  font-size: ${p => p.theme.fontSizeExtraSmall};
+  margin: 0;
+  will-change: transform;
+`;
