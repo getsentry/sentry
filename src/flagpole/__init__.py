@@ -68,7 +68,7 @@ import orjson
 import yaml
 from pydantic import BaseModel, Field, ValidationError, constr
 
-from flagpole.conditions import Segment
+from flagpole.conditions import ConditionBase, Segment
 from flagpole.evaluation_context import ContextBuilder, EvaluationContext
 
 
@@ -168,4 +168,11 @@ class Feature(BaseModel):
         return orjson.dumps(self.to_dict()).decode()
 
 
-__all__ = ["Feature", "InvalidFeatureFlagConfiguration", "ContextBuilder", "EvaluationContext"]
+__all__ = [
+    "Feature",
+    "InvalidFeatureFlagConfiguration",
+    "ContextBuilder",
+    "EvaluationContext",
+    "Segment",
+    "ConditionBase",
+]
