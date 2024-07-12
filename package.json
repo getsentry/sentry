@@ -205,6 +205,7 @@
     "stylelint-config-recommended": "^14.0.0",
     "terser": "5.30.3",
     "tsconfig-paths": "^4.2.0",
+    "webpack-bundle-analyzer": "^4.10.2",
     "webpack-dev-server": "5.0.4"
   },
   "resolutions": {
