@@ -77,14 +77,14 @@ class InvalidFeatureFlagConfiguration(Exception):
 
 
 class Feature(BaseModel):
-    name: constr(min_length=1, to_lower=True) = Field(
+    name: constr(min_length=1, to_lower=True) = Field(  # type:ignore[valid-type]
         description="The feature name."
-    )  # type:ignore[valid-type]
+    )
     "The feature name."
 
-    owner: constr(min_length=1) = Field(
+    owner: constr(min_length=1) = Field(  # type:ignore[valid-type]
         description="The owner of this feature. Either an email address or team name, preferably."
-    )  # type:ignore[valid-type]
+    )
     "The owner of this feature. Either an email address or team name, preferably."
 
     segments: list[Segment] = Field(
