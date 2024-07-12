@@ -505,7 +505,7 @@ function useFilterSuggestions({
   token: TokenResult<Token.FILTER>;
 }) {
   const {getTagValues, filterKeys} = useSearchQueryBuilder();
-  const key = filterKeys[token.key.text];
+  const key: Tag | undefined = filterKeys[token.key.text];
   const predefinedValues = useMemo(
     () => getPredefinedValues({key, filterValue, token}),
     [key, filterValue, token]
@@ -523,7 +523,8 @@ function useFilterSuggestions({
   // TODO(malwilley): Display error states
   const {data, isFetching} = useQuery<string[]>({
     queryKey: debouncedQueryKey,
-    queryFn: () => getTagValues(key, filterValue),
+    queryFn: () =>
+      getTagValues(key ? key : {key: token.key.text, name: token.key.text}, filterValue),
     keepPreviousData: true,
     enabled: shouldFetchValues,
   });
