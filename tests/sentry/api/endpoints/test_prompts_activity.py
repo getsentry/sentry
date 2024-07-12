@@ -123,6 +123,32 @@ class PromptsActivityTest(APITestCase):
         self.path = reverse("sentry-api-0-prompts-activity")
         self.test_snooze()
 
+    def test_visible(self):
+        data = {
+            "organization_id": self.org.id,
+            "project_id": self.project.id,
+            "feature": "releases",
+        }
+        resp = self.client.get(self.path, data)
+        assert resp.status_code == 200
+        assert resp.data.get("data", None) is None
+
+        self.client.put(
+            self.path,
+            {
+                "organization_id": self.org.id,
+                "project_id": self.project.id,
+                "feature": "releases",
+                "status": "visible",
+            },
+        )
+
+        resp = self.client.get(self.path, data)
+        assert resp.status_code == 200
+        assert "data" in resp.data
+        assert resp.data["data"].get("dismissed_ts") is None
+        assert resp.data["data"].get("snoozed_ts") is None
+
     def test_batched(self):
         data = {
             "organization_id": self.org.id,
