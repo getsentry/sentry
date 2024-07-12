@@ -2,13 +2,18 @@ import uuid
 from datetime import datetime
 from hashlib import md5
 from unittest import mock
+from unittest.mock import call
 
 import pytest
 from arroyo import Message
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Partition, Topic
 from django.test import override_settings
-from sentry_kafka_schemas.schema_types.uptime_results_v1 import CheckResult
+from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    CHECKSTATUS_FAILURE,
+    CHECKSTATUS_MISSED_WINDOW,
+    CheckResult,
+)
 
 from sentry.conf.types import kafka_definition
 from sentry.issues.grouptype import UptimeDomainCheckFailure
@@ -77,10 +82,40 @@ class ProcessResultTest(UptimeTestCase):
         )
         with mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics:
             self.send_result(result)
-            metrics.incr.assert_called_once_with(
-                "uptime.result_processor.skipping_already_processed_update"
+            metrics.incr.assert_has_calls(
+                [
+                    call(
+                        "uptime.result_processor.handle_result_for_project",
+                        tags={"status": CHECKSTATUS_FAILURE},
+                    ),
+                    call(
+                        "uptime.result_processor.skipping_already_processed_update",
+                        tags={"status": CHECKSTATUS_FAILURE},
+                    ),
+                ]
             )
 
+        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
+        with pytest.raises(Group.DoesNotExist):
+            Group.objects.get(grouphash__hash=hashed_fingerprint)
+
+    def test_missed(self):
+        result = self.create_uptime_result(
+            self.subscription.subscription_id, status=CHECKSTATUS_MISSED_WINDOW
+        )
+        with (
+            mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics,
+            mock.patch("sentry.uptime.consumers.results_consumer.logger") as logger,
+        ):
+            self.send_result(result)
+            metrics.incr.assert_called_once_with(
+                "uptime.result_processor.handle_result_for_project",
+                tags={"status": CHECKSTATUS_MISSED_WINDOW},
+            )
+            logger.info.assert_any_call(
+                "handle_result_for_project.missed",
+                extra={"project_id": self.project.id, **result},
+            )
         hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
         with pytest.raises(Group.DoesNotExist):
             Group.objects.get(grouphash__hash=hashed_fingerprint)
