@@ -85,7 +85,7 @@ def _auto_update_grouping(project: Project) -> None:
             "sentry:grouping_config": new_config,
         }
         # Any project on deprecated configs may be there only because auto updates are
-        # disabled (not because they want to use that specific config). This will reduce the 
+        # disabled (not because they want to use that specific config). This will reduce the
         # chance of that happening unintentionally.
         if current_config in CONFIGS_TO_DEPRECATE:
             changes["sentry:grouping_auto_update"] = True
