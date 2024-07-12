@@ -225,9 +225,9 @@ AvailableConditions = Annotated[
 
 
 class Segment(BaseModel):
-    name: constr(min_length=1) = Field(
+    name: constr(min_length=1) = Field(  # type:ignore[valid-type]
         description="A brief description or identifier for the segment"
-    )  # type:ignore[valid-type]
+    )
     "A brief description or identifier for the segment"
 
     conditions: list[AvailableConditions] = Field(
