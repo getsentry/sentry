@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
@@ -18,11 +18,13 @@ import {
   getSummaryBreadcrumbs,
 } from 'sentry/components/events/breadcrumbs/utils';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import useDrawer from 'sentry/components/globalDrawer';
 import {
   IconClock,
   IconEllipsis,
   IconFilter,
+  IconMegaphone,
   IconSearch,
   IconSort,
   IconTimer,
@@ -79,20 +81,23 @@ export default function BreadcrumbsDataSection({
         ({Header, Body}) => (
           <Fragment>
             <Header>
-              <NavigationCrumbs
-                crumbs={[
-                  {
-                    label: (
-                      <CrumbContainer>
-                        <ProjectAvatar project={project} />
-                        <ShortId>{group.shortId}</ShortId>
-                      </CrumbContainer>
-                    ),
-                  },
-                  {label: getShortEventId(event.id)},
-                  {label: t('Breadcrumbs')},
-                ]}
-              />
+              <BreadcrumbHeader>
+                <NavigationCrumbs
+                  crumbs={[
+                    {
+                      label: (
+                        <CrumbContainer>
+                          <ProjectAvatar project={project} />
+                          <ShortId>{group.shortId}</ShortId>
+                        </CrumbContainer>
+                      ),
+                    },
+                    {label: getShortEventId(event.id)},
+                    {label: t('Breadcrumbs')},
+                  ]}
+                />
+                <BreadcrumbsFeedback />
+              </BreadcrumbHeader>
             </Header>
             <Body>
               <BreadcrumbsDrawerContent
@@ -102,7 +107,7 @@ export default function BreadcrumbsDataSection({
             </Body>
           </Fragment>
         ),
-        {ariaLabel: 'breadcrumb drawer'}
+        {ariaLabel: 'breadcrumb drawer', closeOnOutsideClick: false}
       );
     },
     [group, event, project, openDrawer, enhancedCrumbs, organization]
@@ -193,6 +198,35 @@ export default function BreadcrumbsDataSection({
     </EventDataSection>
   );
 }
+
+function BreadcrumbsFeedback() {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const feedback = useFeedbackWidget({
+    buttonRef,
+    messagePlaceholder: t('How can we make breadcrumbs more useful to you?'),
+  });
+
+  if (!feedback) {
+    return null;
+  }
+
+  return (
+    <Button
+      ref={buttonRef}
+      aria-label={t('Give Feedback')}
+      icon={<IconMegaphone />}
+      size={'xs'}
+    >
+      {t('Feedback')}
+    </Button>
+  );
+}
+
+const BreadcrumbHeader = styled('div')`
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+`;
 
 const ViewAllContainer = styled('div')`
   position: relative;
