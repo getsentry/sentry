@@ -933,7 +933,7 @@ class ProjectPerformance extends DeprecatedAsyncView<Props, State> {
                     <Actions>
                       <Button
                         external
-                        href="https://docs.sentry.io/product/performance/performance-at-scale/"
+                        href="https://docs.sentry.io/product/performance/tracing-at-scale/"
                       >
                         {t('Read docs')}
                       </Button>
