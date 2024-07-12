@@ -8,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 MAX_FRAME_COUNT = 30
 FULLY_MINIFIED_STACKTRACE_MAX_FRAME_COUNT = 20
-SEER_ELIGIBLE_PLATFORMS = frozenset(["python", "javascript", "node"])
+SEER_ELIGIBLE_PLATFORMS = frozenset(["python", "javascript", "node", "bun"])
 
 
 def _get_value_if_exists(exception_value: dict[str, Any]) -> str:
