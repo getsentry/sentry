@@ -13,7 +13,7 @@ from sentry.hybridcloud.services.organization_mapping import organization_mappin
 from sentry.organizations.services.organization import organization_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.users.models.useremail import UserEmail
+from sentry.users.models.users.useremail import UserEmail
 
 
 class TestSentryFlagpoleContext(TestCase):

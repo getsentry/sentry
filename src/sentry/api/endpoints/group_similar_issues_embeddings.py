@@ -17,7 +17,7 @@ from sentry.models.group import Group
 from sentry.seer.similarity.similar_issues import get_similarity_data_from_seer
 from sentry.seer.similarity.types import SeerSimilarIssueData, SimilarIssuesEmbeddingsRequest
 from sentry.seer.similarity.utils import get_stacktrace_string
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 from sentry.utils.safe import get_path
 
 logger = logging.getLogger(__name__)

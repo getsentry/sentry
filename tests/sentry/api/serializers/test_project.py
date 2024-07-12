@@ -29,7 +29,7 @@ from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.users.models.userreport import UserReport
+from sentry.users.models.users.userreport import UserReport
 from sentry.utils.samples import load_data
 
 TEAM_CONTRIBUTOR = settings.SENTRY_TEAM_ROLES[0]

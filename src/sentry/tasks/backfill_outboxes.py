@@ -15,7 +15,7 @@ from sentry import options
 from sentry.db.models.outboxes import ControlOutboxProducingModel, RegionOutboxProducingModel
 from sentry.models.outbox import outbox_context
 from sentry.silo.base import SiloMode
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 from sentry.utils import json, metrics, redis
 
 

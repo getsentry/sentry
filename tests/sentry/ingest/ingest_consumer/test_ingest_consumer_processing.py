@@ -30,7 +30,7 @@ from sentry.options import set
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.skips import requires_snuba
 from sentry.usage_accountant import accountant
-from sentry.users.models.userreport import UserReport
+from sentry.users.models.users.userreport import UserReport
 from sentry.utils.eventuser import EventUser
 from sentry.utils.json import loads
 

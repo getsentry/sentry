@@ -12,7 +12,7 @@ from sentry.auth.system import is_system_auth
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.types.region import get_region_by_name
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 from sentry.users.services.user import RpcUser
 
 

@@ -40,7 +40,7 @@ from sentry.testutils.helpers.slack import link_team
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.actor import Actor
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 from sentry.users.services.user.service import user_service
 from sentry.utils.cache import cache
 from tests.sentry.mail import make_event_data

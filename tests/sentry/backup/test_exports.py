@@ -22,10 +22,10 @@ from sentry.testutils.helpers.backups import (
     export_to_file,
 )
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.users.models.user import User
-from sentry.users.models.useremail import UserEmail
-from sentry.users.models.userpermission import UserPermission
-from sentry.users.models.userrole import UserRole, UserRoleUser
+from sentry.users.models.users.user import User
+from sentry.users.models.users.useremail import UserEmail
+from sentry.users.models.users.userpermission import UserPermission
+from sentry.users.models.users.userrole import UserRole, UserRoleUser
 from tests.sentry.backup import get_matching_exportable_models
 
 

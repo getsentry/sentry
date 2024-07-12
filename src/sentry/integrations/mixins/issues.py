@@ -18,7 +18,7 @@ from sentry.notifications.utils import get_notification_group_title
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo.base import all_silo_function
 from sentry.tasks.integrations import sync_status_inbound as sync_status_inbound_task
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user_option import get_option_from_list, user_option_service
 from sentry.utils.http import absolute_uri

@@ -13,7 +13,7 @@ from sentry.models.group import Group, GroupStatus
 from sentry.models.project import Project
 from sentry.tasks.merge import merge_groups
 from sentry.types.activity import ActivityType
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 
 
 class MergedGroup(TypedDict):

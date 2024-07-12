@@ -3,8 +3,8 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.users.models.user import User
-from sentry.users.models.useremail import UserEmail
+from sentry.users.models.users.user import User
+from sentry.users.models.users.useremail import UserEmail
 from sentry.users.services.user.service import user_service
 
 

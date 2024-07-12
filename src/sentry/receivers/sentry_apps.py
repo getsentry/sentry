@@ -23,7 +23,7 @@ from sentry.signals import (
     issue_unresolved,
 )
 from sentry.tasks.sentry_apps import build_comment_webhook, workflow_notification
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 from sentry.users.services.user import RpcUser
 
 

@@ -9,7 +9,7 @@ from sentry.similarity import _make_index_backend, features
 from sentry.tasks.merge import merge_groups
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.users.models.userreport import UserReport
+from sentry.users.models.users.userreport import UserReport
 from sentry.utils import redis
 
 # Use the default redis client as a cluster client in the similarity index

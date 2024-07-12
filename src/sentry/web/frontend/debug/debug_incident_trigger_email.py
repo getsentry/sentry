@@ -9,7 +9,7 @@ from sentry.incidents.models.incident import Incident, IncidentStatus, TriggerSt
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.snuba.models import SnubaQuery
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 
 from .mail import MailPreviewView
 

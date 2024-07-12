@@ -41,7 +41,7 @@ class ProjectDeletionTask(ModelDeletionTask):
         from sentry.monitors.models import Monitor
         from sentry.replays.models import ReplayRecordingSegment
         from sentry.snuba.models import QuerySubscription
-        from sentry.users.models.userreport import UserReport
+        from sentry.users.models.users.userreport import UserReport
 
         relations = [
             # ProjectKey gets revoked immediately, in bulk

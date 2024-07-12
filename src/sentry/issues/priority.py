@@ -10,7 +10,7 @@ from sentry.models.project import Project
 from sentry.signals import issue_update_priority
 from sentry.types.activity import ActivityType
 from sentry.types.group import PriorityLevel
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 from sentry.users.services.user.model import RpcUser
 
 if TYPE_CHECKING:

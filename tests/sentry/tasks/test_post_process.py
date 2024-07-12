@@ -75,7 +75,7 @@ from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
 from sentry.uptime.detectors.ranking import _get_cluster, get_project_bucket_key
-from sentry.users.models.userreport import UserReport
+from sentry.users.models.users.userreport import UserReport
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.utils.cache import cache

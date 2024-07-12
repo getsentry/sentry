@@ -9,7 +9,7 @@ from sentry.models.project import Project
 from sentry.organizations.services.organization import RpcOrganization
 from sentry.organizations.services.organization.model import RpcOrganizationSummary
 from sentry.projects.services.project import RpcProject
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 from sentry.users.services.user import RpcUser
 
 

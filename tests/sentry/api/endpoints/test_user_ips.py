@@ -2,7 +2,7 @@ from datetime import datetime, timezone
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.users.models.userip import UserIP
+from sentry.users.models.users.userip import UserIP
 
 
 @control_silo_test

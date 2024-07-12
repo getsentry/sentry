@@ -6,7 +6,7 @@ from sentry.db.router import SiloRouter
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import use_split_dbs
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 
 
 class SiloRouterSimulatedTest(TestCase):

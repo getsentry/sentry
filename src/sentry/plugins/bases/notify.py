@@ -109,7 +109,7 @@ class NotificationPlugin(Plugin):
         pass
 
     def get_notification_recipients(self, project, user_option: str) -> set:
-        from sentry.models.options.user_option import UserOption
+        from sentry.users.models.users.user_option import UserOption
 
         alert_settings = {
             o.user_id: int(o.value)

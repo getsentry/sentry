@@ -1,6 +1,6 @@
-from .user import *  # NOQA
-from .useremail import *  # NOQA
-from .userip import *  # NOQA
-from .userpermission import *  # NOQA
-from .userreport import *  # NOQA
-from .userrole import *  # NOQA
+from ...users.models.users.user import *  # NOQA
+from ...users.models.users.useremail import *  # NOQA
+from ...users.models.users.userip import *  # NOQA
+from ...users.models.users.userpermission import *  # NOQA
+from ...users.models.users.userreport import *  # NOQA
+from ...users.models.users.userrole import *  # NOQA

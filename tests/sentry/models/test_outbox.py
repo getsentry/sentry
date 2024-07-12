@@ -30,7 +30,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.types.region import Region, RegionCategory, get_local_region
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 
 
 def wrap_with_connection_closure(c: Callable[..., Any]) -> Callable[..., Any]:

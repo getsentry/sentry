@@ -4,7 +4,7 @@ from sentry.api.permissions import StaffPermission
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
-from sentry.users.models.userpermission import UserPermission
+from sentry.users.models.users.userpermission import UserPermission
 
 
 @control_silo_test

@@ -13,7 +13,7 @@ from sentry.feedback.usecases.create_feedback import (
     shim_to_feedback,
 )
 from sentry.signals import user_feedback_received
-from sentry.users.models.userreport import UserReport
+from sentry.users.models.users.userreport import UserReport
 from sentry.utils import metrics
 from sentry.utils.db import atomic_transaction
 from sentry.utils.eventuser import EventUser

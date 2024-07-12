@@ -5,7 +5,7 @@ import pytest
 from sentry.plugins.bases.issue import IssueTrackingPlugin
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 from social_auth.models import UserSocialAuth
 
 

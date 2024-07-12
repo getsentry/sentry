@@ -11,7 +11,7 @@ from sentry.receivers.core import DEFAULT_SENTRY_PROJECT_ID, create_default_proj
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode_of
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 
 
 class CreateDefaultProjectsTest(TestCase):

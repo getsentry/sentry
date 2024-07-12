@@ -44,7 +44,7 @@ from sentry.testutils.silo import (
     region_silo_test,
 )
 from sentry.types.region import find_regions_for_user
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 
 
 @region_silo_model

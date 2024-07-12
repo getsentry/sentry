@@ -5,7 +5,7 @@ from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.project import Project
 from sentry.notifications.notifications.codeowners_auto_sync import AutoSyncNotification
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 
 from .mail import render_preview_email_for_notification
 

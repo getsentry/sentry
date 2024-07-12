@@ -16,7 +16,7 @@ from sentry.utils.cache import cache
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
-    from sentry.users.models.user import User
+    from sentry.users.models.users.user import User
 
 
 class AssignedToFilter(EventFilter):

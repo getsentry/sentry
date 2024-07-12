@@ -79,7 +79,7 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.helpers.backups import FakeKeyManagementServiceClient, generate_rsa_key_pair
 from sentry.testutils.helpers.task_runner import BurstTaskRunner, BurstTaskRunnerRetryError
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 from sentry.utils import json
 from sentry.utils.relocation import RELOCATION_BLOB_SIZE, RELOCATION_FILE_TYPE, OrderedTask
 

@@ -23,7 +23,7 @@ from sentry.services.organization import (
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, create_test_regions
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 
 
 @control_silo_test(regions=create_test_regions("us"))

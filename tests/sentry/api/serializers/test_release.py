@@ -23,8 +23,8 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.users.models.user import User
-from sentry.users.models.useremail import UserEmail
+from sentry.users.models.users.user import User
+from sentry.users.models.users.useremail import UserEmail
 
 
 class ReleaseSerializerTest(TestCase, SnubaTestCase):

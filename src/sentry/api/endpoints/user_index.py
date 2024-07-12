@@ -9,7 +9,7 @@ from sentry.api.permissions import SuperuserOrStaffFeatureFlaggedPermission
 from sentry.api.serializers import serialize
 from sentry.db.models.query import in_iexact
 from sentry.search.utils import tokenize_query
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 
 
 @control_silo_endpoint

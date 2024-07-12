@@ -12,7 +12,7 @@ from sentry.models.organization import Organization
 from sentry.models.team import Team
 from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 from sentry.utils import json
 
 

@@ -4,7 +4,7 @@ from sentry.tasks.deletion.hybrid_cloud import schedule_hybrid_cloud_foreign_key
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 
 
 def assert_no_notification_settings():

@@ -1,6 +1,7 @@
-from ..users.models.userip import *  # NOQA
-from ..users.models.userreport import *  # NOQA
-from ..users.models.userrole import *  # NOQA
+from ..users.models.auth.authenticator import *  # NOQA
+from ..users.models.users.userip import *  # NOQA
+from ..users.models.users.userreport import *  # NOQA
+from ..users.models.users.userrole import *  # NOQA
 from .activity import *  # NOQA
 from .apiapplication import *  # NOQA
 from .apiauthorization import *  # NOQA
@@ -12,7 +13,6 @@ from .appconnectbuilds import *  # NOQA
 from .artifactbundle import *  # NOQA
 from .assistant import *  # NOQA
 from .auditlogentry import *  # NOQA
-from .authenticator import *  # NOQA
 from .authidentity import *  # NOQA
 from .authidentityreplica import *  # NOQA
 from .authprovider import *  # NOQA

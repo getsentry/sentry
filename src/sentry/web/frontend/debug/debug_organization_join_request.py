@@ -4,7 +4,7 @@ from django.views.generic import View
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.notifications.notifications.organization_request import JoinRequestNotification
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 
 from .mail import render_preview_email_for_notification
 

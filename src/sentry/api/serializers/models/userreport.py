@@ -4,7 +4,7 @@ from sentry.eventstore.models import Event
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.snuba.dataset import Dataset
-from sentry.users.models.userreport import UserReport
+from sentry.users.models.users.userreport import UserReport
 from sentry.utils.eventuser import EventUser
 
 

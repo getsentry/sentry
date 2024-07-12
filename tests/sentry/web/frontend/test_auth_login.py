@@ -24,7 +24,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 from sentry.utils import json
 
 

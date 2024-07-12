@@ -22,7 +22,7 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.signals import repo_linked
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import metrics
 

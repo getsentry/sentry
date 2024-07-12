@@ -23,7 +23,7 @@ from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.savedsearch import SavedSearch, Visibility
 from sentry.signals import advanced_search_feature_gated
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 from sentry.utils import metrics
 from sentry.utils.cursors import Cursor, CursorResult
 

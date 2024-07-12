@@ -12,7 +12,7 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 
 
 class Refresher(Mediator):

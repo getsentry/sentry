@@ -224,7 +224,7 @@ class OutboxCategory(IntEnum):
         from sentry.models.apiapplication import ApiApplication
         from sentry.models.integrations import Integration
         from sentry.models.organization import Organization
-        from sentry.users.models.user import User
+        from sentry.users.models.users.user import User
 
         assert (model is not None) ^ (
             object_identifier is not None

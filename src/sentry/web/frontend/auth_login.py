@@ -28,7 +28,7 @@ from sentry.models.organizationmapping import OrganizationMapping
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.signals import join_request_link_viewed, user_signup
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 from sentry.utils import auth, json, metrics
 from sentry.utils.auth import (
     construct_link_with_query,

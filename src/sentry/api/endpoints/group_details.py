@@ -43,7 +43,7 @@ from sentry.models.team import Team
 from sentry.plugins.base import plugins
 from sentry.tasks.post_process import fetch_buffered_group_stats
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.users.models.userreport import UserReport
+from sentry.users.models.users.userreport import UserReport
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 

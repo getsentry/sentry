@@ -2,7 +2,7 @@ import sys
 
 from sentry.signals import post_upgrade
 from sentry.silo.base import SiloMode
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 from sentry.utils.settings import is_self_hosted
 
 

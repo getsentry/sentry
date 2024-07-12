@@ -3,7 +3,7 @@ from django.test import override_settings
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import control_silo_test
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 
 
 @control_silo_test

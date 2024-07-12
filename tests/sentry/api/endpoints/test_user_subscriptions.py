@@ -5,7 +5,7 @@ from sentry import newsletter
 from sentry.newsletter.dummy import DummyNewsletter
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.users.models.useremail import UserEmail
+from sentry.users.models.users.useremail import UserEmail
 
 
 @pytest.mark.skipif(

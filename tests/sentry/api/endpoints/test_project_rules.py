@@ -24,7 +24,7 @@ from sentry.testutils.helpers import install_slack, with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.actor import Actor
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 
 
 class ProjectRuleBaseTestCase(APITestCase):

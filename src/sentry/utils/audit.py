@@ -20,7 +20,7 @@ from sentry.models.team import Team
 from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.organizations.services.organization.model import RpcAuditLogEntryActor
 from sentry.silo.base import region_silo_function
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 from sentry.users.services.user import RpcUser
 
 

@@ -31,7 +31,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.silo import assume_test_silo_mode, no_silo_test
-from sentry.users.models.user import MAX_USERNAME_LENGTH, User
+from sentry.users.models.users.user import MAX_USERNAME_LENGTH, User
 
 CONTROL_OPTION_MODEL_NAME = get_model_name(ControlOption)
 OPTION_MODEL_NAME = get_model_name(Option)

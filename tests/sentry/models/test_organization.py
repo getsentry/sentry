@@ -18,7 +18,6 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.silo.base import SiloMode
@@ -31,7 +30,8 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
+from sentry.users.models.users.user_option import UserOption
 
 
 class OrganizationTest(TestCase, HybridCloudTestMixin):

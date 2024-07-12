@@ -62,7 +62,7 @@ from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.filter import convert_search_filter_to_snuba_query, format_search_filter
 from sentry.search.events.types import ParamsType, SnubaParams
 from sentry.snuba.dataset import Dataset
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult

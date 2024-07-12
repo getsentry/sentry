@@ -18,7 +18,7 @@ from sentry.models.integrations.sentry_app_installation import SentryAppInstalla
 from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
 from sentry.sentry_apps.services.hook import hook_service
 from sentry.tasks.sentry_apps import installation_webhook
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 from sentry.utils import metrics
 
 

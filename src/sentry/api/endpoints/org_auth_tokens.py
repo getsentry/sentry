@@ -24,7 +24,7 @@ from sentry.organizations.services.organization.model import (
     RpcUserOrganizationContext,
 )
 from sentry.security.utils import capture_security_activity
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 from sentry.utils.security.orgauthtoken_token import (
     SystemUrlPrefixMissingException,
     generate_token,

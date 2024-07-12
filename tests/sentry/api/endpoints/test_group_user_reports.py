@@ -3,7 +3,7 @@ from functools import cached_property
 from sentry.models.environment import Environment
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.users.models.userreport import UserReport
+from sentry.users.models.users.userreport import UserReport
 
 
 class GroupUserReport(APITestCase, SnubaTestCase):

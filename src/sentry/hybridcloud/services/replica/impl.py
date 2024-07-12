@@ -38,7 +38,7 @@ from sentry.models.team import Team
 from sentry.models.teamreplica import TeamReplica
 from sentry.notifications.services import RpcExternalActor
 from sentry.organizations.services.organization import RpcOrganizationMemberTeam, RpcTeam
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 
 
 def get_foreign_key_columns(

@@ -6,7 +6,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.factories import Factories
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
-from sentry.users.models.userip import UserIP
+from sentry.users.models.users.userip import UserIP
 
 
 @django_db_all

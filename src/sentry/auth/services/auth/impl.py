@@ -24,7 +24,7 @@ from sentry.models.outbox import outbox_context
 from sentry.organizations.services.organization.service import organization_service
 from sentry.signals import sso_enabled
 from sentry.silo.safety import unguarded_write
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 
 
 class DatabaseBackedAuthService(AuthService):

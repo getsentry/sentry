@@ -34,7 +34,6 @@ from sentry.backup.imports import (
 from sentry.backup.scopes import ExportScope, ImportScope, RelocationScope
 from sentry.backup.services.import_export.model import RpcImportErrorKind
 from sentry.models.apitoken import DEFAULT_EXPIRATION, ApiToken, generate_token
-from sentry.models.authenticator import Authenticator
 from sentry.models.email import Email
 from sentry.models.importchunk import (
     ControlImportChunk,
@@ -44,7 +43,6 @@ from sentry.models.importchunk import (
 from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.project_option import ProjectOption
-from sentry.models.options.user_option import UserOption
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
@@ -76,11 +74,13 @@ from sentry.testutils.helpers.backups import (
 )
 from sentry.testutils.hybrid_cloud import use_split_dbs
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.users.models.user import User
-from sentry.users.models.useremail import UserEmail
-from sentry.users.models.userip import UserIP
-from sentry.users.models.userpermission import UserPermission
-from sentry.users.models.userrole import UserRole, UserRoleUser
+from sentry.users.models.auth.authenticator import Authenticator
+from sentry.users.models.users.user import User
+from sentry.users.models.users.user_option import UserOption
+from sentry.users.models.users.useremail import UserEmail
+from sentry.users.models.users.userip import UserIP
+from sentry.users.models.users.userpermission import UserPermission
+from sentry.users.models.users.userrole import UserRole, UserRoleUser
 from tests.sentry.backup import (
     expect_models,
     get_matching_exportable_models,

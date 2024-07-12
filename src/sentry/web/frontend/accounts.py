@@ -17,8 +17,8 @@ from sentry.organizations.services.organization import organization_service
 from sentry.security.utils import capture_security_activity
 from sentry.signals import email_verified, terms_accepted
 from sentry.silo.base import control_silo_function
-from sentry.users.models.user import User
-from sentry.users.models.useremail import UserEmail
+from sentry.users.models.users.user import User
+from sentry.users.models.users.useremail import UserEmail
 from sentry.users.services.lost_password_hash import lost_password_hash_service
 from sentry.users.services.user.service import user_service
 from sentry.utils import auth

@@ -37,7 +37,7 @@ from sentry.models.rule import Rule
 from sentry.testutils.cases import APITestCase, SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import iso_format
 from sentry.testutils.silo import control_silo_test
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 from sentry.utils.cursors import Cursor
 from sentry.utils.snuba import raw_snql_query
 

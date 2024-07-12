@@ -25,7 +25,7 @@ from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.rules import AlertRuleNotification
 from sentry.notifications.notify import register_notification_provider
 from sentry.types.actor import Actor
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 from sentry.utils import metrics
 
 from .card_builder.notifications import (

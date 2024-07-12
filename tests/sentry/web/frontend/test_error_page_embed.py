@@ -10,7 +10,7 @@ from sentry.models.environment import Environment
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.types.region import get_local_region
-from sentry.users.models.userreport import UserReport
+from sentry.users.models.users.userreport import UserReport
 
 
 @override_settings(ROOT_URLCONF="sentry.conf.urls")

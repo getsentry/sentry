@@ -20,7 +20,7 @@ from sentry.autofix.utils import get_autofix_repos_from_project_code_mappings
 from sentry.models.group import Group
 from sentry.seer.signed_seer_api import sign_with_seer_secret
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)

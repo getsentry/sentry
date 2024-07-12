@@ -12,7 +12,7 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.notifications.types import GroupSubscriptionReason
-from sentry.users.models.user import User
+from sentry.users.models.users.user import User
 from sentry.utils.http import absolute_uri
 
 from .mail import MailPreview
