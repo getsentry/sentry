@@ -24,14 +24,9 @@ const PLATFORM_ALIASES = {
  * Generates names used for PlatformIcon. Translates ContextIcon names (https://sentry.sentry.io/stories/?name=app/components/events/contexts/contextIcon.stories.tsx) to PlatformIcon (https://www.npmjs.com/package/platformicons) names
  */
 export function generatePlatformIconName(
-  name?: string | boolean | null,
-  version?: string
+  name: string,
+  version: string | undefined
 ): string {
   const contextName = generateIconName(name, version);
-
-  let platformName = contextName;
-  if (contextName in PLATFORM_ALIASES) {
-    platformName = PLATFORM_ALIASES[contextName];
-  }
-  return platformName;
+  return contextName in PLATFORM_ALIASES ? PLATFORM_ALIASES[contextName] : contextName;
 }

@@ -6,6 +6,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {generatePlatformIconName} from 'sentry/utils/replays/icons';
+import commonTheme from 'sentry/utils/theme';
 
 type Props = {
   name: string;
@@ -15,15 +16,14 @@ type Props = {
   showVersion?: boolean;
 };
 
-// theme.tsx/iconSizes["sm"] + 4, to make up for padding
-const iconSize = '18px';
+const ICON_SIZE = commonTheme.iconSizes.md;
 
 const ContextIcon = styled(
   ({className, name, version, showVersion, showTooltip}: Props) => {
     const icon = generatePlatformIconName(name, version);
 
     if (!showTooltip) {
-      return <PlatformIcon platform={icon} size={iconSize} />;
+      return <PlatformIcon platform={icon} size={ICON_SIZE} />;
     }
 
     const title = (
@@ -36,7 +36,7 @@ const ContextIcon = styled(
     );
     return (
       <Tooltip title={title} className={className}>
-        <PlatformIcon platform={icon} size={iconSize} />
+        <PlatformIcon platform={icon} size={ICON_SIZE} />
         {showVersion ? (version ? version : null) : undefined}
       </Tooltip>
     );
