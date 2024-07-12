@@ -10,7 +10,6 @@ from .apigrant import *  # NOQA
 from .apikey import *  # NOQA
 from .apiscopes import *  # NOQA
 from .apitoken import *  # NOQA
-from .appconnectbuilds import *  # NOQA
 from .artifactbundle import *  # NOQA
 from .assistant import *  # NOQA
 from .auditlogentry import *  # NOQA
@@ -66,7 +65,6 @@ from .grouptombstone import *  # NOQA
 from .identity import *  # NOQA
 from .importchunk import *  # NOQA
 from .integrations import *  # NOQA
-from .latestappconnectbuildscheck import *  # NOQA
 from .latestreporeleaseenvironment import *  # NOQA
 from .lostpasswordhash import *  # NOQA
 from .notificationmessage import *  # NOQA
@@ -86,7 +84,6 @@ from .organizationslugreservationreplica import *  # NOQA
 from .orgauthtoken import *  # NOQA
 from .outbox import *  # NOQA
 from .platformexternalissue import *  # NOQA
-from .processingissue import *  # NOQA
 from .project import *  # NOQA
 from .projectbookmark import *  # NOQA
 from .projectcodeowners import *  # NOQA
@@ -98,7 +95,6 @@ from .projectteam import ProjectTeam  # noqa
 from .projecttemplate import ProjectTemplate  # noqa
 from .promptsactivity import *  # NOQA
 from .pullrequest import *  # NOQA
-from .rawevent import *  # NOQA
 from .recentsearch import *  # NOQA
 from .relay import *  # NOQA
 from .release import *  # NOQA
@@ -112,7 +108,6 @@ from .releaseprojectenvironment import *  # NOQA
 from .releases.release_project import *  # NOQA
 from .relocation import *  # NOQA
 from .repository import *  # NOQA
-from .reprocessingreport import *  # NOQA
 from .rule import *  # NOQA
 from .rulefirehistory import RuleFireHistory  # NOQA
 from .rulesnooze import RuleSnooze  # NOQA

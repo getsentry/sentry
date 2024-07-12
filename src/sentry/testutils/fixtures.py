@@ -33,8 +33,12 @@ from sentry.testutils.silo import assume_test_silo_mode
 # all of the memoized fixtures are copypasta due to our inability to use pytest fixtures
 # on a per-class method basis
 from sentry.types.activity import ActivityType
-from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
 from sentry.users.models.user import User
+from sentry.uptime.models import (
+    ProjectUptimeSubscription,
+    ProjectUptimeSubscriptionMode,
+    UptimeSubscription,
+)
 from sentry.users.services.user import RpcUser
 
 
@@ -639,14 +643,17 @@ class Fixtures:
         )
 
     def create_project_uptime_subscription(
-        self, project: Project | None = None, uptime_subscription: UptimeSubscription | None = None
+        self,
+        project: Project | None = None,
+        uptime_subscription: UptimeSubscription | None = None,
+        mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
     ) -> ProjectUptimeSubscription:
         if project is None:
             project = self.project
 
         if uptime_subscription is None:
             uptime_subscription = self.create_uptime_subscription()
-        return Factories.create_project_uptime_subscription(project, uptime_subscription)
+        return Factories.create_project_uptime_subscription(project, uptime_subscription, mode)
 
     @pytest.fixture(autouse=True)
     def _init_insta_snapshot(self, insta_snapshot):

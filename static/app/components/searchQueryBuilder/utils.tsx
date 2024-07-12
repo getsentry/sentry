@@ -4,6 +4,7 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import {
+  BooleanOperator,
   FilterType,
   filterTypeConfig,
   interchangeableFilterOperators,
@@ -18,7 +19,7 @@ import {
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection} from 'sentry/types';
 import {escapeDoubleQuotes} from 'sentry/utils';
-import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {FieldKey, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 
 export const INTERFACE_TYPE_LOCALSTORAGE_KEY = 'search-query-builder-interface';
 
@@ -62,11 +63,15 @@ function getSearchConfigFromKeys(keys: TagCollection): Partial<SearchConfig> {
 
 export function parseQueryBuilderValue(
   value: string,
-  options?: {filterKeys: TagCollection}
+  options?: {filterKeys: TagCollection; disallowLogicalOperators?: boolean}
 ): ParseResult | null {
   return collapseTextTokens(
     parseSearch(value || ' ', {
       flattenParenGroups: true,
+      disallowedLogicalOperators: options?.disallowLogicalOperators
+        ? new Set([BooleanOperator.AND, BooleanOperator.OR])
+        : undefined,
+      disallowParens: options?.disallowLogicalOperators,
       ...getSearchConfigFromKeys(options?.filterKeys ?? {}),
     })
   );
@@ -193,6 +198,31 @@ export function formatFilterValue(token: TokenResult<Token.FILTER>['value']): st
       return t('%s', `${token.value}${token.unit} ago`);
     default:
       return token.text;
+  }
+}
+
+export function getDefaultFilterValue({key}: {key: string}): string {
+  const fieldDef = getFieldDefinition(key);
+
+  if (!fieldDef) {
+    return '""';
+  }
+
+  if (key === FieldKey.IS) {
+    return 'unresolved';
+  }
+
+  switch (fieldDef.valueType) {
+    case FieldValueType.BOOLEAN:
+      return 'true';
+    case FieldValueType.INTEGER:
+    case FieldValueType.NUMBER:
+      return '100';
+    case FieldValueType.DATE:
+      return '-24h';
+    case FieldValueType.STRING:
+    default:
+      return '""';
   }
 }
 

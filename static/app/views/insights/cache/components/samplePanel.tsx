@@ -17,13 +17,13 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useLocationQuery from 'sentry/utils/url/useLocationQuery';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {CacheHitMissChart} from 'sentry/views/insights/cache/components/charts/hitMissChart';
 import {TransactionDurationChart} from 'sentry/views/insights/cache/components/charts/transactionDurationChart';
 import {SpanSamplesTable} from 'sentry/views/insights/cache/components/tables/spanSamplesTable';
@@ -32,6 +32,7 @@ import {BASE_FILTERS} from 'sentry/views/insights/cache/settings';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {Ribbon} from 'sentry/views/insights/common/components/ribbon';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
   useMetrics,
@@ -299,7 +300,7 @@ export function CacheSamplePanel() {
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>
-            <MetricsRibbon>
+            <Ribbon>
               <MetricReadout
                 align="left"
                 title={DataTitles[`avg(${SpanMetricsField.CACHE_ITEM_SIZE})`]}
@@ -351,7 +352,7 @@ export function CacheSamplePanel() {
                 )}
                 isLoading={areCacheTransactionMetricsFetching}
               />
-            </MetricsRibbon>
+            </Ribbon>
           </ModuleLayout.Full>
           <ModuleLayout.Full>
             <CompactSelect
@@ -404,7 +405,6 @@ export function CacheSamplePanel() {
                 onSearch={handleSearch}
                 placeholder={t('Search for span attributes')}
                 organization={organization}
-                metricAlert={false}
                 supportedTags={supportedTags}
                 dataset={DiscoverDatasets.SPANS_INDEXED}
                 projectIds={selection.projects}
@@ -498,10 +498,4 @@ const Title = styled('h4')`
   text-overflow: ellipsis;
   white-space: nowrap;
   margin: 0;
-`;
-
-const MetricsRibbon = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(4)};
 `;

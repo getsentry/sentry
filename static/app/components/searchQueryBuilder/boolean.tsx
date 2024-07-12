@@ -20,7 +20,13 @@ export function SearchQueryBuilderBoolean({
   token,
 }: SearchQueryBuilderBooleanProps) {
   return (
-    <DeletableToken item={item} state={state} token={token} label={token.value}>
+    <DeletableToken
+      item={item}
+      state={state}
+      token={token}
+      label={token.value}
+      invalid={token.invalid}
+    >
       {token.text}
     </DeletableToken>
   );

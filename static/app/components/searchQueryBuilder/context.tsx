@@ -6,7 +6,7 @@ import type {
 } from 'sentry/components/searchQueryBuilder/types';
 import type {QueryBuilderActions} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
 import type {ParseResult} from 'sentry/components/searchSyntax/parser';
-import type {Tag, TagCollection} from 'sentry/types/group';
+import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
 
 interface ContextData {
   dispatch: Dispatch<QueryBuilderActions>;
@@ -18,6 +18,9 @@ interface ContextData {
   parsedQuery: ParseResult | null;
   query: string;
   searchSource: string;
+  size: 'small' | 'normal';
+  wrapperRef: React.RefObject<HTMLDivElement>;
+  savedSearchType?: SavedSearchType;
 }
 
 export function useSearchQueryBuilder() {
@@ -32,6 +35,8 @@ export const SearchQueryBuilerContext = createContext<ContextData>({
   getTagValues: () => Promise.resolve([]),
   dispatch: () => {},
   parsedQuery: null,
+  wrapperRef: {current: null},
   handleSearch: () => {},
   searchSource: '',
+  size: 'normal',
 });

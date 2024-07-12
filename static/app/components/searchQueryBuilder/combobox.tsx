@@ -34,11 +34,14 @@ import {
 import {GrowingInput} from 'sentry/components/growingInput';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {Overlay} from 'sentry/components/overlay';
+import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import type {Token, TokenResult} from 'sentry/components/searchSyntax/parser';
+import {IconMegaphone} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import mergeRefs from 'sentry/utils/mergeRefs';
+import {useFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import useOverlay from 'sentry/utils/useOverlay';
 import usePrevious from 'sentry/utils/usePrevious';
 
@@ -273,6 +276,35 @@ function ListBoxSectionButton({
   );
 }
 
+function FeedbackFooter() {
+  const {searchSource} = useSearchQueryBuilder();
+  const openForm = useFeedbackForm();
+
+  if (!openForm) {
+    return null;
+  }
+
+  return (
+    <SectionedOverlayFooter>
+      <Button
+        size="xs"
+        icon={<IconMegaphone />}
+        onClick={() =>
+          openForm({
+            messagePlaceholder: t('How can we make search better for you?'),
+            tags: {
+              feedback_source: 'search_query_builder',
+              search_source: searchSource,
+            },
+          })
+        }
+      >
+        {t('Give Feedback')}
+      </Button>
+    </SectionedOverlayFooter>
+  );
+}
+
 function SectionedListBox<T extends SelectOptionOrSectionWithKey<string>>({
   popoverRef,
   listBoxRef,
@@ -344,6 +376,7 @@ function SectionedListBox<T extends SelectOptionOrSectionWithKey<string>>({
               size="sm"
             />
           </SectionedListBoxPane>
+          <FeedbackFooter />
         </Fragment>
       ) : null}
     </SectionedOverlay>
@@ -488,6 +521,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
 
   const state = useComboBoxState<T>({
     children,
+    allowsEmptyCollection: true,
     // We handle closing on blur ourselves to prevent the combobox from closing
     // when the user clicks inside the tabbed menu
     shouldCloseOnBlur: false,
@@ -705,8 +739,21 @@ const SectionedOverlay = styled(Overlay)`
   overflow: hidden;
   display: grid;
   grid-template-columns: 120px 240px;
+  grid-template-rows: 1fr auto;
+  grid-template-areas:
+    'left right'
+    'footer footer';
   height: 400px;
   width: 360px;
+`;
+
+const SectionedOverlayFooter = styled('div')`
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  grid-area: footer;
+  padding: ${space(1)};
+  border-top: 1px solid ${p => p.theme.innerBorder};
 `;
 
 const SectionedListBoxPane = styled('div')`

@@ -1,6 +1,8 @@
 import {Fragment} from 'react';
 
+import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
+import DateTime from 'sentry/components/dateTime';
 import {StructuredData} from 'sentry/components/structuredEventData';
 import Timeline from 'sentry/components/timeline';
 import {
@@ -37,10 +39,11 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
       <Timeline.Item
         title={'SyntaxError'}
         icon={<IconFire size="xs" />}
-        timeString={now.toISOString()}
+        timestamp={<DateTime date={now} />}
         colorConfig={{
-          primary: 'red400',
-          secondary: 'red200',
+          title: 'red400',
+          icon: 'red400',
+          iconBorder: 'red200',
         }}
         isActive
       >
@@ -69,10 +72,11 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
       <Timeline.Item
         title={'Navigation'}
         icon={<IconSort rotated size="xs" />}
-        timeString={now.toISOString()}
+        timestamp={<DateTime date={now} />}
         colorConfig={{
-          primary: 'green400',
-          secondary: 'green200',
+          title: 'green400',
+          icon: 'green400',
+          iconBorder: 'green200',
         }}
       >
         <Timeline.Data>
@@ -101,17 +105,14 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
           recommended.
         </li>
         <li>
-          <code>timeString</code> - ISO time string detailing the moment the item happened
-        </li>
-        <li>
           <code>title</code> - The header to appear on the item
         </li>
       </ul>
       <h6>Optional Props</h6>
       <ul>
         <li>
-          <code>startTimeString</code> - If provided, time will be displayed relative to
-          start time.
+          <code>timestamp</code> - A component to render as the timestamp, if null, an
+          empty div is used for spacing.
         </li>
         <li>
           <code>colorConfig</code> - A mapping of colors to use for emphasizing the item
@@ -133,31 +134,39 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
       <Timeline.Item
         title={'SyntaxError'}
         icon={<IconFire size="xs" />}
-        timeString={now.toISOString()}
+        timestamp={<span style={{color: 'blue'}}>my cool timestamp</span>}
         colorConfig={{
-          primary: 'red400',
-          secondary: 'red200',
+          title: 'red400',
+          icon: 'red400',
+          iconBorder: 'red200',
         }}
       />
       <Timeline.Item
         title={'Active Item'}
         icon={<IconCursorArrow size="xs" />}
-        timeString={now.toISOString()}
         colorConfig={{
-          primary: 'blue400',
-          secondary: 'blue200',
+          title: 'blue400',
+          icon: 'blue400',
+          iconBorder: 'blue200',
         }}
         isActive
       >
-        <Timeline.Text>This is a description of the error</Timeline.Text>
+        <Timeline.Text>
+          This is a description of the error. I have no timestamp.
+        </Timeline.Text>
       </Timeline.Item>
       <Timeline.Item
         title={'Data'}
         icon={<IconDashboard size="xs" />}
-        timeString={now.toISOString()}
+        timestamp={
+          <Button size="xs" style={{marginBottom: 4}}>
+            Button Timestamp!
+          </Button>
+        }
         colorConfig={{
-          primary: 'pink400',
-          secondary: 'pink200',
+          title: 'pink400',
+          icon: 'pink400',
+          iconBorder: 'pink200',
         }}
       >
         <Timeline.Data>
@@ -172,13 +181,12 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
         </Timeline.Data>
       </Timeline.Item>
       <Timeline.Item
-        title={'Relative Event'}
+        title={'Another Event'}
         icon={<IconClock size="xs" />}
-        timeString={now.toISOString()}
-        startTimeString={before.toISOString()}
         colorConfig={{
-          primary: 'purple400',
-          secondary: 'purple200',
+          title: 'purple400',
+          icon: 'purple400',
+          iconBorder: 'purple200',
         }}
       >
         <Timeline.Text>This is a description of the error</Timeline.Text>
@@ -198,10 +206,10 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
         <Timeline.Item
           title={'Error'}
           icon={<IconFire size="xs" />}
-          timeString={now.toISOString()}
           colorConfig={{
-            primary: 'red400',
-            secondary: 'red200',
+            title: 'red400',
+            icon: 'red400',
+            iconBorder: 'red200',
           }}
         >
           <Timeline.Text>This is a description of the error</Timeline.Text>
@@ -210,10 +218,11 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
         <Timeline.Item
           title={'HTTP'}
           icon={<IconSort rotated size="xs" />}
-          timeString={now.toISOString()}
+          timestamp={<DateTime date={now} />}
           colorConfig={{
-            primary: 'green400',
-            secondary: 'green200',
+            title: 'green400',
+            icon: 'green400',
+            iconBorder: 'green200',
           }}
         >
           {' '}
@@ -232,10 +241,11 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
         <Timeline.Item
           title={'UI Click'}
           icon={<IconCursorArrow size="xs" />}
-          timeString={now.toISOString()}
+          timestamp={<DateTime date={now} />}
           colorConfig={{
-            primary: 'blue400',
-            secondary: 'blue200',
+            title: 'blue400',
+            icon: 'blue400',
+            iconBorder: 'blue200',
           }}
         >
           <Timeline.Text>{'div.abc123 > xyz > somethingsomething'}</Timeline.Text>
@@ -244,10 +254,11 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
         <Timeline.Item
           title={'Sentry Event'}
           icon={<IconSentry size="xs" />}
-          timeString={now.toISOString()}
+          timestamp={<DateTime date={now} />}
           colorConfig={{
-            primary: 'purple400',
-            secondary: 'purple200',
+            title: 'purple400',
+            icon: 'purple400',
+            iconBorder: 'purple200',
           }}
         >
           <Timeline.Text>
@@ -270,4 +281,3 @@ const JSONPayload: Record<string, any> = {
 };
 
 const now = new Date();
-const before = new Date('2024-06-15');

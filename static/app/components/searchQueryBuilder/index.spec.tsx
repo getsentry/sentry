@@ -14,7 +14,7 @@ import {
   QueryInterfaceType,
 } from 'sentry/components/searchQueryBuilder/types';
 import {INTERFACE_TYPE_LOCALSTORAGE_KEY} from 'sentry/components/searchQueryBuilder/utils';
-import type {TagCollection} from 'sentry/types';
+import type {TagCollection} from 'sentry/types/group';
 import {FieldKey, FieldKind} from 'sentry/utils/fields';
 import localStorageWrapper from 'sentry/utils/localStorage';
 
@@ -83,9 +83,18 @@ const FITLER_KEY_SECTIONS: FilterKeySection[] = [
   },
 ];
 
+function getLastInput() {
+  const input = screen.getAllByRole('combobox', {name: 'Add a search term'}).at(-1);
+
+  expect(input).toBeInTheDocument();
+
+  return input!;
+}
+
 describe('SearchQueryBuilder', function () {
   beforeEach(() => {
-    localStorageWrapper.clear();
+    // `useDimensions` is used to hide things when the component is too small, so we need to mock a large width
+    Object.defineProperty(Element.prototype, 'clientWidth', {value: 1000});
   });
 
   afterEach(function () {
@@ -116,7 +125,7 @@ describe('SearchQueryBuilder', function () {
         />
       );
 
-      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.click(getLastInput());
       await userEvent.keyboard('foo{enter}');
 
       // Should call onChange and onSearch after enter
@@ -158,6 +167,22 @@ describe('SearchQueryBuilder', function () {
       ).not.toBeInTheDocument();
 
       expect(screen.getByRole('combobox')).toHaveFocus();
+    });
+
+    it('is hidden at small sizes', function () {
+      Object.defineProperty(Element.prototype, 'clientWidth', {value: 100});
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:firefox"
+          onChange={mockOnChange}
+        />
+      );
+
+      expect(
+        screen.queryByRole('button', {name: 'Clear search query'})
+      ).not.toBeInTheDocument();
     });
   });
 
@@ -285,6 +310,92 @@ describe('SearchQueryBuilder', function () {
 
       expect(screen.queryByRole('row', {name: 'OR'})).not.toBeInTheDocument();
     });
+
+    it('can click and drag to select tokens', async function () {
+      render(<SearchQueryBuilder {...defaultProps} initialQuery="is:unresolved" />);
+
+      const grid = screen.getByRole('grid');
+      const tokens = screen.getAllByRole('row');
+      const freeText1 = tokens[0];
+      const filter = tokens[1];
+      const freeText2 = tokens[2];
+
+      // jsdom does not support getBoundingClientRect, so we need to mock it for each item
+
+      // First freeText area is 5px wide
+      freeText1.getBoundingClientRect = () => {
+        return {
+          top: 0,
+          left: 10,
+          bottom: 10,
+          right: 15,
+          width: 5,
+          height: 10,
+        } as DOMRect;
+      };
+      // "is:unresolved" filter is 100px wide
+      filter.getBoundingClientRect = () => {
+        return {
+          top: 0,
+          left: 15,
+          bottom: 10,
+          right: 115,
+          width: 100,
+          height: 10,
+        } as DOMRect;
+      };
+      // Last freeText area is 200px wide
+      freeText2.getBoundingClientRect = () => {
+        return {
+          top: 0,
+          left: 115,
+          bottom: 10,
+          right: 315,
+          width: 200,
+          height: 10,
+        } as DOMRect;
+      };
+
+      // Note that jsdom does not do layout, so all coordinates are 0, 0
+      await userEvent.pointer([
+        // Start with 0, 5 so that we are on the first token
+        {keys: '[MouseLeft>]', target: grid, coords: {x: 0, y: 5}},
+        // Move to 50, 5 (within filter token)
+        {target: grid, coords: {x: 50, y: 5}},
+      ]);
+
+      // all should be selected except the last free text
+      await waitFor(() => {
+        expect(freeText1).toHaveAttribute('aria-selected', 'true');
+      });
+      expect(filter).toHaveAttribute('aria-selected', 'true');
+      expect(freeText2).toHaveAttribute('aria-selected', 'false');
+
+      // Now move pointer to the end and below to select everything
+      await userEvent.pointer([{target: grid, coords: {x: 400, y: 50}}]);
+
+      // All tokens should be selected
+      await waitFor(() => {
+        expect(freeText2).toHaveAttribute('aria-selected', 'true');
+      });
+      expect(freeText1).toHaveAttribute('aria-selected', 'true');
+      expect(filter).toHaveAttribute('aria-selected', 'true');
+
+      // Now move pointer back to original position
+      await userEvent.pointer([
+        // Move to 100, 1 to select all tokens (which are at 0, 0)
+        {target: grid, coords: {x: 0, y: 5}},
+        // Release mouse button to finish selection
+        {keys: '[/MouseLeft]', target: getLastInput()},
+      ]);
+
+      // All tokens should be deselected
+      await waitFor(() => {
+        expect(freeText1).toHaveAttribute('aria-selected', 'false');
+      });
+      expect(filter).toHaveAttribute('aria-selected', 'false');
+      expect(freeText2).toHaveAttribute('aria-selected', 'false');
+    });
   });
 
   describe('new search tokens', function () {
@@ -337,8 +448,8 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
 
-      // New token should be added with the correct key
-      expect(screen.getByRole('row', {name: 'browser.name:'})).toBeInTheDocument();
+      // New token should be added with the correct key and default value
+      expect(screen.getByRole('row', {name: 'browser.name:""'})).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('option', {name: 'Firefox'}));
 
@@ -350,7 +461,7 @@ describe('SearchQueryBuilder', function () {
       const mockOnSearch = jest.fn();
       render(<SearchQueryBuilder {...defaultProps} onSearch={mockOnSearch} />);
 
-      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.click(getLastInput());
       await userEvent.type(screen.getByRole('combobox'), 'some free text{enter}');
       await waitFor(() => {
         expect(mockOnSearch).toHaveBeenCalledWith('some free text');
@@ -364,7 +475,7 @@ describe('SearchQueryBuilder', function () {
     it('can add a filter after some free text', async function () {
       render(<SearchQueryBuilder {...defaultProps} />);
 
-      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.click(getLastInput());
 
       // XXX(malwilley): SearchQueryBuilderInput updates state in the render
       // function which causes an act warning despite using userEvent.click.
@@ -392,13 +503,12 @@ describe('SearchQueryBuilder', function () {
     it('can add parens by typing', async function () {
       render(<SearchQueryBuilder {...defaultProps} />);
 
-      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.click(getLastInput());
       await userEvent.keyboard('(');
 
       expect(await screen.findByRole('row', {name: '('})).toBeInTheDocument();
 
-      // Last input (the one after the paren) should have focus
-      expect(screen.getAllByRole('combobox').at(-1)).toHaveFocus();
+      expect(getLastInput()).toHaveFocus();
     });
   });
 
@@ -418,7 +528,7 @@ describe('SearchQueryBuilder', function () {
       );
 
       // Focus into search (cursor be at end of the query)
-      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.click(getLastInput());
 
       // Pressing backspace once should focus the previous token
       await userEvent.keyboard('{backspace}');
@@ -460,7 +570,7 @@ describe('SearchQueryBuilder', function () {
         />
       );
 
-      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.click(getLastInput());
 
       // Focus should be in the last text input
       expect(
@@ -548,7 +658,7 @@ describe('SearchQueryBuilder', function () {
     it('converts pasted text into tokens', async function () {
       render(<SearchQueryBuilder {...defaultProps} initialQuery="" />);
 
-      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.click(getLastInput());
       await userEvent.paste('browser.name:firefox');
 
       // Should have tokenized the pasted text
@@ -564,7 +674,7 @@ describe('SearchQueryBuilder', function () {
 
       expect(screen.getByRole('row', {name: '('})).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.click(getLastInput());
       await userEvent.keyboard('{backspace}{backspace}');
 
       expect(screen.queryByRole('row', {name: '('})).not.toBeInTheDocument();
@@ -575,7 +685,7 @@ describe('SearchQueryBuilder', function () {
 
       expect(screen.getByRole('row', {name: 'and'})).toBeInTheDocument();
 
-      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.click(getLastInput());
       await userEvent.keyboard('{backspace}{backspace}');
 
       expect(screen.queryByRole('row', {name: 'and'})).not.toBeInTheDocument();
@@ -606,7 +716,7 @@ describe('SearchQueryBuilder', function () {
       ).toHaveFocus();
     });
 
-    it('backspace does nothing when input is empty', async function () {
+    it('backspace focuses filter when input is empty', async function () {
       const mockOnChange = jest.fn();
       render(
         <SearchQueryBuilder
@@ -623,8 +733,8 @@ describe('SearchQueryBuilder', function () {
 
       await userEvent.keyboard('{Backspace}');
 
-      // Input should still have focus, and no changes should have been made
-      expect(screen.getByRole('combobox', {name: 'Edit filter value'})).toHaveFocus();
+      // Filter should now have focus, and no changes should have been made
+      expect(screen.getByRole('row', {name: 'age:-24h'})).toHaveFocus();
       expect(mockOnChange).not.toHaveBeenCalled();
     });
 
@@ -638,7 +748,7 @@ describe('SearchQueryBuilder', function () {
         />
       );
 
-      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.click(getLastInput());
       await userEvent.keyboard('{Control>}a{/Control}');
 
       // Should have selected the entire query
@@ -646,8 +756,8 @@ describe('SearchQueryBuilder', function () {
         expect(token).toHaveAttribute('aria-selected', 'true');
       }
 
-      // Focus should be on the grid container
-      expect(screen.getByRole('grid')).toHaveFocus();
+      // Focus should be on the selection key handler input
+      expect(screen.getByTestId('selection-key-handler')).toHaveFocus();
 
       // Pressing delete should remove all selected tokens
       await userEvent.keyboard('{Backspace}');
@@ -659,7 +769,7 @@ describe('SearchQueryBuilder', function () {
         <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
       );
 
-      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.click(getLastInput());
       await userEvent.keyboard('{Control>}a{/Control}');
 
       // Pressing arrow left should put focus in first text input
@@ -674,7 +784,7 @@ describe('SearchQueryBuilder', function () {
         <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
       );
 
-      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.click(getLastInput());
       await userEvent.keyboard('{Control>}a{/Control}');
 
       // Pressing arrow right should put focus in last text input
@@ -684,18 +794,76 @@ describe('SearchQueryBuilder', function () {
       ).toHaveFocus();
     });
 
+    it('replaces selection when a key is pressed', async function () {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:firefox"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{Control>}a{/Control}');
+      await userEvent.keyboard('foo');
+      expect(
+        screen.queryByRole('row', {name: 'browser.name:firefox'})
+      ).not.toBeInTheDocument();
+      expect(getLastInput()).toHaveFocus();
+      expect(getLastInput()).toHaveValue('foo');
+    });
+
+    it('replaces selection with pasted content with ctrl+v', async function () {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:firefox"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{Control>}a{/Control}');
+      await userEvent.paste('foo');
+      expect(
+        screen.queryByRole('row', {name: 'browser.name:firefox'})
+      ).not.toBeInTheDocument();
+      expect(getLastInput()).toHaveFocus();
+      expect(getLastInput()).toHaveValue('foo');
+    });
+
     it('can copy selection with ctrl-c', async function () {
       render(
         <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox foo" />
       );
 
-      await userEvent.click(screen.getByRole('grid'));
+      await userEvent.click(getLastInput());
       await userEvent.keyboard('{Control>}a{/Control}');
       await userEvent.keyboard('{Control>}c{/Control}');
 
       expect(navigator.clipboard.writeText).toHaveBeenCalledWith(
         'browser.name:firefox foo'
       );
+    });
+
+    it('can cut selection with ctrl-x', async function () {
+      const mockOnChange = jest.fn();
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          initialQuery="browser.name:firefox"
+          onChange={mockOnChange}
+        />
+      );
+
+      await userEvent.click(getLastInput());
+      await userEvent.keyboard('{Control>}a{/Control}');
+      await userEvent.keyboard('{Control>}x{/Control}');
+
+      expect(navigator.clipboard.writeText).toHaveBeenCalledWith('browser.name:firefox');
+      expect(mockOnChange).toHaveBeenCalledWith('');
     });
 
     it('can undo last action with ctrl-z', async function () {
@@ -841,6 +1009,21 @@ describe('SearchQueryBuilder', function () {
           ).getByText('resolved')
         ).toBeInTheDocument();
       });
+
+      it('defaults to unresolved when there is no value', async function () {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="is:" />);
+
+        // Click into value and press enter with no value
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: is'})
+        );
+        await userEvent.keyboard('{enter}');
+
+        // Should be is:unresolved
+        expect(
+          await screen.findByRole('row', {name: 'is:unresolved'})
+        ).toBeInTheDocument();
+      });
     });
 
     describe('has', function () {
@@ -876,6 +1059,30 @@ describe('SearchQueryBuilder', function () {
     });
 
     describe('string', function () {
+      it('defaults to an empty string when no value is provided', async function () {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+        await userEvent.clear(
+          await screen.findByRole('combobox', {name: 'Edit filter value'})
+        );
+        await userEvent.keyboard('{enter}');
+
+        // Should have empty quotes `""`
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:""'})
+        ).toBeInTheDocument();
+        expect(
+          within(
+            screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+          ).getByText('""')
+        ).toBeInTheDocument();
+      });
+
       it('can modify operator for filter with multiple values', async function () {
         render(
           <SearchQueryBuilder
@@ -1031,13 +1238,38 @@ describe('SearchQueryBuilder', function () {
     describe('numeric', function () {
       it('new numeric filters start with a value', async function () {
         render(<SearchQueryBuilder {...defaultProps} />);
-        await userEvent.click(screen.getByRole('grid'));
+        await userEvent.click(getLastInput());
         await userEvent.keyboard('time{ArrowDown}{Enter}');
 
         // Should start with the > operator and a value of 100
         expect(
           await screen.findByRole('row', {name: 'timesSeen:>100'})
         ).toBeInTheDocument();
+      });
+
+      it('keeps previous value when confirming empty value', async function () {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="timesSeen:>5"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: timesSeen'})
+        );
+        await userEvent.clear(
+          await screen.findByRole('combobox', {name: 'Edit filter value'})
+        );
+        await userEvent.keyboard('{enter}');
+
+        // Should have the same value
+        expect(
+          await screen.findByRole('row', {name: 'timesSeen:>5'})
+        ).toBeInTheDocument();
+        expect(mockOnChange).not.toHaveBeenCalled();
       });
 
       it('does not allow invalid values', async function () {
@@ -1079,7 +1311,7 @@ describe('SearchQueryBuilder', function () {
 
       it('new date filters start with a value', async function () {
         render(<SearchQueryBuilder {...defaultProps} />);
-        await userEvent.click(screen.getByRole('grid'));
+        await userEvent.click(getLastInput());
         await userEvent.keyboard('age{ArrowDown}{Enter}');
 
         // Should start with a relative date value
@@ -1095,6 +1327,29 @@ describe('SearchQueryBuilder', function () {
 
         // Should have the same value because "a" is not a date value
         expect(screen.getByRole('row', {name: 'age:-24h'})).toBeInTheDocument();
+      });
+
+      it('keeps previous value when confirming empty value', async function () {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="age:-24h"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: age'})
+        );
+        await userEvent.clear(
+          await screen.findByRole('combobox', {name: 'Edit filter value'})
+        );
+        await userEvent.keyboard('{enter}');
+
+        // Should have the same value
+        expect(await screen.findByRole('row', {name: 'age:-24h'})).toBeInTheDocument();
+        expect(mockOnChange).not.toHaveBeenCalled();
       });
 
       it('shows default date suggestions', async function () {
@@ -1304,6 +1559,73 @@ describe('SearchQueryBuilder', function () {
         expect(screen.getByText('is on or after')).toBeInTheDocument();
         expect(screen.getByText('Oct 17, 2:00 PM UTC')).toBeInTheDocument();
       });
+    });
+  });
+
+  describe('disallowLogicalOperators', function () {
+    it('should mark AND invalid', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowLogicalOperators
+          initialQuery="and"
+        />
+      );
+
+      expect(screen.getByRole('row', {name: 'and'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(screen.getByRole('row', {name: 'and'}));
+      expect(
+        await screen.findByText('The AND operator is not allowed in this search')
+      ).toBeInTheDocument();
+    });
+
+    it('should mark OR invalid', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowLogicalOperators
+          initialQuery="or"
+        />
+      );
+
+      expect(screen.getByRole('row', {name: 'or'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(screen.getByRole('row', {name: 'or'}));
+      expect(
+        await screen.findByText('The OR operator is not allowed in this search')
+      ).toBeInTheDocument();
+    });
+
+    it('should mark parens invalid', async function () {
+      render(
+        <SearchQueryBuilder
+          {...defaultProps}
+          disallowLogicalOperators
+          initialQuery="()"
+        />
+      );
+
+      expect(screen.getByRole('row', {name: '('})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      expect(screen.getByRole('row', {name: ')'})).toHaveAttribute(
+        'aria-invalid',
+        'true'
+      );
+
+      await userEvent.click(screen.getByRole('row', {name: '('}));
+      expect(
+        await screen.findByText('Parentheses are not supported in this search')
+      ).toBeInTheDocument();
     });
   });
 });

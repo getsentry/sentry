@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from django.core.exceptions import ValidationError
 from slack_sdk.errors import SlackApiError
 
-from sentry import features, options
+from sentry import features
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.client import SlackClient
 from sentry.integrations.slack.sdk_client import SlackSdkClient
@@ -96,36 +96,21 @@ def validate_channel_id(name: str, integration_id: int | None, input_channel_id:
     In the case that the user is creating an alert via the API and providing the channel ID and name
     themselves, we want to make sure both values are correct.
     """
-    # The empty string should be converted to None
-    payload = {"channel": input_channel_id or None}
 
-    if options.get("slack-sdk.valid_channel_id") or integration_id in options.get(
-        "slack-sdk.valid_channel_id_la_integration_ids"
-    ):
-        client = SlackSdkClient(integration_id=integration_id)
-        try:
-            results = client.conversations_info(channel=input_channel_id).data
-        except SlackApiError as e:
-            if e.response["error"] == "channel_not_found":
-                raise ValidationError("Channel not found. Invalid ID provided.") from e
-            _logger.exception(
-                "rule.slack.conversation_info_failed",
-                extra={
-                    "integration_id": integration_id,
-                    "channel_name": name,
-                    "input_channel_id": input_channel_id,
-                },
-            )
-            raise IntegrationError("Could not retrieve Slack channel information.") from e
-    else:
-        client = SlackClient(integration_id=integration_id)
-        try:
-            results = client.get("/conversations.info", params=payload)
-        except ApiError as e:
-            if e.text == "channel_not_found":
-                raise ValidationError("Channel not found. Invalid ID provided.") from e
-            _logger.info("rule.slack.conversation_info_failed", extra={"error": str(e)})
-            raise IntegrationError("Could not retrieve Slack channel information.") from e
+    client = SlackSdkClient(integration_id=integration_id)
+    try:
+        results = client.conversations_info(channel=input_channel_id).data
+    except SlackApiError as e:
+        if "channel_not_found" in str(e):
+            raise ValidationError("Channel not found. Invalid ID provided.") from e
+        _logger.exception(
+            "rule.slack.conversation_info_failed",
+            extra={
+                "integration_id": integration_id,
+                "channel_name": name,
+                "input_channel_id": input_channel_id,
+            },
+        )
 
     if not isinstance(results, dict):
         raise IntegrationError("Bad slack channel list response.")

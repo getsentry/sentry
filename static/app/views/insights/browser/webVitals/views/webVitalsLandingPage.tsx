@@ -34,8 +34,10 @@ import {
   MODULE_TITLE,
 } from 'sentry/views/insights/browser/webVitals/settings';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
-import decodeBrowserType from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
+import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
@@ -46,6 +48,7 @@ export function WebVitalsLandingPage() {
   const organization = useOrganization();
   const location = useLocation();
   const onboardingProject = useOnboardingProject();
+  const hasModuleData = useHasFirstSpan(ModuleName.VITAL);
 
   const router = useRouter();
 
@@ -53,11 +56,11 @@ export function WebVitalsLandingPage() {
     webVital: (location.query.webVital as WebVitals) ?? null,
   });
 
-  const browserType = decodeBrowserType(location.query[SpanIndexedField.BROWSER_NAME]);
+  const browserTypes = decodeBrowserTypes(location.query[SpanIndexedField.BROWSER_NAME]);
 
-  const {data: projectData, isLoading} = useProjectRawWebVitalsQuery({browserType});
+  const {data: projectData, isLoading} = useProjectRawWebVitalsQuery({browserTypes});
   const {data: projectScores, isLoading: isProjectScoresLoading} =
-    useProjectWebVitalsScoresQuery({browserType});
+    useProjectWebVitalsScoresQuery({browserTypes});
 
   const projectScore =
     isProjectScoresLoading || isLoading
@@ -97,61 +100,62 @@ export function WebVitalsLandingPage() {
               <EnvironmentPageFilter />
               <DatePageFilter />
             </PageFilterBar>
-            <BrowserTypeSelector />
+            {hasModuleData && <BrowserTypeSelector />}
           </TopMenuContainer>
-
-          {onboardingProject && (
-            <OnboardingContainer>
-              <Onboarding organization={organization} project={onboardingProject} />
-            </OnboardingContainer>
-          )}
-          {!onboardingProject && (
-            <Fragment>
-              <PerformanceScoreChartContainer>
-                <PerformanceScoreChart
-                  projectScore={projectScore}
-                  isProjectScoreLoading={isLoading || isProjectScoresLoading}
-                  webVital={state.webVital}
-                  browserType={browserType}
-                />
-              </PerformanceScoreChartContainer>
-              <WebVitalMetersContainer>
-                <WebVitalMeters
-                  projectData={projectData}
-                  projectScore={projectScore}
-                  onClick={webVital => setState({...state, webVital})}
-                />
-              </WebVitalMetersContainer>
-              <PagePerformanceTable />
-              <PagesTooltipContainer>
-                <Tooltip
-                  isHoverable
-                  title={
-                    <div>
-                      <div>
-                        {tct(
-                          'If pages you expect to see are missing, your framework is most likely not supported by the SDK, or your traffic is coming from unsupported browsers. Find supported browsers and frameworks [link:here].',
-                          {
-                            link: (
-                              <ExternalLink href="https://docs.sentry.io/product/insights/web-vitals/#prerequisites-and-limitations" />
-                            ),
-                          }
-                        )}
-                      </div>
-                      <br />
-                      <div>
-                        {t(
-                          'Keep your JavaScript SDK updated to the latest version for the best Web Vitals support.'
-                        )}
-                      </div>
-                    </div>
-                  }
-                >
-                  <PagesTooltip>{t('Why are my pages not showing up?')}</PagesTooltip>
-                </Tooltip>
-              </PagesTooltipContainer>
-            </Fragment>
-          )}
+          <MainContentContainer>
+            <ModulesOnboarding moduleName={ModuleName.VITAL}>
+              {onboardingProject && (
+                <Onboarding organization={organization} project={onboardingProject} />
+              )}
+              {!onboardingProject && (
+                <Fragment>
+                  <PerformanceScoreChartContainer>
+                    <PerformanceScoreChart
+                      projectScore={projectScore}
+                      isProjectScoreLoading={isLoading || isProjectScoresLoading}
+                      webVital={state.webVital}
+                      browserTypes={browserTypes}
+                    />
+                  </PerformanceScoreChartContainer>
+                  <WebVitalMetersContainer>
+                    <WebVitalMeters
+                      projectData={projectData}
+                      projectScore={projectScore}
+                      onClick={webVital => setState({...state, webVital})}
+                    />
+                  </WebVitalMetersContainer>
+                  <PagePerformanceTable />
+                  <PagesTooltipContainer>
+                    <Tooltip
+                      isHoverable
+                      title={
+                        <div>
+                          <div>
+                            {tct(
+                              'If pages you expect to see are missing, your framework is most likely not supported by the SDK, or your traffic is coming from unsupported browsers. Find supported browsers and frameworks [link:here].',
+                              {
+                                link: (
+                                  <ExternalLink href="https://docs.sentry.io/product/insights/web-vitals/#prerequisites-and-limitations" />
+                                ),
+                              }
+                            )}
+                          </div>
+                          <br />
+                          <div>
+                            {t(
+                              'Keep your JavaScript SDK updated to the latest version for the best Web Vitals support.'
+                            )}
+                          </div>
+                        </div>
+                      }
+                    >
+                      <PagesTooltip>{t('Why are my pages not showing up?')}</PagesTooltip>
+                    </Tooltip>
+                  </PagesTooltipContainer>
+                </Fragment>
+              )}
+            </ModulesOnboarding>
+          </MainContentContainer>
         </Layout.Main>
       </Layout.Body>
       <WebVitalsDetailPanel
@@ -187,7 +191,7 @@ const PerformanceScoreChartContainer = styled('div')`
   margin-bottom: ${space(1)};
 `;
 
-const OnboardingContainer = styled('div')`
+const MainContentContainer = styled('div')`
   margin-top: ${space(2)};
 `;
 

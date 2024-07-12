@@ -14,8 +14,11 @@ import type {
   FocusOverride,
 } from 'sentry/components/searchQueryBuilder/types';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/useQueryBuilderGridItem';
-import {replaceTokenWithPadding} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
-import {useShiftFocusToChild} from 'sentry/components/searchQueryBuilder/utils';
+import {replaceTokensWithPadding} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
+import {
+  getDefaultFilterValue,
+  useShiftFocusToChild,
+} from 'sentry/components/searchQueryBuilder/utils';
 import {
   type ParseResultToken,
   Token,
@@ -24,10 +27,12 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
-import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type SearchQueryBuilderInputProps = {
   item: Node<ParseResultToken>;
@@ -87,23 +92,17 @@ function getWordAtCursorPosition(value: string, cursorPosition: number) {
 }
 
 function getInitialFilterText(key: string) {
+  const defaultValue = getDefaultFilterValue({key});
+
   const fieldDef = getFieldDefinition(key);
 
-  if (!fieldDef) {
-    return `${key}:`;
-  }
-
-  switch (fieldDef.valueType) {
-    case FieldValueType.BOOLEAN:
-      return `${key}:true`;
+  switch (fieldDef?.valueType) {
     case FieldValueType.INTEGER:
     case FieldValueType.NUMBER:
-      return `${key}:>100`;
-    case FieldValueType.DATE:
-      return `${key}:-24h`;
+      return `${key}:>${defaultValue}`;
     case FieldValueType.STRING:
     default:
-      return `${key}:`;
+      return `${key}:${defaultValue}`;
   }
 }
 
@@ -278,6 +277,7 @@ function SearchQueryBuilderInputInternal({
   state,
   rowRef,
 }: SearchQueryBuilderInputInternalProps) {
+  const organization = useOrganization();
   const inputRef = useRef<HTMLInputElement>(null);
   const trimmedTokenValue = token.text.trim();
   const [inputValue, setInputValue] = useState(trimmedTokenValue);
@@ -294,8 +294,15 @@ function SearchQueryBuilderInputInternal({
 
   const filterValue = getWordAtCursorPosition(inputValue, selectionIndex);
 
-  const {query, filterKeys, filterKeySections, dispatch, handleSearch} =
-    useSearchQueryBuilder();
+  const {
+    query,
+    filterKeys,
+    filterKeySections,
+    dispatch,
+    handleSearch,
+    searchSource,
+    savedSearchType,
+  } = useSearchQueryBuilder();
   const aliasToKeyMap = useMemo(() => {
     return Object.fromEntries(Object.values(filterKeys).map(key => [key.alias, key.key]));
   }, [filterKeys]);
@@ -368,8 +375,8 @@ function SearchQueryBuilderInputInternal({
       const text = e.clipboardData.getData('text/plain').replace('\n', '').trim();
 
       dispatch({
-        type: 'PASTE_FREE_TEXT',
-        token,
+        type: 'REPLACE_TOKENS_WITH_TEXT',
+        tokens: [token],
         text: replaceAliasedFilterKeys(text, aliasToKeyMap),
       });
       resetInputValue();
@@ -388,27 +395,38 @@ function SearchQueryBuilderInputInternal({
       onOptionSelected={value => {
         dispatch({
           type: 'UPDATE_FREE_TEXT',
-          token,
+          tokens: [token],
           text: replaceFocusedWordWithFilter(inputValue, selectionIndex, value),
           focusOverride: calculateNextFocusForFilter(state),
         });
         resetInputValue();
+        const selectedKey = filterKeys[value];
+        trackAnalytics('search.key_autocompleted', {
+          organization,
+          search_type: savedSearchType === 0 ? 'issues' : 'events',
+          search_source: searchSource,
+          item_name: value,
+          item_kind: selectedKey?.kind ?? FieldKind.FIELD,
+          item_value_type: getFieldDefinition(value)?.valueType ?? FieldValueType.STRING,
+          filtered: Boolean(filterValue),
+          new_experience: true,
+        });
       }}
       onCustomValueBlurred={value => {
-        dispatch({type: 'UPDATE_FREE_TEXT', token, text: value});
+        dispatch({type: 'UPDATE_FREE_TEXT', tokens: [token], text: value});
         resetInputValue();
       }}
       onCustomValueCommitted={value => {
-        dispatch({type: 'UPDATE_FREE_TEXT', token, text: value});
+        dispatch({type: 'UPDATE_FREE_TEXT', tokens: [token], text: value});
         resetInputValue();
 
         // Because the query does not change until a subsequent render,
         // we need to do the replacement that is does in the reducer here
-        handleSearch(replaceTokenWithPadding(query, token, value));
+        handleSearch(replaceTokensWithPadding(query, [token], value));
       }}
       onExit={() => {
         if (inputValue !== token.value.trim()) {
-          dispatch({type: 'UPDATE_FREE_TEXT', token, text: inputValue});
+          dispatch({type: 'UPDATE_FREE_TEXT', tokens: [token], text: inputValue});
           resetInputValue();
         }
       }}
@@ -419,7 +437,7 @@ function SearchQueryBuilderInputInternal({
         if (e.target.value.includes('(') || e.target.value.includes(')')) {
           dispatch({
             type: 'UPDATE_FREE_TEXT',
-            token,
+            tokens: [token],
             text: e.target.value,
             focusOverride: calculateNextFocusForParen(item),
           });
@@ -430,7 +448,7 @@ function SearchQueryBuilderInputInternal({
         if (e.target.value.includes(':')) {
           dispatch({
             type: 'UPDATE_FREE_TEXT',
-            token,
+            tokens: [token],
             text: replaceAliasedFilterKeys(e.target.value, aliasToKeyMap),
             focusOverride: calculateNextFocusForFilter(state),
           });
@@ -502,6 +520,7 @@ export function SearchQueryBuilderInput({
 }
 
 const Row = styled('div')`
+  position: relative;
   display: flex;
   align-items: stretch;
   height: 24px;
@@ -511,12 +530,20 @@ const Row = styled('div')`
   }
 
   &[aria-selected='true'] {
-    background-color: ${p => p.theme.blue200};
+    &::before {
+      content: '';
+      position: absolute;
+      left: ${space(0.5)};
+      right: ${space(0.5)};
+      top: 0;
+      bottom: 0;
+      background-color: ${p => p.theme.gray100};
+    }
   }
 
   input {
     &::selection {
-      background-color: ${p => p.theme.blue200};
+      background-color: ${p => p.theme.gray100};
     }
   }
 `;

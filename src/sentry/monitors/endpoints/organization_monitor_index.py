@@ -46,11 +46,7 @@ from sentry.monitors.serializers import (
     MonitorSerializerResponse,
 )
 from sentry.monitors.utils import create_issue_alert_rule, signal_monitor_created
-from sentry.monitors.validators import (
-    MonitorBulkEditValidator,
-    MonitorBulkEditValidatorLegacy,
-    MonitorValidator,
-)
+from sentry.monitors.validators import MonitorBulkEditValidator, MonitorValidator
 from sentry.search.utils import tokenize_query
 from sentry.types.actor import Actor
 from sentry.utils.outcomes import Outcome
@@ -366,13 +362,7 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
         """
         Bulk edit the muted and disabled status of a list of monitors determined by slug
         """
-        validator_cls = MonitorBulkEditValidatorLegacy
-
-        req_has_ids = "ids" in request.data
-        if req_has_ids:
-            validator_cls = MonitorBulkEditValidator
-
-        validator = validator_cls(
+        validator = MonitorBulkEditValidator(
             data=request.data,
             partial=True,
             context={
@@ -385,14 +375,8 @@ class OrganizationMonitorIndexEndpoint(OrganizationEndpoint):
 
         result = dict(validator.validated_data)
 
-        if req_has_ids:
-            monitor_guids = result.pop("ids", [])
-            monitors = Monitor.objects.filter(guid__in=monitor_guids)
-        else:
-            monitor_slugs = result.pop("slugs", [])
-            monitors = Monitor.objects.filter(
-                slug__in=monitor_slugs, organization_id=organization.id
-            )
+        monitor_guids = result.pop("ids", [])
+        monitors = Monitor.objects.filter(guid__in=monitor_guids)
 
         status = result.get("status")
         # If enabling monitors, ensure we can assign all before moving forward
