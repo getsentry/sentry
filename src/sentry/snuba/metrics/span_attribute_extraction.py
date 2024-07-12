@@ -93,7 +93,7 @@ def convert_to_metric_spec(extraction_rule: MetricsExtractionRule) -> SpanAttrib
     }
 
 
-# Tag extraction
+# Tag extraction functions
 
 
 def _get_tags(
@@ -126,7 +126,7 @@ def _flatten_query_tokens(parsed_search_query: Sequence[QueryToken]) -> list[Sea
     return query_tokens
 
 
-# Condition string parsing and transformation
+# Condition string parsing and transformation functions
 
 
 def _extend_parsed_condtions(parsed_search_query: Sequence[QueryToken]) -> Sequence[QueryToken]:
@@ -179,9 +179,6 @@ def _extend_numeric_token(token: SearchFilter) -> ParenExpression | SearchFilter
             key=token.key, operator=token.operator, value=SearchValue(numeric_values)
         )
 
-    if not numeric_value_token:
-        return token
-
     return ParenExpression(
         children=[
             token,
@@ -191,7 +188,7 @@ def _extend_numeric_token(token: SearchFilter) -> ParenExpression | SearchFilter
     )
 
 
-# Conversion to RuleCondition
+# Conversion to RuleCondition functions
 
 
 def _get_rule_condition(
