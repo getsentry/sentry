@@ -48,6 +48,18 @@ function useOpenForm() {
   const formRef = useRef<FeedbackDialog | null>(null);
   const {feedback, options} = useFeedback({});
 
+  const cleanup = useCallback(() => {
+    try {
+      if (formRef.current) {
+        formRef.current.close();
+        formRef.current.removeFromDom();
+        formRef.current = null;
+      }
+    } catch {
+      // If the form is already removed from the DOM, then we can ignore this error
+    }
+  }, []);
+
   const openForm = useCallback(
     async (optionOverrides?: UseFeedbackOptions) => {
       if (!feedback) {
@@ -55,26 +67,25 @@ function useOpenForm() {
       }
 
       if (formRef.current) {
-        formRef.current.removeFromDom();
+        cleanup();
       }
 
-      formRef.current = await feedback.createForm({...options, ...optionOverrides});
+      formRef.current = await feedback.createForm({
+        ...options,
+        ...optionOverrides,
+        onFormClose: cleanup,
+        onFormSubmitted: cleanup,
+      });
+
       formRef.current.appendToDom();
       formRef.current.open();
     },
-    [feedback, options]
+    [cleanup, feedback, options]
   );
 
-  // Cleanup the leftover form element when the component unmounts
   useEffect(() => {
-    return () => {
-      if (!formRef.current) {
-        return;
-      }
-
-      formRef.current.removeFromDom();
-    };
-  }, []);
+    return cleanup;
+  }, [cleanup]);
 
   return feedback ? openForm : null;
 }

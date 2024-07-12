@@ -7,6 +7,7 @@ import {GlobalFeedbackForm, useFeedbackForm} from 'sentry/utils/useFeedbackForm'
 const mockForm = {
   appendToDom: jest.fn(),
   open: jest.fn(),
+  close: jest.fn(),
   removeFromDom: jest.fn(),
 };
 
@@ -28,6 +29,7 @@ describe('useFeedbackForm', function () {
     jest
       .spyOn(useFeedback, 'useFeedback')
       .mockReturnValue({feedback: mockFeedback, options: defaultOptions});
+    jest.clearAllMocks();
   });
 
   it('can open the form using useFeedbackForm', async function () {
