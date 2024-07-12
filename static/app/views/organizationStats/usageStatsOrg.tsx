@@ -423,7 +423,7 @@ class UsageStatsOrganization<
           };
 
           const strigfiedReason = String(group.by.reason ?? '');
-          const reason = Outcome.INVALID
+          const reason = outcome === Outcome.INVALID
             ? getInvalidReasonGroupName(strigfiedReason)
             : strigfiedReason;
 
