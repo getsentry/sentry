@@ -141,7 +141,7 @@ def _visit_numeric_tokens(parsed_search_query: Sequence[QueryToken]) -> list[Que
 
     for token in parsed_search_query:
         if isinstance(token, SearchFilter):
-            query_tokens.append(_explode_numeric_token(token))
+            query_tokens.append(_extend_numeric_token(token))
         elif isinstance(token, ParenExpression):
             query_tokens = query_tokens + _visit_numeric_tokens(token.children)
         else:
@@ -150,7 +150,7 @@ def _visit_numeric_tokens(parsed_search_query: Sequence[QueryToken]) -> list[Que
     return query_tokens
 
 
-def _explode_numeric_token(token: SearchFilter) -> ParenExpression | SearchFilter:
+def _extend_numeric_token(token: SearchFilter) -> ParenExpression | SearchFilter:
     """
     Since all search filter values are parsed as strings by default, we need to make sure that
     numeric values are treated as such when constructing the rule condition. This function
