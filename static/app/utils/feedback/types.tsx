@@ -45,5 +45,6 @@ export type FeedbackIssueListItem = Overwrite<
       source?: null | string;
     };
     owners: null | unknown;
+    project?: Project;
   }
 >;

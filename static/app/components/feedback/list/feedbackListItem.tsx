@@ -65,7 +65,7 @@ export default function FeedbackListItem({
         query: {
           ...location.query,
           referrer: 'feedback_list_page',
-          feedbackSlug: `${feedbackItem.project.slug}:${feedbackItem.id}`,
+          feedbackSlug: `${feedbackItem.project?.slug}:${feedbackItem.id}`,
         },
       }}
       onClick={() => {
