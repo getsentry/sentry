@@ -60,11 +60,9 @@ describe('ApiNewToken', function () {
       body: ApiTokenFixture({id: '1', name: 'token1'}),
     });
 
-    render(<ApiTokenDetails params={{tokenId: "1"}}/>);
+    render(<ApiTokenDetails params={{tokenId: '1'}} />);
 
-    await waitFor(() =>
-      expect(mock1).toHaveBeenCalledTimes(1)
-    );
+    await waitFor(() => expect(mock1).toHaveBeenCalledTimes(1));
 
     const assignMock = MockApiClient.addMockResponse({
       method: 'PUT',
