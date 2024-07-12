@@ -436,21 +436,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
     @responses.activate
     @patch("sentry.models.organization.Organization.has_access", return_value=False)
-    def test_archive_issue_forever_error(self, mock_access):
-        original_message = self.get_original_message(self.group.id)
-
-        resp = self.archive_issue(original_message, "ignored:archived_forever")
-        expected_text = f"Looks like this Slack identity is linked to the Sentry user *{self.user.email}* who is not a member of organization *{self.organization.slug}* used with this Slack integration. "
-        assert expected_text in resp.data["text"]
-        assert resp.data["response_type"] == "ephemeral"
-        assert resp.data["replace_original"] is False
-
-        self.group = Group.objects.get(id=self.group.id)
-        assert self.group.get_status() == GroupStatus.UNRESOLVED
-        assert self.group.substatus == GroupSubStatus.ONGOING
-
-    @responses.activate
-    @patch("sentry.models.organization.Organization.has_access", return_value=False)
     @with_feature("organizations:slack-sdk-action-view-open")
     def test_archive_issue_forever_error_sdk(self, mock_access):
         original_message = self.get_original_message(self.group.id)
@@ -805,74 +790,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert blocks[2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
-    def test_permission_denied(self):
-        user2 = self.create_user(is_superuser=False)
-        user2_identity = self.create_identity(
-            external_id="slack_id2",
-            identity_provider=self.idp,
-            user=user2,
-        )
-        status_action = self.get_archive_status_action()
-        original_message = self.get_original_message(self.group.id)
-        assert self.group.get_status() == GroupStatus.UNRESOLVED
-
-        # Expect request to open dialog on slack; will only get permission denied when trying to complete an action
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/views.open",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-        resp = self.post_webhook_block_kit(
-            action_data=[status_action],
-            original_message=original_message,
-            slack_user={"id": user2_identity.external_id},
-        )
-        assert resp.status_code == 200, resp.content
-
-        # Opening dialog should *not* cause the current message to be updated
-        assert resp.content == b""
-
-        data = orjson.loads(responses.calls[0].request.body)
-        assert data["trigger_id"] == self.trigger_id
-        assert "view" in data
-
-        view = orjson.loads(data["view"])
-        private_metadata = orjson.loads(view["private_metadata"])
-        assert int(private_metadata["issue"]) == self.group.id
-        assert private_metadata["orig_response_url"] == self.response_url
-
-        # Completing the dialog will update the message
-        responses.add(
-            method=responses.POST,
-            url=self.response_url,
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-        resp = self.post_webhook_block_kit(
-            type="view_submission",
-            private_metadata=orjson.dumps(private_metadata).decode(),
-            selected_option="ignored:archived_forever",
-            slack_user={"id": user2_identity.external_id},
-        )
-
-        assert resp.status_code == 200, resp.content
-        self.group = Group.objects.get(id=self.group.id)
-        assert self.group.get_status() == GroupStatus.UNRESOLVED
-
-        associate_url = build_unlinking_url(
-            self.integration.id, "slack_id2", "C065W1189", self.response_url
-        )
-
-        assert resp.data["response_type"] == "ephemeral"
-        assert not resp.data["replace_original"]
-        assert resp.data["text"] == UNLINK_IDENTITY_MESSAGE.format(
-            associate_url=associate_url, user_email=user2.email, org_name=self.organization.name
-        )
-
-    @responses.activate
     @patch(
         "slack_sdk.web.WebClient.views_open",
         return_value=SlackResponse(
@@ -907,12 +824,12 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         # Opening dialog should *not* cause the current message to be updated
         assert resp.content == b""
 
-        data = orjson.loads(responses.calls[0].request.body)
-        assert data["trigger_id"] == self.trigger_id
-        assert "view" in data
+        trigger_id = mock_views_open.call_args.kwargs["trigger_id"]
+        view: View = mock_views_open.call_args.kwargs["view"]
 
-        view = orjson.loads(data["view"])
-        private_metadata = orjson.loads(view["private_metadata"])
+        assert trigger_id == self.trigger_id
+        assert view.private_metadata is not None
+        private_metadata = orjson.loads(view.private_metadata)
         assert int(private_metadata["issue"]) == self.group.id
         assert private_metadata["orig_response_url"] == self.response_url
 
@@ -934,74 +851,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.status_code == 200, resp.content
         self.group = Group.objects.get(id=self.group.id)
         assert self.group.get_status() == GroupStatus.UNRESOLVED
-
-        associate_url = build_unlinking_url(
-            self.integration.id, "slack_id2", "C065W1189", self.response_url
-        )
-
-        assert resp.data["response_type"] == "ephemeral"
-        assert not resp.data["replace_original"]
-        assert resp.data["text"] == UNLINK_IDENTITY_MESSAGE.format(
-            associate_url=associate_url, user_email=user2.email, org_name=self.organization.name
-        )
-
-    @responses.activate
-    def test_permission_denied_through_unfurl(self):
-        user2 = self.create_user(is_superuser=False)
-        user2_identity = self.create_identity(
-            external_id="slack_id2",
-            identity_provider=self.idp,
-            user=user2,
-        )
-        status_action = self.get_archive_status_action()
-        original_message = self.get_original_message(self.group.id)
-
-        # Expect request to open dialog on slack
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/views.open",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-
-        data = self.get_unfurl_data(original_message["blocks"])
-        resp = self.post_webhook_block_kit(
-            action_data=[status_action],
-            data=data,
-            slack_user={"id": user2_identity.external_id},
-        )
-        assert resp.status_code == 200, resp.content
-
-        # Opening dialog should *not* cause the current message to be updated
-        assert resp.content == b""
-
-        data = orjson.loads(responses.calls[0].request.body)
-        assert data["trigger_id"] == self.trigger_id
-        assert "view" in data
-
-        view = orjson.loads(data["view"])
-        private_metadata = orjson.loads(view["private_metadata"])
-        assert int(private_metadata["issue"]) == self.group.id
-        assert private_metadata["orig_response_url"] == self.response_url
-
-        # Completing the dialog will update the message
-        responses.add(
-            method=responses.POST,
-            url=self.response_url,
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-
-        resp = self.post_webhook_block_kit(
-            type="view_submission",
-            private_metadata=orjson.dumps(private_metadata).decode(),
-            selected_option="ignored:archived_until_escalating",
-            slack_user={"id": user2_identity.external_id},
-        )
-        assert resp.status_code == 200, resp.content
-        self.group = Group.objects.get(id=self.group.id)
 
         associate_url = build_unlinking_url(
             self.integration.id, "slack_id2", "C065W1189", self.response_url
@@ -1118,143 +967,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert trigger_id == self.trigger_id
         assert view.private_metadata is not None
         private_metadata = orjson.loads(view.private_metadata)
-        assert int(private_metadata["issue"]) == self.group.id
-        assert private_metadata["orig_response_url"] == self.response_url
-
-        # Completing the dialog will update the message
-        responses.add(
-            method=responses.POST,
-            url=self.response_url,
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-
-        # Remove the user from the organization.
-        member = OrganizationMember.objects.get(
-            user_id=self.user.id, organization=self.organization
-        )
-        member.remove_user()
-        member.save()
-        response = self.post_webhook_block_kit(
-            type="view_submission",
-            private_metadata=orjson.dumps(private_metadata).decode(),
-            selected_option="resolved",
-        )
-
-        assert response.status_code == 200, response.content
-        assert response.data["text"] == UNLINK_IDENTITY_MESSAGE.format(
-            associate_url=build_unlinking_url(
-                integration_id=self.integration.id,
-                slack_id=self.external_id,
-                channel_id="C065W1189",
-                response_url=self.response_url,
-            ),
-            user_email=self.user.email,
-            org_name=self.organization.name,
-        )
-
-    @freeze_time("2021-01-14T12:27:28.303Z")
-    @responses.activate
-    def test_handle_submission_fail(self):
-        status_action = self.get_resolve_status_action()
-        original_message = self.get_original_message(self.group.id)
-        # Expect request to open dialog on slack
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/views.open",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-        resp = self.post_webhook_block_kit(
-            action_data=[status_action], original_message=original_message
-        )
-        assert resp.status_code == 200, resp.content
-
-        # Opening dialog should *not* cause the current message to be updated
-        assert resp.content == b""
-
-        data = orjson.loads(responses.calls[0].request.body)
-        assert data["trigger_id"] == self.trigger_id
-        assert "view" in data
-
-        view = orjson.loads(data["view"])
-        private_metadata = orjson.loads(view["private_metadata"])
-        assert int(private_metadata["issue"]) == self.group.id
-        assert private_metadata["orig_response_url"] == self.response_url
-
-        # Completing the dialog will update the message
-        responses.add(
-            method=responses.POST,
-            url=self.response_url,
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-
-        # Remove the user from the organization.
-        member = OrganizationMember.objects.get(
-            user_id=self.user.id, organization=self.organization
-        )
-        member.remove_user()
-        member.save()
-        response = self.post_webhook_block_kit(
-            type="view_submission",
-            private_metadata=orjson.dumps(private_metadata).decode(),
-            selected_option="resolved",
-        )
-
-        assert response.status_code == 200, response.content
-        assert response.data["text"] == UNLINK_IDENTITY_MESSAGE.format(
-            associate_url=build_unlinking_url(
-                integration_id=self.integration.id,
-                slack_id=self.external_id,
-                channel_id="C065W1189",
-                response_url=self.response_url,
-            ),
-            user_email=self.user.email,
-            org_name=self.organization.name,
-        )
-
-    @freeze_time("2021-01-14T12:27:28.303Z")
-    @patch(
-        "slack_sdk.web.WebClient.views_open",
-        return_value=SlackResponse(
-            client=None,
-            http_verb="POST",
-            api_url="https://slack.com/api/views.open",
-            req_args={},
-            data={"ok": False},
-            headers={},
-            status_code=200,
-        ),
-    )
-    @responses.activate
-    def test_handle_submission_fail_through_unfurl(self, mock_open_view):
-        status_action = self.get_resolve_status_action()
-        original_message = self.get_original_message(self.group.id)
-        payload_data = self.get_unfurl_data(original_message["blocks"])
-        # Expect request to open dialog on slack
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/views.open",
-            body='{"ok": true}',
-            status=200,
-            content_type="application/json",
-        )
-        resp = self.post_webhook_block_kit(action_data=[status_action], data=payload_data)
-        assert resp.status_code == 200, resp.content
-
-        # Opening dialog should *not* cause the current message to be updated
-        assert resp.content == b""
-
-        data = orjson.loads(responses.calls[0].request.body)
-        assert data["trigger_id"] == self.trigger_id
-        assert "view" in data
-
-        view = orjson.loads(data["view"])
-        private_metadata = orjson.loads(view["private_metadata"])
         assert int(private_metadata["issue"]) == self.group.id
         assert private_metadata["orig_response_url"] == self.response_url
 
