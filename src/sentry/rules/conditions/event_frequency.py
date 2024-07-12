@@ -379,7 +379,9 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         issue_type = get_group_type_by_type_id(type_id)
         return GroupCategory(issue_type.category)
 
-    def get_error_and_generic_group_ids(self, groups: list[tuple[int]]) -> tuple[list[int]]:
+    def get_error_and_generic_group_ids(
+        self, groups: list[tuple[int, int, int]]
+    ) -> tuple[list[int], list[int]]:
         """
         Separate group ids into error group ids and generic group ids
         """
@@ -391,7 +393,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
                 error_issue_ids.append(group[0])
             else:
                 generic_issue_ids.append(group[0])
-        return error_issue_ids, generic_issue_ids
+        return (error_issue_ids, generic_issue_ids)
 
 
 class EventFrequencyCondition(BaseEventFrequencyCondition):
@@ -404,7 +406,8 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         sums: Mapping[int, int] = self.get_snuba_query_result(
             tsdb_function=self.tsdb.get_sums,
             keys=[event.group_id],
-            group=event.group,
+            group_id=event.group.id,
+            organization_id=event.group.project.organization_id,
             model=get_issue_tsdb_group_model(event.group.issue_category),
             start=start,
             end=end,
@@ -465,7 +468,8 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
         totals: Mapping[int, int] = self.get_snuba_query_result(
             tsdb_function=self.tsdb.get_distinct_counts_totals,
             keys=[event.group_id],
-            group=event.group,
+            group_id=event.group.id,
+            organization_id=event.group.project.organization_id,
             model=get_issue_tsdb_user_group_model(event.group.issue_category),
             start=start,
             end=end,
@@ -620,7 +624,8 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
             issue_count = self.get_snuba_query_result(
                 tsdb_function=self.tsdb.get_sums,
                 keys=[event.group_id],
-                group=event.group,
+                group_id=event.group.id,
+                organization_id=event.group.project.organization_id,
                 model=get_issue_tsdb_group_model(event.group.issue_category),
                 start=start,
                 end=end,

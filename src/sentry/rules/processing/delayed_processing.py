@@ -404,6 +404,7 @@ def bucket_num_groups(num_groups: int) -> str:
         return ">10"
     elif num_groups > 1:
         return ">1"
+    return "1"
 
 
 def process_delayed_alert_conditions() -> None:
