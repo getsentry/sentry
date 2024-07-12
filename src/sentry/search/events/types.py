@@ -31,11 +31,12 @@ class ParamsType(TypedDict, total=False):
     project_objects: list[Project]
     start: datetime
     end: datetime
-    environment: str | list[str]
-    organization_id: int
-    use_case_id: str
-    environment_objects: list[Environment]
-    statsPeriod: str
+    environment: NotRequired[str | list[str]]
+    organization_id: NotRequired[int]
+    use_case_id: NotRequired[str]
+    team_id: NotRequired[list[int]]
+    environment_objects: NotRequired[list[Environment]]
+    statsPeriod: NotRequired[str]
 
 
 SelectType = Union[AliasedExpression, Column, Function, CurriedFunction]
