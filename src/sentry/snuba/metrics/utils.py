@@ -345,6 +345,15 @@ class MetricMeta(TypedDict):
     mri: str
     projectIds: Sequence[int]
     blockingStatus: Sequence[BlockedMetric] | None
+    # customMeta is intended to enable extension to a Union[A, B, C] should the need arise
+    # The need first came up for span-based metrics, which needed additional metadata
+    customMeta: dict[str, SpanBasedMeta]
+
+
+class SpanBasedMeta(TypedDict):
+    associatedSpanAttribute: str
+    associatedProjectId: int
+    virtualMRI: str
 
 
 class MetricMetaWithTagKeys(MetricMeta):

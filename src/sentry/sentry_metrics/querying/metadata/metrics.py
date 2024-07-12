@@ -9,11 +9,15 @@ from sentry.constants import (
 from sentry.models.options import OrganizationOption
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.sentry_metrics.configuration import METRIC_TYPE_TO_AGGREGATE
+from sentry.sentry_metrics.extraction_rules import MetricsExtractionRule
+from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
 from sentry.sentry_metrics.querying.metadata.utils import (
     METRICS_API_HIDDEN_OPERATIONS,
     OperationsConfiguration,
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
+from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics import parse_mri
 from sentry.snuba.metrics.datasource import get_metrics_blocking_state_of_projects
 from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, get_available_operations
@@ -23,6 +27,8 @@ from sentry.snuba.metrics.utils import (
     MetricOperationType,
     MetricType,
     MetricUnit,
+    SpanBasedMeta,
+    entity_key_to_metric_type,
 )
 from sentry.snuba.metrics_layer.query import fetch_metric_mris
 
@@ -44,7 +50,6 @@ def get_metrics_meta(
             metrics_blocking_state = get_metrics_blocking_state_of_projects(projects)
         else:
             metrics_blocking_state = {}
-
         for metric_mri, project_ids in stored_metrics.items():
             parsed_mri = parse_mri(metric_mri)
 
@@ -85,6 +90,42 @@ def get_metrics_meta(
                     operations_config,
                 )
             )
+
+    span_attribute_extraction_rule_configs = SpanAttributeExtractionRuleConfig.objects.filter(
+        project__in=projects
+    )
+    for config in span_attribute_extraction_rule_configs:
+        metric_types = MetricsExtractionRule.infer_types(config.aggregates)
+        for metric_type in metric_types:
+            for condition in config.conditions.all():
+                internal_mri = f"{metric_type}:custom/span_attribute_{condition.id}@{config.unit}"
+                virtual_mri = f"v:custom/{config.span_attribute}|{config.project.id}@{config.unit}"
+                custom_meta = {
+                    "spanBasedMeta": SpanBasedMeta(
+                        associatedSpanAttribute=config.span_attribute,
+                        associatedProjectId=config.project.id,
+                        virtualMRI=virtual_mri,
+                    )
+                }
+
+                metric_type_map = {
+                    "d": entity_key_to_metric_type(EntityKey.GenericMetricsDistributions),
+                    "s": entity_key_to_metric_type(EntityKey.GenericMetricsSets),
+                    "c": entity_key_to_metric_type(EntityKey.GenericMetricsCounters),
+                    "g": entity_key_to_metric_type(EntityKey.GenericMetricsGauges),
+                }
+
+                new_meta = MetricMeta(
+                    name=config.span_attribute,
+                    type=metric_type_map[metric_type],
+                    operations=METRIC_TYPE_TO_AGGREGATE[metric_type],
+                    unit=config.unit,
+                    mri=internal_mri,
+                    projectIds=[config.project_id],
+                    blockingStatus=None,
+                    customMeta=custom_meta,
+                )
+                metrics_metas.append(new_meta)
 
     return metrics_metas
 
@@ -151,4 +192,5 @@ def _build_metric_meta(
         operations=cast(Sequence[MetricOperationType], available_operations),
         projectIds=project_ids,
         blockingStatus=blocking_status,
+        customMeta={},
     )

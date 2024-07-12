@@ -353,3 +353,62 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         assert data[1]["blockingStatus"] == [
             {"isBlocked": True, "blockedTags": [], "projectId": project_1.id}
         ]
+
+    def test_span_based_metrics(self):
+        project_1 = self.create_project()
+
+        block_metric("s:custom/user@none", [project_1])
+        span_based_config = {
+            "spanAttribute": "count_clicks",
+            "aggregates": ["count", "p50", "p75", "p95", "p99"],
+            "unit": "none",
+            "tags": ["tag1", "tag2"],
+            "conditions": [
+                {"value": "foo:bar"},
+                {"value": "other:condition"},
+            ],
+        }
+        self.create_span_attribute_extraction_config(span_based_config, self.user.id, project_1)
+
+        metrics: tuple[tuple[str, Project], ...] = (
+            ("s:custom/user@none", project_1),
+            ("c:custom/clicks@none", project_1),
+        )
+        for mri, project in metrics:
+            self.store_metric(
+                project.organization.id,
+                project.id,
+                mri,
+                {"transaction": "/hello"},
+                int(self.now.timestamp()),
+                10,
+            )
+
+        response = self.get_success_response(
+            self.organization.slug, project=[project_1.id], useCase=["transactions", "custom"]
+        )
+
+        # 2 custom metrics, 2 types x 2 conditions = 4 span-based metrics
+        assert len(response.data) == 2 + 4
+
+        data = sorted(response.data, key=lambda d: d["mri"])
+
+        assert data[0]["mri"] == "c:custom/clicks@none"
+        assert data[0]["projectIds"] == [project_1.id]
+        assert data[0]["blockingStatus"] == []
+        assert data[5]["mri"] == "s:custom/user@none"
+        assert data[5]["projectIds"] == [project_1.id]
+        assert data[5]["blockingStatus"] == [
+            {"isBlocked": True, "blockedTags": [], "projectId": project_1.id}
+        ]
+
+        assert data[1]["mri"] == "c:custom/span_attribute_1@none"
+        assert data[1]
+        assert {x["mri"] for x in data} == {
+            "c:custom/clicks@none",
+            "s:custom/user@none",
+            "c:custom/span_attribute_1@none",
+            "d:custom/span_attribute_1@none",
+            "c:custom/span_attribute_2@none",
+            "d:custom/span_attribute_2@none",
+        }
