@@ -19,7 +19,7 @@ from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 
 logger = logging.getLogger(__name__)
-REDIS_TTL = timedelta(days=7)
+LAST_UPDATE_REDIS_TTL = timedelta(days=7)
 
 
 def build_last_update_key(project_subscription: ProjectUptimeSubscription) -> str:
@@ -85,7 +85,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         cluster.set(
             build_last_update_key(project_subscription),
             int(result["scheduled_check_time_ms"]),
-            ex=REDIS_TTL,
+            ex=LAST_UPDATE_REDIS_TTL,
         )
 
 
