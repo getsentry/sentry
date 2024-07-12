@@ -118,7 +118,7 @@ const Header = styled('header')`
   padding-left: 24px;
 `;
 
-export const DrawerBody = styled('section')`
+export const DrawerBody = styled('aside')`
   padding: ${space(2)} 24px;
   font-size: ${p => p.theme.fontSizeMedium};
 `;
@@ -128,7 +128,6 @@ const DrawerContainer = styled('div')`
   inset: 0;
   z-index: ${p => p.theme.zIndex.drawer};
   pointer-events: none;
-  display: relative;
 `;
 
 export const DrawerComponents = {

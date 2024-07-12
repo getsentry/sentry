@@ -31,11 +31,13 @@ import {IconArrow} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
 import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {type QueryKey, useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type SearchQueryValueBuilderProps = {
   onCommit: () => void;
@@ -503,7 +505,7 @@ function useFilterSuggestions({
   token: TokenResult<Token.FILTER>;
 }) {
   const {getTagValues, filterKeys} = useSearchQueryBuilder();
-  const key = filterKeys[token.key.text];
+  const key: Tag | undefined = filterKeys[token.key.text];
   const predefinedValues = useMemo(
     () => getPredefinedValues({key, filterValue, token}),
     [key, filterValue, token]
@@ -521,7 +523,8 @@ function useFilterSuggestions({
   // TODO(malwilley): Display error states
   const {data, isFetching} = useQuery<string[]>({
     queryKey: debouncedQueryKey,
-    queryFn: () => getTagValues(key, filterValue),
+    queryFn: () =>
+      getTagValues(key ? key : {key: token.key.text, name: token.key.text}, filterValue),
     keepPreviousData: true,
     enabled: shouldFetchValues,
   });
@@ -637,6 +640,19 @@ function ItemCheckbox({
   );
 }
 
+function getInitialInputValue(
+  token: TokenResult<Token.FILTER>,
+  canSelectMultipleValues: boolean
+) {
+  if (isDateToken(token)) {
+    return token.value.type === Token.VALUE_ISO_8601_DATE ? token.value.text : '';
+  }
+  if (canSelectMultipleValues) {
+    return getMultiSelectInputValue(token);
+  }
+  return '';
+}
+
 export function SearchQueryBuilderValueCombobox({
   token,
   onDelete,
@@ -645,17 +661,12 @@ export function SearchQueryBuilderValueCombobox({
 }: SearchQueryValueBuilderProps) {
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const {filterKeys, dispatch} = useSearchQueryBuilder();
+  const organization = useOrganization();
+  const {filterKeys, dispatch, searchSource, savedSearchType} = useSearchQueryBuilder();
   const canSelectMultipleValues = tokenSupportsMultipleValues(token, filterKeys);
-  const [inputValue, setInputValue] = useState(() => {
-    if (isDateToken(token)) {
-      return token.value.type === Token.VALUE_ISO_8601_DATE ? token.value.text : '';
-    }
-    if (canSelectMultipleValues) {
-      return getMultiSelectInputValue(token);
-    }
-    return '';
-  });
+  const [inputValue, setInputValue] = useState(() =>
+    getInitialInputValue(token, canSelectMultipleValues)
+  );
   const {selectionIndex, updateSelectionIndex} = useSelectionIndex({
     inputRef,
     inputValue,
@@ -697,19 +708,32 @@ export function SearchQueryBuilderValueCombobox({
     selectedValues,
   });
 
-  const handleOptionSelected = useCallback(
-    (value: string) => {
-      if (isDateToken(token) && value === 'absolute_date') {
-        setShowDatePicker(true);
-        setInputValue('');
-        return;
-      }
+  const analyticsData = useMemo(
+    () => ({
+      organization,
+      search_type: savedSearchType === 0 ? 'issues' : 'events',
+      search_source: searchSource,
+      filter_key: token.key.text,
+      filter_operator: token.operator,
+      filter_value_type:
+        getFieldDefinition(token.key.text)?.valueType ?? FieldValueType.STRING,
+      new_experience: true,
+    }),
+    [organization, savedSearchType, searchSource, token.key.text, token.operator]
+  );
 
+  const updateFilterValue = useCallback(
+    (value: string) => {
       const cleanedValue = cleanFilterValue(token.key.text, value);
 
       // TODO(malwilley): Add visual feedback for invalid values
       if (!cleanedValue) {
-        return;
+        trackAnalytics('search.value_manual_submitted', {
+          ...analyticsData,
+          filter_value: value,
+          invalid: true,
+        });
+        return false;
       }
 
       if (canSelectMultipleValues) {
@@ -728,7 +752,7 @@ export function SearchQueryBuilderValueCombobox({
             onCommit();
           }
 
-          return;
+          return true;
         }
 
         dispatch({
@@ -748,8 +772,11 @@ export function SearchQueryBuilderValueCombobox({
         });
         onCommit();
       }
+
+      return true;
     },
     [
+      analyticsData,
       canSelectMultipleValues,
       dispatch,
       inputValue,
@@ -760,8 +787,40 @@ export function SearchQueryBuilderValueCombobox({
     ]
   );
 
+  const handleOptionSelected = useCallback(
+    (value: string) => {
+      if (isDateToken(token)) {
+        if (value === 'absolute_date') {
+          setShowDatePicker(true);
+          setInputValue('');
+          return;
+        }
+
+        updateFilterValue(value);
+        trackAnalytics('search.value_autocompleted', {
+          ...analyticsData,
+          filter_value: value,
+          filter_value_type: 'relative_date',
+        });
+        return;
+      }
+
+      updateFilterValue(value);
+      trackAnalytics('search.value_autocompleted', {
+        ...analyticsData,
+        filter_value: value,
+      });
+    },
+    [analyticsData, token, updateFilterValue]
+  );
+
   const handleInputValueConfirmed = useCallback(
     (value: string) => {
+      if (value === getInitialInputValue(token, canSelectMultipleValues)) {
+        onCommit();
+        return;
+      }
+
       if (canSelectMultipleValues) {
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
@@ -769,11 +828,22 @@ export function SearchQueryBuilderValueCombobox({
           value: prepareInputValueForSaving(token, value),
         });
         onCommit();
-      } else {
-        handleOptionSelected(value);
+        trackAnalytics('search.value_manual_submitted', {
+          ...analyticsData,
+          filter_value: value,
+          invalid: false,
+        });
+        return;
       }
+
+      const invalid = updateFilterValue(value);
+      trackAnalytics('search.value_manual_submitted', {
+        ...analyticsData,
+        filter_value: value,
+        invalid,
+      });
     },
-    [canSelectMultipleValues, dispatch, handleOptionSelected, onCommit, token]
+    [analyticsData, canSelectMultipleValues, dispatch, onCommit, token, updateFilterValue]
   );
 
   const onKeyDown = useCallback(
@@ -815,6 +885,11 @@ export function SearchQueryBuilderValueCombobox({
           handleSelectDateTime={newDateTimeValue => {
             setInputValue(newDateTimeValue);
             inputRef.current?.focus();
+            trackAnalytics('search.value_autocompleted', {
+              ...analyticsData,
+              filter_value: newDateTimeValue,
+              filter_value_type: 'absolute_date',
+            });
           }}
           handleBack={() => {
             setShowDatePicker(false);
@@ -833,7 +908,7 @@ export function SearchQueryBuilderValueCombobox({
         />
       );
     };
-  }, [dispatch, inputValue, onCommit, showDatePicker, token]);
+  }, [analyticsData, dispatch, inputValue, onCommit, showDatePicker, token]);
 
   return (
     <ValueEditing ref={ref} data-test-id="filter-value-editing">

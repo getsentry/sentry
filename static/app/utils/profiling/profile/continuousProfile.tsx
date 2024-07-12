@@ -48,7 +48,7 @@ export class ContinuousProfile extends Profile {
       const stack = chunk.stacks[sample.stack_id];
       let size = 0;
 
-      for (let j = 0; j < stack.length; j++) {
+      for (let j = stack.length - 1; j >= 0; j--) {
         frame = resolveFrame(stack[j]);
         if (frame) resolvedStack[size++] = frame;
       }
@@ -164,11 +164,9 @@ function getThreadData(profile: Profiling.ContinuousProfile): {
   const {samples, thread_metadata = {}} = profile;
   const sample = samples[0];
   const threadId = parseInt(sample.thread_id, 10);
-  const threadName = thread_metadata?.[threadId]?.name;
 
-  if (threadName) {
-    return {threadId, threadName};
-  }
-
-  return {threadId, threadName: ''};
+  return {
+    threadId,
+    threadName: thread_metadata?.[threadId]?.name ?? `Thread ${threadId}`,
+  };
 }

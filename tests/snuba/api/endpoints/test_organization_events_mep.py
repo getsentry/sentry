@@ -3728,6 +3728,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         )
 
         assert response.status_code == 200, response.content
+        assert response.data.get("meta").get(
+            "discoverSplitDecision"
+        ) is DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
 
         widget.refresh_from_db()
         assert widget.discover_widget_split == DashboardWidgetTypes.ERROR_EVENTS
@@ -3757,6 +3760,9 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         )
 
         assert response.status_code == 200, response.content
+        assert response.data.get("meta").get(
+            "discoverSplitDecision"
+        ) is DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.TRANSACTION_LIKE)
 
         widget.refresh_from_db()
         assert widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE
@@ -3781,6 +3787,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         )
 
         assert response.status_code == 200, response.content
+        assert response.data.get("meta").get("discoverSplitDecision") is None
 
         widget.refresh_from_db()
         assert widget.discover_widget_split is None
@@ -3824,6 +3831,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         )
 
         assert response.status_code == 200, response.content
+        assert response.data.get("meta").get("discoverSplitDecision") is None
 
         widget.refresh_from_db()
         assert widget.discover_widget_split is DashboardWidgetTypes.DISCOVER
