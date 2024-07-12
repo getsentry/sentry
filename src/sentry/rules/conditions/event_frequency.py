@@ -328,15 +328,13 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         tsdb_function: Callable[..., Any],
         keys: list[int],
         group_id: int,
+        organization_id: int,
         model: TSDBModel,
         start: datetime,
         end: datetime,
         environment_id: int,
         referrer_suffix: str,
     ) -> Mapping[int, int]:
-        org_id = Group.objects.filter(id=group_id).values_list(
-            "project__organization_id", flat=True
-        )
         result: Mapping[int, int] = tsdb_function(
             model=model,
             keys=keys,
@@ -345,7 +343,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             environment_id=environment_id,
             use_cache=True,
             jitter_value=group_id,
-            tenant_ids={"organization_id": org_id[0]},
+            tenant_ids={"organization_id": organization_id},
             referrer_suffix=referrer_suffix,
         )
         return result
@@ -355,6 +353,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         tsdb_function: Callable[..., Any],
         model: TSDBModel,
         group_ids: list[int],
+        organization_id: int,
         start: datetime,
         end: datetime,
         environment_id: int,
@@ -368,6 +367,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
                 model=model,
                 keys=[group_id for group_id in group_chunk],
                 group_id=group_id,
+                organization_id=organization_id,
                 start=start,
                 end=end,
                 environment_id=environment_id,
@@ -418,7 +418,9 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
         batch_sums: dict[int, int] = defaultdict(int)
-        groups = Group.objects.filter(id__in=group_ids).values_list("id", "type")
+        groups = Group.objects.filter(id__in=group_ids).values_list(
+            "id", "type", "project__organization_id"
+        )
         error_issue_ids, generic_issue_ids = self.get_error_and_generic_group_ids(groups)
 
         if error_issue_ids:
@@ -426,6 +428,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
                 tsdb_function=self.tsdb.get_sums,
                 model=get_issue_tsdb_group_model(GroupCategory.ERROR),
                 group_ids=error_issue_ids,
+                organization_id=groups[0][2],
                 start=start,
                 end=end,
                 environment_id=environment_id,
@@ -439,6 +442,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
                 # this isn't necessarily performance, just any non-error category
                 model=get_issue_tsdb_group_model(GroupCategory.PERFORMANCE),
                 group_ids=generic_issue_ids,
+                organization_id=groups[0][2],
                 start=start,
                 end=end,
                 environment_id=environment_id,
@@ -475,7 +479,9 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
-        groups = Group.objects.filter(id__in=group_ids).values_list("id", "type")
+        groups = Group.objects.filter(id__in=group_ids).values_list(
+            "id", "type", "project__organization_id"
+        )
         error_issue_ids, generic_issue_ids = self.get_error_and_generic_group_ids(groups)
 
         if error_issue_ids:
@@ -483,6 +489,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
                 tsdb_function=self.tsdb.get_distinct_counts_totals,
                 model=get_issue_tsdb_user_group_model(GroupCategory.ERROR),
                 group_ids=error_issue_ids,
+                organization_id=groups[0][2],
                 start=start,
                 end=end,
                 environment_id=environment_id,
@@ -496,6 +503,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
                 # this isn't necessarily performance, just any non-error category
                 model=get_issue_tsdb_user_group_model(GroupCategory.PERFORMANCE),
                 group_ids=generic_issue_ids,
+                organization_id=groups[0][2],
                 start=start,
                 end=end,
                 environment_id=environment_id,
@@ -640,7 +648,9 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
         batch_percents: dict[int, int] = defaultdict(int)
-        groups = Group.objects.filter(id__in=group_ids).values_list("id", "type", "project")
+        groups = Group.objects.filter(id__in=group_ids).values_list(
+            "id", "type", "project", "project__organization_id"
+        )
         project_ids = Project.objects.filter(id=groups[0][2]).values_list("id", flat=True)
         session_count_last_hour = self.get_session_count(project_ids[0], environment_id, start, end)
         avg_sessions_in_interval = self.get_session_interval(
@@ -653,6 +663,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
                     tsdb_function=self.tsdb.get_sums,
                     model=get_issue_tsdb_group_model(GroupCategory.ERROR),
                     group_ids=error_issue_ids,
+                    organization_id=groups[0][3],
                     start=start,
                     end=end,
                     environment_id=environment_id,
