@@ -31,7 +31,7 @@ from sentry.plugins.providers import IntegrationRepositoryProvider
 logger = logging.getLogger("sentry.webhooks")
 
 PROVIDER_NAME = "integrations:gitlab"
-GITHUB_WEBHOOK_SECRET_INVALID_ERROR = """"Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/organization/integrations/integration-platform/public-integration/#refreshing-tokens."""
+GITHUB_WEBHOOK_SECRET_INVALID_ERROR = """Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/organization/integrations/integration-platform/public-integration/#refreshing-tokens."""
 
 
 class Webhook:
