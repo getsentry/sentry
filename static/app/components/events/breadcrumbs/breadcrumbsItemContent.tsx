@@ -24,33 +24,41 @@ interface BreadcrumbsItemContentProps {
   meta?: Record<string, any>;
 }
 
+const DEFAULT_STRUCTURED_DATA_PROPS = {
+  depth: 0,
+  maxDefaultDepth: 2,
+  withAnnotatedText: true,
+  withOnlyFormattedText: true,
+};
+
 export default function BreadcrumbsItemContent({
   breadcrumb: bc,
   meta,
-  fullyExpanded,
+  fullyExpanded = false,
 }: BreadcrumbsItemContentProps) {
-  const maxDefaultDepth = fullyExpanded ? 10000 : 1;
-  const structureProps = {
-    depth: 0,
-    maxDefaultDepth,
-    withAnnotatedText: true,
-    withOnlyFormattedText: true,
+  const structuredDataProps = {
+    ...DEFAULT_STRUCTURED_DATA_PROPS,
+    maxDefaultDepth: fullyExpanded ? 10000 : 1,
   };
 
   const defaultMessage = defined(bc.message) ? (
     <Timeline.Text>
-      <StructuredData value={bc.message} meta={meta?.message} {...structureProps} />
+      <StructuredData value={bc.message} meta={meta?.message} {...structuredDataProps} />
     </Timeline.Text>
   ) : null;
   const defaultData = defined(bc.data) ? (
     <Timeline.Data>
-      <StructuredData value={bc.data} meta={meta?.data} {...structureProps} />
+      <StructuredData value={bc.data} meta={meta?.data} {...structuredDataProps} />
     </Timeline.Data>
   ) : null;
 
   if (bc?.type === BreadcrumbType.HTTP) {
     return (
-      <HTTPCrumbContent breadcrumb={bc} meta={meta}>
+      <HTTPCrumbContent
+        breadcrumb={bc}
+        meta={meta}
+        structuredDataProps={structuredDataProps}
+      >
         {defaultMessage}
       </HTTPCrumbContent>
     );
@@ -80,9 +88,11 @@ function HTTPCrumbContent({
   breadcrumb,
   meta,
   children = null,
+  structuredDataProps,
 }: {
   breadcrumb: BreadcrumbTypeHTTP;
-  children?: React.ReactNode;
+  children: React.ReactNode;
+  structuredDataProps: typeof DEFAULT_STRUCTURED_DATA_PROPS;
   meta?: Record<string, any>;
 }) {
   const {method, url, status_code: statusCode, ...otherData} = breadcrumb?.data ?? {};
@@ -103,14 +113,7 @@ function HTTPCrumbContent({
       </Timeline.Text>
       {Object.keys(otherData).length > 0 ? (
         <Timeline.Data>
-          <StructuredData
-            value={otherData}
-            meta={meta}
-            depth={0}
-            maxDefaultDepth={2}
-            withAnnotatedText
-            withOnlyFormattedText
-          />
+          <StructuredData value={otherData} meta={meta} {...structuredDataProps} />
         </Timeline.Data>
       ) : null}
     </Fragment>

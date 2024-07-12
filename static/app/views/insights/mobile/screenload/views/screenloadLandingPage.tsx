@@ -14,6 +14,7 @@ import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
@@ -26,6 +27,7 @@ import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
 } from 'sentry/views/insights/mobile/screenload/settings';
+import {ModuleName} from 'sentry/views/insights/types';
 import Onboarding from 'sentry/views/performance/onboarding';
 
 export function PageloadModule() {
@@ -71,14 +73,16 @@ export function PageloadModule() {
             </Container>
             <PageAlert />
             <ErrorBoundary mini>
-              {onboardingProject && (
-                <OnboardingContainer>
-                  <Onboarding organization={organization} project={onboardingProject} />
-                </OnboardingContainer>
-              )}
-              {!onboardingProject && (
-                <ScreensView yAxes={[YAxis.TTID, YAxis.TTFD]} chartHeight={240} />
-              )}
+              <ModulesOnboarding moduleName={ModuleName.SCREEN_LOAD}>
+                {onboardingProject && (
+                  <OnboardingContainer>
+                    <Onboarding organization={organization} project={onboardingProject} />
+                  </OnboardingContainer>
+                )}
+                {!onboardingProject && (
+                  <ScreensView yAxes={[YAxis.TTID, YAxis.TTFD]} chartHeight={240} />
+                )}
+              </ModulesOnboarding>
             </ErrorBoundary>
           </Layout.Main>
         </Layout.Body>

@@ -47,7 +47,6 @@ from .organization_plugin import *  # noqa: F401,F403
 from .orgauthtoken import *  # noqa: F401,F403
 from .platformexternalissue import *  # noqa: F401,F403
 from .plugin import *  # noqa: F401,F403
-from .processingissue import *  # noqa: F401,F403
 from .project import *  # noqa: F401,F403
 from .project_key import *  # noqa: F401,F403
 from .project_platform import *  # noqa: F401,F403

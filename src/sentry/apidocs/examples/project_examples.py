@@ -174,6 +174,7 @@ DETAILED_PROJECT = {
     "secondaryGroupingConfig": "newstyle:2019-10-29",
     "groupingAutoUpdate": False,
     "fingerprintingRules": "",
+    "uptimeAutodetection": True,
     "organization": {
         "id": "1",
         "slug": "sentry",

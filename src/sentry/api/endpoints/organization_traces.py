@@ -1,10 +1,8 @@
 import dataclasses
 import math
-import time
 from collections import defaultdict
 from collections.abc import Callable, Generator, Mapping, MutableMapping, Sequence
 from contextlib import contextmanager
-from dataclasses import replace
 from datetime import datetime, timedelta
 from typing import Any, Literal, NotRequired, TypedDict, cast
 
@@ -93,7 +91,6 @@ class OrganizationTracesSerializer(serializers.Serializer):
     query = serializers.ListField(
         required=False, allow_empty=True, child=serializers.CharField(allow_blank=True)
     )
-    sort = serializers.CharField(required=False)
 
 
 @contextmanager
@@ -132,10 +129,6 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
             return Response(serializer.errors, status=400)
         serialized = serializer.validated_data
 
-        allow_sorting = features.has(
-            "organizations:performance-trace-explorer-sorting", organization, actor=request.user
-        )
-
         executor = TracesExecutor(
             params=cast(ParamsType, params),
             snuba_params=snuba_params,
@@ -147,7 +140,6 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
             mri=serialized.get("mri"),
             limit=self.get_per_page(request),
             breakdown_slices=serialized["breakdownSlices"],
-            sort=serialized.get("sort") if allow_sorting else None,
             get_all_projects=lambda: self.get_projects(
                 request,
                 organization,
@@ -320,7 +312,6 @@ class TracesExecutor:
         mri: str | None,
         limit: int,
         breakdown_slices: int,
-        sort: str | None,
         get_all_projects: Callable[[], list[Project]],
     ):
         self.params = params
@@ -333,11 +324,7 @@ class TracesExecutor:
         self.mri = mri
         self.limit = limit
         self.breakdown_slices = breakdown_slices
-        self.sort = sort
         self.get_all_projects = get_all_projects
-
-        if self.sort is not None:
-            sentry_sdk.set_tag("sort_key", self.sort)
 
     def params_with_all_projects(self) -> tuple[ParamsType, SnubaParams]:
         all_projects_snuba_params = dataclasses.replace(
@@ -434,15 +421,6 @@ class TracesExecutor:
             sentry_sdk.set_tag("mri", self.mri)
             return self.get_traces_matching_metric_conditions(params, snuba_params)
 
-        if self.sort is not None:
-            if self.sort == "-timestamp":  # only support timestamp descing for now
-                return self.get_traces_matching_span_conditions_timestamp_order(
-                    params, snuba_params
-                )
-            with sentry_sdk.isolation_scope() as scope:
-                scope.set_extra("sort", {"sort": self.sort})
-                sentry_sdk.capture_message("Unsupported sort specified")
-
         return self.get_traces_matching_span_conditions(params, snuba_params)
 
     def get_traces_matching_metric_conditions(
@@ -511,40 +489,6 @@ class TracesExecutor:
 
         return min_timestamp, max_timestamp, trace_ids
 
-    def get_traces_matching_span_conditions_timestamp_order(
-        self,
-        params: ParamsType,
-        snuba_params: SnubaParams,
-        trace_ids: list[str] | None = None,
-    ) -> tuple[datetime, datetime, list[str]]:
-        assert self.sort is not None
-
-        builder, timestamp_column = self.get_traces_matching_span_conditions_query(
-            params,
-            snuba_params,
-            sort=self.sort,
-        )
-
-        executor = OrderedTracesExecutor(
-            params=params,
-            snuba_params=snuba_params,
-            builder=builder,
-            limit=self.limit,
-            timestamp_column=timestamp_column,
-            max_block_size_hours=options.get(
-                "performance.traces.trace-explorer-scan-max-block-size-hours"
-            ),
-            max_batches=options.get("performance.traces.trace-explorer-scan-max-batches"),
-            max_execution_seconds=options.get(
-                "performance.traces.trace-explorer-scan-max-execution-seconds"
-            ),
-            max_parallel_queries=options.get(
-                "performance.traces.trace-explorer-scan-max-parallel-queries"
-            ),
-        )
-
-        return executor.execute()
-
     def get_traces_matching_span_conditions(
         self,
         params: ParamsType,
@@ -604,15 +548,7 @@ class TracesExecutor:
             )
 
             # restrict the query to just this subset of trace ids
-            query.add_conditions(
-                [
-                    Condition(
-                        Column("trace_id"),
-                        Op.IN,
-                        Function("splitByChar", [",", ",".join(chunk)]),
-                    )
-                ]
-            )
+            query.add_conditions([Condition(Column("trace_id"), Op.IN, chunk)])
 
             all_queries.append(query)
 
@@ -768,13 +704,6 @@ class TracesExecutor:
         traces_occurrences_results,
         traces_breakdown_projects_results,
     ) -> list[TraceResult]:
-        if self.sort == "-timestamp":
-            traces_metas_results["data"].sort(
-                key=lambda row: row["last_seen()"],
-                reverse=True,
-            )
-
-        # mapping of trace id to a tuple of start/finish times
         traces_range = {
             row["trace"]: {
                 "start": row["first_seen()"],
@@ -884,15 +813,7 @@ class TracesExecutor:
         )
 
         # restrict the query to just this subset of trace ids
-        query.add_conditions(
-            [
-                Condition(
-                    Column("trace_id"),
-                    Op.IN,
-                    Function("splitByChar", [",", ",".join(trace_ids)]),
-                )
-            ]
-        )
+        query.add_conditions([Condition(Column("trace_id"), Op.IN, trace_ids)])
 
         return query, Referrer.API_TRACE_EXPLORER_TRACES_BREAKDOWNS
 
@@ -921,15 +842,7 @@ class TracesExecutor:
         )
 
         # restrict the query to just this subset of trace ids
-        query.add_conditions(
-            [
-                Condition(
-                    Column("trace_id"),
-                    Op.IN,
-                    Function("splitByChar", [",", ",".join(trace_ids)]),
-                )
-            ]
-        )
+        query.add_conditions([Condition(Column("trace_id"), Op.IN, trace_ids)])
 
         """
         We want to get a count of the number of matching spans. To do this, we have to
@@ -983,15 +896,7 @@ class TracesExecutor:
         )
 
         # restrict the query to just this subset of trace ids
-        query.add_conditions(
-            [
-                Condition(
-                    Column("trace_id"),
-                    Op.IN,
-                    Function("splitByChar", [",", ",".join(trace_ids)]),
-                )
-            ]
-        )
+        query.add_conditions([Condition(Column("trace_id"), Op.IN, trace_ids)])
 
         return query, Referrer.API_TRACE_EXPLORER_TRACES_ERRORS
 
@@ -1014,148 +919,9 @@ class TracesExecutor:
         )
 
         # restrict the query to just this subset of trace ids
-        query.add_conditions(
-            [
-                Condition(
-                    Column("trace_id"),
-                    Op.IN,
-                    Function("splitByChar", [",", ",".join(trace_ids)]),
-                )
-            ]
-        )
+        query.add_conditions([Condition(Column("trace_id"), Op.IN, trace_ids)])
 
         return query, Referrer.API_TRACE_EXPLORER_TRACES_OCCURRENCES
-
-
-class OrderedTracesExecutor:
-    # There needs to be an overlap between blocks to handle
-    # traces to happen to lie on the block boundaries.
-    buffer_size = timedelta(minutes=5)
-
-    def __init__(
-        self,
-        *,
-        params: ParamsType,
-        snuba_params: SnubaParams,
-        builder: BaseQueryBuilder,
-        limit: int,
-        timestamp_column: str,
-        max_block_size_hours: int,
-        max_batches: int,
-        max_execution_seconds: int,
-        max_parallel_queries: int,
-    ):
-        self.params = params
-        self.snuba_params = snuba_params
-        self.builder = builder
-        self.limit = limit
-        self.timestamp_column = timestamp_column
-
-        assert snuba_params.start is not None
-        assert snuba_params.end is not None
-
-        self.unscanned_start = snuba_params.start
-        self.unscanned_end = snuba_params.end
-
-        self.block_size = min(
-            self.unscanned_end - self.unscanned_start,
-            timedelta(hours=max_block_size_hours),
-        )
-        self.max_batches = max_batches
-        self.max_execution_seconds = max_execution_seconds
-        self.max_parallel_queries = max_parallel_queries
-
-    def has_more_to_scan(self) -> bool:
-        return self.unscanned_end > self.unscanned_start
-
-    def execute(self) -> tuple[datetime, datetime, list[str]]:
-        batches = 0
-
-        start_time = time.monotonic()
-
-        trace_ids: list[str] = []
-        seen_trace_ids: set[str] = set()
-        min_timestamp = self.snuba_params.end
-        max_timestamp = self.snuba_params.start
-        assert min_timestamp is not None
-        assert max_timestamp is not None
-
-        while (
-            len(trace_ids) < self.limit  # Not enough entries in result
-            and self.has_more_to_scan()
-            and batches < self.max_batches  # Still within the max batches limit
-            and time.monotonic() - start_time
-            < self.max_execution_seconds  # Still within the max execution limit
-        ):
-            batches += 1
-
-            data = self.query_next_batch()
-
-            for row in data:
-                trace_id = row["trace"]
-
-                if trace_id in seen_trace_ids:
-                    continue
-
-                trace_ids.append(trace_id)
-                seen_trace_ids.add(trace_id)
-
-                timestamp = datetime.fromisoformat(row[self.timestamp_column])
-                min_timestamp = min(min_timestamp, timestamp)
-                max_timestamp = max(max_timestamp, timestamp)
-
-                # Got enough results
-                if len(trace_ids) >= self.limit:
-                    break
-
-        # If this didn't find any matching traces but there's
-        # still more to scan, we treat it as if it timed out.
-        if not trace_ids and self.has_more_to_scan():
-            raise InvalidSearchQuery(TIMEOUT_SPAN_ERROR_MESSAGE)
-
-        return min_timestamp, max_timestamp, trace_ids
-
-    def query_next_batch(self):
-        base_request = self.builder.get_snql_query()
-
-        batch_queries = []
-
-        for _ in range(self.max_parallel_queries):
-            block_end: datetime = self.unscanned_end
-
-            # The last block is going to be queried in the next batch.
-            # Move the unscanned_end to indicate this.
-            self.unscanned_end -= self.block_size
-            self.unscanned_end = max(self.unscanned_end, self.unscanned_start)
-
-            # Include a small buffer in case the trace crosses the block boundary.
-            block_start: datetime = self.unscanned_end - self.buffer_size
-            block_start = max(block_start, self.unscanned_start)
-
-            if block_start >= block_end:  # empty block, no need to query it
-                break
-
-            # Make sure to copy the where list as it's a shared reference.
-            where = list(base_request.query.where) if base_request.query.where else []
-            where.append(Condition(self.builder.column("timestamp"), Op.GTE, block_start))
-            where.append(Condition(self.builder.column("timestamp"), Op.LT, block_end))
-            request = replace(base_request, query=base_request.query.set_where(where))
-
-            batch_queries.append(request)
-
-        if not batch_queries:
-            return
-
-        batch_results = bulk_snuba_queries(
-            [query for query in batch_queries],
-            Referrer.API_TRACE_EXPLORER_SPANS_LIST_SORTED.value,
-        )
-
-        data = []
-        for result in batch_results:
-            result = self.builder.process_results(result)
-            data.extend(result["data"])
-        return data
 
 
 class TraceSpansExecutor:
