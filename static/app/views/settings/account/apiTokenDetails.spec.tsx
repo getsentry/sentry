@@ -51,40 +51,40 @@ describe('ApiNewToken', function () {
     );
   });
 
-  // it('removes token name', async function () {
-  //   MockApiClient.clearMockResponses();
+  it('removes token name', async function () {
+    MockApiClient.clearMockResponses();
 
-  //   const mock1 = MockApiClient.addMockResponse({
-  //     method: 'GET',
-  //     url: `/api-tokens/1/`,
-  //     body: ApiTokenFixture({id: '1', name: 'token1'}),
-  //   });
+    const mock1 = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: `/api-tokens/1/`,
+      body: ApiTokenFixture({id: '1', name: 'token1'}),
+    });
 
-  //   render(<ApiTokenDetails params={{tokenId: "1"}}/>);
+    render(<ApiTokenDetails params={{tokenId: "1"}}/>);
 
-  //   await waitFor(() =>
-  //     expect(mock1).toHaveBeenCalledTimes(1)
-  //   );
+    await waitFor(() =>
+      expect(mock1).toHaveBeenCalledTimes(1)
+    );
 
-  //   const assignMock = MockApiClient.addMockResponse({
-  //     method: 'PUT',
-  //     url: `/api-tokens/1/`,
-  //   });
+    const assignMock = MockApiClient.addMockResponse({
+      method: 'PUT',
+      url: `/api-tokens/1/`,
+    });
 
-  //   await userEvent.clear(screen.getByLabelText('Name'));
+    await userEvent.clear(screen.getByLabelText('Name'));
 
-  //   await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Save Changes'}));
 
-  //   await waitFor(() =>
-  //     expect(assignMock).toHaveBeenCalledWith(
-  //       '/api-tokens/1/',
-  //       expect.objectContaining({
-  //         method: 'PUT',
-  //         data: expect.objectContaining({
-  //           name: '',
-  //         }),
-  //       })
-  //     )
-  //   );
-  // });
+    await waitFor(() =>
+      expect(assignMock).toHaveBeenCalledWith(
+        '/api-tokens/1/',
+        expect.objectContaining({
+          method: 'PUT',
+          data: expect.objectContaining({
+            name: '',
+          }),
+        })
+      )
+    );
+  });
 });
