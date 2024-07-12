@@ -18,7 +18,7 @@ logger = logging.getLogger("sentry.events.grouping")
 Job = MutableMapping[str, Any]
 
 # We are moving all projects off these configuration without waiting for events
-CONFIGS_TO_DEPRECATE = []
+CONFIGS_TO_DEPRECATE: list[str] = []
 
 
 def upgrade_deprecated_configs():
