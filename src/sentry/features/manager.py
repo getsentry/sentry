@@ -146,7 +146,7 @@ class FeatureManager(RegisteredFeatureManager):
         self._entity_handler: FeatureHandler | None = None
 
     def all(
-        self, feature_type: type[Feature] = Feature, api_expose: bool = True
+        self, feature_type: type[Feature] = Feature, api_expose: bool = False
     ) -> Mapping[str, type[Feature]]:
         """
         Get a mapping of feature name -> feature class, optionally specific to a
@@ -159,10 +159,7 @@ class FeatureManager(RegisteredFeatureManager):
             name: feature
             for name, feature in self._feature_registry.items()
             if issubclass(feature, feature_type)
-            and (
-                (api_expose and name in self.exposed_features)
-                or (not api_expose and name not in self.exposed_features)
-            )
+            and (not api_expose or name in self.exposed_features)
         }
 
     def add(

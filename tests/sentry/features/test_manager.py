@@ -85,9 +85,12 @@ class FeatureManagerTest(TestCase):
         hidden = {
             "organizations:feature3",
         }
-        assert set(manager.all(OrganizationFeature).keys()) == exposed
+        assert set(manager.all(OrganizationFeature).keys()) == exposed | hidden
         assert set(manager.all(feature_type=OrganizationFeature, api_expose=True).keys()) == exposed
-        assert set(manager.all(feature_type=OrganizationFeature, api_expose=False).keys()) == hidden
+        assert (
+            set(manager.all(feature_type=OrganizationFeature, api_expose=False).keys())
+            == exposed | hidden
+        )
 
     def test_feature_register_default(self):
         manager = features.FeatureManager()
