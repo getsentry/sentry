@@ -77,20 +77,28 @@ class InvalidFeatureFlagConfiguration(Exception):
 
 
 class Feature(BaseModel):
-    name: constr(min_length=1, to_lower=True)  # type:ignore[valid-type]
-    """Name of the feature flag"""
+    name: constr(min_length=1, to_lower=True) = Field(  # type:ignore[valid-type]
+        description="The feature name."
+    )
+    "The feature name."
 
-    owner: constr(min_length=1)  # type:ignore[valid-type]
-    """The owners name or team that created a feature flag"""
+    owner: constr(min_length=1) = Field(  # type:ignore[valid-type]
+        description="The owner of this feature. Either an email address or team name, preferably."
+    )
+    "The owner of this feature. Either an email address or team name, preferably."
 
-    segments: list[Segment]
-    """A list of segments to evaluate against the provided data"""
+    segments: list[Segment] = Field(
+        description="The list of segments to evaluate for the feature. An empty list will always evaluate to False."
+    )
+    "The list of segments to evaluate for the feature. An empty list will always evaluate to False."
 
-    enabled: bool = True
-    """Defines whether or not the feature is enabled."""
+    enabled: bool = Field(default=True, description="Whether or not the feature is enabled.")
+    "Whether or not the feature is enabled."
 
-    created_at: datetime = Field(default_factory=datetime.now)
-    """This datetime is when this instance was created. It can be used to decide when to re-read configuration data"""
+    created_at: datetime = Field(
+        description="The datetime when this feature was created.", default_factory=datetime.now
+    )
+    "The datetime when this feature was created."
 
     def match(self, context: EvaluationContext) -> bool:
         if not self.enabled:
