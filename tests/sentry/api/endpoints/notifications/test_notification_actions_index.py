@@ -1,8 +1,8 @@
 from unittest.mock import MagicMock, patch
 
-import orjson
 import responses
 from rest_framework import serializers, status
+from slack_sdk.web.slack_response import SlackResponse
 
 from sentry.api.serializers.base import serialize
 from sentry.integrations.pagerduty.utils import add_service
@@ -263,7 +263,31 @@ class NotificationActionsIndexEndpointTest(APITestCase):
 
     @patch.dict(NotificationAction._registry, {})
     @responses.activate
-    def test_post_with_slack_validation(self):
+    @patch(
+        "slack_sdk.web.client.WebClient.chat_scheduleMessage",
+        return_value=SlackResponse(
+            client=None,
+            http_verb="POST",
+            api_url="https://slack.com/api/chat.scheduleMessage",
+            req_args={},
+            data={"ok": True, "channel": "CABC123", "scheduled_message_id": "Q1298393284"},
+            headers={},
+            status_code=200,
+        ),
+    )
+    @patch(
+        "slack_sdk.web.client.WebClient.chat_deleteScheduledMessage",
+        return_value=SlackResponse(
+            client=None,
+            http_verb="POST",
+            api_url="https://slack.com/api/chat.deleteScheduleMessage",
+            req_args={},
+            data={"ok": True},
+            headers={},
+            status_code=200,
+        ),
+    )
+    def test_post_with_slack_validation(self, mock_delete, mock_schedule):
         class MockActionRegistration(ActionRegistration):
             pass
 
@@ -281,22 +305,22 @@ class NotificationActionsIndexEndpointTest(APITestCase):
 
         self.mock_register(data)(MockActionRegistration)
 
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.scheduleMessage",
-            status=200,
-            content_type="application/json",
-            body=orjson.dumps(
-                {"ok": "true", "channel": channel_id, "scheduled_message_id": "Q1298393284"}
-            ),
-        )
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.deleteScheduledMessage",
-            status=200,
-            content_type="application/json",
-            body=orjson.dumps({"ok": True}),
-        )
+        # responses.add(
+        #     method=responses.POST,
+        #     url="https://slack.com/api/chat.scheduleMessage",
+        #     status=200,
+        #     content_type="application/json",
+        #     body=orjson.dumps(
+        #         {"ok": "true", "channel": channel_id, "scheduled_message_id": "Q1298393284"}
+        #     ),
+        # )
+        # responses.add(
+        #     method=responses.POST,
+        #     url="https://slack.com/api/chat.deleteScheduledMessage",
+        #     status=200,
+        #     content_type="application/json",
+        #     body=orjson.dumps({"ok": True}),
+        # )
         response = self.get_success_response(
             self.organization.slug,
             status_code=status.HTTP_201_CREATED,
