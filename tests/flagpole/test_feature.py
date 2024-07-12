@@ -18,12 +18,6 @@ class TestParseFeatureConfig:
     def get_is_true_context_builder(self, is_true_value: bool):
         return ContextBuilder().add_context_transformer(lambda _data: dict(is_true=is_true_value))
 
-    def test_valid_without_created_at(self):
-        feature = Feature.from_feature_config_json("foo", '{"owner": "test", "segments":[]}')
-        assert feature.name == "foo"
-        assert isinstance(feature.created_at, datetime)
-        assert feature.segments == []
-
     def test_feature_with_empty_segments(self):
         feature = Feature.from_feature_config_json(
             "foobar",
@@ -171,6 +165,7 @@ class TestParseFeatureConfig:
             """
             {
                 "owner": "test-user",
+                "created_at": "2023-10-12T00:00:00.000Z",
                 "segments": [{
                     "name": "always_pass_segment",
                     "rollout": 100,
@@ -195,6 +190,7 @@ class TestParseFeatureConfig:
             {
                 "owner": "test-user",
                 "enabled": false,
+                "created_at": "2023-12-12T00:00:00.000Z",
                 "segments": [{
                     "name": "always_pass_segment",
                     "rollout": 100,
@@ -218,6 +214,7 @@ class TestParseFeatureConfig:
             """
             {
                 "owner": "test-user",
+                "created_at": "2023-12-12T00:00:00.000Z",
                 "segments": [{
                     "name": "always_pass_segment",
                     "rollout": 100,

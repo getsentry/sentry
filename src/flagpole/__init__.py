@@ -95,9 +95,7 @@ class Feature(BaseModel):
     enabled: bool = Field(default=True, description="Whether or not the feature is enabled.")
     "Whether or not the feature is enabled."
 
-    created_at: datetime = Field(
-        description="The datetime when this feature was created.", default_factory=datetime.now
-    )
+    created_at: datetime = Field(description="The datetime when this feature was created.")
     "The datetime when this feature was created."
 
     def match(self, context: EvaluationContext) -> bool:
