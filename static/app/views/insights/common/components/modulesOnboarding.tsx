@@ -136,7 +136,7 @@ function ModulePreview({moduleName}: ModulePreviewProps) {
       <ModulePreviewImage src={emptyStateContent.imageSrc} />
       {emptyStateContent.supportedSdks && (
         <SupportedSdkContainer>
-          <div>{t('Supporting Today: ')}</div>
+          <div>{t('Supported Today: ')}</div>
           <SupportedSdkList>
             {emptyStateContent.supportedSdks.map(sdk => (
               <SupportedSdkIconContainer key={sdk}>
@@ -418,7 +418,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: queuesPreviewImg,
   },
   screen_load: {
-    heading: t('Perhaps 255 items was too large of a pagination size'),
+    heading: t(`Don’t lose your customer’s attention before your app loads`),
     description: tct(
       'View the most active [dataTypePlural] in your mobile application and monitor your releases for screen load performance.',
       {
