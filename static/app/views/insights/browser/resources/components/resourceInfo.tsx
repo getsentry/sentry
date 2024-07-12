@@ -19,6 +19,7 @@ type Props = {
   avgDecodedContentLength: number;
   avgDuration: number;
   avgTransferSize: number;
+  isLoading: boolean;
   throughput: number;
   timeSpentPercentage: number;
   timeSpentTotal: number;
@@ -26,6 +27,7 @@ type Props = {
 
 function ResourceInfo(props: Props) {
   const {
+    isLoading,
     avgContentLength,
     avgDecodedContentLength,
     avgDuration,
@@ -73,6 +75,7 @@ function ResourceInfo(props: Props) {
           title={getThroughputTitle('resource')}
           value={throughput}
           unit={RESOURCE_THROUGHPUT_UNIT}
+          isLoading={isLoading}
         />
 
         <MetricReadout
@@ -81,6 +84,7 @@ function ResourceInfo(props: Props) {
           tooltip={tooltips.avgContentLength}
           value={avgContentLength}
           unit={SizeUnit.BYTE}
+          isLoading={isLoading}
         />
 
         <MetricReadout
@@ -89,6 +93,7 @@ function ResourceInfo(props: Props) {
           value={avgDecodedContentLength}
           tooltip={tooltips.avgDecodedContentLength}
           unit={SizeUnit.BYTE}
+          isLoading={isLoading}
         />
 
         <MetricReadout
@@ -97,6 +102,7 @@ function ResourceInfo(props: Props) {
           value={avgTransferSize}
           tooltip={tooltips.avgTransferSize}
           unit={SizeUnit.BYTE}
+          isLoading={isLoading}
         />
 
         <MetricReadout
@@ -104,6 +110,7 @@ function ResourceInfo(props: Props) {
           title={DataTitles.avg}
           value={avgDuration}
           unit={DurationUnit.MILLISECOND}
+          isLoading={isLoading}
         />
 
         <MetricReadout
@@ -112,6 +119,7 @@ function ResourceInfo(props: Props) {
           value={timeSpentTotal}
           unit={DurationUnit.MILLISECOND}
           tooltip={getTimeSpentExplanation(timeSpentPercentage, 'resource')}
+          isLoading={isLoading}
         />
       </Ribbon>
 
