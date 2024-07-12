@@ -721,26 +721,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resolution.type == GroupResolution.Type.in_next_release
         assert resolution.release == release
 
-        update_data = orjson.loads(responses.calls[0].request.body)
-
-    @responses.activate
-    @with_feature("organizations:slack-sdk-action-view-open")
-    def test_resolve_in_next_release_through_unfurl_sdk(self):
-        release = Release.objects.create(
-            organization_id=self.organization.id,
-            version="1.0",
-        )
-        release.add_project(self.project)
-        original_message = self.get_original_message(self.group.id)
-        payload_data = self.get_unfurl_data(original_message["blocks"])
-        self.resolve_issue_sdk(original_message, "resolved:inNextRelease", payload_data)
-
-        self.group = Group.objects.get(id=self.group.id)
-        assert self.group.get_status() == GroupStatus.RESOLVED
-        resolution = GroupResolution.objects.get(group=self.group)
-        assert resolution.type == GroupResolution.Type.in_next_release
-        assert resolution.release == release
-
         blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
