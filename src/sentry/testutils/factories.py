@@ -153,7 +153,11 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.region import Region, get_local_region, get_region_by_name
 from sentry.types.token import AuthTokenType
-from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
+from sentry.uptime.models import (
+    ProjectUptimeSubscription,
+    ProjectUptimeSubscriptionMode,
+    UptimeSubscription,
+)
 from sentry.users.services.user import RpcUser
 from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
@@ -1935,8 +1939,13 @@ class Factories:
         )
 
     @staticmethod
-    def create_project_uptime_subscription(project, uptime_subscription):
+    def create_project_uptime_subscription(
+        project: Project,
+        uptime_subscription: UptimeSubscription,
+        mode: ProjectUptimeSubscriptionMode,
+    ):
         return ProjectUptimeSubscription.objects.create(
             uptime_subscription=uptime_subscription,
             project=project,
+            mode=mode,
         )

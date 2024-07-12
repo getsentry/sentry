@@ -41,7 +41,7 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModel):
         ]
 
 
-class ProjectUptimeSubscriptionMode(enum.Enum):
+class ProjectUptimeSubscriptionMode(enum.IntEnum):
     # Manually created by a user
     MANUAL = 1
     # Auto-detected by our system and in the onboarding stage
