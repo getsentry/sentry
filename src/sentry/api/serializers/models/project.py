@@ -901,6 +901,7 @@ class DetailedProjectResponse(ProjectWithTeamResponseDict):
     eventProcessing: dict[str, bool]
     symbolSources: str
     extrapolateMetrics: bool
+    uptimeAutodetection: bool
 
 
 class DetailedProjectSerializer(ProjectWithTeamSerializer):
@@ -1032,9 +1033,18 @@ class DetailedProjectSerializer(ProjectWithTeamSerializer):
                 }
             )
 
+        if features.has("organizations:uptime-settings", obj.organization):
+            data.update(
+                {
+                    "uptimeAutodetection": bool(
+                        attrs["options"].get("sentry:uptime_autodetection", True)
+                    )
+                }
+            )
+
         custom_symbol_sources_json = attrs["options"].get("sentry:symbol_sources")
         try:
-            sources = parse_sources(custom_symbol_sources_json)
+            sources = parse_sources(custom_symbol_sources_json, filter_appconnect=False)
         except Exception:
             # In theory sources stored on the project should be valid. If they are invalid, we don't
             # want to abort serialization just for sources, so just return an empty list instead of
