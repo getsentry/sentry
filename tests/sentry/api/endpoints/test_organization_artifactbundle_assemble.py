@@ -221,8 +221,6 @@ class OrganizationArtifactBundleAssembleTest(APITestCase):
 
         self.assertEqual(response.status_code, 200)
 
-    # You can add more tests here following the same pattern to cover additional scenarios
-
     @patch("sentry.tasks.assemble.assemble_artifacts")
     def test_assemble_without_version_and_dist(self, mock_assemble_artifacts):
         bundle_file = self.create_artifact_bundle_zip(
