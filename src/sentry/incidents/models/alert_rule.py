@@ -297,11 +297,11 @@ class AlertRule(Model):
     date_added = models.DateTimeField(default=timezone.now)
     monitor_type = models.IntegerField(default=AlertRuleMonitorTypeInt.CONTINUOUS)
     description = models.CharField(max_length=1000, null=True)
-    detection_type = models.SmallIntegerField(
+    detection_type = models.CharField(
         default=AlertRuleDetectionType.STATIC, choices=AlertRuleDetectionType.choices
     )
-    sensitivity = models.SmallIntegerField(choices=AlertRuleSensitivity.choices, null=True)
-    seasonality = models.SmallIntegerField(choices=AlertRuleSeasonality.choices, null=True)
+    sensitivity = models.CharField(choices=AlertRuleSensitivity.choices, null=True)
+    seasonality = models.CharField(choices=AlertRuleSeasonality.choices, null=True)
 
     class Meta:
         app_label = "sentry"
