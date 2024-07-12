@@ -20,6 +20,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useRouter from 'sentry/utils/useRouter';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
+import {Ribbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {formatVersionAndCenterTruncate} from 'sentry/views/insights/common/utils/centerTruncate';
 import {DataTitles} from 'sentry/views/insights/common/views/spans/types';
@@ -112,7 +113,7 @@ export function SpanSamplesContainer({
     filters['span.op'] = spanOp;
   }
 
-  const {data} = useSpanMetrics(
+  const {data, isLoading} = useSpanMetrics(
     {
       search: MutableSearch.fromQueryObject({...filters, ...additionalFilters}),
       fields: [`avg(${SPAN_SELF_TIME})`, 'count()', SPAN_OP],
@@ -155,20 +156,22 @@ export function SpanSamplesContainer({
         )}
       </PaddedTitle>
 
-      <Container>
+      <Ribbon>
         <MetricReadout
           title={DataTitles.avg}
           align="left"
           value={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
           unit={DurationUnit.MILLISECOND}
+          isLoading={isLoading}
         />
         <MetricReadout
           title={DataTitles.count}
           align="left"
           value={spanMetrics?.['count()'] ?? 0}
           unit="count"
+          isLoading={isLoading}
         />
-      </Container>
+      </Ribbon>
 
       <DurationChart
         spanSearch={spanSearch}
@@ -249,10 +252,6 @@ const SectionTitle = styled('div')`
 
 const PaddedTitle = styled('div')`
   margin-bottom: ${space(1)};
-`;
-
-const Container = styled('div')`
-  display: flex;
 `;
 
 const StyledSearchBar = styled(SearchBar)`

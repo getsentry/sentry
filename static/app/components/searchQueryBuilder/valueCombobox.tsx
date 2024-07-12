@@ -13,6 +13,7 @@ import SpecificDatePicker from 'sentry/components/searchQueryBuilder/specificDat
 import {
   escapeTagValue,
   formatFilterValue,
+  getDefaultFilterValue,
   isDateToken,
   unescapeTagValue,
 } from 'sentry/components/searchQueryBuilder/utils';
@@ -415,11 +416,7 @@ function tokenSupportsMultipleValues(
 
       const fieldDef = getFieldDefinition(key.key);
 
-      return [
-        FieldValueType.STRING,
-        FieldValueType.NUMBER,
-        FieldValueType.INTEGER,
-      ].includes(fieldDef?.valueType ?? FieldValueType.STRING);
+      return !fieldDef?.valueType || fieldDef.valueType === FieldValueType.STRING;
     case FilterType.NUMERIC:
       if (token.operator === TermOperator.DEFAULT) {
         return true;
@@ -505,7 +502,7 @@ function useFilterSuggestions({
   token: TokenResult<Token.FILTER>;
 }) {
   const {getTagValues, filterKeys} = useSearchQueryBuilder();
-  const key = filterKeys[token.key.text];
+  const key: Tag | undefined = filterKeys[token.key.text];
   const predefinedValues = useMemo(
     () => getPredefinedValues({key, filterValue, token}),
     [key, filterValue, token]
@@ -523,7 +520,8 @@ function useFilterSuggestions({
   // TODO(malwilley): Display error states
   const {data, isFetching} = useQuery<string[]>({
     queryKey: debouncedQueryKey,
-    queryFn: () => getTagValues(key, filterValue),
+    queryFn: () =>
+      getTagValues(key ? key : {key: token.key.text, name: token.key.text}, filterValue),
     keepPreviousData: true,
     enabled: shouldFetchValues,
   });
@@ -726,7 +724,7 @@ export function SearchQueryBuilderValueCombobox({
       const cleanedValue = cleanFilterValue(token.key.text, value);
 
       // TODO(malwilley): Add visual feedback for invalid values
-      if (!cleanedValue) {
+      if (cleanedValue === null) {
         trackAnalytics('search.value_manual_submitted', {
           ...analyticsData,
           filter_value: value,
@@ -815,7 +813,20 @@ export function SearchQueryBuilderValueCombobox({
 
   const handleInputValueConfirmed = useCallback(
     (value: string) => {
-      if (value === getInitialInputValue(token, canSelectMultipleValues)) {
+      const isUnchanged = value === getInitialInputValue(token, canSelectMultipleValues);
+
+      // If there's no user input and the token has no value, set a default one
+      if (!value && !token.value.text) {
+        dispatch({
+          type: 'UPDATE_TOKEN_VALUE',
+          token: token,
+          value: getDefaultFilterValue({key: token.key.text}),
+        });
+        onCommit();
+        return;
+      }
+
+      if (isUnchanged) {
         onCommit();
         return;
       }
@@ -827,11 +838,13 @@ export function SearchQueryBuilderValueCombobox({
           value: prepareInputValueForSaving(token, value),
         });
         onCommit();
-        trackAnalytics('search.value_manual_submitted', {
-          ...analyticsData,
-          filter_value: value,
-          invalid: false,
-        });
+        if (!isUnchanged) {
+          trackAnalytics('search.value_manual_submitted', {
+            ...analyticsData,
+            filter_value: value,
+            invalid: false,
+          });
+        }
         return;
       }
 
