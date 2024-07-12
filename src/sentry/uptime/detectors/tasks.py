@@ -4,6 +4,7 @@ from datetime import timedelta
 
 from django.utils import timezone
 
+from sentry import features
 from sentry.locks import locks
 from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
@@ -31,7 +32,9 @@ SCHEDULER_LOCK_KEY = "uptime_detector_scheduler_lock"
 FAILED_URL_RETRY_FREQ = timedelta(days=7)
 URL_MIN_TIMES_SEEN = 5
 URL_MIN_PERCENT = 0.05
+# Default value for how often we should run these subscriptions when onboarding them
 ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS = int(timedelta(minutes=60).total_seconds())
+# Default timeout for subscriptions when we're onboarding them
 ONBOARDING_SUBSCRIPTION_TIMEOUT_MS = 1000
 
 logger = logging.getLogger("sentry.uptime-url-autodetection")
@@ -172,16 +175,16 @@ def process_candidate_url(
             "project": project.id,
         },
     )
-    # If we hit this point, then the url looks worth monitoring. Create an uptime subscription in monitor mode.
-    # Also check if there's already an existing auto-detected monitor for this project. If so, delete it.
-    monitor_url_for_project(project, url)
+    if features.has("organizations:uptime-automatic-subscription-creation", project.organization):
+        # If we hit this point, then the url looks worth monitoring. Create an uptime subscription in monitor mode.
+        monitor_url_for_project(project, url)
     return True
 
 
 def monitor_url_for_project(project: Project, url: str):
     """
     Start monitoring a url for a project. Creates a subscription using our onboarding interval and links the project to
-    it. Also deletes any other auto detected monitors since this one should replace them.
+    it. Also deletes any other auto-detected monitors since this one should replace them.
     """
     for monitored_subscription in get_auto_monitored_subscriptions_for_project(project):
         delete_project_uptime_subscription(project, monitored_subscription.uptime_subscription)

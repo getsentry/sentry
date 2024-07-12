@@ -9,6 +9,7 @@ from django.utils import timezone
 from sentry.locks import locks
 from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.uptime.detectors.ranking import (
     NUMBER_OF_BUCKETS,
@@ -147,12 +148,21 @@ class ProcessProjectUrlRankingTest(TestCase):
 
 @freeze_time()
 class ProcessCandidateUrlTest(TestCase):
+    @with_feature("organizations:uptime-automatic-subscription-creation")
     def test_succeeds_new(self):
         url = "https://sentry.io"
         assert not is_url_auto_monitored_for_project(self.project, url)
-        assert process_candidate_url(self.project, 100, "https://sentry.io", 50)
+        assert process_candidate_url(self.project, 100, url, 50)
         assert is_url_auto_monitored_for_project(self.project, url)
 
+    def test_succeeds_new_no_feature(self):
+        with mock.patch(
+            "sentry.uptime.detectors.tasks.monitor_url_for_project"
+        ) as mock_monitor_url_for_project:
+            assert process_candidate_url(self.project, 100, "https://sentry.io", 50)
+            mock_monitor_url_for_project.assert_not_called()
+
+    @with_feature("organizations:uptime-automatic-subscription-creation")
     def test_succeeds_existing_subscription_other_project(self):
         other_project = self.create_project()
         url = "https://sentry.io"
@@ -166,6 +176,7 @@ class ProcessCandidateUrlTest(TestCase):
         assert process_candidate_url(self.project, 100, url, 50)
         assert is_url_auto_monitored_for_project(self.project, url)
 
+    @with_feature("organizations:uptime-automatic-subscription-creation")
     def test_succeeds_existing_subscription_this_project(self):
         url = "https://sentry.io"
         assert process_candidate_url(self.project, 100, url, 50)
