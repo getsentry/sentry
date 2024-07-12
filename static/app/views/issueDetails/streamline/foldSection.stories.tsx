@@ -15,7 +15,7 @@ export default storyBook('FoldSection', story => {
         {`import {FoldSection, SectionKey} from 'sentry/views/issueDetails/section';
 
 <FoldSection title="My Section" sectionKey={SectionKey.MY_SECTION}>
-<MySectionComponent />
+  <MySectionComponent />
 </FoldSection>`}
       </CodeSnippet>
       <p>
