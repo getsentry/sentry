@@ -17,7 +17,6 @@ from sentry.incidents.logic import (
     DEFAULT_ALERT_RULE_RESOLUTION,
     DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER,
     ChannelLookupTimeoutError,
-    InvalidTriggerActionError,
     create_alert_rule_trigger,
 )
 from sentry.incidents.models.alert_rule import (
@@ -42,7 +41,6 @@ from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.environment import Environment
 from sentry.models.user import User
 from sentry.sentry_apps.services.app import app_service
-from sentry.shared_integrations.exceptions import ApiError
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
@@ -461,11 +459,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             },
         )
 
-    @patch(
-        "sentry.incidents.logic.get_alert_rule_trigger_action_slack_channel_id",
-        side_effect=InvalidTriggerActionError("Invalid slack channel"),
-    )
-    def test_invalid_slack_channel(self, mck):
+    def test_invalid_slack_channel(self):
         # We had an error where an invalid slack channel was spitting out unclear
         # error for the user, and CREATING THE RULE. So the next save (after fixing slack action)
         # says "Name already in use". This test makes sure that is not happening anymore.
@@ -490,7 +484,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             serializer = AlertRuleSerializer(context=self.context, data=base_params)
             assert serializer.is_valid()
 
-            with pytest.raises(ValidationError):
+            with pytest.raises(serializers.ValidationError):
                 serializer.save()
 
         # Make sure the rule was not created.
@@ -841,6 +835,28 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
             ),
         )
 
+    def patch_msg_schedule_response(self, channel_id, result_name="channel"):
+        if channel_id == "channel_not_found":
+            bodydict = {"ok": False, "error": "channel_not_found"}
+        else:
+            bodydict = {
+                "ok": True,
+                result_name: channel_id,
+                "scheduled_message_id": "Q1298393284",
+            }
+        return patch(
+            "slack_sdk.web.client.WebClient.chat_scheduleMessage",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/chat.scheduleMessage",
+                req_args={},
+                data=bodydict,
+                headers={},
+                status_code=200,
+            ),
+        )
+
     @cached_property
     def other_project(self):
         return self.create_project()
@@ -1050,8 +1066,8 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
             {"integration": ["Integration must be provided for discord"]},
         )
 
-    @patch("sentry.integrations.slack.utils.channel.get_channel_id", side_effect=ApiError)
-    def test_slack(self, mock_get_channel_id):
+    # @patch("sentry.integrations.slack.utils.channel.get_channel_id", side_effect=SlackApiError(""))
+    def test_slack(self):
         self.run_fail_validation_test(
             {
                 "type": AlertRuleTriggerAction.get_registered_type(
@@ -1088,9 +1104,11 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
                 "integration": str(self.integration.id),
             }
         )
+        # self.mock_conversations_list([])
+        # with self.patch_msg_schedule_response("channel_not_found"):
         serializer = AlertRuleTriggerActionSerializer(context=self.context, data=base_params)
         assert serializer.is_valid()
-        with pytest.raises(ValidationError):
+        with pytest.raises(serializers.ValidationError):
             serializer.save()
 
     def test_valid_slack_channel_id_sdk(self):
