@@ -1,3 +1,5 @@
+from datetime import datetime
+
 import click
 
 from flagpole import Feature, Segment
@@ -137,7 +139,12 @@ def createflag(
 
         if not blank:
             segments = segment_wizard()
-        feature = Feature(name=f"feature.{scope}:{name}", owner=owner, segments=segments)
+        feature = Feature(
+            name=f"feature.{scope}:{name}",
+            owner=owner,
+            segments=segments,
+            created_at=datetime.now(),
+        )
     except Exception as err:
         raise click.ClickException(f"{err}")
 
