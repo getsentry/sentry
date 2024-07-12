@@ -778,7 +778,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.relocation",
     "sentry.tasks.summaries.weekly_reports",
     "sentry.tasks.summaries.daily_summary",
-    "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
@@ -868,7 +867,6 @@ CELERY_QUEUES_REGION = [
     Queue("events.preprocess_event", routing_key="events.preprocess_event"),
     Queue("events.process_event", routing_key="events.process_event"),
     Queue("events.process_event_proguard", routing_key="events.process_event_proguard"),
-    Queue("events.reprocess_events", routing_key="events.reprocess_events"),
     Queue(
         "events.reprocessing.preprocess_event", routing_key="events.reprocessing.preprocess_event"
     ),
@@ -1073,12 +1071,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/5"),
         "options": {"expires": 300},
     },
-    "clear-expired-raw-events": {
-        "task": "sentry.tasks.clear_expired_raw_events",
-        # Run every 15 minutes
-        "schedule": crontab(minute="*/15"),
-        "options": {"expires": 300},
-    },
     "collect-project-platforms": {
         "task": "sentry.tasks.collect_project_platforms",
         # Run every 3 hours
@@ -1270,7 +1262,6 @@ PROCESSING_QUEUES = [
     "events.preprocess_event",
     "events.process_event",
     "events.process_event_proguard",
-    "events.reprocess_events",
     "events.reprocessing.preprocess_event",
     "events.reprocessing.process_event",
     "events.reprocessing.symbolicate_event",

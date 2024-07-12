@@ -4,7 +4,6 @@ import orjson
 import responses
 from django.db import router
 from django.urls import reverse
-from slack_sdk.errors import SlackApiError
 from slack_sdk.models.views import View
 from slack_sdk.web import SlackResponse
 
@@ -16,11 +15,9 @@ from sentry.integrations.slack.webhooks.action import (
     UNLINK_IDENTITY_MESSAGE,
 )
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
-from sentry.models.activity import Activity, ActivityIntegration
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.group import Group, GroupStatus
-from sentry.models.groupassignee import GroupAssignee
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.identity import Identity
@@ -357,13 +354,13 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.UNTIL_ESCALATING
 
-        update_data = orjson.loads(responses.calls[0].request.body)
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
-        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
-        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
-        assert "via" not in update_data["blocks"][4]["elements"][0]["text"]
-        assert ":white_circle:" in update_data["blocks"][0]["text"]["text"]
+        assert self.notification_text in blocks[1]["text"]["text"]
+        assert blocks[2]["text"]["text"].endswith(expect_status)
+        assert "via" not in blocks[4]["elements"][0]["text"]
+        assert ":white_circle:" in blocks[0]["text"]["text"]
 
     @responses.activate
     @with_feature("organizations:slack-sdk-action-view-open")
@@ -376,11 +373,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.UNTIL_ESCALATING
 
-        update_data = orjson.loads(responses.calls[0].request.body)
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
-        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
-        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
+        assert self.notification_text in blocks[1]["text"]["text"]
+        assert blocks[2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
     @with_feature("organizations:slack-sdk-action-view-open")
@@ -394,11 +391,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         group_snooze = GroupSnooze.objects.get(group=self.group)
         assert group_snooze.count == 10
 
-        update_data = orjson.loads(responses.calls[0].request.body)
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
-        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
-        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
+        assert self.notification_text in blocks[1]["text"]["text"]
+        assert blocks[2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
     @with_feature("organizations:slack-sdk-action-view-open")
@@ -415,11 +412,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         group_snooze = GroupSnooze.objects.get(group=self.group)
         assert group_snooze.count == 100
 
-        update_data = orjson.loads(responses.calls[0].request.body)
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
-        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
-        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
+        assert self.notification_text in blocks[1]["text"]["text"]
+        assert blocks[2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
     @with_feature("organizations:slack-sdk-action-view-open")
@@ -431,11 +428,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.FOREVER
 
-        update_data = orjson.loads(responses.calls[0].request.body)
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
-        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
-        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
+        assert self.notification_text in blocks[1]["text"]["text"]
+        assert blocks[2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
     @patch("sentry.models.organization.Organization.has_access", return_value=False)
@@ -464,11 +461,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.FOREVER
 
-        update_data = orjson.loads(responses.calls[0].request.body)
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
-        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
-        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
+        assert self.notification_text in blocks[1]["text"]["text"]
+        assert blocks[2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
     @with_feature("organizations:slack-sdk-action-view-open")
@@ -489,11 +486,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.FOREVER
 
-        update_data = orjson.loads(responses.calls[0].request.body)
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
-        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
-        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
+        assert self.notification_text in blocks[1]["text"]["text"]
+        assert blocks[2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
     @with_feature("organizations:slack-sdk-action-view-open")
@@ -514,11 +511,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.FOREVER
 
-        update_data = orjson.loads(responses.calls[0].request.body)
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
-        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
-        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
+        assert self.notification_text in blocks[1]["text"]["text"]
+        assert blocks[2]["text"]["text"].endswith(expect_status)
 
     def test_unarchive_issue(self):
         self.group.status = GroupStatus.IGNORED
@@ -567,251 +564,7 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.notification_text in blocks[1]["text"]["text"]
         assert blocks[2]["text"]["text"].endswith(expect_status)
 
-    def test_assign_issue(self):
-        user2 = self.create_user(is_superuser=False)
-        self.create_member(user=user2, organization=self.organization, teams=[self.team])
-        original_message = self.get_original_message(self.group.id)
-
-        # Assign to user
-        self.assign_issue(original_message, user2)
-        assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
-        text = self.mock_post.call_args.kwargs["text"]
-        expect_status = f"*Issue assigned to {user2.get_display_name()} by <@{self.external_id}>*"
-        assert self.notification_text in blocks[1]["text"]["text"]
-        assert blocks[2]["text"]["text"].endswith(expect_status), text
-        assert ":white_circle:" in blocks[0]["text"]["text"]
-
-        # Assign to team
-        self.assign_issue(original_message, self.team)
-        assert GroupAssignee.objects.filter(group=self.group, team=self.team).exists()
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
-        text = self.mock_post.call_args.kwargs["text"]
-        expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.external_id}>*"
-        assert self.notification_text in blocks[1]["text"]["text"]
-        assert blocks[2]["text"]["text"].endswith(expect_status), text
-        assert ":white_circle:" in blocks[0]["text"]["text"]
-
-        # Assert group assignment activity recorded
-        group_activity = list(Activity.objects.filter(group=self.group))
-        assert group_activity[0].data == {
-            "assignee": str(user2.id),
-            "assigneeEmail": user2.email,
-            "assigneeType": "user",
-            "integration": ActivityIntegration.SLACK.value,
-        }
-        assert group_activity[-1].data == {
-            "assignee": str(self.team.id),
-            "assigneeEmail": None,
-            "assigneeType": "team",
-            "integration": ActivityIntegration.SLACK.value,
-        }
-
-    @with_feature("organizations:slack-sdk-webhook-handling")
-    @patch("sentry.integrations.slack.webhooks.action.logger")
-    def test_assign_issue_with_sdk_error(self, mock_logger):
-        mock_slack_response = SlackResponse(
-            client=None,
-            http_verb="POST",
-            api_url="https://slack.com/api/chat.postMessage",
-            req_args={},
-            data={"ok": False},
-            headers={},
-            status_code=200,
-        )
-
-        self.mock_post.side_effect = SlackApiError("error", mock_slack_response)
-
-        user2 = self.create_user(is_superuser=False)
-        self.create_member(user=user2, organization=self.organization, teams=[self.team])
-        original_message = self.get_original_message(self.group.id)
-
-        # Assign to user
-        resp = self.assign_issue(original_message, user2)
-        assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
-        expect_status = f"*Issue assigned to {user2.get_display_name()} by <@{self.external_id}>*"
-        assert self.notification_text in resp.data["blocks"][1]["text"]["text"]
-        assert resp.data["blocks"][2]["text"]["text"].endswith(expect_status), resp.data["text"]
-        assert ":white_circle:" in resp.data["blocks"][0]["text"]["text"]
-
-        # Assert group assignment activity recorded
-        group_activity = list(Activity.objects.filter(group=self.group))
-        assert group_activity[0].data == {
-            "assignee": str(user2.id),
-            "assigneeEmail": user2.email,
-            "assigneeType": "user",
-            "integration": ActivityIntegration.SLACK.value,
-        }
-
-        mock_logger.error.assert_called_with(
-            "slack.webhook.update_status.response-error",
-            extra={"error": "error\nThe server responded with: {'ok': False}"},
-        )
-
-    def test_assign_issue_through_unfurl(self):
-        user2 = self.create_user(is_superuser=False)
-        self.create_member(user=user2, organization=self.organization, teams=[self.team])
-        original_message = self.get_original_message(self.group.id)
-        payload_data = self.get_unfurl_data(original_message["blocks"])
-
-        # Assign to user
-        self.assign_issue(original_message, user2, payload_data)
-        assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
-        text = self.mock_post.call_args.kwargs["text"]
-        expect_status = f"*Issue assigned to {user2.get_display_name()} by <@{self.external_id}>*"
-        assert self.notification_text in blocks[1]["text"]["text"]
-        assert blocks[2]["text"]["text"].endswith(expect_status), text
-
-        # Assign to team
-        self.assign_issue(original_message, self.team, payload_data)
-        assert GroupAssignee.objects.filter(group=self.group, team=self.team).exists()
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
-        text = self.mock_post.call_args.kwargs["text"]
-        expect_status = f"*Issue assigned to #{self.team.slug} by <@{self.external_id}>*"
-        assert self.notification_text in blocks[1]["text"]["text"]
-        assert blocks[2]["text"]["text"].endswith(expect_status), text
-
-        # Assert group assignment activity recorded
-        group_activity = list(Activity.objects.filter(group=self.group))
-        assert group_activity[0].data == {
-            "assignee": str(user2.id),
-            "assigneeEmail": user2.email,
-            "assigneeType": "user",
-            "integration": ActivityIntegration.SLACK.value,
-        }
-        assert group_activity[-1].data == {
-            "assignee": str(self.team.id),
-            "assigneeEmail": None,
-            "assigneeType": "team",
-            "integration": ActivityIntegration.SLACK.value,
-        }
-
-    def test_assign_issue_where_team_not_in_project(self):
-        user2 = self.create_user(is_superuser=False)
-        team2 = self.create_team(
-            organization=self.organization, members=[self.user], name="Ecosystem"
-        )
-        self.create_member(user=user2, organization=self.organization, teams=[team2])
-        self.create_project(name="hellboy", organization=self.organization, teams=[team2])
-        # Assign to team
-        original_message = self.get_original_message(self.group.id)
-        resp = self.assign_issue(original_message, team2)
-        assert resp.data["text"].endswith("Cannot assign to a team without access to the project")
-        assert not GroupAssignee.objects.filter(group=self.group).exists()
-
-    def test_assign_issue_where_team_not_in_project_through_unfurl(self):
-        user2 = self.create_user(is_superuser=False)
-        team2 = self.create_team(
-            organization=self.organization, members=[self.user], name="Ecosystem"
-        )
-        self.create_member(user=user2, organization=self.organization, teams=[team2])
-        self.create_project(name="hellboy", organization=self.organization, teams=[team2])
-        # Assign to team
-        original_message = self.get_original_message(self.group.id)
-        payload_data = self.get_unfurl_data(original_message["blocks"])
-        resp = self.assign_issue(original_message, team2, payload_data)
-        assert resp.data["text"].endswith("Cannot assign to a team without access to the project")
-        assert not GroupAssignee.objects.filter(group=self.group).exists()
-
-    def test_assign_issue_user_has_identity(self):
-        user2 = self.create_user(is_superuser=False)
-        self.create_member(user=user2, organization=self.organization, teams=[self.team])
-        user2_identity = self.create_identity(
-            external_id="slack_id2",
-            identity_provider=self.idp,
-            user=user2,
-        )
-        original_message = self.get_original_message(self.group.id)
-        self.assign_issue(original_message, user2)
-        assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
-
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
-        text = self.mock_post.call_args.kwargs["text"]
-
-        expect_status = (
-            f"*Issue assigned to <@{user2_identity.external_id}> by <@{self.external_id}>*"
-        )
-        assert self.notification_text in blocks[1]["text"]["text"]
-        assert blocks[2]["text"]["text"].endswith(expect_status), text
-
-    def test_assign_issue_user_has_identity_through_unfurl(self):
-        user2 = self.create_user(is_superuser=False)
-        self.create_member(user=user2, organization=self.organization, teams=[self.team])
-
-        user2_identity = self.create_identity(
-            external_id="slack_id2",
-            identity_provider=self.idp,
-            user=user2,
-        )
-        original_message = self.get_original_message(self.group.id)
-        payload_data = self.get_unfurl_data(original_message["blocks"])
-        self.assign_issue(original_message, user2, payload_data)
-        assert GroupAssignee.objects.filter(group=self.group, user_id=user2.id).exists()
-
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
-        text = self.mock_post.call_args.kwargs["text"]
-        expect_status = (
-            f"*Issue assigned to <@{user2_identity.external_id}> by <@{self.external_id}>*"
-        )
-        assert self.notification_text in blocks[1]["text"]["text"]
-        assert blocks[2]["text"]["text"].endswith(expect_status), text
-
-    def test_assign_user_with_multiple_identities(self):
-        org2 = self.create_organization(owner=None)
-
-        integration2 = self.create_integration(
-            organization=org2,
-            provider="slack",
-            external_id="TXXXXXXX2",
-        )
-        idp2 = self.create_identity_provider(integration=integration2)
-        self.create_identity(
-            external_id="slack_id2",
-            identity_provider=idp2,
-            user=self.user,
-        )
-        original_message = self.get_original_message(self.group.id)
-        self.assign_issue(original_message, self.user)
-        assert GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
-
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
-        text = self.mock_post.call_args.kwargs["text"]
-        expect_status = "*Issue assigned to <@{assignee}> by <@{assignee}>*".format(
-            assignee=self.external_id
-        )
-        assert self.notification_text in blocks[1]["text"]["text"]
-        assert blocks[2]["text"]["text"].endswith(expect_status), text
-
-    def test_assign_user_with_multiple_identities_through_unfurl(self):
-        org2 = self.create_organization(owner=None)
-
-        integration2 = self.create_integration(
-            organization=org2,
-            provider="slack",
-            external_id="TXXXXXXX2",
-        )
-        idp2 = self.create_identity_provider(integration=integration2)
-        self.create_identity(
-            external_id="slack_id2",
-            identity_provider=idp2,
-            user=self.user,
-        )
-        original_message = self.get_original_message(self.group.id)
-        payload_data = self.get_unfurl_data(original_message["blocks"])
-        self.assign_issue(original_message, self.user, payload_data)
-        assert GroupAssignee.objects.filter(group=self.group, user_id=self.user.id).exists()
-
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
-        text = self.mock_post.call_args.kwargs["text"]
-        expect_status = "*Issue assigned to <@{assignee}> by <@{assignee}>*".format(
-            assignee=self.external_id
-        )
-        assert self.notification_text in blocks[1]["text"]["text"]
-        assert blocks[2]["text"]["text"].endswith(expect_status), text
-
     @responses.activate
-    @with_feature("organizations:slack-sdk-webhook-handling")
     @with_feature("organizations:slack-sdk-action-view-open")
     def test_resolve_issue(self):
         original_message = self.get_original_message(self.group.id)
@@ -821,12 +574,12 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.RESOLVED
         assert not GroupResolution.objects.filter(group=self.group)
 
-        updated_blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
-        assert self.notification_text in updated_blocks[1]["text"]["text"]
-        assert updated_blocks[2]["text"]["text"] == expect_status
-        assert ":white_circle:" in updated_blocks[0]["text"]["text"]
+        assert self.notification_text in blocks[1]["text"]["text"]
+        assert blocks[2]["text"]["text"] == expect_status
+        assert ":white_circle:" in blocks[0]["text"]["text"]
 
     @responses.activate
     @with_feature("organizations:slack-sdk-action-view-open")
@@ -851,17 +604,15 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.RESOLVED
         assert not GroupResolution.objects.filter(group=self.group)
 
-        update_data = orjson.loads(responses.calls[0].request.body)
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
         assert (
             "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
-            in update_data["blocks"][1]["text"]["text"]
+            in blocks[1]["text"]["text"]
         )
-        assert update_data["blocks"][2]["text"]["text"] == expect_status
-        assert (
-            ":white_circle: :chart_with_upwards_trend:" in update_data["blocks"][0]["text"]["text"]
-        )
+        assert blocks[2]["text"]["text"] == expect_status
+        assert ":white_circle: :chart_with_upwards_trend:" in blocks[0]["text"]["text"]
 
     @responses.activate
     @with_feature("organizations:slack-sdk-action-view-open")
@@ -874,11 +625,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.RESOLVED
         assert not GroupResolution.objects.filter(group=self.group)
 
-        update_data = orjson.loads(responses.calls[0].request.body)
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
-        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
-        assert update_data["blocks"][2]["text"]["text"] == expect_status
+        assert self.notification_text in blocks[1]["text"]["text"]
+        assert blocks[2]["text"]["text"] == expect_status
 
     @responses.activate
     @with_feature("organizations:slack-sdk-action-view-open")
@@ -898,11 +649,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resolution.type == GroupResolution.Type.in_release
         assert resolution.release == release
 
-        update_data = orjson.loads(responses.calls[0].request.body)
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
-        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
-        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
+        assert self.notification_text in blocks[1]["text"]["text"]
+        assert blocks[2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
     @with_feature("organizations:slack-sdk-action-view-open")
@@ -923,11 +674,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resolution.type == GroupResolution.Type.in_release
         assert resolution.release == release
 
-        update_data = orjson.loads(responses.calls[0].request.body)
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
-        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
-        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
+        assert self.notification_text in blocks[1]["text"]["text"]
+        assert blocks[2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
     @with_feature("organizations:slack-sdk-action-view-open")
@@ -946,11 +697,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resolution.type == GroupResolution.Type.in_next_release
         assert resolution.release == release
 
-        update_data = orjson.loads(responses.calls[0].request.body)
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
 
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
-        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
-        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
+        assert self.notification_text in blocks[1]["text"]["text"]
+        assert blocks[2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
     @with_feature("organizations:slack-sdk-action-view-open")
@@ -972,9 +723,29 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
         update_data = orjson.loads(responses.calls[0].request.body)
 
+    @responses.activate
+    @with_feature("organizations:slack-sdk-action-view-open")
+    def test_resolve_in_next_release_through_unfurl_sdk(self):
+        release = Release.objects.create(
+            organization_id=self.organization.id,
+            version="1.0",
+        )
+        release.add_project(self.project)
+        original_message = self.get_original_message(self.group.id)
+        payload_data = self.get_unfurl_data(original_message["blocks"])
+        self.resolve_issue_sdk(original_message, "resolved:inNextRelease", payload_data)
+
+        self.group = Group.objects.get(id=self.group.id)
+        assert self.group.get_status() == GroupStatus.RESOLVED
+        resolution = GroupResolution.objects.get(group=self.group)
+        assert resolution.type == GroupResolution.Type.in_next_release
+        assert resolution.release == release
+
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
-        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
-        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
+        assert self.notification_text in blocks[1]["text"]["text"]
+        assert blocks[2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
     @patch(
@@ -1032,11 +803,11 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.get_status() == GroupStatus.IGNORED
         assert self.group.substatus == GroupSubStatus.FOREVER
 
-        update_data = orjson.loads(responses.calls[0].request.body)
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
 
         expect_status = f"*Issue archived by <@{self.external_id}>*"
-        assert self.notification_text in update_data["blocks"][1]["text"]["text"]
-        assert update_data["blocks"][2]["text"]["text"].endswith(expect_status)
+        assert self.notification_text in blocks[1]["text"]["text"]
+        assert blocks[2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
     @patch(

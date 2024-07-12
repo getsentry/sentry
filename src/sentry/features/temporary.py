@@ -399,8 +399,8 @@ def register_temporary_features(manager: FeatureManager):
     # Feature flags for migrating to the Slack SDK WebClient
     # Use new Slack SDK Client in get_channel_id_with_timeout
     manager.add("organizations:slack-sdk-get-channel-id", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
-    # Use new Slack SDK Client in SlackActionEndpoint
-    manager.add("organizations:slack-sdk-webhook-handling", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
+    # Use new Slack SDK Client in SlackActionEndpoint's `view.open`
+    manager.add("organizations:slack-sdk-action-view-open", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Use new Slack SDK Client for SlackNotifyBasicMixin
     manager.add("organizations:slack-sdk-notify-mixin", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Add regression chart as image to slack message
