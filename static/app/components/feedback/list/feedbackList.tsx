@@ -10,6 +10,7 @@ import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
 
+import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackListHeader from 'sentry/components/feedback/list/feedbackListHeader';
 import FeedbackListItem from 'sentry/components/feedback/list/feedbackListItem';
 import useListItemCheckboxState from 'sentry/components/feedback/list/useListItemCheckboxState';
@@ -83,14 +84,16 @@ export default function FeedbackList() {
         parent={parent}
         rowIndex={index}
       >
-        <FeedbackListItem
-          feedbackItem={item}
-          isSelected={checkboxState.isSelected(item.id)}
-          onSelect={() => {
-            checkboxState.toggleSelected(item.id);
-          }}
-          style={style}
-        />
+        <ErrorBoundary mini>
+          <FeedbackListItem
+            feedbackItem={item}
+            isSelected={checkboxState.isSelected(item.id)}
+            onSelect={() => {
+              checkboxState.toggleSelected(item.id);
+            }}
+            style={style}
+          />
+        </ErrorBoundary>
       </CellMeasurer>
     );
   };
