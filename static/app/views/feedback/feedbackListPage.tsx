@@ -15,6 +15,7 @@ import useHaveSelectedProjectsSetupFeedback, {
   useHaveSelectedProjectsSetupNewFeedback,
 } from 'sentry/components/feedback/useFeedbackOnboarding';
 import {FeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
+import useRedirectToFeedbackFromEvent from 'sentry/components/feedback/useRedirectToFeedbackFromEvent';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -171,6 +172,3 @@ const SetupContainer = styled('div')`
   overflow: hidden;
   grid-column: 1 / -1;
 `;
-function useRedirectToFeedbackFromEvent() {
-  throw new Error('Function not implemented.');
-}
