@@ -90,33 +90,6 @@ class GetChannelIdTest(TestCase):
             ),
         )
 
-    def tearDown(self):
-        self.resp.__exit__(None, None, None)
-
-    def add_list_response(self, list_type, channels, result_name="channels"):
-        self.resp = responses.mock
-        self.resp.add(
-            method=responses.GET,
-            url="https://slack.com/api/%s.list" % list_type,
-            status=200,
-            content_type="application/json",
-            body=orjson.dumps({"ok": "true", result_name: channels}),
-        )
-
-    def add_msg_response(self, channel_id, result_name="channel"):
-        if channel_id == "channel_not_found":
-            bodydict = {"ok": False, "error": "channel_not_found"}
-        else:
-            bodydict = {"ok": True, result_name: channel_id, "scheduled_message_id": "Q1298393284"}
-
-        self.resp.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.scheduleMessage",
-            status=200,
-            content_type="application/json",
-            body=orjson.dumps(bodydict),
-        )
-
     def run_valid_test(self, channel, expected_prefix, expected_id, timed_out):
         assert SlackChannelIdData(expected_prefix, expected_id, timed_out) == get_channel_id(
             self.organization, self.integration, channel
@@ -124,7 +97,7 @@ class GetChannelIdTest(TestCase):
 
     @patch("sentry.integrations.slack.sdk_client.metrics")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_valid_channel_selected(self, mock_api_call, mock_metrics):
+    def test_valid_channel_selected_sdk(self, mock_api_call, mock_metrics):
         # Tests chat_scheduleMessage and chat_deleteScheduledMessage
         mock_api_call.return_value = {
             "body": orjson.dumps(
@@ -144,7 +117,7 @@ class GetChannelIdTest(TestCase):
 
     @patch("sentry.integrations.slack.sdk_client.metrics")
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_valid_private_channel_selected(self, mock_api_call, mock_metrics):
+    def test_valid_private_channel_selected_sdk(self, mock_api_call, mock_metrics):
         # Tests chat_scheduleMessage and chat_deleteScheduledMessage
         mock_api_call.return_value = {
             "body": orjson.dumps(
@@ -162,17 +135,6 @@ class GetChannelIdTest(TestCase):
             tags={"ok": True, "status": 200},
         )
 
-    def test_valid_member_selected(self):
-        response_list = [
-            {"name": "first-morty", "id": "m", "profile": {"display_name": "Morty"}},
-            {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
-            {"name": "better_morty", "id": "bm", "profile": {"display_name": "Morty"}},
-        ]
-
-        with self.patch_msg_response("channel_not_found"):
-            with self.patch_mock_list("users", response_list, "members"):
-                self.run_valid_test("@first-morty", MEMBER_PREFIX, "m", False)
-
     def test_valid_member_selected_sdk_client(self):
         response_list = [
             {"name": "first-morty", "id": "m", "profile": {"display_name": "Morty"}},
@@ -184,17 +146,6 @@ class GetChannelIdTest(TestCase):
             with self.patch_mock_list("users", response_list, "members"):
                 self.run_valid_test("@first-morty", MEMBER_PREFIX, "m", False)
 
-    def test_valid_member_selected_display_name(self):
-        response_list = [
-            {"name": "first-morty", "id": "m", "profile": {"display_name": "Morty"}},
-            {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
-            {"name": "better_morty", "id": "bm", "profile": {"display_name": "Morty"}},
-        ]
-
-        with self.patch_msg_response("channel_not_found"):
-            with self.patch_mock_list("users", response_list, "members"):
-                self.run_valid_test("@Jimbob", MEMBER_PREFIX, "o-u", False)
-
     def test_valid_member_selected_display_name_sdk_client(self):
         response_list = [
             {"name": "first-morty", "id": "m", "profile": {"display_name": "Morty"}},
@@ -205,18 +156,6 @@ class GetChannelIdTest(TestCase):
         with self.patch_msg_response("channel_not_found"):
             with self.patch_mock_list("users", response_list, "members"):
                 self.run_valid_test("@Jimbob", MEMBER_PREFIX, "o-u", False)
-
-    def test_invalid_member_selected_display_name(self):
-        response_list = [
-            {"name": "first-morty", "id": "m", "profile": {"display_name": "Morty"}},
-            {"name": "other-user", "id": "o-u", "profile": {"display_name": "Jimbob"}},
-            {"name": "better_morty", "id": "bm", "profile": {"display_name": "Morty"}},
-        ]
-
-        with self.patch_msg_response("channel_not_found"):
-            with self.patch_mock_list("users", response_list, "members"):
-                with pytest.raises(DuplicateDisplayNameError):
-                    get_channel_id(self.organization, self.integration, "@Morty")
 
     def test_invalid_member_selected_display_name_sdk_client(self):
         response_list = [
@@ -230,13 +169,6 @@ class GetChannelIdTest(TestCase):
                 with pytest.raises(DuplicateDisplayNameError):
                     get_channel_id(self.organization, self.integration, "@Morty")
 
-    def test_invalid_channel_selected(self):
-        self.add_msg_response("channel_not_found")
-        assert (
-            get_channel_id(self.organization, self.integration, "#fake-channel").channel_id is None
-        )
-        assert get_channel_id(self.organization, self.integration, "@fake-user").channel_id is None
-
     def test_invalid_channel_selected_sdk_client(self):
         with self.patch_msg_response("channel_not_found"):
             assert (
@@ -247,22 +179,22 @@ class GetChannelIdTest(TestCase):
                 get_channel_id(self.organization, self.integration, "@fake-user").channel_id is None
             )
 
-    @patch("slack_sdk.web.client.WebClient.users_list")
-    def test_rate_limiting(self, mock_api_call):
+    @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
+    def test_rate_limiting_sdk_client(self, mock_api_call):
         """Should handle 429 from Slack when searching for users"""
-        self.add_msg_response("channel_not_found")
-        self.resp.add(
-            method=responses.GET,
-            url="https://slack.com/api/users.list",
-            status=429,
-            content_type="application/json",
-            body=orjson.dumps({"ok": False, "error": "ratelimited"}),
-        )
-        with pytest.raises(ApiRateLimitedError):
-            get_channel_id(self.organization, self.integration, "@user")
+
+        mock_api_call.return_value = {
+            "body": orjson.dumps({"ok": False, "error": "ratelimited"}).decode(),
+            "headers": {},
+            "status": 429,
+        }
+
+        with self.patch_msg_response("channel_not_found"):
+            with pytest.raises(ApiRateLimitedError):
+                get_channel_id(self.organization, self.integration, "@user")
 
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_user_list_pagination(self, mock_api_call):
+    def test_user_list_pagination_sdk_client(self, mock_api_call):
         self.response_json["response_metadata"] = {"next_cursor": "dXNlcjpVMEc5V0ZYTlo"}
         mock_api_call.return_value = {
             "body": orjson.dumps(self.response_json).decode(),
@@ -273,7 +205,7 @@ class GetChannelIdTest(TestCase):
         self.run_valid_test("@wayne-rigsby", MEMBER_PREFIX, "UXXXXXXX4", False)
 
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_user_list_multi_pagination(self, mock_api_call):
+    def test_user_list_multi_pagination_sdk_client(self, mock_api_call):
         self.response_json["response_metadata"] = {"next_cursor": "dXNlcjpVMEc5V0ZYTlo"}
         mock_api_call.side_effect = [
             {
@@ -302,7 +234,7 @@ class GetChannelIdTest(TestCase):
         self.run_valid_test("@red-john", MEMBER_PREFIX, "UXXXXXXX5", False)
 
     @patch("slack_sdk.web.client.WebClient._perform_urllib_http_request")
-    def test_user_list_pagination_failure(self, mock_api_call):
+    def test_user_list_pagination_failure_sdk_client(self, mock_api_call):
         self.response_json["response_metadata"] = {"next_cursor": "dXNlcjpVMEc5V0ZYTlo"}
         mock_api_call.side_effect = [
             {
