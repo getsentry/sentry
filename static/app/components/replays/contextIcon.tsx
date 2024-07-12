@@ -5,7 +5,7 @@ import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {generatePlatformIconName} from 'sentry/utils/replays/icons';
+import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
 import commonTheme from 'sentry/utils/theme';
 
 type Props = {
