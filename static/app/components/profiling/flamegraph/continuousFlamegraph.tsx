@@ -58,7 +58,7 @@ import {
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
 import {useContinuousProfile} from 'sentry/views/profiling/continuousProfileProvider';
-import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
+import {useContinuousProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
 import {FlamegraphWarnings} from './flamegraphOverlays/FlamegraphWarnings';
@@ -126,7 +126,7 @@ export function ContinuousFlamegraph(): ReactElement {
   const dispatch = useDispatchFlamegraphState();
 
   const profiles = useContinuousProfile();
-  const profileGroup = useProfileGroup() as ContinuousProfileGroup;
+  const profileGroup = useContinuousProfileGroup();
 
   const flamegraphTheme = useFlamegraphTheme();
   const position = useFlamegraphZoomPosition();
