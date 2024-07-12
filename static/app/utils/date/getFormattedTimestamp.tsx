@@ -1,4 +1,4 @@
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {t} from 'sentry/locale';
 import getDuration from 'sentry/utils/duration/getDuration';
