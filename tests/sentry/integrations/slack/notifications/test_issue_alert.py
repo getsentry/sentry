@@ -104,7 +104,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_performance_issue_alert_user_block_with_culprit_blocks(self, occurrence):
+    def test_performance_issue_alert_user_block(self, occurrence):
         """
         Test that performance issue alerts are sent to a Slack user with the proper payload when
         block kit is enabled.
@@ -350,7 +350,7 @@ class SlackIssueAlertNotificationTest(SlackActivityNotificationTest, Performance
         )
 
     @responses.activate
-    def test_issue_alert_team_issue_owners_block_with_culprit_blocks(self):
+    def test_issue_alert_team_issue_owners_block(self):
         """
         Test that issue alerts are sent to a team in Slack via an Issue Owners rule action with the
         proper payload when block kit is enabled.
