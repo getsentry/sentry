@@ -43,7 +43,7 @@ export function BreadCrumbs({
         showPermalink={false}
         key={'breadcrumbs'}
         type={'breadcrumbs'}
-        title={t('BreadCrumbs')}
+        title={t('Breadcrumbs')}
         help={tct(
           'The trail of events that happened prior to an event. [link:Learn more]',
           {
