@@ -30,8 +30,8 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.silo import assume_test_silo_mode_of
-from sentry.users.models.users.user_option import UserOption
-from sentry.users.models.users.useremail import UserEmail
+from sentry.users.models.user_option import UserOption
+from sentry.users.models.useremail import UserEmail
 
 from . import FireTest
 

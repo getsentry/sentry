@@ -15,7 +15,7 @@ from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.organizations.services.organization.service import organization_service
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 from sentry.silo.base import all_silo_function
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 from sentry.utils.http import absolute_uri
 from sentry.utils.strings import truncatechars
 

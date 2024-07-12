@@ -25,7 +25,7 @@ from sentry.organizations.services.organization import RpcOrganizationSummary, o
 from sentry.pipeline import PipelineView
 from sentry.projects.services.project import project_service
 from sentry.silo.base import control_silo_function
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils.sdk import capture_exception
 
@@ -289,9 +289,9 @@ class AwsLambdaCloudFormationPipelineView(PipelineView):
         def render_response(error=None):
             serialized_organization = organization_service.serialize_organization(
                 id=pipeline.organization.id,
-                as_user=serialize_rpc_user(request.user)
-                if isinstance(request.user, User)
-                else None,
+                as_user=(
+                    serialize_rpc_user(request.user) if isinstance(request.user, User) else None
+                ),
             )
             template_url = options.get("aws-lambda.cloudformation-url")
             context = {

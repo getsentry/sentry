@@ -8,7 +8,7 @@ from sentry.models.files import ControlFile, File
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from sentry.users.models.users.user_avatar import UserAvatar, UserAvatarType
+from sentry.users.models.user_avatar import UserAvatar, UserAvatarType
 
 
 @control_silo_test

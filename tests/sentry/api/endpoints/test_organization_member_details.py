@@ -19,8 +19,8 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.users.models.auth.authenticator import Authenticator
-from sentry.users.models.users.user_option import UserOption
+from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user_option import UserOption
 from tests.sentry.api.endpoints.test_organization_member_index import (
     mock_organization_roles_get_factory,
 )

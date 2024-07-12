@@ -4,7 +4,7 @@ from sentry.feedback.usecases.create_feedback import FeedbackCreationSource
 from sentry.ingest.userreport import save_userreport
 from sentry.models.group import GroupStatus
 from sentry.testutils.cases import APITestCase, SnubaTestCase
-from sentry.users.models.users.userreport import UserReport
+from sentry.users.models.userreport import UserReport
 
 
 class OrganizationUserReportListTest(APITestCase, SnubaTestCase):

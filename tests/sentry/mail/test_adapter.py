@@ -48,9 +48,9 @@ from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
 from sentry.types.group import GroupSubStatus
 from sentry.types.rules import RuleFuture
-from sentry.users.models.users.user_option import UserOption
-from sentry.users.models.users.useremail import UserEmail
-from sentry.users.models.users.userreport import UserReport
+from sentry.users.models.user_option import UserOption
+from sentry.users.models.useremail import UserEmail
+from sentry.users.models.userreport import UserReport
 from sentry.utils.email import MessageBuilder, get_email_addresses
 from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 from tests.sentry.mail import make_event_data, mock_notify

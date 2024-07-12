@@ -9,7 +9,7 @@ from sentry.feedback.usecases.create_feedback import FeedbackCreationSource, shi
 from sentry.models.project import Project
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.users.models.users.userreport import UserReport
+from sentry.users.models.userreport import UserReport
 from sentry.utils.iterators import chunked
 
 logger = logging.getLogger(__name__)

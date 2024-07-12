@@ -23,8 +23,8 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import before_now
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.users.models.users.user_option import UserOption
-from sentry.users.models.users.useremail import UserEmail
+from sentry.users.models.user_option import UserOption
+from sentry.users.models.useremail import UserEmail
 
 
 class MonitorDetectBrokenMonitorEnvTaskTest(TestCase):

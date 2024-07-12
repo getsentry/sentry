@@ -33,7 +33,7 @@ from sentry.notifications.utils.participants import get_notification_recipients
 from sentry.snuba.metrics import format_mri_field, is_mri_field
 from sentry.snuba.utils import build_query_strings
 from sentry.types.actor import Actor, ActorType
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.users.services.user_option import RpcUserOption, user_option_service

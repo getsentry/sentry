@@ -2,9 +2,9 @@ from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.users.models.users.user import User
-from sentry.users.models.users.user_option import UserOption
-from sentry.users.models.users.useremail import UserEmail
+from sentry.users.models.user import User
+from sentry.users.models.user_option import UserOption
+from sentry.users.models.useremail import UserEmail
 
 
 @control_silo_test

@@ -6,8 +6,8 @@ from dataclasses import dataclass
 
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization import organization_service
-from sentry.users.models.users.user import User
-from sentry.users.models.users.useremail import UserEmail
+from sentry.users.models.user import User
+from sentry.users.models.useremail import UserEmail
 from sentry.utils import metrics
 
 

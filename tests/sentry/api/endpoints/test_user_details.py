@@ -11,10 +11,10 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
-from sentry.users.models.users.user import User
-from sentry.users.models.users.user_option import UserOption
-from sentry.users.models.users.userpermission import UserPermission
-from sentry.users.models.users.userrole import UserRole
+from sentry.users.models.user import User
+from sentry.users.models.user_option import UserOption
+from sentry.users.models.userpermission import UserPermission
+from sentry.users.models.userrole import UserRole
 
 
 class UserDetailsTest(APITestCase):

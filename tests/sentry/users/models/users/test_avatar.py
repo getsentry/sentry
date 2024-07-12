@@ -4,7 +4,7 @@ from sentry.models.files.control_file import ControlFile
 from sentry.models.files.file import File
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.users.models.users.user_avatar import UserAvatar
+from sentry.users.models.user_avatar import UserAvatar
 
 
 @control_silo_test

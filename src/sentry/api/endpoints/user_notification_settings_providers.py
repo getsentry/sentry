@@ -15,7 +15,7 @@ from sentry.models.notificationsettingprovider import NotificationSettingProvide
 from sentry.notifications.serializers import NotificationSettingsProviderSerializer
 from sentry.notifications.types import NotificationSettingsOptionEnum
 from sentry.notifications.validators import UserNotificationSettingsProvidersDetailsSerializer
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 
 
 @control_silo_endpoint

@@ -1,3 +1,3 @@
-from sentry.users.models.auth.authenticator import Authenticator
+from sentry.users.models.authenticator import Authenticator
 
 __all__ = ("Authenticator",)

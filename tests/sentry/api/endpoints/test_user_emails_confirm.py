@@ -2,7 +2,7 @@ from unittest import mock
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.users.models.users.useremail import UserEmail
+from sentry.users.models.useremail import UserEmail
 
 
 @control_silo_test

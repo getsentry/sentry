@@ -22,8 +22,8 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode, no_silo_test
-from sentry.users.models.users.user import User
-from sentry.users.models.users.userrole import UserRole
+from sentry.users.models.user import User
+from sentry.users.models.userrole import UserRole
 
 
 def silo_from_user(

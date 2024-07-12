@@ -5,7 +5,7 @@ from sentry.api.serializers import Serializer, register, serialize
 from sentry.models.avatars.doc_integration_avatar import DocIntegrationAvatar
 from sentry.models.integrations.doc_integration import DocIntegration
 from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 
 
 @register(DocIntegration)

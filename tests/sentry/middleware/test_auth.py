@@ -11,7 +11,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode
-from sentry.users.models.users.userip import UserIP
+from sentry.users.models.userip import UserIP
 from sentry.users.services.user.service import user_service
 from sentry.utils.auth import login
 

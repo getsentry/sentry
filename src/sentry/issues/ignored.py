@@ -17,7 +17,7 @@ from sentry.models.project import Project
 from sentry.signals import issue_archived
 from sentry.snuba.referrer import Referrer
 from sentry.types.group import GroupSubStatus
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.serial import serialize_generic_user
 from sentry.users.services.user.service import user_service

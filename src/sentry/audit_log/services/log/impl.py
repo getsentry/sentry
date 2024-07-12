@@ -9,8 +9,8 @@ from sentry.db.postgres.transactions import enforce_constraints
 from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.silo.safety import unguarded_write
-from sentry.users.models.users.user import User
-from sentry.users.models.users.userip import UserIP
+from sentry.users.models.user import User
+from sentry.users.models.userip import UserIP
 
 
 class DatabaseBackedLogService(LogService):

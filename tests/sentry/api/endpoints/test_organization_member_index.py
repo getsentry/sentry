@@ -16,8 +16,8 @@ from sentry.testutils.helpers import Feature, with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.users.models.auth.authenticator import Authenticator
-from sentry.users.models.users.useremail import UserEmail
+from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.useremail import UserEmail
 
 
 def mock_organization_roles_get_factory(original_organization_roles_get):

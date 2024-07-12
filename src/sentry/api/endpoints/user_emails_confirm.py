@@ -9,7 +9,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.validators import AllowedEmailField
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.users.models.users.useremail import UserEmail
+from sentry.users.models.useremail import UserEmail
 
 logger = logging.getLogger("sentry.accounts")
 

@@ -14,7 +14,7 @@ from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import Organization
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.pipeline import PipelineProvider
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 
 from .view import AuthView, ConfigureView
 

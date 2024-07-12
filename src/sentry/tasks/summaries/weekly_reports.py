@@ -41,7 +41,7 @@ from sentry.tasks.summaries.utils import (
     user_project_ownership,
 )
 from sentry.types.group import GroupSubStatus
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 from sentry.utils import json, redis
 from sentry.utils.dates import floor_to_utc_day, to_datetime
 from sentry.utils.email import MessageBuilder

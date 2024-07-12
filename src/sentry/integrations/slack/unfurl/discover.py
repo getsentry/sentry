@@ -20,7 +20,7 @@ from sentry.models.apikey import ApiKey
 from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.search.events.filter import to_list
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 from sentry.utils.dates import (
     get_interval_from_range,
     parse_stats_period,

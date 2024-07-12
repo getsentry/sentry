@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     from sentry.features.manager import FeatureCheckBatch
     from sentry.models.organization import Organization
     from sentry.models.project import Project
-    from sentry.users.models.users.user import User
+    from sentry.users.models.user import User
 
 
 class FeatureHandler:

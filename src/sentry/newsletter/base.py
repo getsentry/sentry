@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Sequence
 from typing import Any
 
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 from sentry.utils.services import Service
 
 

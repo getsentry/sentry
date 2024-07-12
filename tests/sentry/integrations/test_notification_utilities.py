@@ -11,7 +11,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.notifications import DummyNotification
 from sentry.testutils.silo import control_silo_test
 from sentry.types.actor import Actor
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 
 
 @control_silo_test

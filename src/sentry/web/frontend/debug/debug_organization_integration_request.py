@@ -6,7 +6,7 @@ from sentry.models.organizationmember import OrganizationMember
 from sentry.notifications.notifications.organization_request.integration_request import (
     IntegrationRequestNotification,
 )
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 
 from .mail import render_preview_email_for_notification
 

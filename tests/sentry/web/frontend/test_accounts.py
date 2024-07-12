@@ -12,7 +12,7 @@ from sentry.organizations.services.organization import organization_service
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.silo import control_silo_test
-from sentry.users.models.users.useremail import UserEmail
+from sentry.users.models.useremail import UserEmail
 from sentry.web.frontend.accounts import recover_confirm
 
 

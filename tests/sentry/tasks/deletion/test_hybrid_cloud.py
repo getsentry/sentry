@@ -44,7 +44,7 @@ from sentry.testutils.silo import (
     region_silo_test,
 )
 from sentry.types.region import find_regions_for_user
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 
 
 @region_silo_model
@@ -58,8 +58,9 @@ class DoNothingIntegrationModel(Model):
 
 @pytest.fixture(autouse=True)
 def batch_size_one():
-    with patch("sentry.deletions.base.ModelDeletionTask.DEFAULT_QUERY_LIMIT", new=1), patch(
-        "sentry.tasks.deletion.hybrid_cloud.get_batch_size", return_value=1
+    with (
+        patch("sentry.deletions.base.ModelDeletionTask.DEFAULT_QUERY_LIMIT", new=1),
+        patch("sentry.tasks.deletion.hybrid_cloud.get_batch_size", return_value=1),
     ):
         yield
 
@@ -392,8 +393,9 @@ class TestCrossDatabaseTombstoneCascadeBehavior(TestCase):
 
         assert Monitor.objects.filter(id=monitor.id).exists()
 
-        with pytest.raises(Exception) as exc, override_options(
-            {"hybrid_cloud.allow_cross_db_tombstones": False}
+        with (
+            pytest.raises(Exception) as exc,
+            override_options({"hybrid_cloud.allow_cross_db_tombstones": False}),
         ):
             with BurstTaskRunner() as burst:
                 schedule_hybrid_cloud_foreign_key_jobs()

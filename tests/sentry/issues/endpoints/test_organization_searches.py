@@ -6,7 +6,7 @@ from sentry.api.serializers import serialize
 from sentry.models.savedsearch import SavedSearch, SortOptions, Visibility
 from sentry.models.search_common import SearchType
 from sentry.testutils.cases import APITestCase
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 
 
 class OrgLevelOrganizationSearchesListTest(APITestCase):

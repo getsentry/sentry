@@ -4,7 +4,7 @@ from typing import Any, TypedDict
 from sentry import features
 from sentry.api.serializers import Serializer
 from sentry.roles.manager import OrganizationRole, Role, TeamRole
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 
 
 class BaseRoleSerializerResponse(TypedDict):

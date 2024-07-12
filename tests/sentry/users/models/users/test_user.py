@@ -41,9 +41,9 @@ from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.types.region import Region, RegionCategory, find_regions_for_user
-from sentry.users.models.auth.authenticator import Authenticator
-from sentry.users.models.users.user import User
-from sentry.users.models.users.useremail import UserEmail
+from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user import User
+from sentry.users.models.useremail import UserEmail
 from tests.sentry.backup import expect_models
 
 _TEST_REGIONS = (

@@ -17,7 +17,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.helpers import Feature, override_options
 from sentry.testutils.helpers.on_demand import create_widget
 from sentry.testutils.pytest.fixtures import django_db_all
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 from sentry.utils.cache import cache
 
 _WIDGET_EXTRACTION_FEATURES = {"organizations:on-demand-metrics-extraction-widgets": True}
@@ -402,18 +402,19 @@ def test_schedule_on_demand_check(
             dashboard=dashboard,
         )
 
-    with mock.patch(
-        "sentry.tasks.on_demand_metrics._query_cardinality",
-        return_value=(
-            {"data": [{f"count_unique({col[0]})": 50 for col in columns if col}]},
-            [col[0] for col in columns if col],
-        ),
-    ) as _query_cardinality, mock.patch.object(
-        process_widget_specs, "delay", wraps=process_widget_specs
-    ) as process_widget_specs_spy, override_options(
-        options
-    ), Feature(
-        feature_flags
+    with (
+        mock.patch(
+            "sentry.tasks.on_demand_metrics._query_cardinality",
+            return_value=(
+                {"data": [{f"count_unique({col[0]})": 50 for col in columns if col}]},
+                [col[0] for col in columns if col],
+            ),
+        ) as _query_cardinality,
+        mock.patch.object(
+            process_widget_specs, "delay", wraps=process_widget_specs
+        ) as process_widget_specs_spy,
+        override_options(options),
+        Feature(feature_flags),
     ):
         assert not process_widget_specs_spy.called
         schedule_on_demand_check()

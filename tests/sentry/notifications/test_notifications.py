@@ -31,7 +31,7 @@ from sentry.testutils.helpers.eventprocessing import write_event_to_cache
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
-from sentry.users.models.users.user_option import UserOption
+from sentry.users.models.user_option import UserOption
 from sentry.utils import json
 
 pytestmark = [requires_snuba]

@@ -23,7 +23,7 @@ from sentry.projects.services.project.service import project_service
 from sentry.projects.services.project_key.model import ProjectKeyRole
 from sentry.projects.services.project_key.service import project_key_service
 from sentry.types.token import AuthTokenType
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.utils.http import absolute_uri
 from sentry.utils.security.orgauthtoken_token import (

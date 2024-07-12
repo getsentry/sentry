@@ -108,11 +108,11 @@ from sentry.testutils.factories import get_fixture_path
 from sentry.testutils.fixtures import Fixtures
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.token import AuthTokenType
-from sentry.users.models.auth.authenticator import Authenticator
-from sentry.users.models.users.user import User
-from sentry.users.models.users.user_option import UserOption
-from sentry.users.models.users.userip import UserIP
-from sentry.users.models.users.userrole import UserRole, UserRoleUser
+from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user import User
+from sentry.users.models.user_option import UserOption
+from sentry.users.models.userip import UserIP
+from sentry.users.models.userrole import UserRole, UserRoleUser
 from sentry.utils import json
 
 __all__ = [

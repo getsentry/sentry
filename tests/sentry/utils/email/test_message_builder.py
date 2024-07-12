@@ -9,9 +9,9 @@ from sentry.models.groupemailthread import GroupEmailThread
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
-from sentry.users.models.users.user import User
-from sentry.users.models.users.user_option import UserOption
-from sentry.users.models.users.useremail import UserEmail
+from sentry.users.models.user import User
+from sentry.users.models.user_option import UserOption
+from sentry.users.models.useremail import UserEmail
 from sentry.utils import json
 from sentry.utils.email import MessageBuilder
 from sentry.utils.email.faker import create_fake_email

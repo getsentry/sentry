@@ -20,7 +20,7 @@ from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, SnubaT
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.group import PriorityLevel
-from sentry.users.models.users.user_option import UserOption
+from sentry.users.models.user_option import UserOption
 from sentry.utils.samples import load_data
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 

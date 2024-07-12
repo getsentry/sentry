@@ -7,7 +7,7 @@ from sentry.mediators.param import Param
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.sentry_apps.services.app import RpcSentryAppInstallation
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 
 
 class Validator(Mediator):

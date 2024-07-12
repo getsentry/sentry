@@ -18,7 +18,7 @@ from sentry.slug.patterns import ORG_SLUG_PATTERN
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode, create_test_regions, region_silo_test
-from sentry.users.models.auth.authenticator import Authenticator
+from sentry.users.models.authenticator import Authenticator
 
 
 class OrganizationIndexTest(APITestCase):

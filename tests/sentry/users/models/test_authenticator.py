@@ -6,7 +6,7 @@ from sentry.auth.authenticators.totp import TotpInterface
 from sentry.auth.authenticators.u2f import create_credential_object
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.users.models.auth.authenticator import Authenticator, AuthenticatorConfig
+from sentry.users.models.authenticator import Authenticator, AuthenticatorConfig
 
 
 @control_silo_test

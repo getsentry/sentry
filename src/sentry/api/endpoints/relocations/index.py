@@ -29,7 +29,7 @@ from sentry.search.utils import tokenize_query
 from sentry.signals import relocation_link_promo_code
 from sentry.slug.patterns import ORG_SLUG_PATTERN
 from sentry.tasks.relocation import uploading_complete
-from sentry.users.models.users.user import MAX_USERNAME_LENGTH
+from sentry.users.models.user import MAX_USERNAME_LENGTH
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.db import atomic_transaction

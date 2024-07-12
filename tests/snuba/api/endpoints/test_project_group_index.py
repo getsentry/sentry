@@ -32,7 +32,7 @@ from sentry.testutils.helpers import parse_link_header, with_feature
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
-from sentry.users.models.users.user_option import UserOption
+from sentry.users.models.user_option import UserOption
 from sentry.utils import json
 
 

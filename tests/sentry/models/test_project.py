@@ -29,8 +29,8 @@ from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.types.actor import Actor
-from sentry.users.models.users.user import User
-from sentry.users.models.users.user_option import UserOption
+from sentry.users.models.user import User
+from sentry.users.models.user_option import UserOption
 
 
 class ProjectTest(APITestCase, TestCase):

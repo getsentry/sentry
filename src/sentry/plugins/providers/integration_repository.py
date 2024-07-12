@@ -22,7 +22,7 @@ from sentry.models.repository import Repository
 from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.signals import repo_linked
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import metrics
 
@@ -207,9 +207,11 @@ class IntegrationRepositoryProvider:
             repository_service.serialize_repository(
                 organization_id=organization.id,
                 id=repo.id,
-                as_user=serialize_rpc_user(request.user)
-                if isinstance(request.user, User)
-                else request.user,
+                as_user=(
+                    serialize_rpc_user(request.user)
+                    if isinstance(request.user, User)
+                    else request.user
+                ),
             ),
             status=201,
         )

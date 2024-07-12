@@ -6,7 +6,7 @@ from django.utils import timezone
 from sentry.tasks.update_user_reports import update_user_reports
 from sentry.testutils.cases import TestCase
 from sentry.testutils.skips import requires_snuba
-from sentry.users.models.users.userreport import UserReport
+from sentry.users.models.userreport import UserReport
 
 pytestmark = [requires_snuba]
 

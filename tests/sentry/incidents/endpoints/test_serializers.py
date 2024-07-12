@@ -48,7 +48,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 from sentry.utils import json
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]

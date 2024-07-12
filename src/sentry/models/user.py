@@ -1,3 +1,3 @@
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 
 __all__ = ("User",)

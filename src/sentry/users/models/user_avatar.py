@@ -9,9 +9,9 @@ from django.db import models, router, transaction
 from sentry.db.models import FlexibleForeignKey, control_silo_model
 from sentry.db.models.manager.base import BaseManager
 
-from ....models.avatars import ControlAvatarBase
-from ....models.outbox import ControlOutboxBase, OutboxCategory
-from ....types.region import find_regions_for_user
+from ...models.avatars import ControlAvatarBase
+from ...models.outbox import ControlOutboxBase, OutboxCategory
+from ...types.region import find_regions_for_user
 
 
 class UserAvatarType(IntEnum):

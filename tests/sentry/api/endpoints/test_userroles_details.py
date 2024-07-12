@@ -1,6 +1,6 @@
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.users.models.users.userrole import UserRole
+from sentry.users.models.userrole import UserRole
 
 
 @control_silo_test

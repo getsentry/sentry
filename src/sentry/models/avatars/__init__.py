@@ -1,4 +1,4 @@
-from sentry.users.models.users.user_avatar import UserAvatar
+from sentry.users.models.user_avatar import UserAvatar
 
 from .base import AvatarBase
 from .control_base import ControlAvatarBase

@@ -1,6 +1,6 @@
-from sentry.users.models.users.user import *  # NOQA
-from sentry.users.models.users.useremail import *  # NOQA
-from sentry.users.models.users.userip import *  # NOQA
-from sentry.users.models.users.userpermission import *  # NOQA
-from sentry.users.models.users.userreport import *  # NOQA
-from sentry.users.models.users.userrole import *  # NOQA
+from sentry.users.models.user import *  # NOQA
+from sentry.users.models.useremail import *  # NOQA
+from sentry.users.models.userip import *  # NOQA
+from sentry.users.models.userpermission import *  # NOQA
+from sentry.users.models.userreport import *  # NOQA
+from sentry.users.models.userrole import *  # NOQA

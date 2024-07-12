@@ -20,7 +20,7 @@ from sentry.models.team import Team
 from sentry.search.base import ANY
 from sentry.search.events.constants import MAX_PARAMETERS_IN_ARRAY
 from sentry.types.group import SUBSTATUS_UPDATE_CHOICES
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.users.services.user.service import user_service

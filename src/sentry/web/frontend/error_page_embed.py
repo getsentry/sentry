@@ -18,7 +18,7 @@ from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
 from sentry.signals import user_feedback_received
 from sentry.types.region import get_local_region
-from sentry.users.models.users.userreport import UserReport
+from sentry.users.models.userreport import UserReport
 from sentry.utils import json
 from sentry.utils.db import atomic_transaction
 from sentry.utils.http import is_valid_origin, origin_from_request

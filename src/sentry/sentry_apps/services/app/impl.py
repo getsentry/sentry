@@ -35,7 +35,7 @@ from sentry.sentry_apps.services.app.serial import (
     serialize_sentry_app_component,
     serialize_sentry_app_installation,
 )
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 from sentry.users.services.user import RpcUser
 
 

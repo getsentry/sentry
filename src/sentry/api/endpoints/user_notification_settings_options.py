@@ -12,7 +12,7 @@ from sentry.api.validators.notifications import validate_type
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.notifications.serializers import NotificationSettingsOptionSerializer
 from sentry.notifications.validators import UserNotificationSettingOptionWithValueSerializer
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 
 
 @control_silo_endpoint

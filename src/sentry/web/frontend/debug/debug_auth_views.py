@@ -1,7 +1,7 @@
 from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 from sentry.web.helpers import render_to_response
 
 

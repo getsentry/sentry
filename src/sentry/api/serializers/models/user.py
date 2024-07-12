@@ -22,13 +22,13 @@ from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.organizations.services.organization import RpcOrganizationSummary
-from sentry.users.models.auth.authenticator import Authenticator
-from sentry.users.models.users.user import User
-from sentry.users.models.users.user_avatar import UserAvatar
-from sentry.users.models.users.user_option import UserOption
-from sentry.users.models.users.useremail import UserEmail
-from sentry.users.models.users.userpermission import UserPermission
-from sentry.users.models.users.userrole import UserRoleUser
+from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user import User
+from sentry.users.models.user_avatar import UserAvatar
+from sentry.users.models.user_option import UserOption
+from sentry.users.models.useremail import UserEmail
+from sentry.users.models.userpermission import UserPermission
+from sentry.users.models.userrole import UserRoleUser
 from sentry.users.services.user import RpcUser
 from sentry.utils.avatar import get_gravatar_url
 

@@ -15,8 +15,8 @@ from sentry.models.organization import Organization
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import control_silo_test
-from sentry.users.models.auth.authenticator import Authenticator
-from sentry.users.models.users.user import User
+from sentry.users.models.authenticator import Authenticator
+from sentry.users.models.user import User
 
 
 def get_auth(user: User) -> Authenticator:

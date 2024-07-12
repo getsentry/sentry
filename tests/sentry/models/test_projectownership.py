@@ -10,7 +10,7 @@ from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import assume_test_silo_mode_of
 from sentry.testutils.skips import requires_snuba
 from sentry.types.actor import Actor, ActorType
-from sentry.users.models.users.user_avatar import UserAvatar
+from sentry.users.models.user_avatar import UserAvatar
 from sentry.users.services.user.service import user_service
 
 pytestmark = requires_snuba

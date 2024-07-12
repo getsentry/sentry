@@ -8,7 +8,7 @@ from sentry.testutils.cases import ActivityTestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.actor import Actor
-from sentry.users.models.users.user_option import UserOption
+from sentry.users.models.user_option import UserOption
 
 
 class NoteTestCase(ActivityTestCase):

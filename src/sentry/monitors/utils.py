@@ -19,7 +19,7 @@ from sentry.signals import (
     first_cron_checkin_received,
     first_cron_monitor_created,
 )
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 from sentry.utils.auth import AuthenticatedHttpRequest
 
 

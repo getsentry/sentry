@@ -21,7 +21,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.users.models.users.user_option import UserOption
+from sentry.users.models.user_option import UserOption
 
 pytestmark = [requires_snuba]
 

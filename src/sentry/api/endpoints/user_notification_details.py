@@ -10,7 +10,7 @@ from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.user import UserEndpoint
 from sentry.api.serializers import Serializer, serialize
 from sentry.notifications.types import UserOptionsSettingsKey
-from sentry.users.models.users.user_option import UserOption
+from sentry.users.models.user_option import UserOption
 
 USER_OPTION_SETTINGS = {
     UserOptionsSettingsKey.SELF_ACTIVITY: {

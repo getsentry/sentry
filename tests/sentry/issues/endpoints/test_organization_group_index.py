@@ -60,7 +60,7 @@ from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
-from sentry.users.models.users.user_option import UserOption
+from sentry.users.models.user_option import UserOption
 from sentry.utils import json
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 

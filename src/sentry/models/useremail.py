@@ -1,3 +1,3 @@
-from sentry.users.models.users.useremail import UserEmail
+from sentry.users.models.useremail import UserEmail
 
 __all__ = ("UserEmail",)

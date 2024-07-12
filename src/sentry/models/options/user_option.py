@@ -1,3 +1,3 @@
-from sentry.users.models.users.user_option import UserOption
+from sentry.users.models.user_option import UserOption
 
 __all__ = ("UserOption",)

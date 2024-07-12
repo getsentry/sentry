@@ -48,9 +48,9 @@ from sentry.models.importchunk import ControlImportChunk, RegionImportChunk
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.outbox import outbox_context
 from sentry.silo.base import SiloMode
-from sentry.users.models.users.user import User
-from sentry.users.models.users.userpermission import UserPermission
-from sentry.users.models.users.userrole import UserRoleUser
+from sentry.users.models.user import User
+from sentry.users.models.userpermission import UserPermission
+from sentry.users.models.userrole import UserRoleUser
 
 logger = logging.getLogger(__name__)
 

@@ -33,7 +33,7 @@ from sentry.testutils.cases import AuthProviderTestCase, PermissionTestCase
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 from sentry.web.frontend.organization_auth_settings import get_scim_url
 
 

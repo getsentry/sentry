@@ -13,7 +13,7 @@ from sentry.models.groupinbox import (
 from sentry.models.project import Project
 from sentry.signals import issue_mark_reviewed
 from sentry.types.group import GroupSubStatus
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 
 
 def update_inbox(

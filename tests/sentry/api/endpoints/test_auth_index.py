@@ -10,7 +10,7 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.testutils.cases import APITestCase, AuthProviderTestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.users.models.auth.authenticator import Authenticator
+from sentry.users.models.authenticator import Authenticator
 from sentry.utils.auth import SSO_EXPIRY_TIME, SsoSession
 
 

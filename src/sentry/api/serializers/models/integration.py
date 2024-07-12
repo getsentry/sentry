@@ -14,7 +14,7 @@ from sentry.integrations.services.integration import (
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 
 logger = logging.getLogger(__name__)
 

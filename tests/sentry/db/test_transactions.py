@@ -19,7 +19,7 @@ from sentry.testutils.factories import Factories
 from sentry.testutils.hybrid_cloud import collect_transaction_queries
 from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.testutils.silo import no_silo_test
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 
@@ -66,8 +66,9 @@ class CaseMixin:
             with django_test_transaction_water_mark():
                 Factories.create_user()
 
-            with django_test_transaction_water_mark(), transaction.atomic(
-                using=router.db_for_write(User)
+            with (
+                django_test_transaction_water_mark(),
+                transaction.atomic(using=router.db_for_write(User)),
             ):
                 Factories.create_user()
 

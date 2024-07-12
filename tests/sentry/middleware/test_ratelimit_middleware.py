@@ -17,7 +17,7 @@ from sentry.testutils.cases import APITestCase, BaseTestCase, TestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.silo import all_silo_test, assume_test_silo_mode_of
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 
 
 @all_silo_test

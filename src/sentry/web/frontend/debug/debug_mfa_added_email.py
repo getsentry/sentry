@@ -4,7 +4,7 @@ from django.http import HttpRequest, HttpResponse
 from django.views.generic import View
 
 from sentry.security.emails import generate_security_email
-from sentry.users.models.auth.authenticator import Authenticator
+from sentry.users.models.authenticator import Authenticator
 
 from .mail import MailPreview
 

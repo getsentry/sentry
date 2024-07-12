@@ -30,7 +30,7 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode, assume_test_silo_mode_of, control_silo_test
 from sentry.types.region import Region, RegionCategory, get_local_region
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 
 
 def wrap_with_connection_closure(c: Callable[..., Any]) -> Callable[..., Any]:
@@ -434,9 +434,10 @@ class RegionOutboxTest(TestCase):
                 ensure_converged()
 
     def test_outbox_converges(self):
-        with patch(
-            "sentry.models.outbox.process_region_outbox.send"
-        ) as mock_process_region_outbox, outbox_context(flush=False):
+        with (
+            patch("sentry.models.outbox.process_region_outbox.send") as mock_process_region_outbox,
+            outbox_context(flush=False),
+        ):
             Organization(id=10001).outbox_for_update().save()
             Organization(id=10001).outbox_for_update().save()
 

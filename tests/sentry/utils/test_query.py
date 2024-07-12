@@ -4,8 +4,8 @@ from sentry.db.models.query import in_iexact
 from sentry.models.organization import Organization
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import no_silo_test
-from sentry.users.models.users.user import User
-from sentry.users.models.users.userreport import UserReport
+from sentry.users.models.user import User
+from sentry.users.models.userreport import UserReport
 from sentry.utils.query import (
     InvalidQuerySetError,
     RangeQuerySetWrapper,

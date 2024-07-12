@@ -49,7 +49,7 @@ from sentry.organizations.services.organization import organization_service
 from sentry.signals import relocated, relocation_redeem_promo_code
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.users.models.users.user import User
+from sentry.users.models.user import User
 from sentry.users.services.lost_password_hash import lost_password_hash_service
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
