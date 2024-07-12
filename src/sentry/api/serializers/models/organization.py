@@ -250,7 +250,7 @@ class OrganizationSerializer(Serializer):
         org_features = [
             feature
             for feature in features.all(
-                feature_type=features.OrganizationFeature, api_expose=True
+                feature_type=features.OrganizationFeature, api_expose_only=True
             ).keys()
             if feature.startswith(_ORGANIZATION_SCOPE_PREFIX)
         ]
