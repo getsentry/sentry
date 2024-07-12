@@ -53,6 +53,9 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
     snooze: bool | None
     latestIncident: datetime | None
     errors: list[str] | None
+    sensitivity: str | None  # mifu67: I think these three should be here, but I will confirm
+    seasonality: str | None
+    detection_type: str | None  # mifu67: this field has a default value, but not all alert rules have it
 
 
 @extend_schema_serializer(
@@ -66,6 +69,9 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
         "totalThisWeek",
         "latestIncident",
         "description",  # TODO: remove this once the feature has been released to add to the public docs, being sure to denote it will only display in Slack notifications
+        "sensitivity",  # mifu67: the following three fields are for anomality detection, which is behind a feature flag
+        "seasonality",
+        "detection_type",
     ]
 )
 class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
@@ -305,6 +311,9 @@ class AlertRuleSerializer(Serializer):
             "activationCondition": condition_type,
             "activations": attrs.get("activations", None),
             "description": obj.description if obj.description is not None else "",
+            "sensitivity": obj.get("sensitivity", None),
+            "seasonality": obj.get("seasonality", None),
+            "detection_type": obj.detection_type,  # mifu67: might need to get here
         }
         rule_snooze = RuleSnooze.objects.filter(
             Q(user_id=user.id) | Q(user_id=None), alert_rule=obj

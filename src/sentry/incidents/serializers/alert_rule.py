@@ -94,6 +94,8 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
     activation_condition = serializers.IntegerField(required=False, allow_null=True, min_value=0)
     description = serializers.CharField(required=False, allow_blank=True)
 
+    # TODO (mifu67): might need to add something related to the new enums here
+
     class Meta:
         model = AlertRule
         fields = [
@@ -117,6 +119,9 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
             "monitor_type",
             "activation_condition",
             "description",
+            "sensitivity",
+            "seasonality",
+            "detection_type",
         ]
         extra_kwargs = {
             "name": {"min_length": 1, "max_length": 256},
