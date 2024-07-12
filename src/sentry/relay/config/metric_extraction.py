@@ -306,7 +306,8 @@ def _get_widget_metric_specs(
             widget__dashboard__organization=project.organization,
             widget__widget_type=DashboardWidgetTypes.DISCOVER,
         )
-        .prefetch_related("dashboardwidgetqueryondemand_set", "widget")
+        .select_related("widget")
+        .prefetch_related("dashboardwidgetqueryondemand_set")
         .order_by("-widget__dashboard__last_visited", "widget__order")
     )
 
