@@ -37,7 +37,6 @@ from sentry.db.models.utils import unique_db_instance
 from sentry.db.postgres.transactions import enforce_constraints
 from sentry.integrations.types import EXTERNAL_PROVIDERS, ExternalProviders
 from sentry.locks import locks
-from sentry.models.avatars import UserAvatar
 from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -46,6 +45,7 @@ from sentry.models.outbox import ControlOutboxBase, OutboxCategory, outbox_conte
 from sentry.organizations.services.organization import RpcRegionUser, organization_service
 from sentry.types.region import find_all_region_names, find_regions_for_user
 from sentry.users.models.auth.authenticator import Authenticator
+from sentry.users.models.users.user_avatar import UserAvatar
 from sentry.users.services.user import RpcUser
 from sentry.utils.http import absolute_uri
 from sentry.utils.retries import TimedRetryPolicy
