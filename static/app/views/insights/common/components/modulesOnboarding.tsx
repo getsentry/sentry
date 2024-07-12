@@ -427,7 +427,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       }
     ),
     valuePropDescription: tct('[dataType] insights include:', {
-      dataType: MODULE_DATA_TYPES[ModuleName.RESOURCE],
+      dataType: MODULE_DATA_TYPES[ModuleName.SCREEN_LOAD],
     }),
     valuePropPoints: [
       t('Compare metrics across releases, root causing performance degradations.'),
