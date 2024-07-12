@@ -15,7 +15,10 @@ import type {
 } from 'sentry/components/searchQueryBuilder/types';
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/useQueryBuilderGridItem';
 import {replaceTokensWithPadding} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
-import {useShiftFocusToChild} from 'sentry/components/searchQueryBuilder/utils';
+import {
+  getDefaultFilterValue,
+  useShiftFocusToChild,
+} from 'sentry/components/searchQueryBuilder/utils';
 import {
   type ParseResultToken,
   Token,
@@ -89,23 +92,17 @@ function getWordAtCursorPosition(value: string, cursorPosition: number) {
 }
 
 function getInitialFilterText(key: string) {
+  const defaultValue = getDefaultFilterValue({key});
+
   const fieldDef = getFieldDefinition(key);
 
-  if (!fieldDef) {
-    return `${key}:`;
-  }
-
-  switch (fieldDef.valueType) {
-    case FieldValueType.BOOLEAN:
-      return `${key}:true`;
+  switch (fieldDef?.valueType) {
     case FieldValueType.INTEGER:
     case FieldValueType.NUMBER:
-      return `${key}:>100`;
-    case FieldValueType.DATE:
-      return `${key}:-24h`;
+      return `${key}:>${defaultValue}`;
     case FieldValueType.STRING:
     default:
-      return `${key}:`;
+      return `${key}:${defaultValue}`;
   }
 }
 

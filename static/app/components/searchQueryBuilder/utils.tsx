@@ -19,7 +19,7 @@ import {
 import {t} from 'sentry/locale';
 import type {Tag, TagCollection} from 'sentry/types';
 import {escapeDoubleQuotes} from 'sentry/utils';
-import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {FieldKey, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 
 export const INTERFACE_TYPE_LOCALSTORAGE_KEY = 'search-query-builder-interface';
 
@@ -198,6 +198,31 @@ export function formatFilterValue(token: TokenResult<Token.FILTER>['value']): st
       return t('%s', `${token.value}${token.unit} ago`);
     default:
       return token.text;
+  }
+}
+
+export function getDefaultFilterValue({key}: {key: string}): string {
+  const fieldDef = getFieldDefinition(key);
+
+  if (!fieldDef) {
+    return '""';
+  }
+
+  if (key === FieldKey.IS) {
+    return 'unresolved';
+  }
+
+  switch (fieldDef.valueType) {
+    case FieldValueType.BOOLEAN:
+      return 'true';
+    case FieldValueType.INTEGER:
+    case FieldValueType.NUMBER:
+      return '100';
+    case FieldValueType.DATE:
+      return '-24h';
+    case FieldValueType.STRING:
+    default:
+      return '""';
   }
 }
 
