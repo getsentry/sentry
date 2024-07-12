@@ -86,9 +86,12 @@ class FeatureManagerTest(TestCase):
             "organizations:feature3",
         }
         assert set(manager.all(OrganizationFeature).keys()) == exposed | hidden
-        assert set(manager.all(feature_type=OrganizationFeature, api_expose=True).keys()) == exposed
         assert (
-            set(manager.all(feature_type=OrganizationFeature, api_expose=False).keys())
+            set(manager.all(feature_type=OrganizationFeature, api_expose_only=True).keys())
+            == exposed
+        )
+        assert (
+            set(manager.all(feature_type=OrganizationFeature, api_expose_only=False).keys())
             == exposed | hidden
         )
 
