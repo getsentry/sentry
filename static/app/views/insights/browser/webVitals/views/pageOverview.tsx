@@ -14,7 +14,6 @@ import {EnvironmentPageFilter} from 'sentry/components/organizations/environment
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {TabList, Tabs} from 'sentry/components/tabs';
-import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
@@ -187,17 +186,6 @@ export function PageOverview() {
           <Layout.Body>
             <Layout.Main>
               <TopMenuContainer>
-                {transaction && (
-                  <ViewAllPagesButton
-                    to={{
-                      ...location,
-                      pathname: '/performance/browser/pageloads/',
-                      query: {...location.query, transaction: undefined},
-                    }}
-                  >
-                    <IconChevron direction="left" /> {t('View All Pages')}
-                  </ViewAllPagesButton>
-                )}
                 <PageFilterBar condensed>
                   <ProjectPageFilter />
                   <EnvironmentPageFilter />
@@ -265,10 +253,6 @@ function PageWithProviders() {
 }
 
 export default PageWithProviders;
-
-const ViewAllPagesButton = styled(LinkButton)`
-  margin-right: ${space(1)};
-`;
 
 const TopMenuContainer = styled('div')`
   margin-bottom: ${space(1)};
