@@ -1,11 +1,11 @@
 import styled from '@emotion/styled';
 import {PlatformIcon} from 'platformicons';
 
-import {generateIconName} from 'sentry/components/events/contexts/utils';
 import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {generatePlatformIconName} from 'sentry/utils/replays/icons';
 
 type Props = {
   name: string;
@@ -20,7 +20,7 @@ const iconSize = '18px';
 
 const ContextIcon = styled(
   ({className, name, version, showVersion, showTooltip}: Props) => {
-    const icon = generateIconName(name, version);
+    const icon = generatePlatformIconName(name, version);
 
     if (!showTooltip) {
       return <PlatformIcon platform={icon} size={iconSize} />;
