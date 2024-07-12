@@ -37,6 +37,7 @@ def get_chunk_ids(
             "organization_id": params["organization_id"],
         },
     )
+
     result = raw_snql_query(
         request,
         referrer=Referrer.API_PROFILING_CONTINUOUS_PROFILING_FLAMECHART.value,

@@ -68,14 +68,16 @@ class OrganizationProfilingChunksTest(APITestCase):
         "sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service",
         wraps=proxy_profiling_service,
     )
-    @patch("sentry.api.endpoints.organization_profiling_profiles.get_chunk_ids")
+    @patch("sentry.profiles.profile_chunks.raw_snql_query")
     @freeze_time("2024-07-11 00:00:00")
-    def test_proxies_to_profiling_service(self, mock_get_chunk_ids, mock_proxy_profiling_service):
+    def test_proxies_to_profiling_service(self, mock_raw_snql_query, mock_proxy_profiling_service):
         profiler_id = uuid4().hex
 
         chunk_ids = [uuid4().hex for _ in range(3)]
 
-        mock_get_chunk_ids.return_value = chunk_ids
+        mock_raw_snql_query.return_value = {
+            "data": [{"chunk_id": chunk_id} for chunk_id in chunk_ids]
+        }
 
         with self.feature(self.features):
             self.client.get(
