@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
@@ -105,25 +106,27 @@ function ResourceTypeSelector({value}: {value?: string}) {
   ];
 
   return (
-    <SelectControlWithProps
-      inFieldLabel={`${t('Type')}:`}
-      options={options}
-      value={value}
-      onChange={newValue => {
-        trackAnalytics('insight.asset.filter_by_type', {
-          organization,
-          filter: newValue?.value,
-        });
-        browserHistory.push({
-          ...location,
-          query: {
-            ...location.query,
-            [RESOURCE_TYPE]: newValue?.value,
-            [QueryParameterNames.SPANS_CURSOR]: undefined,
-          },
-        });
-      }}
-    />
+    <Fragment>
+      <CompactSelect
+        triggerProps={{prefix: `${t('Type')}`}}
+        options={options}
+        value={value ?? ''}
+        onChange={newValue => {
+          trackAnalytics('insight.asset.filter_by_type', {
+            organization,
+            filter: newValue?.value,
+          });
+          browserHistory.push({
+            ...location,
+            query: {
+              ...location.query,
+              [RESOURCE_TYPE]: newValue?.value,
+              [QueryParameterNames.SPANS_CURSOR]: undefined,
+            },
+          });
+        }}
+      />
+    </Fragment>
   );
 }
 
