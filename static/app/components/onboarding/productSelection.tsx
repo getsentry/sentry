@@ -434,7 +434,7 @@ export function ProductSelection({
             description={t(
               'Automatic performance issue detection across services and context on who is impacted, outliers, regressions, and the root cause of your slowdown.'
             )}
-            docLink="https://docs.sentry.io/platforms/javascript/guides/react/performance/"
+            docLink="https://docs.sentry.io/platforms/javascript/guides/react/tracing/"
             onClick={() => handleClickProduct(ProductSolution.PERFORMANCE_MONITORING)}
             disabled={disabledProducts[ProductSolution.PERFORMANCE_MONITORING]}
             checked={urlProducts.includes(ProductSolution.PERFORMANCE_MONITORING)}

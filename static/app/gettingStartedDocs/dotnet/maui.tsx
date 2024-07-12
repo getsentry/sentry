@@ -257,7 +257,7 @@ const onboarding: OnboardingConfig = {
                     'For some parts of your code, [automaticInstrumentationLink:automatic instrumentation] is available across all of our .NET SDKs, and can be used with MAUI as well:',
                     {
                       automaticInstrumentationLink: (
-                        <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/maui/performance/instrumentation/automatic-instrumentation/" />
+                        <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/maui/tracing/instrumentation/automatic-instrumentation/" />
                       ),
                     }
                   )}
@@ -284,7 +284,7 @@ const onboarding: OnboardingConfig = {
                         'For other parts of your code, you can use [customInstrumentationLink:custom instrumentation], such as in the following example:',
                         {
                           customInstrumentationLink: (
-                            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/maui/performance/instrumentation/custom-instrumentation/" />
+                            <ExternalLink href="https://docs.sentry.io/platforms/dotnet/guides/maui/tracing/instrumentation/custom-instrumentation/" />
                           ),
                         }
                       )}

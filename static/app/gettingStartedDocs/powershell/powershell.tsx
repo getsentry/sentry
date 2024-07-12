@@ -122,7 +122,7 @@ const onboarding: OnboardingConfig = {
         'Check out [link:the documentation] to learn more about the API and instrumentations.',
         {
           link: (
-            <ExternalLink href="https://docs.sentry.io/platforms/powershell/performance/instrumentation/" />
+            <ExternalLink href="https://docs.sentry.io/platforms/powershell/tracing/instrumentation/" />
           ),
         }
       ),

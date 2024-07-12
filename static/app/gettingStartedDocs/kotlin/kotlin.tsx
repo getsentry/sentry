@@ -270,7 +270,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       description: t(
         'Stay ahead of latency issues and trace every slow transaction to a poor-performing API call or database query.'
       ),
-      link: 'https://docs.sentry.io/platforms/java/performance/',
+      link: 'https://docs.sentry.io/platforms/java/tracing/',
     },
   ],
 };

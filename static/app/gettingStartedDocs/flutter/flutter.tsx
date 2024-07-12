@@ -294,7 +294,7 @@ const onboarding: OnboardingConfig = {
                   'To learn more about the API and automatic instrumentations, check out the [perfDocs: performance documentation].',
                   {
                     perfDocs: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/flutter/performance/instrumentation/" />
+                      <ExternalLink href="https://docs.sentry.io/platforms/flutter/tracing/instrumentation/" />
                     ),
                   }
                 ),

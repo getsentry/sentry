@@ -213,7 +213,7 @@ const onboarding: OnboardingConfig = {
       id: 'swiftui',
       name: t('SwiftUI'),
       description: t('Learn about our first class integration with SwiftUI.'),
-      link: 'https://docs.sentry.io/platforms/apple/performance/instrumentation/swiftui-instrumentation/',
+      link: 'https://docs.sentry.io/platforms/apple/tracing/instrumentation/swiftui-instrumentation/',
     },
     {
       id: 'profiling',

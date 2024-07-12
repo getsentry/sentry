@@ -100,7 +100,7 @@ const onboarding: OnboardingConfig = {
                 'To instrument certain regions of your code, you can [instrumentationLink:create transactions to capture them].',
                 {
                   instrumentationLink: (
-                    <ExternalLink href="https://docs.sentry.io/platforms/php/performance/instrumentation/custom-instrumentation/" />
+                    <ExternalLink href="https://docs.sentry.io/platforms/php/tracing/instrumentation/custom-instrumentation/" />
                   ),
                 }
               )}
