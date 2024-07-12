@@ -28,7 +28,6 @@ from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import PerformanceIssueTestCase
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
@@ -345,7 +344,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert resp.data["text"] == LINK_IDENTITY_MESSAGE.format(associate_url=associate_url)
 
     @responses.activate
-    @with_feature("organizations:slack-sdk-action-view-open")
     def test_archive_issue_until_escalating_sdk(self):
         original_message = self.get_original_message(self.group.id)
         self.archive_issue_sdk(original_message, "ignored:archived_until_escalating")
@@ -363,7 +361,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert ":white_circle:" in blocks[0]["text"]["text"]
 
     @responses.activate
-    @with_feature("organizations:slack-sdk-action-view-open")
     def test_archive_issue_until_escalating_through_unfurl_sdk(self):
         original_message = self.get_original_message(self.group.id)
         payload_data = self.get_unfurl_data(original_message["blocks"])
@@ -380,7 +377,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert blocks[2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
-    @with_feature("organizations:slack-sdk-action-view-open")
     def test_archive_issue_until_condition_met_sdk(self):
         original_message = self.get_original_message(self.group.id)
         self.archive_issue_sdk(original_message, "ignored:archived_until_condition_met:10")
@@ -398,7 +394,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert blocks[2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
-    @with_feature("organizations:slack-sdk-action-view-open")
     def test_archive_issue_until_condition_met_through_unfurl_sdk(self):
         original_message = self.get_original_message(self.group.id)
         payload_data = self.get_unfurl_data(original_message["blocks"])
@@ -419,7 +414,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert blocks[2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
-    @with_feature("organizations:slack-sdk-action-view-open")
     def test_archive_issue_forever_with_sdk(self):
         original_message = self.get_original_message(self.group.id)
         self.archive_issue_sdk(original_message, "ignored:archived_forever")
@@ -436,7 +430,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
 
     @responses.activate
     @patch("sentry.models.organization.Organization.has_access", return_value=False)
-    @with_feature("organizations:slack-sdk-action-view-open")
     def test_archive_issue_forever_error_sdk(self, mock_access):
         original_message = self.get_original_message(self.group.id)
 
@@ -451,7 +444,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert self.group.substatus == GroupSubStatus.ONGOING
 
     @responses.activate
-    @with_feature("organizations:slack-sdk-action-view-open")
     def test_archive_issue_forever_through_unfurl_sdk(self):
         original_message = self.get_original_message(self.group.id)
         payload_data = self.get_unfurl_data(original_message["blocks"])
@@ -468,7 +460,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert blocks[2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
-    @with_feature("organizations:slack-sdk-action-view-open")
     def test_archive_issue_with_additional_user_auth_sdk(self):
         """
         Ensure that we can act as a user even when the organization has SSO enabled
@@ -493,7 +484,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert blocks[2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
-    @with_feature("organizations:slack-sdk-action-view-open")
     def test_archive_issue_with_additional_user_auth_through_unfurl_sdk(self):
         """
         Ensure that we can act as a user even when the organization has SSO enabled
@@ -565,7 +555,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert blocks[2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
-    @with_feature("organizations:slack-sdk-action-view-open")
     def test_resolve_issue(self):
         original_message = self.get_original_message(self.group.id)
         self.resolve_issue_sdk(original_message, "resolved")
@@ -582,7 +571,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert ":white_circle:" in blocks[0]["text"]["text"]
 
     @responses.activate
-    @with_feature("organizations:slack-sdk-action-view-open")
     def test_resolve_perf_issue_sdk(self):
         group_fingerprint = f"{PerformanceNPlusOneGroupType.type_id}-group1"
 
@@ -609,13 +597,12 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         expect_status = f"*Issue resolved by <@{self.external_id}>*"
         assert (
             "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
-            in blocks[1]["text"]["text"]
+            in blocks[2]["text"]["text"]
         )
-        assert blocks[2]["text"]["text"] == expect_status
+        assert blocks[3]["text"]["text"] == expect_status
         assert ":white_circle: :chart_with_upwards_trend:" in blocks[0]["text"]["text"]
 
     @responses.activate
-    @with_feature("organizations:slack-sdk-action-view-open")
     def test_resolve_issue_through_unfurl_sdk(self):
         original_message = self.get_original_message(self.group.id)
         payload_data = self.get_unfurl_data(original_message["blocks"])
@@ -632,7 +619,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert blocks[2]["text"]["text"] == expect_status
 
     @responses.activate
-    @with_feature("organizations:slack-sdk-action-view-open")
     def test_resolve_issue_in_current_release_sdk(self):
         release = Release.objects.create(
             organization_id=self.organization.id,
@@ -656,7 +642,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert blocks[2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
-    @with_feature("organizations:slack-sdk-action-view-open")
     def test_resolve_issue_in_current_release_through_unfurl_sdk(self):
         release = Release.objects.create(
             organization_id=self.organization.id,
@@ -681,7 +666,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert blocks[2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
-    @with_feature("organizations:slack-sdk-action-view-open")
     def test_resolve_in_next_release_sdk(self):
         release = Release.objects.create(
             organization_id=self.organization.id,
@@ -704,7 +688,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         assert blocks[2]["text"]["text"].endswith(expect_status)
 
     @responses.activate
-    @with_feature("organizations:slack-sdk-action-view-open")
     def test_resolve_in_next_release_through_unfurl_sdk(self):
         release = Release.objects.create(
             organization_id=self.organization.id,
@@ -740,7 +723,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             status_code=200,
         ),
     )
-    @with_feature("organizations:slack-sdk-action-view-open")
     def test_response_differs_on_bot_message_sdk(self, mock_views_open):
         status_action = self.get_archive_status_action()
         original_message = self.get_original_message(self.group.id)
@@ -863,7 +845,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         )
 
     @responses.activate
-    @with_feature("organizations:slack-sdk-action-view-open")
     @patch(
         "slack_sdk.web.WebClient.views_open",
         return_value=SlackResponse(
@@ -935,7 +916,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         )
 
     @freeze_time("2021-01-14T12:27:28.303Z")
-    @with_feature("organizations:slack-sdk-action-view-open")
     @patch(
         "slack_sdk.web.WebClient.views_open",
         return_value=SlackResponse(
@@ -1004,7 +984,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
         )
 
     @freeze_time("2021-01-14T12:27:28.303Z")
-    @with_feature("organizations:slack-sdk-action-view-open")
     @patch(
         "slack_sdk.web.WebClient.views_open",
         return_value=SlackResponse(
