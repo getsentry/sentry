@@ -180,12 +180,10 @@ export function DatabaseLandingPage() {
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
             {hasModuleData && !onboardingProject && !isCriticalDataLoading && (
-              <ModuleLayout.Full>
-                <NoDataMessage
-                  Wrapper={AlertBanner}
-                  isDataAvailable={isAnyCriticalDataAvailable}
-                />
-              </ModuleLayout.Full>
+              <NoDataMessage
+                Wrapper={AlertBanner}
+                isDataAvailable={isAnyCriticalDataAvailable}
+              />
             )}
 
             <ModuleLayout.Full>
@@ -264,7 +262,11 @@ const DEFAULT_SORT = {
 };
 
 function AlertBanner(props) {
-  return <Alert {...props} type="info" showIcon />;
+  return (
+    <ModuleLayout.Full>
+      <Alert {...props} type="info" showIcon />
+    </ModuleLayout.Full>
+  );
 }
 
 const FilterOptionsContainer = styled('div')`

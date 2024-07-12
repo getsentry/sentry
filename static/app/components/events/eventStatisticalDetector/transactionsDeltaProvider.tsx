@@ -65,7 +65,7 @@ export function TransactionsDeltaProvider(props: TransactionsDeltaProviderProps)
       key: regressionScore,
       order: 'desc',
     },
-    query: `fingerprint:${fingerprint} ${regressionScore}:>0`,
+    query: `fingerprint:${fingerprint}`,
     projects: [props.project.id],
     limit: TRANSACTIONS_LIMIT,
     referrer: 'api.profiling.functions.regression.transactions',

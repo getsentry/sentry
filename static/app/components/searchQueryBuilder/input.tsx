@@ -24,10 +24,12 @@ import {
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
-import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type SearchQueryBuilderInputProps = {
   item: Node<ParseResultToken>;
@@ -278,6 +280,7 @@ function SearchQueryBuilderInputInternal({
   state,
   rowRef,
 }: SearchQueryBuilderInputInternalProps) {
+  const organization = useOrganization();
   const inputRef = useRef<HTMLInputElement>(null);
   const trimmedTokenValue = token.text.trim();
   const [inputValue, setInputValue] = useState(trimmedTokenValue);
@@ -294,8 +297,15 @@ function SearchQueryBuilderInputInternal({
 
   const filterValue = getWordAtCursorPosition(inputValue, selectionIndex);
 
-  const {query, filterKeys, filterKeySections, dispatch, handleSearch} =
-    useSearchQueryBuilder();
+  const {
+    query,
+    filterKeys,
+    filterKeySections,
+    dispatch,
+    handleSearch,
+    searchSource,
+    savedSearchType,
+  } = useSearchQueryBuilder();
   const aliasToKeyMap = useMemo(() => {
     return Object.fromEntries(Object.values(filterKeys).map(key => [key.alias, key.key]));
   }, [filterKeys]);
@@ -393,6 +403,17 @@ function SearchQueryBuilderInputInternal({
           focusOverride: calculateNextFocusForFilter(state),
         });
         resetInputValue();
+        const selectedKey = filterKeys[value];
+        trackAnalytics('search.key_autocompleted', {
+          organization,
+          search_type: savedSearchType === 0 ? 'issues' : 'events',
+          search_source: searchSource,
+          item_name: value,
+          item_kind: selectedKey?.kind ?? FieldKind.FIELD,
+          item_value_type: getFieldDefinition(value)?.valueType ?? FieldValueType.STRING,
+          filtered: Boolean(filterValue),
+          new_experience: true,
+        });
       }}
       onCustomValueBlurred={value => {
         dispatch({type: 'UPDATE_FREE_TEXT', tokens: [token], text: value});

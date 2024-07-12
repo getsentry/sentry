@@ -1,5 +1,6 @@
-import {Fragment} from 'react';
+import {Fragment, useMemo} from 'react';
 import type {RouteComponentProps} from 'react-router';
+import cloneDeep from 'lodash/cloneDeep';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {removeTeam, updateTeamSuccess} from 'sentry/actionCreators/teams';
@@ -10,6 +11,7 @@ import FieldGroup from 'sentry/components/forms/fieldGroup';
 import type {FormProps} from 'sentry/components/forms/form';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
+import type {FieldObject} from 'sentry/components/forms/types';
 import Panel from 'sentry/components/panels/panel';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
@@ -55,6 +57,25 @@ function TeamSettings({team, params}: TeamSettingsProps) {
   const hasTeamWrite = hasEveryAccess(['team:write'], {organization, team});
   const hasTeamAdmin = hasEveryAccess(['team:admin'], {organization, team});
 
+  const forms = useMemo(() => {
+    const formsConfig = cloneDeep(teamSettingsFields);
+
+    const teamIdField: FieldObject = {
+      name: 'teamId',
+      type: 'string',
+      disabled: true,
+      label: t('Team ID'),
+      setValue(_, _name) {
+        return team.id;
+      },
+      help: `The unique identifier for this team. It cannot be modified.`,
+    };
+
+    formsConfig[0].fields = [...formsConfig[0].fields, teamIdField];
+
+    return formsConfig;
+  }, [team]);
+
   return (
     <Fragment>
       <SentryDocumentTitle title={t('Team Settings')} orgSlug={organization.slug} />
@@ -77,7 +98,7 @@ function TeamSettings({team, params}: TeamSettingsProps) {
           additionalFieldProps={{
             hasTeamWrite,
           }}
-          forms={teamSettingsFields}
+          forms={forms}
         />
       </Form>
 

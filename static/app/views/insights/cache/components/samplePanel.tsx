@@ -32,6 +32,7 @@ import {BASE_FILTERS} from 'sentry/views/insights/cache/settings';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {Ribbon} from 'sentry/views/insights/common/components/ribbon';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
   useMetrics,
@@ -299,7 +300,7 @@ export function CacheSamplePanel() {
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>
-            <MetricsRibbon>
+            <Ribbon>
               <MetricReadout
                 align="left"
                 title={DataTitles[`avg(${SpanMetricsField.CACHE_ITEM_SIZE})`]}
@@ -351,7 +352,7 @@ export function CacheSamplePanel() {
                 )}
                 isLoading={areCacheTransactionMetricsFetching}
               />
-            </MetricsRibbon>
+            </Ribbon>
           </ModuleLayout.Full>
           <ModuleLayout.Full>
             <CompactSelect
@@ -497,10 +498,4 @@ const Title = styled('h4')`
   text-overflow: ellipsis;
   white-space: nowrap;
   margin: 0;
-`;
-
-const MetricsRibbon = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(4)};
 `;
