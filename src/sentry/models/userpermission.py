@@ -1,3 +1,3 @@
-from sentry.users.models.users.userpermission import UserPermission  # NOQA
+from sentry.users.models.users.userpermission import UserPermission
 
-# flake8 dislikes imported but unused modules
+__all__ = ("UserPermission",)

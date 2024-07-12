@@ -1,3 +1,3 @@
-from sentry.users.models.users.useremail import UserEmail  # NOQA
+from sentry.users.models.users.useremail import UserEmail
 
-# flake8 dislikes imported but unused modules
+__all__ = ("UserEmail",)

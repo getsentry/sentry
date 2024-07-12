@@ -1,3 +1,3 @@
-from sentry.users.models.users.userreport import UserReport  # NOQA
+from sentry.users.models.users.userreport import UserReport
 
-# flake8 dislikes imported but unused modules
+__all__ = ("UserReport",)

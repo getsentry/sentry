@@ -1,3 +1,3 @@
-from sentry.users.models.users.userip import UserIP  # NOQA
+from sentry.users.models.users.userip import UserIP
 
-# flake8 dislikes imported but unused modules
+__all__ = ("UserIP",)

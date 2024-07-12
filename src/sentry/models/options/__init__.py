@@ -1,4 +1,5 @@
-from ...users.models.users.user_option import UserOption
+from sentry.users.models.users.user_option import UserOption
+
 from .option import ControlOption, Option
 from .organization_option import OrganizationOption
 from .project_option import ProjectOption

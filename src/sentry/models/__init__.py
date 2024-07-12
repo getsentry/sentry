@@ -1,7 +1,8 @@
-from ..users.models.auth.authenticator import *  # NOQA
-from ..users.models.users.userip import *  # NOQA
-from ..users.models.users.userreport import *  # NOQA
-from ..users.models.users.userrole import *  # NOQA
+from sentry.users.models.auth.authenticator import *  # NOQA
+from sentry.users.models.users.userip import *  # NOQA
+from sentry.users.models.users.userreport import *  # NOQA
+from sentry.users.models.users.userrole import *  # NOQA
+
 from .activity import *  # NOQA
 from .apiapplication import *  # NOQA
 from .apiauthorization import *  # NOQA

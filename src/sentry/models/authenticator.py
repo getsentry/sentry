@@ -1,3 +1,3 @@
-from ..users.models.auth.authenticator import Authenticator  # NOQA
+from sentry.users.models.auth.authenticator import Authenticator
 
-# flake8 dislikes imported but unused modules
+__all__ = ("Authenticator",)
