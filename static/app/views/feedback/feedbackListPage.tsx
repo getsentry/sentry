@@ -37,8 +37,10 @@ export default function FeedbackListPage({}: Props) {
 
   const showWhatsNewBanner = hasSetupOneFeedback && !hasSetupNewFeedback;
 
-  const feedbackSlug = useCurrentFeedbackId();
-  const hasSlug = Boolean(feedbackSlug);
+  useRedirectToFeedbackFromEvent();
+
+  const feedbackId = useCurrentFeedbackId();
+  const hasSlug = Boolean(feedbackId);
 
   const pageFilters = usePageFilters();
   const projects = useProjects();
@@ -169,3 +171,6 @@ const SetupContainer = styled('div')`
   overflow: hidden;
   grid-column: 1 / -1;
 `;
+function useRedirectToFeedbackFromEvent() {
+  throw new Error('Function not implemented.');
+}
