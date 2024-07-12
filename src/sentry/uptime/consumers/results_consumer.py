@@ -72,7 +72,9 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         try:
             if result["scheduled_check_time_ms"] <= last_update_ms:
                 # If the scheduled check time is older than the most recent update then we've already processed it.
-                # Skip and log
+                # We can end up with duplicates due to Kafka replaying tuples, or due to the uptime checker processing
+                # the same check multiple times and sending duplicate results.
+                # We only ever want to process the first value related to each check, so we just skip and log here
                 metrics.incr("uptime.result_processor.skipping_already_processed_update")
                 return
 
