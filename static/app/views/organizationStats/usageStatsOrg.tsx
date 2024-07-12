@@ -38,7 +38,12 @@ import UsageChart, {
   SeriesTypes,
 } from './usageChart';
 import UsageStatsPerMin from './usageStatsPerMin';
-import {formatUsageWithUnits, getFormatUsageOptions, isDisplayUtc} from './utils';
+import {
+  formatUsageWithUnits,
+  getFormatUsageOptions,
+  getInvalidReasonGroupName,
+  isDisplayUtc,
+} from './utils';
 
 export interface UsageStatsOrganizationProps extends WithRouterProps {
   dataCategory: DataCategoryInfo['plural'];
@@ -417,7 +422,11 @@ class UsageStatsOrganization<
             value: stat,
           };
 
-          const reason = String(group.by.reason ?? '');
+          const strigfiedReason = String(group.by.reason ?? '');
+          const reason = Outcome.INVALID
+            ? getInvalidReasonGroupName(strigfiedReason)
+            : strigfiedReason;
+
           const label = startCase(reason.replace(/-|_/g, ' '));
           const existingSubLabel = chartSubLabels.find(
             subLabel => subLabel.label === label

@@ -147,3 +147,99 @@ export function getPaginationPageLink({
     nextOffset < numRows
   }"; cursor="0:${nextOffset}:0"`;
 }
+
+// List of Relay's current invalid reasons - https://github.com/getsentry/relay/blob/89a8dd7caaad1f126e1cacced0d73bb50fcd4f5a/relay-server/src/services/outcome.rs#L333
+const DiscardReason = {
+  DUPLICATE: 'duplicate',
+  PROJECT_ID: 'project_id',
+  AUTH_VERSION: 'auth_version',
+  AUTH_CLIENT: 'auth_client',
+  NO_DATA: 'no_data',
+  DISALLOWED_METHOD: 'disallowed_method',
+  CONTENT_TYPE: 'content_type',
+  INVALID_MULTIPART: 'invalid_multipart',
+  INVALID_MSGPACK: 'invalid_msgpack',
+  INVALID_JSON: 'invalid_json',
+  INVALID_ENVELOPE: 'invalid_envelope',
+  TIMESTAMP: 'timestamp',
+  DUPLICATE_ITEM: 'duplicate_item',
+  INVALID_TRANSACTION: 'invalid_transaction',
+  INVALID_SPAN: 'invalid_span',
+  INVALID_REPLAY: 'invalid_replay',
+  INVALID_REPLAY_RECORDING: 'invalid_replay_recording',
+  INVALID_REPLAY_VIDEO: 'invalid_replay_video',
+  PAYLOAD: 'payload',
+  INVALID_COMPRESSION: 'invalid_compression',
+  TOO_LARGE: 'too_large',
+  MISSING_MINIDUMP_UPLOAD: 'missing_minidump_upload',
+  INVALID_MINIDUMP: 'invalid_minidump',
+  SECURITY_REPORT: 'security_report',
+  SECURITY_REPORT_TYPE: 'security_report_type',
+  PROCESS_UNREAL: 'process_unreal',
+  CORS: 'cors',
+  NO_EVENT_PAYLOAD: 'no_event_payload',
+  EMPTY_ENVELOPE: 'empty_envelope',
+  INVALID_REPLAY_NO_PAYLOAD: 'invalid_replay_no_payload',
+  TRANSACTION_SAMPLED: 'transaction_sampled',
+  INTERNAL: 'internal',
+  MULTI_PROJECT_ID: 'multi_project_id',
+  PROJECT_STATE: 'project_state',
+  PROJECT_STATE_PII: 'project_state_pii',
+  INVALID_REPLAY_PII_SCRUBBER_FAILED: 'invalid_replay_pii_scrubber_failed',
+  FEATURE_DISABLED: 'feature_disabled',
+};
+
+// Invalid reasons should not be exposed directly, but instead in the following groups:
+const invalidReasonsGroup = {
+  duplicate: [DiscardReason.DUPLICATE],
+  project_missing: [DiscardReason.PROJECT_ID],
+  invalid_request: [
+    DiscardReason.AUTH_VERSION,
+    DiscardReason.AUTH_CLIENT,
+    DiscardReason.NO_DATA,
+    DiscardReason.DISALLOWED_METHOD,
+    DiscardReason.CONTENT_TYPE,
+    DiscardReason.INVALID_MULTIPART,
+    DiscardReason.INVALID_MSGPACK,
+    DiscardReason.INVALID_JSON,
+    DiscardReason.INVALID_ENVELOPE,
+    DiscardReason.TIMESTAMP,
+    DiscardReason.DUPLICATE_ITEM,
+  ],
+  invalid_data: [
+    DiscardReason.INVALID_TRANSACTION,
+    DiscardReason.INVALID_SPAN,
+    DiscardReason.INVALID_REPLAY,
+    DiscardReason.INVALID_REPLAY_RECORDING,
+    DiscardReason.INVALID_REPLAY_VIDEO,
+  ],
+  payload: [DiscardReason.PAYLOAD, DiscardReason.INVALID_COMPRESSION],
+  too_large: [DiscardReason.TOO_LARGE],
+  minidump: [DiscardReason.MISSING_MINIDUMP_UPLOAD, DiscardReason.INVALID_MINIDUMP],
+  security_report: [DiscardReason.SECURITY_REPORT, DiscardReason.SECURITY_REPORT_TYPE],
+  unreal: [DiscardReason.PROCESS_UNREAL],
+  cors: [DiscardReason.CORS],
+  empty: [
+    DiscardReason.NO_EVENT_PAYLOAD,
+    DiscardReason.EMPTY_ENVELOPE,
+    DiscardReason.INVALID_REPLAY_NO_PAYLOAD,
+  ],
+  sampling: [DiscardReason.TRANSACTION_SAMPLED],
+  other: [
+    DiscardReason.INTERNAL,
+    DiscardReason.MULTI_PROJECT_ID,
+    DiscardReason.PROJECT_STATE,
+    DiscardReason.PROJECT_STATE_PII,
+    DiscardReason.INVALID_REPLAY_PII_SCRUBBER_FAILED,
+    DiscardReason.FEATURE_DISABLED,
+  ],
+};
+
+export function getInvalidReasonGroupName(reason: string) {
+  for (const [group, reasons] of Object.entries(invalidReasonsGroup)) {
+    if (reasons.includes(reason)) {
+      return group;
+    }
+  }
+  return reason;
+}
