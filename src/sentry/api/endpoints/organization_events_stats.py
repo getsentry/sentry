@@ -435,16 +435,28 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             comparison_delta,
                         )
                     elif decision == DashboardWidgetTypes.TRANSACTION_LIKE:
-                        original_results.data.get("meta")[
-                            "discoverSplitDecision"
-                        ] = DashboardWidgetTypes.get_type_name(
-                            DashboardWidgetTypes.TRANSACTION_LIKE
-                        )
+                        for result in (
+                            original_results.values()
+                            if isinstance(original_results, dict)
+                            else [original_results]
+                        ):
+                            result.data.get("meta")[
+                                "discoverSplitDecision"
+                            ] = DashboardWidgetTypes.get_type_name(
+                                DashboardWidgetTypes.TRANSACTION_LIKE
+                            )
                         return original_results
                     elif decision == DashboardWidgetTypes.ERROR_EVENTS and error_results:
-                        error_results.data.get("meta")[
-                            "discoverSplitDecision"
-                        ] = DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
+                        for result in (
+                            error_results.values()
+                            if isinstance(error_results, dict)
+                            else [error_results]
+                        ):
+                            result.data.get("meta")[
+                                "discoverSplitDecision"
+                            ] = DashboardWidgetTypes.get_type_name(
+                                DashboardWidgetTypes.ERROR_EVENTS
+                            )
                         return error_results
                     else:
                         return original_results
