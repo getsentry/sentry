@@ -1,10 +1,10 @@
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {Option} from 'sentry/views/insights/browser/resources/components/selectControlWithProps';
-import SelectControlWithProps from 'sentry/views/insights/browser/resources/components/selectControlWithProps';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {SpanMetricsField} from 'sentry/views/insights/types';
 
@@ -21,10 +21,10 @@ function RenderBlockingSelector({value}: {value?: string}) {
   ];
 
   return (
-    <SelectControlWithProps
-      inFieldLabel={`${t('Blocking')}:`}
+    <CompactSelect
+      triggerProps={{prefix: `${t('Blocking')}`}}
       options={options}
-      value={value}
+      value={value ?? ''}
       onChange={newValue => {
         trackAnalytics('insight.asset.filter_by_blocking', {
           organization,
