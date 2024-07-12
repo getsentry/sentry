@@ -155,16 +155,12 @@ class FeatureManager(RegisteredFeatureManager):
         :param feature_type: The feature class you want to filter by. eg. (OrganizationFeature | ProjectFeature | SystemFeature)
         :param api_expose: Only include features that were registered with `api_expose`.
         """
-        output: dict[str, type[Feature]] = {}
-        for name, feature in self._feature_registry.items():
-            match = False
-            if issubclass(feature, feature_type):
-                match = True
-            if match and api_expose and name not in self.exposed_features:
-                match = False
-            if match:
-                output[name] = feature
-        return output
+        return {
+            name: feature
+            for name, feature in self._feature_registry.items()
+            if issubclass(feature, feature_type)
+            and (not api_expose or name in self.exposed_features)
+        }
 
     def add(
         self,
