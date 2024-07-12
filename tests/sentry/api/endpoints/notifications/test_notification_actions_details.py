@@ -1,8 +1,7 @@
 from unittest.mock import MagicMock, patch
 
-import orjson
-import responses
 from rest_framework import serializers, status
+from slack_sdk.web.slack_response import SlackResponse
 
 from sentry.api.serializers.base import serialize
 from sentry.integrations.pagerduty.utils import add_service
@@ -49,6 +48,48 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
             target_type=ActionTarget.get_value(data["targetType"]),
         )
         self.login_as(user=self.user)
+
+    def mock_msg_schedule_response(self, channel_id, result_name="channel"):
+        if channel_id == "channel_not_found":
+            bodydict = {"ok": False, "error": "channel_not_found"}
+        else:
+            bodydict = {
+                "ok": True,
+                result_name: channel_id,
+                "scheduled_message_id": "Q1298393284",
+            }
+        return patch(
+            "slack_sdk.web.client.WebClient.chat_scheduleMessage",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/chat.scheduleMessage",
+                req_args={},
+                data=bodydict,
+                headers={},
+                status_code=200,
+            ),
+        )
+
+    def mock_msg_delete_scheduled_response(self, channel_id, result_name="channel"):
+        if channel_id == "channel_not_found":
+            bodydict = {"ok": False, "error": "channel_not_found"}
+        else:
+            bodydict = {
+                "ok": True,
+            }
+        return patch(
+            "slack_sdk.web.client.WebClient.chat_deleteScheduledMessage",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/chat.deleteScheduledMessage",
+                req_args={},
+                data=bodydict,
+                headers={},
+                status_code=200,
+            ),
+        )
 
     def test_requires_organization_access(self):
         for method in ["GET", "PUT", "DELETE"]:
@@ -214,7 +255,6 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
         assert error_message in str(response.data)
 
     @patch.dict(NotificationAction._registry, {})
-    @responses.activate
     def test_put_with_slack_validation(self):
         class MockActionRegistration(ActionRegistration):
             pass
@@ -233,31 +273,25 @@ class NotificationActionsDetailsEndpointTest(APITestCase):
 
         self.mock_register(data)(MockActionRegistration)
 
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.scheduleMessage",
-            status=200,
-            content_type="application/json",
-            body=orjson.dumps(
-                {"ok": "true", "channel": channel_id, "scheduled_message_id": "Q1298393284"}
-            ),
-        )
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.deleteScheduledMessage",
-            status=200,
-            content_type="application/json",
-            body=orjson.dumps({"ok": True}),
-        )
+        with self.mock_msg_schedule_response(channel_id):
+            with self.mock_msg_delete_scheduled_response(channel_id):
+                response = self.get_success_response(
+                    self.organization.slug,
+                    self.notif_action.id,
+                    status_code=status.HTTP_202_ACCEPTED,
+                    method="PUT",
+                    **data,
+                )
+                assert response.data["targetIdentifier"] == channel_id
 
-        response = self.get_success_response(
-            self.organization.slug,
-            self.notif_action.id,
-            status_code=status.HTTP_202_ACCEPTED,
-            method="PUT",
-            **data,
-        )
-        assert response.data["targetIdentifier"] == channel_id
+        # response = self.get_success_response(
+        #     self.organization.slug,
+        #     self.notif_action.id,
+        #     status_code=status.HTTP_202_ACCEPTED,
+        #     method="PUT",
+        #     **data,
+        # )
+        # assert response.data["targetIdentifier"] == channel_id
 
     @patch.dict(NotificationAction._registry, {})
     def test_put_with_pagerduty_validation(self):
