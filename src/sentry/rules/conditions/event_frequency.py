@@ -18,7 +18,6 @@ from sentry.eventstore.models import GroupEvent
 from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_user_group_model
 from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
 from sentry.models.group import Group
-from sentry.models.project import Project
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition, GenericCondition
 from sentry.tsdb.base import TSDBModel
@@ -649,10 +648,9 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
     ) -> dict[int, int]:
         batch_percents: dict[int, int] = defaultdict(int)
         groups = Group.objects.filter(id__in=group_ids).values_list(
-            "id", "type", "project", "project__organization_id"
+            "id", "type", "project_id", "project__organization_id"
         )
-        project_ids = Project.objects.filter(id=groups[0][2]).values_list("id", flat=True)
-        session_count_last_hour = self.get_session_count(project_ids[0], environment_id, start, end)
+        session_count_last_hour = self.get_session_count(groups[0][2], environment_id, start, end)
         avg_sessions_in_interval = self.get_session_interval(
             session_count_last_hour, self.get_option("interval")
         )
