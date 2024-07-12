@@ -423,9 +423,10 @@ class UsageStatsOrganization<
           };
 
           const strigfiedReason = String(group.by.reason ?? '');
-          const reason = outcome === Outcome.INVALID
-            ? getInvalidReasonGroupName(strigfiedReason)
-            : strigfiedReason;
+          const reason =
+            outcome === Outcome.INVALID
+              ? getInvalidReasonGroupName(strigfiedReason)
+              : strigfiedReason;
 
           const label = startCase(reason.replace(/-|_/g, ' '));
           const existingSubLabel = chartSubLabels.find(
