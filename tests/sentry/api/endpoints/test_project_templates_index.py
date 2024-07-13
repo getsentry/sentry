@@ -1,6 +1,9 @@
+from unittest.mock import patch
+
 from pytest import mark
 
 from sentry.api.endpoints.project_templates_index import PROJECT_TEMPLATE_FEATURE_FLAG
+from sentry.models.projecttemplate import ProjectTemplate
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 
@@ -55,3 +58,70 @@ class ProjectTemplateIndexTest(APITestCase):
         # Ensure this errors with 403, as the user does not have access to the organization
         response = self.get_error_response(org_two.id, status_code=403)
         assert response.status_code == 403
+
+
+class ProjectTemplateIndexPostTest(APITestCase):
+    endpoint = "sentry-api-0-organization-project-templates"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self.create_user()
+        self.org = self.create_organization(owner=self.user)
+        self.team = self.create_team(organization=self.org, members=[self.user])
+
+        self.login_as(self.user)
+
+        self.project_template = self.create_project_template(organization=self.org)
+        self.project_template_two = self.create_project_template(organization=self.org)
+
+    def test_post__no_feature(self):
+        response = self.get_error_response(self.org.id, method="POST", status_code=404)
+        assert response.status_code == 404
+
+    @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
+    def test_post__non_admin(self):
+        org_two = self.create_organization()
+        self.create_team(organization=org_two, members=[self.user])
+        self.create_project_template(organization=org_two)
+
+        response = self.get_error_response(org_two.id, method="POST", status_code=403)
+        assert response.status_code == 403
+
+    @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
+    def test_post(self):
+        response = self.get_success_response(
+            self.org.id, method="POST", name="Test Project Template"
+        )
+        assert response.status_code == 201
+
+    @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
+    def test_post__with_options(self):
+        test_options = {"test-key": "value"}
+        response = self.get_success_response(
+            self.org.id,
+            method="POST",
+            name="Test Project Template",
+            options=test_options,
+        )
+
+        assert response.status_code == 201
+        new_template = ProjectTemplate.objects.get(id=response.data["id"])
+        created_options = {opt.key: opt.value for opt in new_template.options.all()}
+        assert created_options == test_options
+
+    @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
+    def test_post__no_name(self):
+        response = self.get_error_response(self.org.id, method="POST", status_code=400)
+        assert response.status_code == 400
+
+    @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
+    @patch("sentry.api.base.create_audit_entry")
+    def test_post__audit_log(self, mock_audit):
+        self.get_success_response(
+            self.org.id,
+            method="POST",
+            name="Test Project Template",
+        )
+
+        mock_audit.assert_called()
+        mock_audit.reset_mock()
