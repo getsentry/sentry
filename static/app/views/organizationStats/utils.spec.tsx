@@ -1,5 +1,8 @@
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {formatUsageWithUnits} from 'sentry/views/organizationStats/utils';
+import {
+  formatUsageWithUnits,
+  getInvalidReasonGroupName,
+} from 'sentry/views/organizationStats/utils';
 
 const MILLION = 10 ** 6;
 const BILLION = 10 ** 9;
@@ -161,5 +164,11 @@ describe('formatUsageWithUnits', function () {
     expect(
       formatUsageWithUnits(24 * hourInMs, DATA_CATEGORY_INFO.profileDuration.plural)
     ).toBe('24');
+  });
+
+  it('Correctly groups invalid outcome reasons', function () {
+    expect(getInvalidReasonGroupName('duplicate_item')).toBe('invalid_request');
+    expect(getInvalidReasonGroupName('too_large')).toBe('too_large');
+    expect(getInvalidReasonGroupName('some_other_reason')).toBe('other');
   });
 });

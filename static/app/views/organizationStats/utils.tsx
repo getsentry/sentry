@@ -149,45 +149,45 @@ export function getPaginationPageLink({
 }
 
 // List of Relay's current invalid reasons - https://github.com/getsentry/relay/blob/89a8dd7caaad1f126e1cacced0d73bb50fcd4f5a/relay-server/src/services/outcome.rs#L333
-const DiscardReason = {
-  DUPLICATE: 'duplicate',
-  PROJECT_ID: 'project_id',
-  AUTH_VERSION: 'auth_version',
-  AUTH_CLIENT: 'auth_client',
-  NO_DATA: 'no_data',
-  DISALLOWED_METHOD: 'disallowed_method',
-  CONTENT_TYPE: 'content_type',
-  INVALID_MULTIPART: 'invalid_multipart',
-  INVALID_MSGPACK: 'invalid_msgpack',
-  INVALID_JSON: 'invalid_json',
-  INVALID_ENVELOPE: 'invalid_envelope',
-  TIMESTAMP: 'timestamp',
-  DUPLICATE_ITEM: 'duplicate_item',
-  INVALID_TRANSACTION: 'invalid_transaction',
-  INVALID_SPAN: 'invalid_span',
-  INVALID_REPLAY: 'invalid_replay',
-  INVALID_REPLAY_RECORDING: 'invalid_replay_recording',
-  INVALID_REPLAY_VIDEO: 'invalid_replay_video',
-  PAYLOAD: 'payload',
-  INVALID_COMPRESSION: 'invalid_compression',
-  TOO_LARGE: 'too_large',
-  MISSING_MINIDUMP_UPLOAD: 'missing_minidump_upload',
-  INVALID_MINIDUMP: 'invalid_minidump',
-  SECURITY_REPORT: 'security_report',
-  SECURITY_REPORT_TYPE: 'security_report_type',
-  PROCESS_UNREAL: 'process_unreal',
-  CORS: 'cors',
-  NO_EVENT_PAYLOAD: 'no_event_payload',
-  EMPTY_ENVELOPE: 'empty_envelope',
-  INVALID_REPLAY_NO_PAYLOAD: 'invalid_replay_no_payload',
-  TRANSACTION_SAMPLED: 'transaction_sampled',
-  INTERNAL: 'internal',
-  MULTI_PROJECT_ID: 'multi_project_id',
-  PROJECT_STATE: 'project_state',
-  PROJECT_STATE_PII: 'project_state_pii',
-  INVALID_REPLAY_PII_SCRUBBER_FAILED: 'invalid_replay_pii_scrubber_failed',
-  FEATURE_DISABLED: 'feature_disabled',
-};
+enum DiscardReason {
+  DUPLICATE = 'duplicate',
+  PROJECT_ID = 'project_id',
+  AUTH_VERSION = 'auth_version',
+  AUTH_CLIENT = 'auth_client',
+  NO_DATA = 'no_data',
+  DISALLOWED_METHOD = 'disallowed_method',
+  CONTENT_TYPE = 'content_type',
+  INVALID_MULTIPART = 'invalid_multipart',
+  INVALID_MSGPACK = 'invalid_msgpack',
+  INVALID_JSON = 'invalid_json',
+  INVALID_ENVELOPE = 'invalid_envelope',
+  TIMESTAMP = 'timestamp',
+  DUPLICATE_ITEM = 'duplicate_item',
+  INVALID_TRANSACTION = 'invalid_transaction',
+  INVALID_SPAN = 'invalid_span',
+  INVALID_REPLAY = 'invalid_replay',
+  INVALID_REPLAY_RECORDING = 'invalid_replay_recording',
+  INVALID_REPLAY_VIDEO = 'invalid_replay_video',
+  PAYLOAD = 'payload',
+  INVALID_COMPRESSION = 'invalid_compression',
+  TOO_LARGE = 'too_large',
+  MISSING_MINIDUMP_UPLOAD = 'missing_minidump_upload',
+  INVALID_MINIDUMP = 'invalid_minidump',
+  SECURITY_REPORT = 'security_report',
+  SECURITY_REPORT_TYPE = 'security_report_type',
+  PROCESS_UNREAL = 'process_unreal',
+  CORS = 'cors',
+  NO_EVENT_PAYLOAD = 'no_event_payload',
+  EMPTY_ENVELOPE = 'empty_envelope',
+  INVALID_REPLAY_NO_PAYLOAD = 'invalid_replay_no_payload',
+  TRANSACTION_SAMPLED = 'transaction_sampled',
+  INTERNAL = 'internal',
+  MULTI_PROJECT_ID = 'multi_project_id',
+  PROJECT_STATE = 'project_state',
+  PROJECT_STATE_PII = 'project_state_pii',
+  INVALID_REPLAY_PII_SCRUBBER_FAILED = 'invalid_replay_pii_scrubber_failed',
+  FEATURE_DISABLED = 'feature_disabled',
+}
 
 // Invalid reasons should not be exposed directly, but instead in the following groups:
 const invalidReasonsGroup = {
@@ -237,9 +237,9 @@ const invalidReasonsGroup = {
 
 export function getInvalidReasonGroupName(reason: string) {
   for (const [group, reasons] of Object.entries(invalidReasonsGroup)) {
-    if (reasons.includes(reason)) {
+    if (reasons.includes(reason as DiscardReason)) {
       return group;
     }
   }
-  return reason;
+  return 'other';
 }

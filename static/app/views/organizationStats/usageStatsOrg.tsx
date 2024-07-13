@@ -2,9 +2,7 @@ import type {MouseEvent as ReactMouseEvent} from 'react';
 import {Fragment} from 'react';
 import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
-import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
-import startCase from 'lodash/startCase';
 import moment from 'moment-timezone';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
@@ -18,32 +16,19 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import NotAvailable from 'sentry/components/notAvailable';
 import type {ScoreCardProps} from 'sentry/components/scoreCard';
 import ScoreCard from 'sentry/components/scoreCard';
-import {DATA_CATEGORY_INFO, DEFAULT_STATS_PERIOD} from 'sentry/constants';
+import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {DataCategoryInfo, IntervalPeriod, Organization} from 'sentry/types';
-import {Outcome} from 'sentry/types';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 
-import {
-  FORMAT_DATETIME_DAILY,
-  FORMAT_DATETIME_HOURLY,
-  getDateFromMoment,
-} from './usageChart/utils';
-import type {UsageSeries, UsageStat} from './types';
+import {FORMAT_DATETIME_DAILY, FORMAT_DATETIME_HOURLY} from './usageChart/utils';
+import {mapSeriesToChart} from './mapSeriesToChart';
+import type {UsageSeries} from './types';
 import type {ChartStats, UsageChartProps} from './usageChart';
-import UsageChart, {
-  CHART_OPTIONS_DATA_TRANSFORM,
-  ChartDataTransform,
-  SeriesTypes,
-} from './usageChart';
+import UsageChart, {CHART_OPTIONS_DATA_TRANSFORM, ChartDataTransform} from './usageChart';
 import UsageStatsPerMin from './usageStatsPerMin';
-import {
-  formatUsageWithUnits,
-  getFormatUsageOptions,
-  getInvalidReasonGroupName,
-  isDisplayUtc,
-} from './utils';
+import {isDisplayUtc} from './utils';
 
 export interface UsageStatsOrganizationProps extends WithRouterProps {
   dataCategory: DataCategoryInfo['plural'];
@@ -153,7 +138,13 @@ class UsageStatsOrganization<
     dataError?: Error;
   } {
     return {
-      ...this.mapSeriesToChart(this.state.orgStats),
+      ...mapSeriesToChart({
+        orgStats: this.state.orgStats,
+        chartDateInterval: this.chartDateRange.chartDateInterval,
+        chartDateUtc: this.chartDateRange.chartDateUtc,
+        dataCategory: this.props.dataCategory,
+        endpointQuery: this.endpointQuery,
+      }),
       ...this.chartDateRange,
       ...this.chartTransform,
     };
@@ -334,218 +325,6 @@ class UsageStatsOrganization<
       },
     };
     return cardMetadata;
-  }
-
-  mapSeriesToChart(orgStats?: UsageSeries): {
-    cardStats: {
-      accepted?: string;
-      filtered?: string;
-      invalid?: string;
-      rateLimited?: string;
-      total?: string;
-    };
-    chartStats: ChartStats;
-    chartSubLabels: TooltipSubLabel[];
-    dataError?: Error;
-  } {
-    const cardStats = {
-      total: undefined,
-      accepted: undefined,
-      filtered: undefined,
-      invalid: undefined,
-      rateLimited: undefined,
-    };
-    const chartStats: ChartStats = {
-      accepted: [],
-      filtered: [],
-      rateLimited: [],
-      invalid: [],
-      clientDiscard: [],
-      projected: [],
-    };
-    const chartSubLabels: TooltipSubLabel[] = [];
-
-    if (!orgStats) {
-      return {cardStats, chartStats, chartSubLabels};
-    }
-
-    try {
-      const {dataCategory} = this.props;
-      const {chartDateInterval, chartDateUtc} = this.chartDateRange;
-
-      const usageStats: UsageStat[] = orgStats.intervals.map(interval => {
-        const dateTime = moment(interval);
-
-        return {
-          date: getDateFromMoment(dateTime, chartDateInterval, chartDateUtc),
-          total: 0,
-          accepted: 0,
-          filtered: 0,
-          rateLimited: 0,
-          invalid: 0,
-          clientDiscard: 0,
-        };
-      });
-
-      // Tally totals for card data
-      const count = {
-        total: 0,
-        [Outcome.ACCEPTED]: 0,
-        [Outcome.FILTERED]: 0,
-        [Outcome.INVALID]: 0,
-        [Outcome.RATE_LIMITED]: 0, // Combined with dropped later
-        [Outcome.CLIENT_DISCARD]: 0,
-        [Outcome.CARDINALITY_LIMITED]: 0, // Combined with dropped later
-        [Outcome.ABUSE]: 0, // Combined with dropped later
-      };
-
-      orgStats.groups.forEach(group => {
-        const {outcome, category} = group.by;
-
-        // HACK: The backend enum are singular, but the frontend enums are plural
-        const fullDataCategory = Object.values(DATA_CATEGORY_INFO).find(
-          data => data.plural === dataCategory
-        );
-        if (fullDataCategory?.apiName !== category) {
-          return;
-        }
-
-        if (outcome !== Outcome.CLIENT_DISCARD) {
-          count.total += group.totals['sum(quantity)'];
-        }
-
-        count[outcome] += group.totals['sum(quantity)'];
-
-        group.series['sum(quantity)'].forEach((stat, i) => {
-          const dataObject = {
-            name: orgStats.intervals[i],
-            value: stat,
-          };
-
-          const strigfiedReason = String(group.by.reason ?? '');
-          const reason =
-            outcome === Outcome.INVALID
-              ? getInvalidReasonGroupName(strigfiedReason)
-              : strigfiedReason;
-
-          const label = startCase(reason.replace(/-|_/g, ' '));
-          const existingSubLabel = chartSubLabels.find(
-            subLabel => subLabel.label === label
-          );
-
-          // Combine rate limited counts
-          count[Outcome.RATE_LIMITED] +=
-            count[Outcome.ABUSE] + count[Outcome.CARDINALITY_LIMITED];
-
-          // Function to handle chart sub-label updates
-          const updateChartSubLabels = (parentLabel: SeriesTypes) => {
-            if (existingSubLabel) {
-              existingSubLabel.data.push(dataObject);
-            } else {
-              chartSubLabels.push({
-                parentLabel,
-                label,
-                data: [dataObject],
-              });
-            }
-          };
-
-          switch (outcome) {
-            case Outcome.FILTERED:
-              usageStats[i].filtered += stat;
-              updateChartSubLabels(SeriesTypes.FILTERED);
-              break;
-            case Outcome.ACCEPTED:
-              usageStats[i].accepted += stat;
-              break;
-            case Outcome.CARDINALITY_LIMITED:
-            case Outcome.RATE_LIMITED:
-            case Outcome.ABUSE:
-              usageStats[i].rateLimited += stat;
-              updateChartSubLabels(SeriesTypes.RATE_LIMITED);
-              break;
-            case Outcome.CLIENT_DISCARD:
-              usageStats[i].clientDiscard += stat;
-              updateChartSubLabels(SeriesTypes.CLIENT_DISCARD);
-              break;
-            case Outcome.INVALID:
-              usageStats[i].invalid += stat;
-              updateChartSubLabels(SeriesTypes.INVALID);
-              break;
-            default:
-              break;
-          }
-        });
-      });
-
-      usageStats.forEach(stat => {
-        stat.total = [
-          stat.accepted,
-          stat.filtered,
-          stat.rateLimited,
-          stat.invalid,
-          stat.clientDiscard,
-        ].reduce((acc, val) => acc + val, 0);
-
-        // Chart Data
-        const chartData = [
-          {key: 'accepted', value: stat.accepted},
-          {key: 'filtered', value: stat.filtered},
-          {key: 'rateLimited', value: stat.rateLimited},
-          {key: 'invalid', value: stat.invalid},
-          {key: 'clientDiscard', value: stat.clientDiscard},
-        ];
-
-        chartData.forEach(data => {
-          (chartStats[data.key] as any[]).push({value: [stat.date, data.value]});
-        });
-      });
-
-      return {
-        cardStats: {
-          total: formatUsageWithUnits(
-            count.total,
-            dataCategory,
-            getFormatUsageOptions(dataCategory)
-          ),
-          accepted: formatUsageWithUnits(
-            count[Outcome.ACCEPTED],
-            dataCategory,
-            getFormatUsageOptions(dataCategory)
-          ),
-          filtered: formatUsageWithUnits(
-            count[Outcome.FILTERED],
-            dataCategory,
-            getFormatUsageOptions(dataCategory)
-          ),
-          invalid: formatUsageWithUnits(
-            count[Outcome.INVALID],
-            dataCategory,
-            getFormatUsageOptions(dataCategory)
-          ),
-          rateLimited: formatUsageWithUnits(
-            count[Outcome.RATE_LIMITED],
-            dataCategory,
-            getFormatUsageOptions(dataCategory)
-          ),
-        },
-        chartStats,
-        chartSubLabels,
-      };
-    } catch (err) {
-      Sentry.withScope(scope => {
-        scope.setContext('query', this.endpointQuery);
-        scope.setContext('body', {...orgStats});
-        Sentry.captureException(err);
-      });
-
-      return {
-        cardStats,
-        chartStats,
-        chartSubLabels,
-        dataError: new Error('Failed to parse stats data'),
-      };
-    }
   }
 
   renderCards() {
