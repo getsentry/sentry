@@ -16,7 +16,7 @@ import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQue
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
-import type {AggregationOutputType, QueryFieldValue} from 'sentry/utils/discover/fields';
+import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import type {
   DiscoverQueryExtras,
   DiscoverQueryRequestParams,
@@ -31,7 +31,6 @@ import {getShortEventId} from 'sentry/utils/events';
 import {FieldKey} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
-import {shouldUseOnDemandMetrics} from 'sentry/utils/performance/contexts/onDemandControl';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
 import {FieldValueKind} from 'sentry/views/discover/table/types';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
@@ -58,6 +57,8 @@ const DEFAULT_WIDGET_QUERY: WidgetQuery = {
 
 export type SeriesWithOrdering = [order: number, series: Series];
 
+// TODO: Commented out functions will be given implementations
+// to be able to make events-stats requests
 export const ErrorsConfig: DatasetConfig<
   EventsStats | MultiSeriesEventsStats,
   TableData | EventsTableData
@@ -66,42 +67,28 @@ export const ErrorsConfig: DatasetConfig<
   enableEquations: true,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
   SearchBar: EventsSearchBar,
-  filterSeriesSortOptions,
-  filterYAxisAggregateParams,
-  filterYAxisOptions,
+  // filterSeriesSortOptions,
+  // filterYAxisAggregateParams,
+  // filterYAxisOptions,
   getTableFieldOptions: getEventsTableFieldOptions,
-  getTimeseriesSortOptions,
+  // getTimeseriesSortOptions,
   getTableSortOptions,
   getGroupByFieldOptions: getEventsTableFieldOptions,
   handleOrderByReset,
   supportedDisplayTypes: [DisplayType.TABLE],
   getTableRequest: (
     api: Client,
-    widget: Widget,
+    _widget: Widget,
     query: WidgetQuery,
     organization: Organization,
     pageFilters: PageFilters,
-    onDemandControlContext?: OnDemandControlContext,
+    _onDemandControlContext?: OnDemandControlContext,
     limit?: number,
     cursor?: string,
     referrer?: string,
     mepSetting?: MEPState | null
   ) => {
-    const url = `/organizations/${organization.slug}/events/`;
-
-    const useOnDemandMetrics = shouldUseOnDemandMetrics(
-      organization,
-      widget,
-      onDemandControlContext
-    );
-    const queryExtras = {
-      useOnDemandMetrics,
-      ...getQueryExtraForSplittingDiscover(widget, organization, !!useOnDemandMetrics),
-      onDemandType: 'dynamic_query',
-      dataset: 'errors',
-    };
     return getEventsRequest(
-      url,
       api,
       query,
       organization,
@@ -109,15 +96,11 @@ export const ErrorsConfig: DatasetConfig<
       limit,
       cursor,
       referrer,
-      mepSetting,
-      queryExtras
+      mepSetting
     );
   },
-  getSeriesRequest: getEventsSeriesRequest,
-  transformSeries: transformEventsResponseToSeries,
   transformTable: transformEventsResponseToTable,
   filterAggregateParams,
-  getSeriesResultType,
 };
 
 function getEventsTableFieldOptions(
@@ -207,10 +190,9 @@ export function getCustomEventsFieldRenderer(field: string, meta: MetaType) {
 }
 
 function getEventsRequest(
-  url: string,
   api: Client,
   query: WidgetQuery,
-  _organization: Organization,
+  organization: Organization,
   pageFilters: PageFilters,
   limit?: number,
   cursor?: string,
@@ -218,6 +200,7 @@ function getEventsRequest(
   _mepSetting?: MEPState | null,
   queryExtras?: DiscoverQueryExtras
 ) {
+  const url = `/organizations/${organization.slug}/events/`;
   const eventView = eventViewFromWidget('', query, pageFilters);
 
   const params: DiscoverQueryRequestParams = {
@@ -260,75 +243,4 @@ function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryField
     return false;
   }
   return true;
-}
-
-const shouldSendWidgetForSplittingDiscover = (organization: Organization) => {
-  return organization.features.includes('performance-discover-dataset-selector');
-};
-
-const getQueryExtraForSplittingDiscover = (
-  widget: Widget,
-  organization: Organization,
-  useOnDemandMetrics: boolean
-) => {
-  if (!useOnDemandMetrics || !shouldSendWidgetForSplittingDiscover(organization)) {
-    return {};
-  }
-  if (widget.id) {
-    return {dashboardWidgetId: widget.id};
-  }
-  return {};
-};
-
-// TODO: Implement these functions to support events-stats requests
-// and update the return type
-function filterSeriesSortOptions(_columns: Set<string>): any {
-  throw new Error('Not implemented');
-}
-
-function getTimeseriesSortOptions(
-  _organization: Organization,
-  _widgetQuery: WidgetQuery,
-  _tags?: TagCollection
-): any {
-  throw new Error('Not implemented');
-}
-
-function filterYAxisAggregateParams(
-  _fieldValue: QueryFieldValue,
-  _displayType: DisplayType
-): any {
-  throw new Error('Not implemented');
-}
-
-function filterYAxisOptions(_displayType: DisplayType): any {
-  throw new Error('Not implemented');
-}
-
-function transformEventsResponseToSeries(
-  _data: EventsStats | MultiSeriesEventsStats,
-  _widgetQuery: WidgetQuery
-): Series[] {
-  throw new Error('Not implemented');
-}
-
-// Get the series result type from the EventsStats meta
-function getSeriesResultType(
-  _data: EventsStats | MultiSeriesEventsStats,
-  _widgetQuery: WidgetQuery
-): Record<string, AggregationOutputType> {
-  throw new Error('Not implemented');
-}
-
-function getEventsSeriesRequest(
-  _api: Client,
-  _widget: Widget,
-  _queryIndex: number,
-  _organization: Organization,
-  _pageFilters: PageFilters,
-  _onDemandControlContext?: OnDemandControlContext,
-  _referrer?: string,
-  _mepSetting?: MEPState | null
-): any {
-  throw new Error('Not implemented');
 }
