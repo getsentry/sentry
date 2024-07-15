@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {useCallback, useEffect, useRef, useState} from 'react';
+import {useCallback, useState} from 'react';
 import type {Location} from 'history';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
@@ -11,13 +11,13 @@ import {uniq} from 'sentry/utils/array/uniq';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {buildEventViewQuery} from 'sentry/views/insights/common/utils/buildEventViewQuery';
 import {setMerge, useArrayCache} from 'sentry/views/insights/common/utils/useArrayCache';
+import {useWasSearchSpaceExhausted} from 'sentry/views/insights/common/utils/useWasSearchSpaceExhausted';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {EmptyContainer} from 'sentry/views/insights/common/views/spans/selectors/emptyOption';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
@@ -32,10 +32,6 @@ type Props = {
 
 interface DomainData {
   'span.domain': string[];
-}
-
-interface DomainCacheValue {
-  initialLoadHadMoreData: boolean;
 }
 
 export function DomainSelector({
@@ -78,6 +74,12 @@ export function DomainSelector({
     referrer: 'api.starfish.get-span-domains',
   });
 
+  const wasSearchSpaceExhausted = useWasSearchSpaceExhausted({
+    query: domainQuery,
+    isLoading,
+    pageLinks,
+  });
+
   const incomingDomains = [
     ...uniq(domainData?.flatMap(row => row[SpanMetricsField.SPAN_DOMAIN])),
   ];
@@ -89,20 +91,6 @@ export function DomainSelector({
     },
     mergeFn: setMerge,
   });
-
-  // Cache for all previously seen domains
-  const domainCache = useRef<DomainCacheValue>({
-    initialLoadHadMoreData: true,
-  });
-
-  // When caching the unfiltered domain data result, check if it had more data. If not, there's no point making any more requests when users update the search filter that narrows the search
-  useEffect(() => {
-    if (domainQuery === '' && !isLoading) {
-      const {next} = parseLinkHeader(pageLinks ?? '');
-
-      domainCache.current.initialLoadHadMoreData = next?.results ?? false;
-    }
-  }, [domainQuery, pageLinks, isLoading]);
 
   const emptyOption = {
     value: EMPTY_OPTION_VALUE,
@@ -134,8 +122,7 @@ export function DomainSelector({
       onInputChange={input => {
         setSearchInputValue(input);
 
-        // If the initial query didn't fetch all the domains, update the search query and fire off a new query with the given search
-        if (domainCache.current.initialLoadHadMoreData) {
+        if (!wasSearchSpaceExhausted) {
           debouncedSetSearch(input);
         }
       }}
