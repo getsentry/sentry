@@ -16,12 +16,14 @@ from sentry.rules.conditions.event_frequency import (
     EventFrequencyCondition,
     EventFrequencyConditionData,
 )
-from sentry.rules.processing.delayed_processing import (  # bulk_fetch_events; get_group_to_groupevent; parse_rulegroup_to_event_data,
+from sentry.rules.processing.delayed_processing import (
     DataAndGroups,
     UniqueConditionQuery,
     apply_delayed,
     generate_unique_queries,
     get_condition_group_results,
+    apply_delayed,
+    bucket_num_groups,
     get_condition_query_groups,
     get_rules_to_groups,
     get_rules_to_slow_conditions,
@@ -42,6 +44,13 @@ pytestmark = pytest.mark.sentry_metrics
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
 TEST_RULE_SLOW_CONDITION = {"id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition"}
 TEST_RULE_FAST_CONDITION = {"id": "sentry.rules.conditions.every_event.EveryEventCondition"}
+
+
+def test_bucket_num_groups():
+    assert bucket_num_groups(1) == "1"
+    assert bucket_num_groups(50) == ">10"
+    assert bucket_num_groups(101) == ">100"
+    assert bucket_num_groups(1001) == ">1000"
 
 
 def mock_get_condition_group(descending=False):

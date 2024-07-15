@@ -375,10 +375,6 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             batch_totals.update(result)
         return batch_totals
 
-    def get_group_category_by_type_id(self, type_id: int) -> GroupCategory:
-        issue_type = get_group_type_by_type_id(type_id)
-        return GroupCategory(issue_type.category)
-
     def get_error_and_generic_group_ids(
         self, groups: list[tuple[int, int, int]]
     ) -> tuple[list[int], list[int]]:
@@ -389,7 +385,8 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         error_issue_ids = []
 
         for group in groups:
-            if self.get_group_category_by_type_id(group[1]) == GroupCategory.ERROR:
+            issue_type = get_group_type_by_type_id(group[1])
+            if GroupCategory(issue_type.category) == GroupCategory.ERROR:
                 error_issue_ids.append(group[0])
             else:
                 generic_issue_ids.append(group[0])

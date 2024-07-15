@@ -1,4 +1,5 @@
 import logging
+import math
 import uuid
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
@@ -394,16 +395,9 @@ def get_group_to_groupevent(
 
 
 def bucket_num_groups(num_groups: int) -> str:
-    if num_groups > 10000:
-        return ">10000"
-    elif num_groups > 1000:
-        return ">1000"
-    elif num_groups > 100:
-        return ">100"
-    elif num_groups > 10:
-        return ">10"
-    elif num_groups > 1:
-        return ">1"
+    if num_groups > 1:
+        magnitude = 10 ** int(math.log10(num_groups))
+        return f">{magnitude}"
     return "1"
 
 
