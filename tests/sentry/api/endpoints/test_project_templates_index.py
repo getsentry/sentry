@@ -14,21 +14,21 @@ class ProjectTemplateIndexTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.user = self.create_user()
-        self.org = self.create_organization()
-        self.team = self.create_team(organization=self.org, members=[self.user])
+        self.organization = self.create_organization()
+        self.team = self.create_team(members=[self.user])
 
         self.login_as(self.user)
 
-        self.project_template = self.create_project_template(organization=self.org)
-        self.project_template_two = self.create_project_template(organization=self.org)
+        self.project_template = self.create_project_template(organization=self.organization)
+        self.project_template_two = self.create_project_template(organization=self.organization)
 
     def test_get__no_feature(self):
-        response = self.get_error_response(self.org.id, status_code=404)
+        response = self.get_error_response(self.organization.id, status_code=404)
         assert response.status_code == 404
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
     def test_get(self):
-        response = self.get_success_response(self.org.id)
+        response = self.get_success_response(self.organization.id)
         assert len(response.data) == 2
 
         # Ensure the project templates are sorted by date_added
@@ -41,7 +41,7 @@ class ProjectTemplateIndexTest(APITestCase):
         self.project_template.delete()
         self.project_template_two.delete()
 
-        response = self.get_success_response(self.org.id)
+        response = self.get_success_response(self.organization.id)
         assert len(response.data) == 0
 
     @mark.skip("TODO Implement tests for pagination")
@@ -66,20 +66,20 @@ class ProjectTemplateIndexPostTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.user = self.create_user()
-        self.org = self.create_organization(owner=self.user)
-        self.team = self.create_team(organization=self.org, members=[self.user])
+        self.organization = self.create_organization(owner=self.user)
+        self.team = self.create_team(members=[self.user])
 
         self.login_as(self.user)
 
-        self.project_template = self.create_project_template(organization=self.org)
-        self.project_template_two = self.create_project_template(organization=self.org)
+        self.project_template = self.create_project_template(organization=self.organization)
+        self.project_template_two = self.create_project_template(organization=self.organization)
 
     def test_post__no_feature(self):
-        response = self.get_error_response(self.org.id, method="POST", status_code=404)
+        response = self.get_error_response(self.organization.id, method="POST", status_code=404)
         assert response.status_code == 404
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
-    def test_post__non_admin(self):
+    def test_post__as_member(self):
         org_two = self.create_organization()
         self.create_team(organization=org_two, members=[self.user])
         self.create_project_template(organization=org_two)
@@ -90,7 +90,7 @@ class ProjectTemplateIndexPostTest(APITestCase):
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
     def test_post(self):
         response = self.get_success_response(
-            self.org.id, method="POST", name="Test Project Template"
+            self.organization.id, method="POST", name="Test Project Template"
         )
         assert response.status_code == 201
 
@@ -98,7 +98,7 @@ class ProjectTemplateIndexPostTest(APITestCase):
     def test_post__with_options(self):
         test_options = {"test-key": "value"}
         response = self.get_success_response(
-            self.org.id,
+            self.organization.id,
             method="POST",
             name="Test Project Template",
             options=test_options,
@@ -111,14 +111,14 @@ class ProjectTemplateIndexPostTest(APITestCase):
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
     def test_post__no_name(self):
-        response = self.get_error_response(self.org.id, method="POST", status_code=400)
+        response = self.get_error_response(self.organization.id, method="POST", status_code=400)
         assert response.status_code == 400
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
     @patch("sentry.api.base.create_audit_entry")
     def test_post__audit_log(self, mock_audit):
         self.get_success_response(
-            self.org.id,
+            self.organization.id,
             method="POST",
             name="Test Project Template",
         )
