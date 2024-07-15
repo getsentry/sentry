@@ -17,7 +17,6 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
-import {DEFAULT_METRICS_CARDINALITY_LIMIT} from 'sentry/utils/metrics/constants';
 import {useMetricsCardinality} from 'sentry/utils/metrics/useMetricsCardinality';
 import {useMembers} from 'sentry/utils/useMembers';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -165,13 +164,19 @@ function RulesTable({
           return (
             <Fragment key={rule.spanAttribute + rule.unit}>
               <Cell>
-                {getMaxCardinality(rule) >= DEFAULT_METRICS_CARDINALITY_LIMIT ? (
+                {getMaxCardinality(rule) > 0 ? (
                   <Tooltip
                     title={t(
                       'Some of your defined queries are exeeding the cardinality limit. Remove tags or add filters to receive accurate data.'
                     )}
+                    containerDisplayMode="inline-flex"
                   >
-                    <IconWarning size="xs" color="yellow300" />
+                    <IconWarning
+                      size="xs"
+                      color="yellow300"
+                      role="img"
+                      aria-label={t('Exceeding the cardinality limit warning')}
+                    />
                   </Tooltip>
                 ) : null}
                 {rule.spanAttribute}

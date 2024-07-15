@@ -13,7 +13,6 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricMeta} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
-import {DEFAULT_METRICS_CARDINALITY_LIMIT} from 'sentry/utils/metrics/constants';
 import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI, isExtractedCustomMetric} from 'sentry/utils/metrics/mri';
@@ -151,7 +150,7 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
   const {hasAccess} = useAccess({access: ['project:write'], project});
   const cardinalityLimit =
     // Retrive limit from BE
-    project.relayCustomMetricCardinalityLimit ?? DEFAULT_METRICS_CARDINALITY_LIMIT;
+    project.relayCustomMetricCardinalityLimit ?? 140000;
 
   return (
     <MetricsPanelTable

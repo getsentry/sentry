@@ -10,10 +10,10 @@ type Props = {
 const CARDINALITY_QUERIES = [
   {
     name: 'a',
-    mri: 'g:metric_stats/cardinality@none',
-    aggregation: 'max',
+    mri: 'c:metric_stats/volume@none',
+    aggregation: 'sum',
     groupBy: ['mri'],
-    query: '!mri:"" cardinality.window:3600',
+    query: '!mri:"" outcome.id:6',
     orderBy: 'desc' as 'desc' | 'asc',
   } as MetricsQueryApiQueryParams,
 ];
