@@ -16,7 +16,7 @@ import {DatePicker} from 'sentry/components/calendar';
 import Checkbox from 'sentry/components/checkbox';
 import {inputStyles} from 'sentry/components/input';
 import {Overlay} from 'sentry/components/overlay';
-import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/filterValueParser/date/parser';
+import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
 import {Token} from 'sentry/components/searchSyntax/parser';
 import {IconArrow} from 'sentry/icons';
 import {t} from 'sentry/locale';

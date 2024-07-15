@@ -689,6 +689,9 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
   );
 }
 
+/**
+ * A combobox component which is used in freeText tokens and filter values.
+ */
 export const SearchQueryBuilderCombobox = forwardRef(SearchQueryBuilderComboboxInner) as <
   T extends SelectOptionWithKey<string>,
 >(

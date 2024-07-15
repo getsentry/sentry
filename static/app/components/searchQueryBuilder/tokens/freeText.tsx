@@ -7,18 +7,18 @@ import type {KeyboardEvent, Node} from '@react-types/shared';
 import type Fuse from 'fuse.js';
 
 import {getEscapedKey} from 'sentry/components/compactSelect/utils';
-import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/combobox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
+import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
+import {replaceTokensWithPadding} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
+import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
+import {
+  getDefaultFilterValue,
+  useShiftFocusToChild,
+} from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {
   FilterKeySection,
   FocusOverride,
 } from 'sentry/components/searchQueryBuilder/types';
-import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/useQueryBuilderGridItem';
-import {replaceTokensWithPadding} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
-import {
-  getDefaultFilterValue,
-  useShiftFocusToChild,
-} from 'sentry/components/searchQueryBuilder/utils';
 import {
   type ParseResultToken,
   Token,
@@ -492,7 +492,11 @@ function SearchQueryBuilderInputInternal({
   );
 }
 
-export function SearchQueryBuilderInput({
+/**
+ * Takes a freeText token and renders a combobox which can be used for modifying
+ * the text value or creating new filters.
+ */
+export function SearchQueryBuilderFreeText({
   token,
   state,
   item,
