@@ -39,11 +39,9 @@ import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
-import {
-  EventUserFeedback,
-  EventUserFeedbackHiddenState,
-} from 'sentry/components/events/userFeedback';
+import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import LazyLoad from 'sentry/components/lazyLoad';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -133,6 +131,9 @@ function DefaultGroupEventDetailsContent({
     projectId: project.id,
   });
 
+  // default to show on error or isPromptDismissed === undefined
+  const showFeedback = !isPromptDismissed || promptError;
+
   return (
     <Fragment>
       {hasActionableItems && (
@@ -152,34 +153,32 @@ function DefaultGroupEventDetailsContent({
           title={t('User Feedback')}
           type="user-feedback"
           actions={
-            // Button is disabled if promptLoading or promptError.
             <ErrorBoundary mini>
               <Button
                 size="xs"
-                onClick={isPromptDismissed ? showPrompt : dismissPrompt}
+                onClick={showFeedback ? dismissPrompt : showPrompt}
                 title={
-                  isPromptDismissed
-                    ? t('Unhide feedback on all issue details')
-                    : t('Hide feedback on all issue details')
+                  showFeedback
+                    ? t('Hide feedback on all issue details')
+                    : t('Unhide feedback on all issue details')
                 }
-                disabled={promptError || promptLoading || isPromptDismissed === undefined}
+                disabled={promptError || promptLoading}
               >
-                {isPromptDismissed ? t('Show') : t('Hide')}
+                {showFeedback ? t('Hide') : t('Show')}
               </Button>
             </ErrorBoundary>
           }
         >
-          {promptLoading || promptError || !isPromptDismissed ? (
-            // Shows the feedback if the prompt API is slow or failing.
+          {promptLoading ? (
+            <LoadingIndicator />
+          ) : showFeedback ? (
             <EventUserFeedback
               report={event.userReport}
               orgSlug={organization.slug}
               issueId={group.id}
               showEventLink={false}
             />
-          ) : (
-            <EventUserFeedbackHiddenState />
-          )}
+          ) : null}
         </EventDataSection>
       )}
       {event.type === EventOrGroupType.ERROR &&

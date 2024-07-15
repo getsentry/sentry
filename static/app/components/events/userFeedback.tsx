@@ -99,7 +99,3 @@ const ViewEventLink = styled(Link)`
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: 0.9em;
 `;
-
-export function EventUserFeedbackHiddenState() {
-  return '- Hidden -';
-}
