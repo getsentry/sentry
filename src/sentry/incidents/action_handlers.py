@@ -29,6 +29,7 @@ from sentry.incidents.models.incident import (
 from sentry.integrations.types import ExternalProviders
 from sentry.models.project import Project
 from sentry.models.rulesnooze import RuleSnooze
+from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.notifications.types import NotificationSettingEnum
 from sentry.notifications.utils.participants import get_notification_recipients
@@ -134,6 +135,7 @@ class EmailActionHandler(ActionHandler):
             return set()
 
         if self.action.target_type == AlertRuleTriggerAction.TargetType.USER.value:
+            assert isinstance(target, RpcUser)
             if RuleSnooze.objects.is_snoozed_for_user(
                 user_id=target.id, alert_rule=self.incident.alert_rule
             ):
@@ -142,6 +144,7 @@ class EmailActionHandler(ActionHandler):
             return {target.id}
 
         elif self.action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
+            assert isinstance(target, Team)
             out = get_notification_recipients(
                 recipients=list(
                     Actor(id=member.user_id, actor_type=ActorType.USER)
@@ -169,7 +172,7 @@ class EmailActionHandler(ActionHandler):
         metric_value: int | float,
         new_status: IncidentStatus,
         notification_uuid: str | None = None,
-    ):
+    ) -> None:
         self.email_users(
             trigger_status=TriggerStatus.ACTIVE,
             incident_status=new_status,
@@ -181,7 +184,7 @@ class EmailActionHandler(ActionHandler):
         metric_value: int | float,
         new_status: IncidentStatus,
         notification_uuid: str | None = None,
-    ):
+    ) -> None:
         self.email_users(
             trigger_status=TriggerStatus.RESOLVED,
             incident_status=new_status,
