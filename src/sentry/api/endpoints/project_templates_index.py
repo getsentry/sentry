@@ -10,7 +10,10 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.models.project_template import ProjectTemplateSerializer
+from sentry.api.serializers.models.project_template import (
+    ProjectTemplateSerializer,
+    ProjectTemplateWriteSerializer,
+)
 from sentry.models.organization import Organization
 from sentry.models.projecttemplate import ProjectTemplate
 
@@ -71,22 +74,20 @@ class OrganizationProjectTemplatesIndexEndpoint(OrganizationEndpoint):
 
         Create a new project template for the organization.
         """
-        name = request.data.get("name", None)
+        serializer = ProjectTemplateWriteSerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(status=400, data=serializer.errors)
 
-        if name is None:
-            return Response(status=400, data={"detail": "Template name is required"})
-
-        # TODO @saponifi3d - Rate Limiting once we know the limits
+        data = serializer.validated_data
 
         project_template = ProjectTemplate.objects.create(
-            name=name,
+            name=data.get("name"),
             organization=organization,
         )
 
-        options = request.data.get("options", None)
-        if options:
-            for key, value in options.items():
-                project_template.options.create(key=key, value=value)
+        options = data.get("options", {})
+        for key, value in options.items():
+            project_template.options.create(key=key, value=value)
 
         self.create_audit_entry(
             request=request,
