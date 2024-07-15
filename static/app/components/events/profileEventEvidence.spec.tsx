@@ -20,6 +20,11 @@ describe('ProfileEventEvidence', function () {
           transactionName: 'SomeTransaction',
         },
       },
+      contexts: {
+        trace: {
+          trace_id: 'trace-id',
+        },
+      },
     }),
     group: GroupFixture({
       issueCategory: IssueCategory.PROFILE,
