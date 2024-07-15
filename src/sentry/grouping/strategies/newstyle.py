@@ -439,8 +439,6 @@ def get_contextline_component(
 def stacktrace(
     interface: Stacktrace, event: Event, context: GroupingContext, **meta: Any
 ) -> ReturnedVariants:
-    assert context["variant"] is None
-
     return call_with_variants(
         _single_stacktrace_variant,
         ["!system", "app"],
