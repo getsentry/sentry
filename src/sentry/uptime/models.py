@@ -65,6 +65,7 @@ class ProjectUptimeSubscription(DefaultFieldsModel):
     uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription", on_delete=models.PROTECT)
     mode = models.SmallIntegerField(default=ProjectUptimeSubscriptionMode.MANUAL.value)
     uptime_status = models.PositiveSmallIntegerField(default=UptimeStatus.OK.value)
+    # (Likely) temporary column to keep track of the current uptime status of this monitor
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=["pk"], cache_ttl=int(timedelta(hours=1).total_seconds())

@@ -25,9 +25,20 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="projectuptimesubscription",
-            name="uptime_status",
-            field=models.PositiveSmallIntegerField(default=1),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    'ALTER TABLE "uptime_projectuptimesubscription" ADD COLUMN "uptime_status" smallint DEFAULT 1 NOT NULL CHECK ("uptime_status" >= 0);',
+                    reverse_sql='ALTER TABLE "uptime_projectuptimesubscription" DROP COLUMN "uptime_status";',
+                    hints={"tables": ["uptime_projectuptimesubscription"]},
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="projectuptimesubscription",
+                    name="uptime_status",
+                    field=models.PositiveSmallIntegerField(default=1),
+                ),
+            ],
         ),
     ]
