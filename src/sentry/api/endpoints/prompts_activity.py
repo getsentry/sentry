@@ -1,4 +1,5 @@
 import calendar
+from typing import Any
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
@@ -100,7 +101,7 @@ class PromptsActivityEndpoint(Endpoint):
         else:
             fields["organization_id"] = 0
 
-        data = {}
+        data: dict[str, Any] = {}
         now = calendar.timegm(timezone.now().utctimetuple())
         if status == "snoozed":
             data["snoozed_ts"] = now
