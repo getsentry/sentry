@@ -87,15 +87,13 @@ def convert_to_metric_spec(extraction_rule: MetricsExtractionRule) -> SpanAttrib
     MetricSpec of relay metric extraction config.
     """
 
-    field = _get_field(extraction_rule)
-
     parsed_search_query = event_search.parse_search_query(extraction_rule.condition)
     extended_search_query = _extend_search_query(parsed_search_query)
 
     return {
         "category": "span",
         "mri": extraction_rule.generate_mri(),
-        "field": field,
+        "field": _get_field(extraction_rule),
         "tags": _get_tags(extraction_rule, parsed_search_query),
         "condition": _get_rule_condition(extraction_rule, extended_search_query),
     }
