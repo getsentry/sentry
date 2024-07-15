@@ -50,6 +50,11 @@ class ProjectUptimeSubscriptionMode(enum.IntEnum):
     AUTO_DETECTED_ACTIVE = 3
 
 
+class UptimeStatus(enum.IntEnum):
+    OK = 1
+    FAILED = 2
+
+
 @region_silo_model
 class ProjectUptimeSubscription(DefaultFieldsModel):
     # TODO: This should be included in export/import, but right now it has no relation to
@@ -59,6 +64,7 @@ class ProjectUptimeSubscription(DefaultFieldsModel):
     project = FlexibleForeignKey("sentry.Project")
     uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription", on_delete=models.PROTECT)
     mode = models.SmallIntegerField(default=ProjectUptimeSubscriptionMode.MANUAL.value)
+    uptime_status = models.PositiveSmallIntegerField(default=UptimeStatus.OK.value)
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=["pk"], cache_ttl=int(timedelta(hours=1).total_seconds())
