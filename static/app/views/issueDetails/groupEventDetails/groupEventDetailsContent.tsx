@@ -96,35 +96,6 @@ function GroupEventEntry({event, entryType, group, project}: GroupEventEntryProp
   );
 }
 
-function HideUserFeedbackButton({
-  hideFeedback,
-  isError,
-  isHidden,
-  isLoading,
-  showFeedback,
-}: {
-  hideFeedback: () => void;
-  isError: boolean;
-  isHidden: boolean;
-  isLoading: boolean;
-  showFeedback: () => void;
-}) {
-  return (
-    <Button
-      size="xs"
-      onClick={isHidden ? showFeedback : hideFeedback}
-      title={
-        isHidden
-          ? t('Unhide feedback on all issue details')
-          : t('Hide feedback on all issue details')
-      }
-      disabled={isError || isLoading}
-    >
-      {isHidden ? t('Show') : t('Hide')}
-    </Button>
-  );
-}
-
 function DefaultGroupEventDetailsContent({
   group,
   event,
@@ -183,13 +154,18 @@ function DefaultGroupEventDetailsContent({
           actions={
             // Button is disabled if promptLoading or promptError.
             <ErrorBoundary mini>
-              <HideUserFeedbackButton
-                isLoading={promptLoading}
-                isError={promptError || isPromptDismissed === undefined}
-                isHidden={isPromptDismissed ?? false}
-                showFeedback={showPrompt}
-                hideFeedback={dismissPrompt}
-              />
+              <Button
+                size="xs"
+                onClick={isPromptDismissed ? showPrompt : dismissPrompt}
+                title={
+                  isPromptDismissed
+                    ? t('Unhide feedback on all issue details')
+                    : t('Hide feedback on all issue details')
+                }
+                disabled={promptError || promptLoading || isPromptDismissed === undefined}
+              >
+                {isPromptDismissed ? t('Show') : t('Hide')}
+              </Button>
             </ErrorBoundary>
           }
         >
