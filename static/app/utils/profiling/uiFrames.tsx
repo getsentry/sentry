@@ -13,7 +13,7 @@ export type UIFrameNode = {
   type: 'slow' | 'frozen';
 };
 
-type UIFrameMeasurements = {
+export type UIFrameMeasurements = {
   unit: string;
   values: UIFrameMeasurement[];
 };
