@@ -236,11 +236,11 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
   };
   const additionalTags = getAdditionalIssueTags(organization, issueTags);
   const filterKeySections = useMemo(() => {
-    const allTags = {...issueTags, ...additionalTags};
+    const allTags = {...issueTags, ...additionalTags, ...tags};
     return getFilterKeySections(allTags, organization);
-  }, [organization, issueTags, additionalTags]);
+  }, [organization, issueTags, additionalTags, tags]);
 
-  const filterKeys = {...issueTags, ...additionalTags};
+  const filterKeys = {...issueTags, ...additionalTags, ...tags};
 
   if (organization.features.includes('issue-stream-search-query-builder')) {
     return (
