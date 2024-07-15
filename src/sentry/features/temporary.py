@@ -51,6 +51,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:alert-filters", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enables the migration of alerts (checked in a migration script).
     manager.add("organizations:alerts-migration-enabled", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    # Enable anomaly detection alerts
+    manager.add("organizations:anomaly-detection-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable anr frame analysis
     manager.add("organizations:anr-analyze-frames", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable anr improvements ui
@@ -61,7 +63,7 @@ def register_temporary_features(manager: FeatureManager):
     # Rollout of the new API rate limits for organization events
     manager.add("organizations:api-organization_events-rate-limit-reduced-rollout", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enables the cron job to auto-enable codecov integrations.
-    manager.add("organizations:auto-enable-codecov", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    manager.add("organizations:auto-enable-codecov", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Autofix use new strategy without codebase indexing
     manager.add("organizations:autofix-disable-codebase-indexing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False)
     # Enables getting commit sha from git blame for codecov.
@@ -71,7 +73,7 @@ def register_temporary_features(manager: FeatureManager):
     # Disables legacy cron ingest endpoints
     manager.add("organizations:crons-write-user-feedback", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Enable daily summary
-    manager.add("organizations:daily-summary", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    manager.add("organizations:daily-summary", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable dashboard widget indicators.
     manager.add("organizations:dashboard-widget-indicators", OrganizationFeature, FeatureHandlerStrategy.REMOTE, default=True)
     # Enables import/export functionality for dashboards
@@ -258,6 +260,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-remove-metrics-compatibility-fallback", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable span search bar in Insights module sample panels
     manager.add("organizations:performance-sample-panel-search", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    # Enables new empty state for insight modules
+    manager.add("organizations:insights-empty-state-page", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable platform selector for screens flow
     manager.add("organizations:performance-screens-platform-selector", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable screens view powered by span metrics
@@ -315,6 +319,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:continuous-profiling-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Display profile durations on the stats page
     manager.add("organizations:continuous-profiling-stats", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    # Enable the continuous profiling compatible redesign
+    manager.add("organizations:continuous-profiling-compat", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable asking for feedback after project-create when replay is disabled
     manager.add("organizations:project-create-replay-feedback", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Limit project events endpoint to only query back a certain number of days
@@ -368,8 +374,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:session-replay-mobile-player", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Disable select orgs from ingesting mobile replay events.
     manager.add("organizations:session-replay-video-disabled", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-    # Enable mobile replay player network tab
-    manager.add("organizations:session-replay-mobile-network-tab", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    # Enable replay player timeline gaps
+    manager.add("organizations:session-replay-timeline-gap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False)
     # Enable the new event linking columns to be queried
     manager.add("organizations:session-replay-new-event-counts", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable Rage Click Issue Creation In Recording Consumer
@@ -388,8 +394,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:session-replay-web-vitals", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False)
     # Lets organizations manage grouping configs
     manager.add("organizations:set-grouping-config", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-    # Enable Culprit Blocks in Slack Notifications
-    manager.add("organizations:slack-culprit-blocks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable description field in Slack metric alerts
     manager.add("organizations:slack-metric-alert-description", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable improvements to Slack notifications
@@ -397,10 +401,6 @@ def register_temporary_features(manager: FeatureManager):
     # Feature flags for migrating to the Slack SDK WebClient
     # Use new Slack SDK Client in get_channel_id_with_timeout
     manager.add("organizations:slack-sdk-get-channel-id", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
-    # Use new Slack SDK Client in SlackActionEndpoint
-    manager.add("organizations:slack-sdk-webhook-handling", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
-    # Use new Slack SDK Client in SlackActionEndpoint's `view.open`
-    manager.add("organizations:slack-sdk-action-view-open", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Use new Slack SDK Client for SlackNotifyBasicMixin
     manager.add("organizations:slack-sdk-notify-mixin", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Add regression chart as image to slack message
@@ -418,6 +418,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:insights-browser-webvitals-static-weights", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Sets all web vitals to optional when calculating performance scores
     manager.add("organizations:insights-browser-webvitals-optional-components", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
+    # Add default browser performance score profile for fallback when no or unknown browser name is provided
+    manager.add("organizations:insights-default-performance-score-profiles", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable standalone span ingestion
     manager.add("organizations:standalone-span-ingestion", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable the aggregate span waterfall view
@@ -464,6 +466,10 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:transaction-name-sanitization", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enables automatic hostname detection in uptime
     manager.add("organizations:uptime-automatic-hostname-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
+    # Enables automatic subscription creation in uptime
+    manager.add("organizations:uptime-automatic-subscription-creation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
+    # Enables uptime related settings for projects and orgs
+    manager.add('organizations:uptime-settings', OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     manager.add("organizations:use-metrics-layer", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable User Feedback v2 ingest
     manager.add("organizations:user-feedback-ingest", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -483,6 +489,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enabled unresolved issue webhook for organization
     manager.add("organizations:webhooks-unresolved", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
+    manager.add("organizations:project-templates", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # NOTE: Don't add features down here! Add them to their specific group and sort
     #       them alphabetically! The order features are registered is not important.
 
@@ -505,14 +512,14 @@ def register_temporary_features(manager: FeatureManager):
     # Enable alternative version of group creation that is supposed to be less racy.
     manager.add("projects:race-free-group-creation", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Enable similarity embeddings API call
-    manager.add("projects:similarity-embeddings", ProjectFeature, FeatureHandlerStrategy.OPTIONS)
+    manager.add("projects:similarity-embeddings", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=False)
     # Enable similarity embeddings backfill
     manager.add("projects:similarity-embeddings-backfill", ProjectFeature, FeatureHandlerStrategy.OPTIONS)
     manager.add("projects:similarity-embeddings-delete-by-hash", ProjectFeature, FeatureHandlerStrategy.OPTIONS)
     # Enable similarity embeddings grouping
-    manager.add("projects:similarity-embeddings-grouping", ProjectFeature, FeatureHandlerStrategy.OPTIONS)
+    manager.add("projects:similarity-embeddings-grouping", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=False)
     # Enable adding seer grouping metadata to new groups
-    manager.add("projects:similarity-embeddings-metadata", ProjectFeature, FeatureHandlerStrategy.OPTIONS)
+    manager.add("projects:similarity-embeddings-metadata", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=False)
     manager.add("projects:similarity-indexing", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("projects:similarity-view", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     # Starfish: extract metrics from the spans

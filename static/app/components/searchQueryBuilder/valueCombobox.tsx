@@ -13,6 +13,7 @@ import SpecificDatePicker from 'sentry/components/searchQueryBuilder/specificDat
 import {
   escapeTagValue,
   formatFilterValue,
+  getDefaultFilterValue,
   isDateToken,
   unescapeTagValue,
 } from 'sentry/components/searchQueryBuilder/utils';
@@ -30,14 +31,18 @@ import {
 import {IconArrow} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Tag, TagCollection} from 'sentry/types';
+import type {Tag, TagCollection} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
 import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {type QueryKey, useQuery} from 'sentry/utils/queryClient';
+import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
+import useOrganization from 'sentry/utils/useOrganization';
 
 type SearchQueryValueBuilderProps = {
   onCommit: () => void;
+  onDelete: () => void;
   token: TokenResult<Token.FILTER>;
   wrapperRef: React.RefObject<HTMLDivElement>;
 };
@@ -133,7 +138,7 @@ function prepareInputValueForSaving(
     inputValue
       .split(',')
       .map(v => cleanFilterValue(token.key.text, v.trim()))
-      .filter(v => v.length > 0)
+      .filter(v => v && v.length > 0)
   );
 
   return values.length > 1 ? `[${values.join(',')}]` : values[0] ?? '""';
@@ -411,11 +416,7 @@ function tokenSupportsMultipleValues(
 
       const fieldDef = getFieldDefinition(key.key);
 
-      return [
-        FieldValueType.STRING,
-        FieldValueType.NUMBER,
-        FieldValueType.INTEGER,
-      ].includes(fieldDef?.valueType ?? FieldValueType.STRING);
+      return !fieldDef?.valueType || fieldDef.valueType === FieldValueType.STRING;
     case FilterType.NUMERIC:
       if (token.operator === TermOperator.DEFAULT) {
         return true;
@@ -429,7 +430,7 @@ function tokenSupportsMultipleValues(
   }
 }
 
-function cleanFilterValue(key: string, value: string): string {
+function cleanFilterValue(key: string, value: string): string | null {
   const fieldDef = getFieldDefinition(key);
   if (!fieldDef) {
     return escapeTagValue(value);
@@ -440,17 +441,17 @@ function cleanFilterValue(key: string, value: string): string {
       if (FILTER_VALUE_NUMERIC.test(value)) {
         return value;
       }
-      return '';
+      return null;
     case FieldValueType.INTEGER:
       if (FILTER_VALUE_INT.test(value)) {
         return value;
       }
-      return '';
+      return null;
     case FieldValueType.DATE:
       const parsed = parseFilterValueDate(value);
 
       if (!parsed) {
-        return '';
+        return null;
       }
       return value;
     default:
@@ -501,7 +502,7 @@ function useFilterSuggestions({
   token: TokenResult<Token.FILTER>;
 }) {
   const {getTagValues, filterKeys} = useSearchQueryBuilder();
-  const key = filterKeys[token.key.text];
+  const key: Tag | undefined = filterKeys[token.key.text];
   const predefinedValues = useMemo(
     () => getPredefinedValues({key, filterValue, token}),
     [key, filterValue, token]
@@ -509,10 +510,18 @@ function useFilterSuggestions({
   const shouldFetchValues = key && !key.predefined && !predefinedValues.length;
   const canSelectMultipleValues = tokenSupportsMultipleValues(token, filterKeys);
 
+  const queryKey = useMemo<QueryKey>(
+    () => ['search-query-builder-tag-values', token.key.text, filterValue],
+    [filterValue, token.key]
+  );
+
+  const debouncedQueryKey = useDebouncedValue(queryKey);
+
   // TODO(malwilley): Display error states
   const {data, isFetching} = useQuery<string[]>({
-    queryKey: ['search-query-builder', token.key, filterValue] as QueryKey,
-    queryFn: () => getTagValues(key, filterValue),
+    queryKey: debouncedQueryKey,
+    queryFn: () =>
+      getTagValues(key ? key : {key: token.key.text, name: token.key.text}, filterValue),
     keepPreviousData: true,
     enabled: shouldFetchValues,
   });
@@ -628,24 +637,33 @@ function ItemCheckbox({
   );
 }
 
+function getInitialInputValue(
+  token: TokenResult<Token.FILTER>,
+  canSelectMultipleValues: boolean
+) {
+  if (isDateToken(token)) {
+    return token.value.type === Token.VALUE_ISO_8601_DATE ? token.value.text : '';
+  }
+  if (canSelectMultipleValues) {
+    return getMultiSelectInputValue(token);
+  }
+  return '';
+}
+
 export function SearchQueryBuilderValueCombobox({
   token,
+  onDelete,
   onCommit,
   wrapperRef,
 }: SearchQueryValueBuilderProps) {
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
-  const {filterKeys, dispatch} = useSearchQueryBuilder();
+  const organization = useOrganization();
+  const {filterKeys, dispatch, searchSource, savedSearchType} = useSearchQueryBuilder();
   const canSelectMultipleValues = tokenSupportsMultipleValues(token, filterKeys);
-  const [inputValue, setInputValue] = useState(() => {
-    if (isDateToken(token)) {
-      return token.value.type === Token.VALUE_ISO_8601_DATE ? token.value.text : '';
-    }
-    if (canSelectMultipleValues) {
-      return getMultiSelectInputValue(token);
-    }
-    return '';
-  });
+  const [inputValue, setInputValue] = useState(() =>
+    getInitialInputValue(token, canSelectMultipleValues)
+  );
   const {selectionIndex, updateSelectionIndex} = useSelectionIndex({
     inputRef,
     inputValue,
@@ -687,19 +705,32 @@ export function SearchQueryBuilderValueCombobox({
     selectedValues,
   });
 
-  const handleOptionSelected = useCallback(
-    (value: string) => {
-      if (isDateToken(token) && value === 'absolute_date') {
-        setShowDatePicker(true);
-        setInputValue('');
-        return;
-      }
+  const analyticsData = useMemo(
+    () => ({
+      organization,
+      search_type: savedSearchType === 0 ? 'issues' : 'events',
+      search_source: searchSource,
+      filter_key: token.key.text,
+      filter_operator: token.operator,
+      filter_value_type:
+        getFieldDefinition(token.key.text)?.valueType ?? FieldValueType.STRING,
+      new_experience: true,
+    }),
+    [organization, savedSearchType, searchSource, token.key.text, token.operator]
+  );
 
+  const updateFilterValue = useCallback(
+    (value: string) => {
       const cleanedValue = cleanFilterValue(token.key.text, value);
 
       // TODO(malwilley): Add visual feedback for invalid values
-      if (!cleanedValue) {
-        return;
+      if (cleanedValue === null) {
+        trackAnalytics('search.value_manual_submitted', {
+          ...analyticsData,
+          filter_value: value,
+          invalid: true,
+        });
+        return false;
       }
 
       if (canSelectMultipleValues) {
@@ -718,7 +749,7 @@ export function SearchQueryBuilderValueCombobox({
             onCommit();
           }
 
-          return;
+          return true;
         }
 
         dispatch({
@@ -738,8 +769,11 @@ export function SearchQueryBuilderValueCombobox({
         });
         onCommit();
       }
+
+      return true;
     },
     [
+      analyticsData,
       canSelectMultipleValues,
       dispatch,
       inputValue,
@@ -750,8 +784,53 @@ export function SearchQueryBuilderValueCombobox({
     ]
   );
 
+  const handleOptionSelected = useCallback(
+    (value: string) => {
+      if (isDateToken(token)) {
+        if (value === 'absolute_date') {
+          setShowDatePicker(true);
+          setInputValue('');
+          return;
+        }
+
+        updateFilterValue(value);
+        trackAnalytics('search.value_autocompleted', {
+          ...analyticsData,
+          filter_value: value,
+          filter_value_type: 'relative_date',
+        });
+        return;
+      }
+
+      updateFilterValue(value);
+      trackAnalytics('search.value_autocompleted', {
+        ...analyticsData,
+        filter_value: value,
+      });
+    },
+    [analyticsData, token, updateFilterValue]
+  );
+
   const handleInputValueConfirmed = useCallback(
     (value: string) => {
+      const isUnchanged = value === getInitialInputValue(token, canSelectMultipleValues);
+
+      // If there's no user input and the token has no value, set a default one
+      if (!value && !token.value.text) {
+        dispatch({
+          type: 'UPDATE_TOKEN_VALUE',
+          token: token,
+          value: getDefaultFilterValue({key: token.key.text}),
+        });
+        onCommit();
+        return;
+      }
+
+      if (isUnchanged) {
+        onCommit();
+        return;
+      }
+
       if (canSelectMultipleValues) {
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
@@ -759,11 +838,24 @@ export function SearchQueryBuilderValueCombobox({
           value: prepareInputValueForSaving(token, value),
         });
         onCommit();
-      } else {
-        handleOptionSelected(value);
+        if (!isUnchanged) {
+          trackAnalytics('search.value_manual_submitted', {
+            ...analyticsData,
+            filter_value: value,
+            invalid: false,
+          });
+        }
+        return;
       }
+
+      const invalid = updateFilterValue(value);
+      trackAnalytics('search.value_manual_submitted', {
+        ...analyticsData,
+        filter_value: value,
+        invalid,
+      });
     },
-    [canSelectMultipleValues, dispatch, handleOptionSelected, onCommit, token]
+    [analyticsData, canSelectMultipleValues, dispatch, onCommit, token, updateFilterValue]
   );
 
   const onKeyDown = useCallback(
@@ -775,17 +867,12 @@ export function SearchQueryBuilderValueCombobox({
         e.continuePropagation();
       }
 
-      // If at the start of the input and backspace is pressed, delete the last selected value
-      if (
-        e.key === 'Backspace' &&
-        e.currentTarget.selectionStart === 0 &&
-        e.currentTarget.selectionEnd === 0 &&
-        canSelectMultipleValues
-      ) {
-        dispatch({type: 'DELETE_LAST_MULTI_SELECT_FILTER_VALUE', token});
+      // If there's nothing in the input and we hit a delete key, we should focus the filter
+      if ((e.key === 'Backspace' || e.key === 'Delete') && !inputRef.current?.value) {
+        onDelete();
       }
     },
-    [canSelectMultipleValues, dispatch, token]
+    [onDelete]
   );
 
   // Ensure that the menu stays open when clicking on the selected items
@@ -810,6 +897,11 @@ export function SearchQueryBuilderValueCombobox({
           handleSelectDateTime={newDateTimeValue => {
             setInputValue(newDateTimeValue);
             inputRef.current?.focus();
+            trackAnalytics('search.value_autocompleted', {
+              ...analyticsData,
+              filter_value: newDateTimeValue,
+              filter_value_type: 'absolute_date',
+            });
           }}
           handleBack={() => {
             setShowDatePicker(false);
@@ -828,7 +920,7 @@ export function SearchQueryBuilderValueCombobox({
         />
       );
     };
-  }, [dispatch, inputValue, onCommit, showDatePicker, token]);
+  }, [analyticsData, dispatch, inputValue, onCommit, showDatePicker, token]);
 
   return (
     <ValueEditing ref={ref} data-test-id="filter-value-editing">

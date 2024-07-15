@@ -64,7 +64,7 @@ export class Profile {
     startedAt: number;
     threadId: number;
     type: 'flamechart' | 'flamegraph' | 'empty';
-    unit: ProfilingFormatterUnit;
+    unit: string;
     timestamp?: number;
   }) {
     this.threadId = threadId;

@@ -39,6 +39,10 @@ interface SearchQueryBuilderProps {
   searchSource: string;
   className?: string;
   /**
+   * When true, parens and logical operators (AND, OR) will be marked as invalid.
+   */
+  disallowLogicalOperators?: boolean;
+  /**
    * When provided, displays a tabbed interface for discovering filter keys.
    * Sections and filter keys are displayed in the order they are provided.
    */
@@ -78,6 +82,7 @@ function ActionButtons() {
 
 export function SearchQueryBuilder({
   className,
+  disallowLogicalOperators,
   label,
   initialQuery,
   filterKeys,
@@ -94,8 +99,8 @@ export function SearchQueryBuilder({
   const {state, dispatch} = useQueryBuilderState({initialQuery});
 
   const parsedQuery = useMemo(
-    () => parseQueryBuilderValue(state.query, {filterKeys}),
-    [filterKeys, state.query]
+    () => parseQueryBuilderValue(state.query, {disallowLogicalOperators, filterKeys}),
+    [disallowLogicalOperators, filterKeys, state.query]
   );
 
   useEffectAfterFirstRender(() => {
@@ -126,6 +131,7 @@ export function SearchQueryBuilder({
       onSearch,
       wrapperRef,
       handleSearch,
+      savedSearchType,
       searchSource,
       size,
     };
@@ -138,6 +144,7 @@ export function SearchQueryBuilder({
     dispatch,
     onSearch,
     handleSearch,
+    savedSearchType,
     searchSource,
     size,
   ]);

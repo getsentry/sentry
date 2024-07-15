@@ -1,9 +1,7 @@
 import type {ComponentProps} from 'react';
 import {useMemo} from 'react';
-import styled from '@emotion/styled';
 
 import type {Polarity} from 'sentry/components/percentChange';
-import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -12,6 +10,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
+import {Ribbon} from 'sentry/views/insights/common/components/ribbon';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
@@ -25,7 +24,7 @@ interface BlockProps {
   preferredPolarity?: Polarity;
 }
 
-export function MetricsRibbon({
+export function MobileMetricsRibbon({
   filters,
   blocks,
   fields,
@@ -81,7 +80,7 @@ export function MetricsRibbon({
   });
 
   return (
-    <BlockContainer>
+    <Ribbon>
       {blocks.map(({title, dataKey, unit, preferredPolarity}) => (
         <MetricsBlock
           key={title}
@@ -93,7 +92,7 @@ export function MetricsRibbon({
           preferredPolarity={preferredPolarity}
         />
       ))}
-    </BlockContainer>
+    </Ribbon>
   );
 }
 
@@ -129,8 +128,3 @@ function MetricsBlock({
     />
   );
 }
-
-const BlockContainer = styled('div')`
-  display: flex;
-  gap: ${space(2)};
-`;

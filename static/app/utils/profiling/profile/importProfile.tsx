@@ -30,6 +30,7 @@ import {
 export interface ImportOptions {
   span: Span | undefined;
   type: 'flamegraph' | 'flamechart';
+  continuous?: boolean;
   frameFilter?: (frame: Frame) => boolean;
   profileIds?: Readonly<string[]>;
 }
@@ -75,6 +76,7 @@ export function importProfile(
           span,
           type,
           frameFilter,
+          continuous: true,
         });
       }
       if (isJSProfile(input)) {

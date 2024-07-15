@@ -14,7 +14,9 @@ import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
+import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
@@ -26,11 +28,13 @@ import {
   MODULE_DOC_LINK,
   MODULE_TITLE,
 } from 'sentry/views/insights/mobile/screenload/settings';
+import {ModuleName} from 'sentry/views/insights/types';
 import Onboarding from 'sentry/views/performance/onboarding';
 
 export function PageloadModule() {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
+  const hasModuleData = useHasFirstSpan(ModuleName.SCREEN_LOAD);
   const {isProjectCrossPlatform} = useCrossPlatformProject();
 
   const crumbs = useModuleBreadcrumbs('screen_load');
@@ -67,18 +71,20 @@ export function PageloadModule() {
                 <EnvironmentPageFilter />
                 <DatePageFilter />
               </PageFilterBar>
-              <ReleaseComparisonSelector />
+              {hasModuleData && <ReleaseComparisonSelector />}
             </Container>
             <PageAlert />
             <ErrorBoundary mini>
-              {onboardingProject && (
-                <OnboardingContainer>
-                  <Onboarding organization={organization} project={onboardingProject} />
-                </OnboardingContainer>
-              )}
-              {!onboardingProject && (
-                <ScreensView yAxes={[YAxis.TTID, YAxis.TTFD]} chartHeight={240} />
-              )}
+              <ModulesOnboarding moduleName={ModuleName.SCREEN_LOAD}>
+                {onboardingProject && (
+                  <OnboardingContainer>
+                    <Onboarding organization={organization} project={onboardingProject} />
+                  </OnboardingContainer>
+                )}
+                {!onboardingProject && (
+                  <ScreensView yAxes={[YAxis.TTID, YAxis.TTFD]} chartHeight={240} />
+                )}
+              </ModulesOnboarding>
             </ErrorBoundary>
           </Layout.Main>
         </Layout.Body>

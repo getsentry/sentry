@@ -41,9 +41,9 @@ import type {Organization, PageFilters, SessionApiResponse} from 'sentry/types';
 import type {EChartClickHandler} from 'sentry/types/echarts';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {getAdoptionSeries, getCount} from 'sentry/utils/sessions';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {formatVersion} from 'sentry/utils/versions/formatVersion';
 import withApi from 'sentry/utils/withApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {sessionDisplayToField} from 'sentry/views/releases/list/releasesRequest';
 
 import {ReleasesDisplayOption} from './releasesDisplayOptions';

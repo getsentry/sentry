@@ -25,6 +25,7 @@ import isValidOrgSlug from 'sentry/utils/isValidOrgSlug';
 import {onRenderCallback, Profiler} from 'sentry/utils/performanceForSentry';
 import useApi from 'sentry/utils/useApi';
 import {useColorscheme} from 'sentry/utils/useColorscheme';
+import {GlobalFeedbackForm} from 'sentry/utils/useFeedbackForm';
 import {useHotkeys} from 'sentry/utils/useHotkeys';
 import {useUser} from 'sentry/utils/useUser';
 import type {InstallWizardProps} from 'sentry/views/admin/installWizard';
@@ -236,12 +237,14 @@ function App({children, params}: Props) {
       <OrganizationContextProvider>
         <AsyncSDKIntegrationContextProvider>
           <GlobalDrawer>
-            <MainContainer tabIndex={-1} ref={mainContainerRef}>
-              <GlobalModal onClose={handleModalClose} />
-              <SystemAlerts className="messages-container" />
-              <Indicators className="indicators-container" />
-              <ErrorBoundary>{renderBody()}</ErrorBoundary>
-            </MainContainer>
+            <GlobalFeedbackForm>
+              <MainContainer tabIndex={-1} ref={mainContainerRef}>
+                <GlobalModal onClose={handleModalClose} />
+                <SystemAlerts className="messages-container" />
+                <Indicators className="indicators-container" />
+                <ErrorBoundary>{renderBody()}</ErrorBoundary>
+              </MainContainer>
+            </GlobalFeedbackForm>
           </GlobalDrawer>
         </AsyncSDKIntegrationContextProvider>
       </OrganizationContextProvider>

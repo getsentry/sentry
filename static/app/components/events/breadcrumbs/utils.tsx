@@ -9,6 +9,7 @@ import {
 } from 'sentry/components/events/interfaces/breadcrumbs/utils';
 import type {ColorConfig} from 'sentry/components/timeline';
 import {
+  IconCode,
   IconCursorArrow,
   IconFire,
   IconFix,
@@ -19,9 +20,9 @@ import {
   IconSort,
   IconSpan,
   IconStack,
-  IconTerminal,
   IconUser,
   IconWarning,
+  IconWifi,
 } from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -33,7 +34,6 @@ import {
 import {EntryType, type Event} from 'sentry/types/event';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 
-export const BREADCRUMB_TIMESTAMP_PLACEHOLDER = '--';
 const BREADCRUMB_TITLE_PLACEHOLDER = t('Generic');
 const BREADCRUMB_SUMMARY_COUNT = 3;
 
@@ -48,7 +48,7 @@ export const BREADCRUMB_TIME_DISPLAY_OPTIONS = [
 export const BREADCRUMB_TIME_DISPLAY_LOCALSTORAGE_KEY = 'event-breadcrumb-time-display';
 
 const Color = styled('span')<{colorConfig: ColorConfig}>`
-  color: ${p => p.theme[p.colorConfig.primary]};
+  color: ${p => p.theme[p.colorConfig.icon]};
 `;
 
 /**
@@ -96,6 +96,7 @@ export function getBreadcrumbFilterOptions(crumbs: EnhancedCrumb[]) {
   });
   return filterOptions.sort((a, b) => a.value.localeCompare(b.value));
 }
+
 export interface EnhancedCrumb {
   // Mutated crumb where we change types or virtual crumb
   breadcrumb: RawCrumb;
@@ -178,24 +179,26 @@ function getBreadcrumbTitle(category: RawCrumb['category']) {
 function getBreadcrumbColorConfig(type?: BreadcrumbType): ColorConfig {
   switch (type) {
     case BreadcrumbType.ERROR:
-      return {primary: 'red400', secondary: 'red200'};
+      return {title: 'red400', icon: 'red400', iconBorder: 'red200'};
     case BreadcrumbType.WARNING:
-      return {primary: 'yellow400', secondary: 'yellow200'};
+      return {title: 'yellow400', icon: 'yellow400', iconBorder: 'yellow200'};
     case BreadcrumbType.NAVIGATION:
     case BreadcrumbType.HTTP:
     case BreadcrumbType.QUERY:
     case BreadcrumbType.TRANSACTION:
-      return {primary: 'green400', secondary: 'green200'};
+      return {title: 'green400', icon: 'green400', iconBorder: 'green200'};
     case BreadcrumbType.USER:
     case BreadcrumbType.UI:
-      return {primary: 'purple400', secondary: 'purple200'};
+      return {title: 'purple400', icon: 'purple400', iconBorder: 'purple200'};
     case BreadcrumbType.SYSTEM:
     case BreadcrumbType.SESSION:
-      return {primary: 'pink400', secondary: 'pink200'};
+    case BreadcrumbType.DEVICE:
+    case BreadcrumbType.NETWORK:
+      return {title: 'pink400', icon: 'pink400', iconBorder: 'pink200'};
     case BreadcrumbType.DEBUG:
     case BreadcrumbType.INFO:
     default:
-      return {primary: 'gray300', secondary: 'gray200'};
+      return {title: 'gray400', icon: 'gray300', iconBorder: 'gray200'};
   }
 }
 
@@ -224,6 +227,10 @@ function getBreadcrumbFilter(type?: BreadcrumbType) {
       return t('Session');
     case BreadcrumbType.TRANSACTION:
       return t('Transaction');
+    case BreadcrumbType.DEVICE:
+      return t('Device');
+    case BreadcrumbType.NETWORK:
+      return t('Network');
     default:
       return t('Default');
   }
@@ -255,8 +262,12 @@ function BreadcrumbIcon({type}: {type?: BreadcrumbType}) {
       return <IconRefresh size="xs" />;
     case BreadcrumbType.TRANSACTION:
       return <IconSpan size="xs" />;
+    case BreadcrumbType.DEVICE:
+      return <IconMobile size="xs" />;
+    case BreadcrumbType.NETWORK:
+      return <IconWifi size="xs" />;
     default:
-      return <IconTerminal size="xs" />;
+      return <IconCode size="xs" />;
   }
 }
 

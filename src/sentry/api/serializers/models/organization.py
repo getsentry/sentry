@@ -48,6 +48,7 @@ from sentry.constants import (
     SAFE_FIELDS_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     SENSITIVE_FIELDS_DEFAULT,
+    UPTIME_AUTODETECTION,
     ObjectStatus,
 )
 from sentry.dynamic_sampling.tasks.common import get_organization_volume
@@ -244,12 +245,13 @@ class OrganizationSerializer(Serializer):
         self, obj: Organization, attrs: Mapping[str, Any], user: User, **kwargs: Any
     ) -> set[str]:
         from sentry import features
-        from sentry.features.base import OrganizationFeature
 
         # Retrieve all registered organization features
         org_features = [
             feature
-            for feature in features.all(feature_type=OrganizationFeature).keys()
+            for feature in features.all(
+                feature_type=features.OrganizationFeature, api_expose_only=True
+            ).keys()
             if feature.startswith(_ORGANIZATION_SCOPE_PREFIX)
         ]
         feature_set = set()
@@ -413,6 +415,7 @@ class OnboardingTasksSerializer(Serializer):
 class _DetailedOrganizationSerializerResponseOptional(OrganizationSerializerResponse, total=False):
     role: Any  # TODO replace with enum/literal
     orgRole: str
+    uptimeAutodetection: bool
 
 
 class DetailedOrganizationSerializerResponse(_DetailedOrganizationSerializerResponseOptional):
@@ -601,6 +604,11 @@ class DetailedOrganizationSerializer(OrganizationSerializer):
         if features.has("organizations:metrics-extrapolation", obj):
             context["extrapolateMetrics"] = bool(
                 obj.get_option("sentry:extrapolate_metrics", EXTRAPOLATE_METRICS_DEFAULT)
+            )
+
+        if features.has("organizations:uptime-settings", obj):
+            context["uptimeAutodetection"] = bool(
+                obj.get_option("sentry:uptime_autodetection", UPTIME_AUTODETECTION)
             )
 
         trusted_relays_raw = obj.get_option("sentry:trusted-relays") or []

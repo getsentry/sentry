@@ -16,9 +16,9 @@ import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import {getAnalyticsDataForEvent, getAnalyticsDataForGroup} from 'sentry/utils/events';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 interface Props {
   event: Event;

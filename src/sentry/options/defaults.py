@@ -644,14 +644,6 @@ register(
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-# The fraction of prooguard events that will be routed to the
-# separate `store.process_event_proguard` queue
-register(
-    "store.separate-proguard-queue-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
-)
-
 # Query and supply Bundle Indexes to Symbolicator SourceMap processing
 register(
     "symbolicator.sourcemaps-bundle-index-sample-rate", default=0.0, flags=FLAG_AUTOMATOR_MODIFIABLE

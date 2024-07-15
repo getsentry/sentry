@@ -78,7 +78,7 @@ class DummyTransport(Transport):
 @pytest.fixture(scope="function")
 def scope():
     scope = sentry_sdk.Scope(
-        ty=sentry_sdk.scope.ScopeType.ISOLATION,
+        ty=sentry_sdk.scope.ScopeType.CURRENT,
         client=Client(
             dsn="http://foo@example.invalid/42",
             transport=DummyTransport,
@@ -89,7 +89,7 @@ def scope():
             traces_sample_rate=1.0,
         ),
     )
-    with sentry_sdk.scope.use_isolation_scope(scope):
+    with sentry_sdk.scope.use_scope(scope):
         yield scope
 
 
@@ -375,17 +375,20 @@ def test_to_minimetrics_unit(unit, default, expected_result):
         "delightful_metrics.enable_code_locations": True,
     }
 )
-def test_span_attribute_is_correctly_if_no_transaction_exists(backend, scope):
+@override_options(
+    {
+        "delightful_metrics.enable_capture_envelope": True,
+        "delightful_metrics.enable_common_tags": True,
+        "delightful_metrics.enable_span_attributes": True,
+        "delightful_metrics.enable_code_locations": True,
+    }
+)
+def test_span_attributes_if_there_is_no_active_span(backend, scope):
     backend.incr(key="metric_withspan", tags={"x": "bar"})
     full_flush(scope)
 
     spans = scope.client.transport.get_spans()
-
-    assert len(spans) == 1
-    span = spans[0]
-    assert span["op"] == "minimetrics.incr"
-    assert span["tags"] == {"x": "bar"}
-    assert span["data"]["metric_withspan"] == 1
+    assert not spans
 
 
 @override_options(
@@ -396,29 +399,7 @@ def test_span_attribute_is_correctly_if_no_transaction_exists(backend, scope):
         "delightful_metrics.enable_code_locations": True,
     }
 )
-def test_span_attribute_is_correctly_if_no_span_exists(backend, scope):
-    with scope.start_transaction():
-        backend.incr(key="metric_withspan", tags={"x": "bar"})
-        full_flush(scope)
-
-    spans = scope.client.transport.get_spans()
-
-    assert len(spans) == 1
-    span = spans[0]
-    assert span["op"] == "minimetrics.incr"
-    assert span["tags"] == {"x": "bar"}
-    assert span["data"]["metric_withspan"] == 1
-
-
-@override_options(
-    {
-        "delightful_metrics.enable_capture_envelope": True,
-        "delightful_metrics.enable_common_tags": True,
-        "delightful_metrics.enable_span_attributes": True,
-        "delightful_metrics.enable_code_locations": True,
-    }
-)
-def test_span_attribute_is_correctly_if_span_exists(backend, scope):
+def test_span_attribute_is_attached_if_span_exists(backend, scope):
     with scope.start_transaction():
         with scope.start_span(op="test.incr"):
             backend.incr(key="metric_withspan", tags={"x": "bar"})

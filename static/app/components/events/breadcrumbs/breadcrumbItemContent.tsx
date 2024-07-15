@@ -18,39 +18,50 @@ import {defined} from 'sentry/utils';
 import {isUrl} from 'sentry/utils/string/isUrl';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
-interface BreadcrumbsItemContentProps {
+const DEFAULT_STRUCTURED_DATA_PROPS = {
+  depth: 0,
+  maxDefaultDepth: 2,
+  withAnnotatedText: true,
+  withOnlyFormattedText: true,
+};
+
+interface BreadcrumbItemContentProps {
   breadcrumb: RawCrumb;
   fullyExpanded?: boolean;
   meta?: Record<string, any>;
 }
 
-export default function BreadcrumbsItemContent({
+export default function BreadcrumbItemContent({
   breadcrumb: bc,
   meta,
-  fullyExpanded,
-}: BreadcrumbsItemContentProps) {
-  const maxDefaultDepth = fullyExpanded ? 10000 : 1;
-  const structureProps = {
-    depth: 0,
-    maxDefaultDepth,
-    withAnnotatedText: true,
-    withOnlyFormattedText: true,
+  fullyExpanded = false,
+}: BreadcrumbItemContentProps) {
+  const structuredDataProps = {
+    ...DEFAULT_STRUCTURED_DATA_PROPS,
+    forceDefaultExpand: fullyExpanded,
+    maxDefaultDepth: fullyExpanded
+      ? 10000
+      : DEFAULT_STRUCTURED_DATA_PROPS.maxDefaultDepth,
   };
 
   const defaultMessage = defined(bc.message) ? (
     <Timeline.Text>
-      <StructuredData value={bc.message} meta={meta?.message} {...structureProps} />
+      <StructuredData value={bc.message} meta={meta?.message} {...structuredDataProps} />
     </Timeline.Text>
   ) : null;
   const defaultData = defined(bc.data) ? (
     <Timeline.Data>
-      <StructuredData value={bc.data} meta={meta?.data} {...structureProps} />
+      <StructuredData value={bc.data} meta={meta?.data} {...structuredDataProps} />
     </Timeline.Data>
   ) : null;
 
   if (bc?.type === BreadcrumbType.HTTP) {
     return (
-      <HTTPCrumbContent breadcrumb={bc} meta={meta}>
+      <HTTPCrumbContent
+        breadcrumb={bc}
+        meta={meta}
+        structuredDataProps={structuredDataProps}
+      >
         {defaultMessage}
       </HTTPCrumbContent>
     );
@@ -61,11 +72,19 @@ export default function BreadcrumbsItemContent({
     bc?.message &&
     bc?.messageFormat === BreadcrumbMessageFormat.SQL
   ) {
-    return <SQLCrumbContent breadcrumb={bc} />;
+    return <SQLCrumbContent breadcrumb={bc}>{defaultData}</SQLCrumbContent>;
   }
 
   if (bc?.type === BreadcrumbType.WARNING || bc?.type === BreadcrumbType.ERROR) {
-    return <ErrorCrumbContent breadcrumb={bc}>{defaultMessage}</ErrorCrumbContent>;
+    return (
+      <ExceptionCrumbContent
+        breadcrumb={bc}
+        meta={meta}
+        structuredDataProps={structuredDataProps}
+      >
+        {defaultMessage}
+      </ExceptionCrumbContent>
+    );
   }
 
   return (
@@ -80,9 +99,11 @@ function HTTPCrumbContent({
   breadcrumb,
   meta,
   children = null,
+  structuredDataProps,
 }: {
   breadcrumb: BreadcrumbTypeHTTP;
-  children?: React.ReactNode;
+  children: React.ReactNode;
+  structuredDataProps: typeof DEFAULT_STRUCTURED_DATA_PROPS;
   meta?: Record<string, any>;
 }) {
   const {method, url, status_code: statusCode, ...otherData} = breadcrumb?.data ?? {};
@@ -93,7 +114,10 @@ function HTTPCrumbContent({
       <Timeline.Text>
         {defined(method) && `${method}: `}
         {isValidUrl ? (
-          <Link onClick={() => openNavigateToExternalLinkModal({linkText: url})}>
+          <Link
+            role="link"
+            onClick={() => openNavigateToExternalLinkModal({linkText: url})}
+          >
             {url}
           </Link>
         ) : (
@@ -103,14 +127,7 @@ function HTTPCrumbContent({
       </Timeline.Text>
       {Object.keys(otherData).length > 0 ? (
         <Timeline.Data>
-          <StructuredData
-            value={otherData}
-            meta={meta}
-            depth={0}
-            maxDefaultDepth={2}
-            withAnnotatedText
-            withOnlyFormattedText
-          />
+          <StructuredData value={otherData} meta={meta} {...structuredDataProps} />
         </Timeline.Data>
       ) : null}
     </Fragment>
@@ -119,41 +136,56 @@ function HTTPCrumbContent({
 
 function SQLCrumbContent({
   breadcrumb,
+  children,
 }: {
   breadcrumb: BreadcrumbTypeDefault | BreadcrumbTypeNavigation;
+  children: React.ReactNode;
 }) {
   const tokens = usePrismTokens({code: breadcrumb?.message ?? '', language: 'sql'});
   return (
-    <Timeline.Data>
-      <LightenTextColor className="language-sql">
-        {tokens.map((line, i) => (
-          <div key={i}>
-            {line.map((token, j) => (
-              <span key={j} className={token.className}>
-                {token.children}
-              </span>
-            ))}
-          </div>
-        ))}
-      </LightenTextColor>
-    </Timeline.Data>
+    <Fragment>
+      <Timeline.Data>
+        <LightenTextColor className="language-sql">
+          {tokens.map((line, i) => (
+            <div key={i}>
+              {line.map((token, j) => (
+                <span key={j} className={token.className}>
+                  {token.children}
+                </span>
+              ))}
+            </div>
+          ))}
+        </LightenTextColor>
+      </Timeline.Data>
+      {children}
+    </Fragment>
   );
 }
 
-function ErrorCrumbContent({
+function ExceptionCrumbContent({
   breadcrumb,
+  meta,
   children = null,
+  structuredDataProps,
 }: {
   breadcrumb: BreadcrumbTypeDefault;
-  children?: React.ReactNode;
+  children: React.ReactNode;
+  structuredDataProps: typeof DEFAULT_STRUCTURED_DATA_PROPS;
+  meta?: Record<string, any>;
 }) {
+  const {type, value, ...otherData} = breadcrumb?.data ?? {};
   return (
     <Fragment>
       <Timeline.Text>
-        {breadcrumb?.data?.type && `${breadcrumb?.data?.type}: `}
-        {breadcrumb?.data?.value}
+        {type && type}
+        {type ? value && `: ${value}` : value && value}
       </Timeline.Text>
       {children}
+      {Object.keys(otherData).length > 0 ? (
+        <Timeline.Data>
+          <StructuredData value={otherData} meta={meta} {...structuredDataProps} />
+        </Timeline.Data>
+      ) : null}
     </Fragment>
   );
 }
