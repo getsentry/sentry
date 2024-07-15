@@ -1,5 +1,3 @@
-from typing import cast
-
 import sentry_sdk
 from rest_framework.request import Request
 from rest_framework.response import Response
@@ -55,7 +53,7 @@ class OrganizationSpansFieldsEndpoint(OrganizationSpansFieldsEndpointBase):
             # are returned if the total exceeds the limit.
             builder = SpansIndexedQueryBuilder(
                 Dataset.SpansIndexed,
-                params=cast(ParamsType, params),
+                params=params,
                 snuba_params=snuba_params,
                 query=None,
                 selected_columns=["array_join(tags.key)"],
@@ -110,7 +108,7 @@ class OrganizationSpansFieldValuesEndpoint(OrganizationSpansFieldsEndpointBase):
         max_span_tag_values = options.get("performance.spans-tags-values.max")
 
         executor = SpanFieldValuesAutocompletionExecutor(
-            params=cast(ParamsType, params),
+            params=params,
             snuba_params=snuba_params,
             key=key,
             query=request.GET.get("query"),

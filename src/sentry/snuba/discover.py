@@ -942,7 +942,7 @@ def histogram_query(
         elif array_column == "span_op_breakdowns":
             key_column = "array_join(span_op_breakdowns_key)"
             histogram_function = get_span_op_breakdown_name
-        elif array_column is None:
+        else:
             raise InvalidSearchQuery(
                 "multihistogram expected either all measurements or all breakdowns"
             )
