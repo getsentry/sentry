@@ -164,6 +164,8 @@ register_strategy_config(
         # These come from newstyle:2019-05-08
         "javascript_fuzzing": True,
         "contextline_platforms": ("javascript", "node", "python", "php", "ruby"),
+        # Overwritten in newstyle:2019-10-29
+        # "with_context_line_file_origin_bug": True,
         "normalize_message": True,
         "with_exception_value_fallback": True,
         # These come from newstyle:2019-10-29
