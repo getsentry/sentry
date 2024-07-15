@@ -11,6 +11,29 @@ import type {UserReport} from 'sentry/types/group';
 import {escape, nl2br} from 'sentry/utils';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
+// used for issue details page (groupEventDetailsContent.tsx)
+export function HideUserFeedbackButton({
+  hideFeedback,
+  isHidden,
+  showFeedback,
+}: {
+  hideFeedback: () => void;
+  isHidden: boolean;
+  showFeedback: () => void;
+}) {
+  // disabled={isLoading || editProps.disabled}
+  // icon={<IconEdit />}
+  return (
+    <Button
+      size="xs"
+      onClick={isHidden ? showFeedback : hideFeedback}
+      title={'TODO: Tooltip'}
+    >
+      {isHidden ? t('Show') : t('Hide')}
+    </Button>
+  );
+}
+
 type Props = {
   issueId: string;
   orgSlug: string;

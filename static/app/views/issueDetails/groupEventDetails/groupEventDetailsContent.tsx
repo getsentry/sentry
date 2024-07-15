@@ -2,6 +2,7 @@ import {Fragment, lazy, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
+import ButtonBar from 'sentry/components/buttonBar';
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import BreadcrumbsDataSection from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
@@ -38,7 +39,10 @@ import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
-import {EventUserFeedback} from 'sentry/components/events/userFeedback';
+import {
+  EventUserFeedback,
+  HideUserFeedbackButton,
+} from 'sentry/components/events/userFeedback';
 import LazyLoad from 'sentry/components/lazyLoad';
 import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
 import {t} from 'sentry/locale';
@@ -117,12 +121,18 @@ function DefaultGroupEventDetailsContent({
     projectSlug,
   });
 
-  const {isLoading, isError, isPromptDismissed} = usePrompt({
+  const {
+    isLoading: promptLoading,
+    isError: promptError,
+    isPromptDismissed,
+    dismissPrompt,
+    showPrompt,
+  } = usePrompt({
     feature: 'issue_feedback_hidden',
     organization,
     projectId: project.id,
   });
-  // will also need dismissPrompt and showPrompt
+  const feedbackHidden = promptLoading || promptError || isPromptDismissed;
 
   return (
     <Fragment>
@@ -139,9 +149,22 @@ function DefaultGroupEventDetailsContent({
         />
       </StyledDataSection>
       {event.userReport && (
-        <EventDataSection title={t('User Feedback')} type="user-feedback">
-          <p>{'Hello there, add Chevron here >>'}</p>
-          {isLoading || isError || isPromptDismissed ? (
+        <EventDataSection
+          title={t('User Feedback')}
+          type="user-feedback"
+          actions={
+            <ErrorBoundary mini>
+              <ButtonBar gap={1}>
+                <HideUserFeedbackButton
+                  isHidden={feedbackHidden}
+                  showFeedback={showPrompt}
+                  hideFeedback={dismissPrompt}
+                />
+              </ButtonBar>
+            </ErrorBoundary>
+          }
+        >
+          {feedbackHidden ? (
             '(Hidden)'
           ) : (
             <EventUserFeedback
