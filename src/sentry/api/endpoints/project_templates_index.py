@@ -42,7 +42,9 @@ class OrganizationProjectTemplatesIndexEndpoint(OrganizationEndpoint):
 
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
+
     permission_classes = (OrganizationPermission,)
 
     @ensure_rollout_enabled(PROJECT_TEMPLATE_FEATURE_FLAG)
