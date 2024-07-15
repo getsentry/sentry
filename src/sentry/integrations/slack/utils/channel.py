@@ -124,8 +124,11 @@ def validate_channel_id(name: str, integration_id: int | None, input_channel_id:
                 "input_channel_id": input_channel_id,
             },
         )
+
         if "channel_not_found" in str(e):
             raise ValidationError("Channel not found. Invalid ID provided.") from e
+
+        raise ValidationError("Could not retrieve Slack channel information.") from e
 
     if not isinstance(results, dict):
         raise IntegrationError("Bad slack channel list response.")
