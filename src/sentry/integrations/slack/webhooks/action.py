@@ -375,7 +375,17 @@ class SlackActionEndpoint(Endpoint):
                 trigger_id=slack_request.data["trigger_id"],
                 view=modal_payload,
             )
+            metrics.incr(
+                SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
+                sample_rate=1.0,
+                tags={"type": "resolve_modal_open"},
+            )
         except SlackApiError:
+            metrics.incr(
+                SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
+                sample_rate=1.0,
+                tags={"type": "resolve_modal_open"},
+            )
             logger.exception(
                 "slack.action.response-error",
                 extra={
@@ -407,7 +417,17 @@ class SlackActionEndpoint(Endpoint):
                 trigger_id=slack_request.data["trigger_id"],
                 view=modal_payload,
             )
+            metrics.incr(
+                SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC,
+                sample_rate=1.0,
+                tags={"type": "archive_modal_open"},
+            )
         except SlackApiError:
+            metrics.incr(
+                SLACK_WEBHOOK_GROUP_ACTIONS_FAILURE_DATADOG_METRIC,
+                sample_rate=1.0,
+                tags={"type": "archive_modal_open"},
+            )
             logger.exception(
                 "slack.action.response-error",
                 extra={

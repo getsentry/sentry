@@ -18,8 +18,8 @@ from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.help import SlackHelpMessageBuilder
 from sentry.integrations.slack.message_builder.prompt import SlackPromptLinkMessageBuilder
 from sentry.integrations.slack.metrics import (
-    SLACK_EVENT_ENDPOINT_FAILURE_DATADOG_METRIC,
-    SLACK_EVENT_ENDPOINT_SUCCESS_DATADOG_METRIC,
+    SLACK_WEBHOOK_EVENT_ENDPOINT_FAILURE_DATADOG_METRIC,
+    SLACK_WEBHOOK_EVENT_ENDPOINT_SUCCESS_DATADOG_METRIC,
 )
 from sentry.integrations.slack.requests.base import SlackDMRequest, SlackRequestError
 from sentry.integrations.slack.requests.event import COMMANDS, SlackEventRequest
@@ -45,8 +45,8 @@ class SlackEventEndpoint(SlackDMEndpoint):
     XXX(dcramer): a lot of this is copied from sentry-plugins right now, and will need refactoring
     """
 
-    _METRIC_FAILURE_KEY = SLACK_EVENT_ENDPOINT_FAILURE_DATADOG_METRIC
-    _METRICS_SUCCESS_KEY = SLACK_EVENT_ENDPOINT_SUCCESS_DATADOG_METRIC
+    _METRIC_FAILURE_KEY = SLACK_WEBHOOK_EVENT_ENDPOINT_FAILURE_DATADOG_METRIC
+    _METRICS_SUCCESS_KEY = SLACK_WEBHOOK_EVENT_ENDPOINT_SUCCESS_DATADOG_METRIC
 
     authentication_classes = ()
     permission_classes = ()
