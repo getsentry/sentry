@@ -9,6 +9,10 @@ from slack_sdk.errors import SlackApiError
 
 from sentry.integrations.mixins import NotifyBasicMixin
 from sentry.integrations.notifications import get_integrations_by_channel_by_recipient
+from sentry.integrations.slack.metrics import (
+    SLACK_NOTIFY_MIXIN_FAILURE_DATADOG_METRIC,
+    SLACK_NOTIFY_MIXIN_SUCCESS_DATADOG_METRIC,
+)
 from sentry.integrations.slack.service import SlackService
 from sentry.integrations.types import ExternalProviders
 from sentry.notifications.notifications.base import BaseNotification
@@ -26,8 +30,10 @@ class SlackNotifyBasicMixin(NotifyBasicMixin):
 
         try:
             client.chat_postMessage(channel=channel_id, text=message)
-            logger.info("slack.slash-notify.success", extra={"channel_id": channel_id})
+            metrics.incr(SLACK_NOTIFY_MIXIN_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
         except SlackApiError as e:
+            metrics.incr(SLACK_NOTIFY_MIXIN_FAILURE_DATADOG_METRIC, sample_rate=1.0)
+
             error = str(e)
             message = error.split("\n")[0]
             # TODO: remove this

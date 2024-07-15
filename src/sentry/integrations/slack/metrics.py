@@ -61,6 +61,9 @@ SLACK_COMMANDS_LINK_IDENTITY_FAILURE_DATADOG_METRIC = (
     "sentry.integrations.slack.commands_link_identity.failure"
 )
 
+SLACK_NOTIFY_MIXIN_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.notify_mixin.success"
+SLACK_NOTIFY_MIXIN_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.notify_mixin.failure"
+
 # Utils
 SLACK_UTILS_GET_USER_LIST_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.utils.users.success"
 SLACK_UTILS_GET_USER_LIST_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.utils.users.failure"
