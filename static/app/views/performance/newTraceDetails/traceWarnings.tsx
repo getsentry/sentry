@@ -48,7 +48,7 @@ export function TraceWarnings({type}: TraceWarningsProps) {
     case TraceType.MULTIPLE_ROOTS:
       return (
         <Alert type="info" showIcon>
-          <ExternalLink href="https://docs.sentry.io/product/sentry-basics/tracing/trace-view/#multiple-roots">
+          <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#multiple-roots">
             {t('Multiple root transactions have been found with this trace ID.')}
           </ExternalLink>
         </Alert>
