@@ -69,7 +69,6 @@ function OrganizationUserFeedback({location: {search, pathname, query}, router}:
   }
 
   function StreamBody() {
-    const projectIds = getProjectIds();
     if (isError) {
       return <LoadingError />;
     }
@@ -81,7 +80,7 @@ function OrganizationUserFeedback({location: {search, pathname, query}, router}:
       );
     }
     if (!reportList?.length) {
-      return <UserFeedbackEmpty projectIds={projectIds} issueTab={false} />;
+      return <UserFeedbackEmpty projectIds={getProjectIds()} issueTab={false} />;
     }
     return (
       <Panel className="issue-list" data-test-id="user-feedback-list">
@@ -91,8 +90,7 @@ function OrganizationUserFeedback({location: {search, pathname, query}, router}:
             <CompactIssue key={item.id} id={issue.id} data={issue} eventId={item.eventID}>
               <StyledEventUserFeedback
                 report={item}
-                organization={organization}
-                projectId={projectIds[0]}
+                orgSlug={organization.slug}
                 issueId={issue.id}
               />
             </CompactIssue>

@@ -1,6 +1,7 @@
 import {Fragment, lazy, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {usePrompt} from 'sentry/actionCreators/prompts';
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import BreadcrumbsDataSection from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
@@ -116,6 +117,13 @@ function DefaultGroupEventDetailsContent({
     projectSlug,
   });
 
+  const {isLoading, isError, isPromptDismissed} = usePrompt({
+    feature: 'issue_feedback_hidden',
+    organization,
+    projectId: project.id,
+  });
+  // will also need dismissPrompt and showPrompt
+
   return (
     <Fragment>
       {hasActionableItems && (
@@ -132,13 +140,17 @@ function DefaultGroupEventDetailsContent({
       </StyledDataSection>
       {event.userReport && (
         <EventDataSection title={t('User Feedback')} type="user-feedback">
-          <EventUserFeedback
-            report={event.userReport}
-            organization={organization}
-            projectId={project.id}
-            issueId={group.id}
-            showEventLink={false}
-          />
+          <p>{'Hello there, add Chevron here >>'}</p>
+          {isLoading || isError || isPromptDismissed ? (
+            '(Hidden)'
+          ) : (
+            <EventUserFeedback
+              report={event.userReport}
+              orgSlug={organization.slug}
+              issueId={group.id}
+              showEventLink={false}
+            />
+          )}
         </EventDataSection>
       )}
       {event.type === EventOrGroupType.ERROR &&
