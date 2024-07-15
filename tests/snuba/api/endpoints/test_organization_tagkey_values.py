@@ -739,7 +739,7 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
             ],
         )
 
-    def test_replays_tags_values_query_filters(self):
+    def test_replays_tags_values_query(self):
         # requests may pass in a "query" param to filter the return values with a substring
 
         # custom tag
@@ -783,6 +783,18 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
         )
         self.run_test("device.brand", expected=[("Samsung", 1)], qs_params={"query": "S"})
         self.run_test("device.family", expected=[], qs_params={"query": "$$$"})
+
+    def test_replays_tags_values_query_case_insensitive(self):
+        # custom tag
+        self.run_test("fruit", expected=[("orange", 2)], qs_params={"query": "OrA"})
+
+        # some column aliases
+        self.run_test("browser.name", expected=[("Chrome", 3)], qs_params={"query": "chrom"})
+        self.run_test(
+            "environment",
+            expected=[("development", 1), ("production", 3)],
+            qs_params={"query": "D"},
+        )
 
     def test_schema(self):
 

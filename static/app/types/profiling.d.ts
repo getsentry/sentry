@@ -12,9 +12,19 @@ declare namespace Profiling {
     value: number;
   };
 
+  type ContinuousMeasurementValue = {
+    timestamp: number;
+    value: number;
+  };
+
   type Measurement = {
     unit: string;
     values: MeasurementValue[];
+  };
+
+  type ContinuousMeasurement = {
+    unit: string;
+    values: ContinuousMeasurementValue[];
   };
 
   type Measurements = {
@@ -24,6 +34,15 @@ declare namespace Profiling {
     screen_frame_rates?: Measurement;
     slow_frame_renders?: Measurement;
     [key: string]: Measurement;
+  };
+
+  type ContinuousMeasurements = {
+    cpu_usage?: ContinuousMeasurement;
+    memory_footprint?: ContinuousMeasurement;
+    frozen_frame_renders?: ContinuousMeasurement;
+    screen_frame_rates?: ContinuousMeasurement;
+    slow_frame_renders?: ContinuousMeasurement;
+    [key: string]: ContinuousMeasurement;
   };
 
   type SentrySampledProfileSample = {
@@ -104,7 +123,7 @@ declare namespace Profiling {
     measurements?: Measurements;
   };
 
-  interface SentryContinousProfile {
+  interface SentryContinousProfileChunk {
     chunk_id: string;
     environment: string;
     project_id: number;
@@ -117,13 +136,8 @@ declare namespace Profiling {
       images: Image[];
     };
     platform: string;
-    measurements?: Measurements;
-    profile: {
-      samples: SentrySampledProfileChunkSample[];
-      frames: SentrySampledProfileFrame[];
-      stacks: SentrySampledProfileStack[];
-      thread_metadata?: Record<string, {name?: string; priority?: number}>;
-    };
+    measurements?: ContinuousMeasurements;
+    profile: ContinuousProfile;
   }
 
   ////////////////
@@ -151,6 +165,13 @@ declare namespace Profiling {
     sample_durations_ns?: number[];
     type: 'sampled';
   }
+
+  type ContinuousProfile = {
+    samples: SentrySampledProfileChunkSample[];
+    frames: SentrySampledProfileFrame[];
+    stacks: SentrySampledProfileStack[];
+    thread_metadata?: Record<string, {name?: string; priority?: number}>;
+  };
 
   type Event = {at: number; frame: number; type: 'O' | 'C'};
 
@@ -197,7 +218,8 @@ declare namespace Profiling {
   type ProfileInput =
     | Profiling.Schema
     | JSSelfProfiling.Trace
-    | Profiling.SentrySampledProfile;
+    | Profiling.SentrySampledProfile
+    | Profiling.SentryContinousProfileChunk;
 
   type ImportedProfiles = {
     name: string;

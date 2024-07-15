@@ -9,7 +9,7 @@ import orjson
 from django.core.exceptions import ObjectDoesNotExist
 from sentry_relay.processing import parse_release
 
-from sentry import features, tagstore
+from sentry import tagstore
 from sentry.api.endpoints.group_details import get_group_global_count
 from sentry.constants import LOG_LEVELS_MAP
 from sentry.eventstore.models import GroupEvent
@@ -607,9 +607,7 @@ class SlackIssuesMessageBuilder(BlockSlackMessageBuilder):
 
         blocks = [self.get_title_block(rule_id, notification_uuid, obj, has_action)]
 
-        if features.has("organizations:slack-culprit-blocks", project.organization) and (
-            culprit_block := self.get_culprit_block(obj)
-        ):
+        if culprit_block := self.get_culprit_block(obj):
             blocks.append(culprit_block)
 
         # build up text block

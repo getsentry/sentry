@@ -11,7 +11,6 @@ import {formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
 
 const ALL_FIELDS = [
   'profile.id',
@@ -36,35 +35,25 @@ const FIELDS = [
   'trace.transaction',
 ] as const;
 
+const QUERY_FIELDS = [
+  'profile.id',
+  'timestamp',
+  'transaction.duration',
+  'release',
+  'environment',
+  'trace',
+  'id',
+] as const;
+
 export function ProfilesTable() {
   const location = useLocation();
 
-  const organization = useOrganization();
-
-  const useTransactions = organization.features.includes('profiling-using-transactions');
-
-  const queryFields = useMemo(() => {
-    const transactionIdColumn = useTransactions
-      ? ('id' as const)
-      : ('trace.transaction' as const);
-
-    return [
-      'profile.id',
-      'timestamp',
-      'transaction.duration',
-      'release',
-      'environment',
-      'trace',
-      transactionIdColumn,
-    ] as const;
-  }, [useTransactions]);
-
   const sort = useMemo(() => {
-    return formatSort<FieldType>(decodeScalar(location.query.sort), queryFields, {
+    return formatSort<FieldType>(decodeScalar(location.query.sort), QUERY_FIELDS, {
       key: 'timestamp',
       order: 'desc',
     });
-  }, [queryFields, location.query.sort]);
+  }, [location.query.sort]);
 
   const rawQuery = useMemo(() => {
     return decodeScalar(location.query.query, '');
@@ -88,7 +77,7 @@ export function ProfilesTable() {
 
   const profiles = useProfileEvents<FieldType>({
     cursor: profilesCursor,
-    fields: queryFields,
+    fields: QUERY_FIELDS,
     query,
     sort,
     limit: 20,
@@ -109,13 +98,13 @@ export function ProfilesTable() {
       data: profiles.data.data.map(row => {
         return {
           ...row,
-          'trace.transaction': useTransactions ? row.id : row['trace.transaction'],
+          'trace.transaction': row.id,
         };
       }),
       meta: profiles.data.meta,
     };
     return _data;
-  }, [profiles.data, useTransactions]);
+  }, [profiles.data]);
 
   return (
     <ProfileEvents>

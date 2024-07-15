@@ -16,8 +16,8 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useParams} from 'sentry/utils/useParams';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SpanTimeRenderer} from 'sentry/views/traces/fieldRenderers';
 
 import {isTraceNode} from '../../../guards';

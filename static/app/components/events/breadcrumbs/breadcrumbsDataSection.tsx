@@ -1,6 +1,8 @@
-import {useCallback, useMemo} from 'react';
+import {Fragment, useCallback, useMemo, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import ProjectAvatar from 'sentry/components/avatar/projectAvatar';
+import {Breadcrumbs as NavigationBreadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
@@ -16,14 +18,24 @@ import {
   getSummaryBreadcrumbs,
 } from 'sentry/components/events/breadcrumbs/utils';
 import {EventDataSection} from 'sentry/components/events/eventDataSection';
+import useFeedbackWidget from 'sentry/components/feedback/widget/useFeedbackWidget';
 import useDrawer from 'sentry/components/globalDrawer';
-import {IconClock, IconEllipsis, IconFilter, IconSearch, IconSort} from 'sentry/icons';
+import {
+  IconClock,
+  IconEllipsis,
+  IconFilter,
+  IconMegaphone,
+  IconSearch,
+  IconSort,
+  IconTimer,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {getShortEventId} from 'sentry/utils/events';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 
@@ -66,18 +78,36 @@ export default function BreadcrumbsDataSection({
         organization,
       });
       openDrawer(
-        ({Body}) => (
-          <Body>
-            <BreadcrumbsDrawerContent
-              breadcrumbs={enhancedCrumbs}
-              group={group}
-              event={event}
-              project={project}
-              focusControl={focusControl}
-            />
-          </Body>
+        ({Header, Body}) => (
+          <Fragment>
+            <Header>
+              <BreadcrumbHeader>
+                <NavigationCrumbs
+                  crumbs={[
+                    {
+                      label: (
+                        <CrumbContainer>
+                          <ProjectAvatar project={project} />
+                          <ShortId>{group.shortId}</ShortId>
+                        </CrumbContainer>
+                      ),
+                    },
+                    {label: getShortEventId(event.id)},
+                    {label: t('Breadcrumbs')},
+                  ]}
+                />
+                <BreadcrumbsFeedback />
+              </BreadcrumbHeader>
+            </Header>
+            <Body>
+              <BreadcrumbsDrawerContent
+                breadcrumbs={enhancedCrumbs}
+                focusControl={focusControl}
+              />
+            </Body>
+          </Fragment>
         ),
-        {ariaLabel: 'breadcrumb drawer'}
+        {ariaLabel: 'breadcrumb drawer', closeOnOutsideClick: false}
       );
     },
     [group, event, project, openDrawer, enhancedCrumbs, organization]
@@ -109,7 +139,13 @@ export default function BreadcrumbsDataSection({
       />
       <Button
         aria-label={t('Change Time Format for Breadcrumbs')}
-        icon={<IconClock size="xs" />}
+        icon={
+          timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE ? (
+            <IconClock size="xs" />
+          ) : (
+            <IconTimer size="xs" />
+          )
+        }
         onClick={() => {
           const nextTimeDisplay =
             timeDisplay === BreadcrumbTimeDisplay.ABSOLUTE
@@ -142,6 +178,7 @@ export default function BreadcrumbsDataSection({
           startTimeString={startTimeString}
           // We want the timeline to appear connected to the 'View All' button
           showLastLine={hasViewAll}
+          isCompact
         />
         {hasViewAll && (
           <ViewAllContainer>
@@ -161,6 +198,35 @@ export default function BreadcrumbsDataSection({
     </EventDataSection>
   );
 }
+
+function BreadcrumbsFeedback() {
+  const buttonRef = useRef<HTMLButtonElement>(null);
+  const feedback = useFeedbackWidget({
+    buttonRef,
+    messagePlaceholder: t('How can we make breadcrumbs more useful to you?'),
+  });
+
+  if (!feedback) {
+    return null;
+  }
+
+  return (
+    <Button
+      ref={buttonRef}
+      aria-label={t('Give Feedback')}
+      icon={<IconMegaphone />}
+      size={'xs'}
+    >
+      {t('Feedback')}
+    </Button>
+  );
+}
+
+const BreadcrumbHeader = styled('div')`
+  width: 100%;
+  display: flex;
+  justify-content: space-between;
+`;
 
 const ViewAllContainer = styled('div')`
   position: relative;
@@ -187,4 +253,21 @@ const VerticalEllipsis = styled(IconEllipsis)`
 
 const ViewAllButton = styled(Button)`
   padding: ${space(0.75)} ${space(1)};
+`;
+
+const NavigationCrumbs = styled(NavigationBreadcrumbs)`
+  margin: 0;
+  padding: 0;
+`;
+
+const CrumbContainer = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
+`;
+
+const ShortId = styled('div')`
+  font-family: ${p => p.theme.text.family};
+  font-size: ${p => p.theme.fontSizeMedium};
+  line-height: 1;
 `;

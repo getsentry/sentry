@@ -43,7 +43,8 @@ export const QueryBuilder = memo(function QueryBuilder({
 }: QueryBuilderProps) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
-  const {getConditions, getVirtualMeta, resolveVirtualMRI} = useVirtualMetricsContext();
+  const {getConditions, getVirtualMeta, resolveVirtualMRI, getTags} =
+    useVirtualMetricsContext();
   const {data: cardinality} = useMetricsCardinality(pageFilters.selection);
 
   const {
@@ -70,22 +71,42 @@ export const QueryBuilder = memo(function QueryBuilder({
     resolveVirtualMRI,
   ]);
 
-  const {data: tagsData = [], isLoading: tagsIsLoading} = useMetricsTags(
-    metricsQuery.mri,
-    {
-      projects: projectIds,
-    }
-  );
+  const {data: tagsData = [], isLoading: tagsIsLoading} = useMetricsTags(resolvedMRI, {
+    projects: projectIds,
+  });
 
   const groupByOptions = useMemo(() => {
-    return uniqBy(tagsData, 'key').map(tag => ({
+    // TODO insert more data - add all tags that exists only on a extraction rule
+
+    const options = uniqBy(tagsData, 'key').map(tag => ({
       key: tag.key,
       // So that we don't have to parse the query to determine if the tag is used
       trailingItems: metricsQuery.query?.includes(`${tag.key}:`) ? (
         <TagWarningIcon />
       ) : undefined,
+      isQueryable: true, // allow group by this tag
     }));
-  }, [tagsData, metricsQuery.query]);
+
+    const parsedMRI = parseMRI(metricsQuery.mri);
+    const isVirtualMetric = parsedMRI?.type === 'v';
+    if (isVirtualMetric) {
+      const tagsFromExtractionRules = getTags(metricsQuery.mri);
+      for (const tag of tagsFromExtractionRules) {
+        if (!options.find(o => o.key === tag.key)) {
+          // if the tag has not been seen in the selected time range
+          // but exists in the extraction rule, it should be disabled in the group by dropdown
+          options.push({
+            key: tag.key,
+            trailingItems: metricsQuery.query?.includes(`${tag.key}:`) ? (
+              <TagWarningIcon />
+            ) : undefined,
+            isQueryable: false, // do not allow group by this tag
+          });
+        }
+      }
+    }
+    return options;
+  }, [tagsData, metricsQuery.query, metricsQuery.mri, getTags]);
 
   const selectedMeta = useMemo(() => {
     return meta.find(metric => metric.mri === metricsQuery.mri);
@@ -219,7 +240,7 @@ export const QueryBuilder = memo(function QueryBuilder({
             <CompactSelect
               size="md"
               triggerProps={{
-                prefix: t('Query'),
+                prefix: t('Filter'),
                 icon:
                   getMaxCardinality(
                     spanConditions.find(c => c.id === metricsQuery.condition)
@@ -284,6 +305,12 @@ export const QueryBuilder = memo(function QueryBuilder({
               options={groupByOptions.map(tag => ({
                 label: tag.key,
                 value: tag.key,
+                disabled: !tag.isQueryable,
+                tooltip: !tag.isQueryable
+                  ? t(
+                      'You can not group by a tag that has not been seen in the selected time range'
+                    )
+                  : undefined,
               }))}
               disabled={!metricsQuery.mri || tagsIsLoading}
               value={metricsQuery.groupBy}
@@ -356,7 +383,7 @@ function QueryFooter({mri, closeOverlay}) {
           openExtractionRuleEditModal({metricExtractionRule: extractionRule});
         }}
       >
-        {t('Add Query')}
+        {t('Add Filter')}
       </Button>
       <InfoWrapper>
         <Tooltip
@@ -367,7 +394,7 @@ function QueryFooter({mri, closeOverlay}) {
         >
           <IconInfo size="xs" />
         </Tooltip>
-        {t('What are queries?')}
+        {t('What are filters?')}
       </InfoWrapper>
     </QueryFooterWrapper>
   );

@@ -1,11 +1,11 @@
 import type {Location, LocationDescriptorObject} from 'history';
 
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {getTraceDetailsUrl} from 'sentry/views/performance/traceDetails/utils';
 
 import {getTimeStampFromTableDateField} from '../dates';
 import {getTransactionDetailsUrl} from '../performance/urls';
-import {normalizeUrl} from '../withDomainRequired';
 
 import type {EventData} from './eventView';
 import EventView from './eventView';
@@ -57,7 +57,7 @@ export function generateLinkToEventInTraceView({
 }: {
   eventId: string;
   location: Location;
-  organization: Pick<Organization, 'slug' | 'features'>;
+  organization: Organization;
   projectSlug: string;
   timestamp: string | number;
   traceSlug: string;

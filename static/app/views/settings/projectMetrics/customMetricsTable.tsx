@@ -97,7 +97,7 @@ export function CustomMetricsTable({project}: Props) {
     <Fragment>
       <SearchWrapper>
         <Title>
-          <h6>{t('Emitted Metrics')}</h6>
+          <h6>{t('Custom Metrics')}</h6>
           {hasCustomMetricsExtractionRules(organization) && (
             <Tag type="warning">{t('deprecated')}</Tag>
           )}

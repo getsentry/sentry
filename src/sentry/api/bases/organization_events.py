@@ -135,7 +135,11 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
             return params, filter_params
 
     def get_snuba_params(
-        self, request: HttpRequest, organization: Organization, check_global_views: bool = True
+        self,
+        request: HttpRequest,
+        organization: Organization,
+        check_global_views: bool = True,
+        quantize_date_params: bool = True,
     ) -> ParamsType:
         with sentry_sdk.start_span(op="discover.endpoint", description="filter_params"):
             if (
@@ -148,7 +152,8 @@ class OrganizationEventsEndpointBase(OrganizationEndpoint):
                 )
 
             params: ParamsType = self.get_filter_params(request, organization)
-            params = self.quantize_date_params(request, params)
+            if quantize_date_params:
+                params = self.quantize_date_params(request, params)
             params["user_id"] = request.user.id if request.user else None
             params["team_id"] = self.get_team_ids(request, organization)
 
