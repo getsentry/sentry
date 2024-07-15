@@ -219,7 +219,7 @@ class SlackLinkTeamView(BaseView):
 
             try:
                 client = SlackSdkClient(integration_id=integration.id)
-                client.chat_postMessage(channel=channel_id, message=message)
+                client.chat_postMessage(channel=channel_id, text=message)
                 metrics.incr(SLACK_LINK_TEAM_MSG_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
             except SlackApiError:
                 # whether or not we send a Slack message, the team is already linked
@@ -257,7 +257,7 @@ class SlackLinkTeamView(BaseView):
 
         try:
             client = SlackSdkClient(integration_id=integration.id)
-            client.chat_postMessage(channel=channel_id, message=message)
+            client.chat_postMessage(channel=channel_id, text=message)
             metrics.incr(SLACK_LINK_TEAM_MSG_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
         except SlackApiError:
             # whether or not we send a Slack message, the team was linked successfully
