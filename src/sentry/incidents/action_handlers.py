@@ -27,6 +27,7 @@ from sentry.incidents.models.incident import (
     TriggerStatus,
 )
 from sentry.integrations.types import ExternalProviders
+from sentry.models.project import Project
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.user import User
 from sentry.notifications.types import NotificationSettingEnum
@@ -44,7 +45,12 @@ class ActionHandler(metaclass=abc.ABCMeta):
     status_display = {TriggerStatus.ACTIVE: "Fired", TriggerStatus.RESOLVED: "Resolved"}
     provider: str
 
-    def __init__(self, action, incident, project):
+    def __init__(
+        self,
+        action: AlertRuleTriggerAction,
+        incident: Incident,
+        project: Project,
+    ) -> None:
         self.action = action
         self.incident = incident
         self.project = project
@@ -55,7 +61,7 @@ class ActionHandler(metaclass=abc.ABCMeta):
         metric_value: int | float,
         new_status: IncidentStatus,
         notification_uuid: str | None = None,
-    ):
+    ) -> None:
         pass
 
     @abc.abstractmethod
@@ -64,12 +70,12 @@ class ActionHandler(metaclass=abc.ABCMeta):
         metric_value: int | float,
         new_status: IncidentStatus,
         notification_uuid: str | None = None,
-    ):
+    ) -> None:
         pass
 
     def record_alert_sent_analytics(
         self, external_id: int | str | None = None, notification_uuid: str | None = None
-    ):
+    ) -> None:
         analytics.record(
             "alert.sent",
             organization_id=self.incident.organization_id,
@@ -88,7 +94,7 @@ class DefaultActionHandler(ActionHandler):
         metric_value: int | float,
         new_status: IncidentStatus,
         notification_uuid: str | None = None,
-    ):
+    ) -> None:
         if not RuleSnooze.objects.is_snoozed_for_all(alert_rule=self.incident.alert_rule):
             self.send_alert(metric_value, new_status, notification_uuid)
 
@@ -97,7 +103,7 @@ class DefaultActionHandler(ActionHandler):
         metric_value: int | float,
         new_status: IncidentStatus,
         notification_uuid: str | None = None,
-    ):
+    ) -> None:
         if not RuleSnooze.objects.is_snoozed_for_all(alert_rule=self.incident.alert_rule):
             self.send_alert(metric_value, new_status, notification_uuid)
 
@@ -107,7 +113,7 @@ class DefaultActionHandler(ActionHandler):
         metric_value: int | float,
         new_status: IncidentStatus,
         notification_uuid: str | None = None,
-    ):
+    ) -> None:
         pass
 
 
@@ -136,7 +142,6 @@ class EmailActionHandler(ActionHandler):
             return {target.id}
 
         elif self.action.target_type == AlertRuleTriggerAction.TargetType.TEAM.value:
-            users = None
             out = get_notification_recipients(
                 recipients=list(
                     Actor(id=member.user_id, actor_type=ActorType.USER)
