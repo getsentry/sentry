@@ -26,6 +26,7 @@ NOTIFICATION_SETTINGS_TYPE_DEFAULTS = {
     NotificationSettingEnum.QUOTA_THRESHOLDS: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.SPIKE_PROTECTION: NotificationSettingsOptionEnum.ALWAYS,
     NotificationSettingEnum.REPORTS: NotificationSettingsOptionEnum.ALWAYS,
+    NotificationSettingEnum.BROKEN_MONITORS: NotificationSettingsOptionEnum.ALWAYS,
 }
 
 
