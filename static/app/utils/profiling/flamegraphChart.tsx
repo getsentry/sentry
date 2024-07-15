@@ -1,8 +1,13 @@
 import type {ColorChannels} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+import type {ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 
 import {colorComponentsToRGBA} from './colors/utils';
-import {makeFormatter, makeTimelineFormatter} from './units/units';
+import {
+  assertValidProfilingUnit,
+  makeFormatter,
+  makeTimelineFormatter,
+} from './units/units';
 
 interface Series {
   fillColor: string;
@@ -35,6 +40,7 @@ interface ChartOptions {
 
 export class FlamegraphChart {
   configSpace: Rect;
+  unit: ProfilingFormatterUnit;
   formatter: ReturnType<typeof makeFormatter>;
   tooltipFormatter: ReturnType<typeof makeFormatter>;
   timelineFormatter: (value: number) => string;
@@ -63,6 +69,7 @@ export class FlamegraphChart {
     if (!measurements || !measurements.length) {
       this.formatter = makeFormatter('percent');
       this.tooltipFormatter = makeFormatter('percent');
+      this.unit = 'percent';
       this.configSpace = configSpace.clone();
       this.status = !measurements ? 'no metrics' : 'empty metrics';
       return;
@@ -127,6 +134,9 @@ export class FlamegraphChart {
 
     this.domains.y[1] = this.domains.y[1] + this.domains.y[1] * 0.1;
     this.configSpace = configSpace.withHeight(this.domains.y[1] - this.domains.y[0]);
+
+    assertValidProfilingUnit(measurements[0].unit);
+    this.unit = measurements[0].unit;
 
     this.formatter = makeFormatter(
       measurements[0].unit,
