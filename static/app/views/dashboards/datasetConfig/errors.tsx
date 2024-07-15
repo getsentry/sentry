@@ -17,12 +17,10 @@ import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {RenderFunctionBaggage} from 'sentry/utils/discover/fieldRenderers';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
-import type {
-  DiscoverQueryExtras,
-  DiscoverQueryRequestParams,
-} from 'sentry/utils/discover/genericDiscoverQuery';
+import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {Container} from 'sentry/utils/discover/styles';
+import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {
   eventDetailsRouteWithEventView,
   generateEventSlug,
@@ -41,8 +39,7 @@ import {DisplayType} from '../types';
 import {eventViewFromWidget} from '../utils';
 import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 
-import type {DatasetConfig} from './base';
-import {handleOrderByReset} from './base';
+import {type DatasetConfig, handleOrderByReset} from './base';
 import {getTableSortOptions} from './errorsAndTransactions';
 
 const DEFAULT_WIDGET_QUERY: WidgetQuery = {
@@ -86,7 +83,7 @@ export const ErrorsConfig: DatasetConfig<
     limit?: number,
     cursor?: string,
     referrer?: string,
-    mepSetting?: MEPState | null
+    _mepSetting?: MEPState | null
   ) => {
     return getEventsRequest(
       api,
@@ -95,8 +92,7 @@ export const ErrorsConfig: DatasetConfig<
       pageFilters,
       limit,
       cursor,
-      referrer,
-      mepSetting
+      referrer
     );
   },
   transformTable: transformEventsResponseToTable,
@@ -189,16 +185,14 @@ export function getCustomEventsFieldRenderer(field: string, meta: MetaType) {
   return getFieldRenderer(field, meta, false);
 }
 
-function getEventsRequest(
+export function getEventsRequest(
   api: Client,
   query: WidgetQuery,
   organization: Organization,
   pageFilters: PageFilters,
   limit?: number,
   cursor?: string,
-  referrer?: string,
-  _mepSetting?: MEPState | null,
-  queryExtras?: DiscoverQueryExtras
+  referrer?: string
 ) {
   const url = `/organizations/${organization.slug}/events/`;
   const eventView = eventViewFromWidget('', query, pageFilters);
@@ -207,7 +201,7 @@ function getEventsRequest(
     per_page: limit,
     cursor,
     referrer,
-    ...queryExtras,
+    dataset: DiscoverDatasets.ERRORS,
   };
 
   if (query.orderby) {
