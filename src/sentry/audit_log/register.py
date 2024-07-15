@@ -541,6 +541,6 @@ default_manager.add(
         event_id=190,
         name="PROJECT_TEMPLATE_CREATED",
         api_name="project_template.create",
-        template="Created project template {template_name} for organization {organization_id}",
+        template="Created project template {name} for organization {organization_id}",
     )
 )
