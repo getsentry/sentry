@@ -1,16 +1,14 @@
-import {useEffect, useState} from 'react';
+import {useMemo, useRef} from 'react';
 
 type Cache<T> = {
   items: T[];
 };
 
 type SortFn<T> = (items: T[]) => T[];
-type MergeFn<T> = (items: T[]) => T[];
 
 interface Props<T> {
   items: T[];
   limit?: number;
-  mergeFn?: MergeFn<T>;
   sortFn?: SortFn<T>;
 }
 
@@ -29,34 +27,30 @@ interface Props<T> {
  * them to the cache.
  */
 export function useArrayCache<T>(props: Props<T>): T[] {
-  const {items, sortFn, mergeFn, limit = -1} = props;
+  const {items: incomingItems, sortFn, limit = -1} = props;
 
-  const [cache, setCache] = useState<Cache<T>>({
+  // The cache is a reference. This makes it possible to update the cache without causing a re-render, which avoids an infinite render loop.
+  const cache = useRef<Cache<T>>({
     items: [],
   });
 
-  useEffect(() => {
-    let newItems = [...cache.items, ...items];
+  const items = useMemo(() => {
+    let newItems = [...cache.current.items, ...incomingItems];
 
     if (sortFn) {
-      // Comparison is done first in case `mergeFn` assumes sorted order
       newItems = sortFn(newItems);
-    }
-
-    if (mergeFn) {
-      newItems = mergeFn(newItems);
     }
 
     if (limit > 0) {
       newItems = newItems.slice(0, limit);
     }
 
-    setCache({
-      items: newItems,
-    });
-  }, [items, sortFn, mergeFn, limit]);
+    cache.current.items = newItems;
 
-  return cache.items;
+    return cache.current.items;
+  }, [incomingItems, sortFn, limit]);
+
+  return items;
 }
 
 export function setMerge<T>(items: T[]): T[] {
