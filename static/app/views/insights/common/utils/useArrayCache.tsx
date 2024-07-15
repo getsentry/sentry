@@ -1,4 +1,4 @@
-import {useEffect, useRef} from 'react';
+import {useEffect, useState} from 'react';
 
 type Cache<T> = {
   items: T[];
@@ -14,15 +14,29 @@ interface Props<T> {
   sortFn?: SortFn<T>;
 }
 
+/**
+ * An array cache hook. Keeps a list of items in memory. Allows for
+ * sorting and merging. Useful for autocomplete dropdowns, and other
+ * cases
+ *
+ * e.g.,
+ * ```jsx
+ * const greetingsData = useGreetingsFromServer({query: userInput});
+ * const greetings = useArrayCache({ items: greetingsData });
+ * ```
+ *
+ * Every time the `useArrayCache` hook is called with new items it adds
+ * them to the cache.
+ */
 export function useArrayCache<T>(props: Props<T>): T[] {
   const {items, sortFn, mergeFn, limit = -1} = props;
 
-  const cache = useRef<Cache<T>>({
+  const [cache, setCache] = useState<Cache<T>>({
     items: [],
   });
 
   useEffect(() => {
-    let newItems = [...cache.current.items, ...items];
+    let newItems = [...cache.items, ...items];
 
     if (sortFn) {
       // Comparison is done first in case `mergeFn` assumes sorted order
@@ -37,10 +51,12 @@ export function useArrayCache<T>(props: Props<T>): T[] {
       newItems = newItems.slice(0, limit);
     }
 
-    cache.current.items = newItems;
+    setCache({
+      items: newItems,
+    });
   }, [items, sortFn, mergeFn, limit]);
 
-  return cache.current.items;
+  return cache.items;
 }
 
 export function setMerge<T>(items: T[]): T[] {
