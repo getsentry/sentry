@@ -160,18 +160,24 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
         assert get_condition_group_results({}, self.project) == {}
 
     @patch("sentry.rules.processing.delayed_processing.logger")
-    def test_nonexistent_condition_cls(self, mock_logger):
-        first_query = UniqueConditionQuery(cls_id="fake_id", interval="", environment_id=1)
+    def test_nonexistent_condition(self, mock_logger):
+        nonexistent_cond_query = UniqueConditionQuery(
+            cls_id="fake_id", interval="", environment_id=1
+        )
         fake_data_groups = DataAndGroups(
             data=self.create_event_frequency_condition(id="fake_id"),
             group_ids={1},
         )
-        assert get_condition_group_results({first_query: fake_data_groups}, self.project) is None
+
+        results = get_condition_group_results(
+            {nonexistent_cond_query: fake_data_groups}, self.project
+        )
+        assert results == {}
         mock_logger.warning.assert_called_once()
 
     @patch("sentry.rules.processing.delayed_processing.logger")
-    def test_fast_condition_cls(self, mock_logger):
-        first_query = UniqueConditionQuery(
+    def test_fast_condition(self, mock_logger):
+        fast_cond_query = UniqueConditionQuery(
             cls_id="sentry.rules.conditions.every_event.EveryEventCondition",
             interval="",
             environment_id=1,
@@ -180,10 +186,17 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
             data=self.create_event_frequency_condition(id="fake_id"),
             group_ids={1},
         )
-        assert get_condition_group_results({first_query: fake_data_groups}, self.project) is None
+
+        results = get_condition_group_results({fast_cond_query: fake_data_groups}, self.project)
+        assert results == {}
         mock_logger.warning.assert_called_once()
 
     def test_group_does_not_belong_to_project(self):
+        """
+        Test that when the passed in project does not contain the group
+        referenced in condition_data, the function ignores this mismatch
+        entirely and still queries for those events.
+        """
         condition_data = self.create_event_frequency_condition(interval=self.interval)
         condition_groups, group_id, unique_queries = self.create_condition_groups([condition_data])
 
@@ -217,7 +230,11 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
             offset_percent_query: {group_id: 1},
         }
 
-    def test_count_and_percent_comparison_conditions(self):
+    def test_count_percent_nonexistent_fast_conditions_together(self):
+        """
+        Test that a percent and count condition are processed as expected, and
+        that nonexistent and fast conditions are ignored.
+        """
         count_data = self.create_event_frequency_condition(interval=self.interval)
         percent_data = self.create_event_frequency_condition(
             interval=self.interval,
@@ -227,12 +244,29 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
         condition_groups, group_id, unique_queries = self.create_condition_groups(
             [count_data, percent_data]
         )
+        nonexistent_cond_query = UniqueConditionQuery(
+            cls_id="fake_id", interval="", environment_id=1
+        )
+        fast_cond_query = UniqueConditionQuery(
+            cls_id="sentry.rules.conditions.every_event.EveryEventCondition",
+            interval="",
+            environment_id=1,
+        )
+        fake_data_groups = DataAndGroups(
+            data=self.create_event_frequency_condition(id="fake_id"),
+            group_ids={1},
+        )
+
+        condition_groups.update(
+            {nonexistent_cond_query: fake_data_groups, fast_cond_query: fake_data_groups}
+        )
         results = get_condition_group_results(condition_groups, self.project)
 
         count_query, present_percent_query, offset_percent_query = unique_queries
-        # The count query and present percent query should be identical
+        # The count query and first percent query should be identical
         assert count_query == present_percent_query
-
+        # We should only query twice b/c the count query and first percent query
+        # share a single scan.
         assert results == {
             count_query: {group_id: 4},
             offset_percent_query: {group_id: 1},
