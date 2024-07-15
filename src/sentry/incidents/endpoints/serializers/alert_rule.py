@@ -55,7 +55,7 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
     errors: list[str] | None
     sensitivity: str | None  # mifu67: I think these three should be here, but I will confirm
     seasonality: str | None
-    detection_type: str | None  # mifu67: this field has a default value, but not all alert rules have it
+    activationCondition: int | None
 
 
 @extend_schema_serializer(
@@ -95,8 +95,8 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     createdBy: dict
     monitorType: int
     activations: list[dict]
-    activationCondition: int | None
     description: str
+    detection_type: str
 
 
 @register(AlertRule)

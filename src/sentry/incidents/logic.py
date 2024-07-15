@@ -521,7 +521,7 @@ def create_alert_rule(
     description: str | None = None,
     sensitivity: AlertRuleSensitivity | None = None,
     seasonality: AlertRuleSeasonality | None = None,
-    detection_type: AlertRuleDetectionType | None = None,
+    detection_type: AlertRuleDetectionType = AlertRuleDetectionType.STATIC,
     **kwargs,
 ):
     # TODO (mifu67): update the :params for sensitivity, seasonality, and detection type
