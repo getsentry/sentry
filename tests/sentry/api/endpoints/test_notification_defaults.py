@@ -30,5 +30,6 @@ class NotificationDefaultTest(APITestCase):
                 "reports": "always",
                 "spikeProtection": "always",
                 "workflow": "subscribe_only",
+                "brokenMonitors": "always",
             },
         }
