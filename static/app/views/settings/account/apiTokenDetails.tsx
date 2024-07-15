@@ -1,4 +1,8 @@
-import {addLoadingMessage} from 'sentry/actionCreators/indicator';
+import {
+  addErrorMessage,
+  addLoadingMessage,
+  addSuccessMessage,
+} from 'sentry/actionCreators/indicator';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
@@ -12,6 +16,7 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
 import {browserHistory} from 'sentry/utils/browserHistory';
+import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useMutateApiToken from 'sentry/utils/useMutateApiToken';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
@@ -43,9 +48,21 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
     browserHistory.push(normalizeUrl(API_INDEX_ROUTE));
   };
 
+  const onSuccess = () => {
+    addSuccessMessage(t('Updated user auth token.'));
+    handleGoBack;
+  };
+
+  const onError = error => {
+    const message = t('Failed to update the user auth token.');
+    handleXhrErrorResponse(message, error);
+    addErrorMessage(message);
+  };
+
   const {mutate: submitToken} = useMutateApiToken({
     token: token,
-    onSuccess: handleGoBack,
+    onSuccess: onSuccess,
+    onError: onError,
   });
 
   return (

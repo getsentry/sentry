@@ -1,7 +1,4 @@
-import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
-import {t} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
-import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
 import {
   getApiQueryData,
   setApiQueryData,
@@ -25,7 +22,7 @@ export const makeFetchApiTokenKey = ({tokenId}: FetchApiTokenParameters) =>
 interface UseMutateApiTokenProps {
   token: InternalAppApiToken;
   onError?: (error: RequestError) => void;
-  onSuccess?: (name: string) => void;
+  onSuccess?: () => void;
 }
 
 export default function useMutateApiToken({
@@ -45,8 +42,6 @@ export default function useMutateApiToken({
       }),
 
     onSuccess: (_data, {name}) => {
-      addSuccessMessage(t('Updated user auth token.'));
-
       // Update get by id query
       setApiQueryData(
         queryClient,
@@ -82,12 +77,9 @@ export default function useMutateApiToken({
           }
         );
       }
-      return onSuccess?.(name);
+      return onSuccess?.();
     },
     onError: error => {
-      const message = t('Failed to update the user auth token.');
-      handleXhrErrorResponse(message, error);
-      addErrorMessage(message);
       return onError?.(error);
     },
   });
