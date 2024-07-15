@@ -123,6 +123,15 @@ For example the following are valid parameters:
 - `/?project=-1`
 """,
     )
+    DETAILED = OpenApiParameter(
+        name="detailed",
+        location="query",
+        required=False,
+        type=str,
+        description="""
+Specify `"0"` to return organization details that do not include projects or teams.
+""",
+    )
     OWNER = OpenApiParameter(
         name="owner",
         location="query",

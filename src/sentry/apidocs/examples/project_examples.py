@@ -84,7 +84,9 @@ BASE_PROJECT = {
     "hasAccess": True,
     "hasMinifiedStackTrace": False,
     "hasCustomMetrics": False,
+    "hasFeedbacks": False,
     "hasMonitors": False,
+    "hasNewFeedbacks": False,
     "hasProfiles": False,
     "hasReplays": False,
     "hasSessions": False,
@@ -183,7 +185,6 @@ DETAILED_PROJECT = {
         "dateCreated": "2014-12-15T04:06:24.263571Z",
         "isEarlyAdopter": True,
         "require2FA": False,
-        "requireEmailVerification": False,
         "avatar": {"avatarType": "upload", "avatarUuid": "24f6f762f7a7473888b259c566da5adb"},
         "features": [
             "performance-uncompressed-assets-ingest",
