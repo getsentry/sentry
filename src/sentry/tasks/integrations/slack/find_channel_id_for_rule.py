@@ -77,7 +77,7 @@ def find_channel_id_for_rule(
         channel_data = get_channel_id_with_timeout(
             integration,
             channel_name,
-            3 * 60,
+            timeout=3 * 60,
         )
     except DuplicateDisplayNameError:
         # if we find a duplicate display name and nothing else, we

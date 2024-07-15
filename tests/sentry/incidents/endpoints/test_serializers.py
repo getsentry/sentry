@@ -1066,7 +1066,6 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
             {"integration": ["Integration must be provided for discord"]},
         )
 
-    # @patch("sentry.integrations.slack.utils.channel.get_channel_id", side_effect=SlackApiError(""))
     def test_slack(self):
         self.run_fail_validation_test(
             {
@@ -1104,8 +1103,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
                 "integration": str(self.integration.id),
             }
         )
-        # self.mock_conversations_list([])
-        # with self.patch_msg_schedule_response("channel_not_found"):
+
         serializer = AlertRuleTriggerActionSerializer(context=self.context, data=base_params)
         assert serializer.is_valid()
         with pytest.raises(serializers.ValidationError):

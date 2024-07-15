@@ -305,22 +305,6 @@ class NotificationActionsIndexEndpointTest(APITestCase):
 
         self.mock_register(data)(MockActionRegistration)
 
-        # responses.add(
-        #     method=responses.POST,
-        #     url="https://slack.com/api/chat.scheduleMessage",
-        #     status=200,
-        #     content_type="application/json",
-        #     body=orjson.dumps(
-        #         {"ok": "true", "channel": channel_id, "scheduled_message_id": "Q1298393284"}
-        #     ),
-        # )
-        # responses.add(
-        #     method=responses.POST,
-        #     url="https://slack.com/api/chat.deleteScheduledMessage",
-        #     status=200,
-        #     content_type="application/json",
-        #     body=orjson.dumps({"ok": True}),
-        # )
         response = self.get_success_response(
             self.organization.slug,
             status_code=status.HTTP_201_CREATED,
