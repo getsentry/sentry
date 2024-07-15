@@ -452,7 +452,6 @@ from .endpoints.organization_profiling_functions import OrganizationProfilingFun
 from .endpoints.organization_profiling_profiles import (
     OrganizationProfilingChunksEndpoint,
     OrganizationProfilingChunksFlamegraphEndpoint,
-    OrganizationProfilingFiltersEndpoint,
     OrganizationProfilingFlamegraphEndpoint,
 )
 from .endpoints.organization_projects import (
@@ -2101,11 +2100,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^/]+)/profiling/",
         include(
             [
-                re_path(
-                    r"^filters/$",
-                    OrganizationProfilingFiltersEndpoint.as_view(),
-                    name="sentry-api-0-organization-profiling-filters",
-                ),
                 re_path(
                     r"^flamegraph/$",
                     OrganizationProfilingFlamegraphEndpoint.as_view(),
