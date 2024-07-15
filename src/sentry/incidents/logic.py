@@ -23,9 +23,12 @@ from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleActivity,
     AlertRuleActivityType,
+    AlertRuleDetectionType,
     AlertRuleExcludedProjects,
     AlertRuleMonitorTypeInt,
     AlertRuleProjects,
+    AlertRuleSeasonality,
+    AlertRuleSensitivity,
     AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -516,8 +519,12 @@ def create_alert_rule(
     monitor_type: AlertRuleMonitorTypeInt = AlertRuleMonitorTypeInt.CONTINUOUS,
     activation_condition: AlertRuleActivationConditionType | None = None,
     description: str | None = None,
+    sensitivity: AlertRuleSensitivity | None = None,
+    seasonality: AlertRuleSeasonality | None = None,
+    detection_type: AlertRuleDetectionType | None = None,
     **kwargs,
 ):
+    # TODO (mifu67): update the :params for sensitivity, seasonality, and detection type
     """
     Creates an alert rule for an organization.
 
@@ -583,6 +590,9 @@ def create_alert_rule(
             owner=owner,
             monitor_type=monitor_type,
             description=description,
+            sensitivity=sensitivity,
+            seasonality=seasonality,
+            detection_type=detection_type,
         )
 
         if user:
@@ -696,8 +706,12 @@ def update_alert_rule(
     comparison_delta=NOT_SET,
     monitor_type: AlertRuleMonitorTypeInt | None = None,
     description: str | None = None,
+    sensitivity: AlertRuleSensitivity | None = None,
+    seasonality: AlertRuleSeasonality | None = None,
+    detection_type: AlertRuleDetectionType | None = None,
     **kwargs,
 ):
+    # TODO: (mifu67): update the :params for sensitivity, seasonality, and detection_type
     """
     Updates an alert rule.
 
@@ -732,6 +746,13 @@ def update_alert_rule(
         updated_fields["name"] = name
     if description:
         updated_fields["description"] = description
+    # mifu67: if <field> here because the possible values are nonempty strings
+    if sensitivity:
+        updated_fields["sensitivity"] = sensitivity
+    if seasonality:
+        updated_fields["seasonality"] = seasonality
+    if detection_type:
+        updated_fields["detection_type"] = detection_type
     if query is not None:
         updated_query_fields["query"] = query
     if aggregate is not None:
