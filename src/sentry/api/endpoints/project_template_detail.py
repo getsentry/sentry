@@ -25,6 +25,7 @@ class OrganizationProjectTemplateDetailEndpoint(OrganizationEndpoint):
 
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
         "DELETE": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationPermission,)
@@ -61,3 +62,33 @@ class OrganizationProjectTemplateDetailEndpoint(OrganizationEndpoint):
 
         # think about how to handle there being no remaining templates for an org?
         return Response(status=204)
+
+    def put(self, request: Request, organization: Organization, template_id: str) -> Response:
+        """
+        Update the project template name or options.
+
+        Return the updated project template.
+        """
+        project_template = get_object_or_404(
+            ProjectTemplate, id=template_id, organization=organization
+        )
+
+        name = request.data.get("name", None)
+        if name is not None:
+            project_template.name = name
+            project_template.save()
+
+        options = request.data.get("options", {})
+        if options:
+            for key, value in options.items():
+                project_template.options.create_or_update(
+                    project_template=project_template, key=key, value=value
+                )
+
+        return Response(
+            serialize(
+                project_template,
+                request.user,
+                ProjectTemplateSerializer(expand=[ProjectTemplateAttributes.OPTIONS]),
+            )
+        )

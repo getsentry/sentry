@@ -114,3 +114,38 @@ class ProjectTemplateDetailDeleteTest(ProjectTemplateAPIBase):
             self.organization.id, self.project_template.id, status_code=403
         )
         assert response.status_code == 403
+
+
+class ProjectTemplateUpdateTest(APITestCase):
+    endpoint = "sentry-api-0-organization-project-template-detail"
+    method = "put"
+
+    def setUp(self):
+        super().setUp()
+        self.user = self.create_user()
+        self.org = self.create_organization(owner=self.user)
+        self.team = self.create_team(organization=self.org, members=[self.user])
+
+        self.login_as(self.user)
+        self.project_template = self.create_project_template(organization=self.org, name="Test")
+
+    def test_put__no_feature(self):
+        response = self.get_error_response(self.org.id, self.project_template.id, status_code=404)
+        assert response.status_code == 404
+
+    @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
+    def test_put(self):
+        response = self.get_success_response(
+            self.org.id,
+            self.project_template.id,
+            name="Updated",
+            options={"sentry:release_track": "test"},
+        )
+
+        assert response.data["name"] == "Updated"
+        assert response.data["options"] == {"sentry:release_track": "test"}
+
+        # validate db is updated
+        self.project_template.refresh_from_db()
+        assert self.project_template.name == "Updated"
+        assert self.project_template.options.get(key="sentry:release_track").value == "test"
