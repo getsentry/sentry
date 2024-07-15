@@ -43,6 +43,7 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
   const hasProjectAccess = organization.access.includes('project:read');
 
   const {
+    hasDocs,
     projects,
     allProjects,
     currentProject,
@@ -147,13 +148,19 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
             />
           </div>
         </HeaderActions>
-        <OnboardingContent currentProject={selectedProject} />
+        <OnboardingContent currentProject={selectedProject} hasDocs={hasDocs} />
       </TaskList>
     </TaskSidebarPanel>
   );
 }
 
-function OnboardingContent({currentProject}: {currentProject: Project}) {
+function OnboardingContent({
+  currentProject,
+  hasDocs,
+}: {
+  currentProject: Project;
+  hasDocs: boolean;
+}) {
   const jsFrameworkSelectOptions = replayJsFrameworkOptions.map(platform => {
     return {
       value: platform.id,
@@ -325,7 +332,7 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
   }
 
   // No platform or no docs
-  if (!currentPlatform || !docs || !dsn) {
+  if (!currentPlatform || !docs || !dsn || !hasDocs) {
     return (
       <Fragment>
         <div>

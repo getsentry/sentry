@@ -12,7 +12,7 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import Accordion from 'sentry/components/replays/accordion';
 import ReplayUnsupportedAlert from 'sentry/components/replays/alerts/replayUnsupportedAlert';
 import {Tooltip} from 'sentry/components/tooltip';
-import {mobile, replayPlatforms} from 'sentry/data/platformCategories';
+import {replayPlatforms} from 'sentry/data/platformCategories';
 import {t, tct} from 'sentry/locale';
 import PreferencesStore from 'sentry/stores/preferencesStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
@@ -47,11 +47,8 @@ export default function ReplayOnboardingPanel() {
   const projects = useProjects();
   const organization = useOrganization();
   const {canCreateProject} = useProjectCreationAccess({organization});
-  const hasMobileReplays = organization.features.includes('session-replay-mobile-player');
 
-  const supportedPlatforms = hasMobileReplays
-    ? replayPlatforms.concat(mobile)
-    : replayPlatforms;
+  const supportedPlatforms = replayPlatforms;
 
   const selectedProjects = projects.projects.filter(p =>
     pageFilters.selection.projects.includes(Number(p.id))
@@ -133,7 +130,7 @@ export function SetupReplaysCTA({
         <AnswerContent>
           <div>
             {t(
-              'Session Replay supports all browser-based applications and certain native mobile platforms, such as iOS and Android. Our native Android and iOS SDKs are currently in alpha. Features are still in progress and may have some bugs. We recognize the irony.'
+              'Session Replay supports all browser-based applications and certain native mobile platforms, such as iOS and Android. Our native Android and iOS SDKs are currently in beta. Features are still in progress and may have some bugs. We recognize the irony.'
             )}
           </div>
           <div>
