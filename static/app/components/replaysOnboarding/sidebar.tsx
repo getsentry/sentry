@@ -331,7 +331,7 @@ function OnboardingContent({
     );
   }
 
-  // No platform or no docs
+  // No platform, docs import failed, no DSN, or the platform doesn't have onboarding yet
   if (!currentPlatform || !docs || !dsn || !hasDocs) {
     return (
       <Fragment>
