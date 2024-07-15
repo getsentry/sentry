@@ -224,7 +224,7 @@ export function usePrompt({
     });
 
     // Update cached query data
-    // Will set prompt to snoozed
+    // Will clear the status of a prompt that is dismissed or snoozed
     setApiQueryData<PromptResponse>(
       queryClient,
       makePromptsCheckQueryKey({
