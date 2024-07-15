@@ -261,6 +261,23 @@ def recording_post_processor(
             message.replay_id,
             parsed_segment_data,
         )
+
+        # Log # of rrweb events to bigquery.
+        logger.info(
+            # Logging to the sentry.replays.slow_click namespace because
+            # its the only one configured to use BigQuery at the moment.
+            #
+            # NOTE: Needs an ops request if we want to create a new dataset.
+            "sentry.replays.slow_click",
+            extra={
+                "event_type": "rrweb_event_count",
+                "org_id": message.org_id,
+                "project_id": message.project_id,
+                "replay_id": message.replay_id,
+                "size": len(parsed_segment_data),
+            },
+        )
+
     except Exception:
         logging.exception(
             "Failed to parse recording org=%s, project=%s, replay=%s, segment=%s",
