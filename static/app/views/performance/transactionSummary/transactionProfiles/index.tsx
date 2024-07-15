@@ -10,6 +10,7 @@ import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
+import Panel from 'sentry/components/panels/panel';
 import {AggregateFlamegraph} from 'sentry/components/profiling/flamegraph/aggregateFlamegraph';
 import {AggregateFlamegraphTreeTable} from 'sentry/components/profiling/flamegraph/aggregateFlamegraphTreeTable';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
@@ -310,20 +311,22 @@ function Profiles({organization, transaction}: ProfilesProps) {
                           {t('There was an error loading the flamegraph.')}
                         </RequestStateMessageContainer>
                       ) : null}
-                      {visualization === 'flamegraph' ? (
-                        <AggregateFlamegraph
-                          canvasPoolManager={canvasPoolManager}
-                          scheduler={scheduler}
-                        />
-                      ) : (
-                        <AggregateFlamegraphTreeTable
-                          recursion={null}
-                          expanded={false}
-                          frameFilter={frameFilter}
-                          canvasPoolManager={canvasPoolManager}
-                          withBorder
-                        />
-                      )}
+                      <StyledPanel>
+                        {visualization === 'flamegraph' ? (
+                          <AggregateFlamegraph
+                            canvasPoolManager={canvasPoolManager}
+                            scheduler={scheduler}
+                          />
+                        ) : (
+                          <AggregateFlamegraphTreeTable
+                            recursion={null}
+                            expanded={false}
+                            frameFilter={frameFilter}
+                            canvasPoolManager={canvasPoolManager}
+                            withoutBorders
+                          />
+                        )}
+                      </StyledPanel>
                     </FlamegraphProvider>
                   </FlamegraphThemeProvider>
                 </FlamegraphStateProvider>
@@ -468,6 +471,11 @@ const ViewSelectContainer = styled('div')`
 
 const AggregateFlamegraphSearch = styled(FlamegraphSearch)`
   max-width: 300px;
+`;
+
+const StyledPanel = styled(Panel)`
+  overflow: hidden;
+  display: flex;
 `;
 
 function ProfilesIndex() {
