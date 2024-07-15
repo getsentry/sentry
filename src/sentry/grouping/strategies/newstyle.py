@@ -283,7 +283,6 @@ def get_function_component(
             new_function = trim_function_name(func, platform, normalize_lambdas=False)
             if new_function != func:
                 function_component.update(values=[new_function], hint="isolated function")
-                func = new_function
 
     elif context["javascript_fuzzing"] and behavior_family == "javascript":
         # This changes Object.foo or Foo.foo into foo so that we can
