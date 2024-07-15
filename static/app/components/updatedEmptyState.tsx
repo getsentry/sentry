@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
 import waitingForEventImg from 'sentry-images/spot/waiting-for-event.svg';
@@ -14,6 +14,7 @@ import platforms from 'sentry/data/platforms';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {PlatformIntegration, Project} from 'sentry/types/project';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 import FirstEventIndicator from 'sentry/views/onboarding/components/firstEventIndicator';
 
@@ -27,6 +28,13 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
   const currentPlatform = platforms.find(
     p => p.id === currentPlatformKey
   ) as PlatformIntegration;
+
+  useEffect(() => {
+    trackAnalytics('issue_stream.updated_empty_state_viewed', {
+      organization,
+      platform: currentPlatformKey,
+    });
+  }, [organization, currentPlatformKey]);
 
   const loadGettingStarted = useLoadGettingStarted({
     platform: currentPlatform,
