@@ -39,7 +39,7 @@ class Migration(CheckedMigration):
             database_operations=[
                 migrations.RunSQL(
                     """
-                    ALTER TABLE "sentry_alertrule" ADD COLUMN "detection_type" VARCHAR(32) NOT NULL DEFAULT 'Static';
+                    ALTER TABLE "sentry_alertrule" ADD COLUMN "detection_type" VARCHAR(32) NOT NULL DEFAULT 'static';
                     """,
                     reverse_sql="""
                     ALTER TABLE "sentry_alertrule" DROP COLUMN "detection_type";
@@ -51,7 +51,7 @@ class Migration(CheckedMigration):
                 migrations.AddField(
                     model_name="alertrule",
                     name="detection_type",
-                    field=models.CharField(default="Static"),
+                    field=models.CharField(default="static"),
                 ),
             ],
         ),
