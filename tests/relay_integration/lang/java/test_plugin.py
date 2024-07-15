@@ -1615,7 +1615,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             "timestamp": iso_format(before_now(seconds=1)),
         }
         # has no platform
-        assert not is_jvm_event(event)
+        assert is_jvm_event(event)
 
         event = {
             "user": {"ip_address": "31.172.207.97"},
