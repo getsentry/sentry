@@ -240,7 +240,7 @@ export const QueryBuilder = memo(function QueryBuilder({
             <CompactSelect
               size="md"
               triggerProps={{
-                prefix: t('Query'),
+                prefix: t('Filter'),
                 icon:
                   getMaxCardinality(
                     spanConditions.find(c => c.id === metricsQuery.condition)
@@ -383,7 +383,7 @@ function QueryFooter({mri, closeOverlay}) {
           openExtractionRuleEditModal({metricExtractionRule: extractionRule});
         }}
       >
-        {t('Add Query')}
+        {t('Add Filter')}
       </Button>
       <InfoWrapper>
         <Tooltip
@@ -394,7 +394,7 @@ function QueryFooter({mri, closeOverlay}) {
         >
           <IconInfo size="xs" />
         </Tooltip>
-        {t('What are queries?')}
+        {t('What are filters?')}
       </InfoWrapper>
     </QueryFooterWrapper>
   );
