@@ -202,7 +202,7 @@ function Flamegraph(): ReactElement {
 
   const profiles = useProfiles();
   const setProfiles = useSetProfiles();
-  const profileGroup = useProfileGroup() as ProfileGroup;
+  const profileGroup = useProfileGroup();
 
   const flamegraphTheme = useFlamegraphTheme();
   const position = useFlamegraphZoomPosition();

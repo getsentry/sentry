@@ -43,6 +43,7 @@ export interface ProfileGroup {
   profiles: Profile[];
   traceID: string;
   transactionID: string | null;
+  type: 'transaction';
   images?: Image[];
 }
 
@@ -54,6 +55,7 @@ export interface ContinuousProfileGroup {
   profiles: Profile[];
   traceID: string;
   transactionID: string | null;
+  type: 'continuous';
   images?: Image[];
 }
 
@@ -113,6 +115,7 @@ function importJSSelfProfile(
   const profile = importSingleProfile(input, frameIndex, options);
 
   return {
+    type: 'transaction',
     traceID,
     name: traceID,
     transactionID: null,
@@ -186,6 +189,7 @@ function importSentrySampledProfile(
   }
 
   return {
+    type: 'transaction',
     transactionID: input.transaction.id,
     traceID: input.transaction.trace_id,
     name: input.transaction.name,
@@ -229,6 +233,7 @@ export function importSchema(
   );
 
   return {
+    type: 'transaction',
     traceID,
     transactionID: input.metadata.transactionID ?? null,
     name: input.metadata?.transactionName ?? traceID,
@@ -257,6 +262,7 @@ export function importSentryContinuousProfileChunk(
   return {
     traceID,
     name: '',
+    type: 'continuous',
     transactionID: null,
     activeProfileIndex: 0,
     profiles: [importSingleProfile(input.profile, frameIndex, options)],
