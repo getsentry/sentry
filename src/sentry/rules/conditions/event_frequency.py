@@ -427,7 +427,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
             if len(group) == 3:
                 organization_id = group[3]
 
-        if error_issue_ids:
+        if error_issue_ids and organization_id:
             error_sums = self.get_chunked_result(
                 tsdb_function=self.tsdb.get_sums,
                 model=get_issue_tsdb_group_model(GroupCategory.ERROR),
@@ -440,7 +440,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
             )
             batch_sums.update(error_sums)
 
-        if generic_issue_ids:
+        if generic_issue_ids and organization_id:
             generic_sums = self.get_chunked_result(
                 tsdb_function=self.tsdb.get_sums,
                 # this isn't necessarily performance, just any non-error category
