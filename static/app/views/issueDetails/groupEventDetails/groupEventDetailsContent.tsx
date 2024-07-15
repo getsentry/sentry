@@ -43,6 +43,7 @@ import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import LazyLoad from 'sentry/components/lazyLoad';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EntryException, Event, EventTransaction} from 'sentry/types/event';
@@ -156,6 +157,7 @@ function DefaultGroupEventDetailsContent({
             <ErrorBoundary mini>
               <Button
                 size="xs"
+                icon={<IconChevron direction={showFeedback ? 'up' : 'down'} />}
                 onClick={showFeedback ? dismissPrompt : showPrompt}
                 title={
                   showFeedback
