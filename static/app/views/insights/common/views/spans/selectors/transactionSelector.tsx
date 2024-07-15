@@ -61,6 +61,7 @@ export function TransactionSelector({
 
   const options: Option[] = [
     {value: '', label: 'All'},
+    ...(value ? [{value, label: value}] : []),
     ...pages.map(page => ({value: page, label: page})),
   ];
 
