@@ -4,7 +4,11 @@ import logging
 from datetime import timedelta
 
 from django.conf import settings
-from sentry_kafka_schemas.schema_types.uptime_results_v1 import CHECKSTATUS_FAILURE, CheckResult
+from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    CHECKSTATUS_FAILURE,
+    CHECKSTATUS_MISSED_WINDOW,
+    CheckResult,
+)
 
 from sentry.conf.types.kafka_definition import Topic
 from sentry.models.project import Project
@@ -68,6 +72,8 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         result: CheckResult,
         last_update_ms: int,
     ):
+        metric_tags = {"status": result["status"]}
+        metrics.incr("uptime.result_processor.handle_result_for_project", tags=metric_tags)
         cluster = _get_cluster()
         try:
             if result["scheduled_check_time_ms"] <= last_update_ms:
@@ -75,8 +81,16 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 # We can end up with duplicates due to Kafka replaying tuples, or due to the uptime checker processing
                 # the same check multiple times and sending duplicate results.
                 # We only ever want to process the first value related to each check, so we just skip and log here
-                metrics.incr("uptime.result_processor.skipping_already_processed_update")
+                metrics.incr(
+                    "uptime.result_processor.skipping_already_processed_update", tags=metric_tags
+                )
                 return
+
+            if result["status"] == CHECKSTATUS_MISSED_WINDOW:
+                logger.info(
+                    "handle_result_for_project.missed",
+                    extra={"project_id": project_subscription.project_id, **result},
+                )
 
             if result["status"] == CHECKSTATUS_FAILURE:
                 create_issue_platform_occurrence(result, project_subscription)
