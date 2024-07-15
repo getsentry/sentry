@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta, timezone
 
 from django.conf import settings
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUS_MISSED_WINDOW,
+    CHECKSTATUS_SUCCESS,
     CheckResult,
 )
 
@@ -17,17 +18,36 @@ from sentry.remote_subscriptions.consumers.result_consumer import (
     ResultsStrategyFactory,
 )
 from sentry.uptime.detectors.ranking import _get_cluster
+from sentry.uptime.detectors.tasks import set_failed_url
 from sentry.uptime.issue_platform import create_issue_platform_occurrence
-from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
+from sentry.uptime.models import (
+    ProjectUptimeSubscription,
+    ProjectUptimeSubscriptionMode,
+    UptimeSubscription,
+)
+from sentry.uptime.subscriptions.subscriptions import (
+    create_uptime_subscription,
+    delete_project_uptime_subscription,
+    remove_uptime_subscription_if_unused,
+)
 from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 
 logger = logging.getLogger(__name__)
 LAST_UPDATE_REDIS_TTL = timedelta(days=7)
+ONBOARDING_FAILURE_THRESHOLD = 3
+ONBOARDING_FAILURE_REDIS_TTL = timedelta(days=2)
+ONBOARDING_MONITOR_PERIOD = timedelta(days=3)
+# How frequently we should run active auto-detected subscriptions
+AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL_SECONDS = int(timedelta(minutes=5).total_seconds())
 
 
 def build_last_update_key(project_subscription: ProjectUptimeSubscription) -> str:
     return f"project-sub-last-update:{md5_text(project_subscription.id).hexdigest()}"
+
+
+def build_onboarding_failure_key(project_subscription: ProjectUptimeSubscription) -> str:
+    return f"project-sub-onboarding_failure:{md5_text(project_subscription.id).hexdigest()}"
 
 
 class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
@@ -52,6 +72,7 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                         id=subscription.id,
                         uptime_subscription=subscription,
                         project=project,
+                        mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
                     )
                 ]
 
@@ -72,7 +93,10 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         result: CheckResult,
         last_update_ms: int,
     ):
-        metric_tags = {"status": result["status"]}
+        metric_tags = {
+            "status": result["status"],
+            "mode": ProjectUptimeSubscriptionMode(project_subscription.mode).name.lower(),
+        }
         metrics.incr("uptime.result_processor.handle_result_for_project", tags=metric_tags)
         cluster = _get_cluster()
         try:
@@ -92,8 +116,13 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                     extra={"project_id": project_subscription.project_id, **result},
                 )
 
-            if result["status"] == CHECKSTATUS_FAILURE:
-                create_issue_platform_occurrence(result, project_subscription)
+            if project_subscription.mode == ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING:
+                self.handle_result_for_project_auto_onboarding_mode(project_subscription, result)
+            elif project_subscription.mode in (
+                ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+                ProjectUptimeSubscriptionMode.MANUAL,
+            ):
+                self.handle_result_for_project_active_mode(project_subscription, result)
         except Exception:
             logger.exception("Failed to process result for uptime project subscription")
 
@@ -103,6 +132,52 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             int(result["scheduled_check_time_ms"]),
             ex=LAST_UPDATE_REDIS_TTL,
         )
+
+    def handle_result_for_project_auto_onboarding_mode(
+        self, project_subscription: ProjectUptimeSubscription, result: CheckResult
+    ):
+        if result["status"] == CHECKSTATUS_FAILURE:
+            redis = _get_cluster()
+            key = build_onboarding_failure_key(project_subscription)
+            pipeline = redis.pipeline()
+            pipeline.incr(key)
+            pipeline.expire(key, ONBOARDING_FAILURE_REDIS_TTL)
+            failure_count = pipeline.execute()[0]
+            if failure_count >= ONBOARDING_FAILURE_THRESHOLD:
+                # If we've hit too many failures during the onboarding period we stop monitoring
+                delete_project_uptime_subscription(
+                    project_subscription.project,
+                    project_subscription.uptime_subscription,
+                    modes=[ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING],
+                )
+                # Mark the url as failed so that we don't attempt to auto-detect it for a while
+                set_failed_url(project_subscription.uptime_subscription.url)
+                redis.delete(key)
+                metrics.incr("uptime.result_processor.autodetection.failed_onboarding")
+        elif result["status"] == CHECKSTATUS_SUCCESS:
+            assert project_subscription.date_added is not None
+            if (
+                datetime.now(timezone.utc) - ONBOARDING_MONITOR_PERIOD
+                > project_subscription.date_added
+            ):
+                onboarding_subscription = project_subscription.uptime_subscription
+                active_subscription = create_uptime_subscription(
+                    onboarding_subscription.url,
+                    AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL_SECONDS,
+                    onboarding_subscription.timeout_ms,
+                )
+                project_subscription.update(
+                    uptime_subscription=active_subscription,
+                    mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+                )
+                remove_uptime_subscription_if_unused(onboarding_subscription)
+                metrics.incr("uptime.result_processor.autodetection.graduated_onboarding")
+
+    def handle_result_for_project_active_mode(
+        self, project_subscription: ProjectUptimeSubscription, result: CheckResult
+    ):
+        if result["status"] == CHECKSTATUS_FAILURE:
+            create_issue_platform_occurrence(result, project_subscription)
 
 
 class UptimeResultsStrategyFactory(ResultsStrategyFactory[CheckResult, UptimeSubscription]):

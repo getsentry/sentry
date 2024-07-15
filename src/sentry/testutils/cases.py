@@ -3243,19 +3243,22 @@ class MonitorIngestTestCase(MonitorTestCase):
 
 class UptimeTestCase(TestCase):
     def create_uptime_result(
-        self, subscription_id: str | None = None, status: str = CHECKSTATUS_FAILURE
+        self,
+        subscription_id: str | None = None,
+        status: str = CHECKSTATUS_FAILURE,
+        scheduled_check_time: datetime = None,
     ) -> CheckResult:
         if subscription_id is None:
             subscription_id = uuid.uuid4().hex
+        if scheduled_check_time is None:
+            scheduled_check_time = datetime.now().replace(microsecond=0)
         return {
             "guid": uuid.uuid4().hex,
             "subscription_id": subscription_id,
             "status": status,
             "status_reason": {"type": CHECKSTATUSREASONTYPE_TIMEOUT, "description": "it timed out"},
             "trace_id": uuid.uuid4().hex,
-            "scheduled_check_time_ms": int(
-                datetime.now().replace(microsecond=0).timestamp() * 1000
-            ),
+            "scheduled_check_time_ms": int(scheduled_check_time.timestamp() * 1000),
             "actual_check_time_ms": int(datetime.now().replace(microsecond=0).timestamp() * 1000),
             "duration_ms": 100,
             "request_info": {"request_type": REQUESTTYPE_HEAD, "http_status_code": 500},

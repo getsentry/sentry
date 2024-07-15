@@ -187,7 +187,14 @@ def monitor_url_for_project(project: Project, url: str):
     it. Also deletes any other auto-detected monitors since this one should replace them.
     """
     for monitored_subscription in get_auto_monitored_subscriptions_for_project(project):
-        delete_project_uptime_subscription(project, monitored_subscription.uptime_subscription)
+        delete_project_uptime_subscription(
+            project,
+            monitored_subscription.uptime_subscription,
+            modes=[
+                ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
+                ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+            ],
+        )
     subscription = create_uptime_subscription(
         url, ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS, ONBOARDING_SUBSCRIPTION_TIMEOUT_MS
     )
