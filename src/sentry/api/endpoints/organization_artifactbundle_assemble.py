@@ -1,5 +1,6 @@
 import jsonschema
 import orjson
+from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -64,28 +65,18 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         input_project_id = set()
         for project in input_projects:
             # IDs are always numeric, slugs cannot be numeric
-            if str(project).isnumeric():
+            if str(project).isdecimal():
                 input_project_id.add(project)
             else:
                 input_project_slug.add(project)
 
-        matched_projects_by_slug = set(
+        project_ids = set(
             Project.objects.filter(
+                (Q(id__in=input_project_id) | Q(slug__in=input_project_slug)),
                 organization=organization,
                 status=ObjectStatus.ACTIVE,
-                slug__in=input_project_slug,
             ).values_list("id", flat=True)
         )
-
-        matched_projects_by_id = set(
-            Project.objects.filter(
-                organization=organization,
-                status=ObjectStatus.ACTIVE,
-                id__in=input_project_id,
-            ).values_list("id", flat=True)
-        )
-
-        project_ids = matched_projects_by_slug.union(matched_projects_by_id)
 
         if len(project_ids) != len(input_projects):
             return Response({"error": "One or more projects are invalid"}, status=400)
