@@ -459,42 +459,6 @@ def process_event(
     )
 
 
-# TODO: Unused, remove this.
-@instrumented_task(
-    name="sentry.tasks.store.process_event_proguard",
-    queue="events.process_event_proguard",
-    time_limit=65,
-    soft_time_limit=60,
-    silo_mode=SiloMode.REGION,
-)
-def process_event_proguard(
-    cache_key: str,
-    start_time: float | None = None,
-    event_id: str | None = None,
-    data_has_changed: bool = False,
-    from_symbolicate: bool = False,
-    has_attachments: bool = False,
-    **kwargs: Any,
-) -> None:
-    """
-    Handles event processing (for those events that need it)
-
-    :param string cache_key: the cache key for the event data
-    :param int start_time: the timestamp when the event was ingested
-    :param string event_id: the event identifier
-    :param boolean data_has_changed: set to True if the event data was changed in previous tasks
-    """
-    return do_process_event(
-        cache_key=cache_key,
-        start_time=start_time,
-        event_id=event_id,
-        from_reprocessing=False,
-        data_has_changed=data_has_changed,
-        from_symbolicate=from_symbolicate,
-        has_attachments=has_attachments,
-    )
-
-
 @instrumented_task(
     name="sentry.tasks.store.process_event_from_reprocessing",
     queue="events.reprocessing.process_event",
