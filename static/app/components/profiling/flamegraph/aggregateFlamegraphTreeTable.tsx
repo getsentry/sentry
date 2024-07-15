@@ -106,12 +106,14 @@ interface AggregateFlamegraphTreeTableProps {
   frameFilter: 'system' | 'application' | 'all';
   recursion: 'collapsed' | null;
   expanded?: boolean;
+  withBorder?: boolean;
 }
 
 export function AggregateFlamegraphTreeTable({
   expanded,
   recursion,
   frameFilter,
+  withBorder,
 }: AggregateFlamegraphTreeTableProps) {
   const dispatch = useDispatchFlamegraphState();
   const profiles = useFlamegraphProfiles();
@@ -374,7 +376,7 @@ export function AggregateFlamegraphTreeTable({
   }, [setTreeView]);
 
   return (
-    <FrameBar>
+    <FrameBar withBorder={withBorder}>
       <CallTreeTable>
         <CallTreeTableHeader>
           <FrameWeightCell>
@@ -472,14 +474,19 @@ export function AggregateFlamegraphTreeTable({
   );
 }
 
-const FrameBar = styled('div')`
+const FrameBar = styled('div')<{withBorder?: boolean}>`
   overflow: auto;
   width: 100%;
   position: relative;
   background-color: ${p => p.theme.surface200};
   border-top: 1px solid ${p => p.theme.border};
   flex: 1 1 100%;
-  grid-area: table;
+  ${p =>
+    p.withBorder &&
+    `
+    border: 1px solid ${p.theme.border};
+    border-radius: ${p.theme.borderRadius};
+  `}
 `;
 
 const FrameWeightCell = styled('div')`
