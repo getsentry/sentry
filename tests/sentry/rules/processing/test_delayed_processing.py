@@ -185,6 +185,15 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
         assert get_condition_group_results({first_query: fake_data_groups}, self.project) is None
         mock_logger.warning.assert_called_once()
 
+    def test_group_does_not_belong_to_project(self):
+        condition_data = self.create_event_frequency_condition(interval=self.interval)
+        condition_groups, group_id, unique_queries = self.create_condition_groups([condition_data])
+
+        results = get_condition_group_results(condition_groups, self.create_project())
+        assert results == {
+            unique_queries[0]: {group_id: 2},
+        }
+
     def test_count_comparison_condition(self):
         condition_data = self.create_event_frequency_condition(interval=self.interval)
         condition_groups, group_id, unique_queries = self.create_condition_groups([condition_data])
