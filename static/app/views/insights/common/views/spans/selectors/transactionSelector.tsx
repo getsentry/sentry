@@ -1,4 +1,4 @@
-import {useCallback, useEffect, useState} from 'react';
+import {useCallback, useState} from 'react';
 import debounce from 'lodash/debounce';
 
 import {t} from 'sentry/locale';
@@ -9,6 +9,8 @@ import useOrganization from 'sentry/utils/useOrganization';
 import SelectControlWithProps from 'sentry/views/insights/browser/resources/components/selectControlWithProps';
 import {useResourcePagesQuery} from 'sentry/views/insights/browser/resources/queries/useResourcePagesQuery';
 import {BrowserStarfishFields} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
+import {setMerge, useArrayCache} from 'sentry/views/insights/common/utils/useArrayCache';
+import {useWasSearchSpaceExhausted} from 'sentry/views/insights/common/utils/useWasSearchSpaceExhausted';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 
 type Option = {
@@ -23,58 +25,59 @@ export function TransactionSelector({
   defaultResourceTypes?: string[];
   value?: string;
 }) {
-  const [state, setState] = useState({
-    search: '',
-    inputChanged: false,
-    shouldRequeryOnInputChange: false,
-  });
   const location = useLocation();
   const organization = useOrganization();
 
-  const {data: pages, isLoading} = useResourcePagesQuery(
-    defaultResourceTypes,
-    state.search
-  );
-
-  // If the maximum number of pages is returned, we need to requery on input change to get full results
-  if (!state.shouldRequeryOnInputChange && pages && pages.length >= 100) {
-    setState({...state, shouldRequeryOnInputChange: true});
-  }
-
-  // Everytime loading is complete, reset the inputChanged state
-  useEffect(() => {
-    if (!isLoading && state.inputChanged) {
-      setState({...state, inputChanged: false});
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading]);
-
-  const optionsReady = !isLoading && !state.inputChanged;
-
-  const options: Option[] = optionsReady
-    ? [{value: '', label: 'All'}, ...pages.map(page => ({value: page, label: page}))]
-    : [];
+  const [searchInputValue, setSearchInputValue] = useState<string>(''); // Realtime domain search value in UI
+  const [searchQuery, setSearchQuery] = useState<string>(''); // Debounced copy of `searchInputValue` used for the Discover query
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  const debounceUpdateSearch = useCallback(
-    debounce((search, currentState) => {
-      setState({...currentState, search});
+  const debouncedSetSearch = useCallback(
+    debounce(newSearch => {
+      setSearchQuery(newSearch);
     }, 500),
     []
   );
 
+  const {
+    data: incomingPages,
+    isLoading,
+    pageLinks,
+  } = useResourcePagesQuery(defaultResourceTypes, searchQuery);
+
+  const wasSearchSpaceExhausted = useWasSearchSpaceExhausted({
+    query: searchQuery,
+    isLoading,
+    pageLinks,
+  });
+
+  const pages = useArrayCache({
+    items: incomingPages,
+    sortFn: items => {
+      return [...items].sort((a, b) => a.localeCompare(b));
+    },
+    mergeFn: setMerge,
+  });
+
+  const options: Option[] = [
+    {value: '', label: 'All'},
+    ...pages.map(page => ({value: page, label: page})),
+  ];
+
   return (
     <SelectControlWithProps
       inFieldLabel={`${t('Page')}:`}
-      options={options}
+      inputValue={searchInputValue}
       value={value}
+      options={options}
+      isLoading={isLoading}
       onInputChange={input => {
-        if (state.shouldRequeryOnInputChange) {
-          setState({...state, inputChanged: true});
-          debounceUpdateSearch(input, state);
+        setSearchInputValue(input);
+
+        if (!wasSearchSpaceExhausted) {
+          debouncedSetSearch(input);
         }
       }}
-      noOptionsMessage={() => (optionsReady ? undefined : t('Loading...'))}
       onChange={newValue => {
         trackAnalytics('insight.asset.filter_by_page', {
           organization,
@@ -88,6 +91,7 @@ export function TransactionSelector({
           },
         });
       }}
+      noOptionsMessage={() => t('No results')}
     />
   );
 }

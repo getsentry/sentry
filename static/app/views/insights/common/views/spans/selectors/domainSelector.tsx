@@ -45,12 +45,12 @@ export function DomainSelector({
   const organization = useOrganization();
 
   const [searchInputValue, setSearchInputValue] = useState<string>(''); // Realtime domain search value in UI
-  const [domainQuery, setDomainQuery] = useState<string>(''); // Debounced copy of `searchInputValue` used for the Discover query
+  const [searchQuery, setSearchQuery] = useState<string>(''); // Debounced copy of `searchInputValue` used for the Discover query
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   const debouncedSetSearch = useCallback(
     debounce(newSearch => {
-      setDomainQuery(newSearch);
+      setSearchQuery(newSearch);
     }, 500),
     []
   );
@@ -59,7 +59,7 @@ export function DomainSelector({
     location,
     moduleName,
     spanCategory,
-    domainQuery,
+    searchQuery,
     additionalQuery
   );
 
@@ -75,7 +75,7 @@ export function DomainSelector({
   });
 
   const wasSearchSpaceExhausted = useWasSearchSpaceExhausted({
-    query: domainQuery,
+    query: searchQuery,
     isLoading,
     pageLinks,
   });
