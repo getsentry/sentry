@@ -57,7 +57,7 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
         except Exception:
             return Response({"error": "Invalid json body"}, status=400)
 
-        input_projects = set(data.get("projects", []))
+        input_projects = data.get("projects", [])
         if len(input_projects) == 0:
             return Response({"error": "You need to specify at least one project"}, status=400)
 
@@ -70,18 +70,16 @@ class OrganizationArtifactBundleAssembleEndpoint(OrganizationReleasesBaseEndpoin
             else:
                 input_project_slug.add(project)
 
-        project_ids = set(
-            Project.objects.filter(
-                (Q(id__in=input_project_id) | Q(slug__in=input_project_slug)),
-                organization=organization,
-                status=ObjectStatus.ACTIVE,
-            ).values_list("id", flat=True)
-        )
+        project_ids = Project.objects.filter(
+            (Q(id__in=input_project_id) | Q(slug__in=input_project_slug)),
+            organization=organization,
+            status=ObjectStatus.ACTIVE,
+        ).values_list("id", flat=True)
 
         if len(project_ids) != len(input_projects):
             return Response({"error": "One or more projects are invalid"}, status=400)
 
-        if not self.has_release_permission(request, organization, project_ids=project_ids):
+        if not self.has_release_permission(request, organization, project_ids=set(project_ids)):
             raise ResourceDoesNotExist
 
         checksum = data.get("checksum")
