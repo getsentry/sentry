@@ -24,7 +24,13 @@ from sentry.exceptions import InvalidParams
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
 from sentry.search.events.types import EventsResponse
-from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
+from sentry.snuba import (
+    discover,
+    errors,
+    metrics_enhanced_performance,
+    metrics_performance,
+    transactions,
+)
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.referrer import Referrer
 from sentry.snuba.utils import dataset_split_decision_inferred_from_query, get_dataset
