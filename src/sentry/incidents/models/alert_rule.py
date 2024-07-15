@@ -79,15 +79,15 @@ class AlertRuleStatus(Enum):
 
 
 class AlertRuleDetectionType(models.TextChoices):
-    STATIC = "Static", gettext_lazy("Static")
-    PERCENT = "Percent", gettext_lazy("Percent")
-    DYNAMIC = "Dynamic", gettext_lazy("Dynamic")
+    STATIC = "static", gettext_lazy("Static")
+    PERCENT = "percent", gettext_lazy("Percent")
+    DYNAMIC = "dynamic", gettext_lazy("Dynamic")
 
 
 class AlertRuleSensitivity(models.TextChoices):
-    LOW = "Low", gettext_lazy("Low")
-    MEDIUM = "Medium", gettext_lazy("Medium")
-    HIGH = "High", gettext_lazy("High")
+    LOW = "low", gettext_lazy("Low")
+    MEDIUM = "medium", gettext_lazy("Medium")
+    HIGH = "high", gettext_lazy("High")
 
 
 class AlertRuleSeasonality(models.TextChoices):
@@ -95,14 +95,14 @@ class AlertRuleSeasonality(models.TextChoices):
     We do not anticipate adding more
     """
 
-    AUTO = "Auto", gettext_lazy("Auto")
-    HOURLY = "Hourly", gettext_lazy("Hourly")
-    DAILY = "Daily", gettext_lazy("Daily")
-    WEEKLY = "Weekly", gettext_lazy("Weekly")
-    HOURLY_DAILY = "Hourly & Daily", gettext_lazy("Hourly & Daily")
-    HOURLY_WEEKLY = "Hourly & Weekly", gettext_lazy("Hourly & Weekly")
-    HOURLY_DAILY_WEEKLY = "Hourly, Daily, & Weekly", gettext_lazy("Hourly, Daily, & Weekly")
-    DAILY_WEEKLY = "Daily & Weekly", gettext_lazy("Daily & Weekly")
+    AUTO = "auto", gettext_lazy("Auto")
+    HOURLY = "hourly", gettext_lazy("Hourly")
+    DAILY = "daily", gettext_lazy("Daily")
+    WEEKLY = "weekly", gettext_lazy("Weekly")
+    HOURLY_DAILY = "hourly_daily", gettext_lazy("Hourly & Daily")
+    HOURLY_WEEKLY = "hourly_weekly", gettext_lazy("Hourly & Weekly")
+    HOURLY_DAILY_WEEKLY = "hourly_daily_weekly", gettext_lazy("Hourly, Daily, & Weekly")
+    DAILY_WEEKLY = "daily_weekly", gettext_lazy("Daily & Weekly")
 
 
 class AlertRuleManager(BaseManager["AlertRule"]):
