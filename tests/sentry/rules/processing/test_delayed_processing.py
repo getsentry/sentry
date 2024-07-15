@@ -161,12 +161,11 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
 
     @patch("sentry.rules.processing.delayed_processing.logger")
     def test_nonexistent_condition_cls(self, mock_logger):
-        first_query = UniqueConditionQuery(cls_id="fake_id", interval=None, environment_id=1)
+        first_query = UniqueConditionQuery(cls_id="fake_id", interval="", environment_id=1)
         fake_data_groups = DataAndGroups(
             data=self.create_event_frequency_condition(id="fake_id"),
             group_ids={1},
         )
-        fake_data_groups = {"data": "foo", "group_ids": {1, 2, 3}}
         assert get_condition_group_results({first_query: fake_data_groups}, self.project) is None
         mock_logger.warning.assert_called_once()
 
@@ -174,14 +173,13 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
     def test_fast_condition_cls(self, mock_logger):
         first_query = UniqueConditionQuery(
             cls_id="sentry.rules.conditions.every_event.EveryEventCondition",
-            interval=None,
+            interval="",
             environment_id=1,
         )
         fake_data_groups = DataAndGroups(
             data=self.create_event_frequency_condition(id="fake_id"),
             group_ids={1},
         )
-        fake_data_groups = {"data": "foo", "group_ids": {1, 2, 3}}
         assert get_condition_group_results({first_query: fake_data_groups}, self.project) is None
         mock_logger.warning.assert_called_once()
 
