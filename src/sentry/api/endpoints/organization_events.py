@@ -267,7 +267,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         ],
         responses={
             200: inline_sentry_response_serializer(
-                "OrganizationEventsResponseDict", discover.EventsResponse
+                "OrganizationEventsResponseDict", EventsResponse
             ),
             400: OpenApiResponse(description="Invalid Query"),
             404: api_constants.RESPONSE_NOT_FOUND,
