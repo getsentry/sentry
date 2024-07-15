@@ -1,4 +1,5 @@
 from collections import defaultdict
+from collections.abc import Sequence
 from copy import deepcopy
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
@@ -19,6 +20,7 @@ from sentry.rules.processing.delayed_processing import (  # bulk_fetch_events; g
     DataAndGroups,
     UniqueConditionQuery,
     apply_delayed,
+    generate_unique_queries,
     get_condition_group_results,
     get_condition_query_groups,
     get_rules_to_groups,
@@ -121,6 +123,39 @@ class BulkFetchEventsTest(TestCase):
 
 
 class GetConditionGroupResultsTest(CreateEventTestCase):
+    interval = "1h"
+    comparison_interval = "15m"
+
+    def create_events(self, comparison_type: ComparisonType) -> GroupEvent:
+        # Create current events for the first query
+        event = self.create_event(self.project.id, FROZEN_TIME, "group-1", self.environment.name)
+        self.create_event(self.project.id, FROZEN_TIME, "group-1", self.environment.name)
+        if comparison_type == ComparisonType.PERCENT:
+            # Create a past event for the second query
+            self.create_event(
+                self.project.id,
+                FROZEN_TIME - timedelta(hours=1, minutes=10),
+                "group-1",
+                self.environment.name,
+            )
+        return event
+
+    def create_condition_groups(
+        self, condition_data_list: Sequence[EventFrequencyConditionData]
+    ) -> tuple[dict[UniqueConditionQuery, DataAndGroups], int, list[UniqueConditionQuery]]:
+        condition_groups = {}
+        all_unique_queries = []
+        for condition_data in condition_data_list:
+            unique_queries = generate_unique_queries(condition_data, self.environment.id)
+            event = self.create_events(condition_data["comparisonType"])
+            data_and_groups = DataAndGroups(
+                data=condition_data,
+                group_ids={event.group.id},
+            )
+            condition_groups.update({query: data_and_groups for query in unique_queries})
+            all_unique_queries.extend(unique_queries)
+        return condition_groups, event.group.id, all_unique_queries
+
     def test_empty_condition_groups(self):
         assert get_condition_group_results({}, self.project) == {}
 
@@ -150,48 +185,50 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
         assert get_condition_group_results({first_query: fake_data_groups}, self.project) is None
         mock_logger.warning.assert_called_once()
 
-    def test_get_condition_group_results(self):
-        interval = "1h"
-        comparison_interval = "15m"
-        condition_data: EventFrequencyConditionData = {
-            "interval": interval,
-            "id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition",
-            "value": 50,
-            "comparisonType": ComparisonType.PERCENT,
-            "comparisonInterval": comparison_interval,
-        }
-        first_query = UniqueConditionQuery(
-            cls_id="sentry.rules.conditions.event_frequency.EventFrequencyCondition",
-            interval=interval,
-            environment_id=self.environment.id,
-            comparison_interval=None,
-        )
-        second_query = first_query._replace(comparison_interval=comparison_interval)
+    def test_count_comparison_condition(self):
+        condition_data = self.create_event_frequency_condition(interval=self.interval)
+        condition_groups, group_id, unique_queries = self.create_condition_groups([condition_data])
 
-        # Create current events for the first query
-        event = self.create_event(self.project.id, FROZEN_TIME, "group-1", self.environment.name)
-        self.create_event(self.project.id, FROZEN_TIME, "group-1", self.environment.name)
-        # Create a past event for the second query
-        self.create_event(
-            self.project.id,
-            FROZEN_TIME - timedelta(hours=1, minutes=10),
-            "group-1",
-            self.environment.name,
-        )
-
-        data_and_groups = DataAndGroups(
-            data=condition_data,
-            group_ids={event.group.id},
-        )
-        condition_groups = {
-            first_query: data_and_groups,
-            second_query: data_and_groups,
+        results = get_condition_group_results(condition_groups, self.project)
+        assert results == {
+            unique_queries[0]: {group_id: 2},
         }
+
+    def test_percent_comparison_condition(self):
+        condition_data = self.create_event_frequency_condition(
+            interval=self.interval,
+            comparison_type=ComparisonType.PERCENT,
+            comparison_interval=self.comparison_interval,
+        )
+        condition_groups, group_id, unique_queries = self.create_condition_groups([condition_data])
         results = get_condition_group_results(condition_groups, self.project)
 
+        present_percent_query, offset_percent_query = unique_queries
+
         assert results == {
-            first_query: {event.group.id: 2},
-            second_query: {event.group.id: 1},
+            present_percent_query: {group_id: 2},
+            offset_percent_query: {group_id: 1},
+        }
+
+    def test_count_and_percent_comparison_conditions(self):
+        count_data = self.create_event_frequency_condition(interval=self.interval)
+        percent_data = self.create_event_frequency_condition(
+            interval=self.interval,
+            comparison_type=ComparisonType.PERCENT,
+            comparison_interval=self.comparison_interval,
+        )
+        condition_groups, group_id, unique_queries = self.create_condition_groups(
+            [count_data, percent_data]
+        )
+        results = get_condition_group_results(condition_groups, self.project)
+
+        count_query, present_percent_query, offset_percent_query = unique_queries
+        # The count query and present percent query should be identical
+        assert count_query == present_percent_query
+
+        assert results == {
+            count_query: {group_id: 4},
+            offset_percent_query: {group_id: 1},
         }
 
 

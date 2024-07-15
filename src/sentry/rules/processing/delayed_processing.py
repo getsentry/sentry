@@ -101,7 +101,7 @@ def get_rules_to_slow_conditions(
     return rules_to_slow_conditions
 
 
-def _generate_unique_queries(
+def generate_unique_queries(
     condition_data: EventFrequencyConditionData, environment_id: int
 ) -> list[UniqueConditionQuery]:
     """
@@ -142,7 +142,7 @@ def get_condition_query_groups(
         # to the buffer if we've already checked their fast conditions.
         slow_conditions = get_slow_conditions(rule)
         for condition_data in slow_conditions:
-            for condition_query in _generate_unique_queries(condition_data, rule.environment_id):
+            for condition_query in generate_unique_queries(condition_data, rule.environment_id):
                 # NOTE: If percent and count comparison conditions are sharing
                 # the same UniqueConditionQuery, the condition JSON in
                 # DataAndGroups will be incorrect for one of those types.
@@ -217,7 +217,7 @@ def _passes_comparison(
     Checks if a specific condition instance has passed. Handles both the count
     and percent comparison type conditions.
     """
-    unique_queries = _generate_unique_queries(condition_data, environment_id)
+    unique_queries = generate_unique_queries(condition_data, environment_id)
     try:
         query_values = [
             condition_group_results[unique_query][group_id] for unique_query in unique_queries
