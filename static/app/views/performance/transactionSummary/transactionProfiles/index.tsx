@@ -302,15 +302,6 @@ function Profiles({organization, transaction}: ProfilesProps) {
                         hideSystemFrames={false}
                         setHideSystemFrames={noop}
                       />
-                      {isLoading ? (
-                        <RequestStateMessageContainer>
-                          <LoadingIndicator />
-                        </RequestStateMessageContainer>
-                      ) : isError ? (
-                        <RequestStateMessageContainer>
-                          {t('There was an error loading the flamegraph.')}
-                        </RequestStateMessageContainer>
-                      ) : null}
                       <StyledPanel>
                         {visualization === 'flamegraph' ? (
                           <AggregateFlamegraph
@@ -327,6 +318,15 @@ function Profiles({organization, transaction}: ProfilesProps) {
                           />
                         )}
                       </StyledPanel>
+                      {isLoading ? (
+                        <RequestStateMessageContainer>
+                          <LoadingIndicator />
+                        </RequestStateMessageContainer>
+                      ) : isError ? (
+                        <RequestStateMessageContainer>
+                          {t('There was an error loading the flamegraph.')}
+                        </RequestStateMessageContainer>
+                      ) : null}
                     </FlamegraphProvider>
                   </FlamegraphThemeProvider>
                 </FlamegraphStateProvider>
