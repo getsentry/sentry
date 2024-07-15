@@ -15,7 +15,6 @@ from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
 from sentry.api.fields import MultipleChoiceField
 from sentry.api.serializers import serialize
-from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.models.apitoken import ApiToken
 from sentry.models.outbox import outbox_context
 from sentry.security.utils import capture_security_activity
@@ -39,26 +38,6 @@ class ApiTokensEndpoint(Endpoint):
     }
     authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (IsAuthenticated,)
-
-    @staticmethod
-    def get_appropriate_user_id(request: Request) -> int:
-        """
-        Gets the user id to use for the request, based on what the current state of the request is.
-        If the request is made by a superuser, then they are allowed to act on behalf of other user's data.
-        Therefore, when GET or DELETE endpoints are invoked by the superuser, we may utilize a provided user_id.
-
-        The user_id to use comes from the GET or BODY parameter based on the request type.
-        For GET endpoints, the GET dict is used.
-        For all others, the DATA dict is used.
-        """
-        # Get the user id for the user that made the current request as a baseline default
-        user_id = request.user.id
-        if has_elevated_mode(request):
-            datastore = request.GET if request.GET else request.data
-            # If a userId override is not found, use the id for the user who made the request
-            user_id = int(datastore.get("userId", user_id))
-
-        return user_id
 
     @method_decorator(never_cache)
     def get(self, request: Request) -> Response:
