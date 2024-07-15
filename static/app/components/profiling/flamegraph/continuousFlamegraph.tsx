@@ -50,6 +50,7 @@ import type {ContinuousProfileGroup} from 'sentry/utils/profiling/profile/import
 import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphRenderer2D';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+import type {UIFrameMeasurements} from 'sentry/utils/profiling/uiFrames';
 import {UIFrames} from 'sentry/utils/profiling/uiFrames';
 import {
   fromNanoJoulesToWatts,
@@ -74,6 +75,31 @@ function getMaxConfigSpace(profileGroup: ContinuousProfileGroup): Rect {
   // No transaction was found, so best we can do is align it to the starting
   // position of the profiles - find the max of profile durations
   return new Rect(0, 0, maxProfileDuration, 0);
+}
+
+function convertContinuousProfileMeasurementsToUIFrames(
+  measurement: ContinuousProfileGroup['measurements']['slow_frame_renders']
+): UIFrameMeasurements | undefined {
+  if (!measurement) {
+    return undefined;
+  }
+
+  const measurements: UIFrameMeasurements = {
+    unit: measurement.unit,
+    values: [],
+  };
+
+  for (let i = 0; i < measurement.values.length; i++) {
+    const value = measurement.values[i];
+    const next = measurement.values[i + 1] ?? value;
+
+    measurements.values.push({
+      elapsed: next.timestamp - value.timestamp,
+      value: value.value,
+    });
+  }
+
+  return measurements;
 }
 
 type FlamegraphCandidate = {
@@ -232,12 +258,12 @@ export function ContinuousFlamegraph(): ReactElement {
     }
     return new UIFrames(
       {
-        // @TODO
-        // @ts-expect-error
-        slow: profileGroup.measurements?.slow_frame_renders,
-        // @TODO
-        // @ts-expect-error
-        frozen: profileGroup.measurements?.frozen_frame_renders,
+        slow: convertContinuousProfileMeasurementsToUIFrames(
+          profileGroup.measurements?.slow_frame_renders
+        ),
+        frozen: convertContinuousProfileMeasurementsToUIFrames(
+          profileGroup.measurements?.frozen_frame_renders
+        ),
       },
       {unit: flamegraph.profile.unit},
       flamegraph.configSpace.withHeight(1)
