@@ -17,7 +17,6 @@ from sentry.sentry_metrics.querying.metadata.utils import (
     OperationsConfiguration,
 )
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
-from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics import parse_mri
 from sentry.snuba.metrics.datasource import get_metrics_blocking_state_of_projects
 from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, get_available_operations
@@ -28,7 +27,6 @@ from sentry.snuba.metrics.utils import (
     MetricType,
     MetricUnit,
     SpanBasedMeta,
-    entity_key_to_metric_type,
 )
 from sentry.snuba.metrics_layer.query import fetch_metric_mris
 
@@ -108,18 +106,13 @@ def get_metrics_meta(
                     )
                 }
 
-                metric_type_map = {
-                    "d": entity_key_to_metric_type(EntityKey.GenericMetricsDistributions),
-                    "s": entity_key_to_metric_type(EntityKey.GenericMetricsSets),
-                    "c": entity_key_to_metric_type(EntityKey.GenericMetricsCounters),
-                    "g": entity_key_to_metric_type(EntityKey.GenericMetricsGauges),
-                }
-
                 new_meta = MetricMeta(
                     name=config.span_attribute,
-                    type=metric_type_map[metric_type],
-                    operations=METRIC_TYPE_TO_AGGREGATE[metric_type],
-                    unit=config.unit,
+                    type=cast(MetricType, metric_type),
+                    operations=cast(
+                        Sequence[MetricOperationType], METRIC_TYPE_TO_AGGREGATE[metric_type]
+                    ),
+                    unit=cast(MetricUnit, config.unit),
                     mri=internal_mri,
                     projectIds=[config.project_id],
                     blockingStatus=None,

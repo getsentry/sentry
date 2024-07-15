@@ -412,3 +412,11 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
             "c:custom/span_attribute_2@none",
             "d:custom/span_attribute_2@none",
         }
+
+        has_custom_meta = [el for el in data if el["customMeta"] != {}]
+        assert len(has_custom_meta) == 4
+        for meta in has_custom_meta:
+            assert "spanBasedMeta" in meta["customMeta"]
+            for key in ("associatedSpanAttribute", "associatedProjectId", "virtualMRI"):
+                assert key in meta["customMeta"]["spanBasedMeta"]
+                assert meta["customMeta"]["spanBasedMeta"][key]
