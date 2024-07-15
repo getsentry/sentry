@@ -8,7 +8,13 @@ interface Props {
   pageLinks?: string;
 }
 
-// TODO: Documentation
+/**
+ * Keeps track of the passed responses. Remembers if at any point a response
+ *  had no query, and didn't have any subsequent data. This means that at
+ * some point, a _complete_ response was served. Useful for caches and re-fetch
+ * behavior where we want to _avoid fetches_ if we know we've loaded the
+ * entire data set at some point and a cache is full.
+ */
 export function useWasSearchSpaceExhausted({query, isLoading, pageLinks}: Props) {
   const [wasSearchSpaceExhausted, setWasSearchSpaceExhausted] = useState<boolean>(false);
 
