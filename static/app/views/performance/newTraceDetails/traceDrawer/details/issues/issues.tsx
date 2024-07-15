@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
@@ -43,6 +44,20 @@ const TABLE_WIDTH_BREAKPOINTS = {
   THIRD: 500,
   FOURTH: 400,
 };
+
+function sortIssuesByLevel(issues: TraceError[]): TraceError[] {
+  const order: Record<keyof Theme['level'], number> = {
+    fatal: 0,
+    error: 1,
+    warning: 2,
+    sample: 3,
+    info: 4,
+    default: 5,
+    unknown: 6,
+  };
+
+  return issues.sort((a, b) => order[a.level] - order[b.level]);
+}
 
 function Issue(props: IssueProps) {
   const {
@@ -162,7 +177,7 @@ export function IssueList({issues, node, organization}: IssueListProps) {
   }, [node, node.performance_issues.size]);
 
   const uniqueIssues = useMemo(() => {
-    return [...uniqueErrorIssues, ...uniquePerformanceIssues];
+    return [...uniquePerformanceIssues, ...sortIssuesByLevel(uniqueErrorIssues)];
   }, [uniqueErrorIssues, uniquePerformanceIssues]);
 
   if (!issues.length) {
