@@ -264,10 +264,6 @@ def recording_post_processor(
 
         # Log # of rrweb events to bigquery.
         logger.info(
-            # Logging to the sentry.replays.slow_click namespace because
-            # its the only one configured to use BigQuery at the moment.
-            #
-            # NOTE: Needs an ops request if we want to create a new dataset.
             "sentry.replays.slow_click",
             extra={
                 "event_type": "rrweb_event_count",
