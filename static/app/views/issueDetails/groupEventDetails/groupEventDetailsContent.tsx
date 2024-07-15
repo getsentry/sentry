@@ -181,26 +181,28 @@ function DefaultGroupEventDetailsContent({
           title={t('User Feedback')}
           type="user-feedback"
           actions={
+            // Button is disabled if promptLoading or promptError.
             <ErrorBoundary mini>
               <HideUserFeedbackButton
                 isLoading={promptLoading}
                 isError={promptError || isPromptDismissed === undefined}
-                isHidden={isPromptDismissed !== undefined ? isPromptDismissed : false}
+                isHidden={isPromptDismissed ?? false}
                 showFeedback={showPrompt}
                 hideFeedback={dismissPrompt}
               />
             </ErrorBoundary>
           }
         >
-          {promptLoading || promptError || isPromptDismissed ? (
-            <EventUserFeedbackHiddenState />
-          ) : (
+          {promptLoading || promptError || !isPromptDismissed ? (
+            // Shows the feedback if the prompt API is slow or failing.
             <EventUserFeedback
               report={event.userReport}
               orgSlug={organization.slug}
               issueId={group.id}
               showEventLink={false}
             />
+          ) : (
+            <EventUserFeedbackHiddenState />
           )}
         </EventDataSection>
       )}
