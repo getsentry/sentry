@@ -1,12 +1,18 @@
 import {useMemo} from 'react';
 
 import type {PageFilters} from 'sentry/types/core';
-import {getDateTimeParams, getMetricsInterval} from 'sentry/utils/metrics';
+import {
+  getDateTimeParams,
+  getMetricsInterval,
+  isVirtualMetric,
+} from 'sentry/utils/metrics';
 import {getUseCaseFromMRI, MRIToField} from 'sentry/utils/metrics/mri';
+import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import type {
+  MetricAggregation,
   MetricsDataIntervalLadder,
   MetricsQueryApiResponse,
   MRI,
@@ -33,10 +39,12 @@ export function createMqlQuery({
 }
 
 export interface MetricsQueryApiRequestQuery {
+  aggregation: MetricAggregation;
   mri: MRI;
   name: string;
-  op: string;
   alias?: string;
+  // Conditions are used to identify virtual metrics
+  condition?: number;
   groupBy?: string[];
   isQueryOnly?: boolean;
   limit?: number;
@@ -73,7 +81,15 @@ export function isMetricFormula(
 
 export function getMetricsQueryApiRequestPayload(
   queries: (MetricsQueryApiRequestQuery | MetricsQueryApiRequestFormula)[],
-  {projects, environments, datetime}: PageFilters,
+  {
+    projects,
+    environments,
+    datetime,
+  }: {
+    datetime: PageFilters['datetime'];
+    environments: PageFilters['environments'];
+    projects: (number | string)[];
+  },
   {
     intervalLadder,
     interval: intervalParam,
@@ -117,7 +133,7 @@ export function getMetricsQueryApiRequestPayload(
 
     const {
       mri,
-      op,
+      aggregation,
       groupBy,
       limit,
       orderBy,
@@ -131,7 +147,7 @@ export function getMetricsQueryApiRequestPayload(
     requestQueries.push({
       name,
       mql: createMqlQuery({
-        field: MRIToField(mri, op),
+        field: MRIToField(mri, aggregation),
         query: queryParam,
         groupBy,
       }),
@@ -163,7 +179,15 @@ export function getMetricsQueryApiRequestPayload(
 
 export function useMetricsQuery(
   queries: MetricsQueryApiQueryParams[],
-  {projects, environments, datetime}: PageFilters,
+  {
+    projects,
+    environments,
+    datetime,
+  }: {
+    datetime: PageFilters['datetime'];
+    environments: PageFilters['environments'];
+    projects: (number | string)[];
+  },
   overrides: {
     includeSeries?: boolean;
     interval?: string;
@@ -172,15 +196,41 @@ export function useMetricsQuery(
   enableRefetch = true
 ) {
   const organization = useOrganization();
+  const {resolveVirtualMRI, isLoading} = useVirtualMetricsContext();
+
+  const resolvedQueries = useMemo(
+    () =>
+      queries
+        .map(query => {
+          if (isMetricFormula(query)) {
+            return query;
+          }
+          if (!isVirtualMetric(query)) {
+            return query;
+          }
+          if (!query.condition) {
+            // Invalid state. A virtual metric always need to have a condition
+            return null;
+          }
+          const {mri, aggregation} = resolveVirtualMRI(
+            query.mri,
+            query.condition,
+            query.aggregation
+          );
+          return {...query, mri, aggregation};
+        })
+        .filter(query => query !== null),
+    [queries, resolveVirtualMRI]
+  );
 
   const {query: queryToSend, body} = useMemo(
     () =>
       getMetricsQueryApiRequestPayload(
-        queries,
+        resolvedQueries,
         {datetime, projects, environments},
         {...overrides}
       ),
-    [queries, datetime, projects, environments, overrides]
+    [resolvedQueries, datetime, projects, environments, overrides]
   );
 
   return useApiQuery<MetricsQueryApiResponse>(
@@ -194,6 +244,7 @@ export function useMetricsQuery(
       refetchOnReconnect: enableRefetch,
       refetchOnWindowFocus: enableRefetch,
       refetchInterval: false,
+      enabled: !isLoading,
     }
   );
 }

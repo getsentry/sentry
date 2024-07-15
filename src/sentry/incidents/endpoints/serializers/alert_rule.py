@@ -27,11 +27,11 @@ from sentry.models.integrations.sentry_app_installation import prepare_ui_compon
 from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.app import app_service
-from sentry.services.hybrid_cloud.app.model import RpcSentryAppComponentContext
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.sentry_apps.services.app import app_service
+from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
 from sentry.snuba.models import SnubaQueryEventType
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 
 logger = logging.getLogger(__name__)
 
@@ -89,6 +89,7 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     createdBy: dict
     monitorType: int
     activations: list[dict]
+    activationCondition: int | None
     description: str
 
 
@@ -175,9 +176,9 @@ class AlertRuleSerializer(Serializer):
                 order_by=F("date_added").desc(),
             )
         )
-        activations = alert_activations_ranked.filter(alert_rule__in=item_list, rank__lte=10)
+        activations_qs = alert_activations_ranked.filter(alert_rule__in=item_list, rank__lte=10)
         activations_by_alert_rule_id = defaultdict(list)
-        for activation in activations:
+        for activation in activations_qs:
             activations_by_alert_rule_id[activation.alert_rule_id].append(activation)
 
         alert_rule_projects = set()
@@ -272,6 +273,7 @@ class AlertRuleSerializer(Serializer):
         aggregate = translate_aggregate_field(
             obj.snuba_query.aggregate, reverse=True, allow_mri=allow_mri
         )
+        condition_type = obj.activation_condition.values_list("condition_type", flat=True).first()
 
         data: AlertRuleSerializerResponse = {
             "id": str(obj.id),
@@ -300,6 +302,7 @@ class AlertRuleSerializer(Serializer):
             "dateCreated": obj.date_added,
             "createdBy": attrs.get("created_by", None),
             "monitorType": obj.monitor_type,
+            "activationCondition": condition_type,
             "activations": attrs.get("activations", None),
             "description": obj.description if obj.description is not None else "",
         }

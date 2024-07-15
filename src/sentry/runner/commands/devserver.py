@@ -36,7 +36,6 @@ _SUBSCRIPTION_RESULTS_CONSUMERS = [
     "events-subscription-results",
     "transactions-subscription-results",
     "generic-metrics-subscription-results",
-    "sessions-subscription-results",
     "metrics-subscription-results",
 ]
 
@@ -321,6 +320,7 @@ def devserver(
 
         if settings.SENTRY_USE_UPTIME:
             kafka_consumers.add("uptime-results")
+            kafka_consumers.add("uptime-configs")
 
         if settings.SENTRY_USE_RELAY:
             daemons += [("relay", ["sentry", "devservices", "attach", "relay"])]

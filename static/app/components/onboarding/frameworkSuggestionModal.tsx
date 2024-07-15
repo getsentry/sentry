@@ -47,13 +47,14 @@ const topGoFrameworks: PlatformKey[] = [
 ];
 
 export const topJavascriptFrameworks: PlatformKey[] = [
-  'javascript-react',
   'javascript-nextjs',
+  'javascript-react',
   'javascript-vue',
   'javascript-angular',
+  'javascript-solid',
+  'javascript-remix',
   'javascript-svelte',
   'javascript-sveltekit',
-  'javascript-remix',
   'javascript-astro',
 ];
 

@@ -63,6 +63,50 @@ const platformOptions: Record<PlatformOptionKey, PlatformOption> = {
 type PlatformOptions = typeof platformOptions;
 type Params = DocsParams<PlatformOptions>;
 
+function getIntegrations(params: Params, siblingOption: string) {
+  const integrations: string[] = ['SentrySibling.browserTracingIntegration()'];
+
+  if (params.isPerformanceSelected) {
+    integrations.push(`
+          new ${getSiblingImportName(siblingOption)}.BrowserTracing({
+            // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
+            tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
+          ${
+            params.isPerformanceSelected ? getPerformanceIntegration(siblingOption) : ''
+          }})`);
+  }
+
+  if (params.isFeedbackSelected) {
+    const feedbackIntegration: string[] = [
+      `// Additional SDK configuration goes in here, for example:
+        colorScheme: "system"`,
+    ];
+    const feedbackConfigOptions = getFeedbackConfigOptions(params.feedbackOptions);
+
+    if (feedbackConfigOptions) {
+      feedbackIntegration.push(feedbackConfigOptions);
+    }
+
+    integrations.push(
+      `
+        Sentry.feedbackIntegration({
+          ${feedbackIntegration.join(',')}
+        }),`
+    );
+  }
+
+  if (params.isReplaySelected) {
+    integrations.push(
+      `
+        new ${getSiblingImportName(siblingOption)}.Replay(${getReplayConfigOptions(
+          params.replayOptions
+        )}),`
+    );
+  }
+
+  return integrations.join(',');
+}
+
 const getSentryInitLayout = (params: Params, siblingOption: string): string => {
   return `${
     siblingOption === SiblingOption.VUE2
@@ -71,33 +115,10 @@ const getSentryInitLayout = (params: Params, siblingOption: string): string => {
         ? 'app,'
         : ''
   }dsn: "${params.dsn}",
-  integrations: [${
-    params.isPerformanceSelected
-      ? `
-          new ${getSiblingImportName(siblingOption)}.BrowserTracing({
-            // Set 'tracePropagationTargets' to control for which URLs distributed tracing should be enabled
-            tracePropagationTargets: ["localhost", /^https:\\/\\/yourserver\\.io\\/api/],
-          ${
-            params.isPerformanceSelected ? getPerformanceIntegration(siblingOption) : ''
-          }})`
-      : ''
-  }${
-    params.isFeedbackSelected
-      ? `
-        Sentry.feedbackIntegration({
-// Additional SDK configuration goes in here, for example:
-colorScheme: "system",
-${getFeedbackConfigOptions(params.feedbackOptions)}}),`
-      : ''
-  }${
-    params.isReplaySelected
-      ? `
-          new ${getSiblingImportName(siblingOption)}.Replay(${getReplayConfigOptions(
-            params.replayOptions
-          )}),`
-      : ''
-  }
-  ],${
+   integrations: [
+    ${getIntegrations(params, siblingOption)}
+   ],
+  ${
     params.isPerformanceSelected
       ? `
         // Performance Monitoring
@@ -238,7 +259,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
           description: t(
             'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
           ),
-          link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/performance/',
+          link: 'https://docs.sentry.io/platforms/javascript/guides/capacitor/tracing/',
         },
     params.isReplaySelected
       ? null

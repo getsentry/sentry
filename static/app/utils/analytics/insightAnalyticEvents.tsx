@@ -18,21 +18,22 @@ export type InsightEventParameters = {
     field: string;
     source: string;
   };
-  'insight.page_loads.ai': {has_data: boolean};
-  'insight.page_loads.app_start': {has_data: boolean};
-  'insight.page_loads.assets': {has_data: boolean};
-  'insight.page_loads.cache': {has_data: boolean};
-  'insight.page_loads.db': {has_data: boolean};
-  'insight.page_loads.http': {has_data: boolean};
-  'insight.page_loads.queue': {has_data: boolean};
-  'insight.page_loads.screen_load': {has_data: boolean};
-  'insight.page_loads.vital': {has_data: boolean};
+  'insight.page_loads.ai': {has_ever_sent_data: boolean};
+  'insight.page_loads.app_start': {has_ever_sent_data: boolean};
+  'insight.page_loads.assets': {has_ever_sent_data: boolean};
+  'insight.page_loads.cache': {has_ever_sent_data: boolean};
+  'insight.page_loads.db': {has_ever_sent_data: boolean};
+  'insight.page_loads.http': {has_ever_sent_data: boolean};
+  'insight.page_loads.queue': {has_ever_sent_data: boolean};
+  'insight.page_loads.screen_load': {has_ever_sent_data: boolean};
+  'insight.page_loads.vital': {has_ever_sent_data: boolean};
   'insight.screen_load.spans.filter_by_device_class': {filter: string};
   'insight.screen_load.spans.filter_by_operation': {filter: string};
   'insight.vital.overview.open_full_waterfall': {};
   'insight.vital.overview.open_transaction_summary': {};
   'insight.vital.overview.toggle_data_type': {type: string};
   'insight.vital.overview.toggle_tab': {tab: string};
+  'insight.vital.select_browser_value': {browsers: string[]};
   'insight.vital.vital_sidebar_opened': {vital: string};
 };
 
@@ -75,4 +76,5 @@ export const insightEventMap: Record<InsightEventKey, string | null> = {
     'Insights: Web Vitals Overview - open full waterfall',
   'insight.vital.overview.toggle_data_type':
     'Insights: Web Vitals Overview - toggle data type',
+  'insight.vital.select_browser_value': 'Insights: Web Vitals - filter by browser type',
 };

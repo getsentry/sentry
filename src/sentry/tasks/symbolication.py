@@ -104,14 +104,12 @@ def get_symbolication_platforms(
     """Returns a list of Symbolicator platforms
     that apply to this event."""
 
-    from sentry.lang.java.utils import is_jvm_event, should_use_symbolicator_for_proguard
+    from sentry.lang.java.utils import is_jvm_event
     from sentry.lang.javascript.utils import is_js_event
 
     platforms = []
 
-    if should_use_symbolicator_for_proguard(int(data["project"])) and is_jvm_event(
-        data, stacktraces
-    ):
+    if is_jvm_event(data):
         platforms.append(SymbolicatorPlatform.jvm)
     if is_js_event(data, stacktraces):
         platforms.append(SymbolicatorPlatform.js)

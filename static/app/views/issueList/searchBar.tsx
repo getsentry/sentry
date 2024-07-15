@@ -1,4 +1,4 @@
-import {useCallback} from 'react';
+import {useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
@@ -17,7 +17,6 @@ import {SavedSearchType} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {
   DEVICE_CLASS_TAG_VALUES,
-  FieldKey,
   FieldKind,
   getFieldDefinition,
   isDeviceClass,
@@ -27,36 +26,55 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import type {WithIssueTagsProps} from 'sentry/utils/withIssueTags';
 import withIssueTags from 'sentry/utils/withIssueTags';
 
-const getSupportedTags = (supportedTags: TagCollection, org: Organization) => {
-  const include_priority = org.features.includes('issue-priority-ui');
+const getSupportedTags = (supportedTags: TagCollection): TagCollection => {
   return Object.fromEntries(
-    Object.keys(supportedTags)
-      .map(key => [
-        key,
-        {
-          ...supportedTags[key],
-          kind:
-            getFieldDefinition(key)?.kind ??
-            (supportedTags[key].predefined ? FieldKind.FIELD : FieldKind.TAG),
-        },
-      ])
-      .filter(([key, _]) => (key === FieldKey.ISSUE_PRIORITY ? include_priority : true))
+    Object.keys(supportedTags).map(key => [
+      key,
+      {
+        ...supportedTags[key],
+        kind:
+          getFieldDefinition(key)?.kind ??
+          (supportedTags[key].predefined ? FieldKind.FIELD : FieldKind.TAG),
+      },
+    ])
   );
 };
 
 const getFilterKeySections = (
   tags: TagCollection,
-  org: Organization
+  organization: Organization
 ): FilterKeySection[] => {
-  const allTags: Tag[] = orderBy(Object.values(getSupportedTags(tags, org)), 'key');
-  const eventTags = allTags.filter(tag => tag.kind === FieldKind.TAG);
-  const issueFields = allTags.filter(tag => tag.kind === FieldKind.FIELD);
+  if (!organization.features.includes('issue-stream-search-query-builder')) {
+    return [];
+  }
+
+  const allTags: Tag[] = Object.values(tags).filter(
+    tag => !EXCLUDED_TAGS.includes(tag.key)
+  );
+  const eventTags = orderBy(
+    allTags.filter(tag => tag.kind === FieldKind.TAG),
+    ['totalValues', 'key'],
+    ['desc', 'asc']
+  ).map(tag => tag.key);
+  const issueFields = orderBy(
+    allTags.filter(tag => tag.kind === FieldKind.ISSUE_FIELD),
+    ['key']
+  ).map(tag => tag.key);
+  const eventFields = orderBy(
+    allTags.filter(tag => tag.kind === FieldKind.EVENT_FIELD),
+    ['key']
+  ).map(tag => tag.key);
 
   return [
     {
-      value: FieldKind.FIELD,
-      label: t('Issue Fields'),
+      value: FieldKind.ISSUE_FIELD,
+      label: t('Issue Filters'),
       children: issueFields,
+    },
+    {
+      value: FieldKind.EVENT_FIELD,
+      label: t('Event Filters'),
+      children: eventFields,
     },
     {
       value: FieldKind.TAG,
@@ -81,8 +99,12 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
       const orgSlug = organization.slug;
       const projectIds = pageFilters.projects.map(id => id.toString());
       const endpointParams = {
-        start: getUtcDateString(pageFilters.datetime.start),
-        end: getUtcDateString(pageFilters.datetime.end),
+        start: pageFilters.datetime.start
+          ? getUtcDateString(pageFilters.datetime.start)
+          : undefined,
+        end: pageFilters.datetime.end
+          ? getUtcDateString(pageFilters.datetime.end)
+          : undefined,
         statsPeriod: pageFilters.datetime.period,
       };
 
@@ -171,18 +193,26 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
     ],
   };
 
+  const filterKeySections = useMemo(() => {
+    return getFilterKeySections(tags, organization);
+  }, [organization, tags]);
+
   if (organization.features.includes('issue-stream-search-query-builder')) {
     return (
       <SearchQueryBuilder
         className={props.className}
         initialQuery={props.query ?? ''}
         getTagValues={getTagValues}
-        filterKeySections={getFilterKeySections(tags, organization)}
+        filterKeySections={filterKeySections}
+        filterKeys={tags}
         onSearch={props.onSearch}
         onBlur={props.onBlur}
         onChange={value => {
           props.onClose?.(value, {validSearch: true});
         }}
+        searchSource={props.searchSource ?? 'issues'}
+        savedSearchType={SavedSearchType.ISSUE}
+        disallowLogicalOperators
       />
     );
   }
@@ -195,7 +225,7 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
       onGetTagValues={getTagValues}
       excludedTags={EXCLUDED_TAGS}
       maxMenuHeight={500}
-      supportedTags={getSupportedTags(tags, organization)}
+      supportedTags={getSupportedTags(tags)}
       defaultSearchGroup={recommendedGroup}
       organization={organization}
       {...props}

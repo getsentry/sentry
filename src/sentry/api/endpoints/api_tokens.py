@@ -21,6 +21,8 @@ from sentry.models.outbox import outbox_context
 from sentry.security.utils import capture_security_activity
 from sentry.types.token import AuthTokenType
 
+ALLOWED_FIELDS = ["name", "tokenId"]
+
 
 class ApiTokenSerializer(serializers.Serializer):
     name = CharField(max_length=255, allow_blank=True, required=False)
@@ -38,8 +40,8 @@ class ApiTokensEndpoint(Endpoint):
     authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
-    @classmethod
-    def _get_appropriate_user_id(cls, request: Request) -> str:
+    @staticmethod
+    def get_appropriate_user_id(request: Request) -> int:
         """
         Gets the user id to use for the request, based on what the current state of the request is.
         If the request is made by a superuser, then they are allowed to act on behalf of other user's data.
@@ -54,13 +56,13 @@ class ApiTokensEndpoint(Endpoint):
         if has_elevated_mode(request):
             datastore = request.GET if request.GET else request.data
             # If a userId override is not found, use the id for the user who made the request
-            user_id = datastore.get("userId", user_id)
+            user_id = int(datastore.get("userId", user_id))
 
         return user_id
 
     @method_decorator(never_cache)
     def get(self, request: Request) -> Response:
-        user_id = self._get_appropriate_user_id(request=request)
+        user_id = self.get_appropriate_user_id(request=request)
 
         token_list = list(
             ApiToken.objects.filter(application__isnull=True, user_id=user_id).select_related(
@@ -100,7 +102,7 @@ class ApiTokensEndpoint(Endpoint):
 
     @method_decorator(never_cache)
     def delete(self, request: Request):
-        user_id = self._get_appropriate_user_id(request=request)
+        user_id = self.get_appropriate_user_id(request=request)
         token_id = request.data.get("tokenId", None)
         # Account for token_id being 0, which can be considered valid
         if token_id is None:

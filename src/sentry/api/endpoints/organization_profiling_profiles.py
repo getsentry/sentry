@@ -16,10 +16,13 @@ from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.organization import Organization
 from sentry.profiles.flamegraph import (
+    get_chunks_from_spans_metadata,
     get_profile_ids,
     get_profile_ids_with_spans,
     get_profiles_with_function,
+    get_spans_from_group,
 )
+from sentry.profiles.profile_chunks import get_chunk_ids
 from sentry.profiles.utils import parse_profile_filters, proxy_profiling_service
 
 
@@ -62,7 +65,7 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
         if not features.has("organizations:profiling", organization, actor=request.user):
             return Response(status=404)
 
-        params = self.get_snuba_params(request, organization, check_global_views=False)
+        params = self.get_snuba_params(request, organization)
         project_ids = params["project_id"]
         if len(project_ids) > 1:
             raise ParseError(detail="You cannot get a flamegraph from multiple projects.")
@@ -94,4 +97,67 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
             method="POST",
             path=f"/organizations/{organization.id}/projects/{project_ids[0]}/flamegraph",
             json_data=profile_ids,
+        )
+
+
+@region_silo_endpoint
+class OrganizationProfilingChunksEndpoint(OrganizationProfilingBaseEndpoint):
+    def get(self, request: Request, organization: Organization) -> HttpResponse:
+        if not features.has("organizations:continuous-profiling", organization, actor=request.user):
+            return Response(status=404)
+
+        # We disable the date quantizing here because we need the timestamps to be precise.
+        params = self.get_snuba_params(request, organization, quantize_date_params=False)
+
+        project_ids = params.get("project_id")
+        if project_ids is None or len(project_ids) != 1:
+            raise ParseError(detail="one project_id must be specified.")
+
+        profiler_id = request.query_params.get("profiler_id")
+        if profiler_id is None:
+            raise ParseError(detail="profiler_id must be specified.")
+
+        chunk_ids = get_chunk_ids(params, profiler_id, project_ids[0])
+
+        return proxy_profiling_service(
+            method="POST",
+            path=f"/organizations/{organization.id}/projects/{project_ids[0]}/chunks",
+            json_data={
+                "profiler_id": profiler_id,
+                "chunk_ids": chunk_ids,
+                "start": str(int(params["start"].timestamp() * 1e9)),
+                "end": str(int(params["end"].timestamp() * 1e9)),
+            },
+        )
+
+
+@region_silo_endpoint
+class OrganizationProfilingChunksFlamegraphEndpoint(OrganizationProfilingBaseEndpoint):
+    def get(self, request: Request, organization: Organization) -> HttpResponse:
+        if not features.has("organizations:profiling", organization, actor=request.user):
+            return Response(status=404)
+
+        params = self.get_snuba_params(request, organization)
+
+        project_ids = params.get("project_id")
+        if project_ids is None or len(project_ids) != 1:
+            raise ParseError(detail="one project_id must be specified.")
+
+        span_group = request.query_params.get("span_group")
+        if span_group is None:
+            raise ParseError(detail="span_group must be specified.")
+
+        spans = get_spans_from_group(
+            organization.id,
+            project_ids[0],
+            params,
+            span_group,
+        )
+
+        chunksMetadata = get_chunks_from_spans_metadata(organization.id, project_ids[0], spans)
+
+        return proxy_profiling_service(
+            method="POST",
+            path=f"/organizations/{organization.id}/projects/{project_ids[0]}/chunks-flamegraph",
+            json_data={"chunks_metadata": chunksMetadata},
         )

@@ -4,13 +4,13 @@ import logging
 from collections.abc import Mapping
 from typing import Any
 
-from sentry_sdk import configure_scope
+import sentry_sdk
 
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.model import RpcOrganizationIntegration
 from sentry.models.organization import Organization
 from sentry.models.organizationmapping import OrganizationMapping
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.integration.model import RpcOrganizationIntegration
-from sentry.services.hybrid_cloud.organization import organization_service
+from sentry.organizations.services.organization import organization_service
 from sentry.silo.base import SiloMode
 from sentry.utils.sdk import (
     bind_ambiguous_org_context,
@@ -24,18 +24,19 @@ logger = logging.getLogger(__name__)
 def clear_tags_and_context() -> None:
     """Clear certain tags and context since it should not be set."""
     reset_values = False
-    with configure_scope() as scope:
-        for tag in ["organization", "organization.slug"]:
-            if tag in scope._tags:
-                reset_values = True
-                del scope._tags[tag]
+    scope = sentry_sdk.Scope.get_isolation_scope()
 
-        if "organization" in scope._contexts:
+    for tag in ["organization", "organization.slug"]:
+        if tag in scope._tags:
             reset_values = True
-            del scope._contexts["organization"]
+            del scope._tags[tag]
 
-        if reset_values:
-            logger.info("We've reset the context and tags.")
+    if "organization" in scope._contexts:
+        reset_values = True
+        del scope._contexts["organization"]
+
+    if reset_values:
+        logger.info("We've reset the context and tags.")
 
 
 def get_org_integrations(

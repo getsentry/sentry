@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
 import {GithubFeedbackButton} from 'sentry/components/githubFeedbackButton';
-import ReplayDiff from 'sentry/components/replays/replayDiff';
+import ReplayDiffChooser from 'sentry/components/replays/diff/replayDiffChooser';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
@@ -11,19 +11,19 @@ import type ReplayReader from 'sentry/utils/replays/replayReader';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 
 interface Props extends ModalRenderProps {
-  leftTimestamp: number;
+  leftOffsetMs: number;
   organization: Organization;
   replay: null | ReplayReader;
-  rightTimestamp: number;
+  rightOffsetMs: number;
 }
 
 export default function ReplayComparisonModal({
   Body,
   Header,
-  leftTimestamp,
+  leftOffsetMs,
   organization,
   replay,
-  rightTimestamp,
+  rightOffsetMs,
 }: Props) {
   return (
     <OrganizationContext.Provider value={organization}>
@@ -53,10 +53,10 @@ export default function ReplayComparisonModal({
             }
           )}
         </StyledParagraph>
-        <ReplayDiff
+        <ReplayDiffChooser
           replay={replay}
-          leftTimestamp={leftTimestamp}
-          rightTimestamp={rightTimestamp}
+          leftOffsetMs={leftOffsetMs}
+          rightOffsetMs={rightOffsetMs}
         />
       </Body>
     </OrganizationContext.Provider>

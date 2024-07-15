@@ -1,12 +1,12 @@
 from unittest import mock
 
+import orjson
 import responses
 
 from sentry.models.activity import Activity
 from sentry.notifications.notifications.activity.unassigned import UnassignedActivityNotification
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
-from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 
@@ -25,7 +25,6 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest, Performance
             )
         )
 
-    @responses.activate
     def test_unassignment_block(self):
         """
         Test that a Slack message is sent with the expected payload when an issue is unassigned
@@ -34,7 +33,9 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest, Performance
         with self.tasks():
             self.create_notification(self.group).send()
 
-        blocks, fallback_text = get_blocks_and_fallback_text()
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        fallback_text = self.mock_post.call_args.kwargs["text"]
+
         assert fallback_text == f"Issue unassigned by {self.name}"
         assert blocks[0]["text"]["text"] == fallback_text
         notification_uuid = self.get_notification_uuid(blocks[1]["text"]["text"])
@@ -52,7 +53,7 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest, Performance
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_unassignment_performance_issue_block(self, occurrence):
+    def test_unassignment_performance_issue_block_with_culprit_blocks(self, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a performance issue is unassigned
         and block kit is enabled.
@@ -61,10 +62,11 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest, Performance
         with self.tasks():
             self.create_notification(event.group).send()
 
-        blocks, fallback_text = get_blocks_and_fallback_text()
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        fallback_text = self.mock_post.call_args.kwargs["text"]
         assert fallback_text == f"Issue unassigned by {self.name}"
         assert blocks[0]["text"]["text"] == fallback_text
-        self.assert_performance_issue_blocks(
+        self.assert_performance_issue_blocks_with_culprit_blocks(
             blocks,
             event.organization,
             event.project.slug,
@@ -90,7 +92,9 @@ class SlackUnassignedNotificationTest(SlackActivityNotificationTest, Performance
         with self.tasks():
             self.create_notification(group_event.group).send()
 
-        blocks, fallback_text = get_blocks_and_fallback_text()
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        fallback_text = self.mock_post.call_args.kwargs["text"]
+
         assert fallback_text == f"Issue unassigned by {self.name}"
         assert blocks[0]["text"]["text"] == fallback_text
         self.assert_generic_issue_blocks(

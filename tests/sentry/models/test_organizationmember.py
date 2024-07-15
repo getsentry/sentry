@@ -14,7 +14,6 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organizationmember import INVITE_DAYS_VALID, InviteStatus, OrganizationMember
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.silo.base import SiloMode
 from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import TestCase
@@ -22,6 +21,7 @@ from sentry.testutils.helpers import with_feature
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
+from sentry.users.services.user.service import user_service
 
 
 class MockOrganizationRoles:
@@ -95,7 +95,7 @@ class OrganizationMemberTest(TestCase, HybridCloudTestMixin):
         msg = mail.outbox[0]
         assert msg.to == ["foo@example.com"]
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_send_invite_email_customer_domains(self):
         member = OrganizationMember(id=1, organization=self.organization, email="admin@example.com")
         with self.tasks():

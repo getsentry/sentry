@@ -1,5 +1,5 @@
 ---
-created: '2024-06-13T16:39:01.199833+00:00'
+created: '2024-07-10T10:28:59.695648+00:00'
 creator: sentry
 source: tests/sentry/backup/test_comparators.py
 ---
@@ -189,11 +189,6 @@ source: tests/sentry/backup/test_comparators.py
     - application
     - user
   model_name: sentry.apitoken
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
-    - project
-  model_name: sentry.appconnectbuild
 - comparators:
   - class: ForeignKeyComparator
     fields:
@@ -475,12 +470,6 @@ source: tests/sentry/backup/test_comparators.py
     - group_id
     - project_id
   model_name: sentry.eventattachment
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
-    - processing_issue
-    - raw_event
-  model_name: sentry.eventprocessingissue
 - comparators:
   - class: ForeignKeyComparator
     fields:
@@ -784,11 +773,6 @@ source: tests/sentry/backup/test_comparators.py
 - comparators:
   - class: ForeignKeyComparator
     fields:
-    - project
-  model_name: sentry.latestappconnectbuildscheck
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
     - commit_id
     - deploy_id
     - environment_id
@@ -1023,11 +1007,6 @@ source: tests/sentry/backup/test_comparators.py
 - comparators:
   - class: ForeignKeyComparator
     fields:
-    - project
-  model_name: sentry.processingissue
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
     - organization_id
     - project_debug_file
     - project_id
@@ -1182,11 +1161,6 @@ source: tests/sentry/backup/test_comparators.py
     - project
     - snuba_query
   model_name: sentry.querysubscription
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
-    - project
-  model_name: sentry.rawevent
 - comparators:
   - class: ForeignKeyComparator
     fields:
@@ -1346,11 +1320,6 @@ source: tests/sentry/backup/test_comparators.py
 - comparators:
   - class: ForeignKeyComparator
     fields:
-    - project
-  model_name: sentry.reprocessingreport
-- comparators:
-  - class: ForeignKeyComparator
-    fields:
     - environment_id
     - owner_team
     - owner_user_id
@@ -1479,6 +1448,30 @@ source: tests/sentry/backup/test_comparators.py
     fields:
     - snuba_query
   model_name: sentry.snubaqueryeventtype
+- comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_updated
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
+  - class: ForeignKeyComparator
+    fields:
+    - config
+    - created_by_id
+  model_name: sentry.spanattributeextractionrulecondition
+- comparators:
+  - class: DateUpdatedComparator
+    fields:
+    - date_updated
+  - class: DatetimeEqualityComparator
+    fields:
+    - date_added
+  - class: ForeignKeyComparator
+    fields:
+    - created_by_id
+    - project
+  model_name: sentry.spanattributeextractionruleconfig
 - comparators:
   - class: ForeignKeyComparator
     fields:
@@ -1616,3 +1609,13 @@ source: tests/sentry/backup/test_comparators.py
     fields:
     - user
   model_name: social_auth.usersocialauth
+- comparators:
+  - class: ForeignKeyComparator
+    fields:
+    - project
+    - uptime_subscription
+  model_name: uptime.projectuptimesubscription
+- comparators:
+  - class: ForeignKeyComparator
+    fields: []
+  model_name: uptime.uptimesubscription

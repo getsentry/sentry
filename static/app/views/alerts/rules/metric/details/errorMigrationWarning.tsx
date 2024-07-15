@@ -17,10 +17,7 @@ import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import type {MetricRule} from 'sentry/views/alerts/rules/metric/types';
-import {
-  hasIgnoreArchivedFeatureFlag,
-  ruleNeedsErrorMigration,
-} from 'sentry/views/alerts/utils/migrationUi';
+import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
 
 interface ErrorMigrationWarningProps {
   project?: Project;
@@ -45,8 +42,7 @@ export function ErrorMigrationWarning({project, rule}: ErrorMigrationWarningProp
   const api = useApi();
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const showErrorMigrationWarning =
-    rule && hasIgnoreArchivedFeatureFlag(organization) && ruleNeedsErrorMigration(rule);
+  const showErrorMigrationWarning = rule && ruleNeedsErrorMigration(rule);
   const isCreatedAfterMigration = rule && createdOrModifiedAfterMigration(rule);
   const prompt = usePromptsCheck(
     {

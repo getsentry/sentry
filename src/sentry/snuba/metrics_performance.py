@@ -10,7 +10,7 @@ from snuba_sdk import Column
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import IncompatibleMetricsQuery
-from sentry.search.events.builder import (
+from sentry.search.events.builder.metrics import (
     HistogramMetricQueryBuilder,
     MetricsQueryBuilder,
     TimeseriesMetricQueryBuilder,
@@ -50,6 +50,7 @@ def query(
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
     granularity: int | None = None,
+    fallback_to_transactions=False,
 ):
     with sentry_sdk.start_span(op="mep", description="MetricQueryBuilder"):
         metrics_query = MetricsQueryBuilder(

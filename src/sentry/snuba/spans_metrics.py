@@ -4,11 +4,11 @@ from datetime import timedelta
 
 from snuba_sdk import Column
 
-from sentry.search.events.builder import (
+from sentry.search.events.builder.spans_metrics import (
     SpansMetricsQueryBuilder,
     TimeseriesSpansMetricsQueryBuilder,
+    TopSpansMetricsQueryBuilder,
 )
-from sentry.search.events.builder.spans_metrics import TopSpansMetricsQueryBuilder
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
@@ -43,6 +43,7 @@ def query(
     extra_columns=None,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    fallback_to_transactions=False,
 ):
     builder = SpansMetricsQueryBuilder(
         dataset=Dataset.PerformanceMetrics,

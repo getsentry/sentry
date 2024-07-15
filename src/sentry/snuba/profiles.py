@@ -2,7 +2,10 @@ from datetime import datetime
 from typing import Any
 
 from sentry.exceptions import InvalidSearchQuery
-from sentry.search.events.builder import ProfilesQueryBuilder, ProfilesTimeseriesQueryBuilder
+from sentry.search.events.builder.profiles import (
+    ProfilesQueryBuilder,
+    ProfilesTimeseriesQueryBuilder,
+)
 from sentry.search.events.fields import get_json_meta_type
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.snuba.dataset import Dataset
@@ -31,6 +34,7 @@ def query(
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    fallback_to_transactions=False,
 ) -> Any:
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")

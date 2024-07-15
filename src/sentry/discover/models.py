@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import ClassVar
 
 from django.db import models, router, transaction
@@ -6,10 +7,11 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BaseManager, FlexibleForeignKey, Model, region_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields import JSONField
 from sentry.db.models.fields.bounded import BoundedBigIntegerField, BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
 from sentry.models.dashboard_widget import TypesClass
 from sentry.models.projectteam import ProjectTeam
 from sentry.tasks.relay import schedule_invalidate_project_config
@@ -35,6 +37,31 @@ class DiscoverSavedQueryTypes(TypesClass):
         (TRANSACTION_LIKE, "transaction-like"),
     ]
     TYPE_NAMES = [t[1] for t in TYPES]
+
+
+class DatasetSourcesTypes(Enum):
+    """
+    Ambiguous queries that haven't been or couldn't be categorized into a
+    specific dataset.
+    """
+
+    UNKNOWN = 0
+    """
+     Dataset inferred by either running the query or using heuristics.
+    """
+    INFERRED = 1
+    """
+     Canonical dataset, user explicitly selected it.
+    """
+    USER = 2
+    """
+     Was an ambiguous dataset forced to split (i.e. we picked a default)
+    """
+    FORCED = 3
+
+    @classmethod
+    def as_choices(cls):
+        return tuple((source.value, source.name.lower()) for source in cls)
 
 
 @region_silo_model
@@ -71,6 +98,9 @@ class DiscoverSavedQuery(Model):
     is_homepage = models.BooleanField(null=True, blank=True)
     dataset = BoundedPositiveIntegerField(
         choices=DiscoverSavedQueryTypes.as_choices(), default=DiscoverSavedQueryTypes.DISCOVER
+    )
+    dataset_source = BoundedPositiveIntegerField(
+        choices=DatasetSourcesTypes.as_choices(), default=DatasetSourcesTypes.UNKNOWN.value
     )
 
     class Meta:

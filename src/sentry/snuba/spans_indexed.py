@@ -5,7 +5,7 @@ from datetime import timedelta
 import sentry_sdk
 
 from sentry.discover.arithmetic import categorize_columns
-from sentry.search.events.builder import (
+from sentry.search.events.builder.spans_indexed import (
     SpansIndexedQueryBuilder,
     TimeseriesSpanIndexedQueryBuilder,
     TopEventsSpanIndexedQueryBuilder,
@@ -44,6 +44,7 @@ def query(
     extra_columns=None,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    fallback_to_transactions=False,
 ):
     builder = SpansIndexedQueryBuilder(
         Dataset.SpansIndexed,

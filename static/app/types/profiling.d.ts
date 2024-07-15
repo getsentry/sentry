@@ -12,9 +12,19 @@ declare namespace Profiling {
     value: number;
   };
 
+  type ContinuousMeasurementValue = {
+    timestamp: number;
+    value: number;
+  };
+
   type Measurement = {
     unit: string;
     values: MeasurementValue[];
+  };
+
+  type ContinuousMeasurement = {
+    unit: string;
+    values: ContinuousMeasurementValue[];
   };
 
   type Measurements = {
@@ -26,6 +36,15 @@ declare namespace Profiling {
     [key: string]: Measurement;
   };
 
+  type ContinuousMeasurements = {
+    cpu_usage?: ContinuousMeasurement;
+    memory_footprint?: ContinuousMeasurement;
+    frozen_frame_renders?: ContinuousMeasurement;
+    screen_frame_rates?: ContinuousMeasurement;
+    slow_frame_renders?: ContinuousMeasurement;
+    [key: string]: ContinuousMeasurement;
+  };
+
   type SentrySampledProfileSample = {
     stack_id: number;
     thread_id: string;
@@ -33,7 +52,11 @@ declare namespace Profiling {
     queue_address?: string;
   };
 
-  type SentrySampledProfileStack = number[];
+  type SentrySampledProfileChunkSample = {
+    stack_id: number;
+    thread_id: string;
+    timestamp: number;
+  };
 
   type SentrySampledProfileFrame = {
     in_app: boolean;
@@ -100,6 +123,23 @@ declare namespace Profiling {
     measurements?: Measurements;
   };
 
+  interface SentryContinousProfileChunk {
+    chunk_id: string;
+    environment: string;
+    project_id: number;
+    received: number;
+    release: string;
+    organization_id: number;
+    retention_days: number;
+    version: '2';
+    debug_meta?: {
+      images: Image[];
+    };
+    platform: string;
+    measurements?: ContinuousMeasurements;
+    profile: ContinuousProfile;
+  }
+
   ////////////////
   interface RawProfileBase {
     endValue: number;
@@ -125,6 +165,13 @@ declare namespace Profiling {
     sample_durations_ns?: number[];
     type: 'sampled';
   }
+
+  type ContinuousProfile = {
+    samples: SentrySampledProfileChunkSample[];
+    frames: SentrySampledProfileFrame[];
+    stacks: SentrySampledProfileStack[];
+    thread_metadata?: Record<string, {name?: string; priority?: number}>;
+  };
 
   type Event = {at: number; frame: number; type: 'O' | 'C'};
 
@@ -171,7 +218,8 @@ declare namespace Profiling {
   type ProfileInput =
     | Profiling.Schema
     | JSSelfProfiling.Trace
-    | Profiling.SentrySampledProfile;
+    | Profiling.SentrySampledProfile
+    | Profiling.SentryContinousProfileChunk;
 
   type ImportedProfiles = {
     name: string;

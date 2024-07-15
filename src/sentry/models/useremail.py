@@ -19,12 +19,13 @@ from sentry.backup.dependencies import (
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import BaseManager, FlexibleForeignKey, control_silo_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
+from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.outboxes import ControlOutboxProducingModel
 from sentry.models.outbox import ControlOutboxBase, OutboxCategory
-from sentry.services.hybrid_cloud.organization.model import RpcOrganization
-from sentry.services.hybrid_cloud.user.model import RpcUser
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.types.region import find_regions_for_user
+from sentry.users.services.user.model import RpcUser
 from sentry.utils.security import get_secure_token
 
 if TYPE_CHECKING:

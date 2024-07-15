@@ -25,13 +25,13 @@ import type RequestError from 'sentry/utils/requestError/requestError';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {traceAnalytics} from 'sentry/views/performance/newTraceDetails/traceAnalytics';
-import {getTraceQueryParams} from 'sentry/views/performance/newTraceDetails/traceApi/useTrace';
 import {TraceProfiles} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceProfiles';
 import {TraceVitals} from 'sentry/views/performance/newTraceDetails/traceDrawer/tabs/traceVitals';
 import {
   usePassiveResizableDrawer,
   type UsePassiveResizableDrawerOptions,
 } from 'sentry/views/performance/newTraceDetails/traceDrawer/usePassiveResizeableDrawer';
+import type {TraceScheduler} from 'sentry/views/performance/newTraceDetails/traceRenderers/traceScheduler';
 import type {VirtualizedViewManager} from 'sentry/views/performance/newTraceDetails/traceRenderers/virtualizedViewManager';
 import type {
   TraceReducerAction,
@@ -44,6 +44,7 @@ import {
 } from 'sentry/views/performance/newTraceDetails/traceState/traceTabs';
 import type {ReplayRecord} from 'sentry/views/replays/types';
 
+import {getTraceQueryParams} from '../traceApi/useTrace';
 import type {TraceMetaQueryResults} from '../traceApi/useTraceMeta';
 import {
   makeTraceNodeBarColor,
@@ -63,6 +64,7 @@ type TraceDrawerProps = {
   onTabScrollToNode: (node: TraceTreeNode<TraceTree.NodeValue>) => void;
   replayRecord: ReplayRecord | null;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
+  scheduler: TraceScheduler;
   trace: TraceTree;
   traceEventView: EventView;
   traceGridRef: HTMLElement | null;
@@ -81,7 +83,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
   // we try to prefetch the tags as soon as the drawer loads, hoping that the tags will be loaded
   // by the time the user clicks on the trace tab. Also prevents the tags from being refetched.
   const urlParams = useMemo(() => {
-    const {timestamp} = getTraceQueryParams(location.query);
+    const {timestamp} = getTraceQueryParams(location.query, undefined);
     const params = pick(location.query, [
       ...Object.values(PERFORMANCE_URL_PARAM),
       'cursor',
@@ -131,8 +133,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
         props.manager.container
       ) {
         const {width, height} = props.manager.container.getBoundingClientRect();
-        props.manager.initializePhysicalSpace(width, height);
-        props.manager.draw();
+        props.scheduler.dispatch('set container physical space', [0, 0, width, height]);
       }
 
       minimized = minimized ?? traceStateRef.current.preferences.drawer.minimized;
@@ -189,7 +190,7 @@ export function TraceDrawer(props: TraceDrawerProps) {
         props.traceGridRef.style.gridTemplateRows = '1fr auto';
       }
     },
-    [props.traceGridRef, props.manager, traceDispatch]
+    [props.traceGridRef, props.manager, props.scheduler, traceDispatch]
   );
 
   const [drawerRef, setDrawerRef] = useState<HTMLDivElement | null>(null);
@@ -806,6 +807,8 @@ const TabIconButton = styled(Button)<{active: boolean}>`
   box-shadow: none;
   transition: none !important;
   opacity: ${p => (p.active ? 0.7 : 0.5)};
+  height: 24px;
+  max-height: 24px;
 
   &:not(:last-child) {
     margin-right: ${space(1)};

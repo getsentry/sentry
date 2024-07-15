@@ -4,6 +4,8 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import {
+  BooleanOperator,
+  FilterType,
   filterTypeConfig,
   interchangeableFilterOperators,
   type ParseResult,
@@ -14,11 +16,14 @@ import {
   Token,
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
+import {t} from 'sentry/locale';
 import type {Tag, TagCollection} from 'sentry/types';
 import {escapeDoubleQuotes} from 'sentry/utils';
-import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {FieldKey, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
 
 export const INTERFACE_TYPE_LOCALSTORAGE_KEY = 'search-query-builder-interface';
+
+const SHOULD_ESCAPE_REGEX = /[\s"()]/;
 
 function getSearchConfigFromKeys(keys: TagCollection): Partial<SearchConfig> {
   const config = {
@@ -58,12 +63,16 @@ function getSearchConfigFromKeys(keys: TagCollection): Partial<SearchConfig> {
 
 export function parseQueryBuilderValue(
   value: string,
-  options?: {keys: TagCollection}
+  options?: {filterKeys: TagCollection; disallowLogicalOperators?: boolean}
 ): ParseResult | null {
   return collapseTextTokens(
     parseSearch(value || ' ', {
       flattenParenGroups: true,
-      ...getSearchConfigFromKeys(options?.keys ?? {}),
+      disallowedLogicalOperators: options?.disallowLogicalOperators
+        ? new Set([BooleanOperator.AND, BooleanOperator.OR])
+        : undefined,
+      disallowParens: options?.disallowLogicalOperators,
+      ...getSearchConfigFromKeys(options?.filterKeys ?? {}),
     })
   );
 }
@@ -80,7 +89,7 @@ export function parseQueryBuilderValue(
  */
 export function makeTokenKey(token: ParseResultToken, allTokens: ParseResult | null) {
   const tokenTypeIndex =
-    allTokens?.filter(t => t.type === token.type).indexOf(token) ?? 0;
+    allTokens?.filter(tk => tk.type === token.type).indexOf(token) ?? 0;
 
   return `${token.type}:${tokenTypeIndex}`;
 }
@@ -129,6 +138,18 @@ export function collapseTextTokens(tokens: ParseResult | null) {
   }, []);
 }
 
+export function tokenIsInvalid(token: TokenResult<Token>) {
+  if (
+    token.type !== Token.FILTER &&
+    token.type !== Token.FREE_TEXT &&
+    token.type !== Token.LOGIC_BOOLEAN
+  ) {
+    return false;
+  }
+
+  return Boolean(token.invalid);
+}
+
 export function getValidOpsForFilter(
   filterToken: TokenResult<Token.FILTER>
 ): readonly TermOperator[] {
@@ -152,10 +173,12 @@ export function getValidOpsForFilter(
 }
 
 export function escapeTagValue(value: string): string {
-  // Wrap in quotes if there is a space
-  return value.includes(' ') || value.includes('"')
-    ? `"${escapeDoubleQuotes(value)}"`
-    : value;
+  if (!value) {
+    return '';
+  }
+
+  // Wrap in quotes if there is a space or parens
+  return SHOULD_ESCAPE_REGEX.test(value) ? `"${escapeDoubleQuotes(value)}"` : value;
 }
 
 export function unescapeTagValue(value: string): string {
@@ -164,10 +187,42 @@ export function unescapeTagValue(value: string): string {
 
 export function formatFilterValue(token: TokenResult<Token.FILTER>['value']): string {
   switch (token.type) {
-    case Token.VALUE_TEXT:
-      return unescapeTagValue(token.value);
+    case Token.VALUE_TEXT: {
+      if (!token.value) {
+        return token.text;
+      }
+
+      return token.quoted ? unescapeTagValue(token.value) : token.text;
+    }
+    case Token.VALUE_RELATIVE_DATE:
+      return t('%s', `${token.value}${token.unit} ago`);
     default:
       return token.text;
+  }
+}
+
+export function getDefaultFilterValue({key}: {key: string}): string {
+  const fieldDef = getFieldDefinition(key);
+
+  if (!fieldDef) {
+    return '""';
+  }
+
+  if (key === FieldKey.IS) {
+    return 'unresolved';
+  }
+
+  switch (fieldDef.valueType) {
+    case FieldValueType.BOOLEAN:
+      return 'true';
+    case FieldValueType.INTEGER:
+    case FieldValueType.NUMBER:
+      return '100';
+    case FieldValueType.DATE:
+      return '-24h';
+    case FieldValueType.STRING:
+    default:
+      return '""';
   }
 }
 
@@ -201,4 +256,10 @@ export function useShiftFocusToChild(
   return {
     shiftFocusProps: {onFocus},
   };
+}
+
+export function isDateToken(token: TokenResult<Token.FILTER>) {
+  return [FilterType.DATE, FilterType.RELATIVE_DATE, FilterType.SPECIFIC_DATE].includes(
+    token.filter
+  );
 }

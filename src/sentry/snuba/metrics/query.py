@@ -1,4 +1,5 @@
 """ Classes needed to build a metrics query. Inspired by snuba_sdk.query. """
+
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
@@ -141,8 +142,15 @@ class MetricsQueryValidationRunner:
 
 
 @dataclass(frozen=True)
-class MetricsQuery(MetricsQueryValidationRunner):
-    """Definition of a metrics query, inspired by snuba_sdk.Query"""
+class DeprecatingMetricsQuery(MetricsQueryValidationRunner):
+    """
+    Snuba provides a new language called MQL which has been designed to replace the old metrics language.
+    We intend to deprecate the old metrics language in the future. For any new features, we recommend using MQL.
+    Documentation of MQL can be found at https://getsentry.github.io/snuba/language/mql.html and
+    https://getsentry.github.io/snuba-sdk/snuba_sdk.html#MetricsQuery
+
+    Definition of a metrics query, inspired by snuba_sdk.Query
+    """
 
     org_id: int
     project_ids: Sequence[int]

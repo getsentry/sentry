@@ -33,10 +33,12 @@ from sentry import (
 from sentry.attachments import CachedAttachment, MissingAttachmentChunks, attachment_cache
 from sentry.constants import (
     DEFAULT_STORE_NORMALIZER_ARGS,
+    INSIGHT_MODULE_FILTERS,
     LOG_LEVELS_MAP,
     MAX_TAG_VALUE_LENGTH,
     PLACEHOLDER_EVENT_TITLES,
     DataCategory,
+    InsightModules,
 )
 from sentry.culprit import generate_culprit
 from sentry.dynamic_sampling import LatestReleaseBias, LatestReleaseParams
@@ -107,9 +109,11 @@ from sentry.net.http import connection_from_url
 from sentry.plugins.base import plugins
 from sentry.quotas.base import index_data_category
 from sentry.reprocessing2 import is_reprocessed_event
+from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.signals import (
     first_event_received,
     first_event_with_minified_stack_trace_received,
+    first_insight_span_received,
     first_transaction_received,
     issue_unresolved,
 )
@@ -221,6 +225,27 @@ def plugin_is_regression(group: Group, event: BaseEvent) -> bool:
         if result is not None:
             return bool(result)
     return True
+
+
+def get_project_insight_flag(project: Project, module: InsightModules):
+    if module == InsightModules.HTTP:
+        return project.flags.has_insights_http
+    elif module == InsightModules.DB:
+        return project.flags.has_insights_db
+    elif module == InsightModules.ASSETS:
+        return project.flags.has_insights_assets
+    elif module == InsightModules.APP_START:
+        return project.flags.has_insights_app_start
+    elif module == InsightModules.SCREEN_LOAD:
+        return project.flags.has_insights_screen_load
+    elif module == InsightModules.VITAL:
+        return project.flags.has_insights_vitals
+    elif module == InsightModules.CACHE:
+        return project.flags.has_insights_caches
+    elif module == InsightModules.QUEUE:
+        return project.flags.has_insights_queues
+    elif module == InsightModules.LLM_MONITORING:
+        return project.flags.has_insights_llm_monitoring
 
 
 def has_pending_commit_resolution(group: Group) -> bool:
@@ -475,6 +500,11 @@ class EventManager:
                     project=project, event=jobs[0]["event"], sender=Project
                 )
 
+            for module, is_module in INSIGHT_MODULE_FILTERS.items():
+                if not get_project_insight_flag(project, module) and is_module(job["data"]):
+                    first_insight_span_received.send_robust(
+                        project=project, module=module, sender=Project
+                    )
             return jobs[0]["event"]
         elif event_type == "generic":
             job["data"]["project"] = project.id
@@ -1959,15 +1989,13 @@ def _create_group(
             extra={"event_id": event.event_id},
         )
 
-    if features.has("projects:issue-priority", project, actor=None):
-        # the kwargs only include priority for non-error issue platform events, which takes precedence.
-        priority = group_creation_kwargs.get("priority", None)
-        if priority is None:
-            priority = _get_priority_for_group(severity, group_creation_kwargs)
+    # the kwargs only include priority for non-error issue platform events, which takes precedence.
+    priority = group_creation_kwargs.get("priority", None)
+    if priority is None:
+        priority = _get_priority_for_group(severity, group_creation_kwargs)
 
-        group_creation_kwargs["priority"] = priority
-        group_data["metadata"]["initial_priority"] = priority
-
+    group_creation_kwargs["priority"] = priority
+    group_data["metadata"]["initial_priority"] = priority
     group_creation_kwargs["data"] = group_data
 
     try:
@@ -2534,11 +2562,10 @@ def _get_severity_score(event: Event) -> tuple[float, str]:
                     "issues.severity.seer-timout",
                     settings.SEER_SEVERITY_TIMEOUT / 1000,
                 )
-                response = severity_connection_pool.urlopen(
-                    "POST",
+                response = make_signed_seer_api_request(
+                    severity_connection_pool,
                     "/v0/issues/severity-score",
                     body=orjson.dumps(payload),
-                    headers={"content-type": "application/json;charset=utf-8"},
                     timeout=timeout,
                 )
                 severity = orjson.loads(response.data).get("severity")
@@ -2829,7 +2856,7 @@ def save_attachment(
             project_id=project.id,
             key_id=key_id,
             outcome=Outcome.RATE_LIMITED,
-            reason=f"Too many attachments ({num_requests}) uploaded in a 5 minute window, will reset at {reset_time}",
+            reason="rate_limited",
             timestamp=timestamp,
             event_id=event_id,
             category=DataCategory.ATTACHMENT,

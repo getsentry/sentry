@@ -10,7 +10,7 @@ from snuba_sdk import AliasedExpression, Column, Condition, Function, Op
 
 from sentry.exceptions import IncompatibleMetricsQuery
 from sentry.search.events import constants, fields
-from sentry.search.events.builder import (
+from sentry.search.events.builder.metrics import (
     AlertMetricsQueryBuilder,
     HistogramMetricQueryBuilder,
     MetricsQueryBuilder,
@@ -170,6 +170,7 @@ class MetricBuilderBaseTest(MetricsEnhancedPerformanceTestCase):
 
 
 class MetricQueryBuilderTest(MetricBuilderBaseTest):
+    @pytest.mark.querybuilder
     def test_default_conditions(self):
         query = MetricsQueryBuilder(
             self.params, query="", dataset=Dataset.PerformanceMetrics, selected_columns=[]
@@ -1676,6 +1677,7 @@ class MetricQueryBuilderTest(MetricBuilderBaseTest):
 
 
 class TimeseriesMetricQueryBuilderTest(MetricBuilderBaseTest):
+    @pytest.mark.querybuilder
     def test_get_query(self):
         orig_query = TimeseriesMetricQueryBuilder(
             self.params,

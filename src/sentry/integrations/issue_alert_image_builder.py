@@ -79,12 +79,20 @@ class IssueAlertImageBuilder:
             # For example slack notification and email notification for the same issue
             cache.set(self.cache_key, image_url, timeout=60 * 5)
             return image_url
+        logger.warning(
+            "issue_alert_chartcuterie_image.empty_image",
+            extra={"group_id": self.group.id},
+        )
         return None
 
     def _get_endpoint_regression_image_url(self) -> str | None:
         organization = self.group.organization
         event = self.group.get_latest_event_for_environments()
         if event is None or event.transaction is None or event.occurrence is None:
+            logger.warning(
+                "issue_alert_chartcuterie_image.empty_event",
+                extra={"event": event},
+            )
             return None
         transaction_name = utils.escape_transaction(event.transaction)
         period = get_relative_time(anchor=get_approx_start_time(self.group), relative_days=14)
@@ -94,7 +102,7 @@ class IssueAlertImageBuilder:
             path=f"/organizations/{organization.slug}/events-stats/",
             data={
                 "yAxis": ["count()", "p95(transaction.duration)"],
-                "referrer": Referrer.API_ALERTS_CHARTCUTERIE,
+                "referrer": Referrer.API_ENDPOINT_REGRESSION_ALERT_CHARTCUTERIE,
                 "query": f'event.type:transaction transaction:"{transaction_name}"',
                 "project": self.group.project.id,
                 "start": period["start"].strftime("%Y-%m-%d %H:%M:%S"),
@@ -116,6 +124,10 @@ class IssueAlertImageBuilder:
         organization = self.group.organization
         event = self.group.get_latest_event_for_environments()
         if event is None or event.occurrence is None:
+            logger.warning(
+                "issue_alert_chartcuterie_image.empty_event",
+                extra={"event": event},
+            )
             return None
 
         period = get_relative_time(anchor=get_approx_start_time(self.group), relative_days=14)
@@ -125,7 +137,7 @@ class IssueAlertImageBuilder:
             path=f"/organizations/{organization.slug}/events-stats/",
             data={
                 "dataset": "profileFunctions",
-                "referrer": Referrer.API_ALERTS_CHARTCUTERIE,
+                "referrer": Referrer.API_FUNCTION_REGRESSION_ALERT_CHARTCUTERIE,
                 "project": self.group.project.id,
                 "start": period["start"].strftime("%Y-%m-%d %H:%M:%S"),
                 "end": period["end"].strftime("%Y-%m-%d %H:%M:%S"),

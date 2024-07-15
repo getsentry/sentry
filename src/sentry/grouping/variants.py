@@ -96,7 +96,7 @@ class PerformanceProblemVariant(BaseVariant):
 
 class ComponentVariant(BaseVariant):
     """A component variant is a variant that produces a hash from the
-    `GroupComponent` it encloses.
+    `GroupingComponent` it encloses.
     """
 
     type = "component"
@@ -143,7 +143,7 @@ def expose_fingerprint_dict(values, info=None):
 
 
 class CustomFingerprintVariant(BaseVariant):
-    """A user defined custom fingerprint."""
+    """A user-defined custom fingerprint."""
 
     type = "custom-fingerprint"
 

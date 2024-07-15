@@ -3,6 +3,7 @@ from unittest import mock
 from django.http import HttpRequest
 from django.test import override_settings
 from django.urls import reverse
+from rest_framework.exceptions import ErrorDetail
 from rest_framework.request import Request
 
 from sentry.api.endpoints.organization_events import (
@@ -75,6 +76,39 @@ class OrganizationEventsEndpointTest(APITestCase):
         assert len(response.data["data"]) == 1
         assert response.data["data"][0]["project.name"] == self.project.slug
 
+    def test_multiple_projects_open_membership(self):
+        assert bool(self.organization.flags.allow_joinleave)
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "timestamp": self.ten_mins_ago_iso,
+            },
+            project_id=self.project.id,
+        )
+        project2 = self.create_project()
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "timestamp": self.ten_mins_ago_iso,
+            },
+            project_id=project2.id,
+        )
+        response = self.do_request({"field": ["project"], "project": -1})
+        assert response.status_code == 200, response.content
+        assert len(response.data["data"]) == 2
+
+        self.organization.flags.allow_joinleave = False
+        self.organization.save()
+        assert bool(self.organization.flags.allow_joinleave) is False
+        response = self.do_request({"field": ["project"], "project": -1})
+
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "detail": ErrorDetail(
+                string="You cannot view events from multiple projects.", code="parse_error"
+            )
+        }
+
     @mock.patch("sentry.snuba.discover.query")
     def test_api_token_referrer(self, mock):
         mock.return_value = {}
@@ -127,7 +161,7 @@ class OrganizationEventsEndpointTest(APITestCase):
         _, kwargs = mock.call_args
         self.assertEqual(kwargs["referrer"], self.referrer)
 
-    @mock.patch("sentry.search.events.builder.discover.raw_snql_query")
+    @mock.patch("sentry.search.events.builder.base.raw_snql_query")
     def test_handling_snuba_errors(self, mock_snql_query):
         self.create_project()
 

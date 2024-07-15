@@ -2,8 +2,7 @@ import {DEPLOY_PREVIEW_CONFIG} from 'sentry/constants';
 import ConfigStore from 'sentry/stores/configStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {extractSlug} from 'sentry/utils/extractSlug';
-
-import {normalizeUrl} from './withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 
 /**
  * In yarn dev-ui mode we proxy API calls to sentry.io.
@@ -31,7 +30,8 @@ function localizeDomain(domain?: string) {
  */
 function shouldUseSlugPath(organization: OrganizationSummary): boolean {
   const {organizationUrl} = organization.links;
-  return !organizationUrl || !organization.features.includes('customer-domains');
+
+  return !organizationUrl || !ConfigStore.get('features').has('system:multi-region');
 }
 
 /**
@@ -43,10 +43,10 @@ function shouldUseSlugPath(organization: OrganizationSummary): boolean {
  */
 function resolveRoute(
   route: string,
-  currentOrganization: OrganizationSummary | null,
+  _currentOrganization: OrganizationSummary | null,
   organization?: OrganizationSummary
 ) {
-  const hasCustomerDomain = currentOrganization?.features.includes('customer-domains');
+  const hasCustomerDomain = ConfigStore.get('features').has('system:multi-region');
   const sentryUrl = localizeDomain(ConfigStore.get('links').sentryUrl);
 
   // If only one organization was provided we're not switching orgs,

@@ -11,9 +11,10 @@ from sentry.models.organizationonboardingtask import (
     OnboardingTaskStatus,
     OrganizationOnboardingTask,
 )
+from sentry.models.project import Project
 from sentry.models.rule import Rule
+from sentry.organizations.services.organization import organization_service
 from sentry.plugins.bases.issue import IssueTrackingPlugin
-from sentry.services.hybrid_cloud.organization import organization_service
 from sentry.signals import (
     alert_rule_created,
     event_processed,
@@ -684,8 +685,10 @@ class OrganizationOnboardingTaskTest(TestCase):
             ]
         }
 
-        # project.flags.has_minified_stack_trace = False
-        assert not project.flags.has_minified_stack_trace
+        def _project_has_minified_stack_trace(p: Project) -> bool:
+            return p.flags.has_minified_stack_trace
+
+        assert not _project_has_minified_stack_trace(project)
 
         # Store event
         self.store_event(
@@ -695,8 +698,7 @@ class OrganizationOnboardingTaskTest(TestCase):
 
         project.refresh_from_db()
 
-        # project.flags.has_minified_stack_trace = True
-        assert project.flags.has_minified_stack_trace
+        assert _project_has_minified_stack_trace(project)
 
         # The analytic's event "first_event_with_minified_stack_trace_for_project" shall not be sent
         count = 0
@@ -866,16 +868,17 @@ class OrganizationOnboardingTaskTest(TestCase):
             ]
         }
 
-        # project.flags.has_sourcemaps = False
-        assert not project.flags.has_sourcemaps
+        def _project_has_sourcemaps(p: Project) -> bool:
+            return project.flags.has_sourcemaps
+
+        assert not _project_has_sourcemaps(project)
 
         event = self.store_event(project_id=project.id, data=data)
         event_processed.send(project=project, event=event, sender=type(project))
 
         project.refresh_from_db()
 
-        # project.flags.has_sourcemaps = True
-        assert project.flags.has_sourcemaps
+        assert _project_has_sourcemaps(project)
 
         # The analytic's event "first_event_with_minified_stack_trace_for_project" shall not be sent
         count = 0

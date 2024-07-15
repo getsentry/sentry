@@ -23,8 +23,6 @@ import {
   IconIssues,
   IconLightning,
   IconMegaphone,
-  IconPlay,
-  IconProfiling,
   IconProject,
   IconReleases,
   IconSearch,
@@ -32,10 +30,8 @@ import {
   IconSiren,
   IconStats,
   IconSupport,
-  IconTelescope,
   IconTimer,
 } from 'sentry/icons';
-import {IconRobot} from 'sentry/icons/iconRobot';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import DemoWalkthroughStore from 'sentry/stores/demoWalkthroughStore';
@@ -50,21 +46,18 @@ import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import theme from 'sentry/utils/theme';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {releaseLevelAsBadgeProps as LLMModuleBadgeProps} from 'sentry/views/llmMonitoring/settings';
+import {releaseLevelAsBadgeProps as CacheModuleBadgeProps} from 'sentry/views/insights/cache/settings';
+import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
+import {MODULE_SIDEBAR_TITLE as HTTP_MODULE_SIDEBAR_TITLE} from 'sentry/views/insights/http/settings';
+import {releaseLevelAsBadgeProps as LLMModuleBadgeProps} from 'sentry/views/insights/llmMonitoring/settings';
+import {releaseLevelAsBadgeProps as QueuesModuleBadgeProps} from 'sentry/views/insights/queues/settings';
+import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
-import {releaseLevelAsBadgeProps as CacheModuleBadgeProps} from 'sentry/views/performance/cache/settings';
-import {releaseLevelAsBadgeProps as QueuesModuleBadgeProps} from 'sentry/views/performance/queues/settings';
-import {
-  MODULE_TITLES,
-  useModuleTitle,
-} from 'sentry/views/performance/utils/useModuleTitle';
-import {useModuleURLBuilder} from 'sentry/views/performance/utils/useModuleURL';
-import {ModuleName} from 'sentry/views/starfish/types';
 
 import {ProfilingOnboardingSidebar} from '../profiling/ProfilingOnboarding/profilingOnboardingSidebar';
 
@@ -129,7 +122,6 @@ function Sidebar() {
   const activePanel = useLegacyStore(SidebarPanelStore);
   const organization = useOrganization({allowNull: true});
   const {shouldAccordionFloat} = useContext(ExpandedContext);
-  const resourceModuleTitle = useModuleTitle(ModuleName.RESOURCE);
   const isSelfHostedErrorsOnly = ConfigStore.get('isSelfHostedErrorsOnly');
 
   const collapsed = !!preferences.collapsed;
@@ -198,10 +190,6 @@ function Sidebar() {
     organization,
   };
 
-  // New hierarchy organizes current links into two accordions: "Explore" and "Insights". This means setting up different sidebar groupings, and changing some link icons to small dots, since they now live under an accordion
-  const hasNewSidebarHierarchy =
-    hasOrganization && organization.features.includes('performance-insights');
-
   const sidebarAnchor = isDemoWalkthrough() ? (
     <GuideAnchor target="projects" disabled={!DemoWalkthroughStore.get('sidebar')}>
       {t('Projects')}
@@ -240,7 +228,7 @@ function Sidebar() {
     >
       <SidebarItem
         {...sidebarItemProps}
-        icon={hasNewSidebarHierarchy ? <SubitemDot collapsed /> : <IconTelescope />}
+        icon={<SubitemDot collapsed />}
         label={<GuideAnchor target="discover">{t('Discover')}</GuideAnchor>}
         to={getDiscoverLandingUrl(organization)}
         id="discover-v2"
@@ -268,7 +256,9 @@ function Sidebar() {
     <Feature key="http" features="insights-entry-points" organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
-        label={<GuideAnchor target="performance-http">{MODULE_TITLES.http}</GuideAnchor>}
+        label={
+          <GuideAnchor target="performance-http">{HTTP_MODULE_SIDEBAR_TITLE}</GuideAnchor>
+        }
         to={`/organizations/${organization.slug}/${moduleURLBuilder('http')}/`}
         id="performance-http"
         icon={<SubitemDot collapsed />}
@@ -369,7 +359,7 @@ function Sidebar() {
     <Feature key="resource" features="insights-entry-points">
       <SidebarItem
         {...sidebarItemProps}
-        label={<GuideAnchor target="starfish">{resourceModuleTitle}</GuideAnchor>}
+        label={<GuideAnchor target="starfish">{MODULE_TITLES.resource}</GuideAnchor>}
         to={`/organizations/${organization.slug}/${moduleURLBuilder('resource')}/`}
         id="performance-browser-resources"
         icon={<SubitemDot collapsed />}
@@ -394,7 +384,7 @@ function Sidebar() {
     <Feature features={['insights-entry-points']} organization={organization}>
       <SidebarItem
         {...sidebarItemProps}
-        icon={hasNewSidebarHierarchy ? <SubitemDot collapsed /> : <IconRobot />}
+        icon={<SubitemDot collapsed />}
         label={MODULE_TITLES.ai}
         {...LLMModuleBadgeProps}
         to={`/organizations/${organization.slug}/${moduleURLBuilder('ai')}/`}
@@ -409,47 +399,13 @@ function Sidebar() {
       features="performance-view"
       organization={organization}
     >
-      {(() => {
-        // If the client has the old sidebar hierarchy _and_ something to show inside the Performance dropdown, render an accordion.
-        if (
-          !hasNewSidebarHierarchy &&
-          (organization.features.includes('insights-entry-points') ||
-            organization.features.includes('performance-trace-explorer'))
-        ) {
-          return (
-            <SidebarAccordion
-              {...sidebarItemProps}
-              icon={<IconLightning />}
-              label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
-              to={`/organizations/${organization.slug}/performance/`}
-              id="performance"
-              exact={!shouldAccordionFloat}
-            >
-              {queries}
-              {requests}
-              {caches}
-              {webVitals}
-              {queues}
-              {screenLoads}
-              {appStarts}
-              {resources}
-              {mobileUI}
-              {traces}
-            </SidebarAccordion>
-          );
-        }
-
-        // Otherwise, show a regular sidebar link to the Performance landing page
-        return (
-          <SidebarItem
-            {...sidebarItemProps}
-            icon={<IconLightning />}
-            label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
-            to={`/organizations/${organization.slug}/performance/`}
-            id="performance"
-          />
-        );
-      })()}
+      <SidebarItem
+        {...sidebarItemProps}
+        icon={<IconLightning />}
+        label={<GuideAnchor target="performance">{t('Performance')}</GuideAnchor>}
+        to={`/organizations/${organization.slug}/performance/`}
+        id="performance"
+      />
     </Feature>
   );
 
@@ -517,7 +473,7 @@ function Sidebar() {
     >
       <SidebarItem
         {...sidebarItemProps}
-        icon={hasNewSidebarHierarchy ? <SubitemDot collapsed /> : <IconPlay />}
+        icon={<SubitemDot collapsed />}
         label={t('Replays')}
         to={`/organizations/${organization.slug}/replays/`}
         id="replays"
@@ -530,7 +486,7 @@ function Sidebar() {
   const metrics = hasOrganization && hasCustomMetrics(organization) && (
     <SidebarItem
       {...sidebarItemProps}
-      icon={hasNewSidebarHierarchy ? <SubitemDot collapsed /> : <IconGraph />}
+      icon={<SubitemDot collapsed />}
       label={t('Metrics')}
       to={metricsPath}
       search={location?.pathname === normalizeUrl(metricsPath) ? location.search : ''}
@@ -567,8 +523,8 @@ function Sidebar() {
       <SidebarItem
         {...sidebarItemProps}
         index
-        icon={hasNewSidebarHierarchy ? <SubitemDot collapsed /> : <IconProfiling />}
-        label={hasNewSidebarHierarchy ? t('Profiles') : t('Profiling')}
+        icon={<SubitemDot collapsed />}
+        label={t('Profiles')}
         to={`/organizations/${organization.slug}/profiling/`}
         id="profiling"
       />
@@ -658,7 +614,7 @@ function Sidebar() {
                   {projects}
                 </SidebarSection>
 
-                {hasNewSidebarHierarchy && !isSelfHostedErrorsOnly && (
+                {!isSelfHostedErrorsOnly && (
                   <Fragment>
                     <SidebarSection>
                       {explore}
@@ -672,28 +628,6 @@ function Sidebar() {
                       {alerts}
                       {dashboards}
                       {releases}
-                    </SidebarSection>
-                  </Fragment>
-                )}
-
-                {!hasNewSidebarHierarchy && !isSelfHostedErrorsOnly && (
-                  <Fragment>
-                    <SidebarSection>
-                      {performance}
-                      {profiling}
-                      {metrics}
-                      {replays}
-                      {llmMonitoring}
-                      {feedback}
-                      {monitors}
-                      {alerts}
-                    </SidebarSection>
-
-                    <SidebarSection>
-                      {discover2}
-                      {dashboards}
-                      {releases}
-                      {userFeedback}
                     </SidebarSection>
                   </Fragment>
                 )}

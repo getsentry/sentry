@@ -1394,7 +1394,7 @@ class OrganizationEventsTraceEndpointTest(OrganizationEventsTraceEndpointBase):
             )
         mock_query.assert_called_once()
         params = mock_query.call_args.args[1]
-        assert abs((params["end"] - params["start"]).days) <= 7
+        assert abs((params.end - params.start).days) <= 7
 
     def test_timestamp_optimization_without_mock(self):
         """Make sure that even if the params are smaller the query still works"""
@@ -1433,6 +1433,7 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
             assert perf_issue["start"] == expected["start_timestamp"]
             assert perf_issue["end"] == expected["timestamp"]
 
+    @pytest.mark.querybuilder
     def test_simple(self):
         self.load_trace()
         with self.feature(self.FEATURES):
@@ -1529,11 +1530,7 @@ class OrganizationEventsTraceEndpointTestUsingSpans(OrganizationEventsTraceEndpo
 
         assert sorted(
             [self.project.id, self.gen1_project.id, self.gen2_project.id, self.gen3_project.id]
-        ) == sorted(mock_query_builder.mock_calls[0].args[1]["project_id"])
-
-        assert sorted(
-            [self.project.id, self.gen1_project.id, self.gen2_project.id, self.gen3_project.id]
-        ) == sorted([p.id for p in mock_query_builder.mock_calls[0].args[1]["project_objects"]])
+        ) == sorted(mock_query_builder.mock_calls[0].kwargs["snuba_params"].project_ids)
 
         assert response.status_code == 200, response.content
 

@@ -9,9 +9,9 @@ from sentry.auth.providers.saml2.forms import (
     XMLMetadataForm,
     process_metadata,
 )
+from sentry.auth.services.auth import RpcAuthProvider, auth_service
 from sentry.auth.view import AuthView, ConfigureView
-from sentry.services.hybrid_cloud.auth import RpcAuthProvider, auth_service
-from sentry.services.hybrid_cloud.organization.model import RpcOrganization
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.utils.http import absolute_uri
 
 

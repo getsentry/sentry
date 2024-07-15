@@ -1,11 +1,11 @@
 from __future__ import annotations
 
-from collections.abc import Mapping
 from typing import Any
 
 import orjson
 import sentry_sdk
-from slack_sdk.errors import SlackApiError
+from slack_sdk.errors import SlackApiError, SlackRequestError
+from slack_sdk.webhook import WebhookClient
 
 from sentry import features
 from sentry.constants import METRIC_ALERTS_THREAD_DEFAULT, ObjectStatus
@@ -17,14 +17,18 @@ from sentry.integrations.repository.metric_alert import (
     MetricAlertNotificationMessageRepository,
     NewMetricAlertNotificationMessage,
 )
-from sentry.integrations.slack.client import SlackClient
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
+from sentry.integrations.slack.metrics import (
+    SLACK_COMMANDS_LINK_IDENTITY_FAILURE_DATADOG_METRIC,
+    SLACK_COMMANDS_LINK_IDENTITY_SUCCESS_DATADOG_METRIC,
+    SLACK_METRIC_ALERT_FAILURE_DATADOG_METRIC,
+    SLACK_METRIC_ALERT_SUCCESS_DATADOG_METRIC,
+)
 from sentry.integrations.slack.sdk_client import SlackSdkClient
-from sentry.models.integrations.integration import Integration
+from sentry.integrations.slack.views.types import IdentityParams
 from sentry.models.options.organization_option import OrganizationOption
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.shared_integrations.exceptions import ApiError
-from sentry.shared_integrations.response import BaseApiResponse, MappingApiResponse
+from sentry.utils import metrics
 
 from . import logger
 
@@ -54,6 +58,7 @@ def send_incident_alert_notification(
                 organization=organization,
                 alert_rule=incident.alert_rule,
                 selected_incident=incident,
+                subscription=incident.subscription,
             )
         except Exception as e:
             sentry_sdk.capture_exception(e)
@@ -65,15 +70,6 @@ def send_incident_alert_notification(
     text = str(attachment["text"])
     blocks = {"blocks": attachment["blocks"], "color": attachment["color"]}
     attachments = orjson.dumps([blocks]).decode()
-    payload = {
-        "channel": channel,
-        "text": text,
-        "attachments": attachments,
-        # Prevent duplicate unfurl
-        # https://api.slack.com/reference/messaging/link-unfurling#no_unfurling_please
-        "unfurl_links": False,
-        "unfurl_media": False,
-    }
 
     repository: MetricAlertNotificationMessageRepository = get_default_metric_alert_repository()
     parent_notification_message = None
@@ -109,87 +105,51 @@ def send_incident_alert_notification(
         )
         # To reply to a thread, use the specific key in the payload as referenced by the docs
         # https://api.slack.com/methods/chat.postMessage#arg_thread_ts
-        payload["thread_ts"] = parent_notification_message.message_identifier
         thread_ts = parent_notification_message.message_identifier
 
         # If the incident is critical status, even if it's in a thread, send to main channel
         if incident.status == IncidentStatus.CRITICAL.value:
-            payload["reply_broadcast"] = True
             reply_broadcast = True
 
     success = False
-    if features.has("organizations:slack-sdk-metric-alert", organization):
-        try:
-            sdk_client = SlackSdkClient(integration_id=integration.id)
-            sdk_response = sdk_client.chat_postMessage(
-                attachments=attachments,
-                text=text,
-                channel=str(channel),
-                thread_ts=thread_ts,
-                reply_broadcast=reply_broadcast,
-                unfurl_links=False,
-                unfurl_media=False,
-            )
-        except SlackApiError as e:
-            # Record the error code and details from the exception
-            new_notification_message_object.error_code = e.response.status_code
-            new_notification_message_object.error_details = {
-                "msg": str(e),
-                "data": e.response.data,
-                "url": e.response.api_url,
-            }
+    try:
+        client = SlackSdkClient(integration_id=integration.id)
+        response = client.chat_postMessage(
+            attachments=attachments,
+            text=text,
+            channel=str(channel),
+            thread_ts=thread_ts,
+            reply_broadcast=reply_broadcast,
+            unfurl_links=False,
+            unfurl_media=False,
+        )
+        metrics.incr(SLACK_METRIC_ALERT_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
+    except SlackApiError as e:
+        # Record the error code and details from the exception
+        new_notification_message_object.error_code = e.response.status_code
+        new_notification_message_object.error_details = {
+            "msg": str(e),
+            "data": e.response.data,
+            "url": e.response.api_url,
+        }
 
-            log_params = {
-                "error": str(e),
-                "incident_id": incident.id,
-                "incident_status": new_status,
-                "attachments": attachments,
-            }
-            logger.info("slack.metric_alert.error", exc_info=True, extra=log_params)
-        else:
-            success = True
-            ts = sdk_response.get("ts")
-
-            logger.info(
-                "slack.metric_alert.ts", extra={"ts": ts, "attachments": attachments, "text": text}
-            )
-
-            new_notification_message_object.message_identifier = str(ts) if ts is not None else None
-
+        log_params = {
+            "error": str(e),
+            "incident_id": incident.id,
+            "incident_status": new_status,
+            "attachments": attachments,
+        }
+        logger.info("slack.metric_alert.error", exc_info=True, extra=log_params)
+        metrics.incr(
+            SLACK_METRIC_ALERT_FAILURE_DATADOG_METRIC,
+            sample_rate=1.0,
+            tags={"ok": e.response.get("ok", False), "status": e.response.status_code},
+        )
     else:
-        try:
-            client = SlackClient(integration_id=integration.id)
-            response = client.post("/chat.postMessage", data=payload, timeout=5)
-            # response should include a "ts" key that represents the unique identifier for the message
-            # referenced at https://api.slack.com/methods/chat.postMessage#examples
-        except ApiError as e:
-            # Record the error code and details from the exception
-            new_notification_message_object.error_code = e.code
-            new_notification_message_object.error_details = {
-                "url": e.url,
-                "host": e.host,
-                "path": e.path,
-                "data": e.json if e.json else e.text,
-            }
-            logger.info("rule.fail.slack_post", exc_info=True)
-        else:
-            success = True
-            # Slack will always send back a ts identifier https://api.slack.com/methods/chat.postMessage#examples
-            # on a successful message
-            ts = None
-            # This is a workaround for typing, and the dynamic nature of the return value
-            if isinstance(response, BaseApiResponse):
-                ts = response.json.get("ts")
-            elif isinstance(response, MappingApiResponse):
-                ts = response.get("ts")
-            else:
-                logger.info(
-                    "failed to get ts from slack response",
-                    extra={
-                        "response_type": type(response).__name__,
-                    },
-                )
-            new_notification_message_object.message_identifier = str(ts) if ts is not None else None
+        success = True
+        ts = response.get("ts")
+
+        new_notification_message_object.message_identifier = str(ts) if ts is not None else None
 
     # Save the notification message we just sent with the response id or error we received
     try:
@@ -202,38 +162,51 @@ def send_incident_alert_notification(
     return success
 
 
-def send_slack_response(
-    integration: Integration, text: str, params: Mapping[str, str], command: str
+def respond_to_slack_command(
+    params: IdentityParams,
+    text: str,
+    command: str,
 ) -> None:
-    payload = {
-        "replace_original": False,
-        "response_type": "ephemeral",
-        "text": text,
-    }
+    log = "slack.link-identity." if command == "link" else "slack.unlink-identity."
 
-    client = SlackClient(integration_id=integration.id)
-    if params["response_url"]:
-        path = params["response_url"]
-
-    else:
-        # Command has been invoked in a DM, not as a slash command
-        # we do not have a response URL in this case
-        payload["channel"] = params["slack_id"]
-        path = "/chat.postMessage"
-
-    try:
-        client.post(path, data=payload, json=True)
-    except ApiError as e:
-        message = str(e)
-        # If the user took their time to link their slack account, we may no
-        # longer be able to respond, and we're not guaranteed able to post into
-        # the channel. Ignore Expired url errors.
-        #
-        # XXX(epurkhiser): Yes the error string has a space in it.
-        if message != "Expired url":
-            log_message = (
-                "slack.link-notify.response-error"
-                if command == "link"
-                else "slack.unlink-notify.response-error"
+    if params.response_url:
+        logger.info(log + "respond-webhook", extra={"response_url": params.response_url})
+        try:
+            webhook_client = WebhookClient(params.response_url)
+            webhook_client.send(text=text, replace_original=False, response_type="ephemeral")
+            metrics.incr(
+                SLACK_COMMANDS_LINK_IDENTITY_SUCCESS_DATADOG_METRIC,
+                sample_rate=1.0,
+                tags={"type": "webhook", "command": command},
             )
-            logger.error(log_message, extra={"error": message})
+        except (SlackApiError, SlackRequestError) as e:
+            if "Expired url" not in str(e):
+                metrics.incr(
+                    SLACK_COMMANDS_LINK_IDENTITY_FAILURE_DATADOG_METRIC,
+                    sample_rate=1.0,
+                    tags={"type": "webhook", "command": command},
+                )
+                logger.exception(log + "error", extra={"error": str(e)})
+    else:
+        logger.info(log + "respond-ephemeral")
+        try:
+            client = SlackSdkClient(integration_id=params.integration.id)
+            client.chat_postMessage(
+                text=text,
+                channel=params.slack_id,
+                replace_original=False,
+                response_type="ephemeral",
+            )
+            metrics.incr(
+                SLACK_COMMANDS_LINK_IDENTITY_SUCCESS_DATADOG_METRIC,
+                sample_rate=1.0,
+                tags={"type": "ephemeral", "command": command},
+            )
+        except SlackApiError as e:
+            if "Expired url" not in str(e):
+                metrics.incr(
+                    SLACK_COMMANDS_LINK_IDENTITY_FAILURE_DATADOG_METRIC,
+                    sample_rate=1.0,
+                    tags={"type": "ephemeral", "command": command},
+                )
+                logger.exception(log + "error", extra={"error": str(e)})

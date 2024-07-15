@@ -24,6 +24,7 @@ from sentry.models.rule import Rule
 from sentry.models.rulesnooze import RuleSnooze
 from sentry.models.team import Team
 from sentry.models.user import User
+from sentry.notifications.services import notifications_service
 from sentry.notifications.types import (
     ActionTargetType,
     FallthroughChoiceType,
@@ -31,11 +32,10 @@ from sentry.notifications.types import (
     NotificationSettingEnum,
     NotificationSettingsOptionEnum,
 )
-from sentry.services.hybrid_cloud.notifications import notifications_service
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.services.hybrid_cloud.user_option import get_option_from_list, user_option_service
 from sentry.types.actor import Actor, ActorType
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
+from sentry.users.services.user_option import get_option_from_list, user_option_service
 from sentry.utils import json, metrics
 from sentry.utils.committers import AuthorCommitsSerialized, get_serialized_event_file_committers
 
@@ -162,23 +162,20 @@ def get_participants_for_release(
     projects: Iterable[Project], organization: Organization, commited_user_ids: set[int]
 ) -> ParticipantMap:
     # Collect all users with verified emails on a team in the related projects.
-    user_ids = list(
-        OrganizationMember.objects.filter(
+    user_ids = [
+        user_id
+        for user_id in OrganizationMember.objects.filter(
             teams__projectteam__project__in=projects,
             user_is_active=True,
             user_id__isnull=False,
         )
         .distinct()
         .values_list("user_id", flat=True)
-    )
+        if user_id is not None
+    ]
 
     # filter those user ids by verified emails
-    user_ids = user_service.get_many_ids(
-        filter=dict(
-            user_ids=user_ids,
-            email_verified=True,
-        )
-    )
+    user_ids = user_service.get_many_ids(filter=dict(user_ids=user_ids, email_verified=True))
 
     actors = Actor.many_from_object(RpcUser(id=user_id) for user_id in user_ids)
     # don't pass in projects since the settings are scoped to the organization only for now

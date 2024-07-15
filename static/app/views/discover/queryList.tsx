@@ -25,6 +25,7 @@ import {decodeList} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 
 import {
+  getSavedQueryWithDataset,
   handleCreateQuery,
   handleDeleteQuery,
   handleUpdateHomepageQuery,
@@ -233,7 +234,12 @@ class QueryList extends Component<Props> {
       return [];
     }
 
-    return savedQueries.map((savedQuery, index) => {
+    return savedQueries.map((query, index) => {
+      const savedQuery = organization.features.includes(
+        'performance-discover-dataset-selector'
+      )
+        ? (getSavedQueryWithDataset(query) as SavedQuery)
+        : query;
       const eventView = EventView.fromSavedQuery(savedQuery);
       const recentTimeline = t('Last ') + eventView.statsPeriod;
       const customTimeline =

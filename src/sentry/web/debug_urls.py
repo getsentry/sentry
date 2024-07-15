@@ -21,14 +21,13 @@ from sentry.web.frontend.debug.debug_feedback_issue import DebugFeedbackIssueEma
 from sentry.web.frontend.debug.debug_generic_issue import DebugGenericIssueEmailView
 from sentry.web.frontend.debug.debug_incident_activity_email import DebugIncidentActivityEmailView
 from sentry.web.frontend.debug.debug_incident_trigger_email import DebugIncidentTriggerEmailView
+from sentry.web.frontend.debug.debug_incident_trigger_email_activated_alert import (
+    DebugIncidentActivatedAlertTriggerEmailView,
+)
 from sentry.web.frontend.debug.debug_invalid_identity_email import DebugInvalidIdentityEmailView
 from sentry.web.frontend.debug.debug_mfa_added_email import DebugMfaAddedEmailView
 from sentry.web.frontend.debug.debug_mfa_removed_email import DebugMfaRemovedEmailView
 from sentry.web.frontend.debug.debug_missing_member_nudge_email import DebugMissingMembersNudgeView
-from sentry.web.frontend.debug.debug_new_processing_issues_email import (
-    DebugNewProcessingIssuesEmailView,
-    DebugNewProcessingIssuesNoReprocessingEmailView,
-)
 from sentry.web.frontend.debug.debug_new_release_email import DebugNewReleaseEmailView
 from sentry.web.frontend.debug.debug_new_user_feedback_email import DebugNewUserFeedbackEmailView
 from sentry.web.frontend.debug.debug_note_email import DebugNoteEmailView
@@ -146,11 +145,6 @@ urlpatterns = [
         DebugRecoveryCodesRegeneratedEmailView.as_view(),
     ),
     re_path(r"^debug/mail/password-changed/$", DebugPasswordChangedEmailView.as_view()),
-    re_path(r"^debug/mail/new-processing-issues/$", DebugNewProcessingIssuesEmailView.as_view()),
-    re_path(
-        r"^debug/mail/new-processing-issues-no-reprocessing/$",
-        DebugNewProcessingIssuesNoReprocessingEmailView.as_view(),
-    ),
     re_path(r"^debug/mail/sso-linked/$", DebugSsoLinkedEmailView.as_view()),
     re_path(r"^debug/mail/sso-unlinked/$", DebugSsoUnlinkedEmailView.as_view()),
     re_path(
@@ -158,6 +152,10 @@ urlpatterns = [
     ),
     re_path(r"^debug/mail/incident-activity$", DebugIncidentActivityEmailView.as_view()),
     re_path(r"^debug/mail/incident-trigger$", DebugIncidentTriggerEmailView.as_view()),
+    re_path(
+        r"^debug/mail/activated-incident-trigger$",
+        DebugIncidentActivatedAlertTriggerEmailView.as_view(),
+    ),
     re_path(r"^debug/mail/setup-2fa/$", DebugSetup2faEmailView.as_view()),
     re_path(r"^debug/embed/error-page/$", DebugErrorPageEmbedView.as_view()),
     re_path(r"^debug/trigger-error/$", DebugTriggerErrorView.as_view()),

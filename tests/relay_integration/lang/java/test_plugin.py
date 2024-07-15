@@ -10,7 +10,6 @@ from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.files.file import File
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.relay import RelayStoreHelper
 from sentry.testutils.skips import requires_symbolicator
 from sentry.utils import json
@@ -432,6 +431,8 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert response.status_code == 201, response.content
         assert len(response.json()) == 1
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_basic_resolving(self):
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
@@ -507,10 +508,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_basic_resolving_symbolicator(self):
-        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
-            self.test_basic_resolving()
-
     def test_resolving_does_not_fail_when_no_value(self):
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
@@ -569,10 +566,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_resolving_does_not_fail_when_no_value_symbolicator(self):
-        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
-            self.test_resolving_does_not_fail_when_no_value()
-
     def test_resolving_does_not_fail_when_no_module_or_function(self):
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
@@ -643,10 +636,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_resolving_does_not_fail_when_no_module_or_function_symbolicator(self):
-        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
-            self.test_resolving_does_not_fail_when_no_module_or_function()
-
     def test_sets_inapp_after_resolving(self):
         self.upload_proguard_mapping(PROGUARD_UUID, PROGUARD_SOURCE)
 
@@ -744,10 +733,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_sets_inapp_after_resolving_symbolicator(self):
-        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
-            self.test_sets_inapp_after_resolving()
-
     def test_resolving_inline(self):
         self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
 
@@ -824,10 +809,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_resolving_inline_symbolicator(self):
-        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
-            self.test_resolving_inline()
-
     def test_resolving_inline_with_native_frames(self):
         self.upload_proguard_mapping(PROGUARD_INLINE_UUID, PROGUARD_INLINE_SOURCE)
 
@@ -929,10 +910,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_resolving_inline_with_native_frames_symbolicator(self):
-        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
-            self.test_resolving_inline_with_native_frames()
-
     def test_error_on_resolving(self):
         url = reverse(
             "sentry-api-0-dsym-files",
@@ -1003,12 +980,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
         assert error["mapping_uuid"] == "071207ac-b491-4a74-957c-2c94fd9594f2"
         assert error["type"] == "proguard_missing_lineno"
 
-    @requires_symbolicator
-    @pytest.mark.symbolicator
-    def test_error_on_resolving_symbolicator(self):
-        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
-            self.test_error_on_resolving()
-
     def upload_jvm_bundle(self, debug_id, source_files):
         files = {}
 
@@ -1042,6 +1013,8 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             file=file,
         )
 
+    @requires_symbolicator
+    @pytest.mark.symbolicator
     def test_basic_source_lookup(self):
         debug_id = str(uuid4())
         self.upload_jvm_bundle(debug_id, {"io/sentry/samples/MainActivity.jvm": JVM_SOURCE})
@@ -1245,10 +1218,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_basic_source_lookup_symbolicator(self):
-        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
-            self.test_basic_source_lookup()
-
     def test_source_lookup_with_proguard(self):
         self.upload_proguard_mapping(PROGUARD_SOURCE_LOOKUP_UUID, PROGUARD_SOURCE_LOOKUP_SOURCE)
         debug_id1 = str(uuid4())
@@ -1557,44 +1526,36 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     @requires_symbolicator
     @pytest.mark.symbolicator
-    def test_source_lookup_with_proguard_symbolicator(self):
-        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
-            self.test_source_lookup_with_proguard()
-
-    @requires_symbolicator
-    @pytest.mark.symbolicator
     def test_invalid_exception(self):
-        with override_options({"symbolicator.proguard-processing-sample-rate": 1.0}):
-            event_data = {
-                "user": {"ip_address": "31.172.207.97"},
-                "extra": {},
-                "project": self.project.id,
-                "platform": "java",
-                "debug_meta": {},
-                "exception": {
-                    "values": [
-                        {"type": "PlatformException"},
-                        {"type": "SecurityException", "module": "java.lang"},
-                        {"type": "RemoteException", "module": "android.os"},
-                    ]
-                },
-                "timestamp": iso_format(before_now(seconds=1)),
-            }
+        event_data = {
+            "user": {"ip_address": "31.172.207.97"},
+            "extra": {},
+            "project": self.project.id,
+            "platform": "java",
+            "debug_meta": {},
+            "exception": {
+                "values": [
+                    {"type": "PlatformException"},
+                    {"type": "SecurityException", "module": "java.lang"},
+                    {"type": "RemoteException", "module": "android.os"},
+                ]
+            },
+            "timestamp": iso_format(before_now(seconds=1)),
+        }
 
-            event = self.post_and_retrieve_event(event_data)
-            expected = [
-                {"type": e.get("type", None), "module": e.get("module", None)}
-                for e in event_data["exception"]["values"]
-            ]
-            received = [
-                {"type": e.type, "module": e.module} for e in event.interfaces["exception"].values
-            ]
+        event = self.post_and_retrieve_event(event_data)
+        expected = [
+            {"type": e.get("type", None), "module": e.get("module", None)}
+            for e in event_data["exception"]["values"]
+        ]
+        received = [
+            {"type": e.type, "module": e.module} for e in event.interfaces["exception"].values
+        ]
 
-            assert received == expected
+        assert received == expected
 
     def test_is_jvm_event(self):
         from sentry.lang.java.utils import is_jvm_event
-        from sentry.stacktraces.processing import find_stacktraces_in_data
 
         event = {
             "user": {"ip_address": "31.172.207.97"},
@@ -1624,8 +1585,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             },
             "timestamp": iso_format(before_now(seconds=1)),
         }
-        stacktraces = find_stacktraces_in_data(event)
-        assert is_jvm_event(event, stacktraces)
+        assert is_jvm_event(event)
 
         event = {
             "user": {"ip_address": "31.172.207.97"},
@@ -1654,9 +1614,8 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             },
             "timestamp": iso_format(before_now(seconds=1)),
         }
-        stacktraces = find_stacktraces_in_data(event)
         # has no platform
-        assert not is_jvm_event(event, stacktraces)
+        assert is_jvm_event(event)
 
         event = {
             "user": {"ip_address": "31.172.207.97"},
@@ -1686,6 +1645,5 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             },
             "timestamp": iso_format(before_now(seconds=1)),
         }
-        stacktraces = find_stacktraces_in_data(event)
         # has no modules
-        assert not is_jvm_event(event, stacktraces)
+        assert not is_jvm_event(event)

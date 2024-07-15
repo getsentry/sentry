@@ -88,6 +88,18 @@ def build_test_message_blocks(
             "block_id": f'{{"issue":{group.id}}}',
         },
     ]
+    if group.culprit:
+        blocks.append(
+            {
+                "type": "context",
+                "elements": [
+                    {
+                        "type": "mrkdwn",
+                        "text": f"{group.culprit}",
+                    }
+                ],
+            }
+        )
     if text:
         new_text = text.lstrip(" ")
         if new_text:
@@ -226,7 +238,7 @@ def build_test_message(
                 "name": "status",
                 "text": "Archive",
                 "type": "button",
-                "value": "ignored:until_escalating",
+                "value": "archived",
             },
             {
                 "option_groups": [
@@ -773,7 +785,7 @@ class BuildGroupAttachmentTest(TestCase, PerformanceIssueTestCase, OccurrenceTes
         assert "N+1 Query" in blocks["blocks"][0]["text"]["text"]
         assert (
             "db - SELECT `books_author`.`id`, `books_author`.`name` FROM `books_author` WHERE `books_author`.`id` = %s LIMIT 21"
-            in blocks["blocks"][1]["text"]["text"]
+            in blocks["blocks"][2]["text"]["text"]
         )
         assert blocks["text"] == f"[{self.project.slug}] N+1 Query"
 

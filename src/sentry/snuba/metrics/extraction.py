@@ -7,18 +7,7 @@ from collections import defaultdict
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
 from enum import Enum
-from typing import (
-    Any,
-    Literal,
-    NamedTuple,
-    NotRequired,
-    Optional,
-    Self,
-    TypedDict,
-    TypeVar,
-    Union,
-    cast,
-)
+from typing import Any, Literal, NamedTuple, NotRequired, Optional, Self, TypedDict, TypeVar, cast
 
 import sentry_sdk
 from django.utils.functional import cached_property
@@ -41,8 +30,9 @@ from sentry.features.rollout import in_random_rollout
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.transaction_threshold import ProjectTransactionThreshold, TransactionMetric
+from sentry.relay.types import RuleCondition
 from sentry.search.events import fields
-from sentry.search.events.builder import UnresolvedQuery
+from sentry.search.events.builder.discover import UnresolvedQuery
 from sentry.search.events.constants import DEFAULT_PROJECT_THRESHOLD, VITAL_THRESHOLDS
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.metrics.naming_layer.mri import ParsedMRI, parse_mri
@@ -117,9 +107,8 @@ class OnDemandMetricSpecVersioning:
 CUSTOM_ALERT_METRIC_NAME = "transactions/on_demand"
 QUERY_HASH_KEY = "query_hash"
 
-# Base type for conditions to evaluate on payloads.
-# TODO: Streamline with dynamic sampling.
-RuleCondition = Union["LogicalRuleCondition", "ComparingRuleCondition", "NotRuleCondition"]
+# Comparison operators used by Relay.
+CompareOp = Literal["eq", "gt", "gte", "lt", "lte", "glob"]
 
 # There are some search tokens that are exclusive to searching errors, thus, we need
 # to treat the query as not on-demand.
@@ -334,36 +323,11 @@ _IGNORED_METRIC_CONDITION = [
     "event.type=transaction",
 ]
 
-# Operators used in ``ComparingRuleCondition``.
-CompareOp = Literal["eq", "gt", "gte", "lt", "lte", "glob"]
-
 Variables = dict[str, Any]
 
 query_builder = UnresolvedQuery(
     dataset=Dataset.Transactions, params={}
 )  # Workaround to get all updated discover functions instead of using the deprecated events fields.
-
-
-class ComparingRuleCondition(TypedDict):
-    """RuleCondition that compares a named field to a reference value."""
-
-    op: CompareOp
-    name: str
-    value: Any
-
-
-class LogicalRuleCondition(TypedDict):
-    """RuleCondition that applies a logical operator to a sequence of conditions."""
-
-    op: Literal["and", "or"]
-    inner: list[RuleCondition]
-
-
-class NotRuleCondition(TypedDict):
-    """RuleCondition that negates an inner condition."""
-
-    op: Literal["not"]
-    inner: RuleCondition
 
 
 class TagSpec(TypedDict):
@@ -1588,11 +1552,14 @@ def _convert_countif_filter(key: str, op: str, value: str) -> RuleCondition:
     """Maps ``count_if`` arguments to a ``RuleCondition``."""
     assert op in _COUNTIF_TO_RELAY_OPERATORS, f"Unsupported `count_if` operator {op}"
 
-    condition: RuleCondition = {
-        "op": _COUNTIF_TO_RELAY_OPERATORS[op],
-        "name": _map_field_name(key),
-        "value": fields.normalize_count_if_value({"column": key, "value": value}),
-    }
+    condition = cast(
+        RuleCondition,
+        {
+            "op": _COUNTIF_TO_RELAY_OPERATORS[op],
+            "name": _map_field_name(key),
+            "value": fields.normalize_count_if_value({"column": key, "value": value}),
+        },
+    )
 
     if op == "notEquals":
         condition = {"op": "not", "inner": condition}
@@ -1690,9 +1657,13 @@ class SearchQueryConverter:
     The converter can be used exactly once.
     """
 
-    def __init__(self, tokens: Sequence[QueryToken]):
+    def __init__(
+        self, tokens: Sequence[QueryToken], field_mapper: Callable[[str], str] = _map_field_name
+    ):
         self._tokens = tokens
         self._position = 0
+        # The field mapper is used to map the field names in the search query to the event protocol path.
+        self._field_mapper = field_mapper
 
     def convert(self) -> RuleCondition:
         """
@@ -1763,7 +1734,7 @@ class SearchQueryConverter:
         if filt := self._consume(SearchFilter):
             return self._filter(filt)
         elif paren := self._consume(ParenExpression):
-            return SearchQueryConverter(paren.children).convert()
+            return SearchQueryConverter(paren.children, self._field_mapper).convert()
         elif token := self._peek():
             raise ValueError(f"Unexpected token {token}")
         else:
@@ -1780,7 +1751,7 @@ class SearchQueryConverter:
         if operator == "eq" and token.value.is_wildcard():
             condition: RuleCondition = {
                 "op": "glob",
-                "name": _map_field_name(key),
+                "name": self._field_mapper(key),
                 "value": [_escape_wildcard(value)],
             }
         else:
@@ -1794,11 +1765,14 @@ class SearchQueryConverter:
             if isinstance(value, str):
                 value = event_search.translate_escape_sequences(value)
 
-            condition = {
-                "op": operator,
-                "name": _map_field_name(key),
-                "value": value,
-            }
+            condition = cast(
+                RuleCondition,
+                {
+                    "op": operator,
+                    "name": self._field_mapper(key),
+                    "value": value,
+                },
+            )
 
         # In case we have negation operators, we have to wrap them in the `not` condition.
         if token.operator in ("!=", "NOT IN"):

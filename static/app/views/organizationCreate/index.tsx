@@ -15,8 +15,8 @@ import ConfigStore from 'sentry/stores/configStore';
 import HookStore from 'sentry/stores/hookStore';
 import type {OrganizationSummary} from 'sentry/types/organization';
 import {getRegionChoices, shouldDisplayRegions} from 'sentry/utils/regions';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 export const DATA_STORAGE_DOCS_LINK =
   'https://docs.sentry.io/product/accounts/choose-your-data-center';
@@ -86,7 +86,8 @@ function OrganizationCreate() {
           apiMethod="POST"
           onSubmit={submitOrganizationCreate}
           onSubmitSuccess={(createdOrg: OrganizationSummary) => {
-            const hasCustomerDomain = createdOrg?.features.includes('customer-domains');
+            const hasCustomerDomain =
+              ConfigStore.get('features').has('system:multi-region');
             let nextUrl = normalizeUrl(
               `/organizations/${createdOrg.slug}/projects/new/`,
               {forceCustomerDomain: hasCustomerDomain}

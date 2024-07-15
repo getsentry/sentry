@@ -5,19 +5,23 @@ export function hasMetricsExperimentalFeature(organization: Organization) {
   return organization.features.includes('custom-metrics-experimental');
 }
 
-export function hasMetricsSidebarItem(organization: Organization) {
-  return !organization.features.includes('ddm-sidebar-item-hidden');
-}
-
 export function hasCustomMetrics(organization: Organization) {
-  return (
-    organization.features.includes('custom-metrics') &&
-    hasMetricsSidebarItem(organization)
-  );
+  return organization.features.includes('custom-metrics');
 }
 
 export function hasMetricAlertFeature(organization: Organization) {
   return organization.features.includes('incidents');
+}
+
+export function hasCustomMetricsExtractionRules(organization: Organization) {
+  return (
+    organization.features.includes('custom-metrics-extraction-rule') &&
+    organization.features.includes('custom-metrics-extraction-rule-ui')
+  );
+}
+
+export function hasMetricsExtrapolationFeature(organization: Organization) {
+  return organization.features.includes('metrics-extrapolation');
 }
 
 /**

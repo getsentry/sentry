@@ -40,6 +40,7 @@ import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useProjects from 'sentry/utils/useProjects';
 import Breadcrumb from 'sentry/views/performance/breadcrumb';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {MetaData} from 'sentry/views/performance/transactionDetails/styles';
 
 import {TraceDetailHeader, TraceSearchBar, TraceSearchContainer} from './styles';
@@ -61,7 +62,7 @@ type Props = Pick<RouteComponentProps<{traceSlug: string}, {}>, 'params' | 'loca
   organization: Organization;
   traceEventView: EventView;
   traceSlug: string;
-  traces: TraceFullDetailed[] | null;
+  traces: TraceTree.Transaction[] | null;
   handleLimitChange?: (newLimit: number) => void;
   orphanErrors?: TraceError[];
 };
@@ -308,7 +309,7 @@ class TraceDetailsContent extends Component<Props, State> {
     } else if (roots > 1) {
       warning = (
         <Alert type="info" showIcon>
-          <ExternalLink href="https://docs.sentry.io/product/sentry-basics/tracing/trace-view/#multiple-roots">
+          <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#multiple-roots">
             {t('Multiple root transactions have been found with this trace ID.')}
           </ExternalLink>
         </Alert>

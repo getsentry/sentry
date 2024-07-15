@@ -18,12 +18,15 @@ import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flam
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import type {
+  ContinuousProfileGroup,
+  ProfileGroup,
+} from 'sentry/utils/profiling/profile/importProfile';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
-import {useProfileTransaction} from 'sentry/views/profiling/profilesProvider';
+import type {useProfileTransaction} from 'sentry/views/profiling/profilesProvider';
 
 import {FlamegraphTreeTable} from './flamegraphTreeTable';
 import {ProfileDetails} from './profileDetails';
@@ -34,7 +37,8 @@ interface FlamegraphDrawerProps {
   flamegraph: Flamegraph;
   formatDuration: Flamegraph['formatter'];
   getFrameColor: (frame: FlamegraphFrame) => string;
-  profileGroup: ProfileGroup;
+  profileGroup: ProfileGroup | ContinuousProfileGroup;
+  profileTransaction: ReturnType<typeof useProfileTransaction> | null;
   referenceNode: FlamegraphFrame;
   rootNodes: FlamegraphFrame[];
   onResize?: MouseEventHandler<HTMLElement>;
@@ -46,7 +50,6 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
   const orgSlug = useOrganization().slug;
   const flamegraphPreferences = useFlamegraphPreferences();
   const dispatch = useDispatchFlamegraphState();
-  const profileTransaction = useProfileTransaction();
 
   const [tab, setTab] = useLocalStorageState<'bottom up' | 'top down'>(
     'profiling-drawer-view',
@@ -257,7 +260,9 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
 
       <ProfileDetails
         transaction={
-          profileTransaction.type === 'resolved' ? profileTransaction.data : null
+          props.profileTransaction && props.profileTransaction.type === 'resolved'
+            ? props.profileTransaction.data
+            : null
         }
         projectId={params.projectId}
         profileGroup={props.profileGroup}

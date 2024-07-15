@@ -2,8 +2,8 @@ import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
-import {useModuleTitle} from 'sentry/views/performance/utils/useModuleTitle';
-import {ModuleName} from 'sentry/views/starfish/types';
+import {DATA_TYPE_PLURAL as RESOURCES_DATA_TYPE_PLURAL} from 'sentry/views/insights/browser/resources/settings';
+import {DATA_TYPE_PLURAL as QUERIES_DATA_TYPE_PLURAL} from 'sentry/views/insights/database/settings';
 
 import {getTermHelp, PerformanceTerm} from '../../data';
 
@@ -85,8 +85,6 @@ export const WIDGET_DEFINITIONS: ({
 }: {
   organization: Organization;
 }) => {
-  const resourceModuleTitle = useModuleTitle(ModuleName.RESOURCE);
-
   return {
     [PerformanceWidgetSetting.DURATION_HISTOGRAM]: {
       title: t('Duration Distribution'),
@@ -275,7 +273,7 @@ export const WIDGET_DEFINITIONS: ({
       chartColor: WIDGET_PALETTE[0],
     },
     [PerformanceWidgetSetting.MOST_TIME_SPENT_DB_QUERIES]: {
-      title: t('Most Time-Consuming Queries'),
+      title: `${t('Most Time-Consuming')} ${QUERIES_DATA_TYPE_PLURAL}`,
       subTitle: t('Top queries by total duration'),
       titleTooltip: getTermHelp(organization, PerformanceTerm.MOST_TIME_SPENT_DB_QUERIES),
       fields: [`time_spent_percentage()`],
@@ -283,7 +281,7 @@ export const WIDGET_DEFINITIONS: ({
       chartColor: WIDGET_PALETTE[0],
     },
     [PerformanceWidgetSetting.MOST_TIME_CONSUMING_RESOURCES]: {
-      title: `${t('Most Time-Consuming')} ${resourceModuleTitle}`,
+      title: `${t('Most Time-Consuming')} ${RESOURCES_DATA_TYPE_PLURAL}`,
       subTitle: t('Render blocking for pages'),
       titleTooltip: getTermHelp(
         organization,

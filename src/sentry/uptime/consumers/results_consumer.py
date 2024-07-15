@@ -1,53 +1,109 @@
 from __future__ import annotations
 
 import logging
-from collections.abc import Mapping
+from datetime import timedelta
 
-from arroyo.backends.kafka.consumer import KafkaPayload
-from arroyo.processing.strategies.abstract import ProcessingStrategy, ProcessingStrategyFactory
-from arroyo.processing.strategies.commit import CommitOffsets
-from arroyo.processing.strategies.run_task import RunTask
-from arroyo.types import BrokerValue, Commit, FilteredPayload, Message, Partition
-from sentry_kafka_schemas.codecs import Codec
-from sentry_kafka_schemas.schema_types.uptime_results_v1 import CHECKSTATUS_FAILURE, CheckResult
+from django.conf import settings
+from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
+    CHECKSTATUS_FAILURE,
+    CHECKSTATUS_MISSED_WINDOW,
+    CheckResult,
+)
 
-from sentry.conf.types.kafka_definition import Topic, get_topic_codec
+from sentry.conf.types.kafka_definition import Topic
+from sentry.models.project import Project
+from sentry.remote_subscriptions.consumers.result_consumer import (
+    ResultProcessor,
+    ResultsStrategyFactory,
+)
+from sentry.uptime.detectors.ranking import _get_cluster
 from sentry.uptime.issue_platform import create_issue_platform_occurrence
+from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
+from sentry.utils import metrics
+from sentry.utils.hashlib import md5_text
 
 logger = logging.getLogger(__name__)
+LAST_UPDATE_REDIS_TTL = timedelta(days=7)
 
-UPTIME_RESULTS_CODEC: Codec[CheckResult] = get_topic_codec(Topic.UPTIME_RESULTS)
+
+def build_last_update_key(project_subscription: ProjectUptimeSubscription) -> str:
+    return f"project-sub-last-update:{md5_text(project_subscription.id).hexdigest()}"
 
 
-def process_result(message: Message[KafkaPayload | FilteredPayload]):
-    assert not isinstance(message.payload, FilteredPayload)
-    assert isinstance(message.value, BrokerValue)
+class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
+    subscription_model = UptimeSubscription
+    topic_for_codec = Topic.UPTIME_RESULTS
 
-    try:
-        result: CheckResult = UPTIME_RESULTS_CODEC.decode(message.payload.value)
-        if result["status"] == CHECKSTATUS_FAILURE:
-            create_issue_platform_occurrence(result)
+    def get_subscription_id(self, result: CheckResult) -> str:
+        return result["subscription_id"]
 
-        # XXX(epurkhiser): This consumer literally does nothing except log right now
+    def handle_result(self, subscription: UptimeSubscription, result: CheckResult):
+        project_subscriptions = list(subscription.projectuptimesubscription_set.all())
+        if not project_subscriptions:
+            # XXX: Hack for now, just create a fake row. Once we remove this, we should instead
+            # drop the uptime subscription
+            try:
+                project = Project.objects.get(id=settings.UPTIME_POC_PROJECT_ID)
+            except Project.DoesNotExist:
+                pass
+            else:
+                project_subscriptions = [
+                    ProjectUptimeSubscription(
+                        id=subscription.id,
+                        uptime_subscription=subscription,
+                        project=project,
+                    )
+                ]
+
+        cluster = _get_cluster()
+        last_updates: list[str | None] = cluster.mget(
+            build_last_update_key(sub) for sub in project_subscriptions
+        )
+
+        for last_update_raw, project_subscription in zip(last_updates, project_subscriptions):
+            last_update_ms = 0 if last_update_raw is None else int(last_update_raw)
+            self.handle_result_for_project(project_subscription, result, last_update_ms)
+
         logger.info("process_result", extra=result)
-    except Exception:
-        logger.info(
-            "process_failed",
-            extra={"payload": message.payload.value},
-            exc_info=True,
-        )
 
-
-class UptimeResultsStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
-    def __init__(self) -> None:
-        pass
-
-    def create_with_partitions(
+    def handle_result_for_project(
         self,
-        commit: Commit,
-        partitions: Mapping[Partition, int],
-    ) -> ProcessingStrategy[KafkaPayload]:
-        return RunTask(
-            function=process_result,
-            next_step=CommitOffsets(commit),
+        project_subscription: ProjectUptimeSubscription,
+        result: CheckResult,
+        last_update_ms: int,
+    ):
+        metric_tags = {"status": result["status"]}
+        metrics.incr("uptime.result_processor.handle_result_for_project", tags=metric_tags)
+        cluster = _get_cluster()
+        try:
+            if result["scheduled_check_time_ms"] <= last_update_ms:
+                # If the scheduled check time is older than the most recent update then we've already processed it.
+                # We can end up with duplicates due to Kafka replaying tuples, or due to the uptime checker processing
+                # the same check multiple times and sending duplicate results.
+                # We only ever want to process the first value related to each check, so we just skip and log here
+                metrics.incr(
+                    "uptime.result_processor.skipping_already_processed_update", tags=metric_tags
+                )
+                return
+
+            if result["status"] == CHECKSTATUS_MISSED_WINDOW:
+                logger.info(
+                    "handle_result_for_project.missed",
+                    extra={"project_id": project_subscription.project_id, **result},
+                )
+
+            if result["status"] == CHECKSTATUS_FAILURE:
+                create_issue_platform_occurrence(result, project_subscription)
+        except Exception:
+            logger.exception("Failed to process result for uptime project subscription")
+
+        # Now that we've processed the result for this project subscription we track the last update date
+        cluster.set(
+            build_last_update_key(project_subscription),
+            int(result["scheduled_check_time_ms"]),
+            ex=LAST_UPDATE_REDIS_TTL,
         )
+
+
+class UptimeResultsStrategyFactory(ResultsStrategyFactory[CheckResult, UptimeSubscription]):
+    result_processor_cls = UptimeResultProcessor

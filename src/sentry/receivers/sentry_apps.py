@@ -4,6 +4,7 @@ from collections.abc import Mapping
 from typing import Any
 
 from sentry import features
+from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.models.group import Group
 from sentry.models.groupassignee import GroupAssignee
 from sentry.models.organization import Organization
@@ -11,9 +12,7 @@ from sentry.models.project import Project
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.sentry_apps.apps import consolidate_events
-from sentry.services.hybrid_cloud import coerce_id_from
-from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
 from sentry.signals import (
     comment_created,
     comment_deleted,
@@ -25,6 +24,7 @@ from sentry.signals import (
     issue_unresolved,
 )
 from sentry.tasks.sentry_apps import build_comment_webhook, workflow_notification
+from sentry.users.services.user import RpcUser
 
 
 @issue_assigned.connect(weak=False)

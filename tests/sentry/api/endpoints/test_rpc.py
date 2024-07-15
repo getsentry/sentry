@@ -7,8 +7,8 @@ from django.test import override_settings
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.services.hybrid_cloud.organization import RpcUserOrganizationContext
-from sentry.services.hybrid_cloud.rpc import generate_request_signature
+from sentry.hybridcloud.rpc.service import generate_request_signature
+from sentry.organizations.services.organization import RpcUserOrganizationContext
 from sentry.testutils.cases import APITestCase
 
 

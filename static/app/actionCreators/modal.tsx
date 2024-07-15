@@ -10,10 +10,9 @@ import type {OverwriteWidgetModalProps} from 'sentry/components/modals/widgetBui
 import type {WidgetViewerModalOptions} from 'sentry/components/modals/widgetViewerModal';
 import type {Category} from 'sentry/components/platformPicker';
 import ModalStore from 'sentry/stores/modalStore';
-import type {AppStoreConnectStatusData, CustomRepoType} from 'sentry/types/debugFiles';
+import type {CustomRepoType} from 'sentry/types/debugFiles';
 import type {Event} from 'sentry/types/event';
 import type {Group, IssueOwnership} from 'sentry/types/group';
-import type {SentryApp} from 'sentry/types/integrations';
 import type {MissingMember, Organization, OrgRole, Team} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import {WidgetType} from 'sentry/views/dashboards/types';
@@ -199,20 +198,10 @@ export async function openHelpSearchModal(options?: HelpSearchModalOptions) {
   openModal(deps => <Modal {...deps} {...options} />, {modalCss});
 }
 
-export type SentryAppDetailsModalOptions = {
-  isInstalled: boolean;
-  onInstall: () => Promise<void>;
-  organization: Organization;
-  sentryApp: SentryApp;
-  onCloseModal?: () => void; // used for analytics
-};
-
 type DebugFileSourceModalOptions = {
-  appStoreConnectSourcesQuantity: number;
   onSave: (data: Record<string, any>) => Promise<void>;
   organization: Organization;
   sourceType: CustomRepoType;
-  appStoreConnectStatusData?: AppStoreConnectStatusData;
   onClose?: () => void;
   sourceConfig?: Record<string, any>;
 };
@@ -355,7 +344,7 @@ export async function openWidgetViewerModal({
   const {default: Modal, modalCss} = mod;
 
   openModal(deps => <Modal {...deps} {...options} />, {
-    closeEvents: 'escape-key',
+    closeEvents: 'none',
     modalCss,
     onClose,
   });

@@ -89,9 +89,9 @@ function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
     // in ReplayContext creating a new Replayer
     // instance before events are hydrated. This
     // resulted in the `recording(Start/End)Frame`
-    // as the only two events when we instanciated
+    // as the only two events when we instantiated
     // Replayer and the rrweb Replayer requires all
-    // events to be present when instanciated.
+    // events to be present when instantiated.
     if (!isFetching) {
       setRoot(viewEl.current);
     }
@@ -123,10 +123,12 @@ function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
   // Update the scale of the view whenever dimensions have changed.
   useEffect(() => {
     if (viewEl.current) {
+      // We use 1.5 here because we want to scale up mobile replays
+      // (or other replays that have height > width)
       const scale = Math.min(
         windowDimensions.width / videoDimensions.width,
         windowDimensions.height / videoDimensions.height,
-        1
+        1.5
       );
       if (scale) {
         viewEl.current.style['transform-origin'] = 'top left';
@@ -148,7 +150,7 @@ function BasePlayerRoot({className, overlayContent, isPreview = false}: Props) {
         <div ref={viewEl} className={className} />
         {fastForwardSpeed ? <PositionedFastForward speed={fastForwardSpeed} /> : null}
         {isBuffering || isVideoBuffering ? <PositionedBuffering /> : null}
-        {isPreview || isVideoReplay ? null : <PlayerDOMAlert />}
+        {isPreview || isVideoReplay || isFetching ? null : <PlayerDOMAlert />}
         {isFetching ? <PositionedLoadingIndicator /> : null}
       </StyledNegativeSpaceContainer>
     </Fragment>

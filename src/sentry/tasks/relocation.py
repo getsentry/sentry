@@ -46,12 +46,12 @@ from sentry.models.relocation import (
     ValidationStatus,
 )
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
-from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.organizations.services.organization import organization_service
 from sentry.signals import relocated, relocation_redeem_promo_code
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.users.services.lost_password_hash import lost_password_hash_service
+from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.utils.db import atomic_transaction
 from sentry.utils.env import gcp_project_id, log_gcp_credentials_details
@@ -175,7 +175,7 @@ def uploading_complete(uuid: str) -> None:
                 kind=RelocationFile.Kind.RAW_USER_DATA.value,
             )
             .select_related("file")
-            .first()
+            .get()
         )
         fp = raw_relocation_file.file.getfile()
         with fp:
@@ -234,7 +234,7 @@ def preprocessing_scan(uuid: str) -> None:
                 kind=RelocationFile.Kind.RAW_USER_DATA.value,
             )
             .select_related("file")
-            .first()
+            .get()
         )
         fp = raw_relocation_file.file.getfile()
 
@@ -1077,7 +1077,7 @@ def importing(uuid: str) -> None:
                 kind=RelocationFile.Kind.RAW_USER_DATA.value,
             )
             .select_related("file")
-            .first()
+            .get()
         )
         relocation_data_fp = raw_relocation_file.file.getfile()
         log_gcp_credentials_details(logger)
@@ -1225,14 +1225,16 @@ def notifying_users(uuid: str) -> None:
         chunks = ControlImportChunkReplica.objects.filter(
             import_uuid=str(uuid), model="sentry.user"
         )
-        for chunk in chunks:
-            imported_user_ids = imported_user_ids.union(set(chunk.inserted_map.values()))
+        for control_chunk in chunks:
+            imported_user_ids = imported_user_ids.union(set(control_chunk.inserted_map.values()))
 
         imported_org_slugs: set[int] = set()
-        for chunk in RegionImportChunk.objects.filter(
+        for region_chunk in RegionImportChunk.objects.filter(
             import_uuid=str(uuid), model="sentry.organization"
         ):
-            imported_org_slugs = imported_org_slugs.union(set(chunk.inserted_identifiers.values()))
+            imported_org_slugs = imported_org_slugs.union(
+                set(region_chunk.inserted_identifiers.values())
+            )
 
         # Do a sanity check on pk-mapping before we go and reset the passwords of random users - are
         # all of these usernames plausibly ones that were included in the import, based on username

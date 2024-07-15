@@ -27,6 +27,7 @@ from sentry.api.serializers.models.organization import (
     BaseOrganizationSerializer,
     TrustedRelaySerializer,
 )
+from sentry.auth.services.auth import auth_service
 from sentry.auth.staff import is_active_staff
 from sentry.constants import (
     ACCOUNT_RATE_LIMIT_DEFAULT,
@@ -36,6 +37,7 @@ from sentry.constants import (
     DATA_CONSENT_DEFAULT,
     DEBUG_FILES_ROLE_DEFAULT,
     EVENTS_MEMBER_ADMIN_DEFAULT,
+    EXTRAPOLATE_METRICS_DEFAULT,
     GITHUB_COMMENT_BOT_DEFAULT,
     ISSUE_ALERTS_THREAD_DEFAULT,
     JOIN_REQUESTS_DEFAULT,
@@ -50,8 +52,10 @@ from sentry.constants import (
     SAFE_FIELDS_DEFAULT,
     SCRAPE_JAVASCRIPT_DEFAULT,
     SENSITIVE_FIELDS_DEFAULT,
+    UPTIME_AUTODETECTION,
 )
 from sentry.datascrubbing import validate_pii_config_update, validate_pii_selectors
+from sentry.hybridcloud.rpc import IDEMPOTENCY_KEY_LENGTH
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.lang.native.utils import (
     STORE_CRASH_REPORTS_DEFAULT,
@@ -63,19 +67,17 @@ from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.useremail import UserEmail
-from sentry.services.hybrid_cloud import IDEMPOTENCY_KEY_LENGTH
-from sentry.services.hybrid_cloud.auth import auth_service
-from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.organization.model import (
+from sentry.organizations.services.organization import organization_service
+from sentry.organizations.services.organization.model import (
     RpcOrganization,
     RpcOrganizationDeleteResponse,
     RpcOrganizationDeleteState,
 )
-from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
 from sentry.services.organization.provisioning import (
     OrganizationSlugCollisionException,
     organization_provisioning_service,
 )
+from sentry.users.services.user.serial import serialize_generic_user
 from sentry.utils.audit import create_audit_entry
 
 ERR_DEFAULT_ORG = "You cannot remove the default organization."
@@ -204,6 +206,8 @@ ORG_OPTIONS = (
         bool,
         METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT,
     ),
+    ("extrapolateMetrics", "sentry:extrapolate_metrics", bool, EXTRAPOLATE_METRICS_DEFAULT),
+    ("uptimeAutodetection", "sentry:uptime_autodetection", bool, UPTIME_AUTODETECTION),
 )
 
 DELETION_STATUSES = frozenset(
@@ -230,6 +234,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
 
     openMembership = serializers.BooleanField(required=False)
     allowSharedIssues = serializers.BooleanField(required=False)
+    allowMemberProjectCreation = serializers.BooleanField(required=False)
     enhancedPrivacy = serializers.BooleanField(required=False)
     dataScrubber = serializers.BooleanField(required=False)
     dataScrubberDefaults = serializers.BooleanField(required=False)
@@ -262,6 +267,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
     allowJoinRequests = serializers.BooleanField(required=False)
     relayPiiConfig = serializers.CharField(required=False, allow_blank=True, allow_null=True)
     apdexThreshold = serializers.IntegerField(min_value=1, required=False)
+    extrapolateMetrics = serializers.BooleanField(required=False)
+    uptimeAutodetection = serializers.BooleanField(required=False)
 
     @cached_property
     def _has_legacy_rate_limits(self):
@@ -274,6 +281,24 @@ class OrganizationSerializer(BaseOrganizationSerializer):
         org = self.context["organization"]
         org_auth_provider = auth_service.get_auth_provider(organization_id=org.id)
         return org_auth_provider is not None
+
+    def validate_extrapolateMetrics(self, value):
+        from sentry import features
+
+        organization = self.context["organization"]
+        request = self.context["request"]
+
+        # Metrics extrapolation can only be toggled when the metrics-extrapolation flag is enabled.
+        has_metrics_extrapolation = features.has(
+            "organizations:metrics-extrapolation", organization, actor=request.user
+        )
+
+        if not has_metrics_extrapolation:
+            raise serializers.ValidationError(
+                "Organization does not have the metrics extrapolation feature enabled"
+            )
+        else:
+            return value
 
     def validate_relayPiiConfig(self, value):
         organization = self.context["organization"]
@@ -473,6 +498,8 @@ class OrganizationSerializer(BaseOrganizationSerializer):
             and "requireEmailVerification" in data
         ):
             org.flags.require_email_verification = data["requireEmailVerification"]
+        if "allowMemberProjectCreation" in data:
+            org.flags.disable_member_project_creation = not data["allowMemberProjectCreation"]
         if "name" in data:
             org.name = data["name"]
         if "slug" in data:
@@ -489,6 +516,7 @@ class OrganizationSerializer(BaseOrganizationSerializer):
                 "early_adopter": org.flags.early_adopter.is_set,
                 "require_2fa": org.flags.require_2fa.is_set,
                 "codecov_access": org.flags.codecov_access.is_set,
+                "disable_member_project_creation": org.flags.disable_member_project_creation.is_set,
             },
         }
 

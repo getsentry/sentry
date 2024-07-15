@@ -2,7 +2,6 @@ from datetime import timedelta
 
 import pytest
 
-from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics.naming_layer import TransactionMRI
 from sentry.testutils.cases import MetricsAPIBaseTestCase
 from sentry.testutils.helpers.datetime import freeze_time
@@ -47,7 +46,6 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
             self.store_metric(
                 self.project.organization.id,
                 self.project.id,
-                "distribution",
                 TransactionMRI.DURATION.value,
                 {
                     "transaction": transaction,
@@ -57,7 +55,6 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
                 },
                 self.now().timestamp(),
                 value,
-                UseCaseID.TRANSACTIONS,
             )
         # Use Case: CUSTOM
         for value, release, tag_value, time in (
@@ -71,7 +68,6 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
             self.store_metric(
                 self.project.organization.id,
                 self.project.id,
-                "distribution",
                 "d:custom/my_test_metric@percent",
                 {
                     "transaction": "/hello",
@@ -82,7 +78,6 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
                 },
                 self.now().timestamp(),
                 value,
-                UseCaseID.CUSTOM,
             )
 
         self.prod_env = self.create_environment(name="prod", project=self.project)
@@ -252,3 +247,10 @@ class OrganizationMetricsTagValues(MetricsAPIBaseTestCase):
             response.json()["detail"]
             == "Please supply only a single metric name. Specifying multiple metric names is not supported for this endpoint."
         )
+
+    def test_metrics_tags_when_organization_has_no_projects(self):
+        organization_without_projects = self.create_organization()
+        self.create_member(user=self.user, organization=organization_without_projects)
+        response = self.get_error_response(organization_without_projects.slug, "mytag")
+        assert response.status_code == 404
+        assert response.data["detail"] == "You must supply at least one project to see its metrics"

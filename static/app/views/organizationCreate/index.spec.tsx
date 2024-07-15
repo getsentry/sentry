@@ -4,17 +4,19 @@ import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrar
 import selectEvent from 'sentry-test/selectEvent';
 
 import ConfigStore from 'sentry/stores/configStore';
+import type {Config} from 'sentry/types/system';
 import OrganizationCreate, {
   DATA_STORAGE_DOCS_LINK,
 } from 'sentry/views/organizationCreate';
 
 describe('OrganizationCreate', function () {
-  let oldRegions: any[] = [];
+  let configstate: Config;
+
   beforeEach(() => {
     ConfigStore.get('termsUrl');
     ConfigStore.get('privacyUrl');
 
-    oldRegions = ConfigStore.get('regions');
+    configstate = ConfigStore.getState();
 
     // Set only a single region in the config store by default
     ConfigStore.set('regions', [{name: '--monolith--', url: 'https://example.com'}]);
@@ -23,7 +25,7 @@ describe('OrganizationCreate', function () {
   afterEach(() => {
     MockApiClient.clearMockResponses();
     jest.resetAllMocks();
-    ConfigStore.set('regions', oldRegions);
+    ConfigStore.loadInitialData(configstate);
   });
 
   it('renders without terms', function () {
@@ -94,10 +96,9 @@ describe('OrganizationCreate', function () {
     const orgCreateMock = MockApiClient.addMockResponse({
       url: '/organizations/',
       method: 'POST',
-      body: OrganizationFixture({
-        features: ['customer-domains'],
-      }),
+      body: OrganizationFixture(),
     });
+    ConfigStore.set('features', new Set(['system:multi-region']));
     ConfigStore.set('termsUrl', 'https://example.com/terms');
     ConfigStore.set('privacyUrl', 'https://example.com/privacy');
     render(<OrganizationCreate />);
@@ -131,9 +132,7 @@ describe('OrganizationCreate', function () {
     const orgCreateMock = MockApiClient.addMockResponse({
       url: '/organizations/',
       method: 'POST',
-      body: OrganizationFixture({
-        features: ['customer-domains'],
-      }),
+      body: OrganizationFixture(),
     });
 
     ConfigStore.set('regions', [
@@ -151,6 +150,7 @@ describe('OrganizationCreate', function () {
     const orgCreateMock = multiRegionSetup();
     // Set only a single region in the config store
     ConfigStore.set('regions', [{name: '--monolith--', url: 'https://example.com'}]);
+    ConfigStore.set('features', new Set(['system:multi-region']));
 
     render(<OrganizationCreate />);
     expect(screen.queryByLabelText('Data Storage Location')).not.toBeInTheDocument();
@@ -174,6 +174,8 @@ describe('OrganizationCreate', function () {
   });
 
   it('renders without a pre-selected region, and does not submit until one is selected', async function () {
+    ConfigStore.set('features', new Set(['system:multi-region']));
+
     const orgCreateMock = multiRegionSetup();
     render(<OrganizationCreate />);
     expect(screen.getByLabelText('Data Storage Location')).toBeInTheDocument();
@@ -210,6 +212,8 @@ describe('OrganizationCreate', function () {
   });
 
   it('uses the host of the selected region when submitting', async function () {
+    ConfigStore.set('features', new Set(['system:multi-region']));
+
     const orgCreateMock = multiRegionSetup();
     render(<OrganizationCreate />);
     expect(screen.getByLabelText('Data Storage Location')).toBeInTheDocument();

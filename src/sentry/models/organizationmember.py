@@ -4,7 +4,7 @@ import datetime
 import logging
 import secrets
 from collections import defaultdict
-from collections.abc import Mapping, MutableMapping
+from collections.abc import Mapping
 from datetime import timedelta
 from enum import Enum
 from hashlib import md5
@@ -32,28 +32,27 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.manager import BaseManager
+from sentry.db.models.manager.base import BaseManager
 from sentry.db.models.outboxes import ReplicatedRegionModel
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.exceptions import UnableToAcceptMemberInvitationException
+from sentry.hybridcloud.rpc import extract_id_from
+from sentry.hybridcloud.services.organizationmember_mapping import (
+    RpcOrganizationMemberMappingUpdate,
+    organizationmember_mapping_service,
+)
 from sentry.models.outbox import OutboxCategory, outbox_context
 from sentry.models.team import TeamStatus
 from sentry.roles import organization_roles
 from sentry.roles.manager import OrganizationRole
-from sentry.services.hybrid_cloud import extract_id_from
-from sentry.services.hybrid_cloud.identity import identity_service
-from sentry.services.hybrid_cloud.organizationmember_mapping import (
-    RpcOrganizationMemberMappingUpdate,
-    organizationmember_mapping_service,
-)
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.signals import member_invited
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils.http import absolute_uri
 
 if TYPE_CHECKING:
+    from sentry.integrations.services.integration import RpcIntegration
     from sentry.models.organization import Organization
-    from sentry.services.hybrid_cloud.integration import RpcIntegration
 
 _OrganizationMemberFlags = TypedDict(
     "_OrganizationMemberFlags",
@@ -113,7 +112,7 @@ class OrganizationMemberManager(BaseManager["OrganizationMember"]):
 
     def delete_expired(self, threshold: datetime.datetime) -> None:
         """Delete un-accepted member invitations that expired `threshold` days ago."""
-        from sentry.services.hybrid_cloud.auth import auth_service
+        from sentry.auth.services.auth import auth_service
 
         orgs_with_scim = auth_service.get_org_ids_with_scim()
         for member in (
@@ -132,7 +131,7 @@ class OrganizationMemberManager(BaseManager["OrganizationMember"]):
         # This can be moved into the integration service once OrgMemberMapping is completed.
         # We are forced to do an ORM -> service -> ORM call to reduce query size while avoiding
         # cross silo queries until we have a control silo side to map users through.
-        from sentry.services.hybrid_cloud.integration import integration_service
+        from sentry.integrations.services.integration import integration_service
 
         if organization_id is not None:
             if (
@@ -165,11 +164,12 @@ class OrganizationMemberManager(BaseManager["OrganizationMember"]):
             id=id,
         )
 
-    def get_teams_by_user(self, organization: Organization) -> Mapping[int, list[int]]:
-        user_teams: MutableMapping[int, list[int]] = defaultdict(list)
+    def get_teams_by_user(self, organization: Organization) -> dict[int, list[int]]:
         queryset = self.filter(organization_id=organization.id).values_list("user_id", "teams")
+        user_teams: dict[int, list[int]] = defaultdict(list)
         for user_id, team_id in queryset:
-            user_teams[user_id].append(team_id)
+            if user_id is not None:
+                user_teams[user_id].append(team_id)
         return user_teams
 
     def get_members_by_email_and_role(self, email: str, role: str) -> QuerySet:
@@ -275,7 +275,7 @@ class OrganizationMember(ReplicatedRegionModel):
         self.token = self.generate_token()
         self.refresh_expires_at()
 
-    def payload_for_update(self) -> Mapping[str, Any] | None:
+    def payload_for_update(self) -> dict[str, Any] | None:
         return dict(user_id=self.user_id)
 
     def refresh_expires_at(self):
@@ -390,7 +390,7 @@ class OrganizationMember(ReplicatedRegionModel):
         msg.send_async([self.get_email()])
 
     def send_sso_unlink_email(self, disabling_user: RpcUser | str, provider):
-        from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
+        from sentry.users.services.lost_password_hash import lost_password_hash_service
         from sentry.utils.email import MessageBuilder
 
         # Nothing to send if this member isn't associated to a user
@@ -626,6 +626,8 @@ class OrganizationMember(ReplicatedRegionModel):
     def handle_async_deletion(
         cls, identifier: int, shard_identifier: int, payload: Mapping[str, Any] | None
     ) -> None:
+        from sentry.identity.services.identity import identity_service
+
         if payload and payload.get("user_id") is not None:
             identity_service.delete_identities(
                 user_id=payload["user_id"], organization_id=shard_identifier

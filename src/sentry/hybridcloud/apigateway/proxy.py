@@ -5,7 +5,7 @@ Utilities related to proxying a request to a region silo
 from __future__ import annotations
 
 import logging
-from collections.abc import Iterator
+from collections.abc import Generator, Iterator
 from urllib.parse import urljoin, urlparse
 from wsgiref.util import is_hop_by_hop
 
@@ -55,7 +55,7 @@ def _parse_response(response: ExternalResponse, remote_url: str) -> StreamingHtt
     Convert the Responses class from requests into the drf Response
     """
 
-    def stream_response():
+    def stream_response() -> Generator[bytes, None, None]:
         yield from response.iter_content(PROXY_CHUNK_SIZE)
 
     streamed_response = StreamingHttpResponse(

@@ -11,7 +11,7 @@ from requests.exceptions import ConnectionError, HTTPError, Timeout
 
 from sentry.exceptions import RestrictedIPAddress
 from sentry.http import build_session
-from sentry.integrations.base import disable_integration, is_response_error, is_response_success
+from sentry.integrations.base import is_response_error, is_response_success
 from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.net.http import SafeSession
 from sentry.utils import json, metrics
@@ -202,9 +202,8 @@ class BaseApiClient(TrackResponseMixin):
             tags={str(self.integration_type): self.name},
         )
 
-        with sentry_sdk.configure_scope() as scope:
-            if self.integration_type:
-                scope.set_tag(self.integration_type, self.name)
+        if self.integration_type:
+            sentry_sdk.Scope.get_isolation_scope().set_tag(self.integration_type, self.name)
 
         request = Request(
             method=method.upper(),
@@ -395,7 +394,14 @@ class BaseApiClient(TrackResponseMixin):
             if is_response_error(response):
                 buffer.record_error()
         if buffer.is_integration_broken():
-            disable_integration(buffer, redis_key, self.integration_id)
+            # disable_integration(buffer, redis_key, self.integration_id)
+            self.logger.info(
+                "integration.should_disable",
+                extra={
+                    "integration_id": self.integration_id,
+                    "broken_range_day_counts": buffer._get_broken_range_from_buffer(),
+                },
+            )
 
     def record_error(self, error: Exception):
         redis_key = self._get_redis_key()
@@ -407,4 +413,11 @@ class BaseApiClient(TrackResponseMixin):
         else:
             buffer.record_error()
         if buffer.is_integration_broken():
-            disable_integration(buffer, redis_key, self.integration_id)
+            # disable_integration(buffer, redis_key, self.integration_id)
+            self.logger.info(
+                "integration.should_disable",
+                extra={
+                    "integration_id": self.integration_id,
+                    "broken_range_day_counts": buffer._get_broken_range_from_buffer(),
+                },
+            )

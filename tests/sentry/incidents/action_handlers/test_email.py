@@ -14,8 +14,13 @@ from sentry.incidents.action_handlers import (
 )
 from sentry.incidents.charts import fetch_metric_alert_events_timeseries
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL, WARNING_TRIGGER_LABEL
-from sentry.incidents.models.alert_rule import AlertRuleThresholdType, AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import (
+    AlertRuleMonitorTypeInt,
+    AlertRuleThresholdType,
+    AlertRuleTriggerAction,
+)
 from sentry.incidents.models.incident import INCIDENT_STATUS, IncidentStatus, TriggerStatus
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.options.user_option import UserOption
 from sentry.models.useremail import UserEmail
@@ -267,6 +272,9 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             "timezone": settings.SENTRY_DEFAULT_TIME_ZONE,
             "snooze_alert": True,
             "snooze_alert_url": alert_link + "&mute=1",
+            "monitor_type": 0,
+            "activator": "",
+            "condition_type": None,
         }
         assert expected == generate_incident_trigger_email_context(
             self.project,
@@ -276,7 +284,65 @@ class EmailActionHandlerGenerateEmailContextTest(TestCase):
             IncidentStatus(incident.status),
         )
 
-    @with_feature("organizations:customer-domains")
+    def test_with_activated_alert(self):
+        trigger_status = TriggerStatus.ACTIVE
+        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.ACTIVATED)
+        alert_rule.subscribe_projects(
+            projects=[self.project],
+            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
+            activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
+            activator="testing",
+        )
+        activations = alert_rule.activations.all()
+        incident = self.create_incident(alert_rule=alert_rule, activation=activations[0])
+        alert_rule_trigger = self.create_alert_rule_trigger(alert_rule=alert_rule)
+        action = self.create_alert_rule_trigger_action(
+            alert_rule_trigger=alert_rule_trigger, triggered_for_incident=incident
+        )
+        aggregate = action.alert_rule_trigger.alert_rule.snuba_query.aggregate
+        alert_link = self.organization.absolute_url(
+            reverse(
+                "sentry-metric-alert",
+                kwargs={
+                    "organization_slug": incident.organization.slug,
+                    "incident_id": incident.identifier,
+                },
+            ),
+            query="referrer=metric_alert_email",
+        )
+        expected = {
+            "link": alert_link,
+            "incident_name": incident.title,
+            "aggregate": aggregate,
+            "query": action.alert_rule_trigger.alert_rule.snuba_query.query,
+            "threshold": action.alert_rule_trigger.alert_threshold,
+            "status": INCIDENT_STATUS[IncidentStatus(incident.status)],
+            "status_key": INCIDENT_STATUS[IncidentStatus(incident.status)].lower(),
+            "environment": "All",
+            "is_critical": False,
+            "is_warning": False,
+            "threshold_direction_string": ">",
+            "time_window": "10 minutes",
+            "triggered_at": timezone.now(),
+            "project_slug": self.project.slug,
+            "unsubscribe_link": None,
+            "chart_url": None,
+            "timezone": settings.SENTRY_DEFAULT_TIME_ZONE,
+            "snooze_alert": True,
+            "snooze_alert_url": alert_link + "&mute=1",
+            "monitor_type": AlertRuleMonitorTypeInt.ACTIVATED,
+            "activator": "testing",
+            "condition_type": AlertRuleActivationConditionType.DEPLOY_CREATION.value,
+        }
+        assert expected == generate_incident_trigger_email_context(
+            self.project,
+            incident,
+            action.alert_rule_trigger,
+            trigger_status,
+            IncidentStatus(incident.status),
+        )
+
+    @with_feature("system:multi-region")
     def test_links_customer_domains(self):
         trigger_status = TriggerStatus.ACTIVE
         incident = self.create_incident()
