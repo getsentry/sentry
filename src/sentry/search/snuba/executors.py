@@ -1647,6 +1647,8 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 Condition(Column("timestamp", joined_entity), Op.GTE, start),
                 Condition(Column("timestamp", joined_entity), Op.LT, end),
             ]
+
+            group_ids_to_pass_to_snuba = [i for i in range(1, 3166)]
             having = []
             # if we need to prefetch from postgres, we add filter by the group ids
             if group_ids_to_pass_to_snuba is not None:
