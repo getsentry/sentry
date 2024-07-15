@@ -217,19 +217,19 @@ def _get_rule_condition(
 
 
 def _get_counter_rule_condition(
-    extraction_rule: MetricsExtractionRule, parsed_conditions: Sequence[QueryToken]
+    extraction_rule: MetricsExtractionRule, parsed_search_query: Sequence[QueryToken]
 ) -> RuleCondition | None:
     is_top_level = extraction_rule.span_attribute in _TOP_LEVEL_SPAN_ATTRIBUTES
 
-    if not parsed_conditions:
-        # temporary workaround for span.duration counter metric
+    if not parsed_search_query:
+        # workaround for span.duration and other top level attributes that are always present
         if is_top_level:
             return None
 
         return _get_exists_condition(extraction_rule.span_attribute)
 
     condition_dict = SearchQueryConverter(
-        parsed_conditions, field_mapper=_map_span_attribute_name
+        parsed_search_query, field_mapper=_map_span_attribute_name
     ).convert()
 
     if is_top_level:
