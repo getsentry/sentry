@@ -14,7 +14,9 @@ import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 // used for issue details page (groupEventDetailsContent.tsx)
 export function HideUserFeedbackButton({
   hideFeedback,
+  isError,
   isHidden,
+  isLoading,
   showFeedback,
 }: {
   hideFeedback: () => void;
@@ -23,13 +25,16 @@ export function HideUserFeedbackButton({
   isLoading: boolean;
   showFeedback: () => void;
 }) {
-  // disabled={isLoading || editProps.disabled}
-  // icon={<IconEdit />}
   return (
     <Button
       size="xs"
       onClick={isHidden ? showFeedback : hideFeedback}
-      title={'TODO: Tooltip'}
+      title={
+        isHidden
+          ? t('Unhide feedback on all issue details')
+          : t('Hide feedback on all issue details')
+      }
+      disabled={isError || isLoading}
     >
       {isHidden ? t('Show') : t('Hide')}
     </Button>

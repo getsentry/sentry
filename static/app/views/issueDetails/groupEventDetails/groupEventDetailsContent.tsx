@@ -166,7 +166,7 @@ function DefaultGroupEventDetailsContent({
           }
         >
           {promptLoading || promptError || isPromptDismissed ? (
-            '(Hidden)'
+            '- Hidden -'
           ) : (
             <EventUserFeedback
               report={event.userReport}
