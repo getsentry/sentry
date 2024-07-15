@@ -86,6 +86,7 @@ def convert_to_metric_spec(extraction_rule: MetricsExtractionRule) -> SpanAttrib
     Converts a persisted MetricsExtractionRule into a SpanAttributeMetricSpec that satisfies
     MetricSpec of relay metric extraction config.
     """
+
     field = _get_field(extraction_rule)
 
     parsed_search_query = event_search.parse_search_query(extraction_rule.condition)
@@ -109,6 +110,7 @@ def _get_tags(
     """
     Merges the explicitly defined tags with the tags extracted from the search query.
     """
+
     token_list = _flatten_query_tokens(parsed_search_query) if parsed_search_query else []
     search_token_keys = {token.key.name for token in token_list}
 
@@ -122,6 +124,7 @@ def _flatten_query_tokens(parsed_search_query: Sequence[QueryToken]) -> list[Sea
     Takes a parsed search query and flattens it into a list of SearchFilter tokens.
     Removes any parenthesis and boolean operators.
     """
+
     query_tokens: list[SearchFilter] = []
 
     for token in parsed_search_query:
@@ -144,6 +147,7 @@ def _visit_numeric_tokens(parsed_search_query: Sequence[QueryToken]) -> list[Que
     """
     Visits each token in the parsed search query and converts numeric tokens into paren expressions.
     """
+
     query_tokens: list[QueryToken] = []
 
     for token in parsed_search_query:
@@ -166,8 +170,8 @@ def _extend_numeric_token(token: SearchFilter) -> ParenExpression | SearchFilter
     Example:
     `key:'123'` -> `key:'123' OR key:123`
     `key:['123', '456']` -> `key:['123', '456'] OR key:[123, 456]`
-
     """
+
     if token.operator == "=" or token.operator == "!=":
         if not str(token.value.value).isdigit():
             return token
