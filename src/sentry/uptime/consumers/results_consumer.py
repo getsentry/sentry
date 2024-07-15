@@ -31,23 +31,27 @@ from sentry.uptime.subscriptions.subscriptions import (
     remove_uptime_subscription_if_unused,
 )
 from sentry.utils import metrics
-from sentry.utils.hashlib import md5_text
 
 logger = logging.getLogger(__name__)
 LAST_UPDATE_REDIS_TTL = timedelta(days=7)
-ONBOARDING_FAILURE_THRESHOLD = 3
-ONBOARDING_FAILURE_REDIS_TTL = timedelta(days=2)
 ONBOARDING_MONITOR_PERIOD = timedelta(days=3)
+# When onboarding a new subscription how many total failures are allowed to happen during
+# the ONBOARDING_MONITOR_PERIOD before we consider the subscription to have failed onboarding.
+ONBOARDING_FAILURE_THRESHOLD = 3
+# The TTL of the redis key used to track the failure counts for a subscription in
+# `ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING` mode. Must be >= the
+# ONBOARDING_MONITOR_PERIOD.
+ONBOARDING_FAILURE_REDIS_TTL = ONBOARDING_MONITOR_PERIOD
 # How frequently we should run active auto-detected subscriptions
-AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL_SECONDS = int(timedelta(minutes=5).total_seconds())
+AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL = timedelta(minutes=5)
 
 
 def build_last_update_key(project_subscription: ProjectUptimeSubscription) -> str:
-    return f"project-sub-last-update:{md5_text(project_subscription.id).hexdigest()}"
+    return f"project-sub-last-update:{project_subscription.id}"
 
 
 def build_onboarding_failure_key(project_subscription: ProjectUptimeSubscription) -> str:
-    return f"project-sub-onboarding_failure:{md5_text(project_subscription.id).hexdigest()}"
+    return f"project-sub-onboarding_failure:{project_subscription.id}"
 
 
 class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
@@ -156,14 +160,16 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
                 metrics.incr("uptime.result_processor.autodetection.failed_onboarding")
         elif result["status"] == CHECKSTATUS_SUCCESS:
             assert project_subscription.date_added is not None
-            if (
-                datetime.now(timezone.utc) - ONBOARDING_MONITOR_PERIOD
-                > project_subscription.date_added
-            ):
+            scheduled_check_time = datetime.fromtimestamp(
+                result["scheduled_check_time_ms"] / 1000, timezone.utc
+            )
+            if scheduled_check_time - ONBOARDING_MONITOR_PERIOD > project_subscription.date_added:
+                # If we've had mostly successes throughout the onboarding period then we can graduate the subscription
+                # to active.
                 onboarding_subscription = project_subscription.uptime_subscription
                 active_subscription = create_uptime_subscription(
                     onboarding_subscription.url,
-                    AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL_SECONDS,
+                    int(AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL.total_seconds()),
                     onboarding_subscription.timeout_ms,
                 )
                 project_subscription.update(

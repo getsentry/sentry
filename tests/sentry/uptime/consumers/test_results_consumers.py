@@ -22,7 +22,7 @@ from sentry.models.group import Group
 from sentry.remote_subscriptions.consumers.result_consumer import FAKE_SUBSCRIPTION_ID
 from sentry.testutils.cases import UptimeTestCase
 from sentry.uptime.consumers.results_consumer import (
-    AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL_SECONDS,
+    AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL,
     ONBOARDING_MONITOR_PERIOD,
     UptimeResultsStrategyFactory,
     build_last_update_key,
@@ -259,8 +259,7 @@ class ProcessResultTest(UptimeTestCase):
         with pytest.raises(UptimeSubscription.DoesNotExist):
             uptime_subscription.refresh_from_db()
         new_uptime_subscription = self.project_subscription.uptime_subscription
-        assert (
-            new_uptime_subscription.interval_seconds
-            == AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL_SECONDS
+        assert new_uptime_subscription.interval_seconds == int(
+            AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL.total_seconds()
         )
         assert uptime_subscription.url == new_uptime_subscription.url

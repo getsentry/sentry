@@ -88,7 +88,7 @@ def delete_project_uptime_subscription(
 
 def remove_uptime_subscription_if_unused(uptime_subscription: UptimeSubscription):
     """
-    Determines if an uptime subscription is no longer used and removes it if so
+    Determines if an uptime subscription is no longer used by any `ProjectUptimeSubscriptions` and removes it if so
     """
     # If the uptime subscription is no longer used, we also remove it.
     if not uptime_subscription.projectuptimesubscription_set.exists():
