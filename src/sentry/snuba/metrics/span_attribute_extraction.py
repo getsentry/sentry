@@ -70,6 +70,10 @@ _SENTRY_TAGS = {
 
 
 class SpanAttributeMetricSpec(TypedDict):
+    """
+    Represents a metric extraction rule to that extracts metrics from span attributes.
+    """
+
     category: Literal["span"]
     mri: str
     field: NotRequired[str | None]
@@ -78,18 +82,21 @@ class SpanAttributeMetricSpec(TypedDict):
 
 
 def convert_to_metric_spec(extraction_rule: MetricsExtractionRule) -> SpanAttributeMetricSpec:
-
+    """
+    Converts a persisted MetricsExtractionRule into a SpanAttributeMetricSpec that satisfies
+    MetricSpec of relay metric extraction config.
+    """
     field = _get_field(extraction_rule)
 
-    parsed_conditions = event_search.parse_search_query(extraction_rule.condition)
-    extended_conditions = _extend_parsed_condtions(parsed_conditions)
+    parsed_search_query = event_search.parse_search_query(extraction_rule.condition)
+    extended_search_query = _extend_search_query(parsed_search_query)
 
     return {
         "category": "span",
         "mri": extraction_rule.generate_mri(),
         "field": field,
-        "tags": _get_tags(extraction_rule, parsed_conditions),
-        "condition": _get_rule_condition(extraction_rule, extended_conditions),
+        "tags": _get_tags(extraction_rule, parsed_search_query),
+        "condition": _get_rule_condition(extraction_rule, extended_search_query),
     }
 
 
@@ -129,7 +136,7 @@ def _flatten_query_tokens(parsed_search_query: Sequence[QueryToken]) -> list[Sea
 # Condition string parsing and transformation functions
 
 
-def _extend_parsed_condtions(parsed_search_query: Sequence[QueryToken]) -> Sequence[QueryToken]:
+def _extend_search_query(parsed_search_query: Sequence[QueryToken]) -> Sequence[QueryToken]:
     return _visit_numeric_tokens(parsed_search_query)
 
 
