@@ -8,6 +8,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import ResourcesLandingPage from 'sentry/views/insights/browser/resources/views/resourcesLandingPage';
+import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {SpanFunction, SpanMetricsField} from 'sentry/views/insights/types';
 
 const {
@@ -25,6 +26,7 @@ const {SPM, TIME_SPENT_PERCENTAGE} = SpanFunction;
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useProjects');
+jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
 
 const requestMocks: Record<string, jest.Mock> = {};
 
@@ -131,6 +133,7 @@ describe('ResourcesLandingPage', function () {
 });
 
 const setupMocks = () => {
+  jest.mocked(useOnboardingProject).mockReturnValue(undefined);
   jest.mocked(usePageFilters).mockReturnValue({
     isReady: true,
     desyncedFilters: new Set(),
