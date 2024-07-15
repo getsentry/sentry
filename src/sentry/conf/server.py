@@ -866,6 +866,7 @@ CELERY_QUEUES_REGION = [
     Queue("email.inbound", routing_key="email.inbound"),
     Queue("events.preprocess_event", routing_key="events.preprocess_event"),
     Queue("events.process_event", routing_key="events.process_event"),
+    Queue("events.process_event_proguard", routing_key="events.process_event_proguard"),
     Queue(
         "events.reprocessing.preprocess_event", routing_key="events.reprocessing.preprocess_event"
     ),
