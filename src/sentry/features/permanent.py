@@ -133,4 +133,6 @@ def register_permanent_features(manager: FeatureManager):
         )
 
     # Enable support for multiple regions, and org slug subdomains (customer-domains).
-    manager.add("system:multi-region", SystemFeature, default=False)
+    manager.add(
+        "system:multi-region", SystemFeature, FeatureHandlerStrategy.INTERNAL, default=False
+    )
