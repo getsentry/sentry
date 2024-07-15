@@ -283,7 +283,9 @@ export function MetricsExtractionRuleForm({
             label={t('Group and filter by')}
             multiple
             placeholder={t('Select tags')}
-            help={t('Select the tags that can be used to group and filter the metric.')}
+            help={t(
+              'Select the tags that can be used to group and filter the metric. Tag values have to be non-numeric.'
+            )}
             creatable
             formatCreateLabel={value => `Custom: "${value}"`}
             onCreateOption={value => {
@@ -293,9 +295,9 @@ export function MetricsExtractionRuleForm({
             }}
           />
           <FormField
-            label={t('Queries')}
+            label={t('Filters')}
             help={t(
-              'Define queries to narrow down the metric extraction to a specific set of spans.'
+              'Define filters to narrow down the metric to a specific set of spans.'
             )}
             name="conditions"
             inline={false}
@@ -346,7 +348,7 @@ export function MetricsExtractionRuleForm({
                               isExeedingCardinalityLimit ? (
                                 <Tooltip
                                   title={t(
-                                    'This query is exeeding the cardinality limit. Remove tags or add more filters to receive accurate data.'
+                                    'This filter is exeeding the cardinality limit. Remove tags or add more conditions to receive accurate data.'
                                   )}
                                 >
                                   <StyledIconWarning size="xs" color="yellow300" />
@@ -379,7 +381,7 @@ export function MetricsExtractionRuleForm({
                           </SearchWrapper>
                           {value.length > 1 && (
                             <Button
-                              aria-label={t('Remove Query')}
+                              aria-label={t('Remove Filter')}
                               onClick={() => onChange(conditions.toSpliced(index, 1), {})}
                               icon={<IconClose />}
                             />
@@ -394,7 +396,7 @@ export function MetricsExtractionRuleForm({
                       onClick={() => onChange([...conditions, createCondition()], {})}
                       icon={<IconAdd />}
                     >
-                      {t('Add Query')}
+                      {t('Add Filter')}
                     </Button>
                   </ConditionsButtonBar>
                 </Fragment>

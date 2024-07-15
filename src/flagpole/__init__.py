@@ -68,7 +68,7 @@ import orjson
 import yaml
 from pydantic import BaseModel, Field, ValidationError, constr
 
-from flagpole.conditions import Segment
+from flagpole.conditions import ConditionBase, Segment
 from flagpole.evaluation_context import ContextBuilder, EvaluationContext
 
 
@@ -95,9 +95,7 @@ class Feature(BaseModel):
     enabled: bool = Field(default=True, description="Whether or not the feature is enabled.")
     "Whether or not the feature is enabled."
 
-    created_at: datetime = Field(
-        description="The datetime when this feature was created.", default_factory=datetime.now
-    )
+    created_at: datetime = Field(description="The datetime when this feature was created.")
     "The datetime when this feature was created."
 
     def match(self, context: EvaluationContext) -> bool:
@@ -170,4 +168,11 @@ class Feature(BaseModel):
         return orjson.dumps(self.to_dict()).decode()
 
 
-__all__ = ["Feature", "InvalidFeatureFlagConfiguration", "ContextBuilder", "EvaluationContext"]
+__all__ = [
+    "Feature",
+    "InvalidFeatureFlagConfiguration",
+    "ContextBuilder",
+    "EvaluationContext",
+    "Segment",
+    "ConditionBase",
+]

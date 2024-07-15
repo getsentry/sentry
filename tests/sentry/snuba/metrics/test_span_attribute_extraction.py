@@ -194,3 +194,64 @@ def test_empty_conditions():
     metric_spec = convert_to_metric_spec(rule)
 
     assert not metric_spec["condition"]
+
+
+def test_numeric_conditions():
+    rule = MetricsExtractionRule(
+        span_attribute="foobar",
+        type="d",
+        unit="none",
+        tags=set(),
+        condition="foo:123 and bar:[123,456]",
+        id=1,
+    )
+
+    metric_spec = convert_to_metric_spec(rule)
+
+    assert metric_spec["condition"] == {
+        "op": "and",
+        "inner": [
+            {
+                "op": "or",
+                "inner": [
+                    {"op": "eq", "name": "span.data.foo", "value": "123"},
+                    {"op": "eq", "name": "span.data.foo", "value": 123},
+                ],
+            },
+            {
+                "op": "or",
+                "inner": [
+                    {"op": "eq", "name": "span.data.bar", "value": ["123", "456"]},
+                    {"op": "eq", "name": "span.data.bar", "value": [123, 456]},
+                ],
+            },
+        ],
+    }
+
+
+def test_mixed_conditions():
+    rule = MetricsExtractionRule(
+        span_attribute="foobar",
+        type="d",
+        unit="none",
+        tags=set(),
+        condition="foo:123 and bar:True and baz:qux",
+        id=1,
+    )
+
+    metric_spec = convert_to_metric_spec(rule)
+
+    assert metric_spec["condition"] == {
+        "op": "and",
+        "inner": [
+            {
+                "op": "or",
+                "inner": [
+                    {"op": "eq", "name": "span.data.foo", "value": "123"},
+                    {"op": "eq", "name": "span.data.foo", "value": 123},
+                ],
+            },
+            {"op": "eq", "name": "span.data.bar", "value": "True"},
+            {"op": "eq", "name": "span.data.baz", "value": "qux"},
+        ],
+    }
