@@ -421,13 +421,18 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
             "id", "type", "project__organization_id"
         )
         error_issue_ids, generic_issue_ids = self.get_error_and_generic_group_ids(groups)
+        organization_id = None
+        if groups:
+            group = groups[0]
+            if len(group) == 3:
+                organization_id = group[3]
 
         if error_issue_ids:
             error_sums = self.get_chunked_result(
                 tsdb_function=self.tsdb.get_sums,
                 model=get_issue_tsdb_group_model(GroupCategory.ERROR),
                 group_ids=error_issue_ids,
-                organization_id=groups[0][2],
+                organization_id=organization_id,
                 start=start,
                 end=end,
                 environment_id=environment_id,
@@ -441,7 +446,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
                 # this isn't necessarily performance, just any non-error category
                 model=get_issue_tsdb_group_model(GroupCategory.PERFORMANCE),
                 group_ids=generic_issue_ids,
-                organization_id=groups[0][2],
+                organization_id=organization_id,
                 start=start,
                 end=end,
                 environment_id=environment_id,
