@@ -1,8 +1,4 @@
-import {
-  addErrorMessage,
-  addLoadingMessage,
-  addSuccessMessage,
-} from 'sentry/actionCreators/indicator';
+import {addLoadingMessage} from 'sentry/actionCreators/indicator';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
 import TextField from 'sentry/components/forms/fields/textField';
 import Form from 'sentry/components/forms/form';
@@ -16,22 +12,13 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t, tct} from 'sentry/locale';
 import type {InternalAppApiToken} from 'sentry/types/user';
 import {browserHistory} from 'sentry/utils/browserHistory';
-import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import {
-  getApiQueryData,
-  setApiQueryData,
-  useApiQuery,
-  useMutation,
-  useQueryClient,
-} from 'sentry/utils/queryClient';
-import type RequestError from 'sentry/utils/requestError/requestError';
-import useApi from 'sentry/utils/useApi';
+import {useApiQuery} from 'sentry/utils/queryClient';
+import useMutateApiToken from 'sentry/utils/useMutateApiToken';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 import {tokenPreview} from 'sentry/views/settings/organizationAuthTokens';
 
-const API_TOKEN_QUERY_KEY = ['/api-tokens/'] as const;
 const API_INDEX_ROUTE = '/settings/account/api/auth-tokens/';
 
 type Props = {
@@ -42,9 +29,6 @@ type FetchApiTokenParameters = {
   tokenId: string;
 };
 type FetchApiTokenResponse = InternalAppApiToken;
-type UpdateTokenQueryVariables = {
-  name: string;
-};
 
 export const makeFetchApiTokenKey = ({tokenId}: FetchApiTokenParameters) =>
   [`/api-tokens/${tokenId}/`] as const;
@@ -55,68 +39,13 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
     tokenPreview: tokenPreview(token.tokenLastCharacters || '****'),
   };
 
-  const api = useApi();
-  const queryClient = useQueryClient();
-
   const handleGoBack = () => {
     browserHistory.push(normalizeUrl(API_INDEX_ROUTE));
   };
 
-  const {mutate: submitToken} = useMutation<{}, RequestError, UpdateTokenQueryVariables>({
-    mutationFn: ({name}) =>
-      api.requestPromise(`/api-tokens/${token.id}/`, {
-        method: 'PUT',
-        data: {
-          name,
-        },
-      }),
-
-    onSuccess: (_data, {name}) => {
-      addSuccessMessage(t('Updated user auth token.'));
-
-      // Update get by id query
-      setApiQueryData(
-        queryClient,
-        makeFetchApiTokenKey({tokenId: token.id}),
-        (oldData: InternalAppApiToken | undefined) => {
-          if (!oldData) {
-            return oldData;
-          }
-
-          oldData.name = name;
-
-          return oldData;
-        }
-      );
-
-      // Update get list query
-      if (getApiQueryData(queryClient, API_TOKEN_QUERY_KEY)) {
-        setApiQueryData(
-          queryClient,
-          API_TOKEN_QUERY_KEY,
-          (oldData: InternalAppApiToken[] | undefined) => {
-            if (!Array.isArray(oldData)) {
-              return oldData;
-            }
-
-            const existingToken = oldData.find(oldToken => oldToken.id === token.id);
-
-            if (existingToken) {
-              existingToken.name = name;
-            }
-
-            return oldData;
-          }
-        );
-      }
-
-      handleGoBack();
-    },
-    onError: error => {
-      const message = t('Failed to update the user auth token.');
-      handleXhrErrorResponse(message, error);
-      addErrorMessage(message);
-    },
+  const {mutate: submitToken} = useMutateApiToken({
+    token: token,
+    onSuccess: handleGoBack,
   });
 
   return (

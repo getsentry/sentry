@@ -24,7 +24,14 @@ function ApiTokenRow({token, onRemove, tokenPrefix = ''}: Props) {
       <Controls>
         <LinkWrapper name={token.name}>
           <Link to={`/settings/account/api/auth-tokens/${token.id}/`}>
-            {token.name ? token.name : 'unnamed token'}
+            {token.name ? token.name : 'Token created on '}
+            <DateTime
+              date={getDynamicText({
+                value: token.dateCreated,
+                fixed: new Date(1508208080000), // National Pasta Day
+              })}
+              hidden={!!token.name}
+            />
           </Link>
         </LinkWrapper>
         <ButtonWrapper>
