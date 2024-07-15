@@ -2,7 +2,7 @@ import {Fragment, lazy, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {usePrompt} from 'sentry/actionCreators/prompts';
-import ButtonBar from 'sentry/components/buttonBar';
+import {Button} from 'sentry/components/button';
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import BreadcrumbsDataSection from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
@@ -41,7 +41,7 @@ import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {
   EventUserFeedback,
-  HideUserFeedbackButton,
+  EventUserFeedbackHiddenState,
 } from 'sentry/components/events/userFeedback';
 import LazyLoad from 'sentry/components/lazyLoad';
 import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
@@ -93,6 +93,35 @@ function GroupEventEntry({event, entryType, group, project}: GroupEventEntryProp
       entry={matchingEntry}
       {...{organization, event}}
     />
+  );
+}
+
+function HideUserFeedbackButton({
+  hideFeedback,
+  isError,
+  isHidden,
+  isLoading,
+  showFeedback,
+}: {
+  hideFeedback: () => void;
+  isError: boolean;
+  isHidden: boolean;
+  isLoading: boolean;
+  showFeedback: () => void;
+}) {
+  return (
+    <Button
+      size="xs"
+      onClick={isHidden ? showFeedback : hideFeedback}
+      title={
+        isHidden
+          ? t('Unhide feedback on all issue details')
+          : t('Hide feedback on all issue details')
+      }
+      disabled={isError || isLoading}
+    >
+      {isHidden ? t('Show') : t('Hide')}
+    </Button>
   );
 }
 
@@ -153,20 +182,18 @@ function DefaultGroupEventDetailsContent({
           type="user-feedback"
           actions={
             <ErrorBoundary mini>
-              <ButtonBar gap={1}>
-                <HideUserFeedbackButton
-                  isLoading={promptLoading}
-                  isError={promptError || isPromptDismissed === undefined}
-                  isHidden={isPromptDismissed !== undefined ? isPromptDismissed : false}
-                  showFeedback={showPrompt}
-                  hideFeedback={dismissPrompt}
-                />
-              </ButtonBar>
+              <HideUserFeedbackButton
+                isLoading={promptLoading}
+                isError={promptError || isPromptDismissed === undefined}
+                isHidden={isPromptDismissed !== undefined ? isPromptDismissed : false}
+                showFeedback={showPrompt}
+                hideFeedback={dismissPrompt}
+              />
             </ErrorBoundary>
           }
         >
           {promptLoading || promptError || isPromptDismissed ? (
-            '- Hidden -'
+            <EventUserFeedbackHiddenState />
           ) : (
             <EventUserFeedback
               report={event.userReport}

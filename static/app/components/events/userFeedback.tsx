@@ -11,36 +11,6 @@ import type {UserReport} from 'sentry/types/group';
 import {escape, nl2br} from 'sentry/utils';
 import useCopyToClipboard from 'sentry/utils/useCopyToClipboard';
 
-// used for issue details page (groupEventDetailsContent.tsx)
-export function HideUserFeedbackButton({
-  hideFeedback,
-  isError,
-  isHidden,
-  isLoading,
-  showFeedback,
-}: {
-  hideFeedback: () => void;
-  isError: boolean;
-  isHidden: boolean;
-  isLoading: boolean;
-  showFeedback: () => void;
-}) {
-  return (
-    <Button
-      size="xs"
-      onClick={isHidden ? showFeedback : hideFeedback}
-      title={
-        isHidden
-          ? t('Unhide feedback on all issue details')
-          : t('Hide feedback on all issue details')
-      }
-      disabled={isError || isLoading}
-    >
-      {isHidden ? t('Show') : t('Hide')}
-    </Button>
-  );
-}
-
 type Props = {
   issueId: string;
   orgSlug: string;
@@ -129,3 +99,7 @@ const ViewEventLink = styled(Link)`
   font-weight: ${p => p.theme.fontWeightNormal};
   font-size: 0.9em;
 `;
+
+export function EventUserFeedbackHiddenState() {
+  return '- Hidden -';
+}
