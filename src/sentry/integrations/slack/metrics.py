@@ -34,8 +34,12 @@ SLACK_BOT_COMMAND_LINK_TEAM_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.
 # Webhooks
 SLACK_WEBHOOK_DM_ENDPOINT_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.dm_endpoint.success"
 SLACK_WEBHOOK_DM_ENDPOINT_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.dm_endpoint.failure"
-SLACK_EVENT_ENDPOINT_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.event_endpoint.success"
-SLACK_EVENT_ENDPOINT_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.event_endpoint.failure"
+SLACK_WEBHOOK_EVENT_ENDPOINT_SUCCESS_DATADOG_METRIC = (
+    "sentry.integrations.slack.event_endpoint.success"
+)
+SLACK_WEBHOOK_EVENT_ENDPOINT_FAILURE_DATADOG_METRIC = (
+    "sentry.integrations.slack.event_endpoint.failure"
+)
 SLACK_WEBHOOK_GROUP_ACTIONS_SUCCESS_DATADOG_METRIC = (
     "sentry.integrations.slack.group_actions.success"
 )
@@ -56,3 +60,12 @@ SLACK_COMMANDS_LINK_IDENTITY_SUCCESS_DATADOG_METRIC = (
 SLACK_COMMANDS_LINK_IDENTITY_FAILURE_DATADOG_METRIC = (
     "sentry.integrations.slack.commands_link_identity.failure"
 )
+
+SLACK_NOTIFY_MIXIN_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.notify_mixin.success"
+SLACK_NOTIFY_MIXIN_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.notify_mixin.failure"
+
+# Utils
+SLACK_UTILS_GET_USER_LIST_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.utils.users.success"
+SLACK_UTILS_GET_USER_LIST_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.utils.users.failure"
+SLACK_UTILS_CHANNEL_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.utils.channel.success"
+SLACK_UTILS_CHANNEL_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.utils.channel.failure"

@@ -1,7 +1,7 @@
 import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
-import {DeletableToken} from 'sentry/components/searchQueryBuilder/deletableToken';
+import {DeletableToken} from 'sentry/components/searchQueryBuilder/tokens/deletableToken';
 import {
   type ParseResultToken,
   Token,
