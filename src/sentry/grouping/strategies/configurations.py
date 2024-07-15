@@ -160,14 +160,8 @@ register_strategy_config(
 # This is simply a base for the hierarchical grouping until we can remove it
 register_strategy_config(
     id="newstyle_hierarchical:1970-01-01",
+    base="newstyle:2019-05-08",
     initial_context={
-        # These come from newstyle:2019-05-08
-        "javascript_fuzzing": True,
-        "contextline_platforms": ("javascript", "node", "python", "php", "ruby"),
-        # Overwritten in newstyle:2019-10-29
-        # "with_context_line_file_origin_bug": True,
-        "normalize_message": True,
-        "with_exception_value_fallback": True,
         # These come from newstyle:2019-10-29
         "php_detect_anonymous_classes": True,
         "with_context_line_file_origin_bug": False,
