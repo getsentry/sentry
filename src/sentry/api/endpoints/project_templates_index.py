@@ -76,7 +76,7 @@ class OrganizationProjectTemplatesIndexEndpoint(OrganizationEndpoint):
         if name is None:
             return Response(status=400, data={"detail": "Template name is required"})
 
-        # TODO - Rate Limiting
+        # TODO @saponifi3d - Rate Limiting once we know the limits
 
         project_template = ProjectTemplate.objects.create(
             name=name,
