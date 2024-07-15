@@ -144,7 +144,10 @@ def _get_release_package(project: Project, release_name: str | None) -> str | No
     return release.package if release else None
 
 
-def _get_window_class_names(attachments: list[any]) -> list[str]:
+def _get_window_class_names(attachments: list[CachedAttachment]) -> list[str]:
+    """Returns the class names of all windows in all view hierarchies
+    contained in `attachments`."""
+
     class_names = []
     windows_to_deobfuscate = []
 
@@ -163,7 +166,12 @@ def _get_window_class_names(attachments: list[any]) -> list[str]:
     return class_names
 
 
-def _deobfuscate_view_hierarchy(view_hierarchy: Any, class_names: dict[str, str]):
+def _deobfuscate_view_hierarchy(view_hierarchy: Any, class_names: dict[str, str]) -> None:
+    """Deobfuscates a view hierarchy in-place.
+
+    The `class_names` dict is used to resolve obfuscated to deobfuscated names. If
+    an obfuscated class name isn't present in `class_names`, it is left unchanged."""
+
     windows_to_deobfuscate = [*view_hierarchy.get("windows")]
 
     while windows_to_deobfuscate:
@@ -174,7 +182,13 @@ def _deobfuscate_view_hierarchy(view_hierarchy: Any, class_names: dict[str, str]
             windows_to_deobfuscate.extend(children)
 
 
-def _deobfuscate_view_hierarchies(attachments: list[Any], class_names: dict[str, str]) -> list[Any]:
+def _deobfuscate_view_hierarchies(
+    attachments: list[CachedAttachment], class_names: dict[str, str]
+) -> list[CachedAttachment]:
+    """Deobfuscates all view hierarchies contained in `attachments`, returning a new list of attachments.
+
+    Non-view-hierarchy attachments are unchanged.
+    """
     new_attachments = []
     for attachment in attachments:
         if attachment.type == "event.view_hierarchy":
@@ -276,7 +290,7 @@ def process_jvm_stacktraces(symbolicator: Symbolicator, data: Any) -> Any:
         stacktraces=stacktraces,
         modules=modules,
         release_package=release_package,
-        class_names=window_class_names,
+        classes=window_class_names,
     )
 
     if not _handle_response_status(data, response):

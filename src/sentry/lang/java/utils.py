@@ -11,7 +11,6 @@ from sentry.ingest.consumer.processors import CACHE_TIMEOUT
 from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.project import Project
-from sentry.stacktraces.processing import StacktraceInfo
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import get_path
 
@@ -108,9 +107,8 @@ def deobfuscation_template(data, map_type, deobfuscation_fn):
     attachment_cache.set(cache_key, attachments=new_attachments, timeout=CACHE_TIMEOUT)
 
 
-def is_jvm_event(data: Any, stacktraces: list[StacktraceInfo]) -> bool:
-    """Returns whether `data` is a JVM event, based on its platform, images, and
-    the supplied stacktraces."""
+def is_jvm_event(data: Any) -> bool:
+    """Returns whether `data` is a JVM event, based on its images."""
 
     # check if there are any JVM or Proguard images
     images = get_path(
@@ -120,16 +118,4 @@ def is_jvm_event(data: Any, stacktraces: list[StacktraceInfo]) -> bool:
         filter=lambda x: is_valid_jvm_image(x) or is_valid_proguard_image(x),
         default=(),
     )
-    if images:
-        return True
-    else:
-        return False
-
-    if data.get("platform") == "java":
-        return True
-
-    for stacktrace in stacktraces:
-        if any(x == "java" for x in stacktrace.platforms):
-            return True
-
-    return False
+    return bool(images)
