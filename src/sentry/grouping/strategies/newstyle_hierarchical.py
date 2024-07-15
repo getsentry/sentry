@@ -14,6 +14,7 @@ from sentry.grouping.strategies.base import (
     call_with_variants,
     strategy,
 )
+from sentry.grouping.strategies.hierarchical import get_stacktrace_hierarchy
 from sentry.grouping.strategies.message import normalize_message_for_grouping
 from sentry.grouping.strategies.utils import has_url_origin, remove_non_stacktrace_variants
 from sentry.grouping.utils import hash_from_values
@@ -109,6 +110,18 @@ def get_basename(string: str) -> str:
     Returns best-effort basename of a string irrespective of platform.
     """
     return _basename_re.split(string)[-1]
+
+
+def get_package_component(package: str, platform: str | None) -> GroupingComponent:
+    if package is None or platform != "native":
+        return GroupingComponent(id="package")
+
+    package = get_basename(package).lower()
+    package_component = GroupingComponent(
+        id="package",
+        values=[package],
+    )
+    return package_component
 
 
 def get_filename_component(
@@ -285,6 +298,13 @@ def get_function_component(
                 function_component.update(values=[new_function], hint="isolated function")
                 func = new_function
 
+        if context["native_fuzzing"]:
+            # Normalize macOS/llvm anonymous namespaces to
+            # Windows-like/msvc
+            new_function = func.replace("(anonymous namespace)", "`anonymous namespace'")
+            if new_function != func:
+                function_component.update(values=[new_function])
+
     elif context["javascript_fuzzing"] and behavior_family == "javascript":
         # This changes Object.foo or Foo.foo into foo so that we can
         # resolve some common cross browser differences
@@ -302,6 +322,9 @@ def get_function_component(
                 contributes=False,
                 hint="ignored because sourcemap used and context line available",
             )
+
+    if function_component.values and context["hierarchical_grouping"]:
+        function_component.update(tree_label={"function": function_component.values[0]})
 
     return function_component
 
@@ -360,6 +383,38 @@ def frame(
         context_line_component.update(tree_label=function_component.tree_label)
         values.append(context_line_component)
 
+    if (
+        context["discard_native_filename"]
+        and get_behavior_family_for_platform(platform) == "native"
+        and function_component.contributes
+        and filename_component.contributes
+    ):
+        # In native, function names usually describe a full namespace. Adding
+        # the filename there just brings extra instability into grouping.
+        filename_component.update(
+            contributes=False, hint="discarded native filename for grouping stability"
+        )
+
+    if context["use_package_fallback"] and frame.package:
+        # If function did not symbolicate properly and we also have no filename, use package as fallback.
+        package_component = get_package_component(package=frame.package, platform=platform)
+        if package_component.contributes:
+            use_package_component = all(not component.contributes for component in values)
+
+            if use_package_component:
+                package_component.update(
+                    hint="used as fallback because function name is not available"
+                )
+            else:
+                package_component.update(
+                    contributes=False, hint="ignored because function takes precedence"
+                )
+
+            if package_component.values and context["hierarchical_grouping"]:
+                package_component.update(tree_label={"package": package_component.values[0]})
+
+            values.append(package_component)
+
     rv = GroupingComponent(id="frame", values=values)
 
     # if we are in javascript fuzzing mode we want to disregard some
@@ -398,9 +453,13 @@ def frame(
             if isinstance(value, GroupingComponent) and value.contributes and value.tree_label:
                 tree_label.update(value.tree_label)
 
-        # The frame contributes (somehow) but we have nothing meaningful to
-        # show.
-        rv.tree_label = None
+        if tree_label and context["hierarchical_grouping"]:
+            tree_label["datapath"] = frame.datapath
+            rv.tree_label = tree_label
+        else:
+            # The frame contributes (somehow) but we have nothing meaningful to
+            # show.
+            rv.tree_label = None
 
     return {context["variant"]: rv}
 
@@ -442,14 +501,20 @@ def stacktrace(
 ) -> ReturnedVariants:
     assert context["variant"] is None
 
-    return call_with_variants(
-        _single_stacktrace_variant,
-        ["!system", "app"],
-        interface,
-        event=event,
-        context=context,
-        meta=meta,
-    )
+    if context["hierarchical_grouping"]:
+        with context:
+            context["variant"] = "system"
+            return _single_stacktrace_variant(interface, event=event, context=context, meta=meta)
+
+    else:
+        return call_with_variants(
+            _single_stacktrace_variant,
+            ["!system", "app"],
+            interface,
+            event=event,
+            context=context,
+            meta=meta,
+        )
 
 
 def _single_stacktrace_variant(
@@ -467,7 +532,7 @@ def _single_stacktrace_variant(
             context["is_recursion"] = is_recursion_v1(frame, prev_frame)
             frame_component = context.get_single_grouping_component(frame, event=event, **meta)
 
-        if variant == "app" and not frame.in_app:
+        if not context["hierarchical_grouping"] and variant == "app" and not frame.in_app:
             frame_component.update(contributes=False, hint="non app frame")
         values.append(frame_component)
         frames_for_filtering.append(frame.get_raw_data())
@@ -485,14 +550,29 @@ def _single_stacktrace_variant(
     ):
         values[0].update(contributes=False, hint="ignored single non-URL JavaScript frame")
 
-    return {
-        variant: context.config.enhancements.assemble_stacktrace_component(
-            values,
-            frames_for_filtering,
-            event.platform,
-            exception_data=context["exception_data"],
-        )
-    }
+    main_variant, inverted_hierarchy = context.config.enhancements.assemble_stacktrace_component(
+        values,
+        frames_for_filtering,
+        event.platform,
+        exception_data=context["exception_data"],
+    )
+
+    if inverted_hierarchy is None:
+        inverted_hierarchy = stacktrace.snapshot
+
+    inverted_hierarchy = bool(inverted_hierarchy)
+
+    if not context["hierarchical_grouping"]:
+        return {variant: main_variant}
+
+    all_variants = get_stacktrace_hierarchy(
+        main_variant, values, frames_for_filtering, inverted_hierarchy
+    )
+
+    # done for backwards compat to find old groups
+    all_variants["system"] = main_variant
+
+    return all_variants
 
 
 @stacktrace.variant_processor
@@ -539,9 +619,11 @@ def single_exception(
             )
 
     if interface.stacktrace is not None:
-        stacktrace_variants = context.get_grouping_component(
-            interface.stacktrace, event=event, **meta
-        )
+        with context:
+            context["exception_data"] = interface.to_json()
+            stacktrace_variants = context.get_grouping_component(
+                interface.stacktrace, event=event, **meta
+            )
     else:
         stacktrace_variants = {
             "app": GroupingComponent(id="stacktrace"),
