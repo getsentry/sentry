@@ -28,7 +28,10 @@ import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hook
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import type {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 import {useSourceCodeLink} from 'sentry/utils/profiling/hooks/useSourceLink';
-import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import type {
+  ContinuousProfileGroup,
+  ProfileGroup,
+} from 'sentry/utils/profiling/profile/importProfile';
 import {generateProfileFlamechartRouteWithHighlightFrame} from 'sentry/utils/profiling/routes';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
@@ -63,7 +66,7 @@ interface FlamegraphContextMenuProps {
   onCopyFunctionNameClick: () => void;
   onCopyFunctionSource: () => void;
   onHighlightAllOccurrencesClick: () => void;
-  profileGroup: ProfileGroup | null;
+  profileGroup: ProfileGroup | ContinuousProfileGroup | null;
   disableCallOrderSort?: boolean;
   disableColorCoding?: boolean;
 }
