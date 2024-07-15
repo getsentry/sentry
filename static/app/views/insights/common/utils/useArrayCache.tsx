@@ -13,9 +13,9 @@ interface Props<T> {
 }
 
 /**
- * An array cache hook. Keeps a list of items in memory. Allows for
- * sorting and merging. Useful for autocomplete dropdowns, and other
- * cases
+ * An array cache hook. Every render of this hook appends the contents of
+ *  the `items` prop to the current cache. Cache never expires, but respects
+ *  a limit if it's set. Useful for autocomplete dropdowns, etc.
  *
  * e.g.,
  * ```jsx
@@ -24,7 +24,7 @@ interface Props<T> {
  * ```
  *
  * Every time the `useArrayCache` hook is called with new items it adds
- * them to the cache.
+ * them to the cache, and returns all known items.
  */
 export function useArrayCache<T>(props: Props<T>): T[] {
   const {items: incomingItems, sortFn, limit = -1} = props;
