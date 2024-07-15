@@ -18,15 +18,15 @@ describe('UIFramesRenderer', () => {
         unit: 'nanoseconds',
         values: [
           {
-            elapsed_since_start_ns: 1,
+            elapsed: 1,
             value: 1,
           },
           {
-            elapsed_since_start_ns: 3,
+            elapsed: 3,
             value: 1,
           },
           {
-            elapsed_since_start_ns: 5.5,
+            elapsed: 5.5,
             value: 1,
           },
         ],
@@ -35,11 +35,11 @@ describe('UIFramesRenderer', () => {
         unit: 'nanoseconds',
         values: [
           {
-            elapsed_since_start_ns: 3,
+            elapsed: 3,
             value: 1,
           },
           {
-            elapsed_since_start_ns: 5,
+            elapsed: 5,
             value: 1,
           },
         ],

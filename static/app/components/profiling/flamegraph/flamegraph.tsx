@@ -57,6 +57,7 @@ import type {SpanChartNode} from 'sentry/utils/profiling/spanChart';
 import {SpanChart} from 'sentry/utils/profiling/spanChart';
 import {SpanTree} from 'sentry/utils/profiling/spanTree';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+import type {UIFrameMeasurements} from 'sentry/utils/profiling/uiFrames';
 import {UIFrames} from 'sentry/utils/profiling/uiFrames';
 import type {ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 import {formatTo, fromNanoJoulesToWatts} from 'sentry/utils/profiling/units/units';
@@ -123,6 +124,30 @@ function collectAllSpanEntriesFromTransaction(
   }
 
   return allSpans;
+}
+
+function convertProfileMeasurementsToUIFrames(
+  measurement: ProfileGroup['measurements']['slow_frame_renders']
+): UIFrameMeasurements | undefined {
+  if (!measurement) {
+    return undefined;
+  }
+
+  const measurements: UIFrameMeasurements = {
+    unit: measurement.unit,
+    values: [],
+  };
+
+  for (let i = 0; i < measurement.values.length; i++) {
+    const value = measurement.values[i];
+
+    measurements.values.push({
+      elapsed: value.elapsed_since_start_ns,
+      value: value.value,
+    });
+  }
+
+  return measurements;
 }
 
 type FlamegraphCandidate = {
@@ -365,8 +390,12 @@ function Flamegraph(): ReactElement {
     }
     return new UIFrames(
       {
-        slow: profileGroup.measurements?.slow_frame_renders,
-        frozen: profileGroup.measurements?.frozen_frame_renders,
+        slow: convertProfileMeasurementsToUIFrames(
+          profileGroup.measurements?.slow_frame_renders
+        ),
+        frozen: convertProfileMeasurementsToUIFrames(
+          profileGroup.measurements?.frozen_frame_renders
+        ),
       },
       {unit: flamegraph.profile.unit},
       flamegraph.configSpace.withHeight(1)
