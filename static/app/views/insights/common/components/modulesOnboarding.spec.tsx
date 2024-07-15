@@ -4,12 +4,14 @@ import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
+import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {ModuleName} from 'sentry/views/insights/types';
 
 import {ModulesOnboarding} from './modulesOnboarding';
 
 jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
 
 describe('ModulesOnboarding', () => {
   afterEach(() => {
@@ -17,7 +19,7 @@ describe('ModulesOnboarding', () => {
   });
 
   it('renders children correctly', async () => {
-    const project = ProjectFixture();
+    const project = ProjectFixture({hasInsightsCaches: true});
     project.firstTransactionEvent = true;
     project.hasInsightsCaches = true;
 
@@ -30,6 +32,8 @@ describe('ModulesOnboarding', () => {
       fetchError: null,
       initiallyLoaded: false,
     });
+
+    jest.mocked(useOnboardingProject).mockReturnValue(undefined);
 
     jest.mocked(usePageFilters).mockReturnValue({
       isReady: true,
