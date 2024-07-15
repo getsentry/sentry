@@ -237,10 +237,10 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
         )
 
         tests = [
-            ("key1", ["key1"], ["value1", "value2"]),
-            ("key1", ["-key1"], ["value2", "value1"]),
-            ("tags[key1]", ["tags[key1]"], ["value1", "value2"]),
-            ("tags[key1]", ["-tags[key1]"], ["value2", "value1"]),
+            ("key1", "key1", ["value1", "value2"]),
+            ("key1", "-key1", ["value2", "value1"]),
+            ("tags[key1]", "tags[key1]", ["value1", "value2"]),
+            ("tags[key1]", "-tags[key1]", ["value2", "value1"]),
         ]
 
         for column, orderby, expected in tests:
@@ -248,7 +248,7 @@ class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=[column],
                 query="",
                 params=self.params,
-                orderby=orderby,
+                orderby=[orderby],
                 referrer="test_discover_query",
             )
             data = result["data"]

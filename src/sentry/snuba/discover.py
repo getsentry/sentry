@@ -339,9 +339,9 @@ def timeseries_query(
         Dataset.Transactions,
     ], "A dataset is required to query discover"
     assert (
-        "start" not in params or params["start"] is not None
+        "start" in params and params["start"] is not None
     ), "Start is required to query timeseries"
-    assert "end" not in params or params["end"] is not None, "End is required to query timeseries"
+    assert "end" in params and params["end"] is not None, "End is required to query timeseries"
     with sentry_sdk.start_span(op="discover.discover", description="timeseries.filter_transform"):
         equations, columns = categorize_columns(selected_columns)
         base_builder = TimeseriesQueryBuilder(
