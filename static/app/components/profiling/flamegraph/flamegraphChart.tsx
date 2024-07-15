@@ -16,7 +16,6 @@ import {
   getPhysicalSpacePositionFromOffset,
   transformMatrixBetweenRect,
 } from 'sentry/utils/profiling/gl/utils';
-import type {Profile} from 'sentry/utils/profiling/profile/profile';
 import {FlamegraphChartRenderer} from 'sentry/utils/profiling/renderers/chartRenderer';
 import type {Rect} from 'sentry/utils/profiling/speedscope';
 import {formatTo, type ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
