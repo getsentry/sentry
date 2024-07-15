@@ -63,7 +63,7 @@ SnubaData = list[SnubaRow]
 
 class EventsMeta(TypedDict):
     fields: dict[str, str]
-    tips: dict[str, str | None]
+    tips: NotRequired[dict[str, str | None]]
     isMetricsData: NotRequired[bool]
 
 

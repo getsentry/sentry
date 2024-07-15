@@ -23,6 +23,7 @@ from sentry.discover.models import DiscoverSavedQuery, DiscoverSavedQueryTypes
 from sentry.exceptions import InvalidParams
 from sentry.models.dashboard_widget import DashboardWidget, DashboardWidgetTypes
 from sentry.models.organization import Organization
+from sentry.search.events.types import EventsResponse
 from sentry.snuba import discover, metrics_enhanced_performance, metrics_performance
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.referrer import Referrer
@@ -33,7 +34,7 @@ from sentry.utils.snuba import SnubaError
 logger = logging.getLogger(__name__)
 
 METRICS_ENHANCED_REFERRERS = {Referrer.API_PERFORMANCE_LANDING_TABLE.value}
-EMPTY_EVENTS_RESPONSE: discover.EventsResponse = {"data": [], "meta": {"fields": {}}}
+EMPTY_EVENTS_RESPONSE: EventsResponse = {"data": [], "meta": {"fields": {}}}
 SAVED_QUERY_DATASET_MAP = {
     DiscoverSavedQueryTypes.TRANSACTION_LIKE: get_dataset("discover"),
     DiscoverSavedQueryTypes.ERROR_EVENTS: get_dataset("errors"),
