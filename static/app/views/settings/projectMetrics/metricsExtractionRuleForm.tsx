@@ -295,9 +295,9 @@ export function MetricsExtractionRuleForm({
             }}
           />
           <FormField
-            label={t('Queries')}
+            label={t('Filters')}
             help={t(
-              'Define queries to narrow down the metric extraction to a specific set of spans.'
+              'Define filters to narrow down the metric to a specific set of spans.'
             )}
             name="conditions"
             inline={false}
