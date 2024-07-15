@@ -82,7 +82,7 @@ export function MetricsExtractionRulesTable({project}: Props) {
   return (
     <Fragment>
       <SearchWrapper>
-        <h6>{t('Span-based Metrics')}</h6>
+        <h6>{t('Span Metrics')}</h6>
         <FlexSpacer />
         <SearchBar
           placeholder={t('Search Metrics')}
@@ -147,7 +147,7 @@ function RulesTable({
       emptyMessage={
         hasSearch
           ? t('No metrics match the query.')
-          : t('You have not created any span-based metrics yet.')
+          : t('You have not created any span metrics yet.')
       }
       isEmpty={extractionRules.length === 0}
       isLoading={isLoading}

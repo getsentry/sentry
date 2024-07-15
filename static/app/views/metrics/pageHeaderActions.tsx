@@ -95,8 +95,8 @@ export function PageHeaderActions({showAddMetricButton, addCustomMetric}: Props)
       },
       {
         leadingItems: [<IconSettings key="icon" />],
-        key: 'metrics-settings',
-        label: t('Metrics Settings'),
+        key: 'configure-metric',
+        label: t('Configure Metric'),
         onAction: () => navigateTo(`/settings/projects/:projectId/metrics/`, router),
       },
     ],
