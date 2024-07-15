@@ -1,6 +1,6 @@
 import {renderHook} from 'sentry-test/reactTestingLibrary';
 
-import {useArrayCache} from 'sentry/views/insights/common/utils/useArrayCache';
+import {setMerge, useArrayCache} from 'sentry/views/insights/common/utils/useArrayCache';
 
 describe('useArrayCache', function () {
   it('keeps a cache', function () {
@@ -34,6 +34,23 @@ describe('useArrayCache', function () {
     expect(result.current).toEqual(['d', 'c', 'b', 'a']);
   });
 
+  it('respects a merge function', function () {
+    const {result, rerender} = renderHook(useArrayCache, {
+      initialProps: {
+        items: ['a', 'c'],
+        mergeFn: noOpMerge,
+      },
+    });
+
+    expect(result.current).toEqual(['a', 'c']);
+
+    rerender({items: ['a', 'c'], mergeFn: noOpMerge});
+    expect(result.current).toEqual(['a', 'c', 'a', 'c']);
+
+    rerender({items: ['a'], mergeFn: setMerge});
+    expect(result.current).toEqual(['a', 'c']);
+  });
+
   it('respects a limit', function () {
     const {result, rerender} = renderHook(useArrayCache, {
       initialProps: {
@@ -56,3 +73,5 @@ const sortAscending = (items: string[]) => {
 const sortDescending = (items: string[]) => {
   return [...items].sort((a, b) => b.localeCompare(a));
 };
+
+const noOpMerge = (items: string[]) => items;

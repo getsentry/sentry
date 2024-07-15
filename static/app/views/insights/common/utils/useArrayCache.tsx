@@ -5,10 +5,12 @@ type Cache<T> = {
 };
 
 type SortFn<T> = (items: T[]) => T[];
+type MergeFn<T> = (items: T[]) => T[];
 
 interface Props<T> {
   items: T[];
   limit?: number;
+  mergeFn?: MergeFn<T>;
   sortFn?: SortFn<T>;
 }
 
@@ -23,11 +25,14 @@ interface Props<T> {
  * const greetings = useArrayCache({ items: greetingsData });
  * ```
  *
+ * `sortFn` is used to determine the order of returned items.
+ * `mergeFn` is used to deduplicate items.
+ *
  * Every time the `useArrayCache` hook is called with new items it adds
  * them to the cache, and returns all known items.
  */
 export function useArrayCache<T>(props: Props<T>): T[] {
-  const {items: incomingItems, sortFn, limit = -1} = props;
+  const {items: incomingItems, sortFn, mergeFn, limit = -1} = props;
 
   // The cache is a reference. This makes it possible to update the cache without causing a re-render, which avoids an infinite render loop.
   const cache = useRef<Cache<T>>({
@@ -38,7 +43,13 @@ export function useArrayCache<T>(props: Props<T>): T[] {
     let newItems = [...cache.current.items, ...incomingItems];
 
     if (sortFn) {
+      // Sort before merge, in case the merge function wants to take advantage
+      // of a sorted array.
       newItems = sortFn(newItems);
+    }
+
+    if (mergeFn) {
+      newItems = mergeFn(newItems);
     }
 
     if (limit > 0) {
@@ -48,7 +59,7 @@ export function useArrayCache<T>(props: Props<T>): T[] {
     cache.current.items = newItems;
 
     return cache.current.items;
-  }, [incomingItems, sortFn, limit]);
+  }, [incomingItems, sortFn, mergeFn, limit]);
 
   return items;
 }
