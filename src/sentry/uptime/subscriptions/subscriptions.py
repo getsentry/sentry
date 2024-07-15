@@ -67,21 +67,29 @@ def create_project_uptime_subscription(
     )[0]
 
 
-def delete_project_uptime_subscription(project: Project, uptime_subscription: UptimeSubscription):
+def delete_project_uptime_subscription(
+    project: Project,
+    uptime_subscription: UptimeSubscription,
+    modes: list[ProjectUptimeSubscriptionMode],
+):
     """
     Deletes the link from a project to an `UptimeSubscription`. Also checks to see if the subscription
     has been orphaned, and if so removes it as well.
     """
-    # TODO: Have a way to specify which mode(s) we should actually delete here.
-    try:
-        uptime_project_subscription = ProjectUptimeSubscription.objects.get(
-            project=project, uptime_subscription=uptime_subscription
-        )
-    except ProjectUptimeSubscription.DoesNotExist:
-        pass
-    else:
+    for uptime_project_subscription in ProjectUptimeSubscription.objects.filter(
+        project=project,
+        uptime_subscription=uptime_subscription,
+        mode__in=modes,
+    ):
         uptime_project_subscription.delete()
 
+    remove_uptime_subscription_if_unused(uptime_subscription)
+
+
+def remove_uptime_subscription_if_unused(uptime_subscription: UptimeSubscription):
+    """
+    Determines if an uptime subscription is no longer used by any `ProjectUptimeSubscriptions` and removes it if so
+    """
     # If the uptime subscription is no longer used, we also remove it.
     if not uptime_subscription.projectuptimesubscription_set.exists():
         delete_uptime_subscription(uptime_subscription)
