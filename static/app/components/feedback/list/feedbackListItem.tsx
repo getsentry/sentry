@@ -57,114 +57,120 @@ export default function FeedbackListItem({
   const hasComments = feedbackItem.numComments > 0;
 
   return (
-    <LinkedFeedbackCard
-      style={style}
-      data-selected={isOpen}
-      to={{
-        pathname: normalizeUrl(`/organizations/${organization.slug}/feedback/`),
-        query: {
-          ...location.query,
-          referrer: 'feedback_list_page',
-          feedbackSlug: `${feedbackItem.project?.slug}:${feedbackItem.id}`,
-        },
-      }}
-      onClick={() => {
-        trackAnalytics('feedback.list-item-selected', {organization});
-      }}
-    >
-      <InteractionStateLayer />
-
-      <Row
-        style={{gridArea: 'checkbox'}}
-        onClick={e => {
-          e.stopPropagation();
+    <CardSpacing style={style}>
+      <LinkedFeedbackCard
+        data-selected={isOpen}
+        to={{
+          pathname: normalizeUrl(`/organizations/${organization.slug}/feedback/`),
+          query: {
+            ...location.query,
+            referrer: 'feedback_list_page',
+            feedbackSlug: `${feedbackItem.project?.slug}:${feedbackItem.id}`,
+          },
+        }}
+        onClick={() => {
+          trackAnalytics('feedback.list-item-selected', {organization});
         }}
       >
-        <Checkbox
-          disabled={isSelected === 'all-selected'}
-          checked={isSelected !== false}
-          onChange={e => {
-            onSelect(e.target.checked);
-          }}
-        />
-      </Row>
+        <InteractionStateLayer />
 
-      <TextOverflow style={{gridArea: 'user'}}>
-        <strong>
+        <Row
+          style={{gridArea: 'checkbox'}}
+          onClick={e => {
+            e.stopPropagation();
+          }}
+        >
+          <Checkbox
+            disabled={isSelected === 'all-selected'}
+            checked={isSelected !== false}
+            onChange={e => {
+              onSelect(e.target.checked);
+            }}
+          />
+        </Row>
+
+        <ContactRow>
           {feedbackItem.metadata.name ??
             feedbackItem.metadata.contact_email ??
             t('Anonymous User')}
-        </strong>
-      </TextOverflow>
+        </ContactRow>
 
-      <TimeSince date={feedbackItem.firstSeen} style={{gridArea: 'time'}} />
+        <StyledTimeSince date={feedbackItem.firstSeen} />
 
-      {feedbackItem.hasSeen ? null : (
-        <DotRow style={{gridArea: 'unread'}}>
-          <IconCircleFill size="xs" color="purple400" />
-        </DotRow>
-      )}
+        {feedbackItem.hasSeen ? null : (
+          <DotRow style={{gridArea: 'unread'}}>
+            <IconCircleFill size="xs" color="purple400" />
+          </DotRow>
+        )}
 
-      <PreviewRow align="flex-start" justify="flex-start" style={{gridArea: 'message'}}>
-        <StyledTextOverflow>{feedbackItem.metadata.message}</StyledTextOverflow>
-      </PreviewRow>
+        <PreviewRow
+          align="flex-start"
+          justify="flex-start"
+          style={{
+            gridArea: 'message',
+          }}
+        >
+          <StyledTextOverflow>{feedbackItem.metadata.message}</StyledTextOverflow>
+        </PreviewRow>
 
-      <BottomGrid style={{gridArea: 'bottom'}}>
-        <Row justify="flex-start" gap={space(0.75)}>
-          {feedbackItem.project ? (
-            <StyledProjectBadge
-              project={feedbackItem.project}
-              avatarSize={16}
-              hideName
-              avatarProps={{hasTooltip: false}}
-            />
-          ) : null}
-          <TextOverflow>{feedbackItem.shortId}</TextOverflow>
-        </Row>
+        <BottomGrid style={{gridArea: 'bottom'}}>
+          <Row justify="flex-start" gap={space(0.75)}>
+            {feedbackItem.project ? (
+              <StyledProjectBadge
+                project={feedbackItem.project}
+                avatarSize={14}
+                hideName
+                avatarProps={{hasTooltip: false}}
+              />
+            ) : null}
+            <ShortId>{feedbackItem.shortId}</ShortId>
+          </Row>
 
-        <Row justify="flex-end" gap={space(1)}>
-          <IssueTrackingSignals group={feedbackItem as unknown as Group} />
+          <Row justify="flex-end" gap={space(1)}>
+            <IssueTrackingSignals group={feedbackItem as unknown as Group} />
 
-          {hasComments && (
-            <Tooltip title={t('Has Activity')} containerDisplayMode="flex">
-              <IconChat color="gray500" size="sm" />
-            </Tooltip>
-          )}
+            {hasComments && (
+              <Tooltip title={t('Has Activity')} containerDisplayMode="flex">
+                <IconChat color="gray500" size="sm" />
+              </Tooltip>
+            )}
 
-          {(isCrashReport || isUserReportWithError) && (
-            <Tooltip title={t('Linked Error')} containerDisplayMode="flex">
-              <IconFatal color="red400" size="xs" />
-            </Tooltip>
-          )}
+            {(isCrashReport || isUserReportWithError) && (
+              <Tooltip title={t('Linked Error')} containerDisplayMode="flex">
+                <IconFatal color="red400" size="xs" />
+              </Tooltip>
+            )}
 
-          {hasReplayId && (
-            <Tooltip title={t('Linked Replay')} containerDisplayMode="flex">
-              <IconPlay size="xs" />
-            </Tooltip>
-          )}
+            {hasReplayId && (
+              <Tooltip title={t('Linked Replay')} containerDisplayMode="flex">
+                <IconPlay size="xs" />
+              </Tooltip>
+            )}
 
-          {hasAttachments && (
-            <Tooltip title={t('Has Screenshot')} containerDisplayMode="flex">
-              <IconImage size="xs" />
-            </Tooltip>
-          )}
+            {hasAttachments && (
+              <Tooltip title={t('Has Screenshot')} containerDisplayMode="flex">
+                <IconImage size="xs" />
+              </Tooltip>
+            )}
 
-          {feedbackItem.assignedTo && (
-            <ActorAvatar
-              actor={feedbackItem.assignedTo}
-              size={16}
-              tooltipOptions={{containerDisplayMode: 'flex'}}
-            />
-          )}
-        </Row>
-      </BottomGrid>
-    </LinkedFeedbackCard>
+            {feedbackItem.assignedTo && (
+              <ActorAvatar
+                actor={feedbackItem.assignedTo}
+                size={16}
+                tooltipOptions={{containerDisplayMode: 'flex'}}
+              />
+            )}
+          </Row>
+        </BottomGrid>
+      </LinkedFeedbackCard>
+    </CardSpacing>
   );
 }
 
 const LinkedFeedbackCard = styled(Link)`
   position: relative;
   padding: ${space(1)} ${space(3)} ${space(1)} ${space(1.5)};
+  border: 1px solid transparent;
 
   color: ${p => p.theme.textColor};
   &:hover {
@@ -172,16 +178,9 @@ const LinkedFeedbackCard = styled(Link)`
   }
   &[data-selected='true'] {
     background: ${p => p.theme.purple100};
-  }
-  &[data-selected='true']::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 0;
-    height: 100%;
-    background: ${p => p.theme.purple300};
-    width: ${space(0.5)};
-    z-index: 10;
+    border: 1px solid ${p => p.theme.purple200};
+    border-radius: ${space(0.75)};
+    color: ${p => p.theme.purple300};
   }
 
   display: grid;
@@ -191,7 +190,7 @@ const LinkedFeedbackCard = styled(Link)`
     'checkbox user time'
     'unread message message'
     '. bottom bottom';
-  gap: ${space(1)};
+  gap: ${space(0.5)} ${space(1)};
   place-items: stretch;
   align-items: center;
 `;
@@ -215,21 +214,42 @@ const StyledProjectBadge = styled(ProjectBadge)`
 `;
 
 const PreviewRow = styled(Row)`
-  height: 2.8em;
   align-items: flex-start;
+  font-size: ${p => p.theme.fontSizeSmall};
+  padding-bottom: ${space(0.75)};
 `;
 
 const DotRow = styled(Row)`
-  height: 2.2em;
+  height: 1.1em;
   align-items: flex-start;
   justify-content: center;
 `;
 
 const StyledTextOverflow = styled(TextOverflow)`
   white-space: initial;
-  height: 2.8em;
-  -webkit-line-clamp: 2;
+  height: 1.4em;
+  -webkit-line-clamp: 1;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   line-height: ${p => p.theme.text.lineHeightBody};
+`;
+
+const ContactRow = styled(TextOverflow)`
+  font-size: ${p => p.theme.fontSizeMedium};
+  grid-area: 'user';
+  font-weight: bold;
+`;
+
+const ShortId = styled(TextOverflow)`
+  font-size: ${p => p.theme.fontSizeSmall};
+  color: ${p => p.theme.gray300};
+`;
+
+const StyledTimeSince = styled(TimeSince)`
+  font-size: ${p => p.theme.fontSizeSmall};
+  grid-area: 'time';
+`;
+
+const CardSpacing = styled('div')`
+  padding: ${space(0.5)} ${space(0.5)} 0 ${space(0.5)};
 `;
