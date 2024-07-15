@@ -1,6 +1,7 @@
+import {lazy, Suspense} from 'react';
 import styled from '@emotion/styled';
-import {PlatformIcon} from 'platformicons';
 
+import LoadingMask from 'sentry/components/loadingMask';
 import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
@@ -16,6 +17,13 @@ type Props = {
   showVersion?: boolean;
 };
 
+async function loadPlatformIcon() {
+  const platformiconsModule = await import('platformicons');
+  return {default: platformiconsModule.PlatformIcon};
+}
+
+const LazyPlatformIcon = lazy(() => loadPlatformIcon());
+
 const ICON_SIZE = commonTheme.iconSizes.md;
 
 const ContextIcon = styled(
@@ -23,7 +31,11 @@ const ContextIcon = styled(
     const icon = generatePlatformIconName(name, version);
 
     if (!showTooltip) {
-      return <PlatformIcon platform={icon} size={ICON_SIZE} />;
+      return (
+        <Suspense fallback={<LoadingMask />}>
+          <LazyPlatformIcon platform={icon} size={ICON_SIZE} />
+        </Suspense>
+      );
     }
 
     const title = (
@@ -36,7 +48,9 @@ const ContextIcon = styled(
     );
     return (
       <Tooltip title={title} className={className}>
-        <PlatformIcon platform={icon} size={ICON_SIZE} />
+        <Suspense fallback={<LoadingMask />}>
+          <LazyPlatformIcon platform={icon} size={ICON_SIZE} />
+        </Suspense>
         {showVersion ? (version ? version : null) : undefined}
       </Tooltip>
     );
