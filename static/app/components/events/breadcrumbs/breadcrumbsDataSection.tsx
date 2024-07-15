@@ -107,7 +107,7 @@ export default function BreadcrumbsDataSection({
             </Body>
           </Fragment>
         ),
-        {ariaLabel: 'breadcrumb drawer', closeOnOutsideClick: false}
+        {ariaLabel: 'breadcrumb drawer', closeOnOutsideClick: true}
       );
     },
     [group, event, project, openDrawer, enhancedCrumbs, organization]
