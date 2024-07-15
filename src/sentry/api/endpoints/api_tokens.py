@@ -29,6 +29,26 @@ class ApiTokenSerializer(serializers.Serializer):
     scopes = MultipleChoiceField(required=True, choices=settings.SENTRY_SCOPES)
 
 
+def get_appropriate_user_id(request: Request) -> int:
+    """
+    Gets the user id to use for the request, based on what the current state of the request is.
+    If the request is made by a superuser, then they are allowed to act on behalf of other user's data.
+    Therefore, when GET or DELETE endpoints are invoked by the superuser, we may utilize a provided user_id.
+
+    The user_id to use comes from the GET or BODY parameter based on the request type.
+    For GET endpoints, the GET dict is used.
+    For all others, the DATA dict is used.
+    """
+    # Get the user id for the user that made the current request as a baseline default
+    user_id = request.user.id
+    if has_elevated_mode(request):
+        datastore = request.GET if request.GET else request.data
+        # If a userId override is not found, use the id for the user who made the request
+        user_id = int(datastore.get("userId", user_id))
+
+    return user_id
+
+
 @control_silo_endpoint
 class ApiTokensEndpoint(Endpoint):
     owner = ApiOwner.SECURITY
@@ -40,29 +60,9 @@ class ApiTokensEndpoint(Endpoint):
     authentication_classes = (SessionNoAuthTokenAuthentication,)
     permission_classes = (IsAuthenticated,)
 
-    @staticmethod
-    def get_appropriate_user_id(request: Request) -> int:
-        """
-        Gets the user id to use for the request, based on what the current state of the request is.
-        If the request is made by a superuser, then they are allowed to act on behalf of other user's data.
-        Therefore, when GET or DELETE endpoints are invoked by the superuser, we may utilize a provided user_id.
-
-        The user_id to use comes from the GET or BODY parameter based on the request type.
-        For GET endpoints, the GET dict is used.
-        For all others, the DATA dict is used.
-        """
-        # Get the user id for the user that made the current request as a baseline default
-        user_id = request.user.id
-        if has_elevated_mode(request):
-            datastore = request.GET if request.GET else request.data
-            # If a userId override is not found, use the id for the user who made the request
-            user_id = int(datastore.get("userId", user_id))
-
-        return user_id
-
     @method_decorator(never_cache)
     def get(self, request: Request) -> Response:
-        user_id = self.get_appropriate_user_id(request=request)
+        user_id = get_appropriate_user_id(request=request)
 
         token_list = list(
             ApiToken.objects.filter(application__isnull=True, user_id=user_id).select_related(
@@ -102,7 +102,7 @@ class ApiTokensEndpoint(Endpoint):
 
     @method_decorator(never_cache)
     def delete(self, request: Request):
-        user_id = self.get_appropriate_user_id(request=request)
+        user_id = get_appropriate_user_id(request=request)
         token_id = request.data.get("tokenId", None)
         # Account for token_id being 0, which can be considered valid
         if token_id is None:
