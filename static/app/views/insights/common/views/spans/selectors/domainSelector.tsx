@@ -17,6 +17,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {buildEventViewQuery} from 'sentry/views/insights/common/utils/buildEventViewQuery';
+import {setMerge, useArrayCache} from 'sentry/views/insights/common/utils/useArrayCache';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {EmptyContainer} from 'sentry/views/insights/common/views/spans/selectors/emptyOption';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
@@ -34,7 +35,6 @@ interface DomainData {
 }
 
 interface DomainCacheValue {
-  domains: Set<string>;
   initialLoadHadMoreData: boolean;
 }
 
@@ -78,20 +78,22 @@ export function DomainSelector({
     referrer: 'api.starfish.get-span-domains',
   });
 
-  const incomingDomains = uniq(
-    domainData?.flatMap(row => row[SpanMetricsField.SPAN_DOMAIN])
-  );
+  const incomingDomains = [
+    ...uniq(domainData?.flatMap(row => row[SpanMetricsField.SPAN_DOMAIN])),
+  ];
+
+  const domains = useArrayCache({
+    items: incomingDomains,
+    sortFn: items => {
+      return [...items].sort((a, b) => a.localeCompare(b));
+    },
+    mergeFn: setMerge,
+  });
 
   // Cache for all previously seen domains
   const domainCache = useRef<DomainCacheValue>({
-    domains: new Set(),
     initialLoadHadMoreData: true,
   });
-
-  // The current selected table might not be in the cached set. Ensure it's always there
-  if (value) {
-    domainCache.current.domains.add(value);
-  }
 
   // When caching the unfiltered domain data result, check if it had more data. If not, there's no point making any more requests when users update the search filter that narrows the search
   useEffect(() => {
@@ -101,13 +103,6 @@ export function DomainSelector({
       domainCache.current.initialLoadHadMoreData = next?.results ?? false;
     }
   }, [domainQuery, pageLinks, isLoading]);
-
-  // Cache all known domains from previous requests
-  useEffect(() => {
-    incomingDomains?.forEach(domain => {
-      domainCache.current.domains.add(domain);
-    });
-  }, [incomingDomains]);
 
   const emptyOption = {
     value: EMPTY_OPTION_VALUE,
@@ -119,14 +114,13 @@ export function DomainSelector({
   const options = [
     {value: '', label: 'All'},
     ...(emptyOptionLocation === 'top' ? [emptyOption] : []),
-    ...Array.from(domainCache.current.domains)
-      .map(datum => {
-        return {
-          value: datum,
-          label: datum,
-        };
-      })
-      .sort((a, b) => a.value.localeCompare(b.value)),
+    ...(value ? [{value, label: value}] : []),
+    ...domains.map(datum => {
+      return {
+        value: datum,
+        label: datum,
+      };
+    }),
     ...(emptyOptionLocation === 'bottom' ? [emptyOption] : []),
   ];
 
