@@ -1,6 +1,6 @@
 import {type Reducer, useCallback, useReducer} from 'react';
 
-import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/filterValueParser/date/parser';
+import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
 import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
 import {
   isDateToken,
