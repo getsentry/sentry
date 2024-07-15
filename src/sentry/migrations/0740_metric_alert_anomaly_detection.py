@@ -35,11 +35,6 @@ class Migration(CheckedMigration):
             name="sensitivity",
             field=models.CharField(null=True),
         ),
-        migrations.AlterField(
-            model_name="alertrule",
-            name="threshold_period",
-            field=models.IntegerField(null=True),
-        ),
         migrations.SeparateDatabaseAndState(
             database_operations=[
                 migrations.RunSQL(
