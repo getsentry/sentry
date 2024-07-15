@@ -27,7 +27,10 @@ class Args(TypedDict):
 
 class SpansMetricsDatasetConfig(DatasetConfig):
     missing_function_error = IncompatibleMetricsQuery
-    nullable_metrics = {constants.SPAN_MESSAGING_LATENCY}
+    nullable_metrics = {
+        constants.SPAN_MESSAGING_LATENCY,
+        constants.SPAN_METRICS_MAP["cache.item_size"],
+    }
 
     def __init__(self, builder: spans_metrics.SpansMetricsQueryBuilder):
         self.builder = builder
