@@ -15,7 +15,6 @@ import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-
 import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
 
 import {LinkButton} from 'sentry/components/button';
-import ExternalLink from 'sentry/components/links/externalLink';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {t, tct} from 'sentry/locale';
@@ -101,12 +100,7 @@ function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
         <ContentContainer>
           <Fragment>
             <Header>{emptyStateContent.heading}</Header>
-            <p>
-              {emptyStateContent.description}{' '}
-              <ExternalLink href={MODULE_PRODUCT_DOC_LINKS[moduleName]}>
-                {t('Read Docs')}
-              </ExternalLink>
-            </p>
+            <p>{emptyStateContent.description}</p>
           </Fragment>
           <SplitContainer>
             <ModulePreview moduleName={moduleName} />
@@ -142,7 +136,7 @@ function ModulePreview({moduleName}: ModulePreviewProps) {
       <ModulePreviewImage src={emptyStateContent.imageSrc} />
       {emptyStateContent.supportedSdks && (
         <SupportedSdkContainer>
-          <div>{t('Supporting Today: ')}</div>
+          <div>{t('Supported Today: ')}</div>
           <SupportedSdkList>
             {emptyStateContent.supportedSdks.map(sdk => (
               <SupportedSdkIconContainer key={sdk}>
@@ -424,7 +418,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: queuesPreviewImg,
   },
   screen_load: {
-    heading: t('Perhaps 255 items was too large of a pagination size'),
+    heading: t(`Don’t lose your customer’s attention before your app loads`),
     description: tct(
       'View the most active [dataTypePlural] in your mobile application and monitor your releases for screen load performance.',
       {
@@ -433,7 +427,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       }
     ),
     valuePropDescription: tct('[dataType] insights include:', {
-      dataType: MODULE_DATA_TYPES[ModuleName.RESOURCE],
+      dataType: MODULE_DATA_TYPES[ModuleName.SCREEN_LOAD],
     }),
     valuePropPoints: [
       t('Compare metrics across releases, root causing performance degradations.'),

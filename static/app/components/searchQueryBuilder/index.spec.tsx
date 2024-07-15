@@ -448,8 +448,8 @@ describe('SearchQueryBuilder', function () {
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(screen.getByRole('option', {name: 'browser.name'}));
 
-      // New token should be added with the correct key
-      expect(screen.getByRole('row', {name: 'browser.name:'})).toBeInTheDocument();
+      // New token should be added with the correct key and default value
+      expect(screen.getByRole('row', {name: 'browser.name:""'})).toBeInTheDocument();
 
       await userEvent.click(screen.getByRole('option', {name: 'Firefox'}));
 
@@ -1009,6 +1009,21 @@ describe('SearchQueryBuilder', function () {
           ).getByText('resolved')
         ).toBeInTheDocument();
       });
+
+      it('defaults to unresolved when there is no value', async function () {
+        render(<SearchQueryBuilder {...defaultProps} initialQuery="is:" />);
+
+        // Click into value and press enter with no value
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: is'})
+        );
+        await userEvent.keyboard('{enter}');
+
+        // Should be is:unresolved
+        expect(
+          await screen.findByRole('row', {name: 'is:unresolved'})
+        ).toBeInTheDocument();
+      });
     });
 
     describe('has', function () {
@@ -1044,6 +1059,30 @@ describe('SearchQueryBuilder', function () {
     });
 
     describe('string', function () {
+      it('defaults to an empty string when no value is provided', async function () {
+        render(
+          <SearchQueryBuilder {...defaultProps} initialQuery="browser.name:firefox" />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+        );
+        await userEvent.clear(
+          await screen.findByRole('combobox', {name: 'Edit filter value'})
+        );
+        await userEvent.keyboard('{enter}');
+
+        // Should have empty quotes `""`
+        expect(
+          await screen.findByRole('row', {name: 'browser.name:""'})
+        ).toBeInTheDocument();
+        expect(
+          within(
+            screen.getByRole('button', {name: 'Edit value for filter: browser.name'})
+          ).getByText('""')
+        ).toBeInTheDocument();
+      });
+
       it('can modify operator for filter with multiple values', async function () {
         render(
           <SearchQueryBuilder
@@ -1208,6 +1247,31 @@ describe('SearchQueryBuilder', function () {
         ).toBeInTheDocument();
       });
 
+      it('keeps previous value when confirming empty value', async function () {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="timesSeen:>5"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: timesSeen'})
+        );
+        await userEvent.clear(
+          await screen.findByRole('combobox', {name: 'Edit filter value'})
+        );
+        await userEvent.keyboard('{enter}');
+
+        // Should have the same value
+        expect(
+          await screen.findByRole('row', {name: 'timesSeen:>5'})
+        ).toBeInTheDocument();
+        expect(mockOnChange).not.toHaveBeenCalled();
+      });
+
       it('does not allow invalid values', async function () {
         render(<SearchQueryBuilder {...defaultProps} initialQuery="timesSeen:>100" />);
         await userEvent.click(
@@ -1263,6 +1327,29 @@ describe('SearchQueryBuilder', function () {
 
         // Should have the same value because "a" is not a date value
         expect(screen.getByRole('row', {name: 'age:-24h'})).toBeInTheDocument();
+      });
+
+      it('keeps previous value when confirming empty value', async function () {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            onChange={mockOnChange}
+            initialQuery="age:-24h"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: age'})
+        );
+        await userEvent.clear(
+          await screen.findByRole('combobox', {name: 'Edit filter value'})
+        );
+        await userEvent.keyboard('{enter}');
+
+        // Should have the same value
+        expect(await screen.findByRole('row', {name: 'age:-24h'})).toBeInTheDocument();
+        expect(mockOnChange).not.toHaveBeenCalled();
       });
 
       it('shows default date suggestions', async function () {

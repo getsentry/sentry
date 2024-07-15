@@ -178,7 +178,7 @@ export function SetupReplaysCTA({
               'To learn more about how we’ve optimized our SDK, please visit [link:our docs].',
               {
                 link: (
-                  <ExternalLink href="https://docs.sentry.io/product/session-replay/performance-overhead/" />
+                  <ExternalLink href="https://docs.sentry.io/product/explore/session-replay/performance-overhead/" />
                 ),
               }
             )}

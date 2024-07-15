@@ -32,7 +32,7 @@ import {
   YAxis,
 } from 'sentry/views/insights/mobile/screenload/components/charts/screenCharts';
 import {ScreenLoadEventSamples} from 'sentry/views/insights/mobile/screenload/components/eventSamples';
-import {MetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
+import {MobileMetricsRibbon} from 'sentry/views/insights/mobile/screenload/components/metricsRibbon';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
 import {ScreenLoadSpansTable} from 'sentry/views/insights/mobile/screenload/components/tables/screenLoadSpansTable';
 import {
@@ -103,7 +103,7 @@ function ScreenLoadSpans() {
                 </PageFilterBar>
                 <ReleaseComparisonSelector />
               </FilterContainer>
-              <MetricsRibbon
+              <MobileMetricsRibbon
                 dataset={DiscoverDatasets.METRICS}
                 filters={[
                   'event.type:transaction',

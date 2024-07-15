@@ -1453,7 +1453,7 @@ function Flamegraph(): ReactElement {
             />
           ) : null
         }
-        spansTreeDepth={spanChart?.depth}
+        spansTreeDepth={spanChart?.depth ?? null}
         spans={
           spanChart ? (
             <FlamegraphSpans
@@ -1481,7 +1481,7 @@ function Flamegraph(): ReactElement {
         }
         flamegraph={
           <ProfileDragDropImport onImport={onImport}>
-            <FlamegraphWarnings flamegraph={flamegraph} />
+            <FlamegraphWarnings flamegraph={flamegraph} requestState={profiles} />
             <FlamegraphZoomView
               profileGroup={profileGroup}
               canvasBounds={flamegraphCanvasBounds}
@@ -1499,6 +1499,7 @@ function Flamegraph(): ReactElement {
         }
         flamegraphDrawer={
           <FlamegraphDrawer
+            profileTransaction={profiledTransaction}
             profileGroup={profileGroup}
             getFrameColor={getFrameColor}
             referenceNode={referenceNode}
