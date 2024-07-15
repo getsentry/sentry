@@ -30,6 +30,7 @@ import {
   MODULE_PRODUCT_DOC_LINKS,
 } from 'sentry/views/insights/settings';
 import {ModuleName} from 'sentry/views/insights/types';
+import PerformanceOnboarding from 'sentry/views/performance/onboarding';
 
 type PlatformIcons = keyof typeof PLATFORM_TO_ICON;
 
@@ -49,7 +50,15 @@ export function ModulesOnboarding({
     'insights-empty-state-page'
   );
 
-  if (hasEmptyStateFeature && (onboardingProject || !hasData)) {
+  if (onboardingProject) {
+    return (
+      <ModuleLayout.Full>
+        <PerformanceOnboarding organization={organization} project={onboardingProject} />
+      </ModuleLayout.Full>
+    );
+  }
+
+  if (hasEmptyStateFeature && !hasData) {
     return (
       <ModuleLayout.Full>
         <ModulesOnboardingPanel moduleName={moduleName} />
@@ -240,9 +249,9 @@ type EmptyStateContent = {
 
 const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
   app_start: {
-    heading: t('Don’t lose the race at the starting line'),
+    heading: t(`Don't lose your user's attention before your app loads`),
     description: tct(
-      'Monitor cold and warm [dataTypePlural] and track down the operations and releases contributing regression.',
+      'Monitor cold and warm [dataTypePlural] and track down the operations and releases contributing to regressions.',
       {
         dataTypePlural:
           MODULE_DATA_TYPES_PLURAL[ModuleName.APP_START].toLocaleLowerCase(),
@@ -337,7 +346,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       tct('High volume [dataTypePlural].', {
         dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.DB].toLocaleLowerCase(),
       }),
-      t('Outlier database spans.'),
+      t('One off slow queries, vs. trends'),
     ],
     imageSrc: queriesPreviewImg,
   },
@@ -371,13 +380,9 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       tct('[dataType] performance broken down by category and domain.', {
         dataType: MODULE_DATA_TYPES[ModuleName.RESOURCE],
       }),
-      tct(
-        'Which routes are loading [dataTypePlural], and whether they’re blocking rendering.',
-        {
-          dataTypePlural:
-            MODULE_DATA_TYPES_PLURAL[ModuleName.RESOURCE].toLocaleLowerCase(),
-        }
-      ),
+      tct('Whether [dataTypePlural] are blocking page rendering.', {
+        dataTypePlural: MODULE_DATA_TYPES_PLURAL[ModuleName.RESOURCE].toLocaleLowerCase(),
+      }),
       tct('[dataType] size and whether it’s growing over time.', {
         dataType: MODULE_DATA_TYPES[ModuleName.RESOURCE],
       }),
@@ -393,8 +398,8 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       dataType: MODULE_DATA_TYPES[ModuleName.VITAL],
     }),
     valuePropPoints: [
-      t('Performance scores broken down by route.'),
-      t('Performance metrics for operations that affect screen load performance.'),
+      t('Performance scores broken down by page.'),
+      t('Performance metrics for individual operations that affect page performance.'),
       t('Drill down to real user sessions.'),
     ],
     imageSrc: webVitalsPreviewImg,
@@ -418,7 +423,7 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
     imageSrc: queuesPreviewImg,
   },
   screen_load: {
-    heading: t(`Don’t lose your customer’s attention before your app loads`),
+    heading: t(`Don’t lose your user's attention once your app loads`),
     description: tct(
       'View the most active [dataTypePlural] in your mobile application and monitor your releases for screen load performance.',
       {
