@@ -310,7 +310,7 @@ class UsageStatsOrganization<
       rateLimited: {
         title: tct('Rate Limited [dataCategory]', {dataCategory: dataCategoryName}),
         help: tct(
-          'Rate Limited [dataCategory] were discarded due to rate-limits, abuse, or cardinality limits',
+          'Rate Limited [dataCategory] were discarded due to rate limits or quota',
           {dataCategory}
         ),
         score: rateLimited,
