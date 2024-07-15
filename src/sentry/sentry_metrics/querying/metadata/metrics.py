@@ -136,11 +136,13 @@ def _build_metric_meta(
     blocking_status: Sequence[BlockedMetric],
     operations_config: OperationsConfiguration,
 ) -> MetricMeta:
+    NON_QUERYABLE_METRIC_OPERATIONS = {"histogram", "min_timestamp", "max_timestamp"}
     available_operations = get_available_operations(parsed_mri)
     available_operations = [
         operation
         for operation in available_operations
         if operation not in operations_config.get_hidden_operations()
+        and operation not in NON_QUERYABLE_METRIC_OPERATIONS
     ]
 
     return MetricMeta(
