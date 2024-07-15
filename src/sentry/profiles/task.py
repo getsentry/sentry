@@ -489,6 +489,7 @@ def symbolicate(
             modules=modules,
             release_package=profile.get("transaction_metadata", {}).get("app.identifier"),
             apply_source_context=False,
+            classes=[],
         )
     return symbolicator.process_payload(
         stacktraces=stacktraces, modules=modules, apply_source_context=False

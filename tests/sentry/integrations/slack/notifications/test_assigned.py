@@ -6,7 +6,6 @@ from sentry.integrations.types import ExternalProviders
 from sentry.models.activity import Activity
 from sentry.notifications.notifications.activity.assigned import AssignedActivityNotification
 from sentry.testutils.cases import PerformanceIssueTestCase, SlackActivityNotificationTest
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.helpers.notifications import TEST_ISSUE_OCCURRENCE, TEST_PERF_ISSUE_OCCURRENCE
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
@@ -143,33 +142,6 @@ class SlackAssignedNotificationTest(SlackActivityNotificationTest, PerformanceIs
         return_value=TEST_PERF_ISSUE_OCCURRENCE,
         new_callable=mock.PropertyMock,
     )
-    def test_assignment_performance_issue_block(self, occurrence):
-        """
-        Test that a Slack message is sent with the expected payload when a performance issue is assigned
-        and block kit is enabled.
-        """
-        event = self.create_performance_issue()
-        with self.tasks():
-            self.create_notification(event.group, AssignedActivityNotification).send()
-
-        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
-        fallback_text = self.mock_post.call_args.kwargs["text"]
-        assert fallback_text == f"Issue assigned to {self.name} by themselves"
-        assert blocks[0]["text"]["text"] == fallback_text
-        self.assert_performance_issue_blocks(
-            blocks,
-            event.organization,
-            event.project.slug,
-            event.group,
-            "assigned_activity-slack",
-        )
-
-    @mock.patch(
-        "sentry.eventstore.models.GroupEvent.occurrence",
-        return_value=TEST_PERF_ISSUE_OCCURRENCE,
-        new_callable=mock.PropertyMock,
-    )
-    @with_feature("organizations:slack-culprit-blocks")
     def test_assignment_performance_issue_block_with_culprit_blocks(self, occurrence):
         """
         Test that a Slack message is sent with the expected payload when a performance issue is assigned
