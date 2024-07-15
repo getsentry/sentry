@@ -97,6 +97,9 @@ class OutboxCategory(IntEnum):
     ISSUE_COMMENT_UPDATE = 34
     EXTERNAL_ACTOR_UPDATE = 35
 
+    RELOCATION_EXPORT_REQUEST = 36
+    RELOCATION_EXPORT_REPLY = 37
+
     @classmethod
     def as_choices(cls):
         return [(i.value, i.value) for i in cls]
@@ -343,6 +346,9 @@ class OutboxScope(IntEnum):
         },
     )
     SUBSCRIPTION_SCOPE = scope_categories(9, {OutboxCategory.SUBSCRIPTION_UPDATE})
+    RELOCATION_SCOPE = scope_categories(
+        10, {OutboxCategory.RELOCATION_EXPORT_REQUEST, OutboxCategory.RELOCATION_EXPORT_REPLY}
+    )
 
     def __str__(self):
         return self.name

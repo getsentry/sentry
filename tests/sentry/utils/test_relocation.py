@@ -116,7 +116,7 @@ class RelocationStartTestCase(RelocationUtilsTestCase):
     def test_good_first_task(self, fake_message_builder: Mock):
         self.mock_message_builder(fake_message_builder)
 
-        (rel, attempts_left) = start_relocation_task(self.uuid, OrderedTask.UPLOADING_COMPLETE, 3)
+        (rel, attempts_left) = start_relocation_task(self.uuid, OrderedTask.UPLOADING_START, 3)
 
         assert fake_message_builder.call_count == 0
         assert attempts_left == 2

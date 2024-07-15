@@ -29,7 +29,7 @@ from sentry.options import get
 from sentry.search.utils import tokenize_query
 from sentry.signals import relocation_link_promo_code
 from sentry.slug.patterns import ORG_SLUG_PATTERN
-from sentry.tasks.relocation import uploading_complete
+from sentry.tasks.relocation import uploading_start
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.db import atomic_transaction
@@ -277,7 +277,7 @@ class RelocationIndexEndpoint(Endpoint):
         relocation_link_promo_code.send_robust(
             relocation_uuid=relocation.uuid, promo_code=promo_code, sender=self.__class__
         )
-        uploading_complete.delay(relocation.uuid)
+        uploading_start.delay(relocation.uuid)
         try:
             analytics.record(
                 "relocation.created",
