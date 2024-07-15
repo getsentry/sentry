@@ -210,7 +210,7 @@ export function fetchSpanFieldValues({
 }
 
 type FetchOrganizationTagsParams = {
-  orgIdOrSlug: string;
+  orgSlug: string;
   // TODO: Change this to Dataset type once IssuePlatform is added
   dataset?: string;
   projectIds?: string[];
@@ -218,12 +218,12 @@ type FetchOrganizationTagsParams = {
 };
 
 export const makeFetchOrganizationTags = ({
-  orgIdOrSlug,
+  orgSlug,
   dataset,
   projectIds,
   useCache = true,
 }: FetchOrganizationTagsParams): ApiQueryKey => [
-  `/organizations/${orgIdOrSlug}/tags/`,
+  `/organizations/${orgSlug}/tags/`,
   {query: {dataset, useCache, project: projectIds}},
 ];
 
@@ -239,19 +239,19 @@ export const useFetchOrganizationTags = (
 };
 
 type UseFetchIssueTagsParams = {
-  orgIdOrSlug: string;
+  orgSlug: string;
   projectIds: string[];
   useCache?: boolean;
 };
 
 export const useFetchIssueOrganizationTags = ({
-  orgIdOrSlug,
+  orgSlug,
   projectIds,
   useCache = true,
 }: UseFetchIssueTagsParams) => {
   const eventsTagsQuery = useFetchOrganizationTags(
     {
-      orgIdOrSlug,
+      orgSlug,
       projectIds,
       dataset: Dataset.ERRORS,
       useCache,
@@ -261,7 +261,7 @@ export const useFetchIssueOrganizationTags = ({
 
   const issuePlatformTagsQuery = useFetchOrganizationTags(
     {
-      orgIdOrSlug,
+      orgSlug,
       projectIds,
       dataset: 'search_issues',
       useCache,
@@ -269,12 +269,12 @@ export const useFetchIssueOrganizationTags = ({
     {}
   );
 
-  const eventsFields = [
+  const eventsTags = [
     ...(eventsTagsQuery.data || []),
     ...(issuePlatformTagsQuery.data || []),
   ];
 
-  const eventsTagCollection: TagCollection = eventsFields.reduce<TagCollection>(
+  const eventsTagCollection: TagCollection = eventsTags.reduce<TagCollection>(
     (acc, tag) => {
       acc[tag.key] = {...tag, predefined: false, kind: FieldKind.TAG};
       return acc;

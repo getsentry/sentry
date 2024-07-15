@@ -213,7 +213,7 @@ describe('IssueList', function () {
 
       // auxillary requests being made
       expect(recentSearchesRequest).toHaveBeenCalledTimes(1);
-      expect(fetchTagsRequest).toHaveBeenCalledTimes(1);
+      expect(fetchTagsRequest).toHaveBeenCalledTimes(3);
       expect(fetchMembersRequest).toHaveBeenCalledTimes(1);
 
       // primary /issues/ request
@@ -1032,7 +1032,7 @@ describe('IssueList', function () {
       });
       // Called during componentDidMount
       expect(fetchMembersRequest).toHaveBeenCalledTimes(1);
-      expect(fetchTagsRequest).toHaveBeenCalledTimes(1);
+      expect(fetchTagsRequest).toHaveBeenCalledTimes(3);
 
       const selection = {
         projects: [99],
@@ -1041,7 +1041,7 @@ describe('IssueList', function () {
       };
       rerender(<IssueListOverview {...routerProps} {...props} selection={selection} />);
       expect(fetchMembersRequest).toHaveBeenCalledTimes(2);
-      expect(fetchTagsRequest).toHaveBeenCalledTimes(2);
+      expect(fetchTagsRequest).toHaveBeenCalledTimes(4);
     });
   });
 

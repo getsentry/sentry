@@ -27,6 +27,10 @@ describe('IssueListSearchBar', function () {
       method: 'GET',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
+    });
   });
 
   afterEach(function () {

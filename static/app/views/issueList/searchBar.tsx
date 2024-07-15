@@ -132,7 +132,7 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
   const api = useApi();
   const {selection: pageFilters} = usePageFilters();
   const {tags: issueTags} = useFetchIssueOrganizationTags({
-    orgIdOrSlug: organization.id,
+    orgSlug: organization.slug,
     projectIds: pageFilters.projects.map(id => id.toString()),
   });
 
