@@ -11,7 +11,6 @@ from sentry.ingest.consumer.processors import CACHE_TIMEOUT
 from sentry.lang.java.proguard import open_proguard_mapper
 from sentry.models.debugfile import ProjectDebugFile
 from sentry.models.project import Project
-from sentry.stacktraces.processing import StacktraceInfo
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.safe import get_path
 
@@ -70,31 +69,6 @@ def get_proguard_mapper(uuid: str, project: Project):
     return mapper
 
 
-def _deobfuscate_view_hierarchy(event_data: dict[str, Any], project: Project, view_hierarchy):
-    """
-    Deobfuscates a view hierarchy in-place.
-
-    If we're unable to fetch a ProGuard uuid or unable to init the mapper,
-    then the view hierarchy remains unmodified.
-    """
-    proguard_uuids = get_proguard_images(event_data)
-    if len(proguard_uuids) == 0:
-        return
-
-    with sentry_sdk.start_span(op="proguard.deobfuscate_view_hierarchy_data"):
-        for proguard_uuid in proguard_uuids:
-            mapper = get_proguard_mapper(proguard_uuid, project)
-            if mapper is None:
-                return
-
-            windows_to_deobfuscate = [*view_hierarchy.get("windows")]
-            while windows_to_deobfuscate:
-                window = windows_to_deobfuscate.pop()
-                window["type"] = mapper.remap_class(window.get("type")) or window.get("type")
-                if children := window.get("children"):
-                    windows_to_deobfuscate.extend(children)
-
-
 @sentry_sdk.trace
 def deobfuscation_template(data, map_type, deobfuscation_fn):
     """
@@ -133,13 +107,8 @@ def deobfuscation_template(data, map_type, deobfuscation_fn):
     attachment_cache.set(cache_key, attachments=new_attachments, timeout=CACHE_TIMEOUT)
 
 
-def deobfuscate_view_hierarchy(data):
-    deobfuscation_template(data, "proguard", _deobfuscate_view_hierarchy)
-
-
-def is_jvm_event(data: Any, stacktraces: list[StacktraceInfo]) -> bool:
-    """Returns whether `data` is a JVM event, based on its platform, images, and
-    the supplied stacktraces."""
+def is_jvm_event(data: Any) -> bool:
+    """Returns whether `data` is a JVM event, based on its images."""
 
     # check if there are any JVM or Proguard images
     images = get_path(
@@ -149,14 +118,4 @@ def is_jvm_event(data: Any, stacktraces: list[StacktraceInfo]) -> bool:
         filter=lambda x: is_valid_jvm_image(x) or is_valid_proguard_image(x),
         default=(),
     )
-    if not images:
-        return False
-
-    if data.get("platform") == "java":
-        return True
-
-    for stacktrace in stacktraces:
-        if any(x == "java" for x in stacktrace.platforms):
-            return True
-
-    return False
+    return bool(images)
