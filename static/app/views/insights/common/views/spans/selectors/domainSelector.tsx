@@ -84,6 +84,10 @@ export function DomainSelector({
     ...uniq(domainData?.flatMap(row => row[SpanMetricsField.SPAN_DOMAIN])),
   ];
 
+  if (value) {
+    incomingDomains.push(value);
+  }
+
   const domains = useArrayCache({
     items: incomingDomains,
     sortFn: items => {
@@ -102,7 +106,6 @@ export function DomainSelector({
   const options = [
     {value: '', label: 'All'},
     ...(emptyOptionLocation === 'top' ? [emptyOption] : []),
-    ...(value ? [{value, label: value}] : []),
     ...domains.map(datum => {
       return {
         value: datum,

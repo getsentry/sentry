@@ -45,6 +45,10 @@ export function TransactionSelector({
     pageLinks,
   } = useResourcePagesQuery(defaultResourceTypes, searchQuery);
 
+  if (value) {
+    incomingPages.push(value);
+  }
+
   const wasSearchSpaceExhausted = useWasSearchSpaceExhausted({
     query: searchQuery,
     isLoading,
@@ -61,7 +65,6 @@ export function TransactionSelector({
 
   const options: Option[] = [
     {value: '', label: 'All'},
-    ...(value ? [{value, label: value}] : []),
     ...pages.map(page => ({value: page, label: page})),
   ];
 
