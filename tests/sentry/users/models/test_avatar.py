@@ -1,10 +1,10 @@
 from sentry import options as options_store
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
+from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.files.control_file import ControlFile
 from sentry.models.files.file import File
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.users.models.user_avatar import UserAvatar
 
 
 @control_silo_test
