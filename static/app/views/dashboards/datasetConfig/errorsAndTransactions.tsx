@@ -159,7 +159,10 @@ export const ErrorsAndTransactionsConfig: DatasetConfig<
   getSeriesResultType,
 };
 
-function getTableSortOptions(_organization: Organization, widgetQuery: WidgetQuery) {
+export function getTableSortOptions(
+  _organization: Organization,
+  widgetQuery: WidgetQuery
+) {
   const {columns, aggregates} = widgetQuery;
   const options: SelectValue<string>[] = [];
   let equations = 0;
