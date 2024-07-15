@@ -18,7 +18,9 @@ export function HideUserFeedbackButton({
   showFeedback,
 }: {
   hideFeedback: () => void;
+  isError: boolean;
   isHidden: boolean;
+  isLoading: boolean;
   showFeedback: () => void;
 }) {
   // disabled={isLoading || editProps.disabled}

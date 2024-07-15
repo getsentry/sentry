@@ -132,7 +132,6 @@ function DefaultGroupEventDetailsContent({
     organization,
     projectId: project.id,
   });
-  const feedbackHidden = promptLoading || promptError || isPromptDismissed;
 
   return (
     <Fragment>
@@ -156,7 +155,9 @@ function DefaultGroupEventDetailsContent({
             <ErrorBoundary mini>
               <ButtonBar gap={1}>
                 <HideUserFeedbackButton
-                  isHidden={feedbackHidden}
+                  isLoading={promptLoading}
+                  isError={promptError || isPromptDismissed === undefined}
+                  isHidden={isPromptDismissed !== undefined ? isPromptDismissed : false}
                   showFeedback={showPrompt}
                   hideFeedback={dismissPrompt}
                 />
@@ -164,7 +165,7 @@ function DefaultGroupEventDetailsContent({
             </ErrorBoundary>
           }
         >
-          {feedbackHidden ? (
+          {promptLoading || promptError || isPromptDismissed ? (
             '(Hidden)'
           ) : (
             <EventUserFeedback
