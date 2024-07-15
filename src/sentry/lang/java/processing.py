@@ -176,8 +176,11 @@ def _deobfuscate_view_hierarchy(view_hierarchy: Any, class_names: dict[str, str]
 
     while windows_to_deobfuscate:
         window = windows_to_deobfuscate.pop()
-        if window.get("type") is not None and class_names.get(window["type"]) is not None:
-            window["type"] = class_names.get(window["type"])
+        if (
+            window.get("type") is not None
+            and (mapped_type := class_names.get(window["type"])) is not None
+        ):
+            window["type"] = mapped_type
         if children := window.get("children"):
             windows_to_deobfuscate.extend(children)
 
