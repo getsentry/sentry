@@ -1,5 +1,8 @@
-import {isExtractedCustomMetric} from 'sentry/utils/metrics';
-import {getUseCaseFromMRI, parseField} from 'sentry/utils/metrics/mri';
+import {
+  getUseCaseFromMRI,
+  isExtractedCustomMetric,
+  parseField,
+} from 'sentry/utils/metrics/mri';
 import {Dataset, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types';
 
 import type {MetricAlertType, WizardRuleTemplate} from './options';

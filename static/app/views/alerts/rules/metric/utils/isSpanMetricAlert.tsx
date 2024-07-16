@@ -1,8 +1,7 @@
-import {isExtractedCustomMetric} from 'sentry/utils/metrics';
-import {isMRI, parseField} from 'sentry/utils/metrics/mri';
+import {isExtractedCustomMetric, isMRI, parseField} from 'sentry/utils/metrics/mri';
 
 /**
- * Currently we can tell if an alert is a custom metric alert by checking the aggregate for a MRI,
+ * Currently we can tell if an alert is a span metric alert by checking the aggregate for an MRI
  */
 export function isSpanMetricAlert(aggregate?: string): boolean {
   if (!aggregate) {
