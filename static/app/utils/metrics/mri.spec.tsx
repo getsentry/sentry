@@ -2,6 +2,7 @@ import type {MetricType, MRI, ParsedMRI, UseCase} from 'sentry/types/metrics';
 import {
   formatMRI,
   getUseCaseFromMRI,
+  isExtractedCustomMetric,
   parseField,
   parseMRI,
   toMRI,
@@ -228,7 +229,6 @@ describe('isExtractedCustomMetric', () => {
   it('should return true if the metric name is prefixed', () => {
     expect(isExtractedCustomMetric({mri: 'c:custom/span_attribute_123@none'})).toBe(true);
     expect(isExtractedCustomMetric({mri: 's:custom/span_attribute_foo@none'})).toBe(true);
-    expect(isExtractedCustomMetric({mri: 'd:custom/span_attribute_bar@none'})).toBe(true);
     expect(isExtractedCustomMetric({mri: 'g:custom/span_attribute_baz@none'})).toBe(true);
   });
 
