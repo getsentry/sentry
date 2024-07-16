@@ -55,7 +55,6 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
     errors: list[str] | None
     sensitivity: str | None  # mifu67: I think these three should be here, but I will confirm
     seasonality: str | None
-    activationCondition: int | None
 
 
 @extend_schema_serializer(
@@ -95,6 +94,7 @@ class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
     createdBy: dict
     monitorType: int
     activations: list[dict]
+    activationCondition: int | None
     description: str
     detection_type: str
 
@@ -311,9 +311,9 @@ class AlertRuleSerializer(Serializer):
             "activationCondition": condition_type,
             "activations": attrs.get("activations", None),
             "description": obj.description if obj.description is not None else "",
-            "sensitivity": obj.get("sensitivity", None),
-            "seasonality": obj.get("seasonality", None),
-            "detection_type": obj.detection_type,  # mifu67: might need to get here
+            "sensitivity": obj.sensitivity,
+            "seasonality": obj.seasonality,
+            "detection_type": obj.detection_type,
         }
         rule_snooze = RuleSnooze.objects.filter(
             Q(user_id=user.id) | Q(user_id=None), alert_rule=obj

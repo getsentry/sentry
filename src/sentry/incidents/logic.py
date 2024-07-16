@@ -560,6 +560,16 @@ def create_alert_rule(
 
     resolution = get_alert_resolution(time_window, organization)
 
+    if detection_type == AlertRuleDetectionType.STATIC:
+        if comparison_delta is not None or sensitivity is not None or seasonality is not None:
+            raise ValidationError("Bad fields for static detection type")  # TODO: fix this copy
+    elif detection_type == AlertRuleDetectionType.PERCENT:
+        if comparison_delta is None or sensitivity is not None or seasonality is not None:
+            raise ValidationError("Bad fields for percent detection type")  # TODO: fix this copy
+    else:  # dynamic
+        if comparison_delta is not None or sensitivity is None or seasonality is None:
+            raise ValidationError("Bad fields for dynamic detection type")  # TODO: fix this copy
+
     if comparison_delta is not None:
         # Since comparison alerts make twice as many queries, run the queries less frequently.
         resolution = resolution * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
@@ -746,7 +756,6 @@ def update_alert_rule(
         updated_fields["name"] = name
     if description:
         updated_fields["description"] = description
-    # mifu67: if <field> here because the possible values are nonempty strings
     if sensitivity:
         updated_fields["sensitivity"] = sensitivity
     if seasonality:
