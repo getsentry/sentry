@@ -49,6 +49,7 @@ from sentry.exceptions import HashDiscarded
 from sentry.grouping.api import GroupingConfig, load_grouping_config
 from sentry.grouping.utils import hash_from_values
 from sentry.ingest.inbound_filters import FilterStatKeys
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.issues.grouptype import (
     ErrorGroupType,
     GroupCategory,
@@ -67,7 +68,6 @@ from sentry.models.grouprelease import GroupRelease
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.grouptombstone import GroupTombstone
 from sentry.models.integrations import Integration
-from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.pullrequest import PullRequest, PullRequestCommit
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit

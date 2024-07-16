@@ -6,8 +6,8 @@ from django.http import HttpResponse
 
 from sentry.integrations.aws_lambda import AwsLambdaIntegrationProvider
 from sentry.integrations.aws_lambda.utils import ALL_AWS_REGIONS
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.projectkey import ProjectKey
 from sentry.organizations.services.organization import organization_service
 from sentry.pipeline import PipelineView

@@ -1,7 +1,7 @@
 import types
 from urllib.parse import parse_qs, urlparse
 
-from sentry.models.integrations.external_actor import ExternalActor
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.organizationmemberteamreplica import OrganizationMemberTeamReplica
 from sentry.models.rule import Rule

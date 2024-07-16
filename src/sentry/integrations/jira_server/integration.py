@@ -27,11 +27,11 @@ from sentry.integrations.base import (
 )
 from sentry.integrations.jira_server.utils.choice import build_user_choice
 from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.services.integration import integration_service
 from sentry.models.group import Group
 from sentry.models.identity import Identity
-from sentry.models.integrations.external_issue import ExternalIssue
-from sentry.models.integrations.integration_external_project import IntegrationExternalProject
 from sentry.organizations.services.organization.service import organization_service
 from sentry.pipeline import PipelineView
 from sentry.shared_integrations.exceptions import (

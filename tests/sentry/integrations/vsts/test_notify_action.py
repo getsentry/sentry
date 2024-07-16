@@ -4,10 +4,10 @@ import orjson
 import responses
 
 from fixtures.vsts import GET_PROJECTS_RESPONSE, WORK_ITEM_RESPONSE
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.vsts import AzureDevopsCreateTicketAction
 from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.models.grouplink import GroupLink
-from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.rule import Rule
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase

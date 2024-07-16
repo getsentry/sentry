@@ -4,7 +4,7 @@ from unittest.mock import patch
 import orjson
 import responses
 
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase

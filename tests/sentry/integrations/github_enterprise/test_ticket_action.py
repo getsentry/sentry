@@ -8,7 +8,7 @@ from rest_framework.test import APITestCase as BaseAPITestCase
 from sentry.eventstore.models import Event
 from sentry.integrations.github_enterprise import GitHubEnterpriseCreateTicketAction, client
 from sentry.integrations.github_enterprise.integration import GitHubEnterpriseIntegration
-from sentry.models.integrations.external_issue import ExternalIssue
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.rule import Rule
 from sentry.rules import rules
 from sentry.testutils.cases import RuleTestCase

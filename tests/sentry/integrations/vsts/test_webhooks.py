@@ -11,13 +11,13 @@ from fixtures.vsts import (
     WORK_ITEM_UPDATED,
     WORK_ITEM_UPDATED_STATUS,
 )
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.vsts.integration import VstsIntegration
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.identity import Identity
-from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode

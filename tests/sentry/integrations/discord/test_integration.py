@@ -9,8 +9,8 @@ from sentry import audit_log, options
 from sentry.api.client import ApiError
 from sentry.integrations.discord.client import APPLICATION_COMMANDS_URL, GUILD_URL, DiscordClient
 from sentry.integrations.discord.integration import COMMANDS, DiscordIntegrationProvider
+from sentry.integrations.models.integration import Integration
 from sentry.models.auditlogentry import AuditLogEntry
-from sentry.models.integrations.integration import Integration
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import control_silo_test

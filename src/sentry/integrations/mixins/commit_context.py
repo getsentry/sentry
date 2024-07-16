@@ -6,8 +6,8 @@ from datetime import datetime
 from typing import Any, Protocol
 
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.identity import Identity
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
 
 

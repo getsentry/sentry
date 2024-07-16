@@ -15,9 +15,9 @@ from sentry.integrations.gitlab.blame import GitLabCommitResponse, GitLabFileBla
 from sentry.integrations.gitlab.client import GitLabProxyApiClient, GitlabProxySetupClient
 from sentry.integrations.gitlab.integration import GitlabIntegration
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.identity import Identity, IdentityProvider, IdentityStatus
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiUnauthorized
 from sentry.silo.base import SiloMode

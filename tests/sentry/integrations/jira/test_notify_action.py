@@ -2,8 +2,8 @@ import responses
 
 from fixtures.integrations.stub_service import StubService
 from sentry.integrations.jira import JiraCreateTicketAction
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.models.grouplink import GroupLink
-from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.rule import Rule
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase

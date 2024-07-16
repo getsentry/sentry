@@ -4,9 +4,9 @@ import logging
 from typing import TYPE_CHECKING, NotRequired, TypedDict
 
 from sentry.integrations.mixins import RepositoryMixin
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.utils.code_mapping import convert_stacktrace_frame_path_to_source_path
-from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.utils.event_frames import EventFrame

@@ -24,9 +24,9 @@ from sentry.integrations.github import (
 )
 from sentry.integrations.github.integration import GitHubIntegration
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.integrations.utils.code_mapping import Repo, RepoTree
-from sentry.models.integrations.integration import Integration
-from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.project import Project
 from sentry.models.repository import Repository
 from sentry.plugins.base import plugins

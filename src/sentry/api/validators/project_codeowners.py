@@ -5,8 +5,8 @@ from typing import Any
 
 from django.db.models import Subquery
 
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.types import ExternalProviders
-from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project

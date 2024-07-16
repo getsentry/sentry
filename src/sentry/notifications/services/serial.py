@@ -1,4 +1,4 @@
-from sentry.models.integrations.external_actor import ExternalActor
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.notifications.services.model import RpcExternalActor
 
 

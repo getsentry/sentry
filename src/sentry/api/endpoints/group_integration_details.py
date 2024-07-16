@@ -12,11 +12,11 @@ from sentry.api.bases import GroupEndpoint
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import IntegrationSerializer
 from sentry.integrations.base import IntegrationFeatures, IntegrationInstallation
+from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.models.activity import Activity
 from sentry.models.group import Group
 from sentry.models.grouplink import GroupLink
-from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.user import User
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationFormError
 from sentry.signals import integration_issue_created, integration_issue_linked

@@ -17,8 +17,8 @@ from sentry.integrations.base import (
     IntegrationMetadata,
     IntegrationProvider,
 )
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import integration_service
-from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.integrations.sentry_app_installation_for_provider import (
     SentryAppInstallationForProvider,

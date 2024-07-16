@@ -6,13 +6,13 @@ from typing import Any
 
 from slack_sdk.errors import SlackApiError
 
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.metrics import (
     SLACK_UTILS_GET_USER_LIST_FAILURE_DATADOG_METRIC,
     SLACK_UTILS_GET_USER_LIST_SUCCESS_DATADOG_METRIC,
 )
 from sentry.integrations.slack.sdk_client import SlackSdkClient
-from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.user import User
 from sentry.organizations.services.organization import RpcOrganization

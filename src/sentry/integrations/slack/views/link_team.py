@@ -13,6 +13,8 @@ from rest_framework.request import Request
 
 from sentry import analytics, features
 from sentry.identity.services.identity import identity_service
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration, integration_service
 from sentry.integrations.slack.metrics import (
     SLACK_BOT_COMMAND_LINK_TEAM_FAILURE_DATADOG_METRIC,
@@ -20,8 +22,6 @@ from sentry.integrations.slack.metrics import (
 )
 from sentry.integrations.slack.views.types import TeamLinkRequest
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
-from sentry.models.integrations.external_actor import ExternalActor
-from sentry.models.integrations.integration import Integration
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.team import Team
 from sentry.notifications.services import notifications_service

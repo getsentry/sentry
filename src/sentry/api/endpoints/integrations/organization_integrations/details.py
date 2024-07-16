@@ -18,7 +18,7 @@ from sentry.api.bases.organization_integrations import OrganizationIntegrationBa
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.integration import OrganizationIntegrationSerializer
 from sentry.constants import ObjectStatus
-from sentry.models.integrations.organization_integration import OrganizationIntegration
+from sentry.integrations.models.organization_integration import OrganizationIntegration
 from sentry.models.scheduledeletion import ScheduledDeletion
 from sentry.organizations.services.organization import RpcUserOrganizationContext
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError

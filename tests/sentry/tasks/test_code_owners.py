@@ -1,9 +1,9 @@
 from datetime import datetime, timezone
 from unittest.mock import patch
 
+from sentry.integrations.models.external_actor import ExternalActor
 from sentry.models.commit import Commit
 from sentry.models.commitfilechange import CommitFileChange
-from sentry.models.integrations.external_actor import ExternalActor
 from sentry.models.projectcodeowners import ProjectCodeOwners
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.repository import Repository
