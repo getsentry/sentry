@@ -42,7 +42,11 @@ from sentry.utils.email import MessageBuilder, get_email_addresses
 
 class ActionHandler(metaclass=abc.ABCMeta):
     status_display = {TriggerStatus.ACTIVE: "Fired", TriggerStatus.RESOLVED: "Resolved"}
-    provider: str
+
+    @property
+    @abc.abstractmethod
+    def provider(self) -> str:
+        raise NotImplementedError
 
     def __init__(self, action, incident, project):
         self.action = action
@@ -117,7 +121,9 @@ class DefaultActionHandler(ActionHandler):
     [AlertRuleTriggerAction.TargetType.USER, AlertRuleTriggerAction.TargetType.TEAM],
 )
 class EmailActionHandler(ActionHandler):
-    provider = "email"
+    @property
+    def provider(self) -> str:
+        return "email"
 
     def _get_targets(self) -> set[int]:
         target = self.action.target
@@ -229,7 +235,9 @@ class EmailActionHandler(ActionHandler):
     integration_provider="slack",
 )
 class SlackActionHandler(DefaultActionHandler):
-    provider = "slack"
+    @property
+    def provider(self) -> str:
+        return "slack"
 
     def send_alert(
         self,
@@ -253,7 +261,9 @@ class SlackActionHandler(DefaultActionHandler):
     integration_provider="msteams",
 )
 class MsTeamsActionHandler(DefaultActionHandler):
-    provider = "msteams"
+    @property
+    def provider(self) -> str:
+        return "msteams"
 
     def send_alert(
         self,
@@ -277,7 +287,9 @@ class MsTeamsActionHandler(DefaultActionHandler):
     integration_provider="discord",
 )
 class DiscordActionHandler(DefaultActionHandler):
-    provider = "discord"
+    @property
+    def provider(self) -> str:
+        return "discord"
 
     def send_alert(
         self,
@@ -303,7 +315,9 @@ class DiscordActionHandler(DefaultActionHandler):
     integration_provider="pagerduty",
 )
 class PagerDutyActionHandler(DefaultActionHandler):
-    provider = "pagerduty"
+    @property
+    def provider(self) -> str:
+        return "pagerduty"
 
     def send_alert(
         self,
@@ -327,7 +341,9 @@ class PagerDutyActionHandler(DefaultActionHandler):
     integration_provider="opsgenie",
 )
 class OpsgenieActionHandler(DefaultActionHandler):
-    provider = "opsgenie"
+    @property
+    def provider(self) -> str:
+        return "opsgenie"
 
     def send_alert(
         self,
@@ -350,7 +366,9 @@ class OpsgenieActionHandler(DefaultActionHandler):
     [AlertRuleTriggerAction.TargetType.SENTRY_APP],
 )
 class SentryAppActionHandler(DefaultActionHandler):
-    provider = "sentry_app"
+    @property
+    def provider(self) -> str:
+        return "sentry_app"
 
     def send_alert(
         self,
