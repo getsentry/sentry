@@ -38,7 +38,7 @@ from sentry.relay.config.metric_extraction import (
     get_metric_extraction_config,
 )
 from sentry.relay.utils import to_camel_case_name
-from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES, UseCaseID
+from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES
 from sentry.sentry_metrics.visibility import get_metrics_blocking_state_for_relay_config
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
@@ -228,6 +228,7 @@ class CardinalityLimit(TypedDict):
 class CardinalityLimitOption(TypedDict):
     rollout_rate: NotRequired[float]
     limit: CardinalityLimit
+    project_slugs_allowlist: NotRequired[list[str]]
 
 
 def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
@@ -241,15 +242,7 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
     cardinality_limits: list[CardinalityLimit] = []
     for namespace in CARDINALITY_LIMIT_USE_CASES:
         timeout.check()
-        if (
-            features.has("organizations:low-cardinality-limits-on-project", project.organization)
-            and namespace == UseCaseID.CUSTOM
-        ):
-            option = options.get("sentry-metrics.cardinality-limiter.limits.custom.per-project.low")
-        else:
-            option = options.get(
-                f"sentry-metrics.cardinality-limiter.limits.{namespace.value}.per-org"
-            )
+        option = options.get(f"sentry-metrics.cardinality-limiter.limits.{namespace.value}.per-org")
 
         if not option or not len(option) == 1:
             # Multiple quotas are not supported
@@ -265,7 +258,7 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
                 "granularitySeconds": quota["granularity_seconds"],
             },
             "limit": quota["limit"],
-            "scope": option.get("scope", "organization"),
+            "scope": "organization",
             "namespace": namespace.value,
         }
         if id in passive_limits:
@@ -286,6 +279,11 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
     for clo in project_limit_options + organization_limit_options + option_limit_options:
         rollout_rate = clo.get("rollout_rate", 1.0)
         if (project.organization.id % 100000) / 100000 >= rollout_rate:
+            continue
+
+        project_slugs_allowlist = clo.get("project_slugs_allowlist")
+        if project_slugs_allowlist is not None and project.slug not in project_slugs_allowlist:
+            # project_slugs_allowlist is defined but the current project is not in the list
             continue
 
         try:
