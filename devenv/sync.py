@@ -5,8 +5,6 @@ import os
 import shlex
 import subprocess
 
-from typing import Optional
-
 from devenv import constants
 from devenv.lib import colima, config, fs, limactl, proc, venv, volta
 
@@ -16,7 +14,7 @@ def run_procs(
     repo: str,
     reporoot: str,
     venv_path: str,
-    _procs: tuple[tuple[str, tuple[str, ...], Optional[dict[str, str]]], ...],
+    _procs: tuple[tuple[str, tuple[str, ...], dict[str, str]], ...],
 ) -> bool:
     procs: list[tuple[str, tuple[str, ...], subprocess.Popen[bytes]]] = []
 
@@ -132,6 +130,7 @@ def main(context: dict[str, str]) -> int:
                     "requirements-dev-frozen.txt",
                     "pip",
                 ),
+                {},
             ),
         ),
     ):
@@ -145,11 +144,13 @@ def main(context: dict[str, str]) -> int:
             (
                 # Spreading out the network load by installing js,
                 # then py in the next batch.
-                "javascript dependencies (1/2)",
+                "javascript dependencies (1/1)",
                 (
                     "yarn",
                     "install",
                     "--frozen-lockfile",
+                    "--no-progress",
+                    "--non-interactive",
                 ),
                 {
                     "NODE_ENV": "development",
@@ -164,6 +165,7 @@ def main(context: dict[str, str]) -> int:
                     "djangorestframework-stubs",
                     "django-stubs",
                 ),
+                {},
             ),
         ),
     ):
@@ -174,17 +176,6 @@ def main(context: dict[str, str]) -> int:
         reporoot,
         venv_dir,
         (
-            (
-                "javascript dependencies (2/2)",
-                (
-                    "yarn",
-                    "install",
-                    "--check-files",
-                ),
-                {
-                    "NODE_ENV": "development",
-                },
-            ),
             # could opt out of syncing python if FRONTEND_ONLY but only if repo-local devenv
             # and pre-commit were moved to inside devenv and not the sentry venv
             (
@@ -197,6 +188,7 @@ def main(context: dict[str, str]) -> int:
                     "-r",
                     "requirements-dev-frozen.txt",
                 ),
+                {},
             ),
         ),
     ):
@@ -207,8 +199,12 @@ def main(context: dict[str, str]) -> int:
         reporoot,
         venv_dir,
         (
-            ("python dependencies (4/4)", ("python3", "-m", "tools.fast_editable", "--path", ".")),
-            ("pre-commit dependencies", ("pre-commit", "install", "--install-hooks", "-f")),
+            (
+                "python dependencies (4/4)",
+                ("python3", "-m", "tools.fast_editable", "--path", "."),
+                {},
+            ),
+            ("pre-commit dependencies", ("pre-commit", "install", "--install-hooks", "-f"), {}),
         ),
     ):
         return 1
@@ -247,6 +243,7 @@ def main(context: dict[str, str]) -> int:
             (
                 "python migrations",
                 ("make", "apply-migrations"),
+                {},
             ),
         ),
     ):
