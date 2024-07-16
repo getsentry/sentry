@@ -18,7 +18,7 @@ from sentry.testutils.skips import requires_snuba
 from tests.sentry.integrations.slack.test_notifications import (
     additional_attachment_generator_block_kit,
 )
-from tests.sentry.integrations.slack.utils.mock_slack_response import mock_slack_response
+from tests.sentry.integrations.slack.utils.test_mock_slack_response import mock_slack_response
 
 pytestmark = [requires_snuba]
 

@@ -21,7 +21,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
-from tests.sentry.integrations.slack.utils.mock_slack_response import mock_slack_response
+from tests.sentry.integrations.slack.utils.test_mock_slack_response import mock_slack_response
 
 pytestmark = [requires_snuba]
 

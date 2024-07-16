@@ -18,7 +18,7 @@ from sentry.models.notificationmessage import NotificationMessage
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
-from tests.sentry.integrations.slack.utils.mock_slack_response import mock_slack_response
+from tests.sentry.integrations.slack.utils.test_mock_slack_response import mock_slack_response
 
 from . import FireTest
 

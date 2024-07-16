@@ -18,7 +18,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.silo import assume_test_silo_mode
-from tests.sentry.integrations.slack.utils.mock_slack_response import mock_slack_response
+from tests.sentry.integrations.slack.utils.test_mock_slack_response import mock_slack_response
 
 
 class NotificationActionsIndexEndpointTest(APITestCase):

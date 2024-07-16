@@ -46,7 +46,7 @@ from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from tests.sentry.integrations.slack.utils.mock_slack_response import mock_slack_response
+from tests.sentry.integrations.slack.utils.test_mock_slack_response import mock_slack_response
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
