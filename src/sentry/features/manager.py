@@ -327,9 +327,8 @@ class FeatureManager(RegisteredFeatureManager):
         Will only accept one type of feature, either all ProjectFeatures or all
         OrganizationFeatures.
         """
-        sample_rate = 0.01
         if self._entity_handler:
-            with metrics.timer("features.entity_batch_has", sample_rate=sample_rate):
+            with metrics.timer("features.entity_batch_has", sample_rate=0.01):
                 return self._entity_handler.batch_has(
                     feature_names, actor, projects=projects, organization=organization
                 )
