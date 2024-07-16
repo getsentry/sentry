@@ -8,11 +8,11 @@ import type {Node} from '@react-types/shared';
 import {DateTime} from 'sentry/components/dateTime';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {FilterKeyOperator} from 'sentry/components/searchQueryBuilder/filterKeyOperator';
-import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/useFilterButtonProps';
-import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/useQueryBuilderGridItem';
-import {formatFilterValue} from 'sentry/components/searchQueryBuilder/utils';
-import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/valueCombobox';
+import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
+import {FilterKeyOperator} from 'sentry/components/searchQueryBuilder/tokens/filter/filterKeyOperator';
+import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
+import {formatFilterValue} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {SearchQueryBuilderValueCombobox} from 'sentry/components/searchQueryBuilder/tokens/filter/valueCombobox';
 import {
   type ParseResultToken,
   Token,

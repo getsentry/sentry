@@ -6,16 +6,17 @@ import type {KeyboardEvent} from '@react-types/shared';
 import Checkbox from 'sentry/components/checkbox';
 import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
 import {getItemsWithKeys} from 'sentry/components/compactSelect/utils';
-import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/combobox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/filterValueParser/date/parser';
-import SpecificDatePicker from 'sentry/components/searchQueryBuilder/specificDatePicker';
+import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
+import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
+import SpecificDatePicker from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
 import {
   escapeTagValue,
   formatFilterValue,
-  isDateToken,
   unescapeTagValue,
-} from 'sentry/components/searchQueryBuilder/utils';
+} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {getDefaultFilterValue} from 'sentry/components/searchQueryBuilder/tokens/utils';
+import {isDateToken} from 'sentry/components/searchQueryBuilder/utils';
 import {
   FilterType,
   TermOperator,
@@ -415,11 +416,7 @@ function tokenSupportsMultipleValues(
 
       const fieldDef = getFieldDefinition(key.key);
 
-      return [
-        FieldValueType.STRING,
-        FieldValueType.NUMBER,
-        FieldValueType.INTEGER,
-      ].includes(fieldDef?.valueType ?? FieldValueType.STRING);
+      return !fieldDef?.valueType || fieldDef.valueType === FieldValueType.STRING;
     case FilterType.NUMERIC:
       if (token.operator === TermOperator.DEFAULT) {
         return true;
@@ -727,7 +724,7 @@ export function SearchQueryBuilderValueCombobox({
       const cleanedValue = cleanFilterValue(token.key.text, value);
 
       // TODO(malwilley): Add visual feedback for invalid values
-      if (!cleanedValue) {
+      if (cleanedValue === null) {
         trackAnalytics('search.value_manual_submitted', {
           ...analyticsData,
           filter_value: value,
@@ -816,7 +813,20 @@ export function SearchQueryBuilderValueCombobox({
 
   const handleInputValueConfirmed = useCallback(
     (value: string) => {
-      if (value === getInitialInputValue(token, canSelectMultipleValues)) {
+      const isUnchanged = value === getInitialInputValue(token, canSelectMultipleValues);
+
+      // If there's no user input and the token has no value, set a default one
+      if (!value && !token.value.text) {
+        dispatch({
+          type: 'UPDATE_TOKEN_VALUE',
+          token: token,
+          value: getDefaultFilterValue({key: token.key.text}),
+        });
+        onCommit();
+        return;
+      }
+
+      if (isUnchanged) {
         onCommit();
         return;
       }
@@ -828,11 +838,13 @@ export function SearchQueryBuilderValueCombobox({
           value: prepareInputValueForSaving(token, value),
         });
         onCommit();
-        trackAnalytics('search.value_manual_submitted', {
-          ...analyticsData,
-          filter_value: value,
-          invalid: false,
-        });
+        if (!isUnchanged) {
+          trackAnalytics('search.value_manual_submitted', {
+            ...analyticsData,
+            filter_value: value,
+            invalid: false,
+          });
+        }
         return;
       }
 
