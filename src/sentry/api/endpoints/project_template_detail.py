@@ -25,6 +25,7 @@ class OrganizationProjectTemplateDetailEndpoint(OrganizationEndpoint):
 
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
+        "DELETE": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationPermission,)
 
@@ -46,3 +47,17 @@ class OrganizationProjectTemplateDetailEndpoint(OrganizationEndpoint):
                 ProjectTemplateSerializer(expand=[ProjectTemplateAttributes.OPTIONS]),
             )
         )
+
+    @ensure_rollout_enabled(PROJECT_TEMPLATE_FEATURE_FLAG)
+    def delete(self, request: Request, organization: Organization, template_id: str) -> Response:
+        """
+        Delete a project template by its ID.
+        """
+        project_template = get_object_or_404(
+            ProjectTemplate, id=template_id, organization=organization
+        )
+
+        project_template.delete()
+
+        # think about how to handle there being no remaining templates for an org?
+        return Response(status=204)

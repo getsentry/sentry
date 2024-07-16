@@ -354,8 +354,8 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         elif referrer not in ALLOWED_EVENTS_REFERRERS:
             referrer = Referrer.API_ORGANIZATION_EVENTS.value
 
-        def _data_fn(scopedDataset, offset, limit, query) -> dict[str, Any]:
-            return scopedDataset.query(
+        def _data_fn(scoped_dataset, offset, limit, query) -> dict[str, Any]:
+            return scoped_dataset.query(
                 selected_columns=self.get_field_list(organization, request),
                 query=query,
                 params=params,
@@ -378,7 +378,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             )
 
         @sentry_sdk.tracing.trace
-        def _dashboards_data_fn(scopedDataset, offset, limit, scoped_query, dashboard_widget_id):
+        def _dashboards_data_fn(scoped_dataset, offset, limit, scoped_query, dashboard_widget_id):
             try:
                 widget = DashboardWidget.objects.get(id=dashboard_widget_id)
                 does_widget_have_split = widget.discover_widget_split is not None
@@ -394,7 +394,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                         split_dataset = errors
                     elif widget.discover_widget_split == DashboardWidgetTypes.TRANSACTION_LIKE:
                         # We can't add event.type:transaction for now because of on-demand.
-                        split_dataset = scopedDataset
+                        split_dataset = scoped_dataset
                     else:
                         split_dataset = discover
 
@@ -408,7 +408,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     has_errors = False
                     error_results = None
 
-                original_results = _data_fn(scopedDataset, offset, limit, scoped_query)
+                original_results = _data_fn(scoped_dataset, offset, limit, scoped_query)
                 if original_results.get("data"):
                     dataset_meta = original_results.get("meta", {})
                 else:
@@ -445,10 +445,10 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             except Exception as e:
                 # Swallow the exception if it was due to the discover split, and try again one more time.
                 sentry_sdk.capture_exception(e)
-                return _data_fn(scopedDataset, offset, limit, scoped_query)
+                return _data_fn(scoped_dataset, offset, limit, scoped_query)
 
         @sentry_sdk.tracing.trace
-        def _discover_data_fn(scopedDataset, offset, limit, scoped_query, discover_saved_query_id):
+        def _discover_data_fn(scoped_dataset, offset, limit, scoped_query, discover_saved_query_id):
             try:
                 discover_query = DiscoverSavedQuery.objects.get(
                     id=discover_saved_query_id, organization=organization
@@ -457,7 +457,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     discover_query.dataset is not DiscoverSavedQueryTypes.DISCOVER
                 )
                 if does_widget_have_split:
-                    return _data_fn(scopedDataset, offset, limit, scoped_query)
+                    return _data_fn(scoped_dataset, offset, limit, scoped_query)
 
                 dataset_inferred_from_query = dataset_split_decision_inferred_from_query(
                     self.get_field_list(organization, request),
@@ -547,9 +547,9 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             except Exception as e:
                 # Swallow the exception if it was due to the discover split, and try again one more time.
                 sentry_sdk.capture_exception(e)
-                return _data_fn(scopedDataset, offset, limit, scoped_query)
+                return _data_fn(scoped_dataset, offset, limit, scoped_query)
 
-        def data_fn_factory(scopedDataset):
+        def data_fn_factory(scoped_dataset):
             """
             This factory closes over query and dataset in order to make an additional request to the errors dataset
             in the case that this request is from a dashboard widget or a discover query and we're trying to split
@@ -564,14 +564,14 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
             def fn(offset, limit) -> dict[str, Any]:
                 if save_discover_dataset_decision and discover_saved_query_id:
                     return _discover_data_fn(
-                        scopedDataset, offset, limit, scoped_query, discover_saved_query_id
+                        scoped_dataset, offset, limit, scoped_query, discover_saved_query_id
                     )
 
                 if not (metrics_enhanced and dashboard_widget_id):
-                    return _data_fn(scopedDataset, offset, limit, scoped_query)
+                    return _data_fn(scoped_dataset, offset, limit, scoped_query)
 
                 return _dashboards_data_fn(
-                    scopedDataset, offset, limit, scoped_query, dashboard_widget_id
+                    scoped_dataset, offset, limit, scoped_query, dashboard_widget_id
                 )
 
             return fn

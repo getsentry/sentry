@@ -1,4 +1,4 @@
-import React, {Fragment} from 'react';
+import React from 'react';
 import styled from '@emotion/styled';
 
 import Alert from 'sentry/components/alert';
@@ -48,7 +48,6 @@ import {
   MODULE_TITLE,
 } from 'sentry/views/insights/database/settings';
 import {ModuleName, SpanMetricsField} from 'sentry/views/insights/types';
-import Onboarding from 'sentry/views/performance/onboarding';
 
 export function DatabaseLandingPage() {
   const organization = useOrganization();
@@ -194,60 +193,45 @@ export function DatabaseLandingPage() {
               </PageFilterBar>
             </ModuleLayout.Full>
             <ModulesOnboarding moduleName={ModuleName.DB}>
-              {onboardingProject && (
-                <ModuleLayout.Full>
-                  <Onboarding organization={organization} project={onboardingProject} />
-                </ModuleLayout.Full>
-              )}
-              {!onboardingProject && (
-                <Fragment>
-                  <ModuleLayout.Half>
-                    <ThroughputChart
-                      series={throughputData['spm()']}
-                      isLoading={isThroughputDataLoading}
-                      error={throughputError}
-                    />
-                  </ModuleLayout.Half>
+              <ModuleLayout.Half>
+                <ThroughputChart
+                  series={throughputData['spm()']}
+                  isLoading={isThroughputDataLoading}
+                  error={throughputError}
+                />
+              </ModuleLayout.Half>
 
-                  <ModuleLayout.Half>
-                    <DurationChart
-                      series={[durationData[`${selectedAggregate}(span.self_time)`]]}
-                      isLoading={isDurationDataLoading}
-                      error={durationError}
-                    />
-                  </ModuleLayout.Half>
+              <ModuleLayout.Half>
+                <DurationChart
+                  series={[durationData[`${selectedAggregate}(span.self_time)`]]}
+                  isLoading={isDurationDataLoading}
+                  error={durationError}
+                />
+              </ModuleLayout.Half>
 
-                  <ModuleLayout.Full>
-                    <FilterOptionsContainer>
-                      <SelectorContainer>
-                        <ActionSelector
-                          moduleName={moduleName}
-                          value={spanAction ?? ''}
-                        />
-                      </SelectorContainer>
+              <ModuleLayout.Full>
+                <FilterOptionsContainer>
+                  <SelectorContainer>
+                    <ActionSelector moduleName={moduleName} value={spanAction ?? ''} />
+                  </SelectorContainer>
 
-                      <SelectorContainer>
-                        <DomainSelector
-                          moduleName={moduleName}
-                          value={spanDomain ?? ''}
-                        />
-                      </SelectorContainer>
-                    </FilterOptionsContainer>
-                  </ModuleLayout.Full>
+                  <SelectorContainer>
+                    <DomainSelector moduleName={moduleName} value={spanDomain ?? ''} />
+                  </SelectorContainer>
+                </FilterOptionsContainer>
+              </ModuleLayout.Full>
 
-                  <ModuleLayout.Full>
-                    <SearchBar
-                      query={spanDescription}
-                      placeholder={t('Search for more Queries')}
-                      onSearch={handleSearch}
-                    />
-                  </ModuleLayout.Full>
+              <ModuleLayout.Full>
+                <SearchBar
+                  query={spanDescription}
+                  placeholder={t('Search for more Queries')}
+                  onSearch={handleSearch}
+                />
+              </ModuleLayout.Full>
 
-                  <ModuleLayout.Full>
-                    <QueriesTable response={queryListResponse} sort={sort} />
-                  </ModuleLayout.Full>
-                </Fragment>
-              )}
+              <ModuleLayout.Full>
+                <QueriesTable response={queryListResponse} sort={sort} />
+              </ModuleLayout.Full>
             </ModulesOnboarding>
           </ModuleLayout.Layout>
         </Layout.Main>

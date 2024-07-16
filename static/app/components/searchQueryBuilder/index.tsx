@@ -7,14 +7,14 @@ import {
   SearchQueryBuilerContext,
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
+import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
+import {useQueryBuilderState} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {PlainTextQueryInput} from 'sentry/components/searchQueryBuilder/plainTextQueryInput';
 import {TokenizedQueryGrid} from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
 import {
   type FilterKeySection,
   QueryInterfaceType,
 } from 'sentry/components/searchQueryBuilder/types';
-import {useHandleSearch} from 'sentry/components/searchQueryBuilder/useHandleSearch';
-import {useQueryBuilderState} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -57,6 +57,7 @@ interface SearchQueryBuilderProps {
    * Called when the user presses enter
    */
   onSearch?: (query: string) => void;
+  placeholder?: string;
   queryInterface?: QueryInterfaceType;
   savedSearchType?: SavedSearchType;
 }
@@ -91,6 +92,7 @@ export function SearchQueryBuilder({
   onChange,
   onSearch,
   onBlur,
+  placeholder,
   searchSource,
   savedSearchType,
   queryInterface = QueryInterfaceType.TOKENIZED,
@@ -131,6 +133,7 @@ export function SearchQueryBuilder({
       onSearch,
       wrapperRef,
       handleSearch,
+      placeholder,
       savedSearchType,
       searchSource,
       size,
@@ -143,6 +146,7 @@ export function SearchQueryBuilder({
     getTagValues,
     dispatch,
     onSearch,
+    placeholder,
     handleSearch,
     savedSearchType,
     searchSource,

@@ -46,6 +46,7 @@ export function IssueSearchWithSavedSearches({
         query={query || ''}
         onSearch={onSearch}
         excludedTags={['environment']}
+        placeholder={t('Search for events, users, tags, and more')}
       />
     </SearchBarWithButtonContainer>
   );
