@@ -57,6 +57,7 @@ interface SearchQueryBuilderProps {
    * Called when the user presses enter
    */
   onSearch?: (query: string) => void;
+  placeholder?: string;
   queryInterface?: QueryInterfaceType;
   savedSearchType?: SavedSearchType;
 }
@@ -91,6 +92,7 @@ export function SearchQueryBuilder({
   onChange,
   onSearch,
   onBlur,
+  placeholder,
   searchSource,
   savedSearchType,
   queryInterface = QueryInterfaceType.TOKENIZED,
@@ -131,6 +133,7 @@ export function SearchQueryBuilder({
       onSearch,
       wrapperRef,
       handleSearch,
+      placeholder,
       savedSearchType,
       searchSource,
       size,
@@ -143,6 +146,7 @@ export function SearchQueryBuilder({
     getTagValues,
     dispatch,
     onSearch,
+    placeholder,
     handleSearch,
     savedSearchType,
     searchSource,

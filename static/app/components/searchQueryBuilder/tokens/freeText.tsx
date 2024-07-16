@@ -300,6 +300,7 @@ function SearchQueryBuilderInputInternal({
     filterKeySections,
     dispatch,
     handleSearch,
+    placeholder,
     searchSource,
     savedSearchType,
   } = useSearchQueryBuilder();
@@ -392,6 +393,7 @@ function SearchQueryBuilderInputInternal({
     <SearchQueryBuilderCombobox
       ref={inputRef}
       items={items}
+      placeholder={query === '' ? placeholder : undefined}
       onOptionSelected={value => {
         dispatch({
           type: 'UPDATE_FREE_TEXT',
