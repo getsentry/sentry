@@ -1193,6 +1193,39 @@ class OrganizationReleaseCreateTest(APITestCase):
         assert ReleaseProject.objects.filter(release=release, project=project).exists()
         assert ReleaseProject.objects.filter(release=release, project=project2).exists()
 
+    def test_minimal_with_id(self):
+        user = self.create_user(is_staff=False, is_superuser=False)
+        org = self.create_organization()
+        org.flags.allow_joinleave = False
+        org.save()
+
+        team = self.create_team(organization=org)
+        project = self.create_project(name="foo", organization=org, teams=[team])
+        project2 = self.create_project(name="bar", organization=org, teams=[team])
+
+        self.create_member(teams=[team], user=user, organization=org)
+        self.login_as(user=user)
+
+        url = reverse(
+            "sentry-api-0-organization-releases", kwargs={"organization_id_or_slug": org.slug}
+        )
+        response = self.client.post(
+            url,
+            data={"version": "1.2.1", "projects": [project.id, project2.id]},
+            HTTP_USER_AGENT="sentry-cli/2.77.4",
+        )
+
+        assert response.status_code == 201, response.content
+        assert response.data["version"]
+
+        release = Release.objects.get(
+            version=response.data["version"], user_agent="sentry-cli/2.77.4"
+        )
+        assert not release.owner_id
+        assert release.organization == org
+        assert ReleaseProject.objects.filter(release=release, project=project).exists()
+        assert ReleaseProject.objects.filter(release=release, project=project2).exists()
+
     def test_duplicate(self):
         user = self.create_user(is_staff=False, is_superuser=False)
         org = self.create_organization()
@@ -1933,6 +1966,57 @@ class OrganizationReleaseCommitRangesTest(SetRefsTestCase):
 
         response = self.client.post(
             self.url, data={"version": "1", "refs": refs, "projects": [self.project.slug]}
+        )
+
+        assert response.status_code == 201
+
+        release = Release.objects.get(version="1", organization=self.org)
+
+        commits = Commit.objects.all().order_by("id")
+        self.assert_commit(commits[0], "current-commit-id")
+        self.assert_commit(commits[1], "current-commit-id-2")
+        self.assert_commit(commits[2], "current-commit-id-3")
+
+        head_commits = ReleaseHeadCommit.objects.all()
+        self.assert_head_commit(head_commits[0], "current-commit-id-3", release_id=release.id)
+
+        refs_expected = [
+            {
+                "repository": "test/repo",
+                "previousCommit": "previous-commit-id",
+                "commit": "current-commit-id",
+            },
+            {
+                "repository": "test/repo",
+                "previousCommit": "previous-commit-id-2",
+                "commit": "current-commit-id-2",
+            },
+            {
+                "repository": "test/repo",
+                "previousCommit": "previous-commit-id-3",
+                "commit": "current-commit-id-3",
+            },
+        ]
+        self.assert_fetch_commits(mock_fetch_commits, None, release.id, refs_expected)
+
+    @patch("sentry.tasks.commits.fetch_commits")
+    def test_simple_with_project_id(self, mock_fetch_commits):
+        refs = [
+            {
+                "repository": "test/repo",
+                "previousCommit": None,
+                "commit": "previous-commit-id..current-commit-id",
+            },
+            {
+                "repository": "test/repo",
+                "previousCommit": "previous-commit-will-be-ignored",
+                "commit": "previous-commit-id-2..current-commit-id-2",
+            },
+            {"repository": "test/repo", "commit": "previous-commit-id-3..current-commit-id-3"},
+        ]
+
+        response = self.client.post(
+            self.url, data={"version": "1", "refs": refs, "projects": [self.project.id]}
         )
 
         assert response.status_code == 201
