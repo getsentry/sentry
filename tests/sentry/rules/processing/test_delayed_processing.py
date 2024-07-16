@@ -1,4 +1,5 @@
 from collections import defaultdict
+from collections.abc import Sequence
 from copy import deepcopy
 from datetime import datetime, timedelta
 from unittest.mock import Mock, patch
@@ -15,8 +16,13 @@ from sentry.rules.conditions.event_frequency import (
     EventFrequencyCondition,
     EventFrequencyConditionData,
 )
-from sentry.rules.processing.delayed_processing import (  # build_group_to_groupevent,; bulk_fetch_events,; get_condition_group_results,; get_group_to_groupevent,; get_rules_to_fire,; ; ; parse_rulegroup_to_event_data,
+from sentry.rules.processing.delayed_processing import (
+    DataAndGroups,
+    UniqueConditionQuery,
     apply_delayed,
+    bucket_num_groups,
+    generate_unique_queries,
+    get_condition_group_results,
     get_condition_query_groups,
     get_rules_to_groups,
     get_rules_to_slow_conditions,
@@ -24,7 +30,7 @@ from sentry.rules.processing.delayed_processing import (  # build_group_to_group
     process_delayed_alert_conditions,
 )
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
-from sentry.testutils.cases import APITestCase, PerformanceIssueTestCase, RuleTestCase, TestCase
+from sentry.testutils.cases import PerformanceIssueTestCase, RuleTestCase, TestCase
 from sentry.testutils.factories import EventType
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
 from sentry.testutils.helpers.redis import mock_redis_buffer
@@ -37,6 +43,13 @@ pytestmark = pytest.mark.sentry_metrics
 FROZEN_TIME = before_now(days=1).replace(hour=1, minute=30, second=0, microsecond=0)
 TEST_RULE_SLOW_CONDITION = {"id": "sentry.rules.conditions.event_frequency.EventFrequencyCondition"}
 TEST_RULE_FAST_CONDITION = {"id": "sentry.rules.conditions.every_event.EveryEventCondition"}
+
+
+def test_bucket_num_groups():
+    assert bucket_num_groups(1) == "1"
+    assert bucket_num_groups(50) == ">10"
+    assert bucket_num_groups(101) == ">100"
+    assert bucket_num_groups(1001) == ">1000"
 
 
 def mock_get_condition_group(descending=False):
@@ -54,6 +67,59 @@ def mock_get_condition_group(descending=False):
     return _callthrough_with_order
 
 
+@freeze_time(FROZEN_TIME)
+class CreateEventTestCase(TestCase, BaseEventFrequencyPercentTest):
+    def create_event(
+        self,
+        project_id: int,
+        timestamp: datetime,
+        fingerprint: str,
+        environment=None,
+        tags: list[list[str]] | None = None,
+    ) -> GroupEvent:
+        data = {
+            "timestamp": iso_format(timestamp),
+            "environment": environment,
+            "fingerprint": [fingerprint],
+            "level": "error",
+            "user": {"id": uuid4().hex},
+            "exception": {
+                "values": [
+                    {
+                        "type": "IntegrationError",
+                        "value": "Identity not found.",
+                    }
+                ]
+            },
+        }
+        if tags:
+            data["tags"] = tags
+
+        return self.store_event(
+            data=data, project_id=project_id, assert_no_errors=False, event_type=EventType.ERROR
+        )
+
+    def create_event_frequency_condition(
+        self,
+        interval="1d",
+        id="EventFrequencyCondition",
+        value=1,
+        comparison_type=ComparisonType.COUNT,
+        comparison_interval=None,
+    ) -> EventFrequencyConditionData:
+        condition_id = f"sentry.rules.conditions.event_frequency.{id}"
+        condition_blob = EventFrequencyConditionData(
+            interval=interval,
+            id=condition_id,
+            value=value,
+            comparisonType=comparison_type,
+        )
+        if comparison_interval:
+            condition_blob["comparisonInterval"] = comparison_interval
+
+        return condition_blob
+
+
 class BuildGroupToGroupEventTest(TestCase):
     def test_build_group_to_groupevent(self):
         pass
@@ -64,9 +130,155 @@ class BulkFetchEventsTest(TestCase):
         pass
 
 
-class GetConditionGroupResultsTest(TestCase):
-    def test_get_condition_group_results(self):
-        pass
+class GetConditionGroupResultsTest(CreateEventTestCase):
+    interval = "1h"
+    comparison_interval = "15m"
+
+    def create_events(self, comparison_type: ComparisonType) -> GroupEvent:
+        # Create current events for the first query
+        event = self.create_event(self.project.id, FROZEN_TIME, "group-1", self.environment.name)
+        self.create_event(self.project.id, FROZEN_TIME, "group-1", self.environment.name)
+        if comparison_type == ComparisonType.PERCENT:
+            # Create a past event for the second query
+            self.create_event(
+                self.project.id,
+                FROZEN_TIME - timedelta(hours=1, minutes=10),
+                "group-1",
+                self.environment.name,
+            )
+        return event
+
+    def create_condition_groups(
+        self, condition_data_list: Sequence[EventFrequencyConditionData]
+    ) -> tuple[dict[UniqueConditionQuery, DataAndGroups], int, list[UniqueConditionQuery]]:
+        condition_groups = {}
+        all_unique_queries = []
+        for condition_data in condition_data_list:
+            unique_queries = generate_unique_queries(condition_data, self.environment.id)
+            event = self.create_events(condition_data["comparisonType"])
+            data_and_groups = DataAndGroups(
+                data=condition_data,
+                group_ids={event.group.id},
+            )
+            condition_groups.update({query: data_and_groups for query in unique_queries})
+            all_unique_queries.extend(unique_queries)
+        return condition_groups, event.group.id, all_unique_queries
+
+    def test_empty_condition_groups(self):
+        assert get_condition_group_results({}, self.project) == {}
+
+    @patch("sentry.rules.processing.delayed_processing.logger")
+    def test_nonexistent_condition(self, mock_logger):
+        nonexistent_cond_query = UniqueConditionQuery(
+            cls_id="fake_id", interval="", environment_id=1
+        )
+        fake_data_groups = DataAndGroups(
+            data=self.create_event_frequency_condition(id="fake_id"),
+            group_ids={1},
+        )
+
+        results = get_condition_group_results(
+            {nonexistent_cond_query: fake_data_groups}, self.project
+        )
+        assert results == {}
+        mock_logger.warning.assert_called_once()
+
+    @patch("sentry.rules.processing.delayed_processing.logger")
+    def test_fast_condition(self, mock_logger):
+        fast_cond_query = UniqueConditionQuery(
+            cls_id="sentry.rules.conditions.every_event.EveryEventCondition",
+            interval="",
+            environment_id=1,
+        )
+        fake_data_groups = DataAndGroups(
+            data=self.create_event_frequency_condition(id="fake_id"),
+            group_ids={1},
+        )
+
+        results = get_condition_group_results({fast_cond_query: fake_data_groups}, self.project)
+        assert results == {}
+        mock_logger.warning.assert_called_once()
+
+    def test_group_does_not_belong_to_project(self):
+        """
+        Test that when the passed in project does not contain the group
+        referenced in condition_data, the function ignores this mismatch
+        entirely and still queries for those events.
+        """
+        condition_data = self.create_event_frequency_condition(interval=self.interval)
+        condition_groups, group_id, unique_queries = self.create_condition_groups([condition_data])
+
+        results = get_condition_group_results(condition_groups, self.create_project())
+        assert results == {
+            unique_queries[0]: {group_id: 2},
+        }
+
+    def test_count_comparison_condition(self):
+        condition_data = self.create_event_frequency_condition(interval=self.interval)
+        condition_groups, group_id, unique_queries = self.create_condition_groups([condition_data])
+
+        results = get_condition_group_results(condition_groups, self.project)
+        assert results == {
+            unique_queries[0]: {group_id: 2},
+        }
+
+    def test_percent_comparison_condition(self):
+        condition_data = self.create_event_frequency_condition(
+            interval=self.interval,
+            comparison_type=ComparisonType.PERCENT,
+            comparison_interval=self.comparison_interval,
+        )
+        condition_groups, group_id, unique_queries = self.create_condition_groups([condition_data])
+        results = get_condition_group_results(condition_groups, self.project)
+
+        present_percent_query, offset_percent_query = unique_queries
+
+        assert results == {
+            present_percent_query: {group_id: 2},
+            offset_percent_query: {group_id: 1},
+        }
+
+    def test_count_percent_nonexistent_fast_conditions_together(self):
+        """
+        Test that a percent and count condition are processed as expected, and
+        that nonexistent and fast conditions are ignored.
+        """
+        count_data = self.create_event_frequency_condition(interval=self.interval)
+        percent_data = self.create_event_frequency_condition(
+            interval=self.interval,
+            comparison_type=ComparisonType.PERCENT,
+            comparison_interval=self.comparison_interval,
+        )
+        condition_groups, group_id, unique_queries = self.create_condition_groups(
+            [count_data, percent_data]
+        )
+        nonexistent_cond_query = UniqueConditionQuery(
+            cls_id="fake_id", interval="", environment_id=1
+        )
+        fast_cond_query = UniqueConditionQuery(
+            cls_id="sentry.rules.conditions.every_event.EveryEventCondition",
+            interval="",
+            environment_id=1,
+        )
+        fake_data_groups = DataAndGroups(
+            data=self.create_event_frequency_condition(id="fake_id"),
+            group_ids={1},
+        )
+
+        condition_groups.update(
+            {nonexistent_cond_query: fake_data_groups, fast_cond_query: fake_data_groups}
+        )
+        results = get_condition_group_results(condition_groups, self.project)
+
+        count_query, present_percent_query, offset_percent_query = unique_queries
+        # The count query and first percent query should be identical
+        assert count_query == present_percent_query
+        # We should only query twice b/c the count query and first percent query
+        # share a single scan.
+        assert results == {
+            count_query: {group_id: 4},
+            offset_percent_query: {group_id: 1},
+        }
 
 
 class GetGroupToGroupEventTest(TestCase):
@@ -154,61 +366,8 @@ class ParseRuleGroupToEventDataTest(TestCase):
         pass
 
 
-@freeze_time(FROZEN_TIME)
-class ProcessDelayedAlertConditionsTest(
-    TestCase, APITestCase, BaseEventFrequencyPercentTest, PerformanceIssueTestCase
-):
+class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTestCase):
     buffer_timestamp = (FROZEN_TIME + timedelta(seconds=1)).timestamp()
-
-    def create_event(
-        self,
-        project_id: int,
-        timestamp: datetime,
-        fingerprint: str,
-        environment=None,
-        tags: list[list[str]] | None = None,
-    ) -> GroupEvent:
-        data = {
-            "timestamp": iso_format(timestamp),
-            "environment": environment,
-            "fingerprint": [fingerprint],
-            "level": "error",
-            "user": {"id": uuid4().hex},
-            "exception": {
-                "values": [
-                    {
-                        "type": "IntegrationError",
-                        "value": "Identity not found.",
-                    }
-                ]
-            },
-        }
-        if tags:
-            data["tags"] = tags
-
-        return self.store_event(
-            data=data, project_id=project_id, assert_no_errors=False, event_type=EventType.ERROR
-        )
-
-    def create_event_frequency_condition(
-        self,
-        interval="1d",
-        id="EventFrequencyCondition",
-        value=1,
-        comparison_type=ComparisonType.COUNT,
-        comparison_interval=None,
-    ) -> EventFrequencyConditionData:
-        condition_id = f"sentry.rules.conditions.event_frequency.{id}"
-        condition_blob = EventFrequencyConditionData(
-            interval=interval,
-            id=condition_id,
-            value=value,
-            comparisonType=comparison_type,
-        )
-        if comparison_interval:
-            condition_blob["comparisonInterval"] = comparison_interval
-
-        return condition_blob
 
     def push_to_hash(self, project_id, rule_id, group_id, event_id=None, occurrence_id=None):
         value = json.dumps({"event_id": event_id, "occurrence_id": occurrence_id})

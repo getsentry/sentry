@@ -3,7 +3,7 @@ import type {Location, LocationDescriptor} from 'history';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import type {Event} from 'sentry/types/event';
-import type {OrganizationSummary} from 'sentry/types/organization';
+import type {Organization} from 'sentry/types/organization';
 import {defined} from 'sentry/utils';
 import EventView from 'sentry/utils/discover/eventView';
 import {
@@ -32,7 +32,7 @@ export type TransactionDestination = 'discover' | 'performance';
 
 export function generateIssueEventTarget(
   event: TraceError | TracePerformanceIssue,
-  organization: OrganizationSummary,
+  organization: Organization,
   referrer?: string
 ): LocationDescriptor {
   const queryParams = referrer ? '?referrer=' + referrer : '';
@@ -41,7 +41,7 @@ export function generateIssueEventTarget(
 
 function generateDiscoverEventTarget(
   event: EventLite | TraceError | TracePerformanceIssue,
-  organization: OrganizationSummary,
+  organization: Organization,
   location: Location,
   referrer?: string
 ): LocationDescriptor {
@@ -67,7 +67,7 @@ function generateDiscoverEventTarget(
 
 export function generateSingleErrorTarget(
   event: TraceError | TracePerformanceIssue,
-  organization: OrganizationSummary,
+  organization: Organization,
   location: Location,
   destination: ErrorDestination,
   referrer?: string
@@ -84,7 +84,7 @@ export function generateSingleErrorTarget(
 export function generateMultiTransactionsTarget(
   currentEvent: Event,
   events: EventLite[],
-  organization: OrganizationSummary,
+  organization: Organization,
   groupType: 'Ancestor' | 'Children' | 'Descendant'
 ): LocationDescriptor {
   const queryResults = new MutableSearch([]);
@@ -134,7 +134,7 @@ export function getEventTimestamp(event: Event): string | number | undefined {
 
 export function generateTraceTarget(
   event: Event,
-  organization: OrganizationSummary,
+  organization: Organization,
   location: Location,
   source?: string
 ): LocationDescriptor {
