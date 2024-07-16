@@ -4,16 +4,20 @@ import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicato
 import useFeedbackCache from 'sentry/components/feedback/useFeedbackCache';
 import useMutateActivity from 'sentry/components/feedback/useMutateActivity';
 import {t} from 'sentry/locale';
-import type {Group, GroupActivity, GroupActivityNote, User} from 'sentry/types';
 import type {NoteType} from 'sentry/types/alerts';
-import {GroupActivityType} from 'sentry/types/group';
-import type {FeedbackIssue} from 'sentry/utils/feedback/types';
+import {
+  type Group,
+  type GroupActivity,
+  type GroupActivityNote,
+  GroupActivityType,
+} from 'sentry/types/group';
+import type {User} from 'sentry/types/user';
 import {uniqueId} from 'sentry/utils/guid';
 import useOrganization from 'sentry/utils/useOrganization';
 import ActivitySection from 'sentry/views/issueDetails/activitySection';
 
 type Props = {
-  feedbackItem: FeedbackIssue;
+  feedbackItem: Group;
 };
 
 function FeedbackActivitySection(props: Props) {
@@ -30,7 +34,7 @@ function FeedbackActivitySection(props: Props) {
       invalidateCached([feedbackItem.id]);
     },
     organization,
-    group: feedbackItem as unknown as Group,
+    group: feedbackItem,
   });
 
   const deleteOptions = useMemo(() => {
