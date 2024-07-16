@@ -43,8 +43,11 @@ def get_appropriate_user_id(request: Request) -> int:
     user_id = request.user.id
     if has_elevated_mode(request):
         datastore = request.GET if request.GET else request.data
-        # If a userId override is not found, use the id for the user who made the request
-        user_id = int(datastore.get("userId", user_id))
+        try:
+            # If a userId override is not found, use the id for the user who made the request
+            user_id = int(datastore.get("userId", user_id))
+        except ValueError:
+            return Response("Invalid User ID", status=400)
 
     return user_id
 
