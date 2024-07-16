@@ -151,10 +151,12 @@ const metricsFidelityLadder = new GranularityLadder([
  */
 const seriesAPILadder = new GranularityLadder([
   [SIXTY_DAYS, '1d'],
-  [THIRTY_DAYS, '4h'],
+  [THIRTY_DAYS, '12h'],
+  [TWO_WEEKS, '4h'],
   [SIX_HOURS, '1h'],
   [0, '5m'],
 ]);
+
 export function getSeriesApiInterval(datetimeObj: DateTimeObject) {
   return seriesAPILadder.getInterval(getDiffInMinutes(datetimeObj));
 }
