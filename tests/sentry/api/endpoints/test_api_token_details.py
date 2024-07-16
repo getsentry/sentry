@@ -40,7 +40,7 @@ class ApiTokenGetTest(APITestCase):
         token = ApiToken.objects.create(user=self.user, name="token 1")
         self.get_error_response(token.id, status_code=status.HTTP_401_UNAUTHORIZED)
 
-    def test_unvalid_user_id(self):
+    def test_invalid_user_id(self):
         token = ApiToken.objects.create(user=self.user, name="token 1")
         self.login_as(self.user, superuser=True)
         self.get_error_response(
@@ -127,7 +127,7 @@ class ApiTokenPutTest(APITestCase):
 
         self.get_error_response(token.id, status_code=status.HTTP_401_UNAUTHORIZED, **payload)
 
-    def test_unvalid_user_id(self):
+    def test_invalid_user_id(self):
         token = ApiToken.objects.create(user=self.user, name="token 1")
         payload = {"name": "new token"}
 
@@ -167,7 +167,7 @@ class ApiTokenDeleteTest(APITestCase):
 
         self.get_error_response(token.id, status_code=status.HTTP_401_UNAUTHORIZED)
 
-    def test_unvalid_user_id(self):
+    def test_invalid_user_id(self):
         token = ApiToken.objects.create(user=self.user, name="token 1")
 
         self.login_as(self.user, superuser=True)
