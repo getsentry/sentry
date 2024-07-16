@@ -71,6 +71,6 @@ def resolve_datetime64(value: datetime | None, precision: int = 6) -> Function |
         delta = value.utcoffset()
         assert delta is not None
         value -= delta
-        value.replace(tzinfo=None)
+        value = value.replace(tzinfo=None)
 
     return Function("toDateTime64", [value.isoformat(), precision])
