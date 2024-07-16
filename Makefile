@@ -21,11 +21,11 @@ drop-db \
 create-db \
 apply-migrations \
 reset-db \
-node-version-check \
-install-js-dev :
+node-version-check :
 	@./scripts/do.sh $@
 
 develop \
+install-js-dev \
 install-py-dev :
 	devenv-sync
 

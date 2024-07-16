@@ -5,6 +5,8 @@ import os
 import shlex
 import subprocess
 
+from typing import Optional
+
 from devenv import constants
 from devenv.lib import colima, config, fs, limactl, proc, venv, volta
 
@@ -14,14 +16,23 @@ def run_procs(
     repo: str,
     reporoot: str,
     venv_path: str,
-    _procs: tuple[tuple[str, tuple[str, ...]], ...],
+    _procs: tuple[tuple[str, tuple[str, ...], Optional[dict[str, str]]], ...],
 ) -> bool:
     procs: list[tuple[str, tuple[str, ...], subprocess.Popen[bytes]]] = []
 
-    for name, cmd in _procs:
+    for name, cmd, extra_env in _procs:
         print(f"⏳ {name}")
         if constants.DEBUG:
             proc.xtrace(cmd)
+        env = {
+            **constants.user_environ,
+            **proc.base_env,
+            "VIRTUAL_ENV": venv_path,
+            "VOLTA_HOME": f"{reporoot}/.devenv/bin/volta-home",
+            "PATH": f"{venv_path}/bin:{reporoot}/.devenv/bin:{proc.base_path}",
+        }
+        if extra_env:
+            env = {**env, **extra_env}
         procs.append(
             (
                 name,
@@ -30,13 +41,7 @@ def run_procs(
                     cmd,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.STDOUT,
-                    env={
-                        **constants.user_environ,
-                        **proc.base_env,
-                        "VIRTUAL_ENV": venv_path,
-                        "VOLTA_HOME": f"{reporoot}/.devenv/bin/volta-home",
-                        "PATH": f"{venv_path}/bin:{reporoot}/.devenv/bin:{proc.base_path}",
-                    },
+                    env=env,
                     cwd=reporoot,
                 ),
             )
@@ -138,6 +143,19 @@ def main(context: dict[str, str]) -> int:
         venv_dir,
         (
             (
+                # Spreading out the network load by installing js,
+                # then py in the next batch.
+                "javascript dependencies (1/2)",
+                (
+                    "yarn",
+                    "install",
+                    "--frozen-lockfile",
+                ),
+                {
+                    "NODE_ENV": "development",
+                },
+            ),
+            (
                 "python dependencies (2/4)",
                 (
                     "pip",
@@ -156,7 +174,17 @@ def main(context: dict[str, str]) -> int:
         reporoot,
         venv_dir,
         (
-            ("javascript dependencies", ("make", "install-js-dev")),
+            (
+                "javascript dependencies (2/2)",
+                (
+                    "yarn",
+                    "install",
+                    "--check-files",
+                ),
+                {
+                    "NODE_ENV": "development",
+                },
+            ),
             # could opt out of syncing python if FRONTEND_ONLY but only if repo-local devenv
             # and pre-commit were moved to inside devenv and not the sentry venv
             (
