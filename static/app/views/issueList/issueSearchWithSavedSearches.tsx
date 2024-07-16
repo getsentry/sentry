@@ -86,6 +86,7 @@ const StyledButton = styled(Button)`
 
 const StyledIssueListSearchBarWithButton = styled(IssueListSearchBar)`
   flex: 1;
+  min-width: 0;
 
   @media (min-width: ${p => p.theme.breakpoints.small}) {
     border-top-left-radius: 0;
