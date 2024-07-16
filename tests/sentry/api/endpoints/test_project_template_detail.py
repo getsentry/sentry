@@ -116,3 +116,14 @@ class ProjectTemplateDetailDeleteTest(APITestCase):
         with pytest.raises(ProjectTemplate.DoesNotExist):
             ProjectTemplate.objects.get(id=template_id)
         assert ProjectTemplateOption.objects.filter(project_template_id=template_id).count() == 0
+
+    @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
+    def test_delete__as_member_without_permission(self):
+        user = self.create_user()
+        self.create_member(user=user, organization=self.organization, role="member")
+        self.login_as(user)
+
+        response = self.get_error_response(
+            self.organization.id, self.project_template.id, status_code=403
+        )
+        assert response.status_code == 403
