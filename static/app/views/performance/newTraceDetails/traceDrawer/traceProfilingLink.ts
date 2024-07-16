@@ -26,7 +26,7 @@ function toDate(value: unknown): Date | null {
 
 function getTimeOffsetForDuration(duration: number): number {
   // 100ms window for spans shorter than 100ms, otherwise 10% of the duration capped at 2s
-  return duration < 100 ? 100 : Math.max(duration * 0.1, 2_000);
+  return duration < 100 ? 100 : Math.min(duration * 0.1, 2_000);
 }
 
 function getNodeId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined {
@@ -39,7 +39,8 @@ function getNodeId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined
   return undefined;
 }
 
-function getTransactionId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined {
+// In the current version, a segment is a parent transaction
+function getSegmentId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined {
   if (isTransactionNode(node)) {
     return node.value.event_id;
   }
@@ -90,13 +91,14 @@ export function makeTraceContinuousProfilingLink(
 
   // TransactionId is required to generate a link because
   // we need to link to the segment of the trace and fetch its spans
-  const transactionId = getTransactionId(node);
-  if (!transactionId) {
+  const segmentId = getSegmentId(node);
+  if (!segmentId) {
     return null;
   }
 
   const queryWithEventIdAndTraceId: Record<string, string> = {
     ...query,
+    segmentId,
     traceId: options.traceId,
   };
 
