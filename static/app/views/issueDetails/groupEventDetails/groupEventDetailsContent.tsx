@@ -41,7 +41,7 @@ import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import LazyLoad from 'sentry/components/lazyLoad';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
+import Placeholder from 'sentry/components/placeholder';
 import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
 import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -164,7 +164,8 @@ function DefaultGroupEventDetailsContent({
                     ? t('Hide feedback on all issue details')
                     : t('Unhide feedback on all issue details')
                 }
-                disabled={promptError || promptLoading}
+                disabled={promptError}
+                busy={promptLoading}
               >
                 {showFeedback ? t('Hide') : t('Show')}
               </Button>
@@ -172,7 +173,7 @@ function DefaultGroupEventDetailsContent({
           }
         >
           {promptLoading ? (
-            <LoadingIndicator />
+            <Placeholder />
           ) : showFeedback ? (
             <EventUserFeedback
               report={event.userReport}
