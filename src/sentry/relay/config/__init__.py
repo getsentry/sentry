@@ -243,7 +243,6 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
     for namespace in CARDINALITY_LIMIT_USE_CASES:
         timeout.check()
         option = options.get(f"sentry-metrics.cardinality-limiter.limits.{namespace.value}.per-org")
-
         if not option or not len(option) == 1:
             # Multiple quotas are not supported
             continue
@@ -283,7 +282,7 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
 
         projects = clo.get("projects")
         if projects is not None and project.id not in projects:
-            # project_slugs_allowlist is defined but the current project is not in the list
+            # projects list is defined but the current project is not in the list
             continue
 
         try:
