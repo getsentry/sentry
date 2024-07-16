@@ -29,7 +29,7 @@ from sentry.silo.base import region_silo_function
 
 @region_silo_function
 def build_action_response(
-    registered_type,
+    registered_type: AlertRuleTriggerAction.TypeRegistration,
     integration: RpcIntegration | None = None,
     organization: Organization | None = None,
     sentry_app_installation: RpcSentryAppInstallation | None = None,

@@ -551,29 +551,31 @@ class Project(Model, PendingDeletionMixin):
         alert_rules = AlertRule.objects.fetch_for_project(self).filter(
             Q(user_id__isnull=False) | Q(team_id__isnull=False)
         )
-        for rule in alert_rules:
+        for alert_rule in alert_rules:
             is_member = False
-            if rule.user_id:
-                is_member = organization.member_set.filter(user_id=rule.user_id).exists()
-            if rule.team_id:
+            if alert_rule.user_id:
+                is_member = organization.member_set.filter(user_id=alert_rule.user_id).exists()
+            if alert_rule.team_id:
                 is_member = Team.objects.filter(
-                    organization_id=organization.id, id=rule.team_id
+                    organization_id=organization.id, id=alert_rule.team_id
                 ).exists()
             if not is_member:
-                rule.update(team_id=None, user_id=None)
-        rules = Rule.objects.filter(
+                alert_rule.update(team_id=None, user_id=None)
+        rule_models = Rule.objects.filter(
             Q(owner_team_id__isnull=False) | Q(owner_user_id__isnull=False), project=self
         )
-        for rule in rules:
+        for rule_model in rule_models:
             is_member = False
-            if rule.owner_user_id:
-                is_member = organization.member_set.filter(user_id=rule.owner_user_id).exists()
-            if rule.owner_team_id:
+            if rule_model.owner_user_id:
+                is_member = organization.member_set.filter(
+                    user_id=rule_model.owner_user_id
+                ).exists()
+            if rule_model.owner_team_id:
                 is_member = Team.objects.filter(
-                    organization_id=organization.id, id=rule.owner_team_id
+                    organization_id=organization.id, id=rule_model.owner_team_id
                 ).exists()
             if not is_member:
-                rule.update(owner_user_id=None, owner_team_id=None)
+                rule_model.update(owner_user_id=None, owner_team_id=None)
 
         # [Rule, AlertRule(SnubaQuery->Environment)]
         # id -> name
