@@ -8,14 +8,11 @@ import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types';
 import {Outcome} from 'sentry/types';
 
 import {getDateFromMoment} from './usageChart/utils';
+import {getReasonGroupName} from './getReasonGroupName';
 import type {UsageSeries, UsageStat} from './types';
 import type {ChartStats} from './usageChart';
 import {SeriesTypes} from './usageChart';
-import {
-  formatUsageWithUnits,
-  getFormatUsageOptions,
-  getInvalidReasonGroupName,
-} from './utils';
+import {formatUsageWithUnits, getFormatUsageOptions} from './utils';
 
 export function mapSeriesToChart({
   orgStats,
@@ -113,10 +110,7 @@ export function mapSeriesToChart({
         };
 
         const strigfiedReason = String(group.by.reason ?? '');
-        const reason =
-          outcome === Outcome.INVALID
-            ? getInvalidReasonGroupName(strigfiedReason)
-            : strigfiedReason;
+        const reason = getReasonGroupName(outcome, strigfiedReason);
 
         const label = startCase(reason.replace(/-|_/g, ' '));
 
