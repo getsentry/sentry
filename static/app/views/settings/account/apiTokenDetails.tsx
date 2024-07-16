@@ -50,7 +50,7 @@ function ApiTokenDetailsForm({token}: {token: InternalAppApiToken}) {
 
   const onSuccess = () => {
     addSuccessMessage(t('Updated user auth token.'));
-    handleGoBack;
+    handleGoBack();
   };
 
   const onError = error => {
