@@ -177,14 +177,20 @@ register_strategy_config(
           no longer result in different issues.
     """,
     initial_context={
+        # These come from newstyle:2019-05-08
+        "javascript_fuzzing": True,
+        "contextline_platforms": ("javascript", "node", "python", "php", "ruby"),
+        "normalize_message": True,
+        "with_exception_value_fallback": True,
+        # These come from newstyle:2019-10-29
+        "php_detect_anonymous_classes": True,
+        "with_context_line_file_origin_bug": False,
+        # Original set of features
         "hierarchical_grouping": True,
         "discard_native_filename": True,
         "use_package_fallback": True,
         "native_fuzzing": True,
         "detect_synthetic_exception_types": True,
-        # These come from newstyle:2019-10-29
-        "php_detect_anonymous_classes": True,
-        "with_context_line_file_origin_bug": False,
     },
     enhancements_base="mobile:2021-04-02",
 )
