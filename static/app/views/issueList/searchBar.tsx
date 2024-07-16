@@ -239,7 +239,7 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
     return getFilterKeySections(allTags, organization);
   }, [organization, issueTags, additionalTags, tags]);
 
-  const filterKeys = {...issueTags, ...additionalTags, ...tags};
+  const filterKeys = {...issueTags, ...tags, ...additionalTags};
 
   if (organization.features.includes('issue-stream-search-query-builder')) {
     return (
