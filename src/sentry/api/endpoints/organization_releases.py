@@ -466,16 +466,17 @@ class OrganizationReleasesEndpoint(
             result = serializer.validated_data
             scope.set_tag("version", result["version"])
 
+            # Get all projects that are available to the user/token
+            # Note: Does not use the "projects" data param from the request
             projects_from_request = self.get_projects(request, organization)
-            allowed_projects = {
-                k: project for project in projects_from_request for k in (project.slug, project.id)
-            }
+            allowed_projects = {project.slug: project for project in projects_from_request}
+            allowed_projects.update({project.id: project for project in projects_from_request})
 
             projects = []
-            for slug in result["projects"]:
-                if slug not in allowed_projects:
+            for id_or_slug in result["projects"]:
+                if id_or_slug not in allowed_projects:
                     return Response({"projects": ["Invalid project ids or slugs"]}, status=400)
-                projects.append(allowed_projects[slug])
+                projects.append(allowed_projects[id_or_slug])
 
             new_status = result.get("status")
             owner_id: int | None = None
