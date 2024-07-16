@@ -14,6 +14,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.project_template import (
     ProjectTemplateAttributes,
     ProjectTemplateSerializer,
+    ProjectTemplateWriteSerializer,
 )
 from sentry.models.organization import Organization
 from sentry.models.projecttemplate import ProjectTemplate
@@ -69,16 +70,22 @@ class OrganizationProjectTemplateDetailEndpoint(OrganizationEndpoint):
 
         Return the updated project template.
         """
+        serializer = ProjectTemplateWriteSerializer(data=request.data, partial=True)
+        if not serializer.is_valid():
+            return Response(status=400, data=serializer.errors)
+
+        data = serializer.validated_data
+
         project_template = get_object_or_404(
             ProjectTemplate, id=template_id, organization=organization
         )
 
-        name = request.data.get("name", None)
+        name = data.get("name", None)
         if name is not None:
             project_template.name = name
             project_template.save()
 
-        options = request.data.get("options", {})
+        options = data.get("options", {})
         if options:
             for key, value in options.items():
                 project_template.options.create_or_update(
