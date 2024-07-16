@@ -81,17 +81,16 @@ class OrganizationProjectTemplateDetailEndpoint(OrganizationEndpoint):
             ProjectTemplate, id=template_id, organization=organization
         )
 
-        name = data.get("name", None)
+        name = data.get("name")
         if name is not None:
             project_template.name = name
             project_template.save()
 
         options = data.get("options", {})
-        if options:
-            for key, value in options.items():
-                project_template.options.create_or_update(
-                    project_template=project_template, key=key, value=value
-                )
+        for key, value in options.items():
+            project_template.options.create_or_update(
+                project_template=project_template, key=key, value=value
+            )
 
         return Response(
             serialize(
