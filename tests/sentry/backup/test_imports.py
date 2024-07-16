@@ -45,7 +45,7 @@ from sentry.models.lostpasswordhash import LostPasswordHash
 from sentry.models.options.option import ControlOption, Option
 from sentry.models.options.project_option import ProjectOption
 from sentry.models.options.user_option import UserOption
-from sentry.models.organization import Organization
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
@@ -2174,6 +2174,34 @@ class CustomImportBehaviorTests(ImportTestCase):
     down (think on the order of 5-10 seconds per test case), we encourage combining model test cases
     as much as reasonably possible.
     """
+
+    @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, OrganizationMember)
+    def test_hide_organizations_import_flag(self, expected_models: list[type[Model]]):
+        owner = self.create_exhaustive_user("owner", email="owner@test.com")
+        member = self.create_exhaustive_user("member", email="member@test.com")
+        self.create_exhaustive_organization(
+            slug="test-org",
+            owner=owner,
+            member=member,
+        )
+
+        with tempfile.TemporaryDirectory() as tmp_dir:
+            tmp_path = self.export_to_tmp_file_and_clear_database(tmp_dir)
+            with open(tmp_path, "rb") as tmp_file:
+                import_in_organization_scope(
+                    tmp_file,
+                    org_filter={"test-org"},
+                    flags=ImportFlags(hide_organizations=True),
+                    printer=NOOP_PRINTER,
+                )
+
+            assert (
+                Organization.objects.get(slug="test-org").status
+                == OrganizationStatus.RELOCATION_PENDING_APPROVAL.value
+            )
+
+            with open(tmp_path, "rb") as tmp_file:
+                verify_models_in_output(expected_models, orjson.loads(tmp_file.read()))
 
     @expect_models(CUSTOM_IMPORT_BEHAVIOR_TESTED, OrganizationMember)
     def test_organization_member_inviter_id(self, expected_models: list[type[Model]]):
