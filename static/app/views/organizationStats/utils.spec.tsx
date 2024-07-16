@@ -1,8 +1,6 @@
 import {DATA_CATEGORY_INFO} from 'sentry/constants';
-import {
-  formatUsageWithUnits,
-  getInvalidReasonGroupName,
-} from 'sentry/views/organizationStats/utils';
+import {getReasonGroupName} from 'sentry/views/organizationStats/getReasonGroupName';
+import {formatUsageWithUnits} from 'sentry/views/organizationStats/utils';
 
 const MILLION = 10 ** 6;
 const BILLION = 10 ** 9;
@@ -167,8 +165,8 @@ describe('formatUsageWithUnits', function () {
   });
 
   it('Correctly groups invalid outcome reasons', function () {
-    expect(getInvalidReasonGroupName('duplicate_item')).toBe('invalid_request');
-    expect(getInvalidReasonGroupName('too_large')).toBe('too_large');
-    expect(getInvalidReasonGroupName('some_other_reason')).toBe('other');
+    expect(getReasonGroupName('invalid', 'duplicate_item')).toBe('invalid_request');
+    expect(getReasonGroupName('invalid', 'too_large')).toBe('too_large');
+    expect(getReasonGroupName('invalid', 'some_other_reason')).toBe('other');
   });
 });
