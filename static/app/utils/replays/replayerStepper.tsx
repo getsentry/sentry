@@ -47,6 +47,8 @@ export default function replayerStepper<
 
     const onDone = () => {
       resolve(collection);
+      replayer.off('pause', handlePause);
+      replayer.destroy();
     };
 
     const nextOrDone = () => {
