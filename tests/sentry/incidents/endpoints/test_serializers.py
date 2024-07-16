@@ -21,6 +21,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleDetectionType,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
 )
@@ -682,6 +683,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         params["resolveThreshold"] = 10
         params["triggers"][0]["alertThreshold"] = 50
         params["triggers"][1]["alertThreshold"] = 40
+        params["detection_type"] = AlertRuleDetectionType.PERCENT
         serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
@@ -701,6 +703,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         params["resolveThreshold"] = 10
         params["triggers"][0]["alertThreshold"] = 50
         params["triggers"][1]["alertThreshold"] = 40
+        params["detection_type"] = AlertRuleDetectionType.PERCENT
         serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
