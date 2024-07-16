@@ -70,9 +70,11 @@ class OrganizationProjectTemplatesIndexEndpoint(OrganizationEndpoint):
     @ensure_rollout_enabled(PROJECT_TEMPLATE_FEATURE_FLAG)
     def post(self, request: Request, organization: Organization) -> Response:
         """
-        Create a new Project Template.
+        Create a new Project Template for the organization.
 
-        Create a new project template for the organization.
+        The Request body should be a JSON object with the following keys:
+        - name: string
+        - options: {key: 'value'} - optional - creates a ProjectTemplateOption for each key-value pair
         """
         serializer = ProjectTemplateWriteSerializer(data=request.data)
         if not serializer.is_valid():
