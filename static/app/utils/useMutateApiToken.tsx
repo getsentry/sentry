@@ -1,5 +1,6 @@
 import type {InternalAppApiToken} from 'sentry/types/user';
 import {
+  type ApiQueryKey,
   getApiQueryData,
   setApiQueryData,
   useMutation,
@@ -8,7 +9,7 @@ import {
 import type RequestError from 'sentry/utils/requestError/requestError';
 import useApi from 'sentry/utils/useApi';
 
-const API_TOKEN_QUERY_KEY = ['/api-tokens/'] as const;
+const API_TOKEN_QUERY_KEY: ApiQueryKey = ['/api-tokens/'];
 
 type UpdateTokenQueryVariables = {
   name: string;
@@ -16,13 +17,14 @@ type UpdateTokenQueryVariables = {
 type FetchApiTokenParameters = {
   tokenId: string;
 };
-export const makeFetchApiTokenKey = ({tokenId}: FetchApiTokenParameters) =>
-  [`/api-tokens/${tokenId}/`] as const;
+export const makeFetchApiTokenKey = ({tokenId}: FetchApiTokenParameters): ApiQueryKey => [
+  `/api-tokens/${tokenId}/`,
+];
 
 interface UseMutateApiTokenProps {
   token: InternalAppApiToken;
   onError?: (error: RequestError) => void;
-  onSuccess?: () => void;
+  onSuccess?: (token: InternalAppApiToken | undefined) => void;
 }
 
 export default function useMutateApiToken({
@@ -43,10 +45,11 @@ export default function useMutateApiToken({
 
     onSuccess: (_data, {name}) => {
       // Update get by id query
-      setApiQueryData(
+      let updatedData: InternalAppApiToken | undefined = undefined;
+      updatedData = setApiQueryData(
         queryClient,
         makeFetchApiTokenKey({tokenId: token.id}),
-        (oldData: InternalAppApiToken | undefined) => {
+        (oldData?: InternalAppApiToken) => {
           if (!oldData) {
             return oldData;
           }
@@ -62,7 +65,7 @@ export default function useMutateApiToken({
         setApiQueryData(
           queryClient,
           API_TOKEN_QUERY_KEY,
-          (oldData: InternalAppApiToken[] | undefined) => {
+          (oldData?: InternalAppApiToken[]) => {
             if (!Array.isArray(oldData)) {
               return oldData;
             }
@@ -77,7 +80,7 @@ export default function useMutateApiToken({
           }
         );
       }
-      return onSuccess?.();
+      return onSuccess?.(updatedData);
     },
     onError: error => {
       return onError?.(error);
