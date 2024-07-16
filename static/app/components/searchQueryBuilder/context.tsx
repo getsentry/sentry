@@ -20,6 +20,7 @@ interface ContextData {
   searchSource: string;
   size: 'small' | 'normal';
   wrapperRef: React.RefObject<HTMLDivElement>;
+  placeholder?: string;
   savedSearchType?: SavedSearchType;
 }
 
