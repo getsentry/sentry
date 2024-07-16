@@ -33,6 +33,8 @@ class DiscoverAndPerformanceExamples:
                         "equation|count_if(transaction.duration,greater,300) / count() * 100": "number",
                         "transaction": "string",
                     },
+                    "tips": {},
+                    "isMetricsData": False,
                 },
             },
             status_codes=["200"],
