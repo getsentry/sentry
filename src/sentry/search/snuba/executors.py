@@ -1499,6 +1499,16 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             1,
         )
 
+    def get_priority_condition(
+        self, search_filter: SearchFilter, joined_entity: Entity
+    ) -> Condition:
+        """
+        Returns the priority lookup for a search filter.
+        """
+        return Condition(
+            Column("group_priority", self.entities["attrs"]), Op.IN, search_filter.value.raw_value
+        )
+
     ISSUE_FIELD_NAME = "group_id"
 
     entities = {
@@ -1517,6 +1527,9 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "times_seen": (get_times_seen_filter, Clauses.HAVING),
         "error.handled": (get_handled_condition, Clauses.WHERE),
         "error.unhandled": (get_handled_condition, Clauses.WHERE),
+        "issue.priority": (get_priority_condition, Clauses.WHERE),
+        # "first_release": (get_basic_group_snuba_condition, Clauses.WHERE),
+        # "firstRelease": (get_basic_group_snuba_condition, Clauses.WHERE),
     }
     first_seen = Column("group_first_seen", entities["attrs"])
     times_seen_aggregation = Function("count", [], alias="times_seen")

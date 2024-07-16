@@ -2931,22 +2931,6 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             )
             assert [int(row["id"]) for row in response.data] == expected_group_ids
 
-    def test_snuba_unsupported_filters(self) -> None:
-        self.login_as(user=self.user)
-        for query in [
-            "issue.priority:high",
-        ]:
-            with patch(
-                "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
-                side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
-            ) as mock_query:
-                self.get_success_response(
-                    sort="new",
-                    useGroupSnubaDataset=1,
-                    query=query,
-                )
-                assert mock_query.call_count == 0
-
     @patch(
         "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
         side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
@@ -2974,6 +2958,37 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         assert len(response.data) == 1
         assert int(response.data[0]["id"]) == event1.group.id
         assert mock_query.call_count == 1
+
+    @patch(
+        "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
+        side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
+        autospec=True,
+    )
+    @override_options({"issues.group_attributes.send_kafka": True})
+    def test_snuba_query_priority(self, mock_query: MagicMock) -> None:
+        self.project = self.create_project(organization=self.organization)
+        event1 = self.store_event(
+            data={"fingerprint": ["group-1"], "message": "MyMessage"},
+            project_id=self.project.id,
+        )
+        self.login_as(user=self.user)
+
+        # give time for consumers to run and propogate changes to clickhouse
+        sleep(1)
+        response = self.get_success_response(
+            sort="new",
+            useGroupSnubaDataset=1,
+            query="issue.priority:high",
+        )
+        assert len(response.data) == 1
+        assert int(response.data[0]["id"]) == event1.group.id
+
+        response = self.get_success_response(
+            sort="new",
+            useGroupSnubaDataset=1,
+            query="priority:medium",
+        )
+        assert len(response.data) == 0
 
     @patch(
         "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
