@@ -524,7 +524,6 @@ def create_alert_rule(
     detection_type: AlertRuleDetectionType = AlertRuleDetectionType.STATIC,
     **kwargs,
 ):
-    # TODO (mifu67): update the :params for sensitivity, seasonality, and detection type
     """
     Creates an alert rule for an organization.
 
@@ -552,6 +551,9 @@ def create_alert_rule(
     :param event_types: List of `EventType` that this alert will be related to
     :param comparison_delta: An optional int representing the time delta to use to determine the
     comparison period. In minutes.
+    :param sensitivity: An AlertRuleSensitivity that specifies sensitivity of anomaly detection alerts
+    :param seasonality: An AlertRuleSeasonality that specifies seasonality of anomaly detection alerts
+    :param detection_type: the type of metric alert; defaults to AlertRuleDetectionType.STATIC
 
     :return: The created `AlertRule`
     """
@@ -724,7 +726,6 @@ def update_alert_rule(
     detection_type: AlertRuleDetectionType | None = None,
     **kwargs,
 ):
-    # TODO: (mifu67): update the :params for sensitivity, seasonality, and detection_type
     """
     Updates an alert rule.
 
@@ -751,6 +752,9 @@ def update_alert_rule(
     :param comparison_delta: An optional int representing the time delta to use to determine the
     comparison period. In minutes.
     :param description: An optional str that will be rendered in the notification
+    :param sensitivity: An AlertRuleSensitivity that specifies sensitivity of anomaly detection alerts
+    :param seasonality: An AlertRuleSeasonality that specifies seasonality of anomaly detection alerts
+    :param detection_type: the type of metric alert; defaults to AlertRuleDetectionType.STATIC
     :return: The updated `AlertRule`
     """
     updated_fields: dict[str, Any] = {"date_modified": django_timezone.now()}

@@ -53,7 +53,7 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
     snooze: bool | None
     latestIncident: datetime | None
     errors: list[str] | None
-    sensitivity: str | None  # mifu67: I think these three should be here, but I will confirm
+    sensitivity: str | None
     seasonality: str | None
 
 
@@ -68,7 +68,7 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
         "totalThisWeek",
         "latestIncident",
         "description",  # TODO: remove this once the feature has been released to add to the public docs, being sure to denote it will only display in Slack notifications
-        "sensitivity",  # mifu67: the following three fields are for anomality detection, which is behind a feature flag
+        "sensitivity",  # The following three fields are for anomaly detection, which is behind a feature flag
         "seasonality",
         "detection_type",
     ]
