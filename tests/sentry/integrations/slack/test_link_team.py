@@ -38,6 +38,22 @@ class SlackIntegrationLinkTeamTestBase(TestCase):
         self.integration = install_slack(self.organization)
         self.idp = add_identity(self.integration, self.user, self.external_id)
 
+    @pytest.fixture(autouse=True)
+    def mock_chat_postMessage(self):
+        with patch(
+            "slack_sdk.web.WebClient.chat_postMessage",
+            return_value=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/chat.postMessage",
+                req_args={},
+                data={"ok": True},
+                headers={},
+                status_code=200,
+            ),
+        ) as self.mock_post:
+            yield
+
     def get_success_response(self, data: Mapping[str, Any] | None = None) -> HttpResponseBase:
         """This isn't in APITestCase so this isn't really an override."""
         if data is not None:
@@ -111,22 +127,6 @@ class SlackIntegrationLinkTeamTest(SlackIntegrationLinkTeamTestBase):
         self.team = self.create_team(
             organization=self.organization, name="Mariachi Band", members=[self.user]
         )
-
-    @pytest.fixture(autouse=True)
-    def mock_chat_postMessage(self):
-        with patch(
-            "slack_sdk.web.WebClient.chat_postMessage",
-            return_value=SlackResponse(
-                client=None,
-                http_verb="POST",
-                api_url="https://slack.com/api/chat.postMessage",
-                req_args={},
-                data={"ok": True},
-                headers={},
-                status_code=200,
-            ),
-        ) as self.mock_post:
-            yield
 
     def test_link_team(self):
         """Test that we successfully link a team to a Slack channel"""
