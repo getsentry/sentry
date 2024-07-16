@@ -38,7 +38,7 @@ from sentry.relay.config.metric_extraction import (
     get_metric_extraction_config,
 )
 from sentry.relay.utils import to_camel_case_name
-from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES
+from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES, UseCaseID
 from sentry.sentry_metrics.visibility import get_metrics_blocking_state_for_relay_config
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
@@ -261,6 +261,19 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
         }
         if id in passive_limits:
             limit["passive"] = True
+
+        if (
+            features.has("organizations:low-cardinality-limits-on-project", project.organization)
+            and namespace == UseCaseID.CUSTOM
+        ):
+            # have only one granularity window to make resource usage as light as possible for the relay
+            limit["window"] = {
+                "windowSeconds": 3600,  # 1 hour
+                "granularitySeconds": 3600,  # 1 hour
+            }
+            limit["limit"] = 100
+            limit["scope"] = "project"
+
         cardinality_limits.append(limit)
         existing_ids.add(id)
 
