@@ -562,18 +562,21 @@ def create_alert_rule(
 
     resolution = get_alert_resolution(time_window, organization)
 
-    if (sensitivity or seasonality) and not (sensitivity and seasonality):
-        raise ValidationError("Must choose both sensitivity and seasonality")
+    if detection_type == AlertRuleDetectionType.DYNAMIC:
+        if not (sensitivity and seasonality):
+            raise ValidationError("Dynamic alerts require both sensitivity and seasonality")
+    else:
+        if sensitivity or seasonality:
+            raise ValidationError(
+                "Sensitivity and seasonality are not valid fields for this alert type"
+            )
 
-    if detection_type == AlertRuleDetectionType.STATIC:
-        if comparison_delta is not None or sensitivity is not None or seasonality is not None:
-            raise ValidationError("Bad fields for static detection type")  # TODO: fix this copy
-    elif detection_type == AlertRuleDetectionType.PERCENT:
-        if comparison_delta is None or sensitivity is not None or seasonality is not None:
-            raise ValidationError("Bad fields for percent detection type")  # TODO: fix this copy
-    elif detection_type == AlertRuleDetectionType.DYNAMIC:
-        if comparison_delta is not None or sensitivity is None or seasonality is None:
-            raise ValidationError("Bad fields for dynamic detection type")  # TODO: fix this copy
+    if detection_type == AlertRuleDetectionType.PERCENT:
+        if comparison_delta is None:
+            raise ValidationError("Percentage-based alerts require a comparison delta")
+    else:
+        if comparison_delta is not None:
+            raise ValidationError("Comparison delta is not a valid field for this alert type")
 
     if comparison_delta is not None:
         # Since comparison alerts make twice as many queries, run the queries less frequently.
@@ -767,18 +770,6 @@ def update_alert_rule(
         updated_fields["sensitivity"] = sensitivity
     if seasonality:
         updated_fields["seasonality"] = seasonality
-    if detection_type:
-        updated_fields["detection_type"] = detection_type
-        # make sure we clear the incorrect fields for each detection type
-        if detection_type == AlertRuleDetectionType.STATIC:
-            updated_fields["sensitivity"] = None
-            updated_fields["seasonality"] = None
-            updated_fields["comparison_delta"] = None
-        elif detection_type == AlertRuleDetectionType.PERCENT:
-            updated_fields["sensitivity"] = None
-            updated_fields["seasonality"] = None
-        elif detection_type == AlertRuleDetectionType.DYNAMIC:
-            updated_fields["comparison_delta"] = None
     if query is not None:
         updated_query_fields["query"] = query
     if aggregate is not None:
@@ -832,6 +823,19 @@ def update_alert_rule(
             )
         else:
             updated_query_fields["resolution"] = timedelta(minutes=resolution)
+
+    if detection_type:
+        updated_fields["detection_type"] = detection_type
+        # make sure we clear the incorrect fields for each detection type
+        if detection_type == AlertRuleDetectionType.STATIC:
+            updated_fields["sensitivity"] = None
+            updated_fields["seasonality"] = None
+            updated_fields["comparison_delta"] = None
+        elif detection_type == AlertRuleDetectionType.PERCENT:
+            updated_fields["sensitivity"] = None
+            updated_fields["seasonality"] = None
+        elif detection_type == AlertRuleDetectionType.DYNAMIC:
+            updated_fields["comparison_delta"] = None
 
     with transaction.atomic(router.db_for_write(AlertRuleActivity)):
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()

@@ -223,12 +223,17 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert rule.detection_type == AlertRuleDetectionType.STATIC
         assert rule.detection_type == resp.data.get("detection_type")
 
-        with pytest.raises(ValidationError, match="Bad fields for static detection type"):
+        with pytest.raises(
+            ValidationError, match="Comparison delta is not a valid field for this alert type"
+        ):
             self.create_alert_rule(
                 comparison_delta=60
             )  # STATIC detection types shouldn't have comparison delta
 
-        with pytest.raises(ValidationError, match="Bad fields for static detection type"):
+        with pytest.raises(
+            ValidationError,
+            match="Sensitivity and seasonality are not valid fields for this alert type",
+        ):
             # STATIC detection types shouldn't have seasonality or sensitivity
             self.create_alert_rule(
                 seasonality=AlertRuleSeasonality.AUTO, sensitivity=AlertRuleSensitivity.HIGH
@@ -247,12 +252,17 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         resp = self.get_success_response(self.organization.slug, rule.id)
         assert rule.detection_type == resp.data.get("detection_type")
 
-        with pytest.raises(ValidationError, match="Bad fields for percent detection type"):
+        with pytest.raises(
+            ValidationError, match="Percentage-based alerts require a comparison delta"
+        ):
             self.create_alert_rule(
                 detection_type=AlertRuleDetectionType.PERCENT
             )  # PERCENT detection type requires a comparison delta
 
-        with pytest.raises(ValidationError, match="Bad fields for percent detection type"):
+        with pytest.raises(
+            ValidationError,
+            match="Sensitivity and seasonality are not valid fields for this alert type",
+        ):
             # PERCENT detection type should not have sensitivity or seasonality
             self.create_alert_rule(
                 seasonality=AlertRuleSeasonality.AUTO,
@@ -275,24 +285,35 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         resp = self.get_success_response(self.organization.slug, rule.id)
         assert rule.detection_type == resp.data.get("detection_type")
 
-        with pytest.raises(ValidationError, match="Must choose both sensitivity and seasonality"):
+        with pytest.raises(
+            ValidationError, match="Dynamic alerts require both sensitivity and seasonality"
+        ):
             self.create_alert_rule(
-                seasonality=AlertRuleSeasonality.AUTO
+                seasonality=AlertRuleSeasonality.AUTO, detection_type=AlertRuleDetectionType.DYNAMIC
             )  # Require both seasonality and sensitivity
 
-        with pytest.raises(ValidationError, match="Must choose both sensitivity and seasonality"):
+        with pytest.raises(
+            ValidationError, match="Dynamic alerts require both sensitivity and seasonality"
+        ):
             self.create_alert_rule(
-                sensitivity=AlertRuleSensitivity.MEDIUM
+                sensitivity=AlertRuleSensitivity.MEDIUM,
+                detection_type=AlertRuleDetectionType.DYNAMIC,
             )  # Require both seasonality and sensitivity
 
-        with pytest.raises(ValidationError, match="Bad fields for dynamic detection type"):
+        with pytest.raises(
+            ValidationError, match="Dynamic alerts require both sensitivity and seasonality"
+        ):
             self.create_alert_rule(
                 detection_type=AlertRuleDetectionType.DYNAMIC
             )  # DYNAMIC detection type requires seasonality and sensitivity
 
-        with pytest.raises(ValidationError, match="Bad fields for dynamic detection type"):
+        with pytest.raises(
+            ValidationError, match="Comparison delta is not a valid field for this alert type"
+        ):
             # DYNAMIC detection type should not have comparison delta
             self.create_alert_rule(
+                seasonality=AlertRuleSeasonality.AUTO,
+                sensitivity=AlertRuleSensitivity.HIGH,
                 comparison_delta=60,
                 detection_type=AlertRuleDetectionType.DYNAMIC,
             )

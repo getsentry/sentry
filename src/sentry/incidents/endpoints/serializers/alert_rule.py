@@ -68,9 +68,9 @@ class AlertRuleSerializerResponseOptional(TypedDict, total=False):
         "totalThisWeek",
         "latestIncident",
         "description",  # TODO: remove this once the feature has been released to add to the public docs, being sure to denote it will only display in Slack notifications
-        "sensitivity",  # The following three fields are for anomaly detection, which is behind a feature flag
-        "seasonality",
-        "detection_type",
+        "sensitivity",  # For anomaly detection, which is behind a feature flag
+        "seasonality",  # For anomaly detection, which is behind a feature flag
+        "detection_type",  # For anomaly detection, which is behind a feature flag
     ]
 )
 class AlertRuleSerializerResponse(AlertRuleSerializerResponseOptional):
