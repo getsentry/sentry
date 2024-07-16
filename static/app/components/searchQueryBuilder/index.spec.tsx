@@ -1233,6 +1233,38 @@ describe('SearchQueryBuilder', function () {
           await screen.findByRole('row', {name: 'browser.name:[foo,bar]'})
         ).toBeInTheDocument();
       });
+
+      it('displays comparison operator values with allowAllOperators: true', async function () {
+        const filterKeys = {
+          [FieldKey.RELEASE_VERSION]: {
+            key: FieldKey.RELEASE_VERSION,
+            name: '',
+            allowAllOperators: true,
+          },
+        };
+        render(
+          <SearchQueryBuilder
+            {...defaultProps}
+            filterKeys={filterKeys}
+            filterKeySections={[]}
+            initialQuery="release.version:1.0"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: release.version'})
+        );
+
+        // Normally text filters only have 'is' and 'is not' as options
+        expect(
+          await screen.findByRole('option', {name: 'release.version >'})
+        ).toBeInTheDocument();
+        await userEvent.click(screen.getByRole('option', {name: 'release.version >'}));
+
+        expect(
+          await screen.findByRole('row', {name: 'release.version:>1.0'})
+        ).toBeInTheDocument();
+      });
     });
 
     describe('numeric', function () {

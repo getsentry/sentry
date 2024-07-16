@@ -15,6 +15,7 @@ export const INTERFACE_TYPE_LOCALSTORAGE_KEY = 'search-query-builder-interface';
 
 function getSearchConfigFromKeys(keys: TagCollection): Partial<SearchConfig> {
   const config = {
+    textOperatorKeys: new Set<string>(),
     booleanKeys: new Set<string>(),
     numericKeys: new Set<string>(),
     dateKeys: new Set<string>(),
@@ -25,6 +26,10 @@ function getSearchConfigFromKeys(keys: TagCollection): Partial<SearchConfig> {
     const fieldDef = getFieldDefinition(key);
     if (!fieldDef) {
       continue;
+    }
+
+    if (fieldDef.allowComparisonOperators) {
+      config.textOperatorKeys.add(key);
     }
 
     switch (fieldDef.valueType) {
