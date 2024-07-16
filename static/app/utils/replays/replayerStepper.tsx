@@ -49,6 +49,11 @@ export default function replayerStepper<
       resolve(collection);
       replayer.off('pause', handlePause);
       replayer.destroy();
+      Array.from(document.getElementsByTagName('iframe')).forEach(el => {
+        if (el.style.display === 'none') {
+          el.parentNode?.removeChild(el);
+        }
+      });
     };
 
     const nextOrDone = () => {
