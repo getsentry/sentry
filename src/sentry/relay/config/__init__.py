@@ -245,7 +245,7 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
             features.has("organizations:low-cardinality-limits-on-project", project.organization)
             and namespace == UseCaseID.CUSTOM
         ):
-            option = options.get("sentry-metrics.cardinality-limiter.limits.custom.per-org.low")
+            option = options.get("sentry-metrics.cardinality-limiter.limits.custom.per-project.low")
         else:
             option = options.get(
                 f"sentry-metrics.cardinality-limiter.limits.{namespace.value}.per-org"
