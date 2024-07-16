@@ -17,13 +17,12 @@ import {
   type Tag,
   type TagValue,
 } from 'sentry/types/group';
-import {FieldKey, FieldKind, IsFieldValues, ISSUE_FIELDS} from 'sentry/utils/fields';
+import {FieldKey, IsFieldValues, ISSUE_FIELDS} from 'sentry/utils/fields';
 import {
   type ApiQueryKey,
   useApiQuery,
   type UseApiQueryOptions,
 } from 'sentry/utils/queryClient';
-import {Dataset} from 'sentry/views/alerts/rules/metric/types';
 
 const MAX_TAGS = 1000;
 
@@ -213,7 +212,12 @@ type FetchOrganizationTagsParams = {
   orgSlug: string;
   // TODO: Change this to Dataset type once IssuePlatform is added
   dataset?: string;
+  enabled?: boolean;
+  end?: string;
+  keepPreviousData?: boolean;
   projectIds?: string[];
+  start?: string;
+  statsPeriod?: string;
   useCache?: boolean;
 };
 
@@ -222,9 +226,12 @@ export const makeFetchOrganizationTags = ({
   dataset,
   projectIds,
   useCache = true,
+  statsPeriod,
+  start,
+  end,
 }: FetchOrganizationTagsParams): ApiQueryKey => [
   `/organizations/${orgSlug}/tags/`,
-  {query: {dataset, useCache, project: projectIds}},
+  {query: {dataset, useCache, project: projectIds, statsPeriod, start, end}},
 ];
 
 export const useFetchOrganizationTags = (
@@ -233,60 +240,10 @@ export const useFetchOrganizationTags = (
 ) => {
   return useApiQuery<Tag[]>(makeFetchOrganizationTags(params), {
     staleTime: Infinity,
-    keepPreviousData: true,
+    keepPreviousData: params.keepPreviousData,
+    enabled: params.enabled,
     ...options,
   });
-};
-
-type UseFetchIssueTagsParams = {
-  orgSlug: string;
-  projectIds: string[];
-  useCache?: boolean;
-};
-
-export const useFetchIssueOrganizationTags = ({
-  orgSlug,
-  projectIds,
-  useCache = true,
-}: UseFetchIssueTagsParams) => {
-  const eventsTagsQuery = useFetchOrganizationTags(
-    {
-      orgSlug,
-      projectIds,
-      dataset: Dataset.ERRORS,
-      useCache,
-    },
-    {}
-  );
-
-  const issuePlatformTagsQuery = useFetchOrganizationTags(
-    {
-      orgSlug,
-      projectIds,
-      dataset: 'search_issues',
-      useCache,
-    },
-    {}
-  );
-
-  const eventsTags = [
-    ...(eventsTagsQuery.data || []),
-    ...(issuePlatformTagsQuery.data || []),
-  ];
-
-  const eventsTagCollection: TagCollection = eventsTags.reduce<TagCollection>(
-    (acc, tag) => {
-      acc[tag.key] = {...tag, predefined: false, kind: FieldKind.TAG};
-      return acc;
-    },
-    {}
-  );
-
-  return {
-    tags: eventsTagCollection,
-    isLoading: eventsTagsQuery.isLoading || issuePlatformTagsQuery.isLoading,
-    isError: eventsTagsQuery.isError || issuePlatformTagsQuery.isError,
-  };
 };
 
 export function builtInIssuesFields(
