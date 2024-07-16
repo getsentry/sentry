@@ -261,7 +261,7 @@ function getEventsTableFieldOptions(
   });
 }
 
-function transformEventsResponseToTable(
+export function transformEventsResponseToTable(
   data: TableData | EventsTableData,
   _widgetQuery: WidgetQuery
 ): TableData {
@@ -395,7 +395,10 @@ function getSeriesResultType(
   return resultTypes;
 }
 
-function renderEventIdAsLinkable(data, {eventView, organization}: RenderFunctionBaggage) {
+export function renderEventIdAsLinkable(
+  data,
+  {eventView, organization}: RenderFunctionBaggage
+) {
   const id: string | unknown = data?.id;
   if (!eventView || typeof id !== 'string') {
     return null;
@@ -418,7 +421,7 @@ function renderEventIdAsLinkable(data, {eventView, organization}: RenderFunction
   );
 }
 
-function renderTraceAsLinkable(
+export function renderTraceAsLinkable(
   data,
   {eventView, organization, location}: RenderFunctionBaggage
 ) {
@@ -666,7 +669,10 @@ async function doOnDemandMetricsRequest(
 }
 
 // Checks fieldValue to see what function is being used and only allow supported custom measurements
-function filterAggregateParams(option: FieldValueOption, fieldValue?: QueryFieldValue) {
+export function filterAggregateParams(
+  option: FieldValueOption,
+  fieldValue?: QueryFieldValue
+) {
   if (
     (option.value.kind === FieldValueKind.CUSTOM_MEASUREMENT &&
       fieldValue?.kind === 'function' &&
