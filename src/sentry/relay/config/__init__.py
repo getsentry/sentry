@@ -281,8 +281,8 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
         if (project.organization.id % 100000) / 100000 >= rollout_rate:
             continue
 
-        project_slugs_allowlist = clo.get("project_slugs_allowlist")
-        if project_slugs_allowlist is not None and project.id not in project_slugs_allowlist:
+        projects = clo.get("projects")
+        if projects is not None and project.id not in projects:
             # project_slugs_allowlist is defined but the current project is not in the list
             continue
 
