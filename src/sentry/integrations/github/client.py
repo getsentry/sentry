@@ -229,7 +229,7 @@ class GitHubClientMixin(GithubProxyClient):
         Get the merge commit sha from a commit sha.
         """
         response = self.get_pullrequest_from_commit(repo, sha)
-        if not response or isinstance(response, list) or len(response) != 1:
+        if not response or (isinstance(response, list) and len(response) != 1):
             # the response should return a single merged PR, return if multiple
             return None
 
