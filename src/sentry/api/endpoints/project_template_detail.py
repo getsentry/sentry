@@ -64,6 +64,7 @@ class OrganizationProjectTemplateDetailEndpoint(OrganizationEndpoint):
         # think about how to handle there being no remaining templates for an org?
         return Response(status=204)
 
+    @ensure_rollout_enabled(PROJECT_TEMPLATE_FEATURE_FLAG)
     def put(self, request: Request, organization: Organization, template_id: str) -> Response:
         """
         Update the project template name or options.
