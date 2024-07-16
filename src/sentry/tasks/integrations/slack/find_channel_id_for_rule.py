@@ -2,7 +2,6 @@ import logging
 from collections.abc import Sequence
 from typing import Any
 
-from sentry import features
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.utils import (
@@ -10,10 +9,7 @@ from sentry.integrations.slack.utils import (
     RedisRuleStatus,
     strip_channel_name,
 )
-from sentry.integrations.slack.utils.channel import (
-    get_channel_id_with_timeout,
-    get_channel_id_with_timeout_deprecated,
-)
+from sentry.integrations.slack.utils.channel import get_channel_id_with_timeout
 from sentry.mediators.project_rules.creator import Creator
 from sentry.mediators.project_rules.updater import Updater
 from sentry.models.project import Project
@@ -78,18 +74,11 @@ def find_channel_id_for_rule(
     # endpoints but need some time limit imposed. 3 minutes should be more than enough time,
     # we can always update later
     try:
-        if features.has("organizations:slack-sdk-get-channel-id", organization):
-            channel_data = get_channel_id_with_timeout(
-                integration,
-                channel_name,
-                3 * 60,
-            )
-        else:
-            channel_data = get_channel_id_with_timeout_deprecated(
-                integration,
-                channel_name,
-                3 * 60,
-            )
+        channel_data = get_channel_id_with_timeout(
+            integration,
+            channel_name,
+            timeout=3 * 60,
+        )
     except DuplicateDisplayNameError:
         # if we find a duplicate display name and nothing else, we
         # want to set the status to failed. This just lets us skip
