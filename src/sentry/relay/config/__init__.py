@@ -228,6 +228,7 @@ class CardinalityLimit(TypedDict):
 class CardinalityLimitOption(TypedDict):
     rollout_rate: NotRequired[float]
     limit: CardinalityLimit
+    projects: NotRequired[list[int]]
 
 
 def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
@@ -277,6 +278,11 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
     for clo in project_limit_options + organization_limit_options + option_limit_options:
         rollout_rate = clo.get("rollout_rate", 1.0)
         if (project.organization.id % 100000) / 100000 >= rollout_rate:
+            continue
+
+        projects = clo.get("projects")
+        if projects is not None and project.id not in projects:
+            # projects list is defined but the current project is not in the list
             continue
 
         try:
