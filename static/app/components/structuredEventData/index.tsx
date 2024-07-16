@@ -1,4 +1,4 @@
-import {Fragment, isValidElement} from 'react';
+import {Fragment, isValidElement, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
@@ -46,6 +46,11 @@ export type StructuredEventDataProps = {
   maxDefaultDepth?: number;
   meta?: Record<any, any>;
   onCopy?: (copiedCode: string) => void;
+  onToggleExpand?: (
+    path: string,
+    expandedPaths: string[],
+    state: 'collapsed' | 'expanded'
+  ) => void;
   showCopyButton?: boolean;
   withAnnotatedText?: boolean;
 };
@@ -104,6 +109,7 @@ export function StructuredData({
   withAnnotatedText,
   value = null,
   withOnlyFormattedText = false,
+  onToggleExpand,
 }: {
   depth: number;
   maxDefaultDepth: number;
@@ -112,6 +118,7 @@ export function StructuredData({
   config?: StructedEventDataConfig;
   forceDefaultExpand?: boolean;
   objectKey?: string;
+  onToggleExpand?: (path: string, newState: 'collapsed' | 'expanded') => void;
   path?: string;
   showCopyButton?: boolean;
   // TODO(TS): What possible types can `value` be?
@@ -267,6 +274,7 @@ export function StructuredData({
             withAnnotatedText={withAnnotatedText}
             meta={meta?.[i]}
             maxDefaultDepth={maxDefaultDepth}
+            onToggleExpand={onToggleExpand}
           />
           {i < value.length - 1 ? <span>{','}</span> : null}
         </div>
@@ -280,6 +288,7 @@ export function StructuredData({
         prefix={formattedObjectKey}
         maxDefaultDepth={maxDefaultDepth}
         depth={depth}
+        onToggleExpand={onToggleExpand}
       >
         {children}
       </CollapsibleValue>
@@ -306,6 +315,7 @@ export function StructuredData({
           meta={meta?.[key]}
           maxDefaultDepth={maxDefaultDepth}
           objectKey={key}
+          onToggleExpand={onToggleExpand}
         />
         {i < keys.length - 1 ? <span>{','}</span> : null}
       </div>
@@ -321,6 +331,7 @@ export function StructuredData({
       depth={depth}
       path={path}
       forceDefaultExpand={forceDefaultExpand}
+      onToggleExpand={onToggleExpand}
     >
       {children}
     </CollapsibleValue>
@@ -337,8 +348,11 @@ export default function StructuredEventData({
   forceDefaultExpand,
   showCopyButton,
   onCopy,
+  onToggleExpand,
   ...props
 }: StructuredEventDataProps) {
+  const expandedPathsRef = useRef<string[]>([]);
+
   return (
     <StructuredDataWrapper {...props}>
       <StructuredData
@@ -350,6 +364,13 @@ export default function StructuredEventData({
         meta={meta}
         withAnnotatedText={withAnnotatedText}
         forceDefaultExpand={forceDefaultExpand}
+        onToggleExpand={(path, state) => {
+          expandedPathsRef.current =
+            state === 'collapsed'
+              ? expandedPathsRef.current.filter(prevPath => path !== prevPath)
+              : expandedPathsRef.current.concat(path);
+          onToggleExpand?.(path, expandedPathsRef.current, state);
+        }}
       />
       {children}
       {showCopyButton && (

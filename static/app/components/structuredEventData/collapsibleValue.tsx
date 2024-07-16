@@ -12,6 +12,9 @@ type CollapsibleValueProps = {
   closeTag: string;
   depth: number;
   maxDefaultDepth: number;
+  onToggleExpand:
+    | undefined
+    | ((path: string, newState: 'collapsed' | 'expanded') => void);
   openTag: string;
   path: string;
   /**
@@ -33,6 +36,7 @@ export function CollapsibleValue({
   path,
   maxDefaultDepth,
   forceDefaultExpand,
+  onToggleExpand,
 }: CollapsibleValueProps) {
   const numChildren = Children.count(children);
   const [isExpanded, setIsExpanded] = useState(
@@ -53,7 +57,10 @@ export function CollapsibleValue({
         <ToggleButton
           size="zero"
           aria-label={isExpanded ? t('Collapse') : t('Expand')}
-          onClick={() => setIsExpanded(oldValue => !oldValue)}
+          onClick={() => {
+            onToggleExpand?.(path, isExpanded ? 'collapsed' : 'expanded');
+            setIsExpanded(oldValue => !oldValue);
+          }}
           icon={
             <IconChevron direction={isExpanded ? 'down' : 'right'} legacySize="10px" />
           }
