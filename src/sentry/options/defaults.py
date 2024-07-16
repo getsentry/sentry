@@ -1430,6 +1430,7 @@ register(
     default=[
         {"window_seconds": 3600, "granularity_seconds": 3600, "limit": 100, "scope": "project"},
     ],
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 register(
     "sentry-metrics.10s-granularity",
