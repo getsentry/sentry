@@ -8,6 +8,7 @@ import {getBuiltInTags} from 'sentry/stores/tagStore';
 import TeamStore from 'sentry/stores/teamStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {
+  type DateString,
   getIssueTitleFromType,
   IssueCategory,
   IssueType,
@@ -24,10 +25,10 @@ type UseFetchIssueTagsParams = {
   org: Organization;
   projectIds: string[];
   enabled?: boolean;
-  end?: string;
+  end?: DateString;
   keepPreviousData?: boolean;
-  start?: string;
-  statsPeriod?: string;
+  start?: DateString;
+  statsPeriod?: string | null;
   useCache?: boolean;
 };
 

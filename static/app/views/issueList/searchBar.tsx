@@ -103,6 +103,9 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
     projectIds: pageFilters.projects.map(id => id.toString()),
     keepPreviousData: true,
     enabled: organization.features.includes('issue-stream-search-query-builder'),
+    start: pageFilters.datetime.start,
+    end: pageFilters.datetime.end,
+    statsPeriod: pageFilters.datetime.period,
   });
 
   const tagValueLoader = useCallback(

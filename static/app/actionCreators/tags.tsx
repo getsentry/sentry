@@ -6,7 +6,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {t} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
 import TagStore from 'sentry/stores/tagStore';
-import type {Tag, TagValue} from 'sentry/types';
+import type {DateString, Tag, TagValue} from 'sentry/types';
 import type {PageFilters} from 'sentry/types/core';
 import {
   type ApiQueryKey,
@@ -203,11 +203,11 @@ type FetchOrganizationTagsParams = {
   // TODO: Change this to Dataset type once IssuePlatform is added
   dataset?: string;
   enabled?: boolean;
-  end?: string;
+  end?: DateString;
   keepPreviousData?: boolean;
   projectIds?: string[];
-  start?: string;
-  statsPeriod?: string;
+  start?: DateString;
+  statsPeriod?: string | null;
   useCache?: boolean;
 };
 

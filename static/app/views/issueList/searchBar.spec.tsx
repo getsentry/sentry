@@ -168,30 +168,37 @@ describe('IssueListSearchBar', function () {
   });
 
   describe('Tags and Fields', function () {
+    const {router: routerWithFlag, organization: orgWithFlag} = initializeOrg();
+    orgWithFlag.features = ['issue-stream-search-query-builder'];
+
+    const newDefaultProps = {
+      organization: orgWithFlag,
+      query: '',
+      onSearch: jest.fn(),
+    };
+
     it('displays the correct options for the is tag', async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/tags/',
         body: [],
       });
 
-      defaultProps.organization.features = ['issue-stream-search-query-builder'];
-
-      render(<IssueListSearchBar {...defaultProps} />, {
-        router,
+      render(<IssueListSearchBar {...newDefaultProps} />, {
+        router: routerWithFlag,
       });
 
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.paste('is:', {delay: null});
       await userEvent.click(
-        screen.getByRole('button', {name: 'Edit value for filter: is'})
+        await screen.findByRole('button', {name: 'Edit value for filter: is'})
       );
 
-      Object.values(IsFieldValues).forEach(value => {
-        expect(screen.getByRole('option', {name: value})).toBeInTheDocument();
+      Object.values(IsFieldValues).forEach(async value => {
+        expect(await screen.findByRole('option', {name: value})).toBeInTheDocument();
       });
     });
 
-    it('displays the correct options under Issue Filters', async function () {
+    it('displays the correct options under Event Tags', async function () {
       MockApiClient.addMockResponse({
         url: '/organizations/org-slug/tags/',
         body: [{key: 'someTag', name: 'Some Tag'}],
@@ -199,14 +206,14 @@ describe('IssueListSearchBar', function () {
 
       defaultProps.organization.features = ['issue-stream-search-query-builder'];
 
-      render(<IssueListSearchBar {...defaultProps} />, {
-        router,
+      render(<IssueListSearchBar {...newDefaultProps} />, {
+        router: routerWithFlag,
       });
 
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.click(screen.getByRole('button', {name: 'Event Tags'}));
 
-      expect(screen.getByRole('option', {name: 'someTag'})).toBeInTheDocument();
+      expect(await screen.findByRole('option', {name: 'someTag'})).toBeInTheDocument();
     });
 
     it('displays tags in the has filter', async function () {
@@ -217,17 +224,17 @@ describe('IssueListSearchBar', function () {
 
       defaultProps.organization.features = ['issue-stream-search-query-builder'];
 
-      render(<IssueListSearchBar {...defaultProps} />, {
-        router,
+      render(<IssueListSearchBar {...newDefaultProps} />, {
+        router: routerWithFlag,
       });
 
       await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
       await userEvent.paste('has:', {delay: null});
       await userEvent.click(
-        screen.getByRole('button', {name: 'Edit value for filter: has'})
+        await screen.findByRole('button', {name: 'Edit value for filter: has'})
       );
 
-      expect(screen.getByRole('option', {name: 'someTag'})).toBeInTheDocument();
+      expect(await screen.findByRole('option', {name: 'someTag'})).toBeInTheDocument();
     });
   });
 });
