@@ -80,16 +80,13 @@ class ProjectTemplateUpdateTest(ProjectTemplateAPIBase):
             self.organization.id,
             self.project_template.id,
             name="Updated",
-            options={"sentry:release_track": "test"},
         )
 
         assert response.data["name"] == "Updated"
-        assert response.data["options"] == {"sentry:release_track": "test"}
 
         # validate db is updated
         self.project_template.refresh_from_db()
         assert self.project_template.name == "Updated"
-        assert self.project_template.options.get(key="sentry:release_track").value == "test"
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
     def test_put__only_options(self):
