@@ -38,7 +38,7 @@ from sentry.relay.config.metric_extraction import (
     get_metric_extraction_config,
 )
 from sentry.relay.utils import to_camel_case_name
-from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES
+from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES, UseCaseID
 from sentry.sentry_metrics.visibility import get_metrics_blocking_state_for_relay_config
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
@@ -241,7 +241,16 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
     cardinality_limits: list[CardinalityLimit] = []
     for namespace in CARDINALITY_LIMIT_USE_CASES:
         timeout.check()
-        option = options.get(f"sentry-metrics.cardinality-limiter.limits.{namespace.value}.per-org")
+        if (
+            features.has("organizations:low-cardinality-limits-on-project", project.organization)
+            and namespace == UseCaseID.CUSTOM
+        ):
+            option = options.get("sentry-metrics.cardinality-limiter.limits.custom.per-org.low")
+        else:
+            option = options.get(
+                f"sentry-metrics.cardinality-limiter.limits.{namespace.value}.per-org"
+            )
+
         if not option or not len(option) == 1:
             # Multiple quotas are not supported
             continue
@@ -256,7 +265,7 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
                 "granularitySeconds": quota["granularity_seconds"],
             },
             "limit": quota["limit"],
-            "scope": "organization",
+            "scope": options.get("scope", "organization"),
             "namespace": namespace.value,
         }
         if id in passive_limits:
