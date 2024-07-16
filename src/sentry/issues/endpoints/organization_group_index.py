@@ -47,14 +47,7 @@ from sentry.utils.validators import normalize_event_id
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 allowed_inbox_search_terms = frozenset(["date", "status", "for_review", "assigned_or_suggested"])
 
-
-# these filters are currently not supported in the snuba only search
-# and will use PostgresSnubaQueryExecutor instead of GroupAttributesPostgresSnubaQueryExecutor
-UNSUPPORTED_SNUBA_FILTERS = [
-    "issue.priority",  # coming soon
-    "firstRelease",  # coming soon
-    "first_release",  # coming soon
-]
+FIRST_RELEASE_FILTERS = ["first_release", "firstRelease"]
 
 
 def inbox_search(
@@ -185,18 +178,15 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
                     # haven't migrated trends
                     if query_kwargs["sort_by"] == "trends":
                         return False
-                    # check for unsupported snuba filters
-                    return (
-                        len(
-                            list(
-                                filter(
-                                    lambda x: x.key.name in UNSUPPORTED_SNUBA_FILTERS,
-                                    query_kwargs.get("search_filters", []),
-                                )
-                            )
+
+                    # check for the first_release search filters, which require postgres if the environment is specified
+                    if environments:
+                        return all(
+                            sf.key.name not in FIRST_RELEASE_FILTERS
+                            for sf in query_kwargs.get("search_filters", [])
                         )
-                        == 0
-                    )
+
+                    return True
 
                 query_kwargs["referrer"] = "search.group_index"
                 query_kwargs["use_group_snuba_dataset"] = use_group_snuba_dataset()

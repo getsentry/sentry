@@ -104,6 +104,8 @@ POSTGRES_ONLY_SEARCH_FIELDS = [
     "subscribed_by",
     "regressed_in_release",
     "for_review",
+    # this is a special condition where we do have first_release in ClickHouse GroupAttributes, but we need to do a join for queries with the environment specified
+    "first_release",
 ]
 
 
@@ -1509,6 +1511,18 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             Column("group_priority", self.entities["attrs"]), Op.IN, search_filter.value.raw_value
         )
 
+    def get_first_release_condition(
+        self, search_filter: SearchFilter, joined_entity: Entity
+    ) -> Condition:
+        """
+        Returns the first_release lookup for a search filter.
+        """
+        return Condition(
+            Column("group_first_release", self.entities["attrs"]),
+            Op.IN,
+            search_filter.value.raw_value,
+        )
+
     ISSUE_FIELD_NAME = "group_id"
 
     entities = {
@@ -1528,8 +1542,8 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "error.handled": (get_handled_condition, Clauses.WHERE),
         "error.unhandled": (get_handled_condition, Clauses.WHERE),
         "issue.priority": (get_priority_condition, Clauses.WHERE),
-        # "first_release": (get_basic_group_snuba_condition, Clauses.WHERE),
-        # "firstRelease": (get_basic_group_snuba_condition, Clauses.WHERE),
+        "first_release": (get_first_release_condition, Clauses.WHERE),
+        "firstRelease": (get_first_release_condition, Clauses.WHERE),
     }
     first_seen = Column("group_first_seen", entities["attrs"])
     times_seen_aggregation = Function("count", [], alias="times_seen")
