@@ -95,6 +95,7 @@ def register_strategy_config(id: str, **kwargs) -> type[StrategyConfiguration]:
 
 register_strategy_config(
     id="legacy:2019-03-12",
+    hidden=True,
     strategies=[
         "threads:legacy",
         "stacktrace:legacy",
@@ -119,6 +120,7 @@ register_strategy_config(
 
 register_strategy_config(
     id="newstyle:2019-05-08",
+    hidden=True,
     risk=RISK_LEVEL_HIGH,
     changelog="""
         * Uses source code information all platforms with reliable sources
@@ -145,6 +147,7 @@ register_strategy_config(
 register_strategy_config(
     id="newstyle:2019-10-29",
     base="newstyle:2019-05-08",
+    hidden=True,
     risk=RISK_LEVEL_MEDIUM,
     changelog="""
         * Better rules for when to take context lines into account for
@@ -160,6 +163,7 @@ register_strategy_config(
 register_strategy_config(
     id="mobile:2021-02-12",
     base="newstyle:2019-10-29",
+    hidden=True,
     # XXX(markus): Low risk because fallback grouping is supposed to take care
     # of this, for the hierarchical grouping rollout. Really we should get rid
     # of strategy risks entirely.
@@ -202,38 +206,4 @@ register_strategy_config(
     },
     enhancements_base="newstyle:2023-01-11",
     fingerprinting_bases=["javascript@2024-02-02"],
-)
-
-
-# Deprecated strategies
-#
-# These should not be used.  They are experiments which should be phased out
-# once there are no projects on them.
-
-register_strategy_config(
-    id="newstyle:2019-04-05",
-    risk=RISK_LEVEL_HIGH,
-    changelog="""
-        * Experimental grouping algorithm (should not be used)
-    """,
-    hidden=True,
-    initial_context={
-        "legacy_function_logic": True,
-    },
-    enhancements_base="common:2019-03-23",
-)
-
-register_strategy_config(
-    id="newstyle:2019-04-17",
-    base="newstyle:2019-04-05",
-    risk=RISK_LEVEL_HIGH,
-    changelog="""
-        * Experimental grouping algorithm (should not be used)
-    """,
-    hidden=True,
-    initial_context={
-        "legacy_function_logic": False,
-        "normalize_message": True,
-        "with_exception_value_fallback": True,
-    },
 )
