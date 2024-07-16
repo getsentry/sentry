@@ -92,6 +92,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:custom-metrics-extraction-rule", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enables UI for creation of custom metrics extraction rules
     manager.add("organizations:custom-metrics-extraction-rule-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
+    # Enables low cardinality projects for custom metrics
+    manager.add("organizations:low-cardinality-limits-on-project", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enables metrics extrapolation feature
     manager.add("organizations:metrics-extrapolation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable the default alert at project creation to be the high priority alert
