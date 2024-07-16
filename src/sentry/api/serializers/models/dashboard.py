@@ -5,6 +5,7 @@ import orjson
 
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import ALL_ACCESS_PROJECTS
+from sentry.hybridcloud.rpc.filter_query import OpaqueSerializedResponse
 from sentry.models.dashboard import Dashboard
 from sentry.models.dashboard_widget import (
     DashboardWidget,
@@ -195,7 +196,7 @@ class DashboardDetailsResponse(TypedDict):
     id: str
     title: str
     dateCreated: str
-    createdBy: dict  # todo
+    createdBy: list[OpaqueSerializedResponse]
     widgets: list[DashboardWidgetResponse]
     projects: list[int]
     filters: DashboardFilters
