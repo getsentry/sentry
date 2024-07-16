@@ -123,20 +123,24 @@ class ProjectTemplateUpdateTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.user = self.create_user()
-        self.org = self.create_organization(owner=self.user)
-        self.team = self.create_team(organization=self.org, members=[self.user])
+        self.organization = self.create_organization(owner=self.user)
+        self.team = self.create_team(organization=self.organization, members=[self.user])
 
         self.login_as(self.user)
-        self.project_template = self.create_project_template(organization=self.org, name="Test")
+        self.project_template = self.create_project_template(
+            organization=self.organization, name="Test"
+        )
 
     def test_put__no_feature(self):
-        response = self.get_error_response(self.org.id, self.project_template.id, status_code=404)
+        response = self.get_error_response(
+            self.organization.id, self.project_template.id, status_code=404
+        )
         assert response.status_code == 404
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
-    def test_put(self):
+    def test_put__only_name(self):
         response = self.get_success_response(
-            self.org.id,
+            self.organization.id,
             self.project_template.id,
             name="Updated",
             options={"sentry:release_track": "test"},
@@ -149,3 +153,50 @@ class ProjectTemplateUpdateTest(APITestCase):
         self.project_template.refresh_from_db()
         assert self.project_template.name == "Updated"
         assert self.project_template.options.get(key="sentry:release_track").value == "test"
+
+    @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
+    def test_put__only_options(self):
+        options = {"sentry:release_track": "test"}
+        response = self.get_success_response(
+            self.organization.id, self.project_template.id, options=options
+        )
+
+        assert response.data["name"] == self.project_template.name
+        assert response.data["options"] == options
+
+        # validate db is updated
+        self.project_template.refresh_from_db()
+        assert options == {
+            option.key: option.value for option in self.project_template.options.all()
+        }
+
+    @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
+    def test_put__name_and_options(self):
+        options = {"sentry:release_track": "test"}
+        response = self.get_success_response(
+            self.organization.id,
+            self.project_template.id,
+            name="Updated",
+            options=options,
+        )
+
+        assert response.data["name"] == "Updated"
+        assert response.data["options"] == options
+
+        # validate db is updated
+        self.project_template.refresh_from_db()
+        assert self.project_template.name == "Updated"
+        assert options == {
+            option.key: option.value for option in self.project_template.options.all()
+        }
+
+    @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
+    def test_put__not_found(self):
+        response = self.get_error_response(self.organization.id, 100, status_code=404)
+
+        assert response.status_code == 404
+        assert response.data == {
+            "detail": ErrorDetail(
+                string="No ProjectTemplate matches the given query.", code="not_found"
+            )
+        }
