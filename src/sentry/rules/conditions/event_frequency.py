@@ -669,7 +669,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         if avg_sessions_in_interval:
             error_issue_ids, _ = self.get_error_and_generic_group_ids(groups)
             organization_id = self.get_organization_id_from_groups(groups)
-            if error_issue_ids:
+            if error_issue_ids and organization_id:
                 error_issue_count = self.get_chunked_result(
                     tsdb_function=self.tsdb.get_sums,
                     model=get_issue_tsdb_group_model(GroupCategory.ERROR),
