@@ -70,18 +70,24 @@ class ProjectTemplateIndexPostTest(ProjectTemplateAPIBase):
         assert response.status_code == 404
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
-    def test_post__as_member(self):
+    def test_post(self):
+        response = self.get_success_response(self.organization.id, name="Test Project Template")
+        assert response.status_code == 201
+
+    @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
+    def test_post__as_member_without_permission(self):
+        """
+        Test that a member is part of the organization, but does not have the required
+        permissions to create a project template.
+
+        The user is a member of the organization, but does not have write access to the org.
+        """
         org_two = self.create_organization()
         self.create_team(organization=org_two, members=[self.user])
         self.create_project_template(organization=org_two)
 
         response = self.get_error_response(org_two.id, status_code=403)
         assert response.status_code == 403
-
-    @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
-    def test_post(self):
-        response = self.get_success_response(self.organization.id, name="Test Project Template")
-        assert response.status_code == 201
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
     def test_post__with_options(self):
