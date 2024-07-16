@@ -30,7 +30,7 @@ class BackgroundGroupingTest(TestCase):
 
         with self.options(
             {
-                "store.background-grouping-config-id": "mobile:2021-02-12",
+                "store.background-grouping-config-id": "newstyle_hierarchical:2021-02-12",
                 "store.background-grouping-sample-rate": 1.0,
             }
         ):
@@ -54,7 +54,7 @@ class BackgroundGroupingTest(TestCase):
 
             with self.options(
                 {
-                    "store.background-grouping-config-id": "mobile:2021-02-12",
+                    "store.background-grouping-config-id": "newstyle_hierarchical:2021-02-12",
                     "store.background-grouping-sample-rate": 1.0,
                 }
             ):
@@ -76,7 +76,7 @@ class BackgroundGroupingTest(TestCase):
 
         with self.options(
             {
-                "store.background-grouping-config-id": "mobile:2021-02-12",
+                "store.background-grouping-config-id": "newstyle_hierarchical:2021-02-12",
                 "store.background-grouping-sample-rate": 0.0,
             }
         ):

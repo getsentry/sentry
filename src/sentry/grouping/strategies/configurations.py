@@ -157,20 +157,8 @@ register_strategy_config(
     },
 )
 
-# This is simply a base for the hierarchical grouping until we can remove it
 register_strategy_config(
-    id="newstyle_hierarchical:1970-01-01",
-    base="newstyle:2019-05-08",
-    initial_context={
-        # These come from newstyle:2019-10-29
-        "php_detect_anonymous_classes": True,
-        "with_context_line_file_origin_bug": False,
-    },
-)
-
-register_strategy_config(
-    id="mobile:2021-02-12",
-    base="newstyle_hierarchical:1970-01-01",
+    id="newstyle_hierarchical:2021-02-12",
     # XXX(markus): Low risk because fallback grouping is supposed to take care
     # of this, for the hierarchical grouping rollout. Really we should get rid
     # of strategy risks entirely.
@@ -194,6 +182,9 @@ register_strategy_config(
         "use_package_fallback": True,
         "native_fuzzing": True,
         "detect_synthetic_exception_types": True,
+        # These come from newstyle:2019-10-29
+        "php_detect_anonymous_classes": True,
+        "with_context_line_file_origin_bug": False,
     },
     enhancements_base="mobile:2021-04-02",
 )
