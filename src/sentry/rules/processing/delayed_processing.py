@@ -1,4 +1,5 @@
 import logging
+import math
 import uuid
 from collections import defaultdict
 from datetime import datetime, timedelta, timezone
@@ -393,6 +394,13 @@ def get_group_to_groupevent(
     return group_to_groupevent
 
 
+def bucket_num_groups(num_groups: int) -> str:
+    if num_groups > 1:
+        magnitude = 10 ** int(math.log10(num_groups))
+        return f">{magnitude}"
+    return "1"
+
+
 def process_delayed_alert_conditions() -> None:
     with metrics.timer("delayed_processing.process_all_conditions.duration"):
         fetch_time = datetime.now(tz=timezone.utc)
@@ -428,6 +436,9 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     rulegroup_to_event_data = buffer.backend.get_hash(
         model=Project, field={"project_id": project.id}
     )
+    num_groups = len(rulegroup_to_event_data.keys())
+    num_groups_bucketed = bucket_num_groups(num_groups)
+    metrics.incr("delayed_processing.num_groups", tags={"num_groups": num_groups_bucketed})
     logger.info(
         "delayed_processing.rulegroupeventdata",
         extra={"rulegroupdata": rulegroup_to_event_data, "project_id": project_id},

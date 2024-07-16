@@ -1,6 +1,7 @@
 import {Fragment} from 'react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
 import StructuredEventData from 'sentry/components/structuredEventData';
@@ -49,6 +50,16 @@ export default storyBook(StructuredEventData, story => {
           Using the <JSXProperty name="config" value /> property, you can customize when
           and how certain data types are displayed.
         </p>
+        <p>Input:</p>
+        <CodeSnippet language="javascript">{`data: {nil: null, bool: 'this_should_look_like_a_boolean'}`}</CodeSnippet>
+        <p>Config:</p>
+        <CodeSnippet language="javascript">
+          {`const config = {
+  renderNull: () => 'nulllllll',
+  isBoolean: value => value === 'this_should_look_like_a_boolean',
+}`}
+        </CodeSnippet>
+        <p>Output:</p>
         <StructuredEventData
           data={{nil: null, bool: 'this_should_look_like_a_boolean'}}
           config={{
@@ -56,6 +67,19 @@ export default storyBook(StructuredEventData, story => {
             isBoolean: value => value === 'this_should_look_like_a_boolean',
           }}
         />
+        <p>
+          By default, strings within object values will render without quotes around them,
+          as you can see in the example above. In order to render values with quotes (or
+          any other custom formatting), you can set the <code>isString</code>
+          <JSXProperty name=" config" value /> with something like this:
+        </p>
+        <CodeSnippet language="javascript">
+          {`const config = {
+  isString: (v: any) => {
+    return typeof v === 'string';
+  },
+}; `}
+        </CodeSnippet>
       </Fragment>
     );
   });

@@ -8,6 +8,7 @@ import pytest
 from django.utils import timezone
 
 from sentry.issues.grouptype import PerformanceNPlusOneGroupType
+from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.rule import Rule
 from sentry.rules.conditions.event_frequency import (
@@ -148,6 +149,17 @@ class EventFrequencyQueryTest(EventFrequencyQueryTestBase):
             environment_id=self.environment2.id,
         )
         assert batch_query == {self.event3.group_id: 1}
+
+    def test_get_error_and_generic_group_ids(self):
+        groups = Group.objects.filter(
+            id__in=[self.event.group_id, self.event2.group_id, self.perf_event.group_id]
+        ).values_list("id", "type", "project__organization_id")
+        error_issue_ids, generic_issue_ids = self.condition_inst.get_error_and_generic_group_ids(
+            groups
+        )
+        assert self.event.group_id in error_issue_ids
+        assert self.event2.group_id in error_issue_ids
+        assert self.perf_event.group_id in generic_issue_ids
 
 
 class EventUniqueUserFrequencyQueryTest(EventFrequencyQueryTestBase):
