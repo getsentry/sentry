@@ -5,7 +5,7 @@ from collections import namedtuple
 from collections.abc import Callable, Mapping, Sequence
 from copy import deepcopy
 from datetime import datetime, timedelta
-from typing import Any, Literal, NotRequired, TypedDict, cast
+from typing import Any, Literal, cast
 
 import sentry_sdk
 from sentry_relay.consts import SPAN_STATUS_CODE_TO_NAME
@@ -75,22 +75,6 @@ PreparedQuery = namedtuple("PreparedQuery", ["filter", "columns", "fields"])
 PaginationResult = namedtuple("PaginationResult", ["next", "previous", "oldest", "latest"])
 FacetResult = namedtuple("FacetResult", ["key", "value", "count"])
 HistogramResults = dict[str, list[dict[str, Any]]]
-
-
-class EventsMeta(TypedDict):
-    fields: dict[str, str]
-    datasetReason: NotRequired[str]
-    isMetricsData: NotRequired[bool]
-    isMetricsExtractedData: NotRequired[bool]
-    tips: dict[str, str | None]
-
-
-# When calling make build-spectacular-docs we hit this issue
-# https://github.com/tfranzel/drf-spectacular/issues/1041
-# This is a work around
-EventsMeta.__annotations__["datasetReason"] = str
-EventsMeta.__annotations__["isMetricsData"] = bool
-EventsMeta.__annotations__["isMetricsExtractedData"] = bool
 
 
 resolve_discover_column = resolve_column(Dataset.Discover)
