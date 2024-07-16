@@ -228,7 +228,7 @@ def call_next_backfill(
 ):
     if last_processed_group_id is not None:
         redis_client.set(
-            f"{make_backfill_grouping_id_redis_key(project_id)}",
+            make_backfill_grouping_id_redis_key(project_id),
             last_processed_group_id,
             ex=REDIS_KEY_EXPIRY,
         )
