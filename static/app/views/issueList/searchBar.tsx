@@ -3,11 +3,7 @@ import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
 // eslint-disable-next-line no-restricted-imports
-import {
-  builtInIssuesFields,
-  fetchTagValues,
-  useFetchIssueOrganizationTags,
-} from 'sentry/actionCreators/tags';
+import {builtInIssuesFields, fetchTagValues} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
@@ -34,6 +30,7 @@ import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {WithIssueTagsProps} from 'sentry/utils/withIssueTags';
 import withIssueTags from 'sentry/utils/withIssueTags';
+import {useFetchIssueOrganizationTags} from 'sentry/views/issueList/utils/useFetchOrganizationTags';
 
 const getSupportedTags = (supportedTags: TagCollection): TagCollection => {
   return Object.fromEntries(
@@ -134,6 +131,8 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
   const {tags: issueTags} = useFetchIssueOrganizationTags({
     orgSlug: organization.slug,
     projectIds: pageFilters.projects.map(id => id.toString()),
+    keepPreviousData: true,
+    enabled: organization.features.includes('issue-stream-search-query-builder'),
   });
 
   const tagValueLoader = useCallback(
