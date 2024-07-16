@@ -348,7 +348,7 @@ export function MetricsExtractionRuleForm({
                               isExeedingCardinalityLimit ? (
                                 <Tooltip
                                   title={t(
-                                    'This query is exeeding the cardinality limit. Remove tags or add more filters to receive accurate data.'
+                                    'This filter is exeeding the cardinality limit. Remove tags or add more conditions to receive accurate data.'
                                   )}
                                 >
                                   <StyledIconWarning size="xs" color="yellow300" />
@@ -381,7 +381,7 @@ export function MetricsExtractionRuleForm({
                           </SearchWrapper>
                           {value.length > 1 && (
                             <Button
-                              aria-label={t('Remove Query')}
+                              aria-label={t('Remove Filter')}
                               onClick={() => onChange(conditions.toSpliced(index, 1), {})}
                               icon={<IconClose />}
                             />
@@ -396,7 +396,7 @@ export function MetricsExtractionRuleForm({
                       onClick={() => onChange([...conditions, createCondition()], {})}
                       icon={<IconAdd />}
                     >
-                      {t('Add Query')}
+                      {t('Add Filter')}
                     </Button>
                   </ConditionsButtonBar>
                 </Fragment>
