@@ -530,6 +530,7 @@ const Row = styled('div')`
   display: flex;
   align-items: stretch;
   height: 24px;
+  max-width: 100%;
 
   &:last-child {
     flex-grow: 1;
