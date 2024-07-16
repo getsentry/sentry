@@ -15,7 +15,7 @@ class ProjectTemplateAPIBase(APITestCase):
         super().setUp()
         self.user = self.create_user()
         self.organization = self.create_organization(owner=self.user)
-        self.team = self.create_team(members=[self.user])
+        self.team = self.create_team()
 
         self.login_as(self.user)
 
