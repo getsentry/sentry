@@ -13,6 +13,7 @@ bootstrap:
 	@echo "you probably want to run devenv sync to bring the"
 	@echo "sentry dev environment up to date!"
 
+build-platform-assets \
 clean \
 init-config \
 run-dependent-services \
@@ -33,11 +34,6 @@ install-py-dev :
 .PHONY: devenv-sync
 devenv-sync:
 	devenv sync
-
-build-platform-assets \
-direnv-help \
-upgrade-pip :
-	@SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh $@
 
 build-js-po: node-version-check
 	mkdir -p build
