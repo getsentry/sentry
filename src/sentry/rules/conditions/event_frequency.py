@@ -392,6 +392,13 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
                 generic_issue_ids.append(group[0])
         return (error_issue_ids, generic_issue_ids)
 
+    def get_organization_id_from_groups(self, groups: list[tuple[int, int, int]]) -> int | None:
+        organization_id = None
+        if groups:
+            group = groups[0]
+            organization_id = group[-1]
+        return organization_id
+
 
 class EventFrequencyCondition(BaseEventFrequencyCondition):
     id = "sentry.rules.conditions.event_frequency.EventFrequencyCondition"
@@ -421,11 +428,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
             "id", "type", "project__organization_id"
         )
         error_issue_ids, generic_issue_ids = self.get_error_and_generic_group_ids(groups)
-        organization_id = None
-        if groups:
-            group = groups[0]
-            if len(group) == 3:
-                organization_id = group[3]
+        organization_id = self.get_organization_id_from_groups(groups)
 
         if error_issue_ids and organization_id:
             error_sums = self.get_chunked_result(
@@ -488,13 +491,14 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
             "id", "type", "project__organization_id"
         )
         error_issue_ids, generic_issue_ids = self.get_error_and_generic_group_ids(groups)
+        organization_id = self.get_organization_id_from_groups(groups)
 
-        if error_issue_ids:
+        if error_issue_ids and organization_id:
             error_totals = self.get_chunked_result(
                 tsdb_function=self.tsdb.get_distinct_counts_totals,
                 model=get_issue_tsdb_user_group_model(GroupCategory.ERROR),
                 group_ids=error_issue_ids,
-                organization_id=groups[0][2],
+                organization_id=organization_id,
                 start=start,
                 end=end,
                 environment_id=environment_id,
@@ -502,13 +506,13 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
             )
             batch_totals.update(error_totals)
 
-        if generic_issue_ids:
+        if generic_issue_ids and organization_id:
             generic_totals = self.get_chunked_result(
                 tsdb_function=self.tsdb.get_distinct_counts_totals,
                 # this isn't necessarily performance, just any non-error category
                 model=get_issue_tsdb_user_group_model(GroupCategory.PERFORMANCE),
                 group_ids=generic_issue_ids,
-                organization_id=groups[0][2],
+                organization_id=organization_id,
                 start=start,
                 end=end,
                 environment_id=environment_id,
@@ -661,14 +665,16 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         avg_sessions_in_interval = self.get_session_interval(
             session_count_last_hour, self.get_option("interval")
         )
+
         if avg_sessions_in_interval:
             error_issue_ids, _ = self.get_error_and_generic_group_ids(groups)
+            organization_id = self.get_organization_id_from_groups(groups)
             if error_issue_ids:
                 error_issue_count = self.get_chunked_result(
                     tsdb_function=self.tsdb.get_sums,
                     model=get_issue_tsdb_group_model(GroupCategory.ERROR),
                     group_ids=error_issue_ids,
-                    organization_id=groups[0][3],
+                    organization_id=organization_id,
                     start=start,
                     end=end,
                     environment_id=environment_id,
