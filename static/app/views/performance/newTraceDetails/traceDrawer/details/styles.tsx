@@ -443,9 +443,12 @@ function NodeActions(props: {
     return '';
   }, [props]);
 
+  const params = useParams<{traceSlug?: string}>();
+
   const profileLink = makeTraceContinuousProfilingLink(props.node, profilerId, {
     orgSlug: props.organization.slug,
-    projectSlug: props.node.value.project_slug,
+    projectSlug: props.node.metadata.project_slug ?? '',
+    traceId: params.traceSlug ?? '',
   });
 
   return (
