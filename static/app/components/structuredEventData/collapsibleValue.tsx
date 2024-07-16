@@ -13,6 +13,7 @@ type CollapsibleValueProps = {
   depth: number;
   maxDefaultDepth: number;
   openTag: string;
+  path: string;
   /**
    * Forces the value to start expanded, otherwise it will expand if there are
    * less than 5 (MAX_ITEMS_BEFORE_AUTOCOLLAPSE) items
@@ -29,6 +30,7 @@ export function CollapsibleValue({
   closeTag,
   prefix = null,
   depth,
+  path,
   maxDefaultDepth,
   forceDefaultExpand,
 }: CollapsibleValueProps) {
@@ -57,6 +59,7 @@ export function CollapsibleValue({
           }
           borderless
           baseLevelPadding={baseLevelPadding}
+          data-path={path}
         />
       ) : null}
       {prefix}

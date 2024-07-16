@@ -96,13 +96,14 @@ function LinkHint({meta, value}: {value: string; meta?: Record<any, any>}) {
 export function StructuredData({
   config,
   depth,
-  value = null,
+  forceDefaultExpand,
   maxDefaultDepth,
-  withAnnotatedText,
-  withOnlyFormattedText = false,
   meta,
   objectKey,
-  forceDefaultExpand,
+  path = '$',
+  withAnnotatedText,
+  value = null,
+  withOnlyFormattedText = false,
 }: {
   depth: number;
   maxDefaultDepth: number;
@@ -111,6 +112,7 @@ export function StructuredData({
   config?: StructedEventDataConfig;
   forceDefaultExpand?: boolean;
   objectKey?: string;
+  path?: string;
   showCopyButton?: boolean;
   // TODO(TS): What possible types can `value` be?
   value?: any;
@@ -261,6 +263,7 @@ export function StructuredData({
             config={config}
             value={value[i]}
             depth={depth + 1}
+            path={path + '.' + i}
             withAnnotatedText={withAnnotatedText}
             meta={meta?.[i]}
             maxDefaultDepth={maxDefaultDepth}
@@ -273,6 +276,7 @@ export function StructuredData({
       <CollapsibleValue
         openTag="["
         closeTag="]"
+        path={path}
         prefix={formattedObjectKey}
         maxDefaultDepth={maxDefaultDepth}
         depth={depth}
@@ -297,6 +301,7 @@ export function StructuredData({
           config={config}
           value={value[key]}
           depth={depth + 1}
+          path={path + '.' + i}
           withAnnotatedText={withAnnotatedText}
           meta={meta?.[key]}
           maxDefaultDepth={maxDefaultDepth}
@@ -314,6 +319,7 @@ export function StructuredData({
       prefix={formattedObjectKey}
       maxDefaultDepth={maxDefaultDepth}
       depth={depth}
+      path={path}
       forceDefaultExpand={forceDefaultExpand}
     >
       {children}
@@ -339,6 +345,7 @@ export default function StructuredEventData({
         config={config}
         value={data}
         depth={0}
+        path="$"
         maxDefaultDepth={maxDefaultDepth}
         meta={meta}
         withAnnotatedText={withAnnotatedText}
