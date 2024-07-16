@@ -7,11 +7,9 @@ import type {Node} from '@react-types/shared';
 import {CompactSelect, type SelectOption} from 'sentry/components/compactSelect';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/useFilterButtonProps';
-import {
-  getValidOpsForFilter,
-  isDateToken,
-} from 'sentry/components/searchQueryBuilder/utils';
+import {useFilterButtonProps} from 'sentry/components/searchQueryBuilder/tokens/filter/useFilterButtonProps';
+import {getValidOpsForFilter} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {isDateToken} from 'sentry/components/searchQueryBuilder/utils';
 import {
   FilterType,
   type ParseResultToken,

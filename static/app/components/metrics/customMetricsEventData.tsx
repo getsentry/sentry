@@ -230,7 +230,7 @@ export function CustomMetricsEventData({
 
   return (
     <TraceDrawerComponents.SectionCard
-      title={t('Emitted Metrics')}
+      title={t('Custom Metrics')}
       items={items}
       sortAlphabetically
     />

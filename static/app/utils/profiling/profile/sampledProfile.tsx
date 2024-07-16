@@ -1,5 +1,7 @@
 import {CallTreeNode} from 'sentry/utils/profiling/callTreeNode';
 
+import {assertValidProfilingUnit} from '../units/units';
+
 import {Frame} from './../frame';
 import {Profile} from './profile';
 import type {createFrameIndex} from './utils';
@@ -60,6 +62,7 @@ export class SampledProfile extends Profile {
       profileIds?: Readonly<string[]>;
     }
   ): Profile {
+    assertValidProfilingUnit(sampledProfile.unit);
     const profile = new SampledProfile({
       duration: sampledProfile.endValue - sampledProfile.startValue,
       startedAt: sampledProfile.startValue,
@@ -88,7 +91,7 @@ export class SampledProfile extends Profile {
       );
     }
 
-    function resolveFrame(index) {
+    function resolveFrame(index: number) {
       const resolvedFrame = frameIndex[index];
       if (!resolvedFrame) {
         throw new Error(`Could not resolve frame ${index} in frame index`);
