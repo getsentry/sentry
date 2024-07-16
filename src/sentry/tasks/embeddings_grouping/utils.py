@@ -110,14 +110,9 @@ def initialize_backfill(
     if not features.has("projects:similarity-embeddings-backfill", project):
         raise FeatureError("Project does not have feature")
 
-    if last_processed_group_id is None and redis_client.get(
-        make_backfill_grouping_id_redis_key(project_id)
-    ):
-        last_processed_group_id_ret = (
-            int(redis_client.get(make_backfill_grouping_id_redis_key(project_id)))
-            if redis_client.get(make_backfill_grouping_id_redis_key(project_id))
-            else None
-        )
+    last_processed_group_id_ret = redis_client.get(make_backfill_grouping_id_redis_key(project_id))
+    if last_processed_group_id is None and last_processed_group_id_ret is not None:
+        last_processed_group_id_ret = int(last_processed_group_id_ret)
     else:
         last_processed_group_id_ret = last_processed_group_id
 
@@ -606,7 +601,7 @@ def lookup_event(project_id: int, event_id: str, group_id: int) -> Event:
     return event
 
 
-def make_backfill_grouping_id_redis_key(project_id: int):
+def make_backfill_grouping_id_redis_key(project_id: int) -> str:
     redis_key = "grouping_record_backfill.last_processed_grouping_index"
     return f"{redis_key}-{project_id}"
 
