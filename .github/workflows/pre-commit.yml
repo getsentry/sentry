@@ -71,8 +71,6 @@ jobs:
           path: ~/.cache/pre-commit
           key: cache-epoch-1|${{ env.pythonLocation }}|${{ hashFiles('.pre-commit-config.yaml') }}
       - name: Setup pre-commit
-        # We don't use make setup-git because we're only interested in installing
-        # requirements-dev.txt as a fast path.
         # We don't need pre-commit install --install-hooks since we're just interested
         # in running the hooks.
         run: |

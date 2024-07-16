@@ -56,6 +56,7 @@ EXPOSABLE_FEATURES = [
     "organizations:profiling",
     "organizations:session-replay-combined-envelope-items",
     "organizations:session-replay-recording-scrubbing",
+    "organizations:session-replay-video-disabled",
     "organizations:session-replay",
     "organizations:standalone-span-ingestion",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
@@ -227,6 +228,7 @@ class CardinalityLimit(TypedDict):
 class CardinalityLimitOption(TypedDict):
     rollout_rate: NotRequired[float]
     limit: CardinalityLimit
+    projects: NotRequired[list[int]]
 
 
 def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
@@ -276,6 +278,11 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
     for clo in project_limit_options + organization_limit_options + option_limit_options:
         rollout_rate = clo.get("rollout_rate", 1.0)
         if (project.organization.id % 100000) / 100000 >= rollout_rate:
+            continue
+
+        projects = clo.get("projects")
+        if projects is not None and project.id not in projects:
+            # projects list is defined but the current project is not in the list
             continue
 
         try:
@@ -911,6 +918,67 @@ def _get_mobile_browser_performance_profiles(organization: Organization) -> list
     ]
 
 
+def _get_default_browser_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
+    if not features.has("organizations:insights-default-performance-score-profiles", organization):
+        return []
+    optional = _should_performance_profiles_web_vitals_be_optional(organization)
+    return [
+        {
+            "name": "Default",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 900.0,
+                    "p50": 1600.0,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 1200.0,
+                    "p50": 2400.0,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.15,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 200.0,
+                    "p50": 400.0,
+                    "optional": optional,
+                },
+            ],
+            "condition": {
+                "op": "and",
+                "inner": [],
+            },
+        },
+        {
+            "name": "Default INP",
+            "scoreComponents": [
+                {
+                    "measurement": "inp",
+                    "weight": 1.0,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "and",
+                "inner": [],
+            },
+        },
+    ]
+
+
 def _get_mobile_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
     if not features.has(
         "organizations:performance-calculate-mobile-perf-score-relay", organization
@@ -1052,6 +1120,7 @@ def _get_project_config(
         *_get_desktop_browser_performance_profiles(project.organization),
         *_get_mobile_browser_performance_profiles(project.organization),
         *_get_mobile_performance_profiles(project.organization),
+        *_get_default_browser_performance_profiles(project.organization),
     ]
     if performance_score_profiles:
         config["performanceScore"] = {"profiles": performance_score_profiles}

@@ -8,6 +8,7 @@ from datetime import UTC, datetime, timedelta
 from io import BytesIO
 from string import Template
 from typing import Any
+from uuid import UUID
 from zipfile import ZipFile
 
 import yaml
@@ -25,19 +26,25 @@ from sentry.api.serializers.rest_framework.base import camel_to_snake_case, conv
 from sentry.backup.crypto import (
     GCPKMSDecryptor,
     GCPKMSEncryptor,
+    LocalFileEncryptor,
     get_default_crypto_key_version,
     unwrap_encrypted_export_tarball,
 )
 from sentry.backup.dependencies import NormalizedModelName, get_model
-from sentry.backup.exports import export_in_config_scope, export_in_user_scope
+from sentry.backup.exports import (
+    export_in_config_scope,
+    export_in_organization_scope,
+    export_in_user_scope,
+)
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.imports import import_in_organization_scope
 from sentry.models.files.file import File
 from sentry.models.files.utils import get_relocation_storage
 from sentry.models.importchunk import ControlImportChunkReplica, RegionImportChunk
 from sentry.models.lostpasswordhash import LostPasswordHash as LostPasswordHash
-from sentry.models.organization import Organization
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
+from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.models.relocation import (
     Relocation,
     RelocationFile,
@@ -47,9 +54,14 @@ from sentry.models.relocation import (
 )
 from sentry.models.user import User
 from sentry.organizations.services.organization import organization_service
+from sentry.relocation.services.relocation_export.model import (
+    RelocationExportReplyWithExportParameters,
+)
+from sentry.relocation.services.relocation_export.service import control_relocation_export_service
 from sentry.signals import relocated, relocation_redeem_promo_code
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
+from sentry.types.region import get_local_region
 from sentry.users.services.lost_password_hash import lost_password_hash_service
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
@@ -65,6 +77,7 @@ from sentry.utils.relocation import (
     retry_task_or_fail_relocation,
     send_relocation_update_email,
     start_relocation_task,
+    uuid_to_identifier,
 )
 
 logger = logging.getLogger(__name__)
@@ -75,6 +88,7 @@ FAST_TIME_LIMIT = 60  # 1 minute
 MEDIUM_TIME_LIMIT = 60 * 5  # 5 minutes
 SLOW_TIME_LIMIT = 60 * 60  # 1 hour
 DEFAULT_VALIDATION_TIMEOUT = timedelta(minutes=60)
+CROSS_REGION_EXPORT_TIMEOUT = timedelta(minutes=60)
 
 # All pre and post processing tasks have the same number of retries. A "fast" task is one that almost always completes in <=5 minutes, and does relatively little bulk writing to the database.
 MAX_FAST_TASK_RETRIES = 3
@@ -97,6 +111,10 @@ RELOCATION_FILES_TO_BE_VALIDATED = [
 
 # Various error strings that we want to surface to users, grouped by step.
 ERR_UPLOADING_FAILED = "Internal error during file upload."
+ERR_UPLOADING_NO_SAAS_TO_SAAS_ORG_SLUG = "SAAS->SAAS relocations must specify an org slug."
+ERR_UPLOADING_CROSS_REGION_TIMEOUT = Template(
+    "Cross-region relocation export request timed out after $delta."
+)
 
 ERR_PREPROCESSING_DECRYPTION = """Could not decrypt the imported JSON - are you sure you used the
                                   correct public key?"""
@@ -131,9 +149,294 @@ ERR_NOTIFYING_INTERNAL = "Internal error during relocation notification."
 ERR_COMPLETED_INTERNAL = "Internal error during relocation wrap-up."
 
 
-# TODO(getsentry/team-ospo#216): We should split this task in two, one for "small" imports of say
-# <=10MB, and one for large imports >10MB. Then we should limit the number of daily executions of
-# the latter.
+@instrumented_task(
+    name="sentry.relocation.uploading_start",
+    queue="relocation",
+    autoretry_for=(Exception,),
+    max_retries=MAX_FAST_TASK_RETRIES,
+    retry_backoff=RETRY_BACKOFF,
+    retry_backoff_jitter=True,
+    soft_time_limit=FAST_TIME_LIMIT,
+)
+def uploading_start(uuid: str, replying_region_name: str | None, org_slug: str | None) -> None:
+    """
+    The very first action in the relocation pipeline. In the case of a `SAAS_TO_SAAS` relocation, it
+    will trigger the export of the requested organization from the region it currently live in. If
+    this is a `SELF_HOSTED` relocation, this task is a no-op that merely auto-triggers the next step
+    in the chain, `upload_complete`.
+
+    In the case of a `SAAS_TO_SAAS` relocation, we'll need to export an organization from the
+    exporting region (ER) back to the requesting region (RR - where this method is running). Because
+    region-to-region messaging is forbidden, all of this messaging will need to be proxied via the
+    control silo (CS). Thus, to accomplish this export-and-copy operation, we'll need to use
+    sequenced RPC calls to fault-tolerantly execute code in these three siloed locations.
+
+    Due to of our system architecture, the sequence of remote functions executed can be a bit hard
+    to follow, so it is diagrammed and listed below. Each function executed is given a sequential
+    numerical identifier and is annotated with information about where to find the source and which
+    silo it will be executed in:
+
+
+        | Requesting |            |   Control  |            | Exporting  |
+        |    (RR)    |            |    (CS)    |            |    (ER)    |
+        |============|            |============|            |============|
+        |            |            |            |            |            |
+        |     01     |            |            |            |            |
+        |            |-----02---->|            |            |            |
+        |            |            |     03     |            |            |
+        |            |            |     04     |            |            |
+        |            |            |            |-----05---->|            |
+        |            |            |            |            |     06     |
+        |            |            |            |            |     07     |
+        |            |            |            |            |     08     |
+        |            |            |            |<----09-----|            |
+        |            |            |     10     |            |            |
+        |            |            |     11     |            |            |
+        |            |<----12-----|            |            |            |
+        |     13     |            |            |            |            |
+        |            |            |            |            |            |
+
+
+    01. (RR) .../tasks/relocation.py::uploading_start: This first function grabs this (aka the
+        "requesting" region) region's public key, then sends an RPC call to the control silo,
+        requesting an export of some `org_slug` from the `replying_region_name` in which is lives.
+    02. The `ProxyingRelocationExportService::request_new_export` call is sent over the wire from
+        the requesting region to the control silo.
+    03. (CS) .../relocation_export/impl.py::ProxyingRelocationExportService::request_new_export: The
+        request RPC call is received, and is immediately packaged into a `ControlOutbox`, so that we
+        may robustly forward it to the exporting region. This task successfully completing causes
+        the RPC to successfully return to the sender, allowing the calling `uploading_start` celery
+        task to finish successfully as well.
+    04. (CS) .../receiver/outbox/control.py::process_relocation_request_new_export: Whenever an
+        outbox draining attempt occurs, this code will be called to forward the proxied call into
+        the exporting region.
+    05. The `DBBackedExportService::request_new_export` call is sent over the wire from the control
+        silo to the exporting region.
+    06. (ER) .../relocation_export/impl.py::DBBackedRelocationExportService::request_new_export: The
+        request RPC call is received, and immediately schedules the
+        `fulfill_cross_region_export_request` celery task, which uses an exponential backoff
+        algorithm to try and create an encrypted tarball containing an export of the requested org
+        slug.
+    07. (ER) .../tasks/relocation.py::fulfill_cross_region_export_request: This celery task performs
+        the actual export operation locally in the exporting region. This data is written as a file
+        to this region's relocation-specific GCS bucket, and the response is immediately packaged
+        into a `RegionOutbox`, so that we may robustly attempt to send it at drain-time.
+    08. (ER) .../receiver/outbox/region.py::process_relocation_reply_with_export: Whenever an outbox
+        draining attempt occurs, this code will be called to read the saved export data from the
+        local GCS bucket, package it into an RPC call, and send it back to the proxy.
+    09. The `ProxyingRelocationExportService::reply_with_export` call is sent over the wire from the
+        exporting region back to the control silo.
+    10. (CS) .../relocation_export/impl.py::ProxyingRelocationExportService::reply_with_export: The
+        request RPC call is received, and is immediately packaged into a `ControlOutbox`, so that we
+        may robustly forward it back to the requesting region. To ensure robustness, the export data
+        is saved to a local file, so that outbox drain attempts can read it locally without needing
+        to make their own nested RPB calls.
+    11. (CS) .../receiver/outbox/control.py::process_relocation_reply_with_export: Whenever an
+        outbox draining attempt occurs, this code will be called to read the export data from the
+        local relocation-specific GCS bucket, then forward it into the requesting region.
+    12. The `DBBackedExportService::reply_with_export` call is sent over the wire from the control
+        silo back to the requesting region.
+    13. (RR) .../relocation_export/impl.py::DBBackedRelocationExportService::reply_with_export:
+        We've made it all the way back! The export data gets saved to a `RelocationFile` associated
+        with the `Relocation` that originally triggered `uploading_start`, and the next task in the
+        sequence (`uploading_complete`) is scheduled.
+    """
+
+    relocation: Relocation | None
+    attempts_left: int
+    (relocation, attempts_left) = start_relocation_task(
+        uuid=uuid,
+        task=OrderedTask.UPLOADING_START,
+        allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
+    )
+    if relocation is None:
+        return
+
+    with retry_task_or_fail_relocation(
+        relocation,
+        OrderedTask.UPLOADING_START,
+        attempts_left,
+        ERR_UPLOADING_FAILED,
+    ):
+        # If SAAS->SAAS, kick off an export on the source region. In this case, we will not schedule
+        # an `uploading_complete` task - this region's `RelocationExportService.reply_with_export`
+        # method will wait for a reply from the work we've scheduled here, which will be in charge
+        # of writing the `RelocationFile` from the exported data and kicking off
+        # `uploading_complete` with the export data from the source region.
+        if relocation.provenance == Relocation.Provenance.SAAS_TO_SAAS:
+            if not org_slug:
+                return fail_relocation(
+                    relocation,
+                    OrderedTask.UPLOADING_START,
+                    ERR_UPLOADING_NO_SAAS_TO_SAAS_ORG_SLUG,
+                )
+
+            # We want to encrypt this organization from the other region using this region's public
+            # key.
+            public_key_pem = GCPKMSEncryptor.from_crypto_key_version(
+                get_default_crypto_key_version()
+            ).get_public_key_pem()
+
+            # Send out the cross-region request.
+            control_relocation_export_service.request_new_export(
+                relocation_uuid=uuid,
+                requesting_region_name=get_local_region().name,
+                replying_region_name=replying_region_name,
+                org_slug=org_slug,
+                encrypt_with_public_key=public_key_pem,
+            )
+
+            # Make sure we're not waiting forever for our cross-region check to come back. After a
+            # reasonable amount of time, go ahead and fail the relocation.
+            cross_region_export_timeout_check.apply_async(
+                args=[uuid],
+                countdown=CROSS_REGION_EXPORT_TIMEOUT * 60,
+            )
+            return
+
+        # If this is a regular self-hosted relocation, we have nothing to do here, so just move on
+        # to the next step.
+        uploading_complete.apply_async(args=[uuid])
+
+
+@instrumented_task(
+    name="sentry.relocation.fulfill_cross_region_export_request",
+    queue="relocation",
+    autoretry_for=(Exception,),
+    max_retries=MAX_FAST_TASK_RETRIES,
+    retry_backoff=RETRY_BACKOFF,
+    retry_backoff_jitter=True,
+    # Setting `acks_late` here allows us to retry the potentially long-lived task if the k8s pod if
+    # the worker received SIGKILL/TERM/QUIT. We have a timeout check in the task itself to make sure
+    # it does not loop indefinitely.
+    acks_late=True,
+    soft_time_limit=MEDIUM_TIME_LIMIT,
+    silo_mode=SiloMode.REGION,
+)
+def fulfill_cross_region_export_request(
+    uuid: str,
+    requesting_region_name: str,
+    replying_region_name: str,
+    org_slug: str,
+    encrypt_with_public_key: bytes,
+    # Unix timestamp, in seconds.
+    scheduled_at: int,
+) -> None:
+    """
+    Unlike most other tasks in this file, this one is not an `OrderedTask` intended to be
+    sequentially executed as part of the relocation pipeline. Instead, its job is to export an
+    already existing organization from an adjacent region. That means it is triggered (via RPC - the
+    `relocation_export` service for more) on that region from the `uploading_start` task, which then
+    waits for the exporting region to issue an RPC call back with the data. Once that replying RPC
+    call is received with the encrypted export in tow, it will trigger the next step in the
+    `SAAS_TO_SAAS` relocation's pipeline, namely `uploading_complete`.
+    """
+
+    # Because we use `acks_late`, we need to be careful to prevent infinite scheduling due to some
+    # persistent bug, like an error in the export logic. So, if `CROSS_REGION_EXPORT_TIMEOUT` time
+    # has elapsed, always fail this task. Note that we don't report proactively back this failure,
+    # and instead wait for the timeout check to pick it up on the other end.
+    scheduled_at_dt = datetime.fromtimestamp(scheduled_at, tz=UTC)
+    if scheduled_at_dt + CROSS_REGION_EXPORT_TIMEOUT < datetime.now(tz=UTC):
+        logger.error(
+            "Cross region relocation fulfillment timeout",
+            extra={
+                "uuid": uuid,
+                "requesting_region_name": requesting_region_name,
+                "replying_region_name": replying_region_name,
+                "org_slug": org_slug,
+                "encrypted_contents_size": len(encrypt_with_public_key),
+                "scheduled_at": scheduled_at,
+            },
+        )
+        return
+
+    log_gcp_credentials_details(logger)
+    path = f"runs/{uuid}/saas_to_saas_export/{org_slug}.tar"
+    relocation_storage = get_relocation_storage()
+    fp = BytesIO()
+    export_in_organization_scope(
+        fp,
+        encryptor=LocalFileEncryptor(BytesIO(encrypt_with_public_key)),
+        org_filter={org_slug},
+        printer=LoggingPrinter(uuid),
+    )
+    fp.seek(0)
+    relocation_storage.save(path, fp)
+
+    identifier = uuid_to_identifier(UUID(uuid))
+    RegionOutbox(
+        shard_scope=OutboxScope.RELOCATION_SCOPE,
+        category=OutboxCategory.RELOCATION_EXPORT_REPLY,
+        shard_identifier=identifier,
+        object_identifier=identifier,
+        payload=RelocationExportReplyWithExportParameters(
+            relocation_uuid=uuid,
+            requesting_region_name=requesting_region_name,
+            replying_region_name=replying_region_name,
+            org_slug=org_slug,
+        ).dict(),
+    ).save()
+
+
+@instrumented_task(
+    name="sentry.relocation.cross_region_export_timeout_check",
+    queue="relocation",
+    autoretry_for=(Exception,),
+    max_retries=MAX_FAST_TASK_RETRIES,
+    retry_backoff=RETRY_BACKOFF,
+    retry_backoff_jitter=True,
+    soft_time_limit=FAST_TIME_LIMIT,
+    silo_mode=SiloMode.REGION,
+)
+def cross_region_export_timeout_check(
+    uuid: str,
+) -> None:
+    """
+    Not part of the primary `OrderedTask` queue. This task is only used to ensure that cross-region
+    export requests don't hang indefinitely.
+    """
+
+    try:
+        relocation: Relocation = Relocation.objects.get(uuid=uuid)
+    except Relocation.DoesNotExist:
+        logger.exception("Could not locate Relocation model by UUID: %s", uuid)
+        return
+
+    logger_data = {"uuid": relocation.uuid, "task": "cross_region_export_timeout_check"}
+    logger.info(
+        "Cross region timeout check: started",
+        extra=logger_data,
+    )
+
+    # We've moved past the `UPLOADING_START` step, so the cross-region response was received, one
+    # way or another.
+    if relocation.latest_task != OrderedTask.UPLOADING_START.name:
+        logger.info(
+            "Cross region timeout check: no timeout detected",
+            extra=logger_data,
+        )
+        return
+
+    # Another nested exception handler could have already failed this relocation - in this case, do
+    # nothing.
+    if relocation.status == Relocation.Status.FAILURE.value:
+        logger.info(
+            "Cross region timeout check: task already failed",
+            extra=logger_data,
+        )
+        return
+
+    reason = ERR_UPLOADING_CROSS_REGION_TIMEOUT.substitute(delta=CROSS_REGION_EXPORT_TIMEOUT)
+    logger_data["reason"] = reason
+    logger.error(
+        "Cross region timeout check: timeout detected",
+        extra=logger_data,
+    )
+
+    return fail_relocation(relocation, OrderedTask.UPLOADING_START, reason)
+
+
 @instrumented_task(
     name="sentry.relocation.uploading_complete",
     queue="relocation",
@@ -1025,7 +1328,7 @@ def validating_complete(uuid: str, build_id: str) -> None:
     autoretry_for=(Exception,),
     # At first blush, it would seem that retrying a failed import will leave a bunch of "abandoned"
     # data from the previous one, but that is not actually the case: because we use this relocation
-    # UUID as the `import_uuid` for the `import...` call, we'll be able to re-use all of the
+    # UUID as the `import_uuid` for the `import_in...` call, we'll be able to re-use all of the
     # already-written import chunks (and, by extension, their models). This is due to each import
     # write operation atomically checking the relevant `ImportChunk` table for collisions at
     # database write time. So it will attempt to write a new copy, realize that this `(import_uuid,
@@ -1088,7 +1391,10 @@ def importing(uuid: str) -> None:
                 relocation_data_fp,
                 decryptor=GCPKMSDecryptor(kms_config_fp),
                 flags=ImportFlags(
-                    merge_users=False, overwrite_configs=False, import_uuid=str(uuid)
+                    import_uuid=str(uuid),
+                    hide_organizations=True,
+                    merge_users=False,
+                    overwrite_configs=False,
                 ),
                 org_filter=set(relocation.want_org_slugs),
                 printer=LoggingPrinter(uuid),
@@ -1186,6 +1492,54 @@ def postprocessing(uuid: str) -> None:
                 )
             except Exception as e:
                 capture_exception(e)
+
+    notifying_unhide.apply_async(args=[uuid])
+
+
+@instrumented_task(
+    name="sentry.relocation.notifying_unhide",
+    queue="relocation",
+    autoretry_for=(Exception,),
+    max_retries=MAX_FAST_TASK_RETRIES,
+    retry_backoff=RETRY_BACKOFF,
+    retry_backoff_jitter=True,
+    soft_time_limit=FAST_TIME_LIMIT,
+    silo_mode=SiloMode.REGION,
+)
+def notifying_unhide(uuid: str) -> None:
+    """
+    Un-hide the just-imported organizations, making them visible to users in the UI.
+    """
+
+    relocation: Relocation | None
+    attempts_left: int
+    (relocation, attempts_left) = start_relocation_task(
+        uuid=uuid,
+        task=OrderedTask.NOTIFYING_UNHIDE,
+        allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
+    )
+    if relocation is None:
+        return
+
+    with retry_task_or_fail_relocation(
+        relocation,
+        OrderedTask.NOTIFYING_UNHIDE,
+        attempts_left,
+        ERR_NOTIFYING_INTERNAL,
+    ):
+        imported_org_ids: set[int] = set()
+        for chunk in RegionImportChunk.objects.filter(
+            import_uuid=str(uuid), model="sentry.organization"
+        ):
+            imported_org_ids = imported_org_ids.union(set(chunk.inserted_map.values()))
+
+        # Reveal all imported organizations to their users.
+        with transaction.atomic(router.db_for_write(Organization)):
+            imported_orgs = Organization.objects.filter(id__in=imported_org_ids)
+            for org in imported_orgs:
+                if org.status == OrganizationStatus.RELOCATION_PENDING_APPROVAL:
+                    org.status = OrganizationStatus.ACTIVE
+                org.save()
 
     notifying_users.apply_async(args=[uuid])
 
@@ -1353,6 +1707,7 @@ def completed(uuid: str) -> None:
 
 TASK_MAP: dict[OrderedTask, Task] = {
     OrderedTask.NONE: Task(),
+    OrderedTask.UPLOADING_START: uploading_start,
     OrderedTask.UPLOADING_COMPLETE: uploading_complete,
     OrderedTask.PREPROCESSING_SCAN: preprocessing_scan,
     OrderedTask.PREPROCESSING_TRANSFER: preprocessing_transfer,
@@ -1364,12 +1719,13 @@ TASK_MAP: dict[OrderedTask, Task] = {
     OrderedTask.VALIDATING_COMPLETE: validating_complete,
     OrderedTask.IMPORTING: importing,
     OrderedTask.POSTPROCESSING: postprocessing,
+    OrderedTask.NOTIFYING_UNHIDE: notifying_unhide,
     OrderedTask.NOTIFYING_USERS: notifying_users,
     OrderedTask.NOTIFYING_OWNER: notifying_owner,
     OrderedTask.COMPLETED: completed,
 }
 
-assert list(OrderedTask._member_map_.keys()) == [k.name for k in TASK_MAP.keys()]
+assert set(OrderedTask._member_map_.keys()) == {k.name for k in TASK_MAP.keys()}
 
 
 def get_first_task_for_step(target_step: Relocation.Step) -> Task | None:

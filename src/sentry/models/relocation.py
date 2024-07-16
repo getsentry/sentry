@@ -201,18 +201,18 @@ class RelocationFile(DefaultFieldsModel):
         #
         # TODO(getsentry/team-ospo#216): Add a normalization step to the relocation flow
         NORMALIZED_USER_DATA = 2
-        # (Deprecated) The global configuration we're going to validate against - pulled from the
-        # live Sentry instance, not supplied by the user.
+        # The global configuration we're going to validate against - pulled from the live Sentry
+        # instance, not supplied by the user.
         #
-        # TODO(getsentry/team-ospo#216): Deprecated, since we no longer store these in main bucket.
-        # Remove in the future.
+        # Note: These files are only ever stored in the relocation-specific GCP bucket, never in the
+        # main filestore, so in practice no DB entry should have this value set.
         BASELINE_CONFIG_VALIDATION_DATA = 3
         # (Deprecated) The colliding users we're going to validate against - pulled from the live
         # Sentry instance, not supplied by the user. However, to determine what is a "colliding
         # user", we must inspect the user-provided data.
         #
-        # TODO(getsentry/team-ospo#216): Deprecated, since we no longer store these in main bucket.
-        # Remove in the future.
+        # Note: These files are only ever stored in the relocation-specific GCP bucket, never in the
+        # main filestore, so in practice no DB entry should have this value set.
         COLLIDING_USERS_VALIDATION_DATA = 4
 
         # TODO(getsentry/team-ospo#190): Could we dedup this with a mixin in the future?
@@ -242,7 +242,7 @@ class RelocationFile(DefaultFieldsModel):
     __repr__ = sane_repr("relocation", "file")
 
     class Meta:
-        unique_together = (("relocation", "file"),)
+        unique_together = (("relocation", "file"), ("relocation", "kind"))
         app_label = "sentry"
         db_table = "sentry_relocationfile"
 

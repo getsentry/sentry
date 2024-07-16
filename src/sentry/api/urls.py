@@ -33,6 +33,8 @@ from sentry.api.endpoints.project_backfill_similar_issues_embeddings_records imp
 )
 from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
+from sentry.api.endpoints.project_template_detail import OrganizationProjectTemplateDetailEndpoint
+from sentry.api.endpoints.project_templates_index import OrganizationProjectTemplatesIndexEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThresholdEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold_details import (
     ReleaseThresholdDetailsEndpoint,
@@ -208,6 +210,7 @@ from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_application_rotate_secret import ApiApplicationRotateSecretEndpoint
 from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
+from .endpoints.api_token_details import ApiTokenDetailsEndpoint
 from .endpoints.api_tokens import ApiTokensEndpoint
 from .endpoints.artifact_bundles import ArtifactBundlesEndpoint
 from .endpoints.artifact_lookup import ProjectArtifactLookupEndpoint
@@ -449,7 +452,6 @@ from .endpoints.organization_profiling_functions import OrganizationProfilingFun
 from .endpoints.organization_profiling_profiles import (
     OrganizationProfilingChunksEndpoint,
     OrganizationProfilingChunksFlamegraphEndpoint,
-    OrganizationProfilingFiltersEndpoint,
     OrganizationProfilingFlamegraphEndpoint,
 )
 from .endpoints.organization_projects import (
@@ -1401,6 +1403,16 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-events-stats",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/project-templates/$",
+        OrganizationProjectTemplatesIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-project-templates",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/project-templates/(?P<template_id>[^\/]+)/$",
+        OrganizationProjectTemplateDetailEndpoint.as_view(),
+        name="sentry-api-0-organization-project-template-detail",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/spans/$",
         OrganizationTraceSpansEndpoint.as_view(),
         name="sentry-api-0-organization-trace-spans",
@@ -2088,11 +2100,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^/]+)/profiling/",
         include(
             [
-                re_path(
-                    r"^filters/$",
-                    OrganizationProfilingFiltersEndpoint.as_view(),
-                    name="sentry-api-0-organization-profiling-filters",
-                ),
                 re_path(
                     r"^flamegraph/$",
                     OrganizationProfilingFlamegraphEndpoint.as_view(),
@@ -3133,6 +3140,11 @@ urlpatterns = [
         r"^api-tokens/$",
         ApiTokensEndpoint.as_view(),
         name="sentry-api-0-api-tokens",
+    ),
+    re_path(
+        r"^api-tokens/(?P<token_id>[^\/]+)/$",
+        ApiTokenDetailsEndpoint.as_view(),
+        name="sentry-api-0-api-token-details",
     ),
     re_path(
         r"^prompts-activity/$",

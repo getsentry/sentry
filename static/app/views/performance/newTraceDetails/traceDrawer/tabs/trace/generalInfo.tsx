@@ -16,8 +16,8 @@ import type {
 } from 'sentry/utils/performance/quickTrace/types';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useParams} from 'sentry/utils/useParams';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {SpanTimeRenderer} from 'sentry/views/traces/fieldRenderers';
 
 import {isTraceNode} from '../../../guards';
@@ -27,7 +27,7 @@ import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../details
 
 type GeneralInfoProps = {
   metaResults: TraceMetaQueryResults;
-  node: TraceTreeNode<TraceTree.NodeValue> | null;
+  node: TraceTreeNode<TraceTree.NodeValue>;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   traces: TraceSplitResults<TraceFullDetailed> | null;
@@ -169,7 +169,7 @@ export function GeneralInfo(props: GeneralInfoProps) {
           position="bottom"
         >
           {uniqueIssuesCount > 0 ? (
-            <TraceDrawerComponents.IssuesLink>
+            <TraceDrawerComponents.IssuesLink node={props.node}>
               {uniqueIssuesCount}
             </TraceDrawerComponents.IssuesLink>
           ) : uniqueIssuesCount === 0 ? (

@@ -12,7 +12,6 @@ import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
 import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
 import {t, tct} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
 import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {
@@ -27,6 +26,7 @@ import {useSynchronizeCharts} from 'sentry/views/insights/common/components/char
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
+import {Ribbon} from 'sentry/views/insights/common/components/ribbon';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
@@ -213,7 +213,7 @@ export function HTTPDomainSummaryPage() {
                   <DatePageFilter />
                 </PageFilterBar>
 
-                <MetricsRibbon>
+                <Ribbon>
                   <MetricReadout
                     title={getThroughputTitle('http')}
                     value={domainMetrics?.[0]?.[`${SpanFunction.SPM}()`]}
@@ -261,7 +261,7 @@ export function HTTPDomainSummaryPage() {
                     )}
                     isLoading={areDomainMetricsLoading}
                   />
-                </MetricsRibbon>
+                </Ribbon>
               </HeaderContainer>
             </ModuleLayout.Full>
 
@@ -333,12 +333,6 @@ const HeaderContainer = styled('div')`
   display: flex;
   justify-content: space-between;
   flex-wrap: wrap;
-`;
-
-const MetricsRibbon = styled('div')`
-  display: flex;
-  flex-wrap: wrap;
-  gap: ${space(4)};
 `;
 
 function PageWithProviders() {

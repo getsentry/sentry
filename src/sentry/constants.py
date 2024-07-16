@@ -641,16 +641,9 @@ INSIGHT_MODULE_FILTERS = {
             for span in transaction["spans"]
         ]
     ),
-    InsightModules.VITAL: lambda transaction: transaction.get("op") == "pageload"
-    or any(
+    InsightModules.VITAL: lambda transaction: any(
         [
-            span.get("op")
-            in [
-                "ui.interaction.click",
-                "ui.interaction.hover",
-                "ui.interaction.drag",
-                "ui.interaction.press",
-            ]
+            span.get("sentry_tags", {}).get("transaction.op") == "pageload"
             for span in transaction["spans"]
         ]
     ),
@@ -717,6 +710,7 @@ METRICS_ACTIVATE_PERCENTILES_DEFAULT = True
 METRICS_ACTIVATE_LAST_FOR_GAUGES_DEFAULT = False
 DATA_CONSENT_DEFAULT = False
 EXTRAPOLATE_METRICS_DEFAULT = False
+UPTIME_AUTODETECTION = True
 
 # `sentry:events_member_admin` - controls whether the 'member' role gets the event:admin scope
 EVENTS_MEMBER_ADMIN_DEFAULT = True

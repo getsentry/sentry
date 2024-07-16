@@ -1,3 +1,4 @@
+import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import {createMRIToVirtualMap} from 'sentry/utils/metrics/virtualMetricsContext';
 
 describe('createMRIToVirtualMap', () => {
@@ -6,6 +7,9 @@ describe('createMRIToVirtualMap', () => {
       {
         spanAttribute: 'span1',
         projectId: 1,
+        createdById: null,
+        dateAdded: '2021-09-29T20:00:00',
+        dateUpdated: '2021-09-29T20:00:00',
         aggregates: [],
         tags: [],
         unit: 'none',
@@ -16,10 +20,13 @@ describe('createMRIToVirtualMap', () => {
             mris: ['c:custom/mri1@none' as const, 'c:custom/mri2@none' as const],
           },
         ],
-      },
+      } satisfies MetricsExtractionRule,
       {
         spanAttribute: 'span2',
         projectId: 2,
+        createdById: null,
+        dateAdded: '2021-09-29T20:00:00',
+        dateUpdated: '2021-09-29T20:00:00',
         aggregates: [],
         tags: [],
         unit: 'millisecond',
@@ -30,7 +37,7 @@ describe('createMRIToVirtualMap', () => {
             mris: ['c:custom/mri3@none' as const, 'c:custom/mri4@none' as const],
           },
         ],
-      },
+      } satisfies MetricsExtractionRule,
     ];
     const result = createMRIToVirtualMap(rules);
     expect(result).toEqual(
