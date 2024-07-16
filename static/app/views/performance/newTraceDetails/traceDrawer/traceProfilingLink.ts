@@ -25,7 +25,8 @@ function toDate(value: unknown): Date | null {
 }
 
 function getTimeOffsetForDuration(duration: number): number {
-  return duration < 100 ? 100 : duration * 0.1;
+  // 100ms window for spans shorter than 100ms, otherwise 10% of the duration capped at 2s
+  return duration < 100 ? 100 : Math.max(duration * 0.1, 2_000);
 }
 
 function getNodeId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined {
