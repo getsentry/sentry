@@ -1,7 +1,8 @@
+from sentry.integrations.api.serializers.doc_integration import *  # noqa: F401,F403
+
 from .base import *  # noqa: F401,F403
 from .commit import *  # noqa: F401,F403
 from .dashboard import *  # noqa: F401,F403
-from .doc_integration import *  # noqa: F401,F403
 from .environment import *  # noqa: F401,F403
 from .group_notes import *  # noqa: F401,F403
 from .json import *  # noqa: F401,F403

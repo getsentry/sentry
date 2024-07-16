@@ -1,12 +1,12 @@
 from datetime import datetime
 from typing import TypedDict
 
-from sentry.api.serializers.models.external_actor import ExternalActorResponse
 from sentry.api.serializers.models.role import (
     OrganizationRoleSerializerResponse,
     TeamRoleSerializerResponse,
 )
 from sentry.api.serializers.models.user import UserSerializerResponse
+from sentry.integrations.api.serializers.external_actor import ExternalActorResponse
 
 
 class SCIMName(TypedDict):

@@ -6,7 +6,9 @@ from rest_framework.response import Response
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
-from sentry.api.bases.organization_integrations import RegionOrganizationIntegrationBaseEndpoint
+from sentry.integrations.api.bases.organization_integrations import (
+    RegionOrganizationIntegrationBaseEndpoint,
+)
 from sentry.integrations.opsgenie.integration import OpsgenieIntegration
 from sentry.models.organization import Organization
 from sentry.utils import metrics

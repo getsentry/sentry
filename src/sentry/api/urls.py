@@ -112,6 +112,7 @@ from sentry.incidents.endpoints.team_alerts_triggered import (
     TeamAlertsTriggeredIndexEndpoint,
     TeamAlertsTriggeredTotalsEndpoint,
 )
+from sentry.integrations.api.endpoints.integration_features import IntegrationFeaturesEndpoint
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
     GroupEventsEndpoint,
@@ -285,7 +286,6 @@ from .endpoints.group_tombstone_details import GroupTombstoneDetailsEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.grouping_configs import GroupingConfigsEndpoint
 from .endpoints.index import IndexEndpoint
-from .endpoints.integration_features import IntegrationFeaturesEndpoint
 from .endpoints.integrations import (
     DocIntegrationDetailsEndpoint,
     DocIntegrationsEndpoint,

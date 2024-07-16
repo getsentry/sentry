@@ -1,4 +1,5 @@
-from .doc_integration import DocIntegrationAvatarEndpoint
+from sentry.integrations.api.endpoints.avatar.doc_integration import DocIntegrationAvatarEndpoint
+
 from .organization import OrganizationAvatarEndpoint
 from .sentry_app import SentryAppAvatarEndpoint
 from .user import UserAvatarEndpoint
