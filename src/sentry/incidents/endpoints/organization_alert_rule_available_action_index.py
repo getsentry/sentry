@@ -19,7 +19,7 @@ from sentry.incidents.logic import (
     get_opsgenie_teams,
     get_pagerduty_services,
 )
-from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import AlertRuleActionHandlerFactory, AlertRuleTriggerAction
 from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
@@ -29,7 +29,7 @@ from sentry.silo.base import region_silo_function
 
 @region_silo_function
 def build_action_response(
-    registered_type: AlertRuleTriggerAction.TypeRegistration,
+    registered_type: AlertRuleActionHandlerFactory,
     integration: RpcIntegration | None = None,
     organization: Organization | None = None,
     sentry_app_installation: RpcSentryAppInstallation | None = None,
@@ -43,7 +43,7 @@ def build_action_response(
     :param sentry_app: Optional. The SentryApp if this action uses a one.
     :return: The available action object.
     """
-    action_response = {
+    action_response: dict[str, Any] = {
         "type": registered_type.slug,
         "allowedTargetTypes": [
             ACTION_TARGET_TYPE_TO_STRING.get(target_type)
@@ -55,14 +55,14 @@ def build_action_response(
         action_response["integrationName"] = integration.name
         action_response["integrationId"] = integration.id
 
-        if registered_type.type == AlertRuleTriggerAction.Type.PAGERDUTY:
+        if registered_type.service_type == AlertRuleTriggerAction.Type.PAGERDUTY:
             if organization is None:
                 raise Exception("Organization is required for PAGERDUTY actions")
             action_response["options"] = [
                 {"value": id, "label": service_name}
                 for id, service_name in get_pagerduty_services(organization.id, integration.id)
             ]
-        elif registered_type.type == AlertRuleTriggerAction.Type.OPSGENIE:
+        elif registered_type.service_type == AlertRuleTriggerAction.Type.OPSGENIE:
             if organization is None:
                 raise Exception("Organization is required for OPSGENIE actions")
             action_response["options"] = [
@@ -118,7 +118,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
                 ]
 
             # Add all alertable SentryApps to the list.
-            elif registered_type.type == AlertRuleTriggerAction.Type.SENTRY_APP:
+            elif registered_type.service_type == AlertRuleTriggerAction.Type.SENTRY_APP:
                 installs = app_service.get_installed_for_organization(
                     organization_id=organization.id
                 )

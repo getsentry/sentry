@@ -12,7 +12,7 @@ __all__ = (
 )
 
 STRING_TO_ACTION_TYPE = {
-    registration.slug: registration.type
+    registration.slug: registration.service_type
     for registration in AlertRuleTriggerAction.get_registered_types()
 }
 ACTION_TARGET_TYPE_TO_STRING = {
