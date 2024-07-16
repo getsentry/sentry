@@ -110,6 +110,11 @@ describe('SearchQueryBuilder', function () {
     searchSource: '',
   };
 
+  it('displays a placeholder when empty', async function () {
+    render(<SearchQueryBuilder {...defaultProps} placeholder="foo" />);
+    expect(await screen.findByPlaceholderText('foo')).toBeInTheDocument();
+  });
+
   describe('callbacks', function () {
     it('calls onChange, onBlur, and onSearch with the query string', async function () {
       const mockOnChange = jest.fn();
