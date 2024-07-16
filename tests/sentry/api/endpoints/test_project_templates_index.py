@@ -8,13 +8,13 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers import with_feature
 
 
-class ProjectTemplateIndexTest(APITestCase):
+class ProjectTemplateAPIBase(APITestCase):
     endpoint = "sentry-api-0-organization-project-templates"
 
     def setUp(self):
         super().setUp()
         self.user = self.create_user()
-        self.organization = self.create_organization()
+        self.organization = self.create_organization(owner=self.user)
         self.team = self.create_team(members=[self.user])
 
         self.login_as(self.user)
@@ -22,6 +22,8 @@ class ProjectTemplateIndexTest(APITestCase):
         self.project_template = self.create_project_template(organization=self.organization)
         self.project_template_two = self.create_project_template(organization=self.organization)
 
+
+class ProjectTemplateIndexTest(ProjectTemplateAPIBase):
     def test_get__no_feature(self):
         response = self.get_error_response(self.organization.id, status_code=404)
         assert response.status_code == 404
@@ -60,22 +62,11 @@ class ProjectTemplateIndexTest(APITestCase):
         assert response.status_code == 403
 
 
-class ProjectTemplateIndexPostTest(APITestCase):
-    endpoint = "sentry-api-0-organization-project-templates"
-
-    def setUp(self):
-        super().setUp()
-        self.user = self.create_user()
-        self.organization = self.create_organization(owner=self.user)
-        self.team = self.create_team(members=[self.user])
-
-        self.login_as(self.user)
-
-        self.project_template = self.create_project_template(organization=self.organization)
-        self.project_template_two = self.create_project_template(organization=self.organization)
+class ProjectTemplateIndexPostTest(ProjectTemplateAPIBase):
+    method = "POST"
 
     def test_post__no_feature(self):
-        response = self.get_error_response(self.organization.id, method="POST", status_code=404)
+        response = self.get_error_response(self.organization.id, status_code=404)
         assert response.status_code == 404
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
@@ -84,14 +75,12 @@ class ProjectTemplateIndexPostTest(APITestCase):
         self.create_team(organization=org_two, members=[self.user])
         self.create_project_template(organization=org_two)
 
-        response = self.get_error_response(org_two.id, method="POST", status_code=403)
+        response = self.get_error_response(org_two.id, status_code=403)
         assert response.status_code == 403
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
     def test_post(self):
-        response = self.get_success_response(
-            self.organization.id, method="POST", name="Test Project Template"
-        )
+        response = self.get_success_response(self.organization.id, name="Test Project Template")
         assert response.status_code == 201
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
@@ -99,7 +88,6 @@ class ProjectTemplateIndexPostTest(APITestCase):
         test_options = {"test-key": "value"}
         response = self.get_success_response(
             self.organization.id,
-            method="POST",
             name="Test Project Template",
             options=test_options,
         )
@@ -111,7 +99,7 @@ class ProjectTemplateIndexPostTest(APITestCase):
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
     def test_post__no_name(self):
-        response = self.get_error_response(self.organization.id, method="POST", status_code=400)
+        response = self.get_error_response(self.organization.id, status_code=400)
         assert response.status_code == 400
 
     @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
@@ -119,7 +107,6 @@ class ProjectTemplateIndexPostTest(APITestCase):
     def test_post__audit_log(self, mock_audit):
         self.get_success_response(
             self.organization.id,
-            method="POST",
             name="Test Project Template",
         )
 
