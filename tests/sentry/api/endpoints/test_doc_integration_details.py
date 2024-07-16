@@ -6,8 +6,8 @@ import pytest
 from rest_framework import status
 
 from sentry.api.serializers.base import serialize
-from sentry.models.integrations.doc_integration import DocIntegration
-from sentry.models.integrations.integration_feature import IntegrationFeature, IntegrationTypes
+from sentry.integrations.models.doc_integration import DocIntegration
+from sentry.integrations.models.integration_feature import IntegrationFeature, IntegrationTypes
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 

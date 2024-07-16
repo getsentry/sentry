@@ -15,20 +15,20 @@ __all__ = (
     "SentryAppInstallationToken",
 )
 
+from sentry.integrations.models.doc_integration import DocIntegration
+from sentry.integrations.models.external_actor import ExternalActor
+from sentry.integrations.models.external_issue import ExternalIssue
+from sentry.integrations.models.integration import Integration
+from sentry.integrations.models.integration_feature import IntegrationFeature
+from sentry.integrations.models.organization_integration import OrganizationIntegration
+from sentry.integrations.models.repository_project_path_config import RepositoryProjectPathConfig
+
 # REQUIRED for migrations to run.
 from sentry.integrations.types import ExternalProviders  # NOQA
-
-from .doc_integration import DocIntegration
-from .external_actor import ExternalActor
-from .external_issue import ExternalIssue
-from .integration import Integration
-from .integration_external_project import IntegrationExternalProject
-from .integration_feature import IntegrationFeature
-from .organization_integration import OrganizationIntegration
-from .project_integration import ProjectIntegration
-from .repository_project_path_config import RepositoryProjectPathConfig
-from .sentry_app import SentryApp
-from .sentry_app_component import SentryAppComponent
-from .sentry_app_installation import SentryAppInstallation
-from .sentry_app_installation_for_provider import SentryAppInstallationForProvider
-from .sentry_app_installation_token import SentryAppInstallationToken
+from sentry.models.integrations.sentry_app import SentryApp
+from sentry.models.integrations.sentry_app_component import SentryAppComponent
+from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
+from sentry.models.integrations.sentry_app_installation_for_provider import (
+    SentryAppInstallationForProvider,
+)
+from sentry.models.integrations.sentry_app_installation_token import SentryAppInstallationToken
