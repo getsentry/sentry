@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import TypedDict
 
 import orjson
 
@@ -15,6 +16,26 @@ from sentry.models.dashboard_widget import (
 from sentry.snuba.metrics.extraction import OnDemandMetricSpecVersioning
 from sentry.users.services.user.service import user_service
 from sentry.utils.dates import outside_retention_with_modified_start, parse_timestamp
+
+
+class ThresholdType(TypedDict):
+    max_values: dict[str, int]
+    unit: str
+
+
+class DashboardWidgetResponse(TypedDict):
+    id: str
+    title: str
+    description: str
+    displayType: str
+    thresholds: ThresholdType
+    interval: str
+    dateCreated: str
+    dashboardId: str
+    queries: list[str]
+    limit: int
+    widgetType: str
+    layout: dict[str, int]
 
 
 @register(DashboardWidget)
@@ -35,7 +56,7 @@ class DashboardWidgetSerializer(Serializer):
 
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs) -> DashboardWidgetResponse:
         return {
             "id": str(obj.id),
             "title": obj.title,
@@ -166,8 +187,28 @@ class DashboardListSerializer(Serializer):
         return data
 
 
+class DashboardFilters(TypedDict):
+    release: list[str]
+
+
+class DashboardDetailsResponse(TypedDict):
+    id: str
+    title: str
+    dateCreated: str
+    createdBy: dict  # todo
+    widgets: list[DashboardWidgetResponse]
+    projects: list[int]
+    filters: DashboardFilters
+    environment: list[str]
+    period: str
+    utc: str
+    expired: bool
+    start: str
+    end: str
+
+
 @register(Dashboard)
-class DashboardDetailsSerializer(Serializer):
+class DashboardDetailsModelSerializer(Serializer):
     def get_attrs(self, item_list, user):
         result = {}
 
@@ -185,7 +226,7 @@ class DashboardDetailsSerializer(Serializer):
 
         return result
 
-    def serialize(self, obj, attrs, user, **kwargs):
+    def serialize(self, obj, attrs, user, **kwargs) -> DashboardDetailsResponse:
         from sentry.api.serializers.rest_framework.base import camel_to_snake_case
 
         page_filter_keys = ["environment", "period", "utc"]
