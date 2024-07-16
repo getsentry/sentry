@@ -280,8 +280,11 @@ def get_projects_and_filenames_from_source_file(
     return project_list, sentry_filenames
 
 
-def get_top_5_issues_by_count_for_file(
-    projects: list[Project], sentry_filenames: list[str], function_names: list[str]
+def get_top_issues_by_count_for_file(
+    projects: list[Project],
+    sentry_filenames: list[str],
+    function_names: list[str],
+    limit: int | None = 5,
 ) -> list[dict[str, Any]]:
     """
     Given a list of projects, Github filenames reverse-codemapped into filenames in Sentry,
@@ -401,7 +404,7 @@ def get_top_5_issues_by_count_for_file(
             ]
         )
         .set_orderby([OrderBy(Column("event_count"), Direction.DESC)])
-        .set_limit(5)
+        .set_limit(limit)
     )
 
     request = SnubaRequest(
@@ -554,7 +557,7 @@ def open_pr_comment_workflow(pr_id: int) -> None:
         if not len(function_names):
             continue
 
-        top_issues = get_top_5_issues_by_count_for_file(
+        top_issues = get_top_issues_by_count_for_file(
             list(projects), list(sentry_filenames), list(function_names)
         )
         if not len(top_issues):

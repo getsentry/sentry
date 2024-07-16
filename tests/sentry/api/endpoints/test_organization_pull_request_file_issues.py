@@ -1,5 +1,7 @@
 from unittest.mock import patch
 
+from rest_framework import status
+
 from sentry.models.group import Group
 from sentry.testutils.cases import APITestCase
 from tests.sentry.tasks.integrations.github.test_open_pr_comment import CreateEventTestCase
@@ -68,6 +70,42 @@ class OrganizationPullRequestFileIssuesTest(APITestCase, CreateEventTestCase):
             f"http://testserver/organizations/{self.organization.slug}/issues/{self.group_id_2}/",
             f"http://testserver/organizations/{self.organization.slug}/issues/{self.group_id_1}/",
         ]
+
+    def test_limit_validation(self, mock_reverse_codemappings):
+        mock_reverse_codemappings.return_value = ([self.project], ["foo.py"])
+
+        patch = """@@ -36,6 +36,7 @@\n def blue(self):"""
+        self.get_error_response(
+            self.organization.slug,
+            **{
+                "filename": "foo.py",
+                "repo": self.gh_repo.name,
+                "patch": patch,
+                "limit": -1,
+            },
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+        self.get_error_response(
+            self.organization.slug,
+            **{
+                "filename": "foo.py",
+                "repo": self.gh_repo.name,
+                "patch": patch,
+                "limit": 101,
+            },
+            status_code=status.HTTP_400_BAD_REQUEST,
+        )
+
+        self.get_success_response(
+            self.organization.slug,
+            **{
+                "filename": "foo.py",
+                "repo": self.gh_repo.name,
+                "patch": patch,
+                "limit": 100,
+            },
+        )
 
     def test_no_codemappings(self, mock_reverse_codemappings):
         mock_reverse_codemappings.return_value = ([], [])

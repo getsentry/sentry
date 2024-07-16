@@ -14,7 +14,7 @@ from sentry.snuba.referrer import Referrer
 from sentry.tasks.integrations.github.language_parsers import PATCH_PARSERS
 from sentry.tasks.integrations.github.open_pr_comment import (
     get_projects_and_filenames_from_source_file,
-    get_top_5_issues_by_count_for_file,
+    get_top_issues_by_count_for_file,
 )
 
 
@@ -22,6 +22,7 @@ class PullRequestFileSerializer(serializers.Serializer):
     filename = serializers.CharField(required=True)
     repo = serializers.CharField(required=True)
     patch = serializers.CharField(required=True)
+    limit = serializers.IntegerField(required=False, default=5)
 
     def validate_filename(self, value):
         if not value:
@@ -31,6 +32,12 @@ class PullRequestFileSerializer(serializers.Serializer):
         language_parser = PATCH_PARSERS.get(file_extension, None)
         if not language_parser:
             raise serializers.ValidationError("Unsupported file type")
+
+        return value
+
+    def validate_limit(self, value):
+        if value and value < 1 or value > 100:
+            raise serializers.ValidationError("Issue count must be between 1 and 100")
 
         return value
 
@@ -50,6 +57,7 @@ class OrganizationPullRequestFilesIssuesEndpoint(OrganizationEndpoint):
         filename = serializer.validated_data["filename"]
         repo_name = serializer.validated_data["repo"]
         patch = serializer.validated_data["patch"]
+        limit = serializer.validated_data["limit"]
 
         projects, sentry_filenames = get_projects_and_filenames_from_source_file(
             org_id=organization.id, repo_name=repo_name, pr_filename=filename
@@ -66,8 +74,11 @@ class OrganizationPullRequestFilesIssuesEndpoint(OrganizationEndpoint):
         if not len(function_names):
             return Response([])
 
-        top_issues = get_top_5_issues_by_count_for_file(
-            list(projects), list(sentry_filenames), list(function_names)
+        top_issues = get_top_issues_by_count_for_file(
+            projects=list(projects),
+            sentry_filenames=list(sentry_filenames),
+            function_names=list(function_names),
+            limit=limit,
         )
 
         group_id_to_info = {}
