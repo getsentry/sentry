@@ -70,5 +70,6 @@ if allowed then
   wait_time = 0
 end
 
--- Redis converts all Lua numbers to ints, so we need to convert flaots to strings, then back to floats in Python
+-- Redis converts all numerical return values from Lua to ints,
+-- so we need to convert floats to strings, then back to floats in Python
 return { bucket_size, drip_rate, tostring(last_drip), tostring(current_level), wait_time}
