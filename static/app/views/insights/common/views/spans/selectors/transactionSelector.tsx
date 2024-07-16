@@ -1,22 +1,17 @@
 import {useCallback, useState} from 'react';
 import debounce from 'lodash/debounce';
 
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import SelectControlWithProps from 'sentry/views/insights/browser/resources/components/selectControlWithProps';
 import {useResourcePagesQuery} from 'sentry/views/insights/browser/resources/queries/useResourcePagesQuery';
 import {BrowserStarfishFields} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
-import {setMerge, useArrayCache} from 'sentry/views/insights/common/utils/useArrayCache';
+import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {useWasSearchSpaceExhausted} from 'sentry/views/insights/common/utils/useWasSearchSpaceExhausted';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
-
-type Option = {
-  label: string | React.ReactElement;
-  value: string;
-};
 
 export function TransactionSelector({
   value,
@@ -55,21 +50,14 @@ export function TransactionSelector({
     pageLinks,
   });
 
-  const pages = useArrayCache({
-    items: incomingPages,
-    sortFn: items => {
-      return [...items].sort((a, b) => a.localeCompare(b));
-    },
-    mergeFn: setMerge,
-  });
+  const transactionOptions = useCompactSelectOptionsCache(
+    incomingPages.map(page => ({value: page, label: page}))
+  );
 
-  const options: Option[] = [
-    {value: '', label: 'All'},
-    ...pages.map(page => ({value: page, label: page})),
-  ];
+  const options = [{value: '', label: 'All'}, ...transactionOptions];
 
   return (
-    <SelectControlWithProps
+    <SelectControl
       inFieldLabel={`${t('Page')}:`}
       inputValue={searchInputValue}
       value={value}

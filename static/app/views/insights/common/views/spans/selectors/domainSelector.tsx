@@ -16,7 +16,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {buildEventViewQuery} from 'sentry/views/insights/common/utils/buildEventViewQuery';
-import {setMerge, useArrayCache} from 'sentry/views/insights/common/utils/useArrayCache';
+import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
 import {useWasSearchSpaceExhausted} from 'sentry/views/insights/common/utils/useWasSearchSpaceExhausted';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
 import {EmptyContainer} from 'sentry/views/insights/common/views/spans/selectors/emptyOption';
@@ -88,13 +88,14 @@ export function DomainSelector({
     incomingDomains.push(value);
   }
 
-  const domains = useArrayCache({
-    items: incomingDomains,
-    sortFn: items => {
-      return [...items].sort((a, b) => a.localeCompare(b));
-    },
-    mergeFn: setMerge,
-  });
+  const domainOptions = useCompactSelectOptionsCache(
+    incomingDomains.map(datum => {
+      return {
+        value: datum,
+        label: datum,
+      };
+    })
+  );
 
   const emptyOption = {
     value: EMPTY_OPTION_VALUE,
@@ -106,12 +107,7 @@ export function DomainSelector({
   const options = [
     {value: '', label: 'All'},
     ...(emptyOptionLocation === 'top' ? [emptyOption] : []),
-    ...domains.map(datum => {
-      return {
-        value: datum,
-        label: datum,
-      };
-    }),
+    ...domainOptions,
     ...(emptyOptionLocation === 'bottom' ? [emptyOption] : []),
   ];
 
