@@ -15,11 +15,13 @@ export function createHiddenPlayer(rrwebEvents: RecordingFrame[]): Replayer {
 
   // create a hidden iframe
   const hiddenIframe = document.createElement('iframe');
-  hiddenIframe.style.visibility = 'hidden';
+  hiddenIframe.style.display = 'none';
   document.body.appendChild(hiddenIframe);
 
   // append the DOM root inside the iframe
-  hiddenIframe.appendChild(domRoot);
+  if (hiddenIframe.contentDocument) {
+    hiddenIframe.contentDocument.body.appendChild(domRoot);
+  }
 
   return new Replayer(rrwebEvents, {
     root: domRoot,
