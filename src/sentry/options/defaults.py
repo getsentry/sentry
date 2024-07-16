@@ -1427,9 +1427,9 @@ register(
 )
 register(
     "sentry-metrics.cardinality-limiter.limits.custom.per-project.low",
-    default={
+    default=[
         {"window_seconds": 3600, "granularity_seconds": 3600, "limit": 100, "scope": "project"},
-    },
+    ],
 )
 register(
     "sentry-metrics.10s-granularity",
