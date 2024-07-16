@@ -19,3 +19,9 @@ class DetectBaseUrlForProjectTest(TestCase):
     def test_no_feature(self):
         detect_base_url_for_project(self.project, "https://sentry.io")
         self.assert_project_key(self.project, False)
+
+    @with_feature("organizations:uptime-automatic-hostname-detection")
+    def test_disabled_for_project(self):
+        self.project.update_option("sentry:uptime_autodetection", False)
+        detect_base_url_for_project(self.project, "https://sentry.io")
+        self.assert_project_key(self.project, False)
