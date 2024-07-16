@@ -19,6 +19,9 @@ type Props = Omit<ComponentProps<typeof OrigObjectInspector>, 'theme'> & {
   theme?: Record<string, any>;
 };
 
+/**
+ * @deprecated use `StructuredEventData` or `StructuredData` instead.
+ */
 function ObjectInspector({data, onCopy, showCopyButton, theme, ...props}: Props) {
   const config = useLegacyStore(ConfigStore);
   const emotionTheme = useTheme();
