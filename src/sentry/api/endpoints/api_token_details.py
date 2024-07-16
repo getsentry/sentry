@@ -35,12 +35,15 @@ class ApiTokenDetailsEndpoint(Endpoint):
     @method_decorator(never_cache)
     def get(self, request: Request, token_id: int) -> Response:
 
-        user_id = get_appropriate_user_id(request=request)
+        try:
+            user_id = get_appropriate_user_id(request=request)
+        except ValueError as e:
+            return Response(e, status=400)
 
         try:
             instance = ApiToken.objects.get(id=token_id, application__isnull=True, user_id=user_id)
-        except ApiToken.DoesNotExist:
-            raise ResourceDoesNotExist
+        except ApiToken.DoesNotExist as e:
+            raise ResourceDoesNotExist from e
 
         return Response(serialize(instance, request.user, include_token=False))
 
@@ -59,7 +62,10 @@ class ApiTokenDetailsEndpoint(Endpoint):
 
         result = serializer.validated_data
 
-        user_id = get_appropriate_user_id(request=request)
+        try:
+            user_id = get_appropriate_user_id(request=request)
+        except ValueError as e:
+            return Response(e, status=400)
 
         try:
             token_to_rename = ApiToken.objects.get(
@@ -75,7 +81,10 @@ class ApiTokenDetailsEndpoint(Endpoint):
 
     @method_decorator(never_cache)
     def delete(self, request: Request, token_id: int) -> Response:
-        user_id = get_appropriate_user_id(request=request)
+        try:
+            user_id = get_appropriate_user_id(request=request)
+        except ValueError as e:
+            return Response(e, status=400)
 
         try:
             token_to_delete = ApiToken.objects.get(
