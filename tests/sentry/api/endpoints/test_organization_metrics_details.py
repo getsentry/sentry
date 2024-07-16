@@ -225,11 +225,8 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         assert sorted(data[1]["operations"]) == [
             "avg",
             "count",
-            "histogram",
             "max",
-            "max_timestamp",
             "min",
-            "min_timestamp",
             "p50",
             "p75",
             "p90",
@@ -254,11 +251,8 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         assert sorted(data[1]["operations"]) == [
             "avg",
             "count",
-            "histogram",
             "max",
-            "max_timestamp",
             "min",
-            "min_timestamp",
             "p50",
             "p75",
             "p90",
@@ -276,11 +270,8 @@ class OrganizationMetricsDetailsTest(OrganizationMetricsIntegrationTestCase):
         assert sorted(data[1]["operations"]) == [
             "avg",
             "count",
-            "histogram",
             "max",
-            "max_timestamp",
             "min",
-            "min_timestamp",
             "sum",
         ]
 
