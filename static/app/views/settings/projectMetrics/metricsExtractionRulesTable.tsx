@@ -38,7 +38,11 @@ export function MetricsExtractionRulesTable({project}: Props) {
   const [query, setQuery] = useSearchQueryParam('query');
 
   const {data: extractionRules, isLoading: isLoadingExtractionRules} =
-    useMetricsExtractionRules(organization.slug, project.id, {query});
+    useMetricsExtractionRules({
+      orgId: organization.slug,
+      projectId: project.id,
+      query: {query},
+    });
   const {mutate: deleteMetricsExtractionRules} = useDeleteMetricsExtractionRules(
     organization.slug,
     project.id

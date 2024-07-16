@@ -341,6 +341,10 @@ export function isVirtualMetric({mri}: {mri: MRI}) {
   return mri.startsWith('v:');
 }
 
+export function isCounterMetric({mri}: {mri: MRI}) {
+  return mri.startsWith('c:');
+}
+
 export function isSpanDuration({mri}: {mri: MRI}) {
   return mri === 'd:spans/duration@millisecond';
 }

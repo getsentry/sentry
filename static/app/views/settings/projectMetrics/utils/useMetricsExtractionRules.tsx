@@ -5,6 +5,7 @@ import {
   type QueryClient,
   setApiQueryData,
   useApiQuery,
+  type UseApiQueryOptions,
   useMutation,
   useQueryClient,
 } from 'sentry/utils/queryClient';
@@ -23,39 +24,44 @@ function filterTempIds(rules: MetricsExtractionRule[]) {
     })),
   }));
 }
-interface MetricRulesAPIOptions {
+interface MetricRulesAPIQueryParams {
   query?: string;
 }
 
 export const getMetricsExtractionRulesApiKey = (
-  orgSlug: string,
-  projectId: string | number,
-  options?: MetricRulesAPIOptions
+  orgId: string | number,
+  projectId?: string | number,
+  query?: MetricRulesAPIQueryParams
 ) => {
-  if (Object.keys(options ?? {}).length === 0) {
-    // when no options are provided, return only endpoint path as a key
-    return [`/projects/${orgSlug}/${projectId}/metrics/extraction-rules/`] as const;
-  }
+  const endpoint = `/projects/${orgId}/${projectId}/metrics/extraction-rules/`;
 
-  return [
-    `/projects/${orgSlug}/${projectId}/metrics/extraction-rules/`,
-    {query: options},
-  ] as const;
+  if (!query || Object.keys(query).length === 0) {
+    // when no query is provided, return only endpoint path as a key
+    return [endpoint] as const;
+  }
+  return [endpoint, {query: query}] as const;
 };
 
 export const getMetricsExtractionOrgApiKey = (orgSlug: string) =>
   [`/organizations/${orgSlug}/metrics/extraction-rules/`] as const;
 
+interface GetParams {
+  orgId: string | number;
+  projectId?: string | number;
+  query?: MetricRulesAPIQueryParams;
+}
+
 export function useMetricsExtractionRules(
-  orgSlug: string,
-  projectId: string | number,
-  options?: MetricRulesAPIOptions
+  {orgId, projectId, query}: GetParams,
+  options: Partial<UseApiQueryOptions<MetricsExtractionRule[]>> = {}
 ) {
   return useApiQuery<MetricsExtractionRule[]>(
-    getMetricsExtractionRulesApiKey(orgSlug, projectId, options),
+    getMetricsExtractionRulesApiKey(orgId, projectId, query),
     {
       staleTime: 0,
       retry: false,
+      ...options,
+      enabled: !!projectId && options.enabled,
     }
   );
 }
