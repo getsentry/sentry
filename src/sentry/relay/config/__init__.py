@@ -265,7 +265,7 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
                 "granularitySeconds": quota["granularity_seconds"],
             },
             "limit": quota["limit"],
-            "scope": options.get("scope", "organization"),
+            "scope": option.get("scope", "organization"),
             "namespace": namespace.value,
         }
         if id in passive_limits:
