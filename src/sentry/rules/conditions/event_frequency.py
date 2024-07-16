@@ -16,7 +16,7 @@ from django.utils import timezone
 from sentry import release_health, tsdb
 from sentry.eventstore.models import GroupEvent
 from sentry.issues.constants import get_issue_tsdb_group_model, get_issue_tsdb_user_group_model
-from sentry.issues.grouptype import GroupCategory, get_group_type_by_type_id
+from sentry.issues.grouptype import GroupCategory
 from sentry.models.group import Group
 from sentry.rules import EventState
 from sentry.rules.conditions.base import EventCondition, GenericCondition
@@ -326,8 +326,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         self,
         tsdb_function: Callable[..., Any],
         keys: list[int],
-        group_id: int,
-        organization_id: int,
+        group: Group,
         model: TSDBModel,
         start: datetime,
         end: datetime,
@@ -341,8 +340,8 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             end=end,
             environment_id=environment_id,
             use_cache=True,
-            jitter_value=group_id,
-            tenant_ids={"organization_id": organization_id},
+            jitter_value=group.id,
+            tenant_ids={"organization_id": group.project.organization_id},
             referrer_suffix=referrer_suffix,
         )
         return result
@@ -351,22 +350,20 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         self,
         tsdb_function: Callable[..., Any],
         model: TSDBModel,
-        group_ids: list[int],
-        organization_id: int,
+        groups: list[Group],
         start: datetime,
         end: datetime,
         environment_id: int,
         referrer_suffix: str,
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
-        group_id = group_ids[0]
-        for group_chunk in chunked(group_ids, SNUBA_LIMIT):
+        group = groups[0]
+        for group_chunk in chunked(groups, SNUBA_LIMIT):
             result = self.get_snuba_query_result(
                 tsdb_function=tsdb_function,
                 model=model,
-                keys=[group_id for group_id in group_chunk],
-                group_id=group_id,
-                organization_id=organization_id,
+                keys=[group.id for group in group_chunk],
+                group=group,
                 start=start,
                 end=end,
                 environment_id=environment_id,
@@ -374,30 +371,6 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             )
             batch_totals.update(result)
         return batch_totals
-
-    def get_error_and_generic_group_ids(
-        self, groups: list[tuple[int, int, int]]
-    ) -> tuple[list[int], list[int]]:
-        """
-        Separate group ids into error group ids and generic group ids
-        """
-        generic_issue_ids = []
-        error_issue_ids = []
-
-        for group in groups:
-            issue_type = get_group_type_by_type_id(group[1])
-            if GroupCategory(issue_type.category) == GroupCategory.ERROR:
-                error_issue_ids.append(group[0])
-            else:
-                generic_issue_ids.append(group[0])
-        return (error_issue_ids, generic_issue_ids)
-
-    def get_organization_id_from_groups(self, groups: list[tuple[int, int, int]]) -> int | None:
-        organization_id = None
-        if groups:
-            group = groups[0]
-            organization_id = group[-1]
-        return organization_id
 
 
 class EventFrequencyCondition(BaseEventFrequencyCondition):
@@ -410,8 +383,7 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         sums: Mapping[int, int] = self.get_snuba_query_result(
             tsdb_function=self.tsdb.get_sums,
             keys=[event.group_id],
-            group_id=event.group.id,
-            organization_id=event.group.project.organization_id,
+            group=event.group,
             model=get_issue_tsdb_group_model(event.group.issue_category),
             start=start,
             end=end,
@@ -424,18 +396,15 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
         batch_sums: dict[int, int] = defaultdict(int)
-        groups = Group.objects.filter(id__in=group_ids).values_list(
-            "id", "type", "project__organization_id"
-        )
-        error_issue_ids, generic_issue_ids = self.get_error_and_generic_group_ids(groups)
-        organization_id = self.get_organization_id_from_groups(groups)
+        groups = Group.objects.filter(id__in=group_ids)
+        error_issues = [group for group in groups if group.issue_category == GroupCategory.ERROR]
+        generic_issues = [group for group in groups if group.issue_category != GroupCategory.ERROR]
 
-        if error_issue_ids and organization_id:
+        if error_issues:
             error_sums = self.get_chunked_result(
                 tsdb_function=self.tsdb.get_sums,
-                model=get_issue_tsdb_group_model(GroupCategory.ERROR),
-                group_ids=error_issue_ids,
-                organization_id=organization_id,
+                model=get_issue_tsdb_group_model(error_issues[0].issue_category),
+                groups=error_issues,
                 start=start,
                 end=end,
                 environment_id=environment_id,
@@ -443,13 +412,11 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
             )
             batch_sums.update(error_sums)
 
-        if generic_issue_ids and organization_id:
+        if generic_issues:
             generic_sums = self.get_chunked_result(
                 tsdb_function=self.tsdb.get_sums,
-                # this isn't necessarily performance, just any non-error category
-                model=get_issue_tsdb_group_model(GroupCategory.PERFORMANCE),
-                group_ids=generic_issue_ids,
-                organization_id=organization_id,
+                model=get_issue_tsdb_group_model(generic_issues[0].issue_category),
+                groups=generic_issues,
                 start=start,
                 end=end,
                 environment_id=environment_id,
@@ -473,8 +440,7 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
         totals: Mapping[int, int] = self.get_snuba_query_result(
             tsdb_function=self.tsdb.get_distinct_counts_totals,
             keys=[event.group_id],
-            group_id=event.group.id,
-            organization_id=event.group.project.organization_id,
+            group=event.group,
             model=get_issue_tsdb_user_group_model(event.group.issue_category),
             start=start,
             end=end,
@@ -487,18 +453,15 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
-        groups = Group.objects.filter(id__in=group_ids).values_list(
-            "id", "type", "project__organization_id"
-        )
-        error_issue_ids, generic_issue_ids = self.get_error_and_generic_group_ids(groups)
-        organization_id = self.get_organization_id_from_groups(groups)
+        groups = Group.objects.filter(id__in=group_ids)
+        error_issues = [group for group in groups if group.issue_category == GroupCategory.ERROR]
+        generic_issues = [group for group in groups if group.issue_category != GroupCategory.ERROR]
 
-        if error_issue_ids and organization_id:
+        if error_issues:
             error_totals = self.get_chunked_result(
                 tsdb_function=self.tsdb.get_distinct_counts_totals,
-                model=get_issue_tsdb_user_group_model(GroupCategory.ERROR),
-                group_ids=error_issue_ids,
-                organization_id=organization_id,
+                model=get_issue_tsdb_user_group_model(error_issues[0].issue_category),
+                groups=error_issues,
                 start=start,
                 end=end,
                 environment_id=environment_id,
@@ -506,13 +469,11 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
             )
             batch_totals.update(error_totals)
 
-        if generic_issue_ids and organization_id:
+        if generic_issues:
             generic_totals = self.get_chunked_result(
                 tsdb_function=self.tsdb.get_distinct_counts_totals,
-                # this isn't necessarily performance, just any non-error category
-                model=get_issue_tsdb_user_group_model(GroupCategory.PERFORMANCE),
-                group_ids=generic_issue_ids,
-                organization_id=organization_id,
+                model=get_issue_tsdb_user_group_model(generic_issues[0].issue_category),
+                groups=generic_issues,
                 start=start,
                 end=end,
                 environment_id=environment_id,
@@ -630,8 +591,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
             issue_count = self.get_snuba_query_result(
                 tsdb_function=self.tsdb.get_sums,
                 keys=[event.group_id],
-                group_id=event.group.id,
-                organization_id=event.group.project.organization_id,
+                group=event.group,
                 model=get_issue_tsdb_group_model(event.group.issue_category),
                 start=start,
                 end=end,
@@ -658,23 +618,21 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
         batch_percents: dict[int, int] = defaultdict(int)
-        groups = Group.objects.filter(id__in=group_ids).values_list(
-            "id", "type", "project_id", "project__organization_id"
-        )
-        session_count_last_hour = self.get_session_count(groups[0][2], environment_id, start, end)
+        groups = Group.objects.filter(id__in=group_ids)
+        project_id = groups[0].project.id
+        session_count_last_hour = self.get_session_count(project_id, environment_id, start, end)
         avg_sessions_in_interval = self.get_session_interval(
             session_count_last_hour, self.get_option("interval")
         )
-
         if avg_sessions_in_interval:
-            error_issue_ids, _ = self.get_error_and_generic_group_ids(groups)
-            organization_id = self.get_organization_id_from_groups(groups)
-            if error_issue_ids and organization_id:
+            error_issues = [
+                group for group in groups if group.issue_category == GroupCategory.ERROR
+            ]
+            if error_issues:
                 error_issue_count = self.get_chunked_result(
                     tsdb_function=self.tsdb.get_sums,
-                    model=get_issue_tsdb_group_model(GroupCategory.ERROR),
-                    group_ids=error_issue_ids,
-                    organization_id=organization_id,
+                    model=get_issue_tsdb_group_model(error_issues[0].issue_category),
+                    groups=error_issues,
                     start=start,
                     end=end,
                     environment_id=environment_id,
