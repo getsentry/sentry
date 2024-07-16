@@ -45,18 +45,22 @@ const TABLE_WIDTH_BREAKPOINTS = {
   FOURTH: 400,
 };
 
-function sortIssuesByLevel(issues: TraceError[]): TraceError[] {
-  const order: Record<keyof Theme['level'], number> = {
-    fatal: 0,
-    error: 1,
-    warning: 2,
-    sample: 3,
-    info: 4,
-    default: 5,
-    unknown: 6,
-  };
+const issueOrderPriority: Record<keyof Theme['level'], number> = {
+  fatal: 0,
+  error: 1,
+  warning: 2,
+  sample: 3,
+  info: 4,
+  default: 5,
+  unknown: 6,
+};
 
-  return issues.sort((a, b) => order[a.level] - order[b.level]);
+function sortIssuesByLevel(a: TraceError, b: TraceError): number {
+  // If the level is not defined in the priority map, default to unknown
+  const aPriority = issueOrderPriority[a.level] ?? issueOrderPriority.unknown;
+  const bPriority = issueOrderPriority[b.level] ?? issueOrderPriority.unknown;
+
+  return aPriority - bPriority;
 }
 
 function Issue(props: IssueProps) {
@@ -177,7 +181,7 @@ export function IssueList({issues, node, organization}: IssueListProps) {
   }, [node, node.performance_issues.size]);
 
   const uniqueIssues = useMemo(() => {
-    return [...uniquePerformanceIssues, ...sortIssuesByLevel(uniqueErrorIssues)];
+    return [...uniquePerformanceIssues, ...uniqueErrorIssues.sort(sortIssuesByLevel)];
   }, [uniqueErrorIssues, uniquePerformanceIssues]);
 
   if (!issues.length) {
