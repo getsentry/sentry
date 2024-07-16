@@ -5,9 +5,9 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
 import type {Project} from 'sentry/types/project';
-import useOrganization from 'sentry/utils/useOrganization';
 import EventNavigation from 'sentry/views/issueDetails/eventNavigation';
 import {GroupEventCarousel} from 'sentry/views/issueDetails/groupEventCarousel';
+import {useHasStreamlinedUI} from 'sentry/views/issueDetails/utils';
 
 type GroupEventHeaderProps = {
   event: Event;
@@ -16,10 +16,7 @@ type GroupEventHeaderProps = {
 };
 
 function GroupEventHeader({event, group, project}: GroupEventHeaderProps) {
-  const organization = useOrganization();
-  const hasUpdatedEventNavigation = organization.features.includes(
-    'issue-details-streamline'
-  );
+  const hasUpdatedEventNavigation = useHasStreamlinedUI();
   return (
     <StyledDataSection>
       {hasUpdatedEventNavigation ? (
