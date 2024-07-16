@@ -11,6 +11,7 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
 import {defined} from 'sentry/utils';
 import type {FeedbackIssue} from 'sentry/utils/feedback/types';
 
@@ -33,7 +34,7 @@ export default function FeedbackActions({
     <Flex gap={space(1)} align="center" className={className} style={style}>
       <ErrorBoundary mini>
         <FeedbackAssignedTo
-          feedbackIssue={feedbackItem}
+          feedbackIssue={feedbackItem as any as Group}
           feedbackEvent={eventData}
           showActorName={['medium', 'large'].includes(size)}
         />
