@@ -121,7 +121,7 @@ function getInvalidReasonGroupName(reason: DiscardReason): string {
       return group;
     }
   }
-  return 'other';
+  return 'internal';
 }
 
 function getRateLimitedReasonGroupName(reason: RateLimitedReason | string): string {
