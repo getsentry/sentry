@@ -1,6 +1,8 @@
 import datetime
 import logging
 from datetime import timedelta
+from urllib.parse import urljoin
+from urllib.robotparser import RobotFileParser
 
 from django.utils import timezone
 
@@ -27,6 +29,7 @@ from sentry.utils import metrics
 from sentry.utils.hashlib import md5_text
 from sentry.utils.locking import UnableToAcquireLock
 
+UPTIME_USER_AGENT = "sentry.io_uptime_checker_v_1"
 LAST_PROCESSED_KEY = "uptime_detector_last_processed"
 SCHEDULER_LOCK_KEY = "uptime_detector_scheduler_lock"
 FAILED_URL_RETRY_FREQ = timedelta(days=7)
@@ -165,6 +168,13 @@ def process_candidate_url(
 
     # Check robots.txt to see if it's ok for us to attempt to monitor this url
     if not check_url_robots_txt(url):
+        logger.info(
+            "uptime.url_failed_robots_txt_check",
+            extra={
+                "url": url,
+                "project": project.id,
+            },
+        )
         set_failed_url(url)
         return False
 
@@ -187,7 +197,14 @@ def monitor_url_for_project(project: Project, url: str):
     it. Also deletes any other auto-detected monitors since this one should replace them.
     """
     for monitored_subscription in get_auto_monitored_subscriptions_for_project(project):
-        delete_project_uptime_subscription(project, monitored_subscription.uptime_subscription)
+        delete_project_uptime_subscription(
+            project,
+            monitored_subscription.uptime_subscription,
+            modes=[
+                ProjectUptimeSubscriptionMode.AUTO_DETECTED_ONBOARDING,
+                ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
+            ],
+        )
     subscription = create_uptime_subscription(
         url, ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS, ONBOARDING_SUBSCRIPTION_TIMEOUT_MS
     )
@@ -215,8 +232,17 @@ def get_failed_url_key(url: str) -> str:
 
 
 def check_url_robots_txt(url: str) -> bool:
-    # TODO: Implement this check
-    return True
+    try:
+        return get_robots_txt_parser(url).can_fetch(UPTIME_USER_AGENT, url)
+    except Exception:
+        logger.warning("Failed to check robots.txt", exc_info=True)
+        return False
+
+
+def get_robots_txt_parser(url: str) -> RobotFileParser:
+    robot_parser = RobotFileParser(url=urljoin(url, "robots.txt"))
+    robot_parser.read()
+    return robot_parser
 
 
 def should_detect_for_project(project: Project) -> bool:

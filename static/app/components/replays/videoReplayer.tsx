@@ -412,6 +412,10 @@ export class VideoReplayer {
     // This is the soon-to-be previous video that needs to be hidden
     if (this._currentVideo) {
       this._currentVideo.style.display = 'none';
+      // resets the soon-to-be previous video to the beginning if it's ended so it starts from the beginning on restart
+      if (this._currentVideo.ended) {
+        this.setVideoTime(this._currentVideo, 0);
+      }
     }
 
     nextVideo.style.display = 'block';

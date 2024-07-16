@@ -101,7 +101,7 @@ def get_rules_to_slow_conditions(
     return rules_to_slow_conditions
 
 
-def _generate_unique_queries(
+def generate_unique_queries(
     condition_data: EventFrequencyConditionData, environment_id: int
 ) -> list[UniqueConditionQuery]:
     """
@@ -142,7 +142,7 @@ def get_condition_query_groups(
         # to the buffer if we've already checked their fast conditions.
         slow_conditions = get_slow_conditions(rule)
         for condition_data in slow_conditions:
-            for condition_query in _generate_unique_queries(condition_data, rule.environment_id):
+            for condition_query in generate_unique_queries(condition_data, rule.environment_id):
                 # NOTE: If percent and count comparison conditions are sharing
                 # the same UniqueConditionQuery, the condition JSON in
                 # DataAndGroups will be incorrect for one of those types.
@@ -175,15 +175,23 @@ def get_condition_group_results(
         condition_cls = rules.get(unique_condition.cls_id)
 
         if condition_cls is None:
-            logger.warning("Unregistered condition %r", unique_condition.cls_id)
-            return None
+            logger.warning(
+                "Unregistered condition %r",
+                unique_condition.cls_id,
+                extra={"project_id": project.id},
+            )
+            continue
 
         # MyPy refuses to make TypedDict compatible with MutableMapping
         # https://github.com/python/mypy/issues/4976
         condition_inst = condition_cls(project=project, data=condition_data)  # type: ignore[arg-type]
         if not isinstance(condition_inst, BaseEventFrequencyCondition):
-            logger.warning("Unregistered condition %r", condition_cls.id)
-            return None
+            logger.warning(
+                "Unregistered condition %r",
+                condition_cls.id,
+                extra={"project_id": project.id},
+            )
+            continue
 
         _, duration = condition_inst.intervals[unique_condition.interval]
 
@@ -212,19 +220,21 @@ def _passes_comparison(
     condition_data: EventFrequencyConditionData,
     group_id: int,
     environment_id: int,
+    project_id: int,
 ) -> bool:
     """
     Checks if a specific condition instance has passed. Handles both the count
     and percent comparison type conditions.
     """
-    unique_queries = _generate_unique_queries(condition_data, environment_id)
+    unique_queries = generate_unique_queries(condition_data, environment_id)
     try:
         query_values = [
             condition_group_results[unique_query][group_id] for unique_query in unique_queries
         ]
     except KeyError as e:
         logger.exception(
-            "delayed_processing.missing_query_results", extra={"exception": e, "group_id": group_id}
+            "delayed_processing.missing_query_results",
+            extra={"exception": e, "group_id": group_id, "project_id": project_id},
         )
         return False
 
@@ -242,6 +252,7 @@ def get_rules_to_fire(
     condition_group_results: dict[UniqueConditionQuery, dict[int, int]],
     rules_to_slow_conditions: DefaultDict[Rule, list[EventFrequencyConditionData]],
     rules_to_groups: DefaultDict[int, set[int]],
+    project_id: int,
 ) -> DefaultDict[Rule, set[int]]:
     rules_to_fire = defaultdict(set)
     for alert_rule, slow_conditions in rules_to_slow_conditions.items():
@@ -250,7 +261,11 @@ def get_rules_to_fire(
             conditions_matched = 0
             for slow_condition in slow_conditions:
                 if _passes_comparison(
-                    condition_group_results, slow_condition, group_id, alert_rule.environment_id
+                    condition_group_results,
+                    slow_condition,
+                    group_id,
+                    alert_rule.environment_id,
+                    project_id,
                 ):
                     if action_match == "any":
                         rules_to_fire[alert_rule].add(group_id)
@@ -452,7 +467,7 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     rules_to_fire = defaultdict(set)
     if condition_group_results:
         rules_to_fire = get_rules_to_fire(
-            condition_group_results, rules_to_slow_conditions, rules_to_groups
+            condition_group_results, rules_to_slow_conditions, rules_to_groups, project_id
         )
         log_str = ""
         for rule in rules_to_fire.keys():

@@ -6,17 +6,17 @@ import type {KeyboardEvent} from '@react-types/shared';
 import Checkbox from 'sentry/components/checkbox';
 import type {SelectOptionWithKey} from 'sentry/components/compactSelect/types';
 import {getItemsWithKeys} from 'sentry/components/compactSelect/utils';
-import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/combobox';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
-import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/filterValueParser/date/parser';
-import SpecificDatePicker from 'sentry/components/searchQueryBuilder/specificDatePicker';
+import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
+import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
+import SpecificDatePicker from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
 import {
   escapeTagValue,
   formatFilterValue,
-  getDefaultFilterValue,
-  isDateToken,
   unescapeTagValue,
-} from 'sentry/components/searchQueryBuilder/utils';
+} from 'sentry/components/searchQueryBuilder/tokens/filter/utils';
+import {getDefaultFilterValue} from 'sentry/components/searchQueryBuilder/tokens/utils';
+import {isDateToken} from 'sentry/components/searchQueryBuilder/utils';
 import {
   FilterType,
   TermOperator,
