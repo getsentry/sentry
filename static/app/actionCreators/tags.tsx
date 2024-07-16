@@ -3,21 +3,11 @@ import type {Query} from 'history';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {Client} from 'sentry/api';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {ItemType, type SearchGroup} from 'sentry/components/smartSearchBar/types';
 import {t} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
-import TagStore, {getBuiltInTags} from 'sentry/stores/tagStore';
-import type {Organization, TagCollection} from 'sentry/types';
+import TagStore from 'sentry/stores/tagStore';
+import type {Tag, TagValue} from 'sentry/types';
 import type {PageFilters} from 'sentry/types/core';
-import {
-  getIssueTitleFromType,
-  IssueCategory,
-  IssueType,
-  PriorityLevel,
-  type Tag,
-  type TagValue,
-} from 'sentry/types/group';
-import {FieldKey, IsFieldValues, ISSUE_FIELDS} from 'sentry/utils/fields';
 import {
   type ApiQueryKey,
   useApiQuery,
@@ -245,134 +235,3 @@ export const useFetchOrganizationTags = (
     ...options,
   });
 };
-
-export function builtInIssuesFields(
-  org: Organization,
-  hasFieldValues: string[]
-): TagCollection {
-  const builtInTags = getBuiltInTags(org);
-
-  const tagCollection: TagCollection = {
-    [FieldKey.IS]: {
-      ...builtInTags[FieldKey.IS],
-      key: FieldKey.IS,
-      name: 'Status',
-      values: Object.values(IsFieldValues),
-      maxSuggestedValues: Object.values(IsFieldValues).length,
-      predefined: true,
-    },
-    [FieldKey.HAS]: {
-      ...builtInTags[FieldKey.HAS],
-      key: FieldKey.HAS,
-      name: 'Has Tag',
-      values: hasFieldValues,
-      predefined: true,
-    },
-    [FieldKey.ASSIGNED]: {
-      ...builtInTags[FieldKey.ASSIGNED],
-      key: FieldKey.ASSIGNED,
-      name: 'Assigned To',
-      values: [],
-      predefined: true,
-    },
-    [FieldKey.BOOKMARKS]: {
-      ...builtInTags[FieldKey.BOOKMARKS],
-      name: 'Bookmarked By',
-      values: [],
-      predefined: true,
-    },
-    [FieldKey.ISSUE_CATEGORY]: {
-      ...builtInTags[FieldKey.ISSUE_CATEGORY],
-      name: 'Issue Category',
-      values: [
-        IssueCategory.ERROR,
-        IssueCategory.PERFORMANCE,
-        IssueCategory.REPLAY,
-        IssueCategory.CRON,
-      ],
-      predefined: true,
-    },
-    [FieldKey.ISSUE_TYPE]: {
-      ...builtInTags[FieldKey.ISSUE_TYPE],
-      name: 'Issue Type',
-      values: [
-        IssueType.PERFORMANCE_N_PLUS_ONE_DB_QUERIES,
-        IssueType.PERFORMANCE_N_PLUS_ONE_API_CALLS,
-        IssueType.PERFORMANCE_CONSECUTIVE_DB_QUERIES,
-        IssueType.PERFORMANCE_SLOW_DB_QUERY,
-        IssueType.PERFORMANCE_RENDER_BLOCKING_ASSET,
-        IssueType.PERFORMANCE_UNCOMPRESSED_ASSET,
-        IssueType.PERFORMANCE_ENDPOINT_REGRESSION,
-        IssueType.PROFILE_FILE_IO_MAIN_THREAD,
-        IssueType.PROFILE_IMAGE_DECODE_MAIN_THREAD,
-        IssueType.PROFILE_JSON_DECODE_MAIN_THREAD,
-        IssueType.PROFILE_REGEX_MAIN_THREAD,
-        IssueType.PROFILE_FUNCTION_REGRESSION,
-      ].map(value => ({
-        icon: null,
-        title: value,
-        name: value,
-        documentation: getIssueTitleFromType(value),
-        value,
-        type: ItemType.TAG_VALUE,
-        children: [],
-      })) as SearchGroup[],
-      predefined: true,
-    },
-    [FieldKey.LAST_SEEN]: {
-      ...builtInTags[FieldKey.LAST_SEEN],
-      name: 'Last Seen',
-      values: [],
-      predefined: false,
-    },
-    [FieldKey.FIRST_SEEN]: {
-      ...builtInTags[FieldKey.FIRST_SEEN],
-      name: 'First Seen',
-      values: [],
-      predefined: false,
-    },
-    [FieldKey.FIRST_RELEASE]: {
-      ...builtInTags[FieldKey.FIRST_RELEASE],
-      name: 'First Release',
-      values: ['latest'],
-      predefined: true,
-    },
-    [FieldKey.EVENT_TIMESTAMP]: {
-      ...builtInTags[FieldKey.EVENT_TIMESTAMP],
-      name: 'Event Timestamp',
-      values: [],
-      predefined: true,
-    },
-    [FieldKey.TIMES_SEEN]: {
-      ...builtInTags[FieldKey.TIMES_SEEN],
-      name: 'Times Seen',
-      isInput: true,
-      // Below values are required or else SearchBar will attempt to get values
-      // This is required or else SearchBar will attempt to get values
-      values: [],
-      predefined: true,
-    },
-    [FieldKey.ASSIGNED_OR_SUGGESTED]: {
-      ...builtInTags[FieldKey.ASSIGNED_OR_SUGGESTED],
-      name: 'Assigned or Suggested',
-      isInput: true,
-      values: [],
-      predefined: true,
-    },
-    [FieldKey.ISSUE_PRIORITY]: {
-      ...builtInTags[FieldKey.ISSUE_PRIORITY],
-      name: 'Issue Priority',
-      values: [PriorityLevel.HIGH, PriorityLevel.MEDIUM, PriorityLevel.LOW],
-      predefined: true,
-    },
-  };
-
-  // Ony include fields that that are part of the ISSUE_FIELDS. This is
-  // because we may sometimes have fields that are turned off by removing
-  // them from ISSUE_FIELDS
-  const filteredCollection = Object.entries(tagCollection).filter(([key]) =>
-    ISSUE_FIELDS.includes(key as FieldKey)
-  );
-
-  return {...builtInTags, ...Object.fromEntries(filteredCollection)};
-}
