@@ -93,6 +93,7 @@ const DEFAULT_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
     sorting: 'alphabetical' satisfies FlamegraphState['preferences']['sorting'],
   },
 };
+
 interface ProfileSummaryHeaderProps {
   location: Location;
   onViewChange: (newView: 'flamegraph' | 'profiles') => void;
@@ -102,6 +103,7 @@ interface ProfileSummaryHeaderProps {
   transaction: string;
   view: 'flamegraph' | 'profiles';
 }
+
 function ProfileSummaryHeader(props: ProfileSummaryHeaderProps) {
   const breadcrumbTrails: ProfilingBreadcrumbsProps['trails'] = useMemo(() => {
     return [
@@ -523,6 +525,7 @@ interface AggregateFlamegraphToolbarProps {
   setHideSystemFrames: (value: boolean) => void;
   visualization: 'flamegraph' | 'call tree';
 }
+
 function AggregateFlamegraphToolbar(props: AggregateFlamegraphToolbarProps) {
   const flamegraph = useFlamegraph();
   const flamegraphs = useMemo(() => [flamegraph], [flamegraph]);
