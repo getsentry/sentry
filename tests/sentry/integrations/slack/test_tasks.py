@@ -4,7 +4,6 @@ from uuid import uuid4
 import orjson
 import pytest
 import responses
-from slack_sdk.web import SlackResponse
 
 from sentry.incidents.models.alert_rule import AlertRule, AlertRuleTriggerAction
 from sentry.integrations.services.integration.serial import serialize_integration
@@ -22,6 +21,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
+from tests.sentry.integrations.slack.utils.mock_slack_response import mock_slack_response
 
 pytestmark = [requires_snuba]
 
@@ -32,34 +32,17 @@ class SlackTasksTest(TestCase):
         self.uuid = uuid4().hex
 
     @pytest.fixture(autouse=True)
-    def mock_chat_postEphemeral(self):
-        with patch(
-            "slack_sdk.web.client.WebClient.chat_scheduleMessage",
-            return_value=SlackResponse(
-                client=None,
-                http_verb="POST",
-                api_url="https://slack.com/api/chat.scheduleMessage",
-                req_args={},
-                data={"ok": True, "channel": "chan-id", "scheduled_message_id": "Q1298393284"},
-                headers={},
-                status_code=200,
-            ),
+    def mock_chat_scheduleMessage(self):
+        with mock_slack_response(
+            "chat_scheduleMessage",
+            body={"ok": True, "channel": "chan-id", "scheduled_message_id": "Q1298393284"},
         ) as self.mock_schedule:
             yield
 
     @pytest.fixture(autouse=True)
-    def mock_chat_unfurl(self):
-        with patch(
-            "slack_sdk.web.client.WebClient.chat_deleteScheduledMessage",
-            return_value=SlackResponse(
-                client=None,
-                http_verb="POST",
-                api_url="https://slack.com/api/chat.deleteScheduledMessage",
-                req_args={},
-                data={"ok": True},
-                headers={},
-                status_code=200,
-            ),
+    def mock_chat_deleteScheduledMessage(self):
+        with mock_slack_response(
+            "chat_deleteScheduledMessage", body={"ok": True}
         ) as self.mock_delete:
             yield
 

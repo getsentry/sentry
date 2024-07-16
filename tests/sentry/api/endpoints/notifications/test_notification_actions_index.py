@@ -2,7 +2,6 @@ from unittest.mock import MagicMock, patch
 
 import responses
 from rest_framework import serializers, status
-from slack_sdk.web.slack_response import SlackResponse
 
 from sentry.api.serializers.base import serialize
 from sentry.integrations.pagerduty.utils import add_service
@@ -19,6 +18,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.slack import install_slack
 from sentry.testutils.silo import assume_test_silo_mode
+from tests.sentry.integrations.slack.utils.mock_slack_response import mock_slack_response
 
 
 class NotificationActionsIndexEndpointTest(APITestCase):
@@ -263,30 +263,11 @@ class NotificationActionsIndexEndpointTest(APITestCase):
 
     @patch.dict(NotificationAction._registry, {})
     @responses.activate
-    @patch(
-        "slack_sdk.web.client.WebClient.chat_scheduleMessage",
-        return_value=SlackResponse(
-            client=None,
-            http_verb="POST",
-            api_url="https://slack.com/api/chat.scheduleMessage",
-            req_args={},
-            data={"ok": True, "channel": "CABC123", "scheduled_message_id": "Q1298393284"},
-            headers={},
-            status_code=200,
-        ),
+    @mock_slack_response(
+        "chat_scheduleMessage",
+        body={"ok": True, "channel": "CABC123", "scheduled_message_id": "Q1298393284"},
     )
-    @patch(
-        "slack_sdk.web.client.WebClient.chat_deleteScheduledMessage",
-        return_value=SlackResponse(
-            client=None,
-            http_verb="POST",
-            api_url="https://slack.com/api/chat.deleteScheduleMessage",
-            req_args={},
-            data={"ok": True},
-            headers={},
-            status_code=200,
-        ),
-    )
+    @mock_slack_response("chat_deleteScheduledMessage", body={"ok": True})
     def test_post_with_slack_validation(self, mock_delete, mock_schedule):
         class MockActionRegistration(ActionRegistration):
             pass

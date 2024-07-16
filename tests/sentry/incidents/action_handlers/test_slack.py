@@ -3,7 +3,6 @@ from unittest.mock import patch
 import orjson
 import pytest
 import responses
-from slack_sdk.web.slack_response import SlackResponse
 
 from sentry.constants import ObjectStatus
 from sentry.incidents.action_handlers import SlackActionHandler
@@ -19,6 +18,7 @@ from sentry.models.notificationmessage import NotificationMessage
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
+from tests.sentry.integrations.slack.utils.mock_slack_response import mock_slack_response
 
 from . import FireTest
 
@@ -27,33 +27,16 @@ from . import FireTest
 class SlackActionHandlerTest(FireTest):
     @pytest.fixture(autouse=True)
     def mock_chat_postEphemeral(self):
-        with patch(
-            "slack_sdk.web.client.WebClient.chat_scheduleMessage",
-            return_value=SlackResponse(
-                client=None,
-                http_verb="POST",
-                api_url="https://slack.com/api/chat.scheduleMessage",
-                req_args={},
-                data={"ok": True, "channel": "chan-id", "scheduled_message_id": "Q1298393284"},
-                headers={},
-                status_code=200,
-            ),
+        with mock_slack_response(
+            "chat_scheduleMessage",
+            body={"ok": True, "channel": "chan-id", "scheduled_message_id": "Q1298393284"},
         ) as self.mock_schedule:
             yield
 
     @pytest.fixture(autouse=True)
     def mock_chat_unfurl(self):
-        with patch(
-            "slack_sdk.web.client.WebClient.chat_deleteScheduledMessage",
-            return_value=SlackResponse(
-                client=None,
-                http_verb="POST",
-                api_url="https://slack.com/api/chat.deleteScheduledMessage",
-                req_args={},
-                data={"ok": True},
-                headers={},
-                status_code=200,
-            ),
+        with mock_slack_response(
+            "chat_deleteScheduledMessage", body={"ok": True}
         ) as self.mock_delete:
             yield
 

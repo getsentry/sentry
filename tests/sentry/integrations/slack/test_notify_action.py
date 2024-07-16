@@ -18,6 +18,7 @@ from sentry.testutils.skips import requires_snuba
 from tests.sentry.integrations.slack.test_notifications import (
     additional_attachment_generator_block_kit,
 )
+from tests.sentry.integrations.slack.utils.mock_slack_response import mock_slack_response
 
 pytestmark = [requires_snuba]
 
@@ -26,74 +27,32 @@ class SlackNotifyActionTest(RuleTestCase):
     rule_cls = SlackNotifyServiceAction
 
     def mock_list(self, list_type, channels, result_name="channels"):
-        return patch(
-            "slack_sdk.web.client.WebClient.%s_list" % list_type,
-            return_value=SlackResponse(
-                client=None,
-                http_verb="POST",
-                api_url="https://slack.com/api/%s.list" % list_type,
-                req_args={},
-                data={"ok": True, result_name: channels},
-                headers={},
-                status_code=200,
-            ),
-        )
+        return mock_slack_response(f"{list_type}_list", body={"ok": True, result_name: channels})
 
     def mock_conversations_info(self, channel):
-        return patch(
-            "slack_sdk.web.client.WebClient.conversations_info",
-            return_value=SlackResponse(
-                client=None,
-                http_verb="POST",
-                api_url="https://slack.com/api/conversations.info",
-                req_args={"channel": channel},
-                data={"ok": True, "channel": channel},
-                headers={},
-                status_code=200,
-            ),
+        return mock_slack_response(
+            "conversations_info",
+            body={"ok": True, "channel": channel},
+            req_args={"channel": channel},
         )
 
     def mock_msg_schedule_response(self, channel_id, result_name="channel"):
         if channel_id == "channel_not_found":
-            bodydict = {"ok": False, "error": "channel_not_found"}
+            body = {"ok": False, "error": "channel_not_found"}
         else:
-            bodydict = {
+            body = {
                 "ok": True,
                 result_name: channel_id,
                 "scheduled_message_id": "Q1298393284",
             }
-        return patch(
-            "slack_sdk.web.client.WebClient.chat_scheduleMessage",
-            return_value=SlackResponse(
-                client=None,
-                http_verb="POST",
-                api_url="https://slack.com/api/chat.scheduleMessage",
-                req_args={},
-                data=bodydict,
-                headers={},
-                status_code=200,
-            ),
-        )
+        return mock_slack_response("chat_scheduleMessage", body)
 
     def mock_msg_delete_scheduled_response(self, channel_id, result_name="channel"):
         if channel_id == "channel_not_found":
-            bodydict = {"ok": False, "error": "channel_not_found"}
+            body = {"ok": False, "error": "channel_not_found"}
         else:
-            bodydict = {
-                "ok": True,
-            }
-        return patch(
-            "slack_sdk.web.client.WebClient.chat_deleteScheduledMessage",
-            return_value=SlackResponse(
-                client=None,
-                http_verb="POST",
-                api_url="https://slack.com/api/chat.deleteScheduledMessage",
-                req_args={},
-                data=bodydict,
-                headers={},
-                status_code=200,
-            ),
-        )
+            body = {"ok": True}
+        return mock_slack_response("chat_deleteScheduledMessage", body)
 
     def setUp(self):
         self.organization = self.get_event().project.organization

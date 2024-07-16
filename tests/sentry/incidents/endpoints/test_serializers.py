@@ -10,7 +10,6 @@ from django.test import override_settings
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
 from slack_sdk.errors import SlackApiError
-from slack_sdk.web.slack_response import SlackResponse
 
 from sentry.auth.access import from_user
 from sentry.incidents.logic import (
@@ -47,6 +46,7 @@ from sentry.snuba.models import SnubaQuery, SnubaQueryEventType
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
+from tests.sentry.integrations.slack.utils.mock_slack_response import mock_slack_response
 
 pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
 
@@ -808,54 +808,25 @@ class TestAlertRuleTriggerSerializer(TestAlertRuleSerializerBase):
 
 class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
     def mock_conversations_list(self, channels):
-        return patch(
-            "slack_sdk.web.client.WebClient.conversations_list",
-            return_value=SlackResponse(
-                client=None,
-                http_verb="POST",
-                api_url="https://slack.com/api/conversations.list",
-                req_args={},
-                data={"ok": True, "channels": channels},
-                headers={},
-                status_code=200,
-            ),
-        )
+        return mock_slack_response("conversations_list", body={"ok": True, "channels": channels})
 
     def mock_conversations_info(self, channel):
-        return patch(
-            "slack_sdk.web.client.WebClient.conversations_info",
-            return_value=SlackResponse(
-                client=None,
-                http_verb="POST",
-                api_url="https://slack.com/api/conversations.info",
-                req_args={"channel": channel},
-                data={"ok": True, "channel": channel},
-                headers={},
-                status_code=200,
-            ),
+        return mock_slack_response(
+            "conversations_info",
+            body={"ok": True, "channel": channel},
+            req_args={"channel": channel},
         )
 
     def patch_msg_schedule_response(self, channel_id, result_name="channel"):
         if channel_id == "channel_not_found":
-            bodydict = {"ok": False, "error": "channel_not_found"}
+            body = {"ok": False, "error": "channel_not_found"}
         else:
-            bodydict = {
+            body = {
                 "ok": True,
                 result_name: channel_id,
                 "scheduled_message_id": "Q1298393284",
             }
-        return patch(
-            "slack_sdk.web.client.WebClient.chat_scheduleMessage",
-            return_value=SlackResponse(
-                client=None,
-                http_verb="POST",
-                api_url="https://slack.com/api/chat.scheduleMessage",
-                req_args={},
-                data=bodydict,
-                headers={},
-                status_code=200,
-            ),
-        )
+        return mock_slack_response("chat_scheduleMessage", body)
 
     @cached_property
     def other_project(self):
