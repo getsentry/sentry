@@ -95,7 +95,6 @@ def register_strategy_config(id: str, **kwargs) -> type[StrategyConfiguration]:
 
 register_strategy_config(
     id="legacy:2019-03-12",
-    hidden=True,
     strategies=[
         "threads:legacy",
         "stacktrace:legacy",
@@ -120,7 +119,6 @@ register_strategy_config(
 
 register_strategy_config(
     id="newstyle:2019-05-08",
-    hidden=True,
     risk=RISK_LEVEL_HIGH,
     changelog="""
         * Uses source code information all platforms with reliable sources
@@ -147,7 +145,6 @@ register_strategy_config(
 register_strategy_config(
     id="newstyle:2019-10-29",
     base="newstyle:2019-05-08",
-    hidden=True,
     risk=RISK_LEVEL_MEDIUM,
     changelog="""
         * Better rules for when to take context lines into account for
@@ -163,7 +160,6 @@ register_strategy_config(
 register_strategy_config(
     id="mobile:2021-02-12",
     base="newstyle:2019-10-29",
-    hidden=True,
     # XXX(markus): Low risk because fallback grouping is supposed to take care
     # of this, for the hierarchical grouping rollout. Really we should get rid
     # of strategy risks entirely.
