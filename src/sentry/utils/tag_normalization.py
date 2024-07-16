@@ -12,6 +12,7 @@ _KNOWN_TAGS = {
     "sentry.cocoa",
     "sentry.dart",
     "sentry.dotnet",
+    "sentry.dotnet.powershell",
     "sentry.elixir",
     "sentry.go",
     "sentry.java",
@@ -40,7 +41,6 @@ _KNOWN_TAGS = {
     "sentry.objc",
     "sentry.perl",
     "sentry.php",
-    "sentry.powershell",
     "sentry.python",
     "sentry.ruby",
     "sentry.rust",
@@ -59,6 +59,7 @@ _SYNONYMOUS_TAGS = {
     "sentry.react": "sentry.javascript.react",
     "sentry.symfony": "sentry.php.symfony",
     "sentry.unity": "sentry.native.unity",
+    "sentry.powershell": "sentry.dotnet.powershell",
 }
 
 # TODO: Should we be grouping by origin SDK instead? (For example, should we be
