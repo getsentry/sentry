@@ -469,8 +469,10 @@ class OrganizationReleasesEndpoint(
             # Get all projects that are available to the user/token
             # Note: Does not use the "projects" data param from the request
             projects_from_request = self.get_projects(request, organization)
-            allowed_projects = {project.slug: project for project in projects_from_request}
-            allowed_projects.update({project.id: project for project in projects_from_request})
+            allowed_projects = {}
+            for project in projects_from_request:
+                allowed_projects[project.slug] = project
+                allowed_projects[project.id] = project
 
             projects = []
             for id_or_slug in result["projects"]:
