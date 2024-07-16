@@ -1,3 +1,4 @@
+import * as Sentry from '@sentry/react';
 import type {Location, LocationDescriptorObject} from 'history';
 
 import type {Organization, OrganizationSummary} from 'sentry/types/organization';
@@ -57,7 +58,7 @@ export function generateLinkToEventInTraceView({
 }: {
   eventId: string;
   location: Location;
-  organization: Pick<Organization, 'slug' | 'features'>;
+  organization: Organization;
   projectSlug: string;
   timestamp: string | number;
   traceSlug: string;
@@ -73,6 +74,14 @@ export function generateLinkToEventInTraceView({
   const dateSelection = _eventView.normalizeDateSelection(location);
   const normalizedTimestamp = getTimeStampFromTableDateField(timestamp);
   const eventSlug = generateEventSlug({id: eventId, project: projectSlug});
+
+  if (!traceSlug) {
+    Sentry.withScope(scope => {
+      scope.setExtras({traceSlug, source});
+      scope.setLevel('warning' as any);
+      Sentry.captureException(new Error('Trace slug is missing'));
+    });
+  }
 
   if (organization.features.includes('trace-view-v1')) {
     return getTraceDetailsUrl({

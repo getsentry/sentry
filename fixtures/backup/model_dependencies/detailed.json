@@ -5099,6 +5099,10 @@
       [
         "file",
         "relocation"
+      ],
+      [
+        "kind",
+        "relocation"
       ]
     ]
   },

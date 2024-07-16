@@ -521,6 +521,7 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
 
   const state = useComboBoxState<T>({
     children,
+    allowsEmptyCollection: true,
     // We handle closing on blur ourselves to prevent the combobox from closing
     // when the user clicks inside the tabbed menu
     shouldCloseOnBlur: false,
@@ -688,6 +689,9 @@ function SearchQueryBuilderComboboxInner<T extends SelectOptionOrSectionWithKey<
   );
 }
 
+/**
+ * A combobox component which is used in freeText tokens and filter values.
+ */
 export const SearchQueryBuilderCombobox = forwardRef(SearchQueryBuilderComboboxInner) as <
   T extends SelectOptionWithKey<string>,
 >(

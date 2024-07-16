@@ -1,12 +1,16 @@
+from __future__ import annotations
+
 from datetime import timedelta
 from unittest import mock
 from unittest.mock import call
+from urllib.robotparser import RobotFileParser
 
 from django.utils import timezone
 
 from sentry.locks import locks
 from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
+from sentry.testutils.helpers import with_feature
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.uptime.detectors.ranking import (
     NUMBER_OF_BUCKETS,
@@ -16,15 +20,21 @@ from sentry.uptime.detectors.ranking import (
 )
 from sentry.uptime.detectors.tasks import (
     LAST_PROCESSED_KEY,
+    ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS,
     SCHEDULER_LOCK_KEY,
     is_failed_url,
+    monitor_url_for_project,
     process_candidate_url,
     process_detection_bucket,
     process_project_url_ranking,
     schedule_detections,
     set_failed_url,
 )
-from sentry.uptime.models import ProjectUptimeSubscription
+from sentry.uptime.models import ProjectUptimeSubscription, ProjectUptimeSubscriptionMode
+from sentry.uptime.subscriptions.subscriptions import (
+    get_auto_monitored_subscriptions_for_project,
+    is_url_auto_monitored_for_project,
+)
 
 
 @freeze_time()
@@ -139,44 +149,42 @@ class ProcessProjectUrlRankingTest(TestCase):
 
 @freeze_time()
 class ProcessCandidateUrlTest(TestCase):
+    @with_feature("organizations:uptime-automatic-subscription-creation")
     def test_succeeds_new(self):
-        assert process_candidate_url(self.project, 100, "https://sentry.io", 50)
+        url = "https://sentry.io"
+        assert not is_url_auto_monitored_for_project(self.project, url)
+        assert process_candidate_url(self.project, 100, url, 50)
+        assert is_url_auto_monitored_for_project(self.project, url)
 
+    def test_succeeds_new_no_feature(self):
+        with mock.patch(
+            "sentry.uptime.detectors.tasks.monitor_url_for_project"
+        ) as mock_monitor_url_for_project:
+            assert process_candidate_url(self.project, 100, "https://sentry.io", 50)
+            mock_monitor_url_for_project.assert_not_called()
+
+    @with_feature("organizations:uptime-automatic-subscription-creation")
     def test_succeeds_existing_subscription_other_project(self):
         other_project = self.create_project()
         url = "https://sentry.io"
-        uptime_subscription = self.create_uptime_subscription(url=url, interval_seconds=300)
+        uptime_subscription = self.create_uptime_subscription(
+            url=url, interval_seconds=ONBOARDING_SUBSCRIPTION_INTERVAL_SECONDS
+        )
         self.create_project_uptime_subscription(
             project=other_project, uptime_subscription=uptime_subscription
         )
-        assert (
-            ProjectUptimeSubscription.objects.filter(
-                project=self.project, uptime_subscription=uptime_subscription
-            ).count()
-            == 0
-        )
+        assert not is_url_auto_monitored_for_project(self.project, url)
         assert process_candidate_url(self.project, 100, url, 50)
-        assert (
-            ProjectUptimeSubscription.objects.filter(
-                project=self.project, uptime_subscription=uptime_subscription
-            ).count()
-            == 1
-        )
+        assert is_url_auto_monitored_for_project(self.project, url)
 
+    @with_feature("organizations:uptime-automatic-subscription-creation")
     def test_succeeds_existing_subscription_this_project(self):
         url = "https://sentry.io"
-        uptime_subscription = self.create_uptime_subscription(url=url, interval_seconds=300)
-        self.create_project_uptime_subscription(
-            project=self.project, uptime_subscription=uptime_subscription
-        )
         assert process_candidate_url(self.project, 100, url, 50)
-        assert (
-            ProjectUptimeSubscription.objects.filter(
-                project=self.project, uptime_subscription=uptime_subscription
-            ).count()
-            == 1
-        )
-        # TODO: Check no other subscriptions or anything made once we finish the rest of this func
+        subscription = get_auto_monitored_subscriptions_for_project(self.project)[0]
+        assert process_candidate_url(self.project, 100, url, 50)
+        new_subscription = get_auto_monitored_subscriptions_for_project(self.project)[0]
+        assert subscription.id == new_subscription.id
 
     def test_below_thresholds(self):
         assert not process_candidate_url(self.project, 500, "https://sentry.io", 1)
@@ -189,13 +197,50 @@ class ProcessCandidateUrlTest(TestCase):
 
     def test_failed_robots_txt(self):
         url = "https://sentry.io"
+        test_robot_parser = RobotFileParser()
+        robots_txt = ["User-agent: *", "Disallow: /"]
+        test_robot_parser.parse(robots_txt)
         with mock.patch(
-            # TODO: Replace this mock with real tests when we implement this function properly
-            "sentry.uptime.detectors.tasks.check_url_robots_txt",
-            return_value=False,
+            "sentry.uptime.detectors.tasks.get_robots_txt_parser",
+            return_value=test_robot_parser,
         ):
             assert not process_candidate_url(self.project, 100, url, 50)
         assert is_failed_url(url)
+
+    def test_failed_robots_txt_user_agent(self):
+        url = "https://sentry.io"
+        test_robot_parser = RobotFileParser()
+        robots_txt = ["User-agent: sentry.io_uptime_checker_v_1", "Disallow: /"]
+        test_robot_parser.parse(robots_txt)
+        with mock.patch(
+            "sentry.uptime.detectors.tasks.get_robots_txt_parser",
+            return_value=test_robot_parser,
+        ):
+            assert not process_candidate_url(self.project, 100, url, 50)
+        assert is_failed_url(url)
+
+    def test_succeeded_robots_txt(self):
+        url = "https://sentry.io"
+        test_robot_parser = RobotFileParser()
+        robots_txt = ["User-agent: *", "Allow: /", "Disallow: /no-robos"]
+        test_robot_parser.parse(robots_txt)
+        with mock.patch(
+            "sentry.uptime.detectors.tasks.get_robots_txt_parser",
+            return_value=test_robot_parser,
+        ):
+            assert process_candidate_url(self.project, 100, url, 50)
+
+    def test_no_robots_txt(self):
+        # Supplying no robots txt should allow all urls
+        url = "https://sentry.io"
+        test_robot_parser = RobotFileParser()
+        robots_txt: list[str] = []
+        test_robot_parser.parse(robots_txt)
+        with mock.patch(
+            "sentry.uptime.detectors.tasks.get_robots_txt_parser",
+            return_value=test_robot_parser,
+        ):
+            assert process_candidate_url(self.project, 100, url, 50)
 
 
 class TestFailedUrl(TestCase):
@@ -205,3 +250,35 @@ class TestFailedUrl(TestCase):
         set_failed_url(url)
         assert is_failed_url(url)
         assert not is_failed_url("https://sentry.sentry.io")
+
+
+class TestMonitorUrlForProject(TestCase):
+    def test(self):
+        url = "http://sentry.io"
+        assert not is_url_auto_monitored_for_project(self.project, url)
+        monitor_url_for_project(self.project, url)
+        assert is_url_auto_monitored_for_project(self.project, url)
+
+    def test_existing(self):
+        url = "http://sentry.io"
+        monitor_url_for_project(self.project, url)
+        assert is_url_auto_monitored_for_project(self.project, url)
+        url_2 = "http://santry.io"
+        monitor_url_for_project(self.project, url_2)
+        assert not is_url_auto_monitored_for_project(self.project, url)
+        assert is_url_auto_monitored_for_project(self.project, url_2)
+
+    def test_manual_existing(self):
+        manual_url = "https://sentry.io"
+        self.create_project_uptime_subscription(
+            uptime_subscription=self.create_uptime_subscription(url=manual_url),
+            mode=ProjectUptimeSubscriptionMode.MANUAL,
+        )
+        url = "http://santry.io"
+        monitor_url_for_project(self.project, url)
+        assert is_url_auto_monitored_for_project(self.project, url)
+        assert ProjectUptimeSubscription.objects.filter(
+            project=self.project,
+            mode=ProjectUptimeSubscriptionMode.MANUAL,
+            uptime_subscription__url=manual_url,
+        ).exists()

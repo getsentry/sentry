@@ -41,13 +41,18 @@ class UptimeSubscription(BaseRemoteSubscription, DefaultFieldsModel):
         ]
 
 
-class ProjectUptimeSubscriptionMode(enum.Enum):
+class ProjectUptimeSubscriptionMode(enum.IntEnum):
     # Manually created by a user
     MANUAL = 1
     # Auto-detected by our system and in the onboarding stage
     AUTO_DETECTED_ONBOARDING = 2
     # Auto-detected by our system and actively monitoring
     AUTO_DETECTED_ACTIVE = 3
+
+
+class UptimeStatus(enum.IntEnum):
+    OK = 1
+    FAILED = 2
 
 
 @region_silo_model
@@ -59,6 +64,8 @@ class ProjectUptimeSubscription(DefaultFieldsModel):
     project = FlexibleForeignKey("sentry.Project")
     uptime_subscription = FlexibleForeignKey("uptime.UptimeSubscription", on_delete=models.PROTECT)
     mode = models.SmallIntegerField(default=ProjectUptimeSubscriptionMode.MANUAL.value)
+    uptime_status = models.PositiveSmallIntegerField(default=UptimeStatus.OK.value)
+    # (Likely) temporary column to keep track of the current uptime status of this monitor
 
     objects: ClassVar[BaseManager[Self]] = BaseManager(
         cache_fields=["pk"], cache_ttl=int(timedelta(hours=1).total_seconds())

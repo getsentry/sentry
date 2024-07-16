@@ -138,17 +138,29 @@ class FeatureManager(RegisteredFeatureManager):
     def __init__(self) -> None:
         super().__init__()
         self._feature_registry: MutableMapping[str, type[Feature]] = {}
+        # Deprecated: Remove entity_features once flagr has been removed.
         self.entity_features: MutableSet[str] = set()
+        self.exposed_features: MutableSet[str] = set()
         self.option_features: MutableSet[str] = set()
         self.flagpole_features: MutableSet[str] = set()
         self._entity_handler: FeatureHandler | None = None
 
-    def all(self, feature_type: type[Feature] = Feature) -> Mapping[str, type[Feature]]:
+    def all(
+        self, feature_type: type[Feature] = Feature, api_expose_only: bool = False
+    ) -> Mapping[str, type[Feature]]:
         """
         Get a mapping of feature name -> feature class, optionally specific to a
         particular feature type.
+
+        :param feature_type: The feature class you want to filter by. eg. (OrganizationFeature | ProjectFeature | SystemFeature)
+        :param api_expose_only: Set to True to only fetch features that were registered with `api_expose`.
         """
-        return {k: v for k, v in self._feature_registry.items() if issubclass(v, feature_type)}
+        return {
+            name: feature
+            for name, feature in self._feature_registry.items()
+            if issubclass(feature, feature_type)
+            and (not api_expose_only or name in self.exposed_features)
+        }
 
     def add(
         self,
@@ -156,6 +168,7 @@ class FeatureManager(RegisteredFeatureManager):
         cls: type[Feature] = Feature,
         entity_feature_strategy: bool | FeatureHandlerStrategy = False,
         default: bool = False,
+        api_expose: bool = True,
     ) -> None:
         """
         Register a feature.
@@ -198,6 +211,8 @@ class FeatureManager(RegisteredFeatureManager):
             settings.SENTRY_FEATURES[name] = default
 
         self._feature_registry[name] = cls
+        if api_expose:
+            self.exposed_features.add(name)
 
     def _get_feature_class(self, name: str) -> type[Feature]:
         try:
@@ -313,9 +328,11 @@ class FeatureManager(RegisteredFeatureManager):
         OrganizationFeatures.
         """
         if self._entity_handler:
-            return self._entity_handler.batch_has(
-                feature_names, actor, projects=projects, organization=organization
-            )
+            with metrics.timer("features.entity_batch_has", sample_rate=0.01):
+                return self._entity_handler.batch_has(
+                    feature_names, actor, projects=projects, organization=organization
+                )
+
         else:
             # Fall back to default handler if no entity handler available.
             project_features = [name for name in feature_names if name.startswith("projects:")]

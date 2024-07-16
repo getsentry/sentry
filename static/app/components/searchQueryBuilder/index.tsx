@@ -7,14 +7,14 @@ import {
   SearchQueryBuilerContext,
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
+import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
+import {useQueryBuilderState} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {PlainTextQueryInput} from 'sentry/components/searchQueryBuilder/plainTextQueryInput';
 import {TokenizedQueryGrid} from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
 import {
   type FilterKeySection,
   QueryInterfaceType,
 } from 'sentry/components/searchQueryBuilder/types';
-import {useHandleSearch} from 'sentry/components/searchQueryBuilder/useHandleSearch';
-import {useQueryBuilderState} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
@@ -131,6 +131,7 @@ export function SearchQueryBuilder({
       onSearch,
       wrapperRef,
       handleSearch,
+      savedSearchType,
       searchSource,
       size,
     };
@@ -143,6 +144,7 @@ export function SearchQueryBuilder({
     dispatch,
     onSearch,
     handleSearch,
+    savedSearchType,
     searchSource,
     size,
   ]);
