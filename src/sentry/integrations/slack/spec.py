@@ -1,10 +1,21 @@
 from sentry import analytics
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.base import IntegrationProvider
 from sentry.integrations.messaging import MessagingIdentityLinkViewSet, MessagingIntegrationSpec
+from sentry.models.notificationaction import ActionService
 from sentry.rules.actions import IntegrationEventAction
 
 
 class SlackMessagingSpec(MessagingIntegrationSpec):
+    @property
+    def provider_slug(self) -> str:
+        return "slack"
+
+    @property
+    def action_service(self) -> ActionService:
+        return ActionService.SLACK
+
     @property
     def integration_provider(self) -> type[IntegrationProvider]:
         from sentry.integrations.slack.integration import SlackIntegrationProvider
@@ -23,6 +34,21 @@ class SlackMessagingSpec(MessagingIntegrationSpec):
             unlink_personal_identity=SlackUnlinkIdentityView,
             link_team_identity=SlackLinkTeamView,
             unlink_team_identity=SlackUnlinkTeamView,
+        )
+
+    def send_incident_alert_notification(
+        self,
+        action: AlertRuleTriggerAction,
+        incident: Incident,
+        metric_value: float,
+        new_status: IncidentStatus,
+        notification_uuid: str | None = None,
+    ) -> bool:
+
+        from sentry.integrations.slack.utils import send_incident_alert_notification
+
+        return send_incident_alert_notification(
+            action, incident, metric_value, new_status, notification_uuid
         )
 
     @property

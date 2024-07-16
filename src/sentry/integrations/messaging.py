@@ -6,7 +6,12 @@ from django.urls.resolvers import URLPattern
 from django.views.generic import View
 
 from sentry import analytics
+from sentry.incidents.action_handlers import ActionHandler, DefaultActionHandler
+from sentry.incidents.models.alert_rule import AlertRuleActionHandlerFactory, AlertRuleTriggerAction
+from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.base import IntegrationProvider
+from sentry.models.notificationaction import ActionService, ActionTarget
+from sentry.models.project import Project
 from sentry.rules import rules
 from sentry.rules.actions import IntegrationEventAction
 
@@ -50,10 +55,22 @@ class MessagingIntegrationSpec(ABC):
         which require additional boilerplate.
         """
 
+        AlertRuleTriggerAction.register_factory(_MessagingHandlerFactory(self))
+
         if self.notify_service_action:
             rules.add(self.notify_service_action)
         if self.notification_sent:
             analytics.register(self.notification_sent)
+
+    @property
+    @abstractmethod
+    def provider_slug(self) -> str:
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def action_service(self) -> ActionService:
+        raise NotImplementedError
 
     @property
     @abstractmethod
@@ -86,24 +103,34 @@ class MessagingIntegrationSpec(ABC):
               boilerplate in a `urls` module (djust Django things).
         """
 
-        def _build_path(op_slug: str, view_cls: type[View] | None) -> URLPattern | None:
+        def build_path(operation_slug: str, view_cls: type[View] | None) -> URLPattern | None:
             if view_cls is None:
                 return None
-            integration_key = self.integration_provider.key
             return re_path(
-                route=rf"^{op_slug}/(?P<signed_params>[^\/]+)/$",
+                route=rf"^{operation_slug}/(?P<signed_params>[^\/]+)/$",
                 view=view_cls.as_view(),
-                name=f"sentry-integration-{integration_key}-{op_slug}",
+                name=f"sentry-integration-{self.provider_slug}-{operation_slug}",
             )
 
         vs = self.identity_view_set
         paths = [
-            _build_path("link-identity", vs.link_personal_identity),
-            _build_path("unlink-identity", vs.unlink_personal_identity),
-            _build_path("link-team", vs.link_team_identity),
-            _build_path("unlink-team", vs.unlink_team_identity),
+            build_path("link-identity", vs.link_personal_identity),
+            build_path("unlink-identity", vs.unlink_personal_identity),
+            build_path("link-team", vs.link_team_identity),
+            build_path("unlink-team", vs.unlink_team_identity),
         ]
         return [path for path in paths if path is not None]
+
+    @abstractmethod
+    def send_incident_alert_notification(
+        self,
+        action: AlertRuleTriggerAction,
+        incident: Incident,
+        metric_value: float,
+        new_status: IncidentStatus,
+        notification_uuid: str | None = None,
+    ) -> bool:
+        raise NotImplementedError
 
     @property
     @abstractmethod
@@ -141,3 +168,47 @@ class MessagingIntegrationSpec(ABC):
     def documentation(self) -> type[View] | None:
         """TODO?"""
         return None
+
+
+class _MessagingActionHandler(DefaultActionHandler):
+    def __init__(
+        self,
+        action: AlertRuleTriggerAction,
+        incident: Incident,
+        project: Project,
+        spec: MessagingIntegrationSpec,
+    ):
+        super().__init__(action, incident, project)
+        self._spec = spec
+
+    @property
+    def provider(self) -> str:
+        return self._spec.provider_slug
+
+    def send_alert(
+        self,
+        metric_value: int | float,
+        new_status: IncidentStatus,
+        notification_uuid: str | None = None,
+    ) -> None:
+        success = self._spec.send_incident_alert_notification(
+            self.action, self.incident, metric_value, new_status, notification_uuid
+        )
+        if success:
+            self.record_alert_sent_analytics(self.action.target_identifier, notification_uuid)
+
+
+class _MessagingHandlerFactory(AlertRuleActionHandlerFactory):
+    def __init__(self, spec: MessagingIntegrationSpec) -> None:
+        super().__init__(
+            slug=spec.provider_slug,
+            service_type=spec.action_service,
+            supported_target_types=[ActionTarget.SPECIFIC],
+            integration_provider=spec.provider_slug,
+        )
+        self.spec = spec
+
+    def build_handler(
+        self, action: AlertRuleTriggerAction, incident: Incident, project: Project
+    ) -> ActionHandler:
+        return _MessagingActionHandler(action, incident, project, self.spec)
