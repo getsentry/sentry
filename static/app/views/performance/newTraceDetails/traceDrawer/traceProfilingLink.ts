@@ -39,11 +39,18 @@ function getNodeId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined
   return undefined;
 }
 
+function getTransactionId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined {
+  if (isTransactionNode(node)) {
+    return node.value.event_id;
+  }
+  return node.parent_transaction?.value?.event_id;
+}
+
 /**
  * Generates a link to a continuous profile for a given trace element type
  */
 export function makeTraceContinuousProfilingLink(
-  value: TraceTreeNode<TraceTree.NodeValue>,
+  node: TraceTreeNode<TraceTree.NodeValue>,
   profilerId: string,
   options: {
     orgSlug: string;
@@ -58,9 +65,9 @@ export function makeTraceContinuousProfilingLink(
 
   // We compute a time offset based on the duration of the span so that
   // users can see some context of things that occurred before and after the span.
-  const timeOffset = getTimeOffsetForDuration(value.space[1]);
-  let start: Date | null = toDate(value.space[0] - timeOffset);
-  let end: Date | null = toDate(value.space[0] + value.space[1] + timeOffset);
+  const timeOffset = getTimeOffsetForDuration(node.space[1]);
+  let start: Date | null = toDate(node.space[0] - timeOffset);
+  let end: Date | null = toDate(node.space[0] + node.space[1] + timeOffset);
 
   // End timestamp is required to generate a link
   if (end === null || typeof profilerId !== 'string' || profilerId === '') {
@@ -81,12 +88,19 @@ export function makeTraceContinuousProfilingLink(
     return null;
   }
 
+  // TransactionId is required to generate a link because
+  // we need to link to the segment of the trace and fetch its spans
+  const transactionId = getTransactionId(node);
+  if (!transactionId) {
+    return null;
+  }
+
   const queryWithEventIdAndTraceId: Record<string, string> = {
     ...query,
     traceId: options.traceId,
   };
 
-  const eventId = getNodeId(value);
+  const eventId = getNodeId(node);
   if (eventId) {
     queryWithEventIdAndTraceId.eventId = eventId;
   }
