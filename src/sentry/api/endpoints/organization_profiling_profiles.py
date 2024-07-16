@@ -44,13 +44,12 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
             sentry_sdk.set_tag("dataset", "functions")
             function_fingerprint = int(request.query_params["fingerprint"])
 
-            # getting profiles by function fingerprint does not support any filter conditions
-            # as it's a limited subset that is hard to expose in a user friendly way
             profile_ids = get_profiles_with_function(
                 organization.id,
                 project_ids[0],
                 function_fingerprint,
                 params,
+                request.GET.get("query", ""),
             )
         else:
             sentry_sdk.set_tag("dataset", "profiles")

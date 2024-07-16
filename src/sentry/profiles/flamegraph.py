@@ -64,12 +64,13 @@ def get_profiles_with_function(
     project_id: int,
     function_fingerprint: int,
     params: ParamsType,
+    query: str,
 ) -> ProfileIds:
-    query = f"fingerprint:{function_fingerprint}"
+    conditions = [query, f"fingerprint:{function_fingerprint}"]
 
     result = functions.query(
         selected_columns=["timestamp", "unique_examples()"],
-        query=query,
+        query=" ".join(cond for cond in conditions if cond),
         params=params,
         limit=100,
         orderby=["-timestamp"],

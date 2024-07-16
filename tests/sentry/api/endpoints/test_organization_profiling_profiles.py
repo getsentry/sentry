@@ -27,7 +27,7 @@ class OrganizationProfilingFlamegraphTest(APITestCase):
 
     @patch("sentry.search.events.builder.base.raw_snql_query", wraps=raw_snql_query)
     def test_queries_functions(self, mock_raw_snql_query):
-        fingerprint = str(int(uuid4().hex[:16], 16))
+        fingerprint = int(uuid4().hex[:16], 16)
 
         with self.feature(self.features):
             response = self.client.get(
@@ -35,7 +35,7 @@ class OrganizationProfilingFlamegraphTest(APITestCase):
                 {
                     "project": [self.project.id],
                     "query": "transaction:foo",
-                    "fingerprint": fingerprint,
+                    "fingerprint": str(fingerprint),
                 },
             )
         assert response.status_code == 200
@@ -54,7 +54,7 @@ class OrganizationProfilingFlamegraphTest(APITestCase):
             )
             in snql_request.query.where
         )
-        assert Condition(Column("transaction"), Op.EQ, "foo") not in snql_request.query.where
+        assert Condition(Column("transaction_name"), Op.EQ, "foo") in snql_request.query.where
 
     @patch("sentry.search.events.builder.base.raw_snql_query", wraps=raw_snql_query)
     def test_queries_transactions(self, mock_raw_snql_query):
