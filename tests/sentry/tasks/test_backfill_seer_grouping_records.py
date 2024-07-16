@@ -1122,7 +1122,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         last_processed_index = int(
             redis_client.get(make_backfill_grouping_index_redis_key(self.project.id)) or 0
         )
-        assert last_processed_index == len(groups)
+        assert last_processed_index == len(Group.objects.filter(project_id=self.project.id))
 
         # Assert metadata was not set for groups that will be deleted
         for group in Group.objects.filter(project_id=self.project.id, id__in=deleted_group_ids):
