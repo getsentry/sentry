@@ -54,12 +54,17 @@ SLACK_COMMANDS_ENDPOINT_SUCCESS_DATADOG_METRIC = (
 SLACK_COMMANDS_ENDPOINT_FAILURE_DATADOG_METRIC = (
     "sentry.integrations.slack.commands_endpoint.failure"
 )
-SLACK_COMMANDS_LINK_IDENTITY_SUCCESS_DATADOG_METRIC = (
-    "sentry.integrations.slack.commands_link_identity.success"
+
+# Sending messages upon linking/unlinking
+SLACK_LINK_IDENTITY_MSG_SUCCESS_DATADOG_METRIC = (
+    "sentry.integrations.slack.link_identity_msg.success"
 )
-SLACK_COMMANDS_LINK_IDENTITY_FAILURE_DATADOG_METRIC = (
-    "sentry.integrations.slack.commands_link_identity.failure"
+SLACK_LINK_IDENTITY_MSG_FAILURE_DATADOG_METRIC = (
+    "sentry.integrations.slack.link_identity_msg.failure"
 )
+SLACK_LINK_TEAM_MSG_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.link_team_msg.success"
+SLACK_LINK_TEAM_MSG_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.link_team_msg.failure"
+
 
 SLACK_NOTIFY_MIXIN_SUCCESS_DATADOG_METRIC = "sentry.integrations.slack.notify_mixin.success"
 SLACK_NOTIFY_MIXIN_FAILURE_DATADOG_METRIC = "sentry.integrations.slack.notify_mixin.failure"
