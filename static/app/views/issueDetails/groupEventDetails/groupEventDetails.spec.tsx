@@ -253,7 +253,12 @@ const mockGroupApis = (
 
   MockApiClient.addMockResponse({
     url: `/organizations/${organization.slug}/prompts-activity/`,
-    body: undefined,
+    body: {data: {}, features: {['issue_feedback_hidden']: {}}},
+  });
+
+  MockApiClient.addMockResponse({
+    url: `/organizations/${organization.slug}/prompts-activity/`,
+    method: 'PUT',
   });
 
   MockApiClient.addMockResponse({

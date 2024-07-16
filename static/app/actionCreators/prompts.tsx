@@ -13,7 +13,7 @@ type PromptsUpdateParams = {
    */
   feature: string;
   organization: OrganizationSummary;
-  status: 'snoozed' | 'dismissed';
+  status: 'snoozed' | 'dismissed' | 'visible';
   /**
    * The numeric project ID as a string
    */
@@ -215,12 +215,39 @@ export function usePrompt({
     );
   }, [api, feature, organization, projectId, queryClient]);
 
+  const showPrompt = useCallback(() => {
+    promptsUpdate(api, {
+      organization,
+      projectId,
+      feature,
+      status: 'visible',
+    });
+
+    // Update cached query data
+    // Will clear the status/timestamps of a prompt that is dismissed or snoozed
+    setApiQueryData<PromptResponse>(
+      queryClient,
+      makePromptsCheckQueryKey({
+        organization,
+        feature,
+        projectId,
+      }),
+      () => {
+        return {
+          data: {},
+          features: {[feature]: {}},
+        };
+      }
+    );
+  }, [api, feature, organization, projectId, queryClient]);
+
   return {
     isLoading: prompt.isLoading,
     isError: prompt.isError,
     isPromptDismissed,
     dismissPrompt,
     snoozePrompt,
+    showPrompt,
   };
 }
 
