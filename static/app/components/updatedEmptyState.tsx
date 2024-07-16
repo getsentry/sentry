@@ -189,7 +189,8 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                             ) : null}
                           </CodeSnippetWrapper>
                           <CodeSnippetWrapper>
-                            {configuration.configurations ? (
+                            {configuration.configurations &&
+                            configuration.configurations.length > 0 ? (
                               Array.isArray(configuration.configurations[0].code) ? (
                                 <TabbedCodeSnippet
                                   tabs={configuration.configurations[0].code}
