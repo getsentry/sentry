@@ -4,6 +4,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import TagStore from 'sentry/stores/tagStore';
+import {IsFieldValues} from 'sentry/utils/fields';
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 
 describe('IssueListSearchBar', function () {
@@ -25,10 +26,6 @@ describe('IssueListSearchBar', function () {
     recentSearchMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/recent-searches/',
       method: 'GET',
-      body: [],
-    });
-    MockApiClient.addMockResponse({
-      url: '/organizations/org-slug/tags/',
       body: [],
     });
   });
@@ -167,6 +164,70 @@ describe('IssueListSearchBar', function () {
           },
         })
       );
+    });
+  });
+
+  describe('Tags and Fields', function () {
+    it('displays the correct options for the is tag', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/',
+        body: [],
+      });
+
+      defaultProps.organization.features = ['issue-stream-search-query-builder'];
+
+      render(<IssueListSearchBar {...defaultProps} />, {
+        router,
+      });
+
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.paste('is:', {delay: null});
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: is'})
+      );
+
+      Object.values(IsFieldValues).forEach(value => {
+        expect(screen.getByRole('option', {name: value})).toBeInTheDocument();
+      });
+    });
+
+    it('displays the correct options under Issue Filters', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/',
+        body: [{key: 'someTag', name: 'Some Tag'}],
+      });
+
+      defaultProps.organization.features = ['issue-stream-search-query-builder'];
+
+      render(<IssueListSearchBar {...defaultProps} />, {
+        router,
+      });
+
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Event Tags'}));
+
+      expect(screen.getByRole('option', {name: 'someTag'})).toBeInTheDocument();
+    });
+
+    it('displays tags in the has filter', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/',
+        body: [{key: 'someTag', name: 'Some Tag'}],
+      });
+
+      defaultProps.organization.features = ['issue-stream-search-query-builder'];
+
+      render(<IssueListSearchBar {...defaultProps} />, {
+        router,
+      });
+
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.paste('has:', {delay: null});
+      await userEvent.click(
+        screen.getByRole('button', {name: 'Edit value for filter: has'})
+      );
+
+      expect(screen.getByRole('option', {name: 'someTag'})).toBeInTheDocument();
     });
   });
 });
