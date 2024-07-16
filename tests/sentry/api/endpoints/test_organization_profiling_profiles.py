@@ -4,10 +4,78 @@ from uuid import uuid4
 
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
+from snuba_sdk import Column, Condition, Function, Op
 
 from sentry.profiles.utils import proxy_profiling_service
+from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.utils.snuba import raw_snql_query
+
+
+class OrganizationProfilingFlamegraphTest(APITestCase):
+    endpoint = "sentry-api-0-organization-profiling-flamegraph"
+    features = {
+        "organizations:profiling": True,
+        "organizations:continuous-profiling": True,
+        "organizations:global-views": True,
+    }
+
+    def setUp(self):
+        self.login_as(user=self.user)
+        self.url = reverse(self.endpoint, args=(self.organization.slug,))
+
+    @patch("sentry.search.events.builder.base.raw_snql_query", wraps=raw_snql_query)
+    def test_queries_functions(self, mock_raw_snql_query):
+        fingerprint = str(int(uuid4().hex[:16], 16))
+
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                {
+                    "project": [self.project.id],
+                    "query": "transaction:foo",
+                    "fingerprint": fingerprint,
+                },
+            )
+        assert response.status_code == 200
+
+        mock_raw_snql_query.assert_called_once()
+
+        call_args = mock_raw_snql_query.call_args.args
+        snql_request = call_args[0]
+
+        assert snql_request.dataset == Dataset.Functions.value
+        assert (
+            Condition(
+                Function("toUInt32", [Column("fingerprint")], "fingerprint"),
+                Op.EQ,
+                fingerprint,
+            )
+            in snql_request.query.where
+        )
+        assert Condition(Column("transaction"), Op.EQ, "foo") not in snql_request.query.where
+
+    @patch("sentry.search.events.builder.base.raw_snql_query", wraps=raw_snql_query)
+    def test_queries_transactions(self, mock_raw_snql_query):
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                {
+                    "project": [self.project.id],
+                    "query": "transaction:foo",
+                },
+            )
+        assert response.status_code == 200
+
+        mock_raw_snql_query.assert_called_once()
+
+        call_args = mock_raw_snql_query.call_args.args
+        snql_request = call_args[0]
+
+        assert snql_request.dataset == Dataset.Discover.value
+        assert Condition(Column("profile_id"), Op.IS_NOT_NULL) in snql_request.query.where
+        assert Condition(Column("transaction"), Op.EQ, "foo") in snql_request.query.where
 
 
 class OrganizationProfilingChunksTest(APITestCase):

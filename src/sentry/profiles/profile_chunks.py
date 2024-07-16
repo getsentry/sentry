@@ -35,7 +35,8 @@ def get_chunk_ids(
             Condition(Column("project_id"), Op.EQ, project_id),
             Condition(Column("profiler_id"), Op.EQ, profiler_id),
         ],
-        orderby=[OrderBy(Column("start_timestamp"), Direction.ASC)],
+        # We want the generate the flamegraph using the newest data
+        orderby=[OrderBy(Column("start_timestamp"), Direction.DESC)],
     ).set_limit(max_chunks)
 
     request = Request(
