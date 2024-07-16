@@ -177,31 +177,22 @@ class EventManagerGroupingTest(TestCase):
 
         with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=True):
             self.project.update_option("sentry:grouping_auto_update", False)
-            save_new_event({"message": "foo"}, self.project)
-            # It does not update the config because it is False
-            assert self.project.get_option("sentry:grouping_config") == LEGACY_CONFIG
+            # This simulates the case when they're not yet deprecated
+            with mock.patch("sentry.grouping.ingest.config.CONFIGS_TO_DEPRECATE", new=[]):
+                save_new_event({"message": "foo"}, self.project)
+                # It does not update the config because it is False
+                assert self.project.get_option("sentry:grouping_config") == LEGACY_CONFIG
 
     def test_deprecated_configs_upgrade_automatically(self):
-        # This is not yet a deprecated config but we will simulate it
-        self.project.update_option("sentry:grouping_config", "mobile:2021-02-12")
+        self.project.update_option("sentry:grouping_config", LEGACY_CONFIG)
         self.project.update_option("sentry:grouping_auto_update", False)
 
         with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=True):
             update_grouping_config_if_needed(self.project)
-            # Nothing changes
-            assert self.project.get_option("sentry:grouping_config") == "mobile:2021-02-12"
-            assert self.project.get_option("sentry:grouping_auto_update") is False
-
-            # XXX: In the future, once the mobile grouping is added to the list, we will remove this line
-            with mock.patch(
-                "sentry.grouping.ingest.config.CONFIGS_TO_DEPRECATE",
-                new=["mobile:2021-02-12"],
-            ):
-                update_grouping_config_if_needed(self.project)
-                # Even though auto update is disabled we have upgraded the project
-                assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
-                # We have also updated the auto_update option
-                assert self.project.get_option("sentry:grouping_auto_update") is True
+            # Even though auto update is disabled we have upgraded the project
+            assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
+            # We have also updated the auto_update option
+            assert self.project.get_option("sentry:grouping_auto_update") is True
 
 
 class PlaceholderTitleTest(TestCase):
