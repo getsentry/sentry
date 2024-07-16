@@ -138,7 +138,6 @@ class EventsMeta(TypedDict):
     datasetReason: NotRequired[str]
     isMetricsData: NotRequired[bool]
     isMetricsExtractedData: NotRequired[bool]
-    tips: dict[str, str | None]
 
 
 # Only used for api docs
