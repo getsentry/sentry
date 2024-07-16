@@ -64,8 +64,8 @@ class ApiTokensEndpoint(Endpoint):
     def get(self, request: Request) -> Response:
         try:
             user_id = get_appropriate_user_id(request=request)
-        except ValueError as e:
-            return Response(e, status=400)
+        except ValueError:
+            return Response({"detail": "Invalid user ID"}, status=400)
 
         token_list = list(
             ApiToken.objects.filter(application__isnull=True, user_id=user_id).select_related(
@@ -107,8 +107,8 @@ class ApiTokensEndpoint(Endpoint):
     def delete(self, request: Request):
         try:
             user_id = get_appropriate_user_id(request=request)
-        except ValueError as e:
-            return Response(e, status=400)
+        except ValueError:
+            return Response({"detail": "Invalid user ID"}, status=400)
         token_id = request.data.get("tokenId", None)
         # Account for token_id being 0, which can be considered valid
         if token_id is None:

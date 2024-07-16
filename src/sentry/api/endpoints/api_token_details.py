@@ -37,8 +37,8 @@ class ApiTokenDetailsEndpoint(Endpoint):
 
         try:
             user_id = get_appropriate_user_id(request=request)
-        except ValueError as e:
-            return Response(e, status=400)
+        except ValueError:
+            return Response({"detail": "Invalid user ID"}, status=400)
 
         try:
             instance = ApiToken.objects.get(id=token_id, application__isnull=True, user_id=user_id)
@@ -64,8 +64,8 @@ class ApiTokenDetailsEndpoint(Endpoint):
 
         try:
             user_id = get_appropriate_user_id(request=request)
-        except ValueError as e:
-            return Response(e, status=400)
+        except ValueError:
+            return Response({"detail": "Invalid user ID"}, status=400)
 
         try:
             token_to_rename = ApiToken.objects.get(
@@ -83,8 +83,8 @@ class ApiTokenDetailsEndpoint(Endpoint):
     def delete(self, request: Request, token_id: int) -> Response:
         try:
             user_id = get_appropriate_user_id(request=request)
-        except ValueError as e:
-            return Response(e, status=400)
+        except ValueError:
+            return Response({"detail": "Invalid user ID"}, status=400)
 
         try:
             token_to_delete = ApiToken.objects.get(
