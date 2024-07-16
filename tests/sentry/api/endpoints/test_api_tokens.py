@@ -297,3 +297,11 @@ class ApiTokensStaffTest(APITestCase):
         assert response.status_code == status.HTTP_400_BAD_REQUEST
         assert ApiToken.objects.filter(id=self.user_token.id).exists()
         assert ApiToken.objects.filter(id=self.staff_token.id).exists()
+
+    def test_invalid_user(self):
+        self.login_as(self.staff_user, staff=True)
+
+        response = self.client.delete(self.url, {"userId": "abc", "tokenId": self.user_token.id})
+        assert response.status_code == status.HTTP_404_NOT_FOUND
+        assert ApiToken.objects.filter(id=self.user_token.id).exists()
+        assert ApiToken.objects.filter(id=self.staff_token.id).exists()

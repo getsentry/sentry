@@ -35,15 +35,12 @@ class ApiTokenDetailsEndpoint(Endpoint):
     @method_decorator(never_cache)
     def get(self, request: Request, token_id: int) -> Response:
 
-        try:
-            user_id = get_appropriate_user_id(request=request)
-        except ValueError:
-            return Response({"detail": "Invalid user ID"}, status=400)
+        user_id = get_appropriate_user_id(request=request)
 
         try:
             instance = ApiToken.objects.get(id=token_id, application__isnull=True, user_id=user_id)
-        except ApiToken.DoesNotExist as e:
-            raise ResourceDoesNotExist from e
+        except ApiToken.DoesNotExist:
+            raise ResourceDoesNotExist(detail="Invalid token ID")
 
         return Response(serialize(instance, request.user, include_token=False))
 
@@ -62,17 +59,14 @@ class ApiTokenDetailsEndpoint(Endpoint):
 
         result = serializer.validated_data
 
-        try:
-            user_id = get_appropriate_user_id(request=request)
-        except ValueError:
-            return Response({"detail": "Invalid user ID"}, status=400)
+        user_id = get_appropriate_user_id(request=request)
 
         try:
             token_to_rename = ApiToken.objects.get(
                 id=token_id, application__isnull=True, user_id=user_id
             )
         except ApiToken.DoesNotExist:
-            raise ResourceDoesNotExist
+            raise ResourceDoesNotExist(detail="Invalid token ID")
 
         token_to_rename.name = result.get("name")
         token_to_rename.save()
@@ -81,17 +75,15 @@ class ApiTokenDetailsEndpoint(Endpoint):
 
     @method_decorator(never_cache)
     def delete(self, request: Request, token_id: int) -> Response:
-        try:
-            user_id = get_appropriate_user_id(request=request)
-        except ValueError:
-            return Response({"detail": "Invalid user ID"}, status=400)
+
+        user_id = get_appropriate_user_id(request=request)
 
         try:
             token_to_delete = ApiToken.objects.get(
                 id=token_id, application__isnull=True, user_id=user_id
             )
         except ApiToken.DoesNotExist:
-            raise ResourceDoesNotExist
+            raise ResourceDoesNotExist(detail="Invalid token ID")
 
         token_to_delete.delete()
         analytics.record(

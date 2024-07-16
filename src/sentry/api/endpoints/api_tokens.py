@@ -13,6 +13,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.authentication import SessionNoAuthTokenAuthentication
 from sentry.api.base import Endpoint, control_silo_endpoint
+from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields import MultipleChoiceField
 from sentry.api.serializers import serialize
 from sentry.auth.elevated_mode import has_elevated_mode
@@ -44,7 +45,10 @@ def get_appropriate_user_id(request: Request) -> int:
     if has_elevated_mode(request):
         datastore = request.GET if request.GET else request.data
         # If a userId override is not found, use the id for the user who made the request
-        user_id = int(datastore.get("userId", user_id))
+        try:
+            user_id = int(datastore.get("userId", user_id))
+        except ValueError:
+            raise ResourceDoesNotExist(detail="Invalid user ID")
 
     return user_id
 
@@ -62,10 +66,8 @@ class ApiTokensEndpoint(Endpoint):
 
     @method_decorator(never_cache)
     def get(self, request: Request) -> Response:
-        try:
-            user_id = get_appropriate_user_id(request=request)
-        except ValueError:
-            return Response({"detail": "Invalid user ID"}, status=400)
+
+        user_id = get_appropriate_user_id(request=request)
 
         token_list = list(
             ApiToken.objects.filter(application__isnull=True, user_id=user_id).select_related(
@@ -105,10 +107,9 @@ class ApiTokensEndpoint(Endpoint):
 
     @method_decorator(never_cache)
     def delete(self, request: Request):
-        try:
-            user_id = get_appropriate_user_id(request=request)
-        except ValueError:
-            return Response({"detail": "Invalid user ID"}, status=400)
+
+        user_id = get_appropriate_user_id(request=request)
+
         token_id = request.data.get("tokenId", None)
         # Account for token_id being 0, which can be considered valid
         if token_id is None:
