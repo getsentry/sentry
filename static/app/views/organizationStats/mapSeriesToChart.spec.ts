@@ -109,7 +109,7 @@ describe('mapSeriesToChart func', function () {
       },
       {
         parentLabel: 'Invalid',
-        label: 'Other',
+        label: 'Internal',
         data: [
           {name: '2021-01-01T00:00:00Z', value: 2},
           {name: '2021-01-02T00:00:00Z', value: 3},
