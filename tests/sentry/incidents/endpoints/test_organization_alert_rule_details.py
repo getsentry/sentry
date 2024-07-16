@@ -6,8 +6,10 @@ from typing import Any
 from unittest import mock
 from unittest.mock import patch
 
+import pytest
 import responses
 from django.conf import settings
+from django.core.exceptions import ValidationError
 from django.test import override_settings
 from rest_framework.exceptions import ErrorDetail
 from rest_framework.response import Response
@@ -20,7 +22,10 @@ from sentry.auth.access import OrganizationGlobalAccess
 from sentry.incidents.endpoints.serializers.alert_rule import DetailedAlertRuleSerializer
 from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleDetectionType,
     AlertRuleMonitorTypeInt,
+    AlertRuleSeasonality,
+    AlertRuleSensitivity,
     AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -205,6 +210,92 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
         resp = self.get_success_response(self.organization.slug, rule.id)
         assert rule.description == resp.data.get("description")
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    def test_static_detection_type(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        rule = self.create_alert_rule()  # the default detection type is static
+        trigger = self.create_alert_rule_trigger(rule, "hi", 1000)
+        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+        resp = self.get_success_response(self.organization.slug, rule.id)
+        assert rule.detection_type == AlertRuleDetectionType.STATIC
+        assert rule.detection_type == resp.data.get("detection_type")
+
+        with pytest.raises(ValidationError, match="Bad fields for static detection type"):
+            self.create_alert_rule(
+                comparison_delta=60
+            )  # STATIC detection types shouldn't have comparison delta
+
+        with pytest.raises(ValidationError, match="Bad fields for static detection type"):
+            # STATIC detection types shouldn't have seasonality or sensitivity
+            self.create_alert_rule(
+                seasonality=AlertRuleSeasonality.AUTO, sensitivity=AlertRuleSensitivity.HIGH
+            )
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    def test_percent_detection_type(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        rule = self.create_alert_rule(
+            comparison_delta=60, detection_type=AlertRuleDetectionType.PERCENT
+        )
+        trigger = self.create_alert_rule_trigger(rule, "hi", 1000)
+        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+        resp = self.get_success_response(self.organization.slug, rule.id)
+        assert rule.detection_type == resp.data.get("detection_type")
+
+        with pytest.raises(ValidationError, match="Bad fields for percent detection type"):
+            self.create_alert_rule(
+                detection_type=AlertRuleDetectionType.PERCENT
+            )  # PERCENT detection type requires a comparison delta
+
+        with pytest.raises(ValidationError, match="Bad fields for percent detection type"):
+            # PERCENT detection type should not have sensitivity or seasonality
+            self.create_alert_rule(
+                seasonality=AlertRuleSeasonality.AUTO,
+                sensitivity=AlertRuleSensitivity.HIGH,
+                detection_type=AlertRuleDetectionType.PERCENT,
+            )
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    def test_dynamic_detection_type(self):
+        self.create_team(organization=self.organization, members=[self.user])
+        self.login_as(self.user)
+        rule = self.create_alert_rule(
+            seasonality=AlertRuleSeasonality.AUTO,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+        trigger = self.create_alert_rule_trigger(rule, "hi", 1000)
+        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger)
+        resp = self.get_success_response(self.organization.slug, rule.id)
+        assert rule.detection_type == resp.data.get("detection_type")
+
+        with pytest.raises(ValidationError, match="Must choose both sensitivity and seasonality"):
+            self.create_alert_rule(
+                seasonality=AlertRuleSeasonality.AUTO
+            )  # Require both seasonality and sensitivity
+
+        with pytest.raises(ValidationError, match="Must choose both sensitivity and seasonality"):
+            self.create_alert_rule(
+                sensitivity=AlertRuleSensitivity.MEDIUM
+            )  # Require both seasonality and sensitivity
+
+        with pytest.raises(ValidationError, match="Bad fields for dynamic detection type"):
+            self.create_alert_rule(
+                detection_type=AlertRuleDetectionType.DYNAMIC
+            )  # DYNAMIC detection type requires seasonality and sensitivity
+
+        with pytest.raises(ValidationError, match="Bad fields for dynamic detection type"):
+            # DYNAMIC detection type should not have comparison delta
+            self.create_alert_rule(
+                comparison_delta=60,
+                detection_type=AlertRuleDetectionType.DYNAMIC,
+            )
 
     @responses.activate
     def test_with_sentryapp_success(self):
