@@ -228,7 +228,7 @@ class CardinalityLimit(TypedDict):
 class CardinalityLimitOption(TypedDict):
     rollout_rate: NotRequired[float]
     limit: CardinalityLimit
-    project_slugs_allowlist: NotRequired[list[str]]
+    projects: NotRequired[list[int]]
 
 
 def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
@@ -282,7 +282,7 @@ def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, A
             continue
 
         project_slugs_allowlist = clo.get("project_slugs_allowlist")
-        if project_slugs_allowlist is not None and project.slug not in project_slugs_allowlist:
+        if project_slugs_allowlist is not None and project.id not in project_slugs_allowlist:
             # project_slugs_allowlist is defined but the current project is not in the list
             continue
 
