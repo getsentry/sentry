@@ -42,7 +42,7 @@ from sentry.models.files.file import File
 from sentry.models.files.utils import get_relocation_storage
 from sentry.models.importchunk import ControlImportChunkReplica, RegionImportChunk
 from sentry.models.lostpasswordhash import LostPasswordHash as LostPasswordHash
-from sentry.models.organization import Organization
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.outbox import OutboxCategory, OutboxScope, RegionOutbox
 from sentry.models.relocation import (
@@ -1391,7 +1391,10 @@ def importing(uuid: str) -> None:
                 relocation_data_fp,
                 decryptor=GCPKMSDecryptor(kms_config_fp),
                 flags=ImportFlags(
-                    merge_users=False, overwrite_configs=False, import_uuid=str(uuid)
+                    import_uuid=str(uuid),
+                    hide_organizations=True,
+                    merge_users=False,
+                    overwrite_configs=False,
                 ),
                 org_filter=set(relocation.want_org_slugs),
                 printer=LoggingPrinter(uuid),
@@ -1489,6 +1492,54 @@ def postprocessing(uuid: str) -> None:
                 )
             except Exception as e:
                 capture_exception(e)
+
+    notifying_unhide.apply_async(args=[uuid])
+
+
+@instrumented_task(
+    name="sentry.relocation.notifying_unhide",
+    queue="relocation",
+    autoretry_for=(Exception,),
+    max_retries=MAX_FAST_TASK_RETRIES,
+    retry_backoff=RETRY_BACKOFF,
+    retry_backoff_jitter=True,
+    soft_time_limit=FAST_TIME_LIMIT,
+    silo_mode=SiloMode.REGION,
+)
+def notifying_unhide(uuid: str) -> None:
+    """
+    Un-hide the just-imported organizations, making them visible to users in the UI.
+    """
+
+    relocation: Relocation | None
+    attempts_left: int
+    (relocation, attempts_left) = start_relocation_task(
+        uuid=uuid,
+        task=OrderedTask.NOTIFYING_UNHIDE,
+        allowed_task_attempts=MAX_FAST_TASK_ATTEMPTS,
+    )
+    if relocation is None:
+        return
+
+    with retry_task_or_fail_relocation(
+        relocation,
+        OrderedTask.NOTIFYING_UNHIDE,
+        attempts_left,
+        ERR_NOTIFYING_INTERNAL,
+    ):
+        imported_org_ids: set[int] = set()
+        for chunk in RegionImportChunk.objects.filter(
+            import_uuid=str(uuid), model="sentry.organization"
+        ):
+            imported_org_ids = imported_org_ids.union(set(chunk.inserted_map.values()))
+
+        # Reveal all imported organizations to their users.
+        with transaction.atomic(router.db_for_write(Organization)):
+            imported_orgs = Organization.objects.filter(id__in=imported_org_ids)
+            for org in imported_orgs:
+                if org.status == OrganizationStatus.RELOCATION_PENDING_APPROVAL:
+                    org.status = OrganizationStatus.ACTIVE
+                org.save()
 
     notifying_users.apply_async(args=[uuid])
 
@@ -1668,12 +1719,13 @@ TASK_MAP: dict[OrderedTask, Task] = {
     OrderedTask.VALIDATING_COMPLETE: validating_complete,
     OrderedTask.IMPORTING: importing,
     OrderedTask.POSTPROCESSING: postprocessing,
+    OrderedTask.NOTIFYING_UNHIDE: notifying_unhide,
     OrderedTask.NOTIFYING_USERS: notifying_users,
     OrderedTask.NOTIFYING_OWNER: notifying_owner,
     OrderedTask.COMPLETED: completed,
 }
 
-assert list(OrderedTask._member_map_.keys()) == [k.name for k in TASK_MAP.keys()]
+assert set(OrderedTask._member_map_.keys()) == {k.name for k in TASK_MAP.keys()}
 
 
 def get_first_task_for_step(target_step: Relocation.Step) -> Task | None:
