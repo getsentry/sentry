@@ -166,7 +166,6 @@ export class VirtualizedViewManager {
     this.onHorizontalScrollbarScroll = this.onHorizontalScrollbarScroll.bind(this);
   }
 
-  dividerScale: 1 | undefined = undefined;
   dividerStartVec: [number, number] | null = null;
   previousDividerClientVec: [number, number] | null = null;
 
@@ -175,8 +174,6 @@ export class VirtualizedViewManager {
       return;
     }
 
-    this.dividerScale =
-      this.view.trace_view.width === this.view.trace_space.width ? 1 : undefined;
     this.dividerStartVec = [event.clientX, event.clientY];
     this.previousDividerClientVec = [event.clientX, event.clientY];
 
@@ -194,7 +191,6 @@ export class VirtualizedViewManager {
       return;
     }
 
-    this.dividerScale = undefined;
     const distance = event.clientX - this.dividerStartVec[0];
     const distancePercentage = distance / this.view.trace_container_physical_space.width;
 
@@ -226,17 +222,10 @@ export class VirtualizedViewManager {
       (this.columns.span_list.width - distancePercentage) *
       this.view.trace_container_physical_space.width;
 
-    const physical_distance = this.previousDividerClientVec[0] - event.clientX;
-    const config_distance_pct = physical_distance / this.view.trace_physical_space.width;
-    const config_distance = this.view.trace_view.width * config_distance_pct;
-
-    if (!this.dividerScale) {
-      this.scheduler.dispatch('set trace view', {
-        x: this.view.trace_view.x - config_distance,
-        width: this.view.trace_view.width + config_distance,
-      });
-    }
-
+    this.scheduler.dispatch('set trace view', {
+      x: this.view.trace_view.x,
+      width: this.view.trace_view.width,
+    });
     this.scheduler.dispatch('divider resize', {
       list: this.columns.list.width + distancePercentage,
       span_list: this.columns.span_list.width - distancePercentage,
