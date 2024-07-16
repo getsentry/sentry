@@ -7,6 +7,7 @@ import ButtonBar from 'sentry/components/buttonBar';
 import {TabList, Tabs} from 'sentry/components/tabs';
 import TimeSince from 'sentry/components/timeSince';
 import {IconChevron} from 'sentry/icons';
+import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import type {Group} from 'sentry/types/group';
@@ -15,7 +16,6 @@ import {getShortEventId} from 'sentry/utils/events';
 import {useLocation} from 'sentry/utils/useLocation';
 import {useNavigate} from 'sentry/utils/useNavigate';
 import useOrganization from 'sentry/utils/useOrganization';
-// import {useParams} from 'sentry/utils/useParams';
 import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 type EventNavigationProps = {
@@ -30,18 +30,21 @@ enum EventNavOptions {
 }
 
 const EventNavLabels = {
-  [EventNavOptions.RECOMMENDED]: 'Recommended Event',
-  [EventNavOptions.LATEST]: 'Last Event',
-  [EventNavOptions.OLDEST]: 'First Event',
+  [EventNavOptions.RECOMMENDED]: t('Recommended Event'),
+  [EventNavOptions.LATEST]: t('Last Event'),
+  [EventNavOptions.OLDEST]: t('First Event'),
 };
 
 const jumpToSections = [
-  {section: '#event-highlights', label: 'Event Highlights'},
-  {section: '#stacktrace', label: 'Stack Trace'},
-  {section: '#exception', label: 'Exception'},
-  {section: '#breadcrumbs', label: 'Replay & Breadcrumbs'},
-  {section: '#tags', label: 'Tags'},
-  {section: '#context', label: 'Context'},
+  {section: '#event-highlights', label: t('Event Highlights')},
+  {section: '#stacktrace', label: t('Stack Trace')},
+  {section: '#exception', label: t('Exception')},
+  {section: '#breadcrumbs', label: t('Replay & Breadcrumbs')},
+  {section: '#tags', label: t('Tags')},
+  {section: '#context', label: t('Context')},
+  {section: '#hydration-diff', label: t('Hydration Error Diff')},
+  {section: '#user-feedback', label: t('User Feedback')},
+  {section: '#replay', label: t('Replay')},
 ];
 
 function handleClick(section: string) {
@@ -51,7 +54,6 @@ function handleClick(section: string) {
 export default function EventNavigation({event, group}: EventNavigationProps) {
   const location = useLocation();
   const navigate = useNavigate();
-  // const params = useParams<{eventId?: string}>();
   const organization = useOrganization();
 
   const hasPreviousEvent = defined(event.previousEventID);
@@ -63,7 +65,7 @@ export default function EventNavigation({event, group}: EventNavigationProps) {
     <div>
       <EventNavigationWrapper>
         <Tabs>
-          <TabList hideBorder>
+          <TabList hideBorder hideSelection showPressed>
             {Object.keys(EventNavLabels).map(label => {
               return (
                 <TabList.Item
@@ -119,18 +121,20 @@ export default function EventNavigation({event, group}: EventNavigationProps) {
             borderless
             size="sm"
           >
-            View All Events
+            {t('View All Events')}
           </StyledButton>
         </NavigationWrapper>
       </EventNavigationWrapper>
       <Divider />
       <EventInfoJumpToWrapper>
         <EventInfo>
-          <EventID>Event {getShortEventId(event.id)}</EventID>
+          <EventID>
+            {tct('Event [eventId]', {eventId: getShortEventId(event.id)})}
+          </EventID>
           <TimeSince date={event.dateCreated ?? event.dateReceived} />
         </EventInfo>
         <JumpTo>
-          <div>Jump to: </div>
+          <div>{t('Jump to:')}</div>
           <ButtonBar>
             {jumpToSections.map(jump => {
               if (!document.getElementById(jump.section.replace('#', ''))) {
@@ -188,6 +192,7 @@ const JumpTo = styled('div')`
   gap: ${space(1)};
   flex-direction: row;
   align-items: center;
+  color: ${p => p.theme.gray300};
 `;
 
 const Divider = styled('hr')`

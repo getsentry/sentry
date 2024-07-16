@@ -90,7 +90,9 @@ export interface TabListProps
     TabListStateOptions<TabListItemProps> {
   className?: string;
   hideBorder?: boolean;
+  hideSelection?: boolean;
   outerWrapStyles?: React.CSSProperties;
+  showPressed?: boolean;
 }
 
 interface BaseTabListProps extends TabListProps {
@@ -101,6 +103,7 @@ function BaseTabList({
   hideBorder = false,
   className,
   outerWrapStyles,
+  hideSelection = false,
   ...props
 }: BaseTabListProps) {
   const tabListRef = useRef<HTMLUListElement>(null);
@@ -190,6 +193,8 @@ function BaseTabList({
             orientation={orientation}
             overflowing={orientation === 'horizontal' && overflowTabs.includes(item.key)}
             ref={element => (tabItemsRef.current[item.key] = element)}
+            hideSelection={hideSelection}
+            showPressed={props.showPressed}
           />
         ))}
       </TabListWrap>
