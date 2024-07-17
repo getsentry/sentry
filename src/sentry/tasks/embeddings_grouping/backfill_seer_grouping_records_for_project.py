@@ -8,6 +8,7 @@ from rediscluster import RedisCluster
 
 from sentry import options
 from sentry.models.project import Project
+from sentry.seer.similarity.utils import killswitch_enabled
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.tasks.embeddings_grouping.utils import (
@@ -57,6 +58,12 @@ def backfill_seer_grouping_records_for_project(
     Pass in last_processed_group_index = None if calling for the first time. This function will spawn
     child tasks that will pass the last_processed_group_index
     """
+    if options.get("seer.similarity-backfill-killswitch.enabled") or killswitch_enabled(
+        current_project_id
+    ):
+        logger.info("backfill_seer_grouping_records.killswitch_enabled")
+        return
+
     redis_client = redis.redis_clusters.get(settings.SENTRY_MONITORS_REDIS_CLUSTER)
 
     logger.info(
@@ -101,10 +108,6 @@ def backfill_seer_grouping_records_for_project(
             cohort=cohort,
             only_delete=only_delete,
         )
-        return
-
-    if options.get("seer.similarity-backfill-killswitch.enabled"):
-        logger.info("backfill_seer_grouping_records.killswitch_enabled")
         return
 
     if only_delete:
