@@ -177,12 +177,12 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     "division_if",
                     required_args=[
                         fields.MetricArg(
-                            # needs to be named column, otherwise the query builder won't be able to determine the correct target table
+                            # the dividend, needs to be named column, otherwise the query builder won't be able to determine the correct target table
                             "column",
                             allow_custom_measurements=False,
                         ),
                         fields.MetricArg(
-                            "column1",
+                            "divisorColumn",
                             allow_custom_measurements=False,
                         ),
                         fields.MetricArg(
@@ -1286,7 +1286,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
     ) -> SelectType:
         return function_aliases.resolve_division(
             self._resolve_sum_if(args["column"], args["if_col"], args["if_val"]),
-            self._resolve_sum_if(args["column1"], args["if_col"], args["if_val"]),
+            self._resolve_sum_if(args["divisorColumn"], args["if_col"], args["if_val"]),
             alias,
         )
 
