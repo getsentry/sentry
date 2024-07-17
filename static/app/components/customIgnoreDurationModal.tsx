@@ -1,5 +1,5 @@
 import {Component, createRef, Fragment} from 'react';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import {sprintf} from 'sprintf-js';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';

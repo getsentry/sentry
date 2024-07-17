@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 import pick from 'lodash/pick';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
 import TeamSelector from 'sentry/components/teamSelector';

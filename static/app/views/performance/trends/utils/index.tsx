@@ -1,6 +1,6 @@
 import {ASAP} from 'downsample/methods/ASAP';
 import type {Location} from 'history';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {getInterval} from 'sentry/components/charts/utils';
 import {wrapQueryInWildcards} from 'sentry/components/performance/searchBar';

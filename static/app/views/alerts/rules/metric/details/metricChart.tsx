@@ -3,8 +3,7 @@ import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
 import type {LineSeriesOption} from 'echarts';
-import moment from 'moment';
-import momentTimezone from 'moment-timezone';
+import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
@@ -103,7 +102,7 @@ function formatTooltipDate(date: moment.MomentInput, format: string): string {
   const {
     options: {timezone},
   } = ConfigStore.get('user');
-  return momentTimezone.tz(date, timezone).format(format);
+  return moment.tz(date, timezone).format(format);
 }
 
 function getRuleChangeSeries(

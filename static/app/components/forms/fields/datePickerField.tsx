@@ -2,7 +2,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {DatePicker} from 'sentry/components/calendar';
 import FormField from 'sentry/components/forms/formField';

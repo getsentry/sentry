@@ -3,7 +3,7 @@ import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';

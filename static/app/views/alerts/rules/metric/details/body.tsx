@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';
 import {Alert} from 'sentry/components/alert';

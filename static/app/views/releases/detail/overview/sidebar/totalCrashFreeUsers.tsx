@@ -1,7 +1,7 @@
 import styled from '@emotion/styled';
 import type {Location} from 'history';
 import pick from 'lodash/pick';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import Count from 'sentry/components/count';
 import LoadingError from 'sentry/components/loadingError';

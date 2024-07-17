@@ -1,4 +1,4 @@
-import {duration} from 'moment';
+import {duration} from 'moment-timezone';
 
 import type {ReplayListRecord} from 'sentry/views/replays/types';
 

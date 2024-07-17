@@ -1,6 +1,6 @@
 import {useCallback, useRef} from 'react';
 import type {InjectedRouter} from 'react-router';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import * as qs from 'query-string';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';

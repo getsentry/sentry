@@ -20,7 +20,7 @@ type InitializeOrgProps = {
     features?: string[];
   };
 };
-import {duration} from 'moment';
+import {duration} from 'moment-timezone';
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayListFixture} from 'sentry-fixture/replayList';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';

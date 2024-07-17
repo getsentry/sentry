@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
 import type {Location} from 'history';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {Button} from 'sentry/components/button';
 import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/utils';

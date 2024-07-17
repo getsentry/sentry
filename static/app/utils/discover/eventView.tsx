@@ -4,7 +4,7 @@ import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import uniqBy from 'lodash/uniqBy';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import type {EventQuery} from 'sentry/actionCreators/events';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';

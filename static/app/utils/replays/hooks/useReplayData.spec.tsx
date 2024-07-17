@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {duration} from 'moment';
+import {duration} from 'moment-timezone';
 import {
   ReplayConsoleEventFixture,
   ReplayNavigateEventFixture,

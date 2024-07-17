@@ -1,5 +1,5 @@
 import type {RefObject} from 'react';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {
   SAMPLES_X_AXIS_ID,

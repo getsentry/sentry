@@ -1,7 +1,6 @@
 import color from 'color';
 import type {YAXisComponentOption} from 'echarts';
-import moment from 'moment';
-import momentTimezone from 'moment-timezone';
+import moment from 'moment-timezone';
 
 import type {AreaChartProps, AreaChartSeries} from 'sentry/components/charts/areaChart';
 import MarkArea from 'sentry/components/charts/components/markArea';
@@ -35,7 +34,7 @@ function formatTooltipDate(date: moment.MomentInput, format: string): string {
   const {
     options: {timezone},
   } = ConfigStore.get('user');
-  return momentTimezone.tz(date, timezone).format(format);
+  return moment.tz(date, timezone).format(format);
 }
 
 function createStatusAreaSeries(

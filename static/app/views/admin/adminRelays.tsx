@@ -1,6 +1,6 @@
 import {Component} from 'react';
 import type {RouteComponentProps} from 'react-router';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';
 import LinkWithConfirmation from 'sentry/components/links/linkWithConfirmation';

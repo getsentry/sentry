@@ -1,4 +1,4 @@
-import {duration} from 'moment';
+import {duration} from 'moment-timezone';
 import {ProjectFixture} from 'sentry-fixture/project';
 import {RRWebInitFrameEventsFixture} from 'sentry-fixture/replay/rrweb';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';

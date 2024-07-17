@@ -3,7 +3,7 @@ import * as Sentry from '@sentry/react';
 import type {LegendComponentOption, LineSeriesOption} from 'echarts';
 import type {Location} from 'history';
 import orderBy from 'lodash/orderBy';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {EventsStats, MultiSeriesEventsStats, PageFilters} from 'sentry/types';
