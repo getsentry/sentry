@@ -1,5 +1,6 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
+import startCase from 'lodash/startCase';
 import {PlatformIcon} from 'platformicons';
 import type {PLATFORM_TO_ICON} from 'platformicons/build/platformIcon';
 
@@ -17,6 +18,7 @@ import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
 import {LinkButton} from 'sentry/components/button';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -94,7 +96,7 @@ function OldModulesOnboardingPanel({children}: {children: React.ReactNode}) {
     <Panel>
       <Container>
         <ContentContainer>{children}</ContentContainer>
-        <PerfImage src={emptyStateImg} />
+        <OldPerfImage src={emptyStateImg} />
       </Container>
     </Panel>
   );
@@ -106,24 +108,28 @@ function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
   return (
     <Panel>
       <Container>
-        <ContentContainer>
-          <Fragment>
-            <Header>{emptyStateContent.heading}</Header>
-            <p>{emptyStateContent.description}</p>
-          </Fragment>
-          <SplitContainer>
-            <ModulePreview moduleName={moduleName} />
-            <ValueProp>
-              {emptyStateContent.valuePropDescription}
-              <ul>
-                {emptyStateContent.valuePropPoints.map(point => (
-                  <li key={point?.toString()}>{point}</li>
-                ))}
-              </ul>
-            </ValueProp>
-          </SplitContainer>
-        </ContentContainer>
-        <PerfImage src={emptyStateImg} />
+        <SplitMainContent>
+          <ModuleInfo>
+            <Fragment>
+              <Header>{emptyStateContent.heading}</Header>
+              <p>{emptyStateContent.description}</p>
+            </Fragment>
+            <SplitContainer>
+              <ModulePreview moduleName={moduleName} />
+              <ValueProp>
+                {emptyStateContent.valuePropDescription}
+                <ul>
+                  {emptyStateContent.valuePropPoints.map(point => (
+                    <li key={point?.toString()}>{point}</li>
+                  ))}
+                </ul>
+              </ValueProp>
+            </SplitContainer>
+          </ModuleInfo>
+          <Sidebar>
+            <PerfImage src={emptyStateImg} />
+          </Sidebar>
+        </SplitMainContent>
         <LinkButton
           priority="primary"
           external
@@ -140,6 +146,8 @@ type ModulePreviewProps = {moduleName: ModuleName};
 
 function ModulePreview({moduleName}: ModulePreviewProps) {
   const emptyStateContent = EMPTY_STATE_CONTENT[moduleName];
+  const [hoveredIcon, setHoveredIcon] = useState<PlatformIcons | null>(null);
+
   return (
     <ModulePreviewContainer>
       <ModulePreviewImage src={emptyStateContent.imageSrc} />
@@ -147,10 +155,18 @@ function ModulePreview({moduleName}: ModulePreviewProps) {
         <SupportedSdkContainer>
           <div>{t('Supported Today: ')}</div>
           <SupportedSdkList>
-            {emptyStateContent.supportedSdks.map(sdk => (
-              <SupportedSdkIconContainer key={sdk}>
-                <PlatformIcon platform={sdk} size={'25px'} />
-              </SupportedSdkIconContainer>
+            {emptyStateContent.supportedSdks.map((sdk: PlatformIcons) => (
+              <Tooltip title={startCase(sdk)} key={sdk} position="top">
+                <SupportedSdkIconContainer
+                  onMouseOver={() => setHoveredIcon(sdk)}
+                  onMouseOut={() => setHoveredIcon(null)}
+                >
+                  <PlatformIcon
+                    platform={sdk}
+                    size={hoveredIcon === sdk ? '30px' : '25px'}
+                  />
+                </SupportedSdkIconContainer>
+              </Tooltip>
             ))}
           </SupportedSdkList>
         </SupportedSdkContainer>
@@ -159,7 +175,16 @@ function ModulePreview({moduleName}: ModulePreviewProps) {
   );
 }
 
+const Sidebar = styled('div')`
+  position: relative;
+  flex: 3;
+`;
+
 const PerfImage = styled('img')`
+  max-width: 100%;
+`;
+
+const OldPerfImage = styled('img')`
   width: 400px;
   user-select: none;
   position: absolute;
@@ -176,6 +201,13 @@ const Container = styled('div')`
   padding: ${space(4)};
 `;
 
+const SplitMainContent = styled('div')`
+  display: flex;
+  align-items: stretch;
+  flex-wrap: wrap-reverse;
+  gap: ${space(4)};
+`;
+
 const ContentContainer = styled('div')`
   position: relative;
   width: 60%;
@@ -189,6 +221,10 @@ const Header = styled('h3')`
 const SplitContainer = styled(Panel)`
   display: flex;
   justify-content: center;
+`;
+
+const ModuleInfo = styled('div')`
+  flex: 5;
 `;
 
 const ModulePreviewImage = styled('img')`
@@ -228,6 +264,9 @@ const SupportedSdkIconContainer = styled('div')`
   width: 42px;
   height: 42px;
   border-radius: 3px;
+  &:hover {
+    box-shadow: 0 0 0 1px ${p => p.theme.gray200};
+  }
 `;
 
 const ValueProp = styled('div')`
