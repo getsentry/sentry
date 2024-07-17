@@ -353,7 +353,7 @@ export type ResourceFrame = HydratedSpan<
 >;
 
 // This list should match each of the operations used in `HydratedSpan` above
-// And any app-specific types that we hydrate (ie: replay.start & replay.end).
+// And any app-specific types that we hydrate (ie: replay.end).
 export const SpanOps = [
   'web-vital',
   'memory',
@@ -363,7 +363,6 @@ export const SpanOps = [
   'navigation.reload',
   'paint',
   'replay.end',
-  'replay.start',
   'resource.css',
   'resource.fetch',
   'resource.iframe',

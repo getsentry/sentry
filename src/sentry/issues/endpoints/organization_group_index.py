@@ -179,6 +179,9 @@ class OrganizationGroupIndexEndpoint(OrganizationEndpoint):
             else:
 
                 def use_group_snuba_dataset() -> bool:
+                    if not features.has("organizations:issue-search-snuba", organization):
+                        return False
+
                     # if useGroupSnubaDataset we consider using the snuba dataset
                     if not request.GET.get("useGroupSnubaDataset"):
                         return False

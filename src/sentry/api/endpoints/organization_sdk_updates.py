@@ -97,7 +97,7 @@ class OrganizationSdkUpdatesEndpoint(OrganizationEndpoint):
                     "sdk.version",
                     "last_seen()",
                 ],
-                orderby="-project",
+                orderby=["-project"],
                 params={
                     "start": timezone.now() - timedelta(days=1),
                     "end": timezone.now(),
