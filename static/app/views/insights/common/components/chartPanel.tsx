@@ -74,7 +74,6 @@ const PanelBody = styled('div')`
 `;
 
 const Header = styled('div')`
-  padding: 0 ${space(1)} 0 0;
   width: 100%;
   display: flex;
   align-items: center;

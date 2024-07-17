@@ -21,7 +21,7 @@ export default function InsightChartModal({Header, title, children}: Props) {
           <h3>{title}</h3>
         </Header>
 
-        <ChartHeightContext.Provider value={500}>{children}</ChartHeightContext.Provider>
+        <ChartHeightContext.Provider value={300}>{children}</ChartHeightContext.Provider>
       </Container>
     </Fragment>
   );
