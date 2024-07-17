@@ -41,7 +41,7 @@ def trace_func(**span_kwargs):
     def wrapper(f):
         @functools.wraps(f)
         def inner(*args, **kwargs):
-            if options.get("ingest-consumer.use-traces-sampler", False):
+            if options.get("store.use-traces-sampler", False):
                 # New behavior is to add a custom `sample_rate` that is picked up by `traces_sampler`
                 span_kwargs.setdefault(
                     "custom_sampling_context",
