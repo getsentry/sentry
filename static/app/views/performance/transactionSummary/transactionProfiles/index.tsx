@@ -272,7 +272,7 @@ function Profiles({organization, transaction}: ProfilesProps) {
                 searchSource="transaction_profiles"
                 organization={organization}
                 projectIds={projects.projects.map(p => parseInt(p.id, 10))}
-                query={query}
+                query={rawQuery}
                 onSearch={handleSearch}
                 maxQueryLength={MAX_QUERY_LENGTH}
               />
