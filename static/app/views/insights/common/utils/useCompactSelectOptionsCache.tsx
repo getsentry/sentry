@@ -16,11 +16,19 @@ type OptionCache = Map<SelectKey, Option>;
  *
  * 1. Display an options dropdown even when new results are loading
  * 2. Shows options from 3 searches ago if the user changes their mind
+ *
+ * NOTE: The `clear` callback does not trigger a re-render. The cleared
+ * cache is returned on next call of the hook.
  */
 export function useCompactSelectOptionsCache(options: Option[]): {
+  clear: () => void;
   options: readonly Option[];
 } {
   const cache = useRef<OptionCache>(new Map());
+
+  const clearCache = () => {
+    cache.current.clear();
+  };
 
   const outgoingOptions = useMemo(() => {
     options.forEach(option => {
@@ -30,7 +38,7 @@ export function useCompactSelectOptionsCache(options: Option[]): {
     return Array.from(cache.current.values()).sort(alphabeticalCompare);
   }, [options]);
 
-  return {options: outgoingOptions};
+  return {options: outgoingOptions, clear: clearCache};
 }
 
 type OptionComparator = (a: Option, b: Option) => number;
