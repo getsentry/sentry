@@ -2,7 +2,7 @@ import type {XAxisProps} from 'sentry/components/charts/components/xAxis';
 import XAxis from 'sentry/components/charts/components/xAxis';
 import {lightTheme} from 'sentry/utils/theme';
 
-jest.mock('moment', () => {
+jest.mock('moment-timezone', () => {
   const moment = jest.requireActual('moment-timezone');
   moment.tz.setDefault('America/Los_Angeles'); // Whatever timezone you want
   return moment;
