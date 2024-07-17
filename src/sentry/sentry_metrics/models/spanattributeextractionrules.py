@@ -10,9 +10,7 @@ from sentry.db.models import ArrayField, DefaultFieldsModel, FlexibleForeignKey,
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.models.project import Project
 from sentry.sentry_metrics.configuration import HARD_CODED_UNITS
-from sentry.sentry_metrics.extraction_rules import MetricsExtractionRule
-
-SPAN_ATTRIBUTE_PREFIX = "span_attribute_"
+from sentry.sentry_metrics.extraction_rules import SPAN_ATTRIBUTE_PREFIX, MetricsExtractionRule
 
 
 @region_silo_model

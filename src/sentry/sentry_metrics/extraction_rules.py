@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
@@ -7,10 +9,10 @@ from sentry.sentry_metrics.configuration import (
     ALLOWED_TYPES,
     HARD_CODED_UNITS,
 )
-from sentry.sentry_metrics.models.spanattributeextractionrules import SPAN_ATTRIBUTE_PREFIX
 from sentry.sentry_metrics.use_case_utils import string_to_use_case_id
 
 METRICS_EXTRACTION_RULES_OPTION_KEY = "sentry:metrics_extraction_rules"
+SPAN_ATTRIBUTE_PREFIX = "span_attribute_"
 
 
 class MetricsExtractionRuleValidationError(ValueError):
