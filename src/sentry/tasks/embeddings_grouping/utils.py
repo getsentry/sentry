@@ -135,21 +135,29 @@ def get_current_batch_groups_from_postgres(project, last_processed_group_id, bat
     if last_processed_group_id is not None:
         group_id_filter = Q(id__lt=last_processed_group_id)
 
-    groups_to_backfill_query = RangeQuerySetWrapper(
+    groups_to_backfill_batch = (
         Group.objects.filter(
             group_id_filter,
             project_id=project.id,
             type=ErrorGroupType.type_id,
             times_seen__gt=1,
-            last_seen__gt=(datetime.now(UTC) - timedelta(days=90)),
-        ).exclude(status__in=[GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]),
-        step=-1000,
-        limit=batch_size,
+        )
+        .values_list("id", "data", "status", "last_seen")
+        .order_by("-id")[:batch_size]
     )
-    groups_to_backfill_batch = [(group.id, group.data) for group in groups_to_backfill_query]
+    # Filter out groups that are pending deletion in memory so postgres won't make a bad query plan
+    groups_to_backfill_batch = [
+        (group[0], group[1])
+        for group in groups_to_backfill_batch
+        if group[2] not in [GroupStatus.PENDING_DELETION, GroupStatus.DELETION_IN_PROGRESS]
+        and group[3] > datetime.now(UTC) - timedelta(days=90)
+    ]
+
     total_groups_to_backfill_length = len(groups_to_backfill_batch)
     batch_end_group_id = (
-        groups_to_backfill_batch[-1][0] if total_groups_to_backfill_length else None
+        groups_to_backfill_batch[total_groups_to_backfill_length - 1][0]
+        if total_groups_to_backfill_length
+        else None
     )
 
     logger.info(
