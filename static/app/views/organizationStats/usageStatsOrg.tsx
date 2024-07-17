@@ -4,7 +4,7 @@ import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 import isEqual from 'lodash/isEqual';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import OptionSelector from 'sentry/components/charts/optionSelector';

@@ -1,4 +1,4 @@
-import type moment from 'moment';
+import type moment from 'moment-timezone';
 
 import type {EventQuery} from 'sentry/actionCreators/events';
 import type {EventsStatsData, Project} from 'sentry/types';
