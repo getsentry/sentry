@@ -156,7 +156,10 @@ export function MetricsExtractionRuleForm({
     return [...new Set(spanAttribute ? [...tags, spanAttribute] : tags)];
   });
 
-  const {data: extractionRules} = useMetricsExtractionRules(organization.slug, projectId);
+  const {data: extractionRules} = useMetricsExtractionRules({
+    orgId: organization.slug,
+    projectId: projectId,
+  });
   const tags = useSpanFieldSupportedTags({projects: [Number(projectId)]});
 
   // TODO(aknaus): Make this nicer

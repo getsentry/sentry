@@ -10,8 +10,12 @@ import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
 import type {QueryFieldValue} from 'sentry/utils/discover/fields';
 import {explodeFieldString, generateFieldAsString} from 'sentry/utils/discover/fields';
-import {hasCustomMetrics} from 'sentry/utils/metrics/features';
+import {
+  hasCustomMetrics,
+  hasCustomMetricsExtractionRules,
+} from 'sentry/utils/metrics/features';
 import MriField from 'sentry/views/alerts/rules/metric/mriField';
+import SpanMetricField from 'sentry/views/alerts/rules/metric/spanMetricsField';
 import type {Dataset} from 'sentry/views/alerts/rules/metric/types';
 import type {AlertType} from 'sentry/views/alerts/wizard/options';
 import {
@@ -130,12 +134,20 @@ export default function WizardField({
               label: AlertWizardAlertNames.custom_transactions,
               value: 'custom_transactions',
             },
+        ...(hasCustomMetricsExtractionRules(organization)
+          ? [
+              {
+                label: AlertWizardAlertNames.span_metrics,
+                value: 'span_metrics' as const,
+              },
+            ]
+          : []),
       ],
     },
   ];
 
   return (
-    <FormField {...fieldProps}>
+    <StyledFormField alertType={alertType} {...fieldProps}>
       {({onChange, model, disabled}) => {
         const aggregate = model.getValue('aggregate');
         const dataset: Dataset = model.getValue('dataset');
@@ -167,7 +179,7 @@ export default function WizardField({
           (hidePrimarySelector ? 1 : 0);
 
         return (
-          <Container hideGap={gridColumns < 1}>
+          <Container alertType={alertType} hideGap={gridColumns < 1}>
             <SelectControl
               value={selectedTemplate}
               options={menuOptions}
@@ -182,10 +194,16 @@ export default function WizardField({
                 model.setValue('alertType', option.value);
               }}
             />
-            {hasCustomMetrics(organization) && alertType === 'custom_metrics' ? (
+            {alertType === 'custom_metrics' ? (
               <MriField
                 project={project}
                 aggregate={aggregate}
+                onChange={newAggregate => onChange(newAggregate, {})}
+              />
+            ) : alertType === 'span_metrics' ? (
+              <SpanMetricField
+                project={project}
+                field={aggregate}
                 onChange={newAggregate => onChange(newAggregate, {})}
               />
             ) : (
@@ -208,7 +226,7 @@ export default function WizardField({
           </Container>
         );
       }}
-    </FormField>
+    </StyledFormField>
   );
 }
 
@@ -262,10 +280,27 @@ const getApproximateKnownPercentile = (customPercentile: string) => {
   return 'p100';
 };
 
-const Container = styled('div')<{hideGap: boolean}>`
+// Need to overwrite some styles with important as they are applied via inline styles from the parent
+const StyledFormField = styled(FormField)<{alertType?: AlertType}>`
+  ${p =>
+    p.alertType === 'span_metrics' &&
+    `flex-basis: 100% !important;
+  flex-grow: 0 !important;
+  min-width: 0px;
+  max-width: fit-content;
+  `}
+`;
+
+const Container = styled('div')<{hideGap: boolean; alertType?: AlertType}>`
   display: grid;
-  grid-template-columns: 1fr auto;
   gap: ${p => (p.hideGap ? space(0) : space(1))};
+  grid-template-columns: 1fr auto;
+
+  ${p =>
+    p.alertType === 'span_metrics' &&
+    `grid-template-columns: repeat(auto-fill, minmax(190px, 1fr));
+    max-width: 790px;
+    `}
 `;
 
 const StyledQueryField = styled(QueryField)<{gridColumns: number; columnWidth?: number}>`

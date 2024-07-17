@@ -1,8 +1,11 @@
 import {useMemo} from 'react';
 
 import type {PageFilters} from 'sentry/types/core';
-import {isExtractedCustomMetric} from 'sentry/utils/metrics';
-import {formatMRI, getUseCaseFromMRI} from 'sentry/utils/metrics/mri';
+import {
+  formatMRI,
+  getUseCaseFromMRI,
+  isExtractedCustomMetric,
+} from 'sentry/utils/metrics/mri';
 import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import type {ApiQueryKey} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';

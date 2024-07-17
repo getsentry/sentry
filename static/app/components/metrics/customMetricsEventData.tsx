@@ -22,14 +22,10 @@ import type {
   MRI,
 } from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
-import {
-  getDefaultAggregation,
-  getMetricsUrl,
-  isExtractedCustomMetric,
-} from 'sentry/utils/metrics';
+import {getDefaultAggregation, getMetricsUrl} from 'sentry/utils/metrics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
-import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
+import {formatMRI, isExtractedCustomMetric, parseMRI} from 'sentry/utils/metrics/mri';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';

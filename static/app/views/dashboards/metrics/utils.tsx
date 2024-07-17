@@ -3,9 +3,14 @@ import {useMemo} from 'react';
 import {getEquationSymbol} from 'sentry/components/metrics/equationSymbol';
 import {getQuerySymbol} from 'sentry/components/metrics/querySymbol';
 import type {MetricAggregation, MRI} from 'sentry/types/metrics';
-import {isExtractedCustomMetric, unescapeMetricsFormula} from 'sentry/utils/metrics';
+import {unescapeMetricsFormula} from 'sentry/utils/metrics';
 import {NO_QUERY_ID} from 'sentry/utils/metrics/constants';
-import {formatMRIField, MRIToField, parseField} from 'sentry/utils/metrics/mri';
+import {
+  formatMRIField,
+  isExtractedCustomMetric,
+  MRIToField,
+  parseField,
+} from 'sentry/utils/metrics/mri';
 import {MetricDisplayType, MetricExpressionType} from 'sentry/utils/metrics/types';
 import type {MetricsQueryApiQueryParams} from 'sentry/utils/metrics/useMetricsQuery';
 import type {
