@@ -40,7 +40,7 @@ function getNodeId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined
 }
 
 // In the current version, a segment is a parent transaction
-function getSegmentId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined {
+function getEventId(node: TraceTreeNode<TraceTree.NodeValue>): string | undefined {
   if (isTransactionNode(node)) {
     return node.value.event_id;
   }
@@ -91,20 +91,20 @@ export function makeTraceContinuousProfilingLink(
 
   // TransactionId is required to generate a link because
   // we need to link to the segment of the trace and fetch its spans
-  const segmentId = getSegmentId(node);
-  if (!segmentId) {
+  const eventId = getEventId(node);
+  if (!eventId) {
     return null;
   }
 
-  const queryWithEventIdAndTraceId: Record<string, string> = {
+  const queryWithSpanIdAndTraceId: Record<string, string> = {
     ...query,
-    segmentId,
+    eventId,
     traceId: options.traceId,
   };
 
-  const eventId = getNodeId(node);
-  if (eventId) {
-    queryWithEventIdAndTraceId.eventId = eventId;
+  const spanId = getNodeId(node);
+  if (spanId) {
+    queryWithSpanIdAndTraceId.spanId = spanId;
   }
 
   return generateContinuousProfileFlamechartRouteWithQuery(
@@ -113,6 +113,6 @@ export function makeTraceContinuousProfilingLink(
     profilerId,
     start.toISOString(),
     end.toISOString(),
-    queryWithEventIdAndTraceId
+    queryWithSpanIdAndTraceId
   );
 }

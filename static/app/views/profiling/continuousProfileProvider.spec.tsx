@@ -24,7 +24,7 @@ describe('ContinuousProfileProvider', () => {
       start: new Date().toISOString(),
       end: new Date().toISOString(),
       profilerId: uuid4(),
-      segmentId: '1',
+      eventId: '1',
     });
 
     const captureMessage = jest.spyOn(Sentry, 'captureMessage');
@@ -57,7 +57,7 @@ describe('ContinuousProfileProvider', () => {
     ]) {
       const project = ProjectFixture();
       const organization = OrganizationFixture();
-      window.location.search = qs.stringify({start, end, profilerId, segmentId: '1'});
+      window.location.search = qs.stringify({start, end, profilerId, eventId: '1'});
       MockApiClient.addMockResponse({
         url: `/projects/${organization.slug}/${project.id}/events/1/`,
         body: {},

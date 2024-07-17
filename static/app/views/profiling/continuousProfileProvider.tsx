@@ -145,14 +145,14 @@ function ContinuousProfileProvider(
 
     return {
       project: projects.projects.find(p => p.slug === params.projectId),
-      segmentId: query.segmentId as string,
+      eventId: query.eventId as string,
     };
   }, [projects, params.projectId]);
 
   const profileTransaction = useSentryEvent<EventTransaction>(
     organization.slug,
     eventPayload.project?.id ?? '',
-    eventPayload.segmentId
+    eventPayload.eventId
   );
 
   return (
