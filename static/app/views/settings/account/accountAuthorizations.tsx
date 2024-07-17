@@ -44,24 +44,21 @@ function AccountAuthorizations() {
     return <LoadingError onRetry={refetch} />;
   }
 
-  const handleRevoke = (authorization: Authorization) => {
+  const handleRevoke = async (authorization: Authorization) => {
     const oldData = data;
-    setApiQueryData<any>(queryClient, [ENDPOINT], prevData =>
+    setApiQueryData<Authorization[]>(queryClient, [ENDPOINT], prevData =>
       prevData.filter(a => a.id !== authorization.id)
     );
-
-    async () => {
-      try {
-        await api.requestPromise('/api-authorizations/', {
-          method: 'DELETE',
-          data: {authorization: authorization.id},
-        });
-        addSuccessMessage(t('Saved changes'));
-      } catch (_err) {
-        setApiQueryData<any>(queryClient, [ENDPOINT], oldData);
-        addErrorMessage(t('Unable to save changes, please try again'));
-      }
-    };
+    try {
+      await api.requestPromise('/api-authorizations/', {
+        method: 'DELETE',
+        data: {authorization: authorization.id},
+      });
+      addSuccessMessage(t('Saved changes'));
+    } catch (_err) {
+      setApiQueryData<any>(queryClient, [ENDPOINT], oldData);
+      addErrorMessage(t('Unable to save changes, please try again'));
+    }
   };
 
   const isEmpty = data.length === 0;
@@ -104,6 +101,7 @@ function AccountAuthorizations() {
                     onClick={() => handleRevoke(authorization)}
                     icon={<IconDelete />}
                     aria-label={t('Delete')}
+                    data-test-id={authorization.id}
                   />
                 </PanelItemCenter>
               ))}
