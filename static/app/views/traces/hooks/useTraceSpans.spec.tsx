@@ -97,7 +97,7 @@ describe('useTraceSpans', function () {
           field: ['id'],
           maxSpansPerTrace: 10,
           query: 'foo:bar',
-          period: '3d',
+          statsPeriod: '3d',
           mri: 'd:transactions/duration@millisecond',
           metricsMax: '456',
           metricsMin: '123',
