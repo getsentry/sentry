@@ -24,7 +24,6 @@ from sentry.usage_accountant import record
 from sentry.utils import metrics
 from sentry.utils.cache import cache_key_for_event
 from sentry.utils.dates import to_datetime
-from sentry.utils.sdk import SAMPLED_INGEST_CONSUMERS
 from sentry.utils.snuba import RateLimitExceeded
 
 logger = logging.getLogger(__name__)
@@ -42,16 +41,11 @@ def trace_func(**span_kwargs):
     def wrapper(f):
         @functools.wraps(f)
         def inner(*args, **kwargs):
-            consumer_name = span_kwargs.get("name")
-            if consumer_name in SAMPLED_INGEST_CONSUMERS:
-                # New behavior is to let traces_sampler decide if the transaction should be sampled
+            if True:
+                # New behavior is to add a custom `sample_rate`` that is picked up by `traces_sampler`
                 span_kwargs.setdefault(
                     "custom_sampling_context",
-                    {
-                        "ingest_consumer": {
-                            "consumer": consumer_name,
-                        }
-                    },
+                    {"sample_rate": getattr(settings, "SENTRY_INGEST_CONSUMER_APM_SAMPLING", 0)},
                 )
             else:
                 # Old behavior is to apply the sampled decision here
