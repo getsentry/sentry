@@ -1,4 +1,4 @@
-import {useMemo, useRef} from 'react';
+import {useCallback, useMemo, useRef} from 'react';
 
 import type {SelectKey, SelectOption} from 'sentry/components/compactSelect';
 
@@ -26,9 +26,9 @@ export function useCompactSelectOptionsCache(options: Option[]): {
 } {
   const cache = useRef<OptionCache>(new Map());
 
-  const clearCache = () => {
+  const clearCache = useCallback(() => {
     cache.current.clear();
-  };
+  }, []);
 
   const outgoingOptions = useMemo(() => {
     options.forEach(option => {

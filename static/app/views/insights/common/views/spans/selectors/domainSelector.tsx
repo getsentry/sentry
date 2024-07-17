@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {useCallback, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import type {Location} from 'history';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
@@ -14,6 +14,7 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {EMPTY_OPTION_VALUE} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSpansQuery} from 'sentry/views/insights/common/queries/useSpansQuery';
 import {buildEventViewQuery} from 'sentry/views/insights/common/utils/buildEventViewQuery';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
@@ -43,6 +44,7 @@ export function DomainSelector({
 }: Props) {
   const location = useLocation();
   const organization = useOrganization();
+  const pageFilters = usePageFilters();
 
   const [searchInputValue, setSearchInputValue] = useState<string>(''); // Realtime domain search value in UI
   const [searchQuery, setSearchQuery] = useState<string>(''); // Debounced copy of `searchInputValue` used for the Discover query
@@ -88,14 +90,19 @@ export function DomainSelector({
     incomingDomains.push(value);
   }
 
-  const {options: domainOptions} = useCompactSelectOptionsCache(
-    incomingDomains.map(datum => {
-      return {
-        value: datum,
-        label: datum,
-      };
-    })
-  );
+  const {options: domainOptions, clear: clearDomainOptionsCache} =
+    useCompactSelectOptionsCache(
+      incomingDomains.map(datum => {
+        return {
+          value: datum,
+          label: datum,
+        };
+      })
+    );
+
+  useEffect(() => {
+    clearDomainOptionsCache();
+  }, [pageFilters.selection.projects, clearDomainOptionsCache]);
 
   const emptyOption = {
     value: EMPTY_OPTION_VALUE,

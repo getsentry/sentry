@@ -1,4 +1,4 @@
-import {useCallback, useState} from 'react';
+import {useCallback, useEffect, useState} from 'react';
 import debounce from 'lodash/debounce';
 
 import SelectControl from 'sentry/components/forms/controls/selectControl';
@@ -7,6 +7,7 @@ import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 import {useResourcePagesQuery} from 'sentry/views/insights/browser/resources/queries/useResourcePagesQuery';
 import {BrowserStarfishFields} from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
 import {useCompactSelectOptionsCache} from 'sentry/views/insights/common/utils/useCompactSelectOptionsCache';
@@ -22,6 +23,7 @@ export function TransactionSelector({
 }) {
   const location = useLocation();
   const organization = useOrganization();
+  const pageFilters = usePageFilters();
 
   const [searchInputValue, setSearchInputValue] = useState<string>(''); // Realtime domain search value in UI
   const [searchQuery, setSearchQuery] = useState<string>(''); // Debounced copy of `searchInputValue` used for the Discover query
@@ -50,9 +52,12 @@ export function TransactionSelector({
     pageLinks,
   });
 
-  const {options: transactionOptions} = useCompactSelectOptionsCache(
-    incomingPages.map(page => ({value: page, label: page}))
-  );
+  const {options: transactionOptions, clear: clearTransactionOptionsCache} =
+    useCompactSelectOptionsCache(incomingPages.map(page => ({value: page, label: page})));
+
+  useEffect(() => {
+    clearTransactionOptionsCache();
+  }, [pageFilters.selection.projects, clearTransactionOptionsCache]);
 
   const options = [{value: '', label: 'All'}, ...transactionOptions];
 
