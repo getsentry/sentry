@@ -815,6 +815,14 @@ def update_alert_rule(
 
     # if we modified the comparison_delta or the time_window, we should update the resolution accordingly
     if "comparison_delta" in updated_fields or "time_window" in updated_query_fields:
+        if comparison_delta is not None:
+            detection_type = AlertRuleDetectionType.PERCENT
+        else:
+            if seasonality:
+                detection_type = AlertRuleDetectionType.DYNAMIC
+            else:
+                detection_type = AlertRuleDetectionType.STATIC
+
         window = int(
             updated_query_fields.get(
                 "time_window", timedelta(seconds=alert_rule.snuba_query.time_window)
