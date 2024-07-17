@@ -23,7 +23,7 @@ describe('TransactionsConfig', function () {
       });
     });
 
-    it('makes a request to the transactions dataset', function () {
+    it('makes a request to the metrics enhanced dataset', function () {
       const pageFilters = PageFiltersFixture();
       const widget = WidgetFixture();
 
