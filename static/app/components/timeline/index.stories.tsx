@@ -83,7 +83,6 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
           <StructuredData
             value={JSONPayload}
             maxDefaultDepth={1}
-            meta={undefined}
             withAnnotatedText
             withOnlyFormattedText
           />
@@ -172,7 +171,6 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
           <StructuredData
             value={JSONPayload}
             maxDefaultDepth={1}
-            meta={undefined}
             withAnnotatedText
             withOnlyFormattedText
           />
@@ -228,7 +226,6 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
             <StructuredData
               value={JSONPayload}
               maxDefaultDepth={1}
-              meta={undefined}
               withAnnotatedText
               withOnlyFormattedText
             />

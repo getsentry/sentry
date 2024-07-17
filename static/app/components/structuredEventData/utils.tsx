@@ -1,3 +1,5 @@
+import isPlainObject from 'lodash/isPlainObject';
+
 const STRIPPED_VALUE_REGEX = /^['"]?\*{8,}['"]?$/;
 
 export function looksLikeObjectRepr(value: string) {
@@ -52,4 +54,34 @@ export function naturalCaseInsensitiveSort(a: string, b: string) {
 
 export function looksLikeStrippedValue(value: string) {
   return STRIPPED_VALUE_REGEX.test(value);
+}
+
+export function getDefaultExpanded(depth: number, value: any) {
+  const MAX_ITEMS_BEFORE_AUTOCOLLAPSE = 5;
+
+  function recurse(prefix: string, levels: number, val: any) {
+    if (!levels) {
+      return [];
+    }
+
+    if (Array.isArray(val) && val.length <= MAX_ITEMS_BEFORE_AUTOCOLLAPSE) {
+      return [
+        prefix,
+        ...val.flatMap((v, i) => {
+          return recurse(`${prefix}.${i}`, levels - 1, v);
+        }),
+      ];
+    }
+    if (isPlainObject(val) && Object.keys(val).length <= MAX_ITEMS_BEFORE_AUTOCOLLAPSE) {
+      return [
+        prefix,
+        ...Object.entries(val).flatMap(([k, v]) => {
+          return recurse(`${prefix}.${k}`, levels - 1, v);
+        }),
+      ];
+    }
+    return [];
+  }
+
+  return recurse('$', depth, value);
 }

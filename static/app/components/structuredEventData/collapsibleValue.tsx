@@ -1,8 +1,9 @@
 import type {ReactNode} from 'react';
-import {Children, useState} from 'react';
+import {Children} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
+import useExpandedState from 'sentry/components/structuredEventData/useExpandedState';
 import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -10,37 +11,23 @@ import {space} from 'sentry/styles/space';
 interface Props {
   children: ReactNode;
   closeTag: string;
-  depth: number;
-  maxDefaultDepth: number;
   openTag: string;
   path: string;
-  /**
-   * Forces the value to start expanded, otherwise it will expand if there are
-   * less than 5 (MAX_ITEMS_BEFORE_AUTOCOLLAPSE) items
-   */
-  forceDefaultExpand?: boolean;
   prefix?: ReactNode;
 }
 
-const MAX_ITEMS_BEFORE_AUTOCOLLAPSE = 5;
-
 export function CollapsibleValue({
   children,
-  openTag,
   closeTag,
+  openTag,
+  path,
   prefix = null,
-  depth,
-  maxDefaultDepth,
-  forceDefaultExpand,
 }: Props) {
+  const {collapse, expand, expandedPaths} = useExpandedState();
+  const isExpanded = expandedPaths.includes(path);
   const numChildren = Children.count(children);
-  const [isExpanded, setIsExpanded] = useState(
-    forceDefaultExpand ??
-      (numChildren <= MAX_ITEMS_BEFORE_AUTOCOLLAPSE && depth < maxDefaultDepth)
-  );
-
   const shouldShowToggleButton = numChildren > 0;
-  const isBaseLevel = depth === 0;
+  const isBaseLevel = path === '$';
 
   // Toggle buttons get placed to the left of the open tag, but if this is the
   // base level there is no room for it. So we add padding in this case.
@@ -56,14 +43,14 @@ export function CollapsibleValue({
           icon={
             <IconChevron direction={isExpanded ? 'down' : 'right'} legacySize="10px" />
           }
-          onClick={() => setIsExpanded(oldValue => !oldValue)}
+          onClick={() => (isExpanded ? collapse(path) : expand(path))}
           size="zero"
         />
       ) : null}
       {prefix}
       <span>{openTag}</span>
       {shouldShowToggleButton && !isExpanded ? (
-        <NumItemsButton size="zero" onClick={() => setIsExpanded(true)}>
+        <NumItemsButton size="zero" onClick={() => expand(path)}>
           {tn('%s item', '%s items', numChildren)}
         </NumItemsButton>
       ) : null}

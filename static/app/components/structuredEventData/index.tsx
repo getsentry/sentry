@@ -1,11 +1,13 @@
-import {Fragment, isValidElement} from 'react';
+import {Fragment, isValidElement, useCallback} from 'react';
 import styled from '@emotion/styled';
 
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import AnnotatedValue from 'sentry/components/structuredEventData/annotatedValue';
 import {CollapsibleValue} from 'sentry/components/structuredEventData/collapsibleValue';
 import LinkHint from 'sentry/components/structuredEventData/linkHint';
+import {ExpandedStateContextProvider} from 'sentry/components/structuredEventData/useExpandedState';
 import {
+  getDefaultExpanded,
   looksLikeMultiLineString,
   looksLikeStrippedValue,
   naturalCaseInsensitiveSort,
@@ -23,68 +25,116 @@ export type StructedEventDataConfig = {
   renderString?: (value: string) => string;
 };
 
-export type StructuredEventDataProps = {
-  children?: React.ReactNode;
-  className?: string;
+interface BaseProps {
   /**
    * Allows customization of how values are rendered
    */
   config?: StructedEventDataConfig;
+
+  /**
+   * Enables auto-expansion of items on initial render.
+   */
+  forceDefaultExpand?: boolean;
+
+  /**
+   * Array of the paths to expand, can be arbitrarily deep. Only takes effect on
+   * mount.
+   *
+   * Overrides `forceDefaultExpand` and `maxDefaultDepth`.
+   *
+   * paths is a "." concatenated list of array-indexes and object-keys starting
+   * from '$' as the root.
+   * example: "$.users.0" would expand  `{users: [{name: 'cramer'}]}`
+   */
+  initialExpandedPaths?: string[];
+
+  /**
+   * Set the max depth to expand items. Default: 2
+   *
+   * Only items with 5 or fewer children can be auto-expanded.
+   *
+   * Only takes affect when `forceDefaultExpand` is `true` or `undefined`
+   */
+  maxDefaultDepth?: number;
+
+  meta?: Record<any, any>;
+
+  /**
+   * A callback to keep track of expanded items.
+   *
+   * Pass this into `initialExpandedPaths` to re-render a previous expanded state
+   */
+  onToggleExpand?: (
+    path: string,
+    expandedPaths: string[],
+    state: 'expanded' | 'collapsed'
+  ) => void;
+}
+
+export interface StructuredEventDataProps extends BaseProps {
+  children?: React.ReactNode;
+  className?: string;
   // TODO(TS): What possible types can `data` be?
   data?: any;
   'data-test-id'?: string;
-  /**
-   * Forces objects to default to expanded when rendered
-   */
-  forceDefaultExpand?: boolean;
-  maxDefaultDepth?: number;
-  meta?: Record<any, any>;
   onCopy?: (copiedCode: string) => void;
   showCopyButton?: boolean;
   withAnnotatedText?: boolean;
-};
+}
 
-export function StructuredData({
-  config,
-  value = null,
-  maxDefaultDepth,
-  withAnnotatedText,
-  withOnlyFormattedText = false,
-  meta,
-  objectKey,
-  forceDefaultExpand,
-}: {
-  maxDefaultDepth: number;
-  meta: Record<any, any> | undefined;
+interface StrucutedDataProps extends BaseProps {
+  maxDefaultDepth: NonNullable<BaseProps['maxDefaultDepth']>;
   withAnnotatedText: boolean;
-  config?: StructedEventDataConfig;
-  forceDefaultExpand?: boolean;
   objectKey?: string;
-  showCopyButton?: boolean;
   // TODO(TS): What possible types can `value` be?
   value?: any;
   withOnlyFormattedText?: boolean;
-}) {
+}
+
+export function StructuredData({
+  config,
+  forceDefaultExpand,
+  initialExpandedPaths,
+  maxDefaultDepth,
+  meta,
+  objectKey,
+  onToggleExpand,
+  value = null,
+  withAnnotatedText,
+  withOnlyFormattedText = false,
+}: StrucutedDataProps) {
+  const getInitialExpandedPaths = useCallback(() => {
+    return (
+      initialExpandedPaths ??
+      (forceDefaultExpand === false ||
+      (forceDefaultExpand === undefined && !maxDefaultDepth)
+        ? []
+        : getDefaultExpanded(Math.max(1, maxDefaultDepth), value))
+    );
+
+    // No need to update if expand/collapse props changes, we're not going to
+    // re-render based on those.
+  }, [value]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
-    <RecursiveStructuredData
-      config={config}
-      depth={0}
-      forceDefaultExpand={forceDefaultExpand}
-      maxDefaultDepth={maxDefaultDepth}
-      meta={meta}
-      objectKey={objectKey}
-      path="$"
-      value={value}
-      withAnnotatedText={withAnnotatedText}
-      withOnlyFormattedText={withOnlyFormattedText}
-    />
+    <ExpandedStateContextProvider
+      initialExpandedPaths={getInitialExpandedPaths}
+      onToggleExpand={onToggleExpand}
+    >
+      <RecursiveStructuredData
+        config={config}
+        meta={meta}
+        objectKey={objectKey}
+        path="$"
+        value={value}
+        withAnnotatedText={withAnnotatedText}
+        withOnlyFormattedText={withOnlyFormattedText}
+      />
+    </ExpandedStateContextProvider>
   );
 }
 function RecursiveStructuredData({
   config,
-  depth,
-  forceDefaultExpand,
-  maxDefaultDepth,
   meta,
   objectKey,
   path,
@@ -92,15 +142,11 @@ function RecursiveStructuredData({
   withAnnotatedText,
   withOnlyFormattedText = false,
 }: {
-  depth: number;
-  maxDefaultDepth: number;
   meta: Record<any, any> | undefined;
   path: string;
   withAnnotatedText: boolean;
   config?: StructedEventDataConfig;
-  forceDefaultExpand?: boolean;
   objectKey?: string;
-  showCopyButton?: boolean;
   // TODO(TS): What possible types can `value` be?
   value?: any;
   withOnlyFormattedText?: boolean;
@@ -248,8 +294,6 @@ function RecursiveStructuredData({
         <div key={i}>
           <RecursiveStructuredData
             config={config}
-            depth={depth + 1}
-            maxDefaultDepth={maxDefaultDepth}
             meta={meta?.[i]}
             path={path + '.' + i}
             value={value[i]}
@@ -260,14 +304,7 @@ function RecursiveStructuredData({
       );
     }
     return (
-      <CollapsibleValue
-        openTag="["
-        closeTag="]"
-        path={path}
-        prefix={formattedObjectKey}
-        maxDefaultDepth={maxDefaultDepth}
-        depth={depth}
-      >
+      <CollapsibleValue closeTag="]" openTag="[" path={path} prefix={formattedObjectKey}>
         {children}
       </CollapsibleValue>
     );
@@ -286,8 +323,6 @@ function RecursiveStructuredData({
       <div key={key}>
         <RecursiveStructuredData
           config={config}
-          depth={depth + 1}
-          maxDefaultDepth={maxDefaultDepth}
           meta={meta?.[key]}
           objectKey={key}
           path={path + '.' + key}
@@ -300,41 +335,37 @@ function RecursiveStructuredData({
   }
 
   return (
-    <CollapsibleValue
-      openTag="{"
-      closeTag="}"
-      path={path}
-      prefix={formattedObjectKey}
-      maxDefaultDepth={maxDefaultDepth}
-      depth={depth}
-      forceDefaultExpand={forceDefaultExpand}
-    >
+    <CollapsibleValue closeTag="}" openTag="{" path={path} prefix={formattedObjectKey}>
       {children}
     </CollapsibleValue>
   );
 }
 
 export default function StructuredEventData({
-  config,
   children,
-  meta,
-  maxDefaultDepth = 2,
+  config,
   data = null,
-  withAnnotatedText = false,
   forceDefaultExpand,
-  showCopyButton,
+  initialExpandedPaths,
+  maxDefaultDepth = 2,
+  meta,
   onCopy,
+  onToggleExpand,
+  showCopyButton,
+  withAnnotatedText = false,
   ...props
 }: StructuredEventDataProps) {
   return (
     <StructuredDataWrapper {...props}>
       <StructuredData
         config={config}
-        value={data}
+        forceDefaultExpand={forceDefaultExpand}
+        initialExpandedPaths={initialExpandedPaths}
         maxDefaultDepth={maxDefaultDepth}
         meta={meta}
+        onToggleExpand={onToggleExpand}
+        value={data}
         withAnnotatedText={withAnnotatedText}
-        forceDefaultExpand={forceDefaultExpand}
       />
       {children}
       {showCopyButton && (

@@ -5,6 +5,7 @@ import {CodeSnippet} from 'sentry/components/codeSnippet';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
 import Matrix from 'sentry/components/stories/matrix';
+import SideBySide from 'sentry/components/stories/sideBySide';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import storyBook from 'sentry/stories/storyBook';
 
@@ -27,7 +28,7 @@ export default storyBook(StructuredEventData, story => {
     );
   });
 
-  story('Expanded items', () => (
+  story('Auto-Expanded items', () => (
     <Matrix
       propMatrix={{
         data: [
@@ -44,13 +45,62 @@ export default storyBook(StructuredEventData, story => {
             arr6: [1, 2, 3, 4, 5, 6],
           },
         ],
-        forceDefaultExpand: [true, false],
-        maxDefaultDepth: [0, 1, 2, 3],
+        forceDefaultExpand: [undefined, true, false],
+        maxDefaultDepth: [undefined, 0, 1, 2, 3],
       }}
       render={StructuredEventData}
       selectedProps={['forceDefaultExpand', 'maxDefaultDepth']}
     />
   ));
+
+  story('Manually expanded items', () => {
+    const data = {
+      foo: 'bar',
+      'the_real_world?': {
+        the_city: {
+          the_hotel: {
+            the_fortress: 'a pinwheel',
+          },
+        },
+      },
+      arr5: [1, 2, 3, 4, 5],
+      arr6: [1, 2, 3, 4, 5, 6],
+    };
+    return (
+      <Fragment>
+        <SideBySide>
+          <div>
+            <p>Nothing</p>
+            <StructuredEventData data={data} initialExpandedPaths={[]} />
+          </div>
+          <div>
+            <p>Root only</p>
+            <StructuredEventData data={data} initialExpandedPaths={['$']} />
+          </div>
+          <div>
+            <p>1st level</p>
+            <StructuredEventData
+              data={data}
+              initialExpandedPaths={['$', '$.the_real_world?', '$.arr5', '$.arr6']}
+            />
+          </div>
+          <div>
+            <p>Depth first</p>
+            <StructuredEventData
+              data={data}
+              initialExpandedPaths={[
+                '$',
+                '$.the_real_world?',
+                '$.the_real_world?.the_city',
+                '$.the_real_world?.the_city.the_hotel',
+                '$.the_real_world?.the_city.the_hotel.the_fortress',
+              ]}
+            />
+          </div>
+        </SideBySide>
+      </Fragment>
+    );
+  });
 
   story('Annotations', () => {
     return (
