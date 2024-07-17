@@ -10,7 +10,6 @@ import type {MetricMeta, MRI} from 'sentry/types/metrics';
 import {type Fuse, useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {
   isCustomMetric,
-  isExtractedCustomMetric,
   isSpanDuration,
   isSpanMeasurement,
   isTransactionDuration,
@@ -18,7 +17,7 @@ import {
 } from 'sentry/utils/metrics';
 import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
-import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
+import {formatMRI, isExtractedCustomMetric, parseMRI} from 'sentry/utils/metrics/mri';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -234,7 +233,7 @@ export const MRISelect = memo(function MRISelect({
               hideName
             />
           ) : (
-            <StyledIconProject key="generic-project" size="xs" />
+            <IconProject key="generic-project" size="xs" />
           );
         }
 
@@ -314,8 +313,4 @@ const CustomMetricInfoText = styled('span')`
 const MetricComboBox = styled(ComboBox<MRI>)`
   min-width: 200px;
   max-width: min(500px, 100%);
-`;
-
-const StyledIconProject = styled(IconProject)`
-  margin-left: -4px;
 `;

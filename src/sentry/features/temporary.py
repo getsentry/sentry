@@ -167,6 +167,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:latest-adopted-release-filter", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:mep-rollout-flag", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:mep-use-default-tags", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    # Enable messaging integration onboarding when setting up alerts
+    manager.add("organizations:messaging-integration-onboarding", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable metric alert charts in email/slack
     manager.add("organizations:metric-alert-chartcuterie", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable load shedding for newly created metric alerts
@@ -202,6 +204,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:on-demand-metrics-extraction-widgets", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # This spec version includes the environment in the query hash
     manager.add("organizations:on-demand-metrics-query-spec-version-two", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    # Display metrics components with a new design
+    manager.add("organizations:metrics-new-inputs", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Display on demand metrics related UI elements
     manager.add("organizations:on-demand-metrics-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Display on demand metrics related UI elements, for dashboards and widgets. The other flag is for alerts.

@@ -10,6 +10,7 @@ from typing import Any, Literal, NotRequired
 
 from django import forms
 from django.core.cache import cache
+from django.db.models import QuerySet
 from django.db.models.enums import TextChoices
 from django.utils import timezone
 
@@ -376,7 +377,7 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         return batch_totals
 
     def get_error_and_generic_group_ids(
-        self, groups: list[tuple[int, int, int]]
+        self, groups: list[QuerySet]
     ) -> tuple[list[int], list[int]]:
         """
         Separate group ids into error group ids and generic group ids
@@ -385,19 +386,19 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         error_issue_ids = []
 
         for group in groups:
-            issue_type = get_group_type_by_type_id(group[1])
+            issue_type = get_group_type_by_type_id(group.get("type"))
             if GroupCategory(issue_type.category) == GroupCategory.ERROR:
-                error_issue_ids.append(group[0])
+                error_issue_ids.append(group.get("id"))
             else:
-                generic_issue_ids.append(group[0])
+                generic_issue_ids.append(group.get("id"))
         return (error_issue_ids, generic_issue_ids)
 
-    def get_organization_id_from_groups(self, groups: list[tuple[int, int, int]]) -> int | None:
-        organization_id = None
+    def get_value_from_groups(self, groups: list[QuerySet] | None, value: str) -> int | None:
+        result = None
         if groups:
             group = groups[0]
-            organization_id = group[-1]
-        return organization_id
+            result = group.get(value)
+        return result
 
 
 class EventFrequencyCondition(BaseEventFrequencyCondition):
@@ -424,11 +425,11 @@ class EventFrequencyCondition(BaseEventFrequencyCondition):
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
         batch_sums: dict[int, int] = defaultdict(int)
-        groups = Group.objects.filter(id__in=group_ids).values_list(
+        groups = Group.objects.filter(id__in=group_ids).values(
             "id", "type", "project__organization_id"
         )
         error_issue_ids, generic_issue_ids = self.get_error_and_generic_group_ids(groups)
-        organization_id = self.get_organization_id_from_groups(groups)
+        organization_id = self.get_value_from_groups(groups, "project__organization_id")
 
         if error_issue_ids and organization_id:
             error_sums = self.get_chunked_result(
@@ -487,11 +488,11 @@ class EventUniqueUserFrequencyCondition(BaseEventFrequencyCondition):
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
         batch_totals: dict[int, int] = defaultdict(int)
-        groups = Group.objects.filter(id__in=group_ids).values_list(
+        groups = Group.objects.filter(id__in=group_ids).values(
             "id", "type", "project__organization_id"
         )
         error_issue_ids, generic_issue_ids = self.get_error_and_generic_group_ids(groups)
-        organization_id = self.get_organization_id_from_groups(groups)
+        organization_id = self.get_value_from_groups(groups, "project__organization_id")
 
         if error_issue_ids and organization_id:
             error_totals = self.get_chunked_result(
@@ -658,17 +659,19 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         self, group_ids: set[int], start: datetime, end: datetime, environment_id: int
     ) -> dict[int, int]:
         batch_percents: dict[int, int] = defaultdict(int)
-        groups = Group.objects.filter(id__in=group_ids).values_list(
+        groups = Group.objects.filter(id__in=group_ids).values(
             "id", "type", "project_id", "project__organization_id"
         )
-        session_count_last_hour = self.get_session_count(groups[0][2], environment_id, start, end)
-        avg_sessions_in_interval = self.get_session_interval(
-            session_count_last_hour, self.get_option("interval")
-        )
-
+        project_id = self.get_value_from_groups(groups, "project_id")
+        avg_sessions_in_interval = None
+        if project_id:
+            session_count_last_hour = self.get_session_count(project_id, environment_id, start, end)
+            avg_sessions_in_interval = self.get_session_interval(
+                session_count_last_hour, self.get_option("interval")
+            )
         if avg_sessions_in_interval:
             error_issue_ids, _ = self.get_error_and_generic_group_ids(groups)
-            organization_id = self.get_organization_id_from_groups(groups)
+            organization_id = self.get_value_from_groups(groups, "project__organization_id")
             if error_issue_ids and organization_id:
                 error_issue_count = self.get_chunked_result(
                     tsdb_function=self.tsdb.get_sums,
@@ -686,7 +689,7 @@ class EventFrequencyPercentCondition(BaseEventFrequencyCondition):
         else:
             percent = 0
             for group in groups:
-                batch_percents[group.id] = percent
+                batch_percents[group.get("id")] = percent
 
         return batch_percents
 

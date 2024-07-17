@@ -198,7 +198,7 @@ def bulk_timeseries_query(
                     params["start"],
                     params["end"],
                     rollup,
-                    "time",
+                    ["time"],
                 )
                 if zerofill_results
                 else discover.format_time(
@@ -206,7 +206,7 @@ def bulk_timeseries_query(
                     params["start"],
                     params["end"],
                     rollup,
-                    "time",
+                    ["time"],
                 )
             )
 
@@ -223,7 +223,7 @@ def bulk_timeseries_query(
     return SnubaTSResult(
         {
             "data": (
-                discover.zerofill([], params["start"], params["end"], rollup, "time")
+                discover.zerofill([], params["start"], params["end"], rollup, ["time"])
                 if zerofill_results
                 else []
             ),
@@ -284,7 +284,7 @@ def timeseries_query(
                     inner_params["start"],
                     inner_params["end"],
                     rollup,
-                    "time",
+                    ["time"],
                 )
                 if zerofill_results
                 else result["data"]
@@ -364,7 +364,7 @@ def timeseries_query(
     return SnubaTSResult(
         {
             "data": (
-                discover.zerofill([], params["start"], params["end"], rollup, "time")
+                discover.zerofill([], params["start"], params["end"], rollup, ["time"])
                 if zerofill_results
                 else []
             ),
@@ -454,7 +454,7 @@ def top_events_timeseries(
         return SnubaTSResult(
             {
                 "data": (
-                    discover.zerofill([], params["start"], params["end"], rollup, "time")
+                    discover.zerofill([], params["start"], params["end"], rollup, ["time"])
                     if zerofill_results
                     else []
                 ),
@@ -490,7 +490,9 @@ def top_events_timeseries(
         results[key] = SnubaTSResult(
             {
                 "data": (
-                    discover.zerofill(item["data"], params["start"], params["end"], rollup, "time")
+                    discover.zerofill(
+                        item["data"], params["start"], params["end"], rollup, ["time"]
+                    )
                     if zerofill_results
                     else item["data"]
                 ),

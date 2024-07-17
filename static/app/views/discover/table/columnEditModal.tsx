@@ -13,12 +13,14 @@ import type {Organization} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import {
+  AGGREGATIONS,
   type Column,
   ERROR_FIELDS,
+  ERRORS_AGGREGATION_FUNCTIONS,
   TRANSACTION_FIELDS,
 } from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {FieldKey} from 'sentry/utils/fields';
+import {type AggregationKey, FieldKey} from 'sentry/utils/fields';
 import theme from 'sentry/utils/theme';
 import useTags from 'sentry/utils/useTags';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
@@ -72,6 +74,12 @@ function ColumnEditModal(props: Props) {
       organization,
       tagKeys,
       fieldKeys: ERROR_FIELDS,
+      aggregations: Object.keys(AGGREGATIONS)
+        .filter(key => ERRORS_AGGREGATION_FUNCTIONS.includes(key as AggregationKey))
+        .reduce((obj, key) => {
+          obj[key] = AGGREGATIONS[key];
+          return obj;
+        }, {}),
     });
   } else if (dataset === DiscoverDatasets.TRANSACTIONS) {
     fieldOptions = generateFieldOptions({

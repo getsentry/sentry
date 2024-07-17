@@ -213,12 +213,16 @@ function ProfilingContent({location}: ProfilingContentProps) {
                     'profiling-global-suspect-functions'
                   ) ? (
                     <Fragment>
-                      <ProfilesChartWidget
-                        chartHeight={150}
-                        referrer="api.profiling.landing-chart"
-                        userQuery={query}
-                        selection={selection}
-                      />
+                      {organization.features.includes(
+                        'continuous-profiling-ui'
+                      ) ? null : (
+                        <ProfilesChartWidget
+                          chartHeight={150}
+                          referrer="api.profiling.landing-chart"
+                          userQuery={query}
+                          selection={selection}
+                        />
+                      )}
                       <WidgetsContainer>
                         <LandingWidgetSelector
                           cursorName={LEFT_WIDGET_CURSOR}

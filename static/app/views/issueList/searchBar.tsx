@@ -12,8 +12,12 @@ import {ItemType} from 'sentry/components/smartSearchBar/types';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Organization, Tag, TagCollection} from 'sentry/types';
-import {SavedSearchType} from 'sentry/types';
+import {
+  type Organization,
+  SavedSearchType,
+  type Tag,
+  type TagCollection,
+} from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {
   DEVICE_CLASS_TAG_VALUES,
@@ -25,6 +29,7 @@ import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {WithIssueTagsProps} from 'sentry/utils/withIssueTags';
 import withIssueTags from 'sentry/utils/withIssueTags';
+import {useFetchIssueTags} from 'sentry/views/issueList/utils/useFetchIssueTags';
 
 const getSupportedTags = (supportedTags: TagCollection): TagCollection => {
   return Object.fromEntries(
@@ -51,11 +56,6 @@ const getFilterKeySections = (
   const allTags: Tag[] = Object.values(tags).filter(
     tag => !EXCLUDED_TAGS.includes(tag.key)
   );
-  const eventTags = orderBy(
-    allTags.filter(tag => tag.kind === FieldKind.TAG),
-    ['totalValues', 'key'],
-    ['desc', 'asc']
-  ).map(tag => tag.key);
   const issueFields = orderBy(
     allTags.filter(tag => tag.kind === FieldKind.ISSUE_FIELD),
     ['key']
@@ -63,6 +63,11 @@ const getFilterKeySections = (
   const eventFields = orderBy(
     allTags.filter(tag => tag.kind === FieldKind.EVENT_FIELD),
     ['key']
+  ).map(tag => tag.key);
+  const eventTags = orderBy(
+    allTags.filter(tag => tag.kind === FieldKind.TAG),
+    ['totalValues', 'key'],
+    ['desc', 'asc']
   ).map(tag => tag.key);
 
   return [
@@ -93,6 +98,19 @@ const EXCLUDED_TAGS = ['environment'];
 function IssueListSearchBar({organization, tags, ...props}: Props) {
   const api = useApi();
   const {selection: pageFilters} = usePageFilters();
+  const {tags: issueTags} = useFetchIssueTags({
+    org: organization,
+    projectIds: pageFilters.projects.map(id => id.toString()),
+    keepPreviousData: true,
+    enabled: organization.features.includes('issue-stream-search-query-builder'),
+    start: pageFilters.datetime.start
+      ? getUtcDateString(pageFilters.datetime.start)
+      : undefined,
+    end: pageFilters.datetime.end
+      ? getUtcDateString(pageFilters.datetime.end)
+      : undefined,
+    statsPeriod: pageFilters.datetime.period,
+  });
 
   const tagValueLoader = useCallback(
     (key: string, search: string) => {
@@ -192,10 +210,9 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
       },
     ],
   };
-
   const filterKeySections = useMemo(() => {
-    return getFilterKeySections(tags, organization);
-  }, [organization, tags]);
+    return getFilterKeySections(issueTags, organization);
+  }, [organization, issueTags]);
 
   if (organization.features.includes('issue-stream-search-query-builder')) {
     return (
@@ -204,7 +221,7 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
         initialQuery={props.query ?? ''}
         getTagValues={getTagValues}
         filterKeySections={filterKeySections}
-        filterKeys={tags}
+        filterKeys={issueTags}
         onSearch={props.onSearch}
         onBlur={props.onBlur}
         onChange={value => {
@@ -213,6 +230,7 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
         searchSource={props.searchSource ?? 'issues'}
         savedSearchType={SavedSearchType.ISSUE}
         disallowLogicalOperators
+        placeholder={props.placeholder}
       />
     );
   }

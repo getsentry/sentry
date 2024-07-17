@@ -40,7 +40,7 @@ class ApiTokenDetailsEndpoint(Endpoint):
         try:
             instance = ApiToken.objects.get(id=token_id, application__isnull=True, user_id=user_id)
         except ApiToken.DoesNotExist:
-            raise ResourceDoesNotExist
+            raise ResourceDoesNotExist(detail="Invalid token ID")
 
         return Response(serialize(instance, request.user, include_token=False))
 
@@ -66,7 +66,7 @@ class ApiTokenDetailsEndpoint(Endpoint):
                 id=token_id, application__isnull=True, user_id=user_id
             )
         except ApiToken.DoesNotExist:
-            raise ResourceDoesNotExist
+            raise ResourceDoesNotExist(detail="Invalid token ID")
 
         token_to_rename.name = result.get("name")
         token_to_rename.save()
@@ -75,6 +75,7 @@ class ApiTokenDetailsEndpoint(Endpoint):
 
     @method_decorator(never_cache)
     def delete(self, request: Request, token_id: int) -> Response:
+
         user_id = get_appropriate_user_id(request=request)
 
         try:
@@ -82,7 +83,7 @@ class ApiTokenDetailsEndpoint(Endpoint):
                 id=token_id, application__isnull=True, user_id=user_id
             )
         except ApiToken.DoesNotExist:
-            raise ResourceDoesNotExist
+            raise ResourceDoesNotExist(detail="Invalid token ID")
 
         token_to_delete.delete()
         analytics.record(
