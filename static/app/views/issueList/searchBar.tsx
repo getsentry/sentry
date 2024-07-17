@@ -19,16 +19,12 @@ import {
   type TagCollection,
 } from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
-import {
-  DEVICE_CLASS_TAG_VALUES,
-  FieldKind,
-  getFieldDefinition,
-  isDeviceClass,
-} from 'sentry/utils/fields';
+import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
 import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {WithIssueTagsProps} from 'sentry/utils/withIssueTags';
 import withIssueTags from 'sentry/utils/withIssueTags';
+import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
 import {useFetchIssueTags} from 'sentry/views/issueList/utils/useFetchIssueTags';
 
 const getSupportedTags = (supportedTags: TagCollection): TagCollection => {
@@ -145,23 +141,8 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
     ]
   );
 
-  const getTagValues = useCallback(
-    async (tag: Tag, query: string): Promise<string[]> => {
-      // device.class is stored as "numbers" in snuba, but we want to suggest high, medium,
-      // and low search filter values because discover maps device.class to these values.
-      if (isDeviceClass(tag.key)) {
-        return DEVICE_CLASS_TAG_VALUES;
-      }
-      const values = await tagValueLoader(tag.key, query);
-      return values.map(({value}) => {
-        // Truncate results to 5000 characters to avoid exceeding the max url query length
-        // The message attribute for example can be 8192 characters.
-        if (typeof value === 'string' && value.length > 5000) {
-          return value.substring(0, 5000);
-        }
-        return value;
-      });
-    },
+  const getTagValues = useMemo(
+    () => makeGetIssueTagValues(tagValueLoader),
     [tagValueLoader]
   );
 
