@@ -175,8 +175,9 @@ def get_project_key():
 
 def traces_sampler(sampling_context):
     # Apply sample_rate from custom_sampling_context
-    if "sample_rate" in sampling_context:
-        return float(sampling_context.get("sample_rate", 0))
+    custom_sample_rate = sampling_context.get("sample_rate")
+    if custom_sample_rate is not None:
+        return float(custom_sample_rate)
 
     # If there's already a sampling decision, just use that
     if sampling_context["parent_sampled"] is not None:
