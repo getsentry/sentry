@@ -10,6 +10,7 @@ import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import SetupAlertIntegrationModal from 'sentry/views/alerts/rules/issue/setupAlertIntegrationModal';
 
 type Props = DeprecatedAsyncComponent['props'] & {
   organization: Organization;
@@ -73,15 +74,9 @@ export default class SetupAlertIntegrationButton extends DeprecatedAsyncComponen
               </IconWrapper>
             }
             onClick={() =>
-              openModal(({closeModal, Header, Body}) => (
-                <div>
-                  <Header>Connect with a messaging tool</Header>
-                  <Body>
-                    <div>Receive alerts and digests right where you work.</div>
-                    <Button onClick={closeModal}>Close</Button>
-                  </Body>
-                </div>
-              ))
+              openModal(deps => <SetupAlertIntegrationModal {...deps} />, {
+                closeEvents: 'escape-key',
+              })
             }
           >
             {t('Connect to messaging')}
