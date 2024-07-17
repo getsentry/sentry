@@ -13,6 +13,7 @@ class MatchType:
     NOT_SET = "ns"
     NOT_STARTS_WITH = "nsw"
     STARTS_WITH = "sw"
+    IS_IN = "in"
 
 
 LEVEL_MATCH_CHOICES = {
@@ -38,4 +39,5 @@ MATCH_CHOICES = {
     MatchType.NOT_SET: "is not set",
     MatchType.NOT_STARTS_WITH: "does not start with",
     MatchType.STARTS_WITH: "starts with",
+    MatchType.IS_IN: "is in",
 }
