@@ -58,7 +58,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {transactionSummaryRouteWithQuery} from 'sentry/views/performance/transactionSummary/utils';
 import {
   FlamegraphProvider,
@@ -260,7 +259,6 @@ interface ProfileSummaryPageProps {
 function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   const organization = useOrganization();
   const project = useCurrentProjectFromRouteParam();
-  const {selection} = usePageFilters();
 
   const transaction = decodeScalar(props.location.query.transaction);
 
@@ -293,10 +291,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
 
   const query = useMemo(() => {
     const search = new MutableSearch(rawQuery);
-
-    if (defined(transaction)) {
-      search.setFilterValues('transaction', [transaction]);
-    }
+    search.setFilterValues('transaction', [transaction]);
 
     // there are no aggregations happening on this page,
     // so remove any aggregate filters
@@ -310,10 +305,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
   }, [rawQuery, transaction]);
 
   const {data, isLoading, isError} = useAggregateFlamegraphQuery({
-    transaction,
-    environments: selection.environments,
-    projects: selection.projects,
-    datetime: selection.datetime,
+    query,
   });
 
   const [visualization, setVisualization] = useLocalStorageState<
@@ -403,7 +395,7 @@ function ProfileSummaryPage(props: ProfileSummaryPageProps) {
             organization={organization}
             location={props.location}
             project={project}
-            query={query}
+            query={rawQuery}
             transaction={transaction}
           />
           <ProfileFilters
