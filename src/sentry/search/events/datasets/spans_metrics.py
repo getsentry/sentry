@@ -229,29 +229,6 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
-                    "sum_if",
-                    required_args=[
-                        fields.MetricArg(
-                            "column",
-                            allow_custom_measurements=False,
-                        ),
-                        fields.MetricArg(
-                            "if_col",
-                            allowed_columns=["release"],
-                        ),
-                        fields.SnQLStringArg(
-                            "if_val", unquote=True, unescape_quotes=True, optional_unquote=True
-                        ),
-                    ],
-                    snql_gauge=lambda args, alias: self._resolve_sum_if(
-                        args["column"], args["if_col"], args["if_val"], alias
-                    ),
-                    snql_distribution=lambda args, alias: self._resolve_sum_if(
-                        args["column"], args["if_col"], args["if_val"], alias
-                    ),
-                    default_result_type="percentage",
-                ),
-                fields.MetricsFunction(
                     "avg",
                     optional_args=[
                         fields.with_default(
