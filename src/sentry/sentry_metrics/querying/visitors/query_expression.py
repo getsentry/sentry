@@ -7,6 +7,7 @@ from snuba_sdk.conditions import ConditionGroup
 
 from sentry.models.environment import Environment
 from sentry.models.project import Project
+from sentry.sentry_metrics.models import SpanAttributeExtractionRuleCondition
 from sentry.sentry_metrics.querying.constants import COEFFICIENT_OPERATORS
 from sentry.sentry_metrics.querying.data.mapping.base import (
     Mapper,
@@ -422,6 +423,10 @@ class UnitsNormalizationVisitor(QueryExpressionVisitor[tuple[UnitMetadata, Query
 
         parsed_mri = parse_mri(timeseries.metric.mri)
         if parsed_mri is not None:
+            if parsed_mri.name.startswith("span_attribute_"):
+                rule_id = int(parsed_mri.name[len("span_attribute_") :])
+                return SpanAttributeExtractionRuleCondition.objects.get(id=rule_id).config.unit
+
             return parsed_mri.unit
 
         return None
