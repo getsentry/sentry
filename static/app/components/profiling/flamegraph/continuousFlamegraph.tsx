@@ -21,6 +21,8 @@ import {FlamegraphViewSelectMenu} from 'sentry/components/profiling/flamegraph/f
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraph/flamegraphZoomViewMinimap';
 import {t} from 'sentry/locale';
+import type {EntrySpans, EventTransaction} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {
   CanvasPoolManager,
@@ -49,6 +51,9 @@ import {
 import type {ContinuousProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
 import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphRenderer2D';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
+import type {SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import {SpanChart} from 'sentry/utils/profiling/spanChart';
+import {SpanTree} from 'sentry/utils/profiling/spanTree';
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import type {UIFrameMeasurements} from 'sentry/utils/profiling/uiFrames';
 import {UIFrames} from 'sentry/utils/profiling/uiFrames';
@@ -58,7 +63,10 @@ import {
 } from 'sentry/utils/profiling/units/units';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
-import {useContinuousProfile} from 'sentry/views/profiling/continuousProfileProvider';
+import {
+  useContinuousProfile,
+  useContinuousProfileSegment,
+} from 'sentry/views/profiling/continuousProfileProvider';
 import {useContinuousProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 
 import {FlamegraphDrawer} from './flamegraphDrawer/flamegraphDrawer';
@@ -66,7 +74,28 @@ import {FlamegraphWarnings} from './flamegraphOverlays/FlamegraphWarnings';
 import {useViewKeyboardNavigation} from './interactions/useViewKeyboardNavigation';
 import {FlamegraphChart} from './flamegraphChart';
 import {FlamegraphLayout} from './flamegraphLayout';
+import {FlamegraphSpans} from './flamegraphSpans';
 import {FlamegraphUIFrames} from './flamegraphUIFrames';
+
+function collectAllSpanEntriesFromTransaction(
+  transaction: EventTransaction
+): EntrySpans['data'] {
+  if (!transaction.entries.length) {
+    return [];
+  }
+
+  const spans = transaction.entries.filter(
+    (e): e is EntrySpans => e.type === EntryType.SPANS
+  );
+
+  let allSpans: EntrySpans['data'] = [];
+
+  for (const span of spans) {
+    allSpans = allSpans.concat(span.data);
+  }
+
+  return allSpans;
+}
 
 function getMaxConfigSpace(profileGroup: ContinuousProfileGroup): Rect {
   // We have a transaction, so we should do our best to align the profile
@@ -141,6 +170,7 @@ function findLongestMatchingFrame(
 
 const LOADING_OR_FALLBACK_FLAMEGRAPH = FlamegraphModel.Empty();
 const LOADING_OR_FALLBACK_UIFRAMES = UIFrames.Empty;
+const LOADING_OR_FALLBACK_SPAN_TREE = SpanTree.Empty;
 const LOADING_OR_FALLBACK_BATTERY_CHART = FlamegraphChartModel.Empty;
 const LOADING_OR_FALLBACK_CPU_CHART = FlamegraphChartModel.Empty;
 const LOADING_OR_FALLBACK_MEMORY_CHART = FlamegraphChartModel.Empty;
@@ -153,6 +183,7 @@ export function ContinuousFlamegraph(): ReactElement {
 
   const profiles = useContinuousProfile();
   const profileGroup = useContinuousProfileGroup();
+  const segment = useContinuousProfileSegment();
 
   const flamegraphTheme = useFlamegraphTheme();
   const position = useFlamegraphZoomPosition();
@@ -164,7 +195,7 @@ export function ContinuousFlamegraph(): ReactElement {
     useState<HTMLCanvasElement | null>(null);
   const [flamegraphOverlayCanvasRef, setFlamegraphOverlayCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
-
+  const [spansCanvasRef, setSpansCanvasRef] = useState<HTMLCanvasElement | null>(null);
   const [flamegraphMiniMapCanvasRef, setFlamegraphMiniMapCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
   const [flamegraphMiniMapOverlayCanvasRef, setFlamegraphMiniMapOverlayCanvasRef] =
@@ -218,6 +249,28 @@ export function ContinuousFlamegraph(): ReactElement {
   const profile = useMemo(() => {
     return profileGroup.profiles.find(p => p.threadId === flamegraphProfiles.threadId);
   }, [profileGroup, flamegraphProfiles.threadId]);
+
+  const spanTree: SpanTree = useMemo(() => {
+    if (segment.type === 'resolved' && segment.data) {
+      return new SpanTree(
+        segment.data,
+        collectAllSpanEntriesFromTransaction(segment.data)
+      );
+    }
+
+    return LOADING_OR_FALLBACK_SPAN_TREE;
+  }, [segment]);
+
+  const spanChart = useMemo(() => {
+    if (!profile) {
+      return null;
+    }
+
+    return new SpanChart(spanTree, {
+      unit: profile.unit,
+      configSpace: getMaxConfigSpace(profileGroup),
+    });
+  }, [spanTree, profile, profileGroup]);
 
   const flamegraph = useMemo(() => {
     if (typeof flamegraphProfiles.threadId !== 'number') {
@@ -435,6 +488,13 @@ export function ContinuousFlamegraph(): ReactElement {
     }
     return new FlamegraphCanvas(flamegraphMiniMapCanvasRef, vec2.fromValues(0, 0));
   }, [flamegraphMiniMapCanvasRef]);
+
+  const spansCanvas = useMemo(() => {
+    if (!spansCanvasRef) {
+      return null;
+    }
+    return new FlamegraphCanvas(spansCanvasRef, vec2.fromValues(0, 0));
+  }, [spansCanvasRef]);
 
   const uiFramesCanvas = useMemo(() => {
     if (!uiFramesCanvasRef) {
@@ -716,6 +776,34 @@ export function ContinuousFlamegraph(): ReactElement {
     ]
   );
 
+  const spansView = useMemoWithPrevious<CanvasView<SpanChart> | null>(
+    _previousView => {
+      if (!spansCanvas || !spanChart || !flamegraphView) {
+        return null;
+      }
+
+      const newView = new CanvasView({
+        canvas: spansCanvas,
+        model: spanChart,
+        options: {
+          inverted: false,
+          minWidth: spanChart.minSpanDuration,
+          barHeight: flamegraphTheme.SIZES.SPANS_BAR_HEIGHT,
+          depthOffset: flamegraphTheme.SIZES.SPANS_DEPTH_OFFSET,
+        },
+      });
+
+      // Initialize configView to whatever the flamegraph configView is
+      newView.setConfigView(
+        flamegraphView.configView.withHeight(newView.configView.height),
+        {width: {min: 1}}
+      );
+
+      return newView;
+    },
+    [spanChart, spansCanvas, flamegraphView, flamegraphTheme.SIZES]
+  );
+
   // We want to make sure that the views have the same min zoom levels so that
   // if you wheel zoom on one, the other one will also zoom to the same level of detail.
   // If we dont do this, then at some point during the zoom action the views will
@@ -726,7 +814,8 @@ export function ContinuousFlamegraph(): ReactElement {
       uiFramesView?.minWidth ?? Number.MAX_SAFE_INTEGER,
       cpuChartView?.minWidth ?? Number.MAX_SAFE_INTEGER,
       memoryChartView?.minWidth ?? Number.MAX_SAFE_INTEGER,
-      batteryChartView?.minWidth ?? Number.MAX_SAFE_INTEGER
+      batteryChartView?.minWidth ?? Number.MAX_SAFE_INTEGER,
+      spansView?.minWidth ?? Number.MAX_SAFE_INTEGER
     );
 
     flamegraphView?.setMinWidth?.(minWidthBetweenViews);
@@ -734,7 +823,15 @@ export function ContinuousFlamegraph(): ReactElement {
     cpuChartView?.setMinWidth?.(minWidthBetweenViews);
     memoryChartView?.setMinWidth?.(minWidthBetweenViews);
     batteryChartView?.setMinWidth?.(minWidthBetweenViews);
-  }, [flamegraphView, uiFramesView, cpuChartView, memoryChartView, batteryChartView]);
+    spansView?.setMinWidth?.(minWidthBetweenViews);
+  }, [
+    flamegraphView,
+    uiFramesView,
+    cpuChartView,
+    memoryChartView,
+    batteryChartView,
+    spansView,
+  ]);
 
   // Uses a useLayoutEffect to ensure that these top level/global listeners are added before
   // any of the children components effects actually run. This way we do not lose events
@@ -750,7 +847,32 @@ export function ContinuousFlamegraph(): ReactElement {
     const onConfigViewChange = (rect: Rect, sourceConfigViewChange: CanvasView<any>) => {
       if (sourceConfigViewChange === flamegraphView) {
         flamegraphView.setConfigView(rect.withHeight(flamegraphView.configView.height));
+        if (spansView) {
+          const beforeY = spansView.configView.y;
+          spansView.setConfigView(
+            rect.withHeight(spansView.configView.height).withY(beforeY)
+          );
+        }
+        if (uiFramesView) {
+          uiFramesView.setConfigView(rect);
+        }
+        if (cpuChartView) {
+          cpuChartView.setConfigView(rect);
+        }
+        if (memoryChartView) {
+          memoryChartView.setConfigView(rect);
+        }
+        if (batteryChartView) {
+          batteryChartView.setConfigView(rect);
+        }
+      }
 
+      if (sourceConfigViewChange === spansView) {
+        spansView.setConfigView(rect.withHeight(spansView.configView.height));
+        const beforeY = flamegraphView.configView.y;
+        flamegraphView.setConfigView(
+          rect.withHeight(flamegraphView.configView.height).withY(beforeY)
+        );
         if (uiFramesView) {
           uiFramesView.setConfigView(rect);
         }
@@ -774,6 +896,30 @@ export function ContinuousFlamegraph(): ReactElement {
     ) => {
       if (sourceTransformConfigView === flamegraphView) {
         flamegraphView.transformConfigView(mat);
+        if (spansView) {
+          const beforeY = spansView.configView.y;
+          spansView.transformConfigView(mat);
+          spansView.setConfigView(spansView.configView.withY(beforeY));
+        }
+        if (uiFramesView) {
+          uiFramesView.transformConfigView(mat);
+        }
+        if (batteryChartView) {
+          batteryChartView.transformConfigView(mat);
+        }
+        if (cpuChartView) {
+          cpuChartView.transformConfigView(mat);
+        }
+        if (memoryChartView) {
+          memoryChartView.transformConfigView(mat);
+        }
+      }
+
+      if (sourceTransformConfigView === spansView) {
+        spansView.transformConfigView(mat);
+        const beforeY = flamegraphView.configView.y;
+        flamegraphView.transformConfigView(mat);
+        flamegraphView.setConfigView(flamegraphView.configView.withY(beforeY));
         if (uiFramesView) {
           uiFramesView.transformConfigView(mat);
         }
@@ -818,6 +964,9 @@ export function ContinuousFlamegraph(): ReactElement {
 
     const onResetZoom = () => {
       flamegraphView.resetConfigView(flamegraphCanvas);
+      if (spansView && spansCanvas) {
+        spansView.resetConfigView(spansCanvas);
+      }
       if (uiFramesView && uiFramesCanvas) {
         uiFramesView.resetConfigView(uiFramesCanvas);
       }
@@ -841,7 +990,49 @@ export function ContinuousFlamegraph(): ReactElement {
       ).transformRect(flamegraphView.configSpaceTransform);
 
       flamegraphView.setConfigView(newConfigView);
+      if (spansView) {
+        spansView.setConfigView(newConfigView.withHeight(spansView.configView.height));
+      }
+      if (uiFramesView) {
+        uiFramesView.setConfigView(
+          newConfigView.withHeight(uiFramesView.configView.height)
+        );
+      }
+      if (batteryChartView) {
+        batteryChartView.setConfigView(
+          newConfigView.withHeight(batteryChartView.configView.height)
+        );
+      }
+      if (cpuChartView) {
+        cpuChartView.setConfigView(
+          newConfigView.withHeight(cpuChartView.configView.height)
+        );
+      }
+      if (memoryChartView) {
+        memoryChartView.setConfigView(
+          newConfigView.withHeight(memoryChartView.configView.height)
+        );
+      }
+      canvasPoolManager.draw();
+    };
 
+    const onZoomIntoSpan = (span: SpanChartNode, strategy: 'min' | 'exact') => {
+      if (!spansView) {
+        return;
+      }
+
+      const newConfigView = computeConfigViewWithStrategy(
+        strategy,
+        spansView.configView,
+        new Rect(span.start, span.depth, span.end - span.start, 1)
+      ).transformRect(spansView.configSpaceTransform);
+
+      spansView.setConfigView(newConfigView);
+      flamegraphView.setConfigView(
+        newConfigView
+          .withHeight(flamegraphView.configView.height)
+          .withY(flamegraphView.configView.y)
+      );
       if (uiFramesView) {
         uiFramesView.setConfigView(
           newConfigView.withHeight(uiFramesView.configView.height)
@@ -869,18 +1060,22 @@ export function ContinuousFlamegraph(): ReactElement {
     scheduler.on('transform config view', onTransformConfigView);
     scheduler.on('reset zoom', onResetZoom);
     scheduler.on('zoom at frame', onZoomIntoFrame);
+    scheduler.on('zoom at span', onZoomIntoSpan);
 
     return () => {
       scheduler.off('set config view', onConfigViewChange);
       scheduler.off('transform config view', onTransformConfigView);
       scheduler.off('reset zoom', onResetZoom);
       scheduler.off('zoom at frame', onZoomIntoFrame);
+      scheduler.off('zoom at span', onZoomIntoSpan);
     };
   }, [
+    scheduler,
     canvasPoolManager,
     flamegraphCanvas,
     flamegraphView,
-    scheduler,
+    spansCanvas,
+    spansView,
     uiFramesCanvas,
     uiFramesView,
     cpuChartCanvas,
@@ -900,6 +1095,17 @@ export function ContinuousFlamegraph(): ReactElement {
     canvasPoolManager,
     flamegraphMiniMapCanvas,
     null
+  );
+
+  const spansCanvases = useMemo(() => {
+    return [spansCanvasRef];
+  }, [spansCanvasRef]);
+
+  const spansCanvasBounds = useResizeCanvasObserver(
+    spansCanvases,
+    canvasPoolManager,
+    spansCanvas,
+    spansView
   );
 
   const uiFramesCanvases = useMemo(() => {
@@ -1123,8 +1329,7 @@ export function ContinuousFlamegraph(): ReactElement {
   // of model to search through. This will become useful as we  build
   // differential flamecharts or start comparing different profiles/charts
   const flamegraphs = useMemo(() => [flamegraph], [flamegraph]);
-  // We currently dont support span search on continuos profiling data
-  const spans = useMemo(() => [], []);
+  const spans = useMemo(() => (spanChart ? [spanChart] : []), [spanChart]);
 
   return (
     <Fragment>
@@ -1237,8 +1442,21 @@ export function ContinuousFlamegraph(): ReactElement {
             />
           ) : null
         }
-        spansTreeDepth={null}
-        spans={null}
+        spansTreeDepth={spanChart?.depth ?? null}
+        spans={
+          spanChart ? (
+            <FlamegraphSpans
+              canvasBounds={spansCanvasBounds}
+              spanChart={spanChart}
+              spansCanvas={spansCanvas}
+              spansCanvasRef={spansCanvasRef}
+              setSpansCanvasRef={setSpansCanvasRef}
+              canvasPoolManager={canvasPoolManager}
+              spansView={spansView}
+              spansRequestState={segment}
+            />
+          ) : null
+        }
         minimap={
           <FlamegraphZoomViewMinimap
             canvasPoolManager={canvasPoolManager}

@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {useLayoutEffect, useState} from 'react';
 
 import type {Client} from 'sentry/api';
 import type {Event, RequestState} from 'sentry/types';
@@ -25,8 +25,8 @@ export function useSentryEvent<T extends Event>(
     type: 'initial',
   });
 
-  useEffect(() => {
-    if (eventId === null) {
+  useLayoutEffect(() => {
+    if (eventId === null || !projectSlug || !organizationSlug) {
       return undefined;
     }
 

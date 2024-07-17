@@ -43,7 +43,7 @@ export interface ProfileGroup {
   profiles: Profile[];
   traceID: string;
   transactionID: string | null;
-  type: 'transaction';
+  type: 'transaction' | 'loading';
   images?: Image[];
 }
 
@@ -55,7 +55,7 @@ export interface ContinuousProfileGroup {
   profiles: Profile[];
   traceID: string;
   transactionID: string | null;
-  type: 'continuous';
+  type: 'continuous' | 'loading';
   images?: Image[];
 }
 

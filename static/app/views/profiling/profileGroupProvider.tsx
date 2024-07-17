@@ -14,7 +14,7 @@ const ProfileGroupContext = createContext<ProfileGroupContextValue | null>(null)
 function assertContinuousProfileGroup(
   input: ProfileGroupContextValue | null
 ): asserts input is ContinuousProfileGroup {
-  if (input && input.type !== 'continuous') {
+  if (input && input.type !== 'loading' && input.type !== 'continuous') {
     throw new Error('ProfileGroup is not of continuous profile type.');
   }
 }
@@ -22,7 +22,7 @@ function assertContinuousProfileGroup(
 function assertTransactionProfileGroup(
   input: ProfileGroupContextValue | null
 ): asserts input is ProfileGroup {
-  if (input && input.type !== 'transaction') {
+  if (input && input.type !== 'loading' && input.type !== 'transaction') {
     throw new Error('ProfileGroup is not of transaction profile type.');
   }
 }
@@ -55,7 +55,7 @@ export const LOADING_PROFILE_GROUP: Readonly<ProfileGroup> = {
   measurements: {},
   traceID: '',
   profiles: [],
-  type: 'transaction',
+  type: 'loading',
 };
 
 interface ProfileGroupProviderProps {

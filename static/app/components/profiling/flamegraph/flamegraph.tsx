@@ -1139,10 +1139,10 @@ function Flamegraph(): ReactElement {
       scheduler.off('zoom at span', onZoomIntoSpan);
     };
   }, [
+    scheduler,
     canvasPoolManager,
     flamegraphCanvas,
     flamegraphView,
-    scheduler,
     spansCanvas,
     spansView,
     uiFramesCanvas,
@@ -1529,6 +1529,7 @@ function Flamegraph(): ReactElement {
               setSpansCanvasRef={setSpansCanvasRef}
               canvasPoolManager={canvasPoolManager}
               spansView={spansView}
+              spansRequestState={profiledTransaction}
             />
           ) : null
         }

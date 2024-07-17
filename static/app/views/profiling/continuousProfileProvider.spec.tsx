@@ -24,11 +24,17 @@ describe('ContinuousProfileProvider', () => {
       start: new Date().toISOString(),
       end: new Date().toISOString(),
       profilerId: uuid4(),
+      eventId: '1',
     });
 
     const captureMessage = jest.spyOn(Sentry, 'captureMessage');
     const chunkRequest = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/profiling/chunks/`,
+      body: {},
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.id}/events/1/`,
       body: {},
     });
 
@@ -49,7 +55,13 @@ describe('ContinuousProfileProvider', () => {
       [new Date().toISOString(), undefined, uuid4()],
       [new Date().toISOString(), new Date().toISOString(), undefined],
     ]) {
-      window.location.search = qs.stringify({start, end, profilerId});
+      const project = ProjectFixture();
+      const organization = OrganizationFixture();
+      window.location.search = qs.stringify({start, end, profilerId, eventId: '1'});
+      MockApiClient.addMockResponse({
+        url: `/projects/${organization.slug}/${project.id}/events/1/`,
+        body: {},
+      });
       const captureMessage = jest.spyOn(Sentry, 'captureMessage');
       render(<ContinuosProfileProvider>{null}</ContinuosProfileProvider>, {
         router: {
