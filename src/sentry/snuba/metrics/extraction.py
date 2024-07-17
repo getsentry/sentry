@@ -1621,7 +1621,7 @@ def _get_satisfactory_metric(project: Project) -> str:
     if len(result) == 0:
         metric = TransactionMetric.DURATION.value
     else:
-        metric = result[0]
+        metric = result[0][0]
 
     if metric == TransactionMetric.DURATION.value:
         metric_field = "transaction.duration"
