@@ -10,7 +10,7 @@ import {
   naturalCaseInsensitiveSort,
 } from 'sentry/components/structuredEventData/utils';
 
-export type StructedEventDataConfig = {
+type Config = {
   isBoolean?: (value: unknown) => boolean;
   isNull?: (value: unknown) => boolean;
   isNumber?: (value: unknown) => boolean;
@@ -21,15 +21,14 @@ export type StructedEventDataConfig = {
   renderString?: (value: string) => string;
 };
 
-interface StructuredDataProps {
+interface Props {
   depth: number;
   maxDefaultDepth: number;
   meta: Record<any, any> | undefined;
   withAnnotatedText: boolean;
-  config?: StructedEventDataConfig;
+  config?: Config;
   forceDefaultExpand?: boolean;
   objectKey?: string;
-  showCopyButton?: boolean;
   // TODO(TS): What possible types can `value` be?
   value?: any;
   withOnlyFormattedText?: boolean;
@@ -45,7 +44,7 @@ export function RecursiveStructuredData({
   meta,
   objectKey,
   forceDefaultExpand,
-}: StructuredDataProps) {
+}: Props) {
   let i = 0;
 
   const formattedObjectKey = objectKey ? (

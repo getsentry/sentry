@@ -16,14 +16,12 @@ export type StructedEventDataConfig = {
 };
 
 interface StructuredDataProps {
-  depth: number;
   maxDefaultDepth: number;
-  meta: Record<any, any> | undefined;
   withAnnotatedText: boolean;
   config?: StructedEventDataConfig;
   forceDefaultExpand?: boolean;
+  meta?: Record<any, any>;
   objectKey?: string;
-  showCopyButton?: boolean;
   // TODO(TS): What possible types can `value` be?
   value?: any;
   withOnlyFormattedText?: boolean;
@@ -31,7 +29,6 @@ interface StructuredDataProps {
 
 export function StructuredData({
   config,
-  depth,
   value = null,
   maxDefaultDepth,
   withAnnotatedText,
@@ -43,7 +40,7 @@ export function StructuredData({
   return (
     <RecursiveStructuredData
       config={config}
-      depth={depth}
+      depth={0}
       value={value}
       maxDefaultDepth={maxDefaultDepth}
       withAnnotatedText={withAnnotatedText}

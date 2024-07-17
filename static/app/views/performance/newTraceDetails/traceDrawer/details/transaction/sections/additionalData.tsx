@@ -68,7 +68,6 @@ export function AdditionalData({event}: {event: EventTransaction}) {
             <StructuredData
               withAnnotatedText
               value={data.value}
-              depth={0}
               maxDefaultDepth={2}
               meta={event._meta?.context}
             />

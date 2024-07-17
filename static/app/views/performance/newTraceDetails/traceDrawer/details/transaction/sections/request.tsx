@@ -209,7 +209,6 @@ function RequestBodySection({
                   withAnnotatedText={false}
                   meta={metaData}
                   maxDefaultDepth={2}
-                  depth={0}
                 />
               ),
               subject: t('Body'),
@@ -253,7 +252,6 @@ function RequestBodySection({
                   value={bodyData}
                   meta={metaData}
                   withAnnotatedText
-                  depth={0}
                   config={config}
                   maxDefaultDepth={2}
                 />
