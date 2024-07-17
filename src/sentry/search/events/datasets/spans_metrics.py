@@ -177,11 +177,12 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     "division_if",
                     required_args=[
                         fields.MetricArg(
-                            "dividend",
+                            # needs to be named column, otherwise the query builder won't be able to determine the correct target table
+                            "column",
                             allow_custom_measurements=False,
                         ),
                         fields.MetricArg(
-                            "divisor",
+                            "column1",
                             allow_custom_measurements=False,
                         ),
                         fields.MetricArg(
@@ -248,6 +249,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     snql_distribution=lambda args, alias: self._resolve_sum_if(
                         args["column"], args["if_col"], args["if_val"], alias
                     ),
+                    default_result_type="percentage",
                 ),
                 fields.MetricsFunction(
                     "avg",
@@ -1306,8 +1308,8 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         alias: str,
     ) -> SelectType:
         return function_aliases.resolve_division(
-            self._resolve_sum_if(args["dividend"], args["if_col"], args["if_val"]),
-            self._resolve_sum_if(args["divisor"], args["if_col"], args["if_val"]),
+            self._resolve_sum_if(args["column"], args["if_col"], args["if_val"]),
+            self._resolve_sum_if(args["column1"], args["if_col"], args["if_val"]),
             alias,
         )
 
