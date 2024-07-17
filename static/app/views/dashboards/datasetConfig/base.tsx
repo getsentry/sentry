@@ -19,6 +19,7 @@ import type {DisplayType, Widget, WidgetQuery} from '../types';
 import {WidgetType} from '../types';
 import {getNumEquations} from '../utils';
 
+import {ErrorsConfig} from './errors';
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
 import {ReleasesConfig} from './releases';
@@ -215,16 +216,24 @@ export function getDatasetConfig<T extends WidgetType | undefined>(
   ? typeof IssuesConfig
   : T extends WidgetType.RELEASE
     ? typeof ReleasesConfig
-    : typeof ErrorsAndTransactionsConfig;
+    : T extends WidgetType.ERRORS
+      ? typeof ErrorsConfig
+      : typeof ErrorsAndTransactionsConfig;
 
 export function getDatasetConfig(
   widgetType?: WidgetType
-): typeof IssuesConfig | typeof ReleasesConfig | typeof ErrorsAndTransactionsConfig {
+):
+  | typeof IssuesConfig
+  | typeof ReleasesConfig
+  | typeof ErrorsAndTransactionsConfig
+  | typeof ErrorsConfig {
   switch (widgetType) {
     case WidgetType.ISSUE:
       return IssuesConfig;
     case WidgetType.RELEASE:
       return ReleasesConfig;
+    case WidgetType.ERRORS:
+      return ErrorsConfig;
     case WidgetType.DISCOVER:
     default:
       return ErrorsAndTransactionsConfig;
