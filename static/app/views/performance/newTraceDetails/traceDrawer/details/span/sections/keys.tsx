@@ -17,7 +17,9 @@ import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
+import useOrganization from 'sentry/utils/useOrganization';
 import {isSpanNode} from 'sentry/views/performance/newTraceDetails/guards';
 import {
   type TraceTree,
@@ -69,6 +71,8 @@ export function SpanKeys({
   node: TraceTreeNode<TraceTree.Span>;
   projectId?: string;
 }) {
+  const organization = useOrganization();
+
   const span = node.value;
   const {sizeKeys, nonSizeKeys} = partitionSizes(span?.data ?? {});
   const allZeroSizes = SIZE_DATA_KEYS.map(key => sizeKeys[key]).every(
@@ -138,7 +142,7 @@ export function SpanKeys({
       items.push({
         key: key,
         subject: key,
-        actionButton: (
+        actionButton: hasCustomMetricsExtractionRules(organization) ? (
           <Button
             borderless
             aria-label={t('Extract as metric')}
@@ -154,7 +158,7 @@ export function SpanKeys({
             icon={<IconAdd size="xs" />}
             title={t('Extract as metric')}
           />
-        ),
+        ) : undefined,
         value: value as string | number,
       });
     }
