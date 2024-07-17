@@ -586,3 +586,53 @@ class OrganizationMetricsSamplesEndpointTest(BaseSpansTestCase, APITestCase):
             expected = {int(span_ids[i], 16) for i in [2, 3, 4]}
             actual = {int(row["id"], 16) for row in response.data["data"]}
             assert actual == expected
+
+    def test_filtering_custom_metrics_by_project(self):
+        custom_mri = "d:custom/value@millisecond"
+        value = 100
+        span_id = uuid4().hex[:16]
+        first_project = self.create_project(name="My New Project")
+        ts = before_now(days=0, minutes=10).replace(microsecond=0)
+
+        self.store_indexed_span(
+            first_project.id,
+            uuid4().hex,
+            uuid4().hex,
+            span_id=span_id,
+            duration=value,
+            exclusive_time=value,
+            timestamp=ts,
+            measurements={"score.total": value},
+            store_metrics_summary={
+                custom_mri: [
+                    {
+                        "min": value - 1,
+                        "max": value + 2,
+                        "sum": value * 2,
+                        "count": 2,
+                        "tags": {},
+                    }
+                ]
+            },
+        )
+
+        responses = []
+        for query in (f"project:{first_project.slug}", f"project_id:{first_project.id}"):
+            request = {
+                "mri": custom_mri,
+                "field": ["id"],
+                "project": [first_project.id],
+                "query": query,
+                "statsPeriod": "24h",
+            }
+            response = self.do_request(request)
+            assert response.status_code == 200
+            assert response.data
+
+            expected = {int(span_id, 16)}
+            actual = {int(row["id"], 16) for row in response.data["data"]}
+            assert actual == expected, f"failed for query {query}"
+
+            responses.append(response)
+
+        assert len({str(r.data) for r in responses}) == 1
