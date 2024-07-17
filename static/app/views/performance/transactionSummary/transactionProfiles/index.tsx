@@ -35,7 +35,11 @@ import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegr
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import type {Frame} from 'sentry/utils/profiling/frame';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
-import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
+import type {ProfilingFieldType} from 'sentry/utils/profiling/hooks/useProfileEvents';
+import {
+  getProfilesTableFields,
+  useProfileEvents,
+} from 'sentry/utils/profiling/hooks/useProfileEvents';
 import {formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -50,8 +54,6 @@ import {
   useFlamegraph,
 } from 'sentry/views/profiling/flamegraphProvider';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
-import type {ProfilingFieldType} from 'sentry/views/profiling/profileSummary/content';
-import {getProfilesTableFields} from 'sentry/views/profiling/profileSummary/content';
 
 import PageLayout, {redirectToPerformanceHomepage} from '../pageLayout';
 
