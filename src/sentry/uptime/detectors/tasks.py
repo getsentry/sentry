@@ -8,14 +8,18 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.locks import locks
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.tasks.base import instrumented_task
 from sentry.uptime.detectors.ranking import (
     _get_cluster,
+    delete_candidate_projects_for_org,
     delete_candidate_urls_for_project,
-    delete_project_bucket,
+    delete_organization_bucket,
+    get_candidate_projects_for_org,
     get_candidate_urls_for_project,
-    get_project_bucket,
+    get_organization_bucket,
+    should_detect_for_organization,
     should_detect_for_project,
 )
 from sentry.uptime.models import ProjectUptimeSubscriptionMode
@@ -93,20 +97,40 @@ def process_detection_bucket(bucket: datetime.datetime):
     """
     Schedules url detection for all projects in this time bucket that saw promising urls.
     """
-    for project_id, count in get_project_bucket(bucket).items():
-        process_project_url_ranking.delay(project_id, count)
-    delete_project_bucket(bucket)
+    for organization_id in get_organization_bucket(bucket):
+        process_organization_url_ranking.delay(organization_id)
+    delete_organization_bucket(bucket)
 
 
 @instrumented_task(
-    name="sentry.uptime.detectors.tasks.process_project_url_ranking",
+    name="sentry.uptime.detectors.tasks.process_organization_url_ranking",
     queue="uptime",
 )
-def process_project_url_ranking(project_id: int, project_url_count: int):
+def process_organization_url_ranking(organization_id: int):
+    org = Organization.objects.get_from_cache(id=organization_id)
+    logger.info(
+        "uptime.process_organization",
+        extra={"organization_id": org.id},
+    )
+    # TODO: Check quota available for org
+    should_detect = should_detect_for_organization(org)
+
+    for project_id, project_count in get_candidate_projects_for_org(org):
+        project = Project.objects.get_from_cache(id=project_id)
+        if not should_detect:
+            # We still want to clear up these urls even if we're no longer detecting
+            delete_candidate_urls_for_project(project)
+        else:
+            if process_project_url_ranking(project, project_count):
+                should_detect = False
+
+    delete_candidate_projects_for_org(org)
+
+
+def process_project_url_ranking(project: Project, project_url_count: int) -> bool:
     """
     Looks at candidate urls for a project and determines whether we should start monitoring them
     """
-    project = Project.objects.get_from_cache(id=project_id)
     logger.info(
         "uptime.process_project",
         extra={
@@ -115,10 +139,13 @@ def process_project_url_ranking(project_id: int, project_url_count: int):
         },
     )
     if not should_detect_for_project(project):
-        return
+        return False
+
+    found_url = False
 
     for url, url_count in get_candidate_urls_for_project(project)[:5]:
         if process_candidate_url(project, project_url_count, url, url_count):
+            found_url = True
             break
     else:
         # TODO: If we don't find any urls to monitor, we want to increment a counter in redis and check the value.
@@ -126,6 +153,7 @@ def process_project_url_ranking(project_id: int, project_url_count: int):
         pass
 
     delete_candidate_urls_for_project(project)
+    return found_url
 
 
 def process_candidate_url(
