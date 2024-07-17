@@ -411,7 +411,7 @@ function NodeActions(props: {
 
   const profileLink = makeTraceContinuousProfilingLink(props.node, profilerId, {
     orgSlug: props.organization.slug,
-    projectSlug: props.node.value.project_slug,
+    projectSlug: props.node.value?.project_slug ?? '',
   });
 
   return (
