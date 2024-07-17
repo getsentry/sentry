@@ -16,7 +16,6 @@ import webVitalsPreviewImg from 'sentry-images/insights/module-upsells/insights-
 import emptyStateImg from 'sentry-images/spot/performance-waiting-for-span.svg';
 
 import {LinkButton} from 'sentry/components/button';
-import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
@@ -39,18 +38,13 @@ type PlatformIcons = keyof typeof PLATFORM_TO_ICON;
 export function ModulesOnboarding({
   children,
   moduleName,
-  onboardingContent,
 }: {
   children: React.ReactNode;
   moduleName: ModuleName;
-  onboardingContent?: React.ReactNode;
 }) {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
   const hasData = useHasFirstSpan(moduleName);
-  const hasEmptyStateFeature = organization.features.includes(
-    'insights-empty-state-page'
-  );
 
   if (onboardingProject) {
     return (
@@ -60,7 +54,7 @@ export function ModulesOnboarding({
     );
   }
 
-  if (hasEmptyStateFeature && !hasData) {
+  if (!hasData) {
     return (
       <ModuleLayout.Full>
         <ModulesOnboardingPanel moduleName={moduleName} />
@@ -68,38 +62,7 @@ export function ModulesOnboarding({
     );
   }
 
-  if (onboardingContent && (onboardingProject || !hasData)) {
-    return (
-      <ModuleLayout.Full>
-        <OldModulesOnboardingPanel>{onboardingContent}</OldModulesOnboardingPanel>
-      </ModuleLayout.Full>
-    );
-  }
-
-  if (!onboardingProject && hasData) {
-    return children;
-  }
-
-  if (!onboardingContent) {
-    return children;
-  }
-  // TODO: Add an error state?
-  return (
-    <ModuleLayout.Full>
-      <LoadingIndicator />
-    </ModuleLayout.Full>
-  );
-}
-
-function OldModulesOnboardingPanel({children}: {children: React.ReactNode}) {
-  return (
-    <Panel>
-      <Container>
-        <ContentContainer>{children}</ContentContainer>
-        <OldPerfImage src={emptyStateImg} />
-      </Container>
-    </Panel>
-  );
+  return children;
 }
 
 function ModulesOnboardingPanel({moduleName}: {moduleName: ModuleName}) {
@@ -185,16 +148,6 @@ const PerfImage = styled('img')`
   min-width: 200px;
 `;
 
-const OldPerfImage = styled('img')`
-  width: 400px;
-  user-select: none;
-  position: absolute;
-  top: 0;
-  right: 0;
-  padding-right: ${space(2)};
-  padding-top: ${space(4)};
-`;
-
 const Container = styled('div')`
   position: relative;
   overflow: hidden;
@@ -207,12 +160,6 @@ const SplitMainContent = styled('div')`
   align-items: stretch;
   flex-wrap: wrap-reverse;
   gap: ${space(4)};
-`;
-
-const ContentContainer = styled('div')`
-  position: relative;
-  width: 60%;
-  z-index: 1;
 `;
 
 const Header = styled('h3')`
