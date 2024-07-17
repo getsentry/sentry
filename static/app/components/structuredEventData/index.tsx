@@ -22,7 +22,6 @@ interface StructuredDataProps {
   forceDefaultExpand?: boolean;
   meta?: Record<any, any>;
   objectKey?: string;
-  showCopyButton?: boolean;
   // TODO(TS): What possible types can `value` be?
   value?: any;
   withOnlyFormattedText?: boolean;

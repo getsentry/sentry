@@ -29,7 +29,6 @@ interface StructuredDataProps {
   config?: StructedEventDataConfig;
   forceDefaultExpand?: boolean;
   objectKey?: string;
-  showCopyButton?: boolean;
   // TODO(TS): What possible types can `value` be?
   value?: any;
   withOnlyFormattedText?: boolean;
