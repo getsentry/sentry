@@ -16,7 +16,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
-import {getCustomEventsFieldRenderer} from 'sentry/views/dashboards/datasetConfig/errors';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
 import type {Widget, WidgetQuery} from '../types';
@@ -27,6 +26,7 @@ import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eve
 import {type DatasetConfig, handleOrderByReset} from './base';
 import {
   filterAggregateParams,
+  getCustomEventsFieldRenderer,
   getTableSortOptions,
   transformEventsResponseToTable,
 } from './errorsAndTransactions';
