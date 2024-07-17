@@ -85,6 +85,14 @@ SAMPLED_TASKS = {
     "sentry.tasks.embeddings_grouping.backfill_seer_grouping_records_for_project": 1.0,
 }
 
+# We can enable the new behavior one by one by uncommenting consumers here
+SAMPLED_INGEST_CONSUMERS = {
+    # "ingest_consumer.process_event": settings.SENTRY_INGEST_CONSUMER_APM_SAMPLING,
+    # "ingest_consumer.process_attachment_chunk": settings.SENTRY_INGEST_CONSUMER_APM_SAMPLING,
+    # "ingest_consumer.process_individual_attachment": settings.SENTRY_INGEST_CONSUMER_APM_SAMPLING,
+    # "ingest_consumer.process_userreport": settings.SENTRY_INGEST_CONSUMER_APM_SAMPLING,
+}
+
 if settings.ADDITIONAL_SAMPLED_TASKS:
     SAMPLED_TASKS.update(settings.ADDITIONAL_SAMPLED_TASKS)
 
@@ -183,6 +191,13 @@ def traces_sampler(sampling_context):
 
         if task_name in SAMPLED_TASKS:
             return SAMPLED_TASKS[task_name]
+
+    # Apply sampling rates for ingest consumers
+    if "ingest_consumer" in sampling_context:
+        consumer_name = sampling_context["ingest_consumer"].get("consumer")
+
+        if consumer_name in SAMPLED_INGEST_CONSUMERS:
+            return SAMPLED_INGEST_CONSUMERS[consumer_name]
 
     # Default to the sampling rate in settings
     return float(settings.SENTRY_BACKEND_APM_SAMPLING or 0)

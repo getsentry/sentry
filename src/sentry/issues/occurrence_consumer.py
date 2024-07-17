@@ -348,6 +348,7 @@ def _process_message(
     :raises InvalidEventPayloadError: when the message is invalid
     :raises EventLookupError: when the provided event_id in the message couldn't be found.
     """
+    # TODO-anton: remove sampled=True here and let traces_sample make the decision
     with sentry_sdk.start_transaction(
         op="_process_message",
         name="issues.occurrence_consumer",
