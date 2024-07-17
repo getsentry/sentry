@@ -118,8 +118,10 @@ def start_service_monitoring() -> None:
             time.sleep(options.get("backpressure.monitoring.interval"))
             continue
 
-        # TODO-anton: remove sampled here and let traces_sampler decide
-        with sentry_sdk.start_transaction(name="backpressure.monitoring", sampled=True):
+        with sentry_sdk.start_transaction(
+            name="backpressure.monitoring",
+            custom_sampling_context={"sample_rate": 1.0},
+        ):
             # first, check each base service and record its health
             unhealthy_services = check_service_health(services)
 
