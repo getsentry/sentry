@@ -20,7 +20,7 @@ from sentry.tasks.embeddings_grouping.utils import (
     get_events_from_nodestore,
     get_project_for_batch,
     initialize_backfill,
-    make_backfill_grouping_index_redis_key,
+    make_backfill_grouping_id_redis_key,
     make_backfill_project_index_redis_key,
     send_group_and_stacktrace_to_seer,
     send_group_and_stacktrace_to_seer_multithreaded,
@@ -46,7 +46,7 @@ logger = logging.getLogger(__name__)
 )
 def backfill_seer_grouping_records_for_project(
     current_project_id: int,
-    last_processed_group_index_input: int | None,
+    last_processed_group_id_input: int | None,
     cohort: str | list[int] | None = None,
     last_processed_project_index_input: int | None = None,
     only_delete=False,
@@ -55,8 +55,8 @@ def backfill_seer_grouping_records_for_project(
 ) -> None:
     """
     Task to backfill seer grouping_records table.
-    Pass in last_processed_group_index = None if calling for the first time. This function will spawn
-    child tasks that will pass the last_processed_group_index
+    Pass in last_processed_group_id = None if calling for the first time. This function will spawn
+    child tasks that will pass the last_processed_group_id
     """
     if options.get("seer.similarity-backfill-killswitch.enabled") or killswitch_enabled(
         current_project_id
@@ -70,7 +70,7 @@ def backfill_seer_grouping_records_for_project(
         "backfill_seer_grouping_records",
         extra={
             "current_project_id": current_project_id,
-            "last_processed_group_index": last_processed_group_index_input,
+            "last_processed_group_id": last_processed_group_id_input,
             "cohort": cohort,
             "last_processed_project_index": last_processed_project_index_input,
             "only_delete": only_delete,
@@ -78,10 +78,10 @@ def backfill_seer_grouping_records_for_project(
     )
 
     try:
-        (project, last_processed_group_index, last_processed_project_index,) = initialize_backfill(
+        (project, last_processed_group_id, last_processed_project_index,) = initialize_backfill(
             current_project_id,
             cohort,
-            last_processed_group_index_input,
+            last_processed_group_id_input,
             last_processed_project_index_input,
             redis_client,
         )
@@ -99,11 +99,9 @@ def backfill_seer_grouping_records_for_project(
         )
         assert last_processed_project_index_input is not None
         call_next_backfill(
-            last_processed_group_index=None,
+            last_processed_group_id=None,
             project_id=current_project_id,
             redis_client=redis_client,
-            len_group_id_batch_unfiltered=0,
-            last_group_id=None,
             last_processed_project_index=last_processed_project_index_input,
             cohort=cohort,
             only_delete=only_delete,
@@ -117,11 +115,9 @@ def backfill_seer_grouping_records_for_project(
             extra={"current_project_id": current_project_id},
         )
         call_next_backfill(
-            last_processed_group_index=None,
+            last_processed_group_id=None,
             project_id=current_project_id,
             redis_client=redis_client,
-            len_group_id_batch_unfiltered=0,
-            last_group_id=None,
             last_processed_project_index=last_processed_project_index,
             cohort=cohort,
             only_delete=only_delete,
@@ -130,25 +126,19 @@ def backfill_seer_grouping_records_for_project(
 
     batch_size = options.get("embeddings-grouping.seer.backfill-batch-size")
 
-    (
-        groups_to_backfill_with_no_embedding,
-        batch_end_index,
-        total_groups_to_backfill_length,
-    ) = get_current_batch_groups_from_postgres(project, last_processed_group_index, batch_size)
+    (groups_to_backfill_with_no_embedding, batch_end_id) = get_current_batch_groups_from_postgres(
+        project, last_processed_group_id, batch_size
+    )
 
     if len(groups_to_backfill_with_no_embedding) == 0:
         call_next_backfill(
-            last_processed_group_index=batch_end_index,
+            last_processed_group_id=batch_end_id,
             project_id=current_project_id,
             redis_client=redis_client,
-            len_group_id_batch_unfiltered=total_groups_to_backfill_length,
-            last_group_id=None,
             last_processed_project_index=last_processed_project_index,
             cohort=cohort,
         )
         return
-
-    last_group_id = groups_to_backfill_with_no_embedding[-1]
 
     snuba_results = get_data_from_snuba(project, groups_to_backfill_with_no_embedding)
 
@@ -159,11 +149,9 @@ def backfill_seer_grouping_records_for_project(
 
     if len(groups_to_backfill_with_no_embedding_has_snuba_row) == 0:
         call_next_backfill(
-            last_processed_group_index=batch_end_index,
+            last_processed_group_id=batch_end_id,
             project_id=current_project_id,
             redis_client=redis_client,
-            len_group_id_batch_unfiltered=total_groups_to_backfill_length,
-            last_group_id=last_group_id,
             last_processed_project_index=last_processed_project_index,
             cohort=cohort,
         )
@@ -174,11 +162,9 @@ def backfill_seer_grouping_records_for_project(
     )
     if not group_hashes_dict:
         call_next_backfill(
-            last_processed_group_index=batch_end_index,
+            last_processed_group_id=batch_end_id,
             project_id=current_project_id,
             redis_client=redis_client,
-            len_group_id_batch_unfiltered=total_groups_to_backfill_length,
-            last_group_id=last_group_id,
             last_processed_project_index=last_processed_project_index,
             cohort=cohort,
         )
@@ -226,11 +212,9 @@ def backfill_seer_grouping_records_for_project(
         },
     )
     call_next_backfill(
-        last_processed_group_index=batch_end_index,
+        last_processed_group_id=batch_end_id,
         project_id=current_project_id,
         redis_client=redis_client,
-        len_group_id_batch_unfiltered=total_groups_to_backfill_length,
-        last_group_id=last_group_id,
         last_processed_project_index=last_processed_project_index,
         cohort=cohort,
     )
@@ -238,38 +222,30 @@ def backfill_seer_grouping_records_for_project(
 
 def call_next_backfill(
     *,
-    last_processed_group_index: int | None,
+    last_processed_group_id: int | None,
     project_id: int,
     redis_client: RedisCluster | StrictRedis,
-    len_group_id_batch_unfiltered: int,
-    last_group_id: int | None,
     last_processed_project_index: int,
     cohort: str | list[int] | None = None,
     only_delete: bool = False,
 ):
-
-    if last_group_id is not None:
+    if last_processed_group_id is not None:
         redis_client.set(
-            f"{make_backfill_grouping_index_redis_key(project_id)}",
-            last_processed_group_index if last_processed_group_index is not None else 0,
+            make_backfill_grouping_id_redis_key(project_id),
+            last_processed_group_id,
             ex=REDIS_KEY_EXPIRY,
         )
-    if (
-        last_processed_group_index is not None
-        and last_processed_group_index < len_group_id_batch_unfiltered
-    ):
         logger.info(
             "calling next backfill task",
             extra={
                 "project_id": project_id,
-                "last_processed_group_index": last_processed_group_index,
-                "last_processed_group_id": last_group_id,
+                "last_processed_group_id": last_processed_group_id,
             },
         )
         backfill_seer_grouping_records_for_project.apply_async(
             args=[
                 project_id,
-                last_processed_group_index,
+                last_processed_group_id,
                 cohort,
                 last_processed_project_index,
                 only_delete,
