@@ -53,11 +53,7 @@ import {useParams} from 'sentry/utils/useParams';
 import useProjects from 'sentry/utils/useProjects';
 import useRouter from 'sentry/utils/useRouter';
 import {useUser} from 'sentry/utils/useUser';
-
-import {ERROR_TYPES} from './constants';
-import GroupHeader from './header';
-import SampleEventAlert from './sampleEventAlert';
-import {Tab, TabPaths} from './types';
+import UpdatedGroupHeader from 'sentry/views/issueDetails/updatedHeader';
 import {
   getGroupDetailsQueryData,
   getGroupEventDetailsQueryData,
@@ -67,7 +63,13 @@ import {
   useDefaultIssueEvent,
   useEnvironmentsFromUrl,
   useFetchIssueTagsForDetailsPage,
-} from './utils';
+  useHasStreamlinedUI,
+} from 'sentry/views/issueDetails/utils';
+
+import {ERROR_TYPES} from './constants';
+import GroupHeader from './header';
+import SampleEventAlert from './sampleEventAlert';
+import {Tab, TabPaths} from './types';
 
 type Error = (typeof ERROR_TYPES)[keyof typeof ERROR_TYPES] | null;
 
@@ -702,14 +704,23 @@ function GroupDetailsContent({
       value={currentTab}
       onChange={tab => trackTabChanged({tab, group, project, event, organization})}
     >
-      <GroupHeader
-        organization={organization}
-        groupReprocessingStatus={groupReprocessingStatus}
-        event={event ?? undefined}
-        group={group}
-        baseUrl={baseUrl}
-        project={project as Project}
-      />
+      {useHasStreamlinedUI() ? (
+        <UpdatedGroupHeader
+          group={group}
+          project={project}
+          groupReprocessingStatus={groupReprocessingStatus}
+          baseUrl={baseUrl}
+        />
+      ) : (
+        <GroupHeader
+          organization={organization}
+          groupReprocessingStatus={groupReprocessingStatus}
+          event={event ?? undefined}
+          group={group}
+          baseUrl={baseUrl}
+          project={project as Project}
+        />
+      )}
       <GroupTabPanels>
         <TabPanels.Item key={currentTab}>
           {isValidElement(children) ? cloneElement(children, childProps) : children}
