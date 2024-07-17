@@ -1304,6 +1304,7 @@ class BaseQueryBuilder:
         if (
             search_filter.operator in ("!=", "NOT IN")
             and not search_filter.key.is_tag
+            and not is_tag
             and name not in self.config.non_nullable_keys
         ):
             # Handle null columns on inequality comparisons. Any comparison

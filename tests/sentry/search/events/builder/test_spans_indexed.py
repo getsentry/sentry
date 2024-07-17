@@ -430,8 +430,9 @@ def test_id_column_validation_failed(params, column, query, message):
 
 @pytest.mark.parametrize(
     ["column", "query"],
-    [pytest.param(column, "0" * 16, id=column) for column in SPAN_ID_FIELDS]
-    + [pytest.param(column, "0" * 32, id=column) for column in SPAN_UUID_FIELDS],
+    [pytest.param(column, "0" * 32, id=column) for column in SPAN_UUID_FIELDS]
+    + [pytest.param(column, "0" * 16, id=column) for column in SPAN_ID_FIELDS]
+    + [pytest.param(column, "0" * 10, id=column) for column in SPAN_ID_FIELDS],
 )
 @pytest.mark.parametrize(
     ["operator"],
@@ -446,8 +447,18 @@ def test_id_column_permit_in_operator(params, column, query, operator):
         selected_columns=["count"],
     )
 
-    assert Condition(
-        builder.resolve_column(column),
+    resolved_column = builder.resolve_column(column)
+
+    condition = Condition(
+        resolved_column,
         Op.IN if operator == "" else Op.NOT_IN,
         [query],
     )
+
+    non_nullable_condition = Condition(
+        Function("ifNull", [resolved_column, ""]),
+        Op.IN if operator == "" else Op.NOT_IN,
+        [query],
+    )
+
+    assert condition in builder.where or non_nullable_condition in builder.where
