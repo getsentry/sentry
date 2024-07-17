@@ -133,13 +133,8 @@ export function SetupReplaysCTA({
         <AnswerContent>
           <div>
             {t(
-              'Session Replay supports all browser-based applications and certain native mobile platforms, such as iOS and Android. Our native Android and iOS SDKs are currently in beta. Features are still in progress and may have some bugs. We recognize the irony.'
+              'Session Replay supports all browser-based applications and certain native mobile platforms, such as iOS, React Native, and Android. Our native Android and iOS SDKs are currently in beta. Features are still in progress and may have some bugs. We recognize the irony.'
             )}
-          </div>
-          <div>
-            {tct('To access Session Replay for mobile, join our [link:waitlist].', {
-              link: <ExternalLink href="https://sentry.io/lp/mobile-replay-beta/" />,
-            })}
           </div>
           <div>
             {t(
