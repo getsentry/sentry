@@ -662,7 +662,7 @@ class RuleConditionsForm extends PureComponent<Props, State> {
                         highlightUnsupportedTags={
                           organization.features.includes('alert-allow-indexed') ||
                           (hasOnDemandMetricAlertFeature(organization) &&
-                            isOnDemandQueryString(initialData.query))
+                            isOnDemandQueryString(value))
                             ? false
                             : dataset === Dataset.GENERIC_METRICS
                         }
