@@ -102,7 +102,7 @@ def project_slug_converter(
         # Create a new search filter with the correct values
         converted_filter = builder.convert_search_filter_to_condition(
             SearchFilter(
-                SearchKey(constants.PROJECT_ID_ALIAS),
+                SearchKey("project.id"),
                 search_filter.operator,
                 SearchValue(project_ids if search_filter.is_in_filter else project_ids[0]),
             )
