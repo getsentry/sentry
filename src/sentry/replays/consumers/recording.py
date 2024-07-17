@@ -104,6 +104,7 @@ class ProcessReplayRecordingStrategyFactory(ProcessingStrategyFactory[KafkaPaylo
 
 def initialize_threaded_context(message: Message[KafkaPayload]) -> MessageContext:
     """Initialize a Sentry transaction and unpack the message."""
+    # TODO-anton: remove sampled here and let traces_sampler decide
     transaction = sentry_sdk.start_transaction(
         name="replays.consumer.process_recording",
         op="replays.consumer",
@@ -130,6 +131,7 @@ def process_message_threaded(message: Message[MessageContext]) -> Any:
 
 def process_message(message: Message[KafkaPayload]) -> Any:
     """Move the replay payload to permanent storage."""
+    # TODO-anton: remove sampled here and let traces_sampler decide
     transaction = sentry_sdk.start_transaction(
         name="replays.consumer.process_recording",
         op="replays.consumer",
