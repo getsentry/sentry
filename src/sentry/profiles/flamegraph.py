@@ -19,7 +19,8 @@ from snuba_sdk import (
 
 from sentry import options
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
-from sentry.search.events.types import ParamsType
+from sentry.search.events.builder.profile_functions import ProfileFunctionsQueryBuilder
+from sentry.search.events.types import ParamsType, SnubaParams
 from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset, EntityKey, StorageKey
 from sentry.snuba.referrer import Referrer
@@ -257,3 +258,107 @@ def get_chunks_from_spans_metadata(
             }
         )
     return chunks
+
+
+class TransactionProfileCandidate(TypedDict):
+    project_id: int
+    profile_id: str
+
+
+class ContinuousProfileCandidate(TypedDict):
+    project_id: int
+    profiler_id: str
+
+
+ProfileCandidate = TransactionProfileCandidate | ContinuousProfileCandidate
+
+
+class FlamegraphExecutor:
+    def __init__(
+        self,
+        *,
+        snuba_params: SnubaParams,
+        dataset: Dataset,
+        query: str,
+        fingerprint: int | None = None,
+    ):
+        self.snuba_params = snuba_params
+        self.dataset = dataset
+        self.query = query
+        self.fingerprint = fingerprint
+
+    def get_profile_candidates(self) -> list[ProfileCandidate]:
+        if self.dataset == Dataset.Functions:
+            return self.get_profile_candidates_from_functions()
+        elif self.dataset == Dataset.Discover:
+            return self.get_profile_candidates_from_transactions()
+
+        raise NotImplementedError
+
+    def get_profile_candidates_from_functions(self) -> list[ProfileCandidate]:
+        # TODO: continuous profiles support
+        max_profiles = options.get("profiling.flamegraph.profile-set.size")
+
+        profile_candidates: list[ProfileCandidate] = []
+
+        builder = ProfileFunctionsQueryBuilder(
+            dataset=Dataset.Functions,
+            params={},
+            snuba_params=self.snuba_params,
+            selected_columns=["project.id", "timestamp", "unique_examples()"],
+            query=self.query,
+            limit=max_profiles,
+        )
+
+        if self.fingerprint is not None:
+            builder.add_conditions(
+                [Condition(builder.resolve_column("fingerprint"), Op.EQ, self.fingerprint)]
+            )
+
+        result = builder.run_query(Referrer.API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH.value)
+
+        for row in result["data"]:
+            project = row["project.id"]
+            examples = row["unique_examples()"]
+            for example in examples:
+                if len(profile_candidates) > max_profiles:
+                    break
+                profile_candidates.append(
+                    {
+                        "project_id": project,
+                        "profile_id": example,
+                    }
+                )
+
+        return profile_candidates
+
+    def get_profile_candidates_from_transactions(self) -> list[ProfileCandidate]:
+        # TODO: continuous profiles support
+        max_profiles = options.get("profiling.flamegraph.profile-set.size")
+
+        profile_candidates: list[ProfileCandidate] = []
+
+        builder = DiscoverQueryBuilder(
+            dataset=Dataset.Discover,
+            params={},
+            snuba_params=self.snuba_params,
+            selected_columns=["project.id", "profile.id"],
+            query=self.query,
+            limit=max_profiles,
+        )
+
+        builder.add_conditions([Condition(Column("profile_id"), Op.IS_NOT_NULL)])
+
+        result = builder.run_query(Referrer.API_PROFILING_PROFILE_FLAMEGRAPH.value)
+
+        for row in result["data"]:
+            project = row["project.id"]
+
+            profile_candidates.append(
+                {
+                    "project_id": project,
+                    "profile_id": row["profile.id"],
+                }
+            )
+
+        return profile_candidates

@@ -14,13 +14,9 @@ from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils.snuba import raw_snql_query
 
 
-class OrganizationProfilingFlamegraphTest(APITestCase):
+class OrganizationProfilingFlamegraphTestLegacy(APITestCase):
     endpoint = "sentry-api-0-organization-profiling-flamegraph"
-    features = {
-        "organizations:profiling": True,
-        "organizations:continuous-profiling": True,
-        "organizations:global-views": True,
-    }
+    features = {"organizations:profiling": True}
 
     def setUp(self):
         self.login_as(user=self.user)
@@ -31,7 +27,7 @@ class OrganizationProfilingFlamegraphTest(APITestCase):
     def test_queries_functions(self, mock_proxy_profiling_service, mock_raw_snql_query):
         mock_proxy_profiling_service.return_value = HttpResponse(status=200)
 
-        fingerprint = int(uuid4().hex[:16], 16)
+        fingerprint = int(uuid4().hex[:8], 16)
 
         with self.feature(self.features):
             response = self.client.get(
@@ -42,7 +38,7 @@ class OrganizationProfilingFlamegraphTest(APITestCase):
                     "fingerprint": str(fingerprint),
                 },
             )
-        assert response.status_code == 200
+        assert response.status_code == 200, response.content
 
         mock_raw_snql_query.assert_called_once()
 
@@ -73,7 +69,7 @@ class OrganizationProfilingFlamegraphTest(APITestCase):
                     "query": "transaction:foo",
                 },
             )
-        assert response.status_code == 200
+        assert response.status_code == 200, response.content
 
         mock_raw_snql_query.assert_called_once()
 
@@ -83,6 +79,124 @@ class OrganizationProfilingFlamegraphTest(APITestCase):
         assert snql_request.dataset == Dataset.Discover.value
         assert Condition(Column("profile_id"), Op.IS_NOT_NULL) in snql_request.query.where
         assert Condition(Column("transaction"), Op.EQ, "foo") in snql_request.query.where
+
+
+class OrganizationProfilingFlamegraphTest(APITestCase):
+    endpoint = "sentry-api-0-organization-profiling-flamegraph"
+    features = {
+        "organizations:profiling": True,
+        "organizations:continuous-profiling-compat": True,
+    }
+
+    def setUp(self):
+        self.login_as(user=self.user)
+        self.url = reverse(self.endpoint, args=(self.organization.slug,))
+
+    def test_invalid_params(self):
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                {
+                    "project": [self.project.id],
+                    "dataset": "foo",
+                    "fingerprint": str(1 << 32),
+                },
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "dataset": [ErrorDetail('"foo" is not a valid choice.', code="invalid_choice")],
+            "fingerprint": [
+                ErrorDetail(
+                    string="Ensure this value is less than or equal to 4294967295.",
+                    code="max_value",
+                )
+            ],
+        }
+
+    def test_discover_dataset_with_fingerprint_invalid(self):
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                {
+                    "project": [self.project.id],
+                    "dataset": "discover",
+                    "fingerprint": "1",
+                },
+            )
+
+        assert response.status_code == 400, response.content
+        assert response.data == {
+            "detail": ErrorDetail(
+                '"fingerprint" is only permitted when using dataset: "functions"',
+                code="parse_error",
+            ),
+        }
+
+    @patch("sentry.search.events.builder.base.raw_snql_query", wraps=raw_snql_query)
+    @patch("sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service")
+    def test_queries_profile_candidates_from_functions(
+        self, mock_proxy_profiling_service, mock_raw_snql_query
+    ):
+        mock_proxy_profiling_service.return_value = HttpResponse(status=200)
+        fingerprint = int(uuid4().hex[:8], 16)
+
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                {
+                    "project": [self.project.id],
+                    "dataset": "functions",
+                    "query": "transaction:foo",
+                    "fingerprint": str(fingerprint),
+                },
+            )
+
+        assert response.status_code == 200, response.content
+
+        mock_raw_snql_query.assert_called_once()
+
+        call_args = mock_raw_snql_query.call_args.args
+        snql_request = call_args[0]
+
+        assert snql_request.dataset == Dataset.Functions.value
+        assert (
+            Condition(
+                Function("toUInt32", [Column("fingerprint")], "fingerprint"),
+                Op.EQ,
+                fingerprint,
+            )
+            in snql_request.query.where
+        )
+        assert Condition(Column("transaction_name"), Op.EQ, "foo") in snql_request.query.where
+        assert 0
+
+    @patch("sentry.search.events.builder.base.raw_snql_query", wraps=raw_snql_query)
+    @patch("sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service")
+    def test_queries_profile_candidates_from_transactions(
+        self, mock_proxy_profiling_service, mock_raw_snql_query
+    ):
+        mock_proxy_profiling_service.return_value = HttpResponse(status=200)
+
+        with self.feature(self.features):
+            response = self.client.get(
+                self.url,
+                {
+                    "project": [self.project.id],
+                    "query": "transaction:foo",
+                },
+            )
+        assert response.status_code == 200, response.content
+
+        mock_raw_snql_query.assert_called_once()
+
+        call_args = mock_raw_snql_query.call_args.args
+        snql_request = call_args[0]
+
+        assert snql_request.dataset == Dataset.Discover.value
+        assert Condition(Column("profile_id"), Op.IS_NOT_NULL) in snql_request.query.where
+        assert Condition(Column("transaction"), Op.EQ, "foo") in snql_request.query.where
+        assert 0
 
 
 class OrganizationProfilingChunksTest(APITestCase):
