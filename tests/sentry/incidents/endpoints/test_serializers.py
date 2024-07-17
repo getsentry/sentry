@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import pytest
 import responses
+from django.core.exceptions import ValidationError
 from django.test import override_settings
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
@@ -676,6 +677,18 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
             self.user = User.objects.get(id=self.user.id)
         assert alert_rule.user_id == self.user.id
         assert alert_rule.team_id is None
+
+    def test_invalid_detection_type(self):
+        with self.feature("organizations:anomaly-detection-alerts"):
+            params = self.valid_params.copy()
+            params["detection_type"] = AlertRuleDetectionType.PERCENT  # requires comparison delta
+            serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
+            assert serializer.is_valid()
+            with pytest.raises(
+                ValidationError,
+                match="Percentage-based alerts require a comparison delta",
+            ):
+                serializer.save()
 
     def test_comparison_delta_above(self):
         params = self.valid_params.copy()
