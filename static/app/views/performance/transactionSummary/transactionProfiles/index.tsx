@@ -25,6 +25,7 @@ import type {DeepPartial} from 'sentry/types/utils';
 import {defined} from 'sentry/utils';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
+import {isAggregateField} from 'sentry/utils/discover/fields';
 import type {CanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
 import {
   CanvasPoolManager,
@@ -42,7 +43,6 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import Tab from 'sentry/views/performance/transactionSummary/tabs';
 import {
@@ -182,35 +182,35 @@ interface ProfilesProps {
 function Profiles({organization, transaction}: ProfilesProps) {
   const location = useLocation();
   const projects = useProjects();
-  const {selection} = usePageFilters();
 
-  // const query = decodeScalar(location.query.query, '');
+  const rawQuery = decodeScalar(location.query.query, '');
 
-  // const conditions = useMemo(() => {
-  //   const c = new MutableSearch(query);
-  //   c.setFilterValues('event.type', ['transaction']);
-  //   c.setFilterValues('transaction', [transaction]);
+  const query = useMemo(() => {
+    const conditions = new MutableSearch(rawQuery);
+    conditions.setFilterValues('event.type', ['transaction']);
+    conditions.setFilterValues('transaction', [transaction]);
 
-  //   Object.keys(c.filters).forEach(field => {
-  //     if (isAggregateField(field)) {
-  //       c.removeFilter(field);
-  //     }
-  //   });
-  // }, [transaction, query]);
+    Object.keys(conditions.filters).forEach(field => {
+      if (isAggregateField(field)) {
+        conditions.removeFilter(field);
+      }
+    });
+    return conditions.formatString();
+  }, [transaction, rawQuery]);
 
-  // const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(
-  //   (searchQuery: string) => {
-  //     browserHistory.push({
-  //       ...location,
-  //       query: {
-  //         ...location.query,
-  //         cursor: undefined,
-  //         query: searchQuery || undefined,
-  //       },
-  //     });
-  //   },
-  //   [location]
-  // );
+  const handleSearch: SmartSearchBarProps['onSearch'] = useCallback(
+    (searchQuery: string) => {
+      browserHistory.push({
+        ...location,
+        query: {
+          ...location.query,
+          cursor: undefined,
+          query: searchQuery || undefined,
+        },
+      });
+    },
+    [location]
+  );
 
   const [visualization, setVisualization] = useLocalStorageState<
     'flamegraph' | 'call tree'
@@ -245,10 +245,7 @@ function Profiles({organization, transaction}: ProfilesProps) {
   }, [frameFilter]);
 
   const {data, isLoading, isError} = useAggregateFlamegraphQuery({
-    transaction,
-    environments: selection.environments,
-    projects: selection.projects,
-    datetime: selection.datetime,
+    query,
   });
 
   const canvasPoolManager = useMemo(() => new CanvasPoolManager(), []);
@@ -271,7 +268,6 @@ function Profiles({organization, transaction}: ProfilesProps) {
                 <EnvironmentPageFilter />
                 <DatePageFilter />
               </PageFilterBar>
-              {/* TODO: This doesn't actually search anything
               <StyledSearchBar
                 searchSource="transaction_profiles"
                 organization={organization}
@@ -280,7 +276,6 @@ function Profiles({organization, transaction}: ProfilesProps) {
                 onSearch={handleSearch}
                 maxQueryLength={MAX_QUERY_LENGTH}
               />
-              */}
             </FilterActions>
             <ProfileVisualization>
               <ProfileGroupProvider
@@ -415,17 +410,17 @@ const FilterActions = styled('div')`
   grid-template-columns: min-content 1fr;
 `;
 
-// const StyledSearchBar = styled(SearchBar)`
-//   @media (min-width: ${p => p.theme.breakpoints.small}) {
-//     order: 1;
-//     grid-column: 1/4;
-//   }
-//
-//   @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
-//     order: initial;
-//     grid-column: auto;
-//   }
-// `;
+const StyledSearchBar = styled(SearchBar)`
+  @media (min-width: ${p => p.theme.breakpoints.small}) {
+    order: 1;
+    grid-column: 1/4;
+  }
+
+  @media (min-width: ${p => p.theme.breakpoints.xlarge}) {
+    order: initial;
+    grid-column: auto;
+  }
+`;
 
 const StyledMain = styled(Layout.Main)`
   display: flex;

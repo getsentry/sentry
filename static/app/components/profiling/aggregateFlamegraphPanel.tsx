@@ -1,4 +1,4 @@
-import {useEffect} from 'react';
+import {useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
 
@@ -16,8 +16,8 @@ import {FlamegraphStateProvider} from 'sentry/utils/profiling/flamegraph/flamegr
 import {FlamegraphThemeProvider} from 'sentry/utils/profiling/flamegraph/flamegraphThemeProvider';
 import type {Frame} from 'sentry/utils/profiling/frame';
 import {useAggregateFlamegraphQuery} from 'sentry/utils/profiling/hooks/useAggregateFlamegraphQuery';
+import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
-import usePageFilters from 'sentry/utils/usePageFilters';
 import {ProfileGroupProvider} from 'sentry/views/profiling/profileGroupProvider';
 
 const DEFAULT_AGGREGATE_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
@@ -30,17 +30,21 @@ const DEFAULT_AGGREGATE_FLAMEGRAPH_PREFERENCES: DeepPartial<FlamegraphState> = {
 class EmptyFlamegraphException extends Error {}
 
 export function AggregateFlamegraphPanel({transaction}: {transaction: string}) {
-  const {selection} = usePageFilters();
   const [hideSystemFrames, setHideSystemFrames] = useLocalStorageState(
     'profiling-flamegraph-collapsed-frames',
     true
   );
 
+  const query = useMemo(() => {
+    // TODO: this should contain the user query
+    // wait util we fully switch over to the transactions dataset
+    const conditions = new MutableSearch('');
+    conditions.setFilterValues('transaction', [transaction]);
+    return conditions.formatString();
+  }, [transaction]);
+
   const {data, isLoading, isError} = useAggregateFlamegraphQuery({
-    transaction,
-    environments: selection.environments,
-    projects: selection.projects,
-    datetime: selection.datetime,
+    query,
   });
   const isEmpty = data?.shared.frames.length === 0;
 
