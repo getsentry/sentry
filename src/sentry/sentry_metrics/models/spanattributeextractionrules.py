@@ -12,6 +12,8 @@ from sentry.models.project import Project
 from sentry.sentry_metrics.configuration import HARD_CODED_UNITS
 from sentry.sentry_metrics.extraction_rules import MetricsExtractionRule
 
+SPAN_ATTRIBUTE_PREFIX = "span_attribute_"
+
 
 @region_silo_model
 class SpanAttributeExtractionRuleCondition(DefaultFieldsModel):
@@ -37,7 +39,7 @@ class SpanAttributeExtractionRuleCondition(DefaultFieldsModel):
         mris = []
         metric_types = MetricsExtractionRule.infer_types(self.config.aggregates)
         for metric_type in metric_types:
-            mris.append(f"{metric_type}:custom/span_attribute_{self.id}@{self.config.unit}")
+            mris.append(f"{metric_type}:custom/{SPAN_ATTRIBUTE_PREFIX}{self.id}@{self.config.unit}")
         return mris
 
 

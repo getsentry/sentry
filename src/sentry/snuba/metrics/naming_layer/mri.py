@@ -41,6 +41,7 @@ from typing import cast
 from sentry_kafka_schemas.codecs import ValidationError
 
 from sentry.exceptions import InvalidParams
+from sentry.sentry_metrics.models.spanattributeextractionrules import SPAN_ATTRIBUTE_PREFIX
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.units import format_value_using_unit_and_op
@@ -206,6 +207,15 @@ class ParsedMRI:
     @property
     def mri_string(self) -> str:
         return f"{self.entity}:{self.namespace}/{self.name}@{self.unit}"
+
+    @property
+    def span_attribute_rule_id(self):
+        if self.name.startswith(SPAN_ATTRIBUTE_PREFIX):
+            try:
+                return int(self.name[len(SPAN_ATTRIBUTE_PREFIX) :])
+            except ValueError:
+                return None
+        return None
 
 
 @dataclass
