@@ -143,6 +143,7 @@ export type MetricChartData = {
   handleIncidentClick?: (incident: Incident) => void;
   incidents?: Incident[];
   selectedIncident?: Incident | null;
+  seriesName?: string;
   showWaitingForData?: boolean;
 };
 
@@ -157,6 +158,7 @@ type MetricChartOption = {
 export function getMetricAlertChartOption({
   timeseriesData,
   rule,
+  seriesName,
   incidents,
   selectedIncident,
   handleIncidentClick,
@@ -277,7 +279,7 @@ export function getMetricAlertChartOption({
             incidentColor,
             incidentStartDate,
             incidentStartValue,
-            series[0].seriesName,
+            seriesName ?? series[0].seriesName,
             rule.aggregate,
             handleIncidentClick
           )

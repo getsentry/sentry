@@ -10,7 +10,6 @@ import type {MetricMeta, MRI} from 'sentry/types/metrics';
 import {type Fuse, useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {
   isCustomMetric,
-  isExtractedCustomMetric,
   isSpanDuration,
   isSpanMeasurement,
   isTransactionDuration,
@@ -18,7 +17,7 @@ import {
 } from 'sentry/utils/metrics';
 import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
-import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
+import {formatMRI, isExtractedCustomMetric, parseMRI} from 'sentry/utils/metrics/mri';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import useKeyPress from 'sentry/utils/useKeyPress';
 import useOrganization from 'sentry/utils/useOrganization';
