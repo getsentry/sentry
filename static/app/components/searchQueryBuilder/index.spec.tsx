@@ -1369,9 +1369,9 @@ describe('SearchQueryBuilder', function () {
         await userEvent.click(getLastInput());
         await userEvent.click(screen.getByRole('option', {name: 'duration'}));
 
-        // Should start with the > operator and a value of 100ms
+        // Should start with the > operator and a value of 10ms
         expect(
-          await screen.findByRole('row', {name: 'duration:>100ms'})
+          await screen.findByRole('row', {name: 'duration:>10ms'})
         ).toBeInTheDocument();
       });
 

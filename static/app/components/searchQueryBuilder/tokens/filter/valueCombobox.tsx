@@ -82,7 +82,7 @@ function isStringFilterValues(
 
 const NUMERIC_UNITS = ['k', 'm', 'b'] as const;
 const RELATIVE_DATE_UNITS = ['m', 'h', 'd', 'w'] as const;
-const DURATION_UNITS = ['ms', 's', 'm', 'h', 'd', 'w'] as const;
+const DURATION_UNIT_SUGGESTIONS = ['ms', 's', 'm', 'h'] as const;
 
 const DEFAULT_NUMERIC_SUGGESTIONS: SuggestionSection[] = [
   {
@@ -94,7 +94,7 @@ const DEFAULT_NUMERIC_SUGGESTIONS: SuggestionSection[] = [
 const DEFAULT_DURATION_SUGGESTIONS: SuggestionSection[] = [
   {
     sectionText: '',
-    suggestions: DURATION_UNITS.map(unit => ({value: `100${unit}`})),
+    suggestions: DURATION_UNIT_SUGGESTIONS.map(unit => ({value: `10${unit}`})),
   },
 ];
 
@@ -277,9 +277,26 @@ function getNumericSuggestions(inputValue: string): SuggestionSection[] {
   return [];
 }
 
-function getDurationSuggestions(inputValue: string): SuggestionSection[] {
+function getDurationSuggestions(
+  inputValue: string,
+  token: TokenResult<Token.FILTER>
+): SuggestionSection[] {
   if (!inputValue) {
-    return DEFAULT_DURATION_SUGGESTIONS;
+    const currentValue =
+      token.value.type === Token.VALUE_DURATION ? token.value.value : null;
+
+    if (!currentValue) {
+      return DEFAULT_DURATION_SUGGESTIONS;
+    }
+
+    return [
+      {
+        sectionText: '',
+        suggestions: DURATION_UNIT_SUGGESTIONS.map(unit => ({
+          value: `${currentValue}${unit}`,
+        })),
+      },
+    ];
   }
 
   const parsed = parseFilterValueDuration(inputValue);
@@ -288,7 +305,7 @@ function getDurationSuggestions(inputValue: string): SuggestionSection[] {
     return [
       {
         sectionText: '',
-        suggestions: DURATION_UNITS.map(unit => ({
+        suggestions: DURATION_UNIT_SUGGESTIONS.map(unit => ({
           value: `${parsed.value}${unit}`,
         })),
       },
@@ -361,7 +378,7 @@ function getPredefinedValues({
       case FieldValueType.NUMBER:
         return getNumericSuggestions(filterValue);
       case FieldValueType.DURATION:
-        return getDurationSuggestions(filterValue);
+        return getDurationSuggestions(filterValue, token);
       case FieldValueType.BOOLEAN:
         return DEFAULT_BOOLEAN_SUGGESTIONS;
       case FieldValueType.DATE:

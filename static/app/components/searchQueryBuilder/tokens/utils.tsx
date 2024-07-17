@@ -62,7 +62,7 @@ export function getDefaultFilterValue({
     case FieldValueType.DATE:
       return '-24h';
     case FieldValueType.DURATION:
-      return '100ms';
+      return '10ms';
     case FieldValueType.STRING:
     default:
       return '""';
