@@ -9,8 +9,6 @@ import type {
 import type {Series} from 'sentry/types/echarts';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
-import type {MetaType} from 'sentry/utils/discover/eventView';
-import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import {SPAN_OP_BREAKDOWN_FIELDS, TRANSACTION_FIELDS} from 'sentry/utils/discover/fields';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -28,9 +26,8 @@ import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eve
 import {type DatasetConfig, handleOrderByReset} from './base';
 import {
   filterAggregateParams,
+  getCustomEventsFieldRenderer,
   getTableSortOptions,
-  renderEventIdAsLinkable,
-  renderTraceAsLinkable,
   transformEventsResponseToTable,
 } from './errorsAndTransactions';
 
@@ -111,18 +108,6 @@ function getEventsTableFieldOptions(
     ),
     fieldKeys: TRANSACTION_FIELDS,
   });
-}
-
-function getCustomEventsFieldRenderer(field: string, meta: MetaType) {
-  if (field === 'id') {
-    return renderEventIdAsLinkable;
-  }
-
-  if (field === 'trace') {
-    return renderTraceAsLinkable;
-  }
-
-  return getFieldRenderer(field, meta, false);
 }
 
 function getEventsRequest(
