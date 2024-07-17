@@ -53,7 +53,9 @@ export function TransactionSelector({
   });
 
   const {options: transactionOptions, clear: clearTransactionOptionsCache} =
-    useCompactSelectOptionsCache(incomingPages.map(page => ({value: page, label: page})));
+    useCompactSelectOptionsCache(
+      incomingPages.filter(Boolean).map(page => ({value: page, label: page}))
+    );
 
   useEffect(() => {
     clearTransactionOptionsCache();

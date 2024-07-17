@@ -92,7 +92,7 @@ export function DomainSelector({
 
   const {options: domainOptions, clear: clearDomainOptionsCache} =
     useCompactSelectOptionsCache(
-      incomingDomains.map(datum => {
+      incomingDomains.filter(Boolean).map(datum => {
         return {
           value: datum,
           label: datum,
