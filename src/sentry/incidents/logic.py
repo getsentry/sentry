@@ -581,7 +581,12 @@ def create_alert_rule(
             raise ValidationError("Percentage-based alerts require a comparison delta")
     else:
         if comparison_delta is not None:
-            raise ValidationError("Comparison delta is not a valid field for this alert type")
+            if not (sensitivity or seasonality):
+                # this is a user setting up a percent-based metric alert who doesn't know about the new field
+                detection_type = AlertRuleDetectionType.PERCENT
+            else:
+                # this is an incorrect field selection
+                raise ValidationError("Comparison delta is not a valid field for this alert type")
 
     if comparison_delta is not None:
         # Since comparison alerts make twice as many queries, run the queries less frequently.

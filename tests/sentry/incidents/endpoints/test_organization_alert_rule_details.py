@@ -224,12 +224,13 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         assert rule.detection_type == AlertRuleDetectionType.STATIC
         assert rule.detection_type == resp.data.get("detection_type")
 
-        with pytest.raises(
-            ValidationError, match="Comparison delta is not a valid field for this alert type"
-        ):
-            self.create_alert_rule(
-                comparison_delta=60
-            )  # STATIC detection types shouldn't have comparison delta
+        # Confirm that we don't mess up flow for customers who don't know about detection_type field yet
+        rule2 = self.create_alert_rule(comparison_delta=60)
+        trigger2 = self.create_alert_rule_trigger(rule, "heyo", 1000)
+        self.create_alert_rule_trigger_action(alert_rule_trigger=trigger2)
+        resp = self.get_success_response(self.organization.slug, rule2.id)
+        assert rule2.detection_type == AlertRuleDetectionType.PERCENT
+        assert rule2.detection_type == resp.data.get("detection_type")
 
         with pytest.raises(
             ValidationError,
