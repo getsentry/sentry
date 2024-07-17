@@ -182,6 +182,7 @@ const Sidebar = styled('div')`
 
 const PerfImage = styled('img')`
   max-width: 100%;
+  min-width: 200px;
 `;
 
 const OldPerfImage = styled('img')`
@@ -225,6 +226,7 @@ const SplitContainer = styled(Panel)`
 
 const ModuleInfo = styled('div')`
   flex: 5;
+  width: 100%;
 `;
 
 const ModulePreviewImage = styled('img')`
@@ -238,7 +240,6 @@ const ModulePreviewImage = styled('img')`
 const ModulePreviewContainer = styled('div')`
   flex: 2;
   width: 100%;
-  height: 100%;
   padding: ${space(3)};
   background-color: ${p => p.theme.backgroundSecondary};
 `;
@@ -253,6 +254,7 @@ const SupportedSdkContainer = styled('div')`
 
 const SupportedSdkList = styled('div')`
   display: flex;
+  flex-wrap: wrap;
   gap: ${space(0.5)};
 `;
 
