@@ -3,7 +3,7 @@ import 'echarts/lib/component/tooltip';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import type {TooltipComponentFormatterCallback, TooltipComponentOption} from 'echarts';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import type BaseChart from 'sentry/components/charts/baseChart';
 import {t} from 'sentry/locale';
