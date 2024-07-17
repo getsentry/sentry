@@ -257,16 +257,17 @@ const FlamegraphDrawer = memo(function FlamegraphDrawer(props: FlamegraphDrawerP
         canvasScheduler={props.canvasScheduler}
         canvasPoolManager={props.canvasPoolManager}
       />
-
-      <ProfileDetails
-        transaction={
-          props.profileTransaction && props.profileTransaction.type === 'resolved'
-            ? props.profileTransaction.data
-            : null
-        }
-        projectId={params.projectId}
-        profileGroup={props.profileGroup}
-      />
+      {props.profileGroup.type === 'transaction' ? (
+        <ProfileDetails
+          transaction={
+            props.profileTransaction && props.profileTransaction.type === 'resolved'
+              ? props.profileTransaction.data
+              : null
+          }
+          projectId={params.projectId}
+          profileGroup={props.profileGroup}
+        />
+      ) : null}
 
       {flamegraphPreferences.layout === 'table left' ||
       flamegraphPreferences.layout === 'table right' ? (
