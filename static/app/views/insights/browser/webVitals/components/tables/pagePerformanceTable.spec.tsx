@@ -1,4 +1,5 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
   render,
@@ -9,9 +10,11 @@ import {
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import {PagePerformanceTable} from 'sentry/views/insights/browser/webVitals/components/tables/pagePerformanceTable';
 
 jest.mock('sentry/utils/useLocation');
+jest.mock('sentry/utils/useProjects');
 jest.mock('sentry/utils/usePageFilters');
 
 describe('PagePerformanceTable', function () {
@@ -29,6 +32,7 @@ describe('PagePerformanceTable', function () {
       action: 'PUSH',
       key: '',
     });
+
     jest.mocked(usePageFilters).mockReturnValue({
       isReady: true,
       desyncedFilters: new Set(),
@@ -45,11 +49,36 @@ describe('PagePerformanceTable', function () {
         projects: [],
       },
     });
+
+    jest.mocked(useProjects).mockReturnValue({
+      projects: [
+        ProjectFixture({
+          id: '11276',
+          name: 'frontend',
+          slug: 'frontend',
+          platform: 'python',
+        }),
+      ],
+      onSearch: jest.fn(),
+      placeholders: [],
+      fetching: false,
+      hasMore: null,
+      fetchError: null,
+      initiallyLoaded: false,
+    });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/projects/`,
+      body: [ProjectFixture({id: '11276', name: 'frontend', slug: 'frontend'})],
+    });
+
     eventsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events/`,
       body: {
         data: [
           {
+            'project.id': 11276,
+            project: 'frontend',
             transaction: '/insights/browser/',
             'count()': 492,
             'count_scores(measurements.score.inp)': 985,
@@ -68,6 +97,13 @@ describe('PagePerformanceTable', function () {
             'count_scores(measurements.score.lcp)': 391,
           },
         ],
+        meta: {
+          fields: {
+            transaction: 'string',
+            'project.id': 'number',
+            project: 'string',
+          },
+        },
       },
     });
   });
@@ -108,6 +144,7 @@ describe('PagePerformanceTable', function () {
     expect(screen.getByRole('table', {name: 'Pages'})).toBeInTheDocument();
 
     expect(screen.getByRole('columnheader', {name: 'Pages'})).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', {name: 'Project'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'Pageloads'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'LCP'})).toBeInTheDocument();
     expect(screen.getByRole('columnheader', {name: 'LCP'})).toBeInTheDocument();
@@ -120,7 +157,13 @@ describe('PagePerformanceTable', function () {
     expect(screen.getByRole('cell', {name: '/insights/browser/'})).toBeInTheDocument();
     expect(screen.getByRole('link', {name: '/insights/browser/'})).toHaveAttribute(
       'href',
-      'overview/?transaction=%2Finsights%2Fbrowser%2F'
+      'overview/?project=11276&transaction=%2Finsights%2Fbrowser%2F'
+    );
+
+    expect(screen.getByRole('cell', {name: 'frontend'})).toBeInTheDocument();
+    expect(screen.getByRole('link', {name: 'frontend'})).toHaveAttribute(
+      'href',
+      '/organizations/org-slug/projects/frontend/?project=11276'
     );
     expect(screen.getByRole('cell', {name: '492'})).toBeInTheDocument();
     expect(screen.getByRole('cell', {name: '700ms'})).toBeInTheDocument();
