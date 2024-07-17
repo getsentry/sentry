@@ -60,6 +60,7 @@ export default class SetupAlertIntegrationButton extends DeprecatedAsyncComponen
     }
 
     if (organization.features.includes('messaging-integration-onboarding')) {
+      // TODO(Mia): only render if organization has team plan and above
       return (
         <Tooltip
           title={t('Send alerts to your messaging service. Install the integration now.')}
