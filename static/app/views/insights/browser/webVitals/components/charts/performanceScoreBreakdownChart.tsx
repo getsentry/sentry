@@ -7,8 +7,6 @@ import {space} from 'sentry/styles/space';
 import type {Series} from 'sentry/types/echarts';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {ORDER} from 'sentry/views/insights/browser/webVitals/components/charts/performanceScoreChart';
-import {calculatePerformanceScoreFromStoredTableDataRow} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/calculatePerformanceScoreFromStored';
-import {useProjectWebVitalsScoresQuery} from 'sentry/views/insights/browser/webVitals/queries/storedScoreQueries/useProjectWebVitalsScoresQuery';
 import {
   useProjectWebVitalsScoresTimeseriesQuery,
   type WebVitalsScoreBreakdown,
@@ -16,7 +14,6 @@ import {
 import {applyStaticWeightsToTimeseries} from 'sentry/views/insights/browser/webVitals/utils/applyStaticWeightsToTimeseries';
 import type {BrowserType} from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
 import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
-import {useStaticWeightsSetting} from 'sentry/views/insights/browser/webVitals/utils/useStaticWeightsSetting';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 
 type Props = {
@@ -54,22 +51,12 @@ export function PerformanceScoreBreakdownChart({transaction, browserTypes}: Prop
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
     useProjectWebVitalsScoresTimeseriesQuery({transaction, browserTypes});
-  const {data: projectScores, isLoading: isProjectScoresLoading} =
-    useProjectWebVitalsScoresQuery({transaction, browserTypes});
-
-  const projectScore = isProjectScoresLoading
-    ? undefined
-    : calculatePerformanceScoreFromStoredTableDataRow(projectScores?.data?.[0]);
 
   const period = pageFilters.selection.datetime.period;
   const performanceScoreSubtext = (period && DEFAULT_RELATIVE_PERIODS[period]) ?? '';
   const chartSeriesOrder = ORDER;
 
-  const shouldUseStaticWeights = useStaticWeightsSetting();
-
-  const weightedTimeseriesData = shouldUseStaticWeights
-    ? applyStaticWeightsToTimeseries(timeseriesData)
-    : timeseriesData;
+  const weightedTimeseriesData = applyStaticWeightsToTimeseries(timeseriesData);
 
   const weightedTimeseries = formatTimeSeriesResultsToChartData(
     weightedTimeseriesData,
@@ -93,17 +80,7 @@ export function PerformanceScoreBreakdownChart({transaction, browserTypes}: Prop
   );
 
   const weightsSeries = weightedTimeseries[0].data.map(({name}) => {
-    const value = shouldUseStaticWeights
-      ? PERFORMANCE_SCORE_WEIGHTS
-      : projectScore !== undefined
-        ? {
-            lcp: projectScore.lcpWeight,
-            fcp: projectScore.fcpWeight,
-            inp: projectScore.inpWeight,
-            cls: projectScore.clsWeight,
-            ttfb: projectScore.ttfbWeight,
-          }
-        : undefined;
+    const value = PERFORMANCE_SCORE_WEIGHTS;
     return {name, value};
   });
 
@@ -117,7 +94,7 @@ export function PerformanceScoreBreakdownChart({transaction, browserTypes}: Prop
         height={180}
         data={isTimeseriesLoading ? [] : weightedTimeseries}
         disableXAxis
-        loading={isTimeseriesLoading || isProjectScoresLoading}
+        loading={isTimeseriesLoading}
         type={ChartType.AREA}
         grid={{
           left: 5,

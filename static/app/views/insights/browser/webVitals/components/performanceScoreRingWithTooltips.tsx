@@ -17,7 +17,6 @@ import type {
   WebVitals,
 } from 'sentry/views/insights/browser/webVitals/types';
 import {PERFORMANCE_SCORE_WEIGHTS} from 'sentry/views/insights/browser/webVitals/utils/scoreThresholds';
-import {useStaticWeightsSetting} from 'sentry/views/insights/browser/webVitals/utils/useStaticWeightsSetting';
 import {useModuleURL} from 'sentry/views/insights/common/utils/useModuleURL';
 
 import {getFormattedDuration} from './webVitalMeters';
@@ -163,19 +162,7 @@ function PerformanceScoreRingWithTooltips({
     });
   }
 
-  const shouldUseStaticWeights = useStaticWeightsSetting();
-  const weights =
-    ['lcpWeight', 'fcpWeight', 'inpWeight', 'clsWeight', 'ttfbWeight'].every(
-      key => projectScore[key] === 0
-    ) || shouldUseStaticWeights
-      ? PERFORMANCE_SCORE_WEIGHTS
-      : {
-          lcp: projectScore.lcpWeight,
-          fcp: projectScore.fcpWeight,
-          inp: projectScore.inpWeight,
-          cls: projectScore.clsWeight,
-          ttfb: projectScore.ttfbWeight,
-        };
+  const weights = PERFORMANCE_SCORE_WEIGHTS;
 
   const commonWebVitalLabelProps = {
     organization,
