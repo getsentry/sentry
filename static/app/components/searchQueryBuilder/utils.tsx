@@ -1,3 +1,4 @@
+import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {
   BooleanOperator,
   FilterType,
@@ -9,11 +10,14 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import type {TagCollection} from 'sentry/types/group';
-import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {FieldValueType} from 'sentry/utils/fields';
 
 export const INTERFACE_TYPE_LOCALSTORAGE_KEY = 'search-query-builder-interface';
 
-function getSearchConfigFromKeys(keys: TagCollection): Partial<SearchConfig> {
+function getSearchConfigFromKeys(
+  keys: TagCollection,
+  getFieldDefinition: FieldDefinitionGetter
+): Partial<SearchConfig> {
   const config = {
     textOperatorKeys: new Set<string>(),
     booleanKeys: new Set<string>(),
@@ -56,6 +60,7 @@ function getSearchConfigFromKeys(keys: TagCollection): Partial<SearchConfig> {
 
 export function parseQueryBuilderValue(
   value: string,
+  getFieldDefinition: FieldDefinitionGetter,
   options?: {filterKeys: TagCollection; disallowLogicalOperators?: boolean}
 ): ParseResult | null {
   return collapseTextTokens(
@@ -65,7 +70,7 @@ export function parseQueryBuilderValue(
         ? new Set([BooleanOperator.AND, BooleanOperator.OR])
         : undefined,
       disallowParens: options?.disallowLogicalOperators,
-      ...getSearchConfigFromKeys(options?.filterKeys ?? {}),
+      ...getSearchConfigFromKeys(options?.filterKeys ?? {}, getFieldDefinition),
     })
   );
 }
