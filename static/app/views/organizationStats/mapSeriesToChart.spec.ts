@@ -8,9 +8,7 @@ const mockSeries: UsageSeries = {
   groups: [
     {
       by: {
-        project: 1,
         outcome: 'accepted',
-        category: 'transaction',
       },
       totals: {
         'sum(quantity)': 6,
@@ -21,8 +19,6 @@ const mockSeries: UsageSeries = {
     },
     {
       by: {
-        project: 1,
-        category: 'transaction',
         outcome: 'filtered',
         reason: 'other',
       },
@@ -35,8 +31,6 @@ const mockSeries: UsageSeries = {
     },
     {
       by: {
-        project: 1,
-        category: 'transaction',
         outcome: 'invalid',
         reason: 'invalid_transaction',
       },
@@ -49,8 +43,6 @@ const mockSeries: UsageSeries = {
     },
     {
       by: {
-        project: 1,
-        category: 'transaction',
         outcome: 'invalid',
         reason: 'other_reason_a',
       },
@@ -63,8 +55,6 @@ const mockSeries: UsageSeries = {
     },
     {
       by: {
-        project: 1,
-        category: 'transaction',
         outcome: 'invalid',
         reason: 'other_reason_b',
       },
