@@ -549,18 +549,15 @@ export class VirtualizedViewManager {
     const rafCallback = (now: number) => {
       const elapsed = now - start;
       const progress = elapsed / duration;
-
       const eased = easeOutSine(progress);
 
-      const x = start_x + distance_x * eased;
-      const width = start_width - distance_width * eased;
-
-      this.scheduler.dispatch('set trace view', {
-        x,
-        width,
-      });
-
-      if (progress < 1) {
+      if (progress <= 1) {
+        const x = start_x + distance_x * eased;
+        const width = start_width - distance_width * eased;
+        this.scheduler.dispatch('set trace view', {
+          x,
+          width,
+        });
         this.timers.onZoomIntoSpace = window.requestAnimationFrame(rafCallback);
       } else {
         this.timers.onZoomIntoSpace = null;
@@ -691,7 +688,6 @@ export class VirtualizedViewManager {
   syncResetZoomButton() {
     if (!this.reset_zoom_button) return;
     this.reset_zoom_button.disabled =
-      this.view.trace_view.x === 0 &&
       this.view.trace_view.width === this.view.trace_space.width;
   }
 
