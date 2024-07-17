@@ -233,7 +233,7 @@ export const MRISelect = memo(function MRISelect({
               hideName
             />
           ) : (
-            <StyledIconProject key="generic-project" size="xs" />
+            <IconProject key="generic-project" size="xs" />
           );
         }
 
@@ -313,8 +313,4 @@ const CustomMetricInfoText = styled('span')`
 const MetricComboBox = styled(ComboBox<MRI>)`
   min-width: 200px;
   max-width: min(500px, 100%);
-`;
-
-const StyledIconProject = styled(IconProject)`
-  margin-left: -4px;
 `;
