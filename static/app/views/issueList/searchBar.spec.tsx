@@ -174,6 +174,7 @@ describe('IssueListSearchBar', function () {
     const newDefaultProps = {
       organization: orgWithFlag,
       query: '',
+      statsPeriod: '7d',
       onSearch: jest.fn(),
     };
 
@@ -193,8 +194,8 @@ describe('IssueListSearchBar', function () {
         await screen.findByRole('button', {name: 'Edit value for filter: is'})
       );
 
-      Object.values(IsFieldValues).forEach(async value => {
-        expect(await screen.findByRole('option', {name: value})).toBeInTheDocument();
+      Object.values(IsFieldValues).forEach(value => {
+        expect(screen.getByRole('option', {name: value})).toBeInTheDocument();
       });
     });
 

@@ -6,7 +6,7 @@ import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilte
 import {t} from 'sentry/locale';
 import AlertStore from 'sentry/stores/alertStore';
 import TagStore from 'sentry/stores/tagStore';
-import type {DateString, Tag, TagValue} from 'sentry/types';
+import type {Tag, TagValue} from 'sentry/types';
 import type {PageFilters} from 'sentry/types/core';
 import {
   type ApiQueryKey,
@@ -203,10 +203,10 @@ type FetchOrganizationTagsParams = {
   // TODO: Change this to Dataset type once IssuePlatform is added
   dataset?: string;
   enabled?: boolean;
-  end?: DateString;
+  end?: string;
   keepPreviousData?: boolean;
   projectIds?: string[];
-  start?: DateString;
+  start?: string;
   statsPeriod?: string | null;
   useCache?: boolean;
 };
@@ -219,10 +219,24 @@ export const makeFetchOrganizationTags = ({
   statsPeriod,
   start,
   end,
-}: FetchOrganizationTagsParams): ApiQueryKey => [
-  `/organizations/${orgSlug}/tags/`,
-  {query: {dataset, useCache, project: projectIds, statsPeriod, start, end}},
-];
+}: FetchOrganizationTagsParams): ApiQueryKey => {
+  const query: Query = {};
+
+  query.dataset = dataset;
+  query.useCache = useCache ? '1' : '0';
+  query.project = projectIds;
+
+  if (statsPeriod) {
+    query.statsPeriod = statsPeriod;
+  }
+  if (start) {
+    query.start = start;
+  }
+  if (end) {
+    query.end = end;
+  }
+  return [`/organizations/${orgSlug}/tags/`, {query: query}];
+};
 
 export const useFetchOrganizationTags = (
   params: FetchOrganizationTagsParams,

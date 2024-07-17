@@ -103,8 +103,12 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
     projectIds: pageFilters.projects.map(id => id.toString()),
     keepPreviousData: true,
     enabled: organization.features.includes('issue-stream-search-query-builder'),
-    start: pageFilters.datetime.start,
-    end: pageFilters.datetime.end,
+    start: pageFilters.datetime.start
+      ? getUtcDateString(pageFilters.datetime.start)
+      : undefined,
+    end: pageFilters.datetime.end
+      ? getUtcDateString(pageFilters.datetime.end)
+      : undefined,
     statsPeriod: pageFilters.datetime.period,
   });
 
