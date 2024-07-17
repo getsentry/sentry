@@ -25,13 +25,13 @@ const mutationOptions = {
   },
 };
 
-export default function useActions({feedbackItem}: Props) {
+export default function useFeedbackActions({feedbackItem}: Props) {
   const organization = useOrganization();
 
   const {markAsRead, resolve} = useMutateFeedback({
     feedbackIds: [feedbackItem.id],
     organization,
-    projectIds: [feedbackItem.project.id],
+    projectIds: feedbackItem.project ? [feedbackItem.project.id] : [],
   });
 
   // reuse the issues ignored category for spam feedbacks

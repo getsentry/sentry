@@ -223,7 +223,7 @@ export class DeprecatedAssigneeSelectorDropdown extends Component<
       return [];
     }
 
-    const teams = ProjectsStore.getBySlug(group.project.slug)?.teams ?? [];
+    const teams = ProjectsStore.getBySlug(group.project?.slug)?.teams ?? [];
     return teams
       .sort((a, b) => a.slug.localeCompare(b.slug))
       .map(team => ({

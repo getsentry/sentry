@@ -29,7 +29,7 @@ export default function FeedbackReplay({eventData, feedbackItem, organization}: 
   const {hasSentOneReplay, fetching: isFetchingSentOneReplay} =
     useHaveSelectedProjectsSentAnyReplayEvents();
   const platformSupported = replayPlatforms.includes(
-    feedbackItem.project.platform as PlatformKey
+    feedbackItem.project?.platform as PlatformKey
   );
 
   if (replayId && hasReplayId) {
