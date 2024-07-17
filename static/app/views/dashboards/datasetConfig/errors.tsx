@@ -11,9 +11,15 @@ import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import type {MetaType} from 'sentry/utils/discover/eventView';
 import {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
+import {
+  AGGREGATIONS,
+  ERROR_FIELDS,
+  ERRORS_AGGREGATION_FUNCTIONS,
+} from 'sentry/utils/discover/fields';
 import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {AggregationKey} from 'sentry/utils/fields';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
@@ -97,6 +103,13 @@ function getEventsTableFieldOptions(
   return generateFieldOptions({
     organization,
     tagKeys: Object.values(tags ?? {}).map(({key}) => key),
+    aggregations: Object.keys(AGGREGATIONS)
+      .filter(key => ERRORS_AGGREGATION_FUNCTIONS.includes(key as AggregationKey))
+      .reduce((obj, key) => {
+        obj[key] = AGGREGATIONS[key];
+        return obj;
+      }, {}),
+    fieldKeys: ERROR_FIELDS,
   });
 }
 
