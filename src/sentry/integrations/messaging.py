@@ -103,9 +103,7 @@ class MessagingIntegrationSpec(ABC):
               boilerplate in a `urls` module (djust Django things).
         """
 
-        def build_path(operation_slug: str, view_cls: type[View] | None) -> URLPattern | None:
-            if view_cls is None:
-                return None
+        def build_path(operation_slug: str, view_cls: type[View]) -> URLPattern:
             return re_path(
                 route=rf"^{operation_slug}/(?P<signed_params>[^\/]+)/$",
                 view=view_cls.as_view(),
@@ -113,13 +111,16 @@ class MessagingIntegrationSpec(ABC):
             )
 
         vs = self.identity_view_set
-        paths = [
-            build_path("link-identity", vs.link_personal_identity),
-            build_path("unlink-identity", vs.unlink_personal_identity),
-            build_path("link-team", vs.link_team_identity),
-            build_path("unlink-team", vs.unlink_team_identity),
+        return [
+            build_path(operation_slug, view_cls)
+            for (operation_slug, view_cls) in [
+                ("link-identity", vs.link_personal_identity),
+                ("unlink-identity", vs.unlink_personal_identity),
+                ("link-team", vs.link_team_identity),
+                ("unlink-team", vs.unlink_team_identity),
+            ]
+            if view_cls is not None
         ]
-        return [path for path in paths if path is not None]
 
     @abstractmethod
     def send_incident_alert_notification(
