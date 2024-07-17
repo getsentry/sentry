@@ -8,14 +8,18 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
-import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import {
+  SearchQueryBuilder,
+  type SearchQueryBuilderProps,
+} from 'sentry/components/searchQueryBuilder';
+import {
+  type FieldDefinitionGetter,
   type FilterKeySection,
   QueryInterfaceType,
 } from 'sentry/components/searchQueryBuilder/types';
 import {INTERFACE_TYPE_LOCALSTORAGE_KEY} from 'sentry/components/searchQueryBuilder/utils';
 import type {TagCollection} from 'sentry/types/group';
-import {FieldKey, FieldKind} from 'sentry/utils/fields';
+import {FieldKey, FieldKind, FieldValueType} from 'sentry/utils/fields';
 import localStorageWrapper from 'sentry/utils/localStorage';
 
 const FILTER_KEYS: TagCollection = {
@@ -1337,6 +1341,145 @@ describe('SearchQueryBuilder', function () {
         expect(
           await screen.findByRole('row', {name: 'timesSeen:<=100k'})
         ).toBeInTheDocument();
+      });
+    });
+
+    describe('duration', function () {
+      const durationFilterKeys: TagCollection = {
+        duration: {
+          key: 'duration',
+          name: 'Duration',
+        },
+      };
+
+      const fieldDefinitionGetter: FieldDefinitionGetter = () => ({
+        valueType: FieldValueType.DURATION,
+        kind: FieldKind.FIELD,
+      });
+
+      const durationProps: SearchQueryBuilderProps = {
+        ...defaultProps,
+        filterKeys: durationFilterKeys,
+        filterKeySections: [],
+        fieldDefinitionGetter,
+      };
+
+      it('new duration filters start with greater than operator and default value', async function () {
+        render(<SearchQueryBuilder {...durationProps} />);
+        await userEvent.click(getLastInput());
+        await userEvent.click(screen.getByRole('option', {name: 'duration'}));
+
+        // Should start with the > operator and a value of 100ms
+        expect(
+          await screen.findByRole('row', {name: 'duration:>100ms'})
+        ).toBeInTheDocument();
+      });
+
+      it('duration filters have the correct operator options', async function () {
+        render(<SearchQueryBuilder {...durationProps} initialQuery="duration:>100ms" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: duration'})
+        );
+
+        expect(
+          await screen.findByRole('option', {name: 'duration is'})
+        ).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'duration is not'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'duration >'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'duration <'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'duration >='})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'duration <='})).toBeInTheDocument();
+      });
+
+      it('duration filters have the correct value suggestions', async function () {
+        render(<SearchQueryBuilder {...durationProps} initialQuery="duration:>100ms" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: duration'})
+        );
+
+        // Default suggestions
+        expect(await screen.findByRole('option', {name: '100ms'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '100s'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '100m'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '100h'})).toBeInTheDocument();
+
+        // Entering a number will show unit suggestions for that value
+        await userEvent.keyboard('7');
+        expect(await screen.findByRole('option', {name: '7ms'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '7s'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '7m'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: '7h'})).toBeInTheDocument();
+      });
+
+      it('duration filters can change operator', async function () {
+        render(<SearchQueryBuilder {...durationProps} initialQuery="duration:>100ms" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: duration'})
+        );
+
+        await userEvent.click(await screen.findByRole('option', {name: 'duration <='}));
+
+        expect(
+          await screen.findByRole('row', {name: 'duration:<=100ms'})
+        ).toBeInTheDocument();
+      });
+
+      it('duration filters do not allow invalid values', async function () {
+        render(<SearchQueryBuilder {...durationProps} initialQuery="duration:>100ms" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: duration'})
+        );
+
+        await userEvent.keyboard('a{Enter}');
+
+        // Should have the same value because "a" is not a numeric value
+        expect(screen.getByRole('row', {name: 'duration:>100ms'})).toBeInTheDocument();
+
+        await userEvent.keyboard('{Backspace}7m{Enter}');
+
+        // Should accept "7m" as a valid value
+        expect(
+          await screen.findByRole('row', {name: 'duration:>7m'})
+        ).toBeInTheDocument();
+      });
+
+      it('duration filters will add a default unit to entered numbers', async function () {
+        render(<SearchQueryBuilder {...durationProps} initialQuery="duration:>100ms" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: duration'})
+        );
+
+        await userEvent.keyboard('7{Enter}');
+
+        // Should accept "7" and add "ms" as the default unit
+        expect(
+          await screen.findByRole('row', {name: 'duration:>7ms'})
+        ).toBeInTheDocument();
+      });
+
+      it('keeps previous value when confirming empty value', async function () {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...durationProps}
+            onChange={mockOnChange}
+            initialQuery="duration:>100ms"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: duration'})
+        );
+        await userEvent.clear(
+          await screen.findByRole('combobox', {name: 'Edit filter value'})
+        );
+        await userEvent.keyboard('{enter}');
+
+        // Should have the same value
+        expect(
+          await screen.findByRole('row', {name: 'duration:>100ms'})
+        ).toBeInTheDocument();
+        expect(mockOnChange).not.toHaveBeenCalled();
       });
     });
 
