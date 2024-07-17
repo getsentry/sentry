@@ -370,9 +370,9 @@ export const ProfilingDetailsListItem = styled('li')<{
     border-bottom: 2px solid transparent;
     border-radius: 0;
     margin: 0;
-    padding: ${p => (p.size === 'sm' ? space(0.25) : space(0.5))} 0;
+    padding: ${space(0.5)} 0;
     color: ${p => p.theme.textColor};
-    max-height: ${p => (p.size === 'sm' ? '24px' : 'auto')};
+    max-height: auto;
 
     &::after {
       display: block;
@@ -402,6 +402,7 @@ const StyledButton = styled(Button)<{active: boolean}>`
   box-shadow: none;
   transition: none !important;
   opacity: ${p => (p.active ? 0.7 : 0.5)};
+  line-height: 26px;
 
   &:not(:last-child) {
     margin-right: ${space(1)};
