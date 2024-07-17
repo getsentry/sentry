@@ -50,7 +50,7 @@ export function TransactionSelector({
     pageLinks,
   });
 
-  const transactionOptions = useCompactSelectOptionsCache(
+  const {options: transactionOptions} = useCompactSelectOptionsCache(
     incomingPages.map(page => ({value: page, label: page}))
   );
 

@@ -19,7 +19,7 @@ describe('useCompactSelectOptionsCache', function () {
       }
     );
 
-    expect(result.current).toEqual([
+    expect(result.current.options).toEqual([
       {value: '', label: 'All'},
       {value: '2', label: '2XX'},
       {value: '3', label: '3XX'},
@@ -27,7 +27,7 @@ describe('useCompactSelectOptionsCache', function () {
 
     rerender([[{value: '4', label: '4XX'}]]);
     rerender([[{value: '5', label: '5XX'}]]);
-    expect(result.current).toEqual([
+    expect(result.current.options).toEqual([
       {value: '', label: 'All'},
       {value: '2', label: '2XX'},
       {value: '3', label: '3XX'},
@@ -54,7 +54,7 @@ describe('useCompactSelectOptionsCache', function () {
       }
     );
 
-    expect(result.current).toEqual([
+    expect(result.current.options).toEqual([
       {value: '', label: 'All'},
       {value: '2', label: '2XX'},
       {value: '3', label: '3XX'},

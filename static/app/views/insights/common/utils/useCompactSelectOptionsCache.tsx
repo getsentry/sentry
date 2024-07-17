@@ -17,16 +17,20 @@ type OptionCache = Map<SelectKey, Option>;
  * 1. Display an options dropdown even when new results are loading
  * 2. Shows options from 3 searches ago if the user changes their mind
  */
-export function useCompactSelectOptionsCache(options: Option[]): readonly Option[] {
+export function useCompactSelectOptionsCache(options: Option[]): {
+  options: readonly Option[];
+} {
   const cache = useRef<OptionCache>(new Map());
 
-  return useMemo(() => {
+  const outgoingOptions = useMemo(() => {
     options.forEach(option => {
       cache.current.set(option.value, option);
     });
 
     return Array.from(cache.current.values()).sort(alphabeticalCompare);
   }, [options]);
+
+  return {options: outgoingOptions};
 }
 
 type OptionComparator = (a: Option, b: Option) => number;

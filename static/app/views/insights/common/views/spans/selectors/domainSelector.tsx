@@ -88,7 +88,7 @@ export function DomainSelector({
     incomingDomains.push(value);
   }
 
-  const domainOptions = useCompactSelectOptionsCache(
+  const {options: domainOptions} = useCompactSelectOptionsCache(
     incomingDomains.map(datum => {
       return {
         value: datum,
