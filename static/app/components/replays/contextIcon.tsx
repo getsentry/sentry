@@ -16,14 +16,17 @@ type Props = {
   showVersion?: boolean;
 };
 
-const ICON_SIZE = commonTheme.iconSizes.md;
+const iconSize = '16px';
+const iconStyle = {
+  border: '1px solid ' + commonTheme.translucentGray100,
+};
 
 const ContextIcon = styled(
   ({className, name, version, showVersion, showTooltip}: Props) => {
     const icon = generatePlatformIconName(name, version);
 
     if (!showTooltip) {
-      return <PlatformIcon platform={icon} size={ICON_SIZE} />;
+      return <PlatformIcon platform={icon} size={iconSize} style={iconStyle} />;
     }
 
     const title = (
@@ -36,7 +39,7 @@ const ContextIcon = styled(
     );
     return (
       <Tooltip title={title} className={className}>
-        <PlatformIcon platform={icon} size={ICON_SIZE} />
+        <PlatformIcon platform={icon} size={iconSize} style={iconStyle} />
         {showVersion ? (version ? version : null) : undefined}
       </Tooltip>
     );
