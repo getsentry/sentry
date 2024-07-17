@@ -606,9 +606,9 @@ def test_spec_failure_rate(default_project) -> None:
 
 
 @django_db_all
-@patch("sentry.snuba.metrics.extraction._get_satisfactory_threshold_and_metric")
-def test_spec_apdex(_get_satisfactory_threshold_and_metric, default_project) -> None:
-    _get_satisfactory_threshold_and_metric.return_value = 100, "transaction.duration"
+@patch("sentry.snuba.metrics.extraction._get_satisfactory_metric")
+def test_spec_apdex(_get_satisfactory_metric, default_project) -> None:
+    _get_satisfactory_metric.return_value = "transaction.duration"
 
     spec = OnDemandMetricSpec("apdex(10)", "release:a")
 
@@ -620,9 +620,9 @@ def test_spec_apdex(_get_satisfactory_threshold_and_metric, default_project) -> 
 
 
 @django_db_all
-@patch("sentry.snuba.metrics.extraction._get_satisfactory_threshold_and_metric")
-def test_spec_apdex_decimal(_get_satisfactory_threshold_and_metric, default_project) -> None:
-    _get_satisfactory_threshold_and_metric.return_value = 100, "transaction.duration"
+@patch("sentry.snuba.metrics.extraction._get_satisfactory_metric")
+def test_spec_apdex_decimal(_get_satisfactory_metric, default_project) -> None:
+    _get_satisfactory_metric.return_value = "transaction.duration"
 
     spec = OnDemandMetricSpec("apdex(0.8)", "release:a")
 
@@ -705,11 +705,9 @@ def test_cleanup_with_environment_injection(query) -> None:
 
 
 @django_db_all
-@patch("sentry.snuba.metrics.extraction._get_satisfactory_threshold_and_metric")
-def test_spec_apdex_without_condition(
-    _get_satisfactory_threshold_and_metric, default_project
-) -> None:
-    _get_satisfactory_threshold_and_metric.return_value = 100, "transaction.duration"
+@patch("sentry.snuba.metrics.extraction._get_satisfactory_metric")
+def test_spec_apdex_without_condition(_get_satisfactory_metric, default_project) -> None:
+    _get_satisfactory_metric.return_value = "transaction.duration"
 
     spec = OnDemandMetricSpec("apdex(10)", "")
 
@@ -718,6 +716,15 @@ def test_spec_apdex_without_condition(
     assert spec.op == "on_demand_apdex"
     assert spec.condition is None
     assert spec.tags_conditions(default_project) == apdex_tag_spec(default_project, ["10"])
+
+
+@django_db_all
+def test_spec_is_dependent_on_project(default_project) -> None:
+    spec = OnDemandMetricSpec("apdex(10)", "")
+    assert spec.is_project_dependent() is True
+
+    spec = OnDemandMetricSpec("failure_rate()", "")
+    assert spec.is_project_dependent() is False
 
 
 def test_spec_custom_tag() -> None:
