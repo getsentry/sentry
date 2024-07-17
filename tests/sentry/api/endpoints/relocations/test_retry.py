@@ -59,6 +59,7 @@ class RetryRelocationTest(APITestCase):
             owner_id=self.owner.id,
             status=Relocation.Status.FAILURE.value,
             step=Relocation.Step.PREPROCESSING.value,
+            provenance=Relocation.Provenance.SELF_HOSTED.value,
             want_org_slugs=["foo", "bar"],
             want_usernames=["alice", "bob"],
             scheduled_pause_at_step=Relocation.Step.IMPORTING.value,

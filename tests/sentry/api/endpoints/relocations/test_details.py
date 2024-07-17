@@ -26,6 +26,7 @@ class GetRelocationDetailsTest(APITestCase):
             owner_id=self.owner.id,
             status=Relocation.Status.SUCCESS.value,
             step=Relocation.Step.COMPLETED.value,
+            provenance=Relocation.Provenance.SELF_HOSTED.value,
             want_org_slugs=["foo"],
             want_usernames=["emily", "fred"],
             latest_notified=Relocation.EmailKind.SUCCEEDED.value,

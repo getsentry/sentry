@@ -54,6 +54,7 @@ class GetRelocationsTest(APITestCase):
             owner_id=self.owner.id,
             status=Relocation.Status.IN_PROGRESS.value,
             step=Relocation.Step.IMPORTING.value,
+            provenance=Relocation.Provenance.SELF_HOSTED.value,
             scheduled_pause_at_step=Relocation.Step.POSTPROCESSING.value,
             want_org_slugs=["foo"],
             want_usernames=["alice", "bob"],
@@ -67,6 +68,7 @@ class GetRelocationsTest(APITestCase):
             owner_id=self.owner.id,
             status=Relocation.Status.PAUSE.value,
             step=Relocation.Step.IMPORTING.value,
+            provenance=Relocation.Provenance.SAAS_TO_SAAS.value,
             want_org_slugs=["bar"],
             want_usernames=["charlie", "denise"],
             latest_notified=Relocation.EmailKind.STARTED.value,
@@ -79,6 +81,7 @@ class GetRelocationsTest(APITestCase):
             owner_id=self.superuser.id,
             status=Relocation.Status.SUCCESS.value,
             step=Relocation.Step.COMPLETED.value,
+            provenance=Relocation.Provenance.SELF_HOSTED.value,
             want_org_slugs=["foo"],
             want_usernames=["emily", "fred"],
             latest_notified=Relocation.EmailKind.SUCCEEDED.value,
@@ -93,6 +96,7 @@ class GetRelocationsTest(APITestCase):
             status=Relocation.Status.FAILURE.value,
             failure_reason="Some failure reason",
             step=Relocation.Step.VALIDATING.value,
+            provenance=Relocation.Provenance.SAAS_TO_SAAS.value,
             scheduled_cancel_at_step=Relocation.Step.IMPORTING.value,
             want_org_slugs=["qux"],
             want_usernames=["alice", "greg"],
@@ -124,6 +128,7 @@ class GetRelocationsTest(APITestCase):
 
         assert len(response.data) == 1
         assert response.data[0]["status"] == Relocation.Status.IN_PROGRESS.name
+        assert response.data[0]["provenance"] == Relocation.Provenance.SELF_HOSTED.name
         assert response.data[0]["creator"]["id"] == str(self.superuser.id)
         assert response.data[0]["creator"]["email"] == str(self.superuser.email)
         assert response.data[0]["creator"]["username"] == str(self.superuser.username)
@@ -137,6 +142,7 @@ class GetRelocationsTest(APITestCase):
 
         assert len(response.data) == 1
         assert response.data[0]["status"] == Relocation.Status.PAUSE.name
+        assert response.data[0]["provenance"] == Relocation.Provenance.SAAS_TO_SAAS.name
 
     def test_good_status_success(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -144,11 +150,13 @@ class GetRelocationsTest(APITestCase):
 
         assert len(response.data) == 1
         assert response.data[0]["status"] == Relocation.Status.SUCCESS.name
+        assert response.data[0]["provenance"] == Relocation.Provenance.SELF_HOSTED.name
 
     def test_good_status_failure(self):
         self.login_as(user=self.superuser, superuser=True)
         response = self.get_success_response(status=Relocation.Status.FAILURE.name, status_code=200)
         assert response.data[0]["status"] == Relocation.Status.FAILURE.name
+        assert response.data[0]["provenance"] == Relocation.Provenance.SAAS_TO_SAAS.name
 
     def test_good_single_query_partial_uuid(self):
         self.login_as(user=self.superuser, superuser=True)
@@ -327,6 +335,7 @@ class PostRelocationsTest(APITestCase):
 
         assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
         assert response.data["step"] == Relocation.Step.UPLOADING.name
+        assert response.data["provenance"] == Relocation.Provenance.SELF_HOSTED.name
         assert response.data["scheduledPauseAtStep"] is None
         assert response.data["creator"]["id"] == str(self.owner.id)
         assert response.data["creator"]["email"] == str(self.owner.email)
@@ -390,6 +399,7 @@ class PostRelocationsTest(APITestCase):
 
         assert response.data["status"] == Relocation.Status.IN_PROGRESS.name
         assert response.data["step"] == Relocation.Step.UPLOADING.name
+        assert response.data["provenance"] == Relocation.Provenance.SELF_HOSTED.name
         assert response.data["scheduledPauseAtStep"] is None
         assert response.data["creator"]["id"] == str(self.owner.id)
         assert response.data["creator"]["email"] == str(self.owner.email)
