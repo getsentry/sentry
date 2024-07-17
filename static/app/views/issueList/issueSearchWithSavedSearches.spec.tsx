@@ -23,6 +23,10 @@ describe('IssueSearchWithSavedSearches', () => {
       url: '/organizations/org-slug/searches/',
       body: [savedSearch],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
+    });
   });
 
   it('displays "Custom Search" label when no saved searches are selected', () => {

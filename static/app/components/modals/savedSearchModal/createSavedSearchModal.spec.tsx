@@ -47,6 +47,10 @@ describe('CreateSavedSearchModal', function () {
       method: 'POST',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: `/organizations/org-slug/tags/`,
+      body: [],
+    });
   });
 
   it('saves a search when query is not changed', async function () {

@@ -71,7 +71,7 @@ function withIssueTags<Props extends WithIssueTagsProps>(
           : ['[me, my_teams, none]']),
         ...userTeams,
       ];
-      const assigndValues: SearchGroup[] | string[] = [
+      const assignedValues: SearchGroup[] | string[] = [
         {
           title: t('Suggested Values'),
           type: 'header',
@@ -93,7 +93,7 @@ function withIssueTags<Props extends WithIssueTagsProps>(
         ...tags,
         assigned: {
           ...tags.assigned,
-          values: assigndValues,
+          values: assignedValues,
         },
         bookmarks: {
           ...tags.bookmarks,
@@ -101,7 +101,7 @@ function withIssueTags<Props extends WithIssueTagsProps>(
         },
         assigned_or_suggested: {
           ...tags.assigned_or_suggested,
-          values: assigndValues,
+          values: assignedValues,
         },
       };
     }, [members, teams, props.organization.features, tags]);
