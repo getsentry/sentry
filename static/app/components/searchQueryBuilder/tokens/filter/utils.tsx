@@ -1,4 +1,5 @@
 import {
+  allOperators,
   filterTypeConfig,
   interchangeableFilterOperators,
   type TermOperator,
@@ -7,12 +8,19 @@ import {
 } from 'sentry/components/searchSyntax/parser';
 import {t} from 'sentry/locale';
 import {escapeDoubleQuotes} from 'sentry/utils';
+import {getFieldDefinition} from 'sentry/utils/fields';
 
 const SHOULD_ESCAPE_REGEX = /[\s"()]/;
 
 export function getValidOpsForFilter(
   filterToken: TokenResult<Token.FILTER>
 ): readonly TermOperator[] {
+  const fieldDefinition = getFieldDefinition(filterToken.key.text);
+
+  if (fieldDefinition?.allowComparisonOperators) {
+    return allOperators;
+  }
+
   // If the token is invalid we want to use the possible expected types as our filter type
   const validTypes = filterToken.invalid?.expectedType ?? [filterToken.filter];
 
