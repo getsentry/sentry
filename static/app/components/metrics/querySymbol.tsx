@@ -1,4 +1,3 @@
-import type {CSSProperties} from 'react';
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 
@@ -19,7 +18,6 @@ export const getQuerySymbol = (index: number) => {
 };
 
 export const DeprecatedSymbol = styled('span')<{
-  cursor?: CSSProperties['cursor'];
   isHidden?: boolean;
 }>`
   display: flex;
@@ -35,7 +33,6 @@ export const DeprecatedSymbol = styled('span')<{
   color: ${p => p.theme.white};
   font-size: 14px;
   background: ${p => p.theme.purple300};
-  cursor: ${props => props.cursor ?? 'default'};
   ${p =>
     p.isHidden &&
     `
