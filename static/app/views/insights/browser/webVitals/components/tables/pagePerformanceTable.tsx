@@ -338,6 +338,7 @@ export function PagePerformanceTable() {
       </SearchBarContainer>
       <GridContainer>
         <GridEditable
+          aria-label={t('Pages')}
           isLoading={isProjectScoresLoading || isTransactionWebVitalsQueryLoading}
           columnOrder={columnOrder}
           columnSortBy={[]}
