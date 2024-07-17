@@ -19,4 +19,7 @@ def check_autofix_status(run_id: int):
         and state.status == AutofixStatus.PROCESSING
         and state.updated_at < datetime.now() - timedelta(minutes=5)
     ):
-        logger.error("Autofix run %s has been processing for more than 5 minutes", run_id)
+        # This should log to sentry
+        logger.error(
+            "Autofix run has been processing for more than 5 minutes", extra={"run_id": run_id}
+        )

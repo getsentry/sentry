@@ -186,8 +186,6 @@ class GroupAutofixEndpoint(GroupEndpoint):
                 data.get("instruction", data.get("additional_context", "")),
                 TIMEOUT_SECONDS,
             )
-
-            check_autofix_status.apply_async(args=[run_id], countdown=timedelta(minutes=20))
         except Exception as e:
             logger.exception(
                 "Failed to send autofix to seer",
@@ -202,6 +200,8 @@ class GroupAutofixEndpoint(GroupEndpoint):
                 "Autofix failed to start.",
                 500,
             )
+
+        check_autofix_status.apply_async(args=[run_id], countdown=timedelta(seconds=10).seconds)
 
         return Response(
             status=202,

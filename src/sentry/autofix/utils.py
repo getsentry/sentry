@@ -23,7 +23,7 @@ class AutofixRequest(TypedDict):
     issue: AutofixIssue
 
 
-class AutofixStatus(enum.Enum):
+class AutofixStatus(str, enum.Enum):
     COMPLETED = "COMPLETED"
     ERROR = "ERROR"
     PENDING = "PENDING"
