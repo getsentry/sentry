@@ -1,11 +1,12 @@
 import {Fragment} from 'react';
 
 import Alert from 'sentry/components/alert';
+import {Button} from 'sentry/components/button';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import KeyValueData, {
   type KeyValueDataContentProps,
 } from 'sentry/components/keyValueData';
-import {IconCodecov, IconSentry, IconSettings} from 'sentry/icons';
+import {IconCodecov, IconEdit, IconSentry, IconSettings} from 'sentry/icons';
 import storyBook from 'sentry/stories/storyBook';
 import theme from 'sentry/utils/theme';
 
@@ -215,6 +216,21 @@ const contentItems: KeyValueDataContentProps[] = [
       },
     },
     disableLink: true,
+  },
+  {
+    item: {
+      key: 'action-button',
+      subject: 'action button',
+      value: 'I show a button on hover',
+      actionButton: (
+        <Button
+          aria-label="Click me"
+          borderless
+          size="zero"
+          icon={<IconEdit size="xs" />}
+        />
+      ),
+    },
   },
   {
     item: {
