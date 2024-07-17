@@ -27,6 +27,7 @@ import {
 import {useCreateMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/useMetricsExtractionRules';
 
 interface Props {
+  initialData?: Partial<FormData>;
   projectId?: string | number;
 }
 
@@ -42,10 +43,18 @@ export function MetricsExtractionRuleCreateModal({
   Body,
   closeModal,
   CloseButton,
+  initialData: initalDataProp = {},
   projectId: projectIdProp,
 }: Props & ModalRenderProps) {
   const {projects} = useProjects();
   const {selection} = usePageFilters();
+
+  const initialData = useMemo(() => {
+    return {
+      ...INITIAL_DATA,
+      ...initalDataProp,
+    };
+  }, [initalDataProp]);
 
   const initialProjectId = useMemo(() => {
     if (projectIdProp) {
@@ -115,7 +124,13 @@ export function MetricsExtractionRuleCreateModal({
             />
           </ProjectSelectionWrapper>
         ) : null}
-        {projectId ? <FormWrapper projectId={projectId} closeModal={closeModal} /> : null}
+        {projectId ? (
+          <FormWrapper
+            initialData={initialData}
+            projectId={projectId}
+            closeModal={closeModal}
+          />
+        ) : null}
       </Body>
     </Fragment>
   );
@@ -124,8 +139,10 @@ export function MetricsExtractionRuleCreateModal({
 function FormWrapper({
   closeModal,
   projectId,
+  initialData,
 }: {
   closeModal: () => void;
+  initialData: FormData;
   projectId: string | number;
 }) {
   const organization = useOrganization();
@@ -182,14 +199,13 @@ function FormWrapper({
   );
   return (
     <MetricsExtractionRuleForm
-      initialData={INITIAL_DATA}
+      initialData={initialData}
       projectId={projectId}
       submitLabel={t('Add Metric')}
       cancelLabel={t('Cancel')}
       onCancel={closeModal}
       onSubmit={handleSubmit}
       cardinality={cardinality}
-      requireChanges
     />
   );
 }

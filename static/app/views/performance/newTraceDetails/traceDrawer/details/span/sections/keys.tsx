@@ -1,5 +1,6 @@
 import {Fragment, useMemo} from 'react';
 
+import {Button} from 'sentry/components/button';
 import {
   rawSpanKeys,
   type RawSpanType,
@@ -12,9 +13,9 @@ import {
 import {OpsDot} from 'sentry/components/events/opsBreakdown';
 import FileSize from 'sentry/components/fileSize';
 import ExternalLink from 'sentry/components/links/externalLink';
+import {IconAdd} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {KeyValueListDataItem} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
 import {isSpanNode} from 'sentry/views/performance/newTraceDetails/guards';
@@ -23,6 +24,7 @@ import {
   TraceTreeNode,
 } from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 import {getPerformanceDuration} from 'sentry/views/performance/utils/getPerformanceDuration';
+import {openExtractionRuleCreateModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleCreateModal';
 
 import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../styles';
 
@@ -60,7 +62,13 @@ function partitionSizes(data: RawSpanType['data']): {
   };
 }
 
-export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
+export function SpanKeys({
+  node,
+  projectId,
+}: {
+  node: TraceTreeNode<TraceTree.Span>;
+  projectId?: string;
+}) {
   const span = node.value;
   const {sizeKeys, nonSizeKeys} = partitionSizes(span?.data ?? {});
   const allZeroSizes = SIZE_DATA_KEYS.map(key => sizeKeys[key]).every(
@@ -130,7 +138,24 @@ export function SpanKeys({node}: {node: TraceTreeNode<TraceTree.Span>}) {
       items.push({
         key: key,
         subject: key,
-        value: value as KeyValueListDataItem['value'],
+        actionButton: (
+          <Button
+            borderless
+            aria-label={t('Extract as metric')}
+            onClick={() =>
+              openExtractionRuleCreateModal({
+                projectId: projectId,
+                initialData: {
+                  spanAttribute: key,
+                },
+              })
+            }
+            size="zero"
+            icon={<IconAdd size="xs" />}
+            title={t('Extract as metric')}
+          />
+        ),
+        value: value as string | number,
       });
     }
   });
