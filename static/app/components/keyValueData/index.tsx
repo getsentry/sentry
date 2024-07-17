@@ -60,7 +60,6 @@ export function Content({
   ) : (
     <StructuredData
       value={contextValue}
-      depth={0}
       maxDefaultDepth={0}
       meta={meta}
       withAnnotatedText

@@ -1,5 +1,5 @@
+import type {ReactNode} from 'react';
 import {Children, useState} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -7,19 +7,20 @@ import {IconChevron} from 'sentry/icons';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-type CollapsibleValueProps = {
-  children: React.ReactNode;
+interface Props {
+  children: ReactNode;
   closeTag: string;
   depth: number;
   maxDefaultDepth: number;
   openTag: string;
+  path: string;
   /**
    * Forces the value to start expanded, otherwise it will expand if there are
    * less than 5 (MAX_ITEMS_BEFORE_AUTOCOLLAPSE) items
    */
   forceDefaultExpand?: boolean;
-  prefix?: React.ReactNode;
-};
+  prefix?: ReactNode;
+}
 
 const MAX_ITEMS_BEFORE_AUTOCOLLAPSE = 5;
 
@@ -31,7 +32,7 @@ export function CollapsibleValue({
   depth,
   maxDefaultDepth,
   forceDefaultExpand,
-}: CollapsibleValueProps) {
+}: Props) {
   const numChildren = Children.count(children);
   const [isExpanded, setIsExpanded] = useState(
     forceDefaultExpand ??
@@ -46,17 +47,17 @@ export function CollapsibleValue({
   const baseLevelPadding = isBaseLevel && shouldShowToggleButton;
 
   return (
-    <CollapsibleDataContainer baseLevelPadding={baseLevelPadding}>
+    <CollapsibleDataContainer data-base-with-toggle={baseLevelPadding}>
       {numChildren > 0 ? (
         <ToggleButton
-          size="zero"
           aria-label={isExpanded ? t('Collapse') : t('Expand')}
-          onClick={() => setIsExpanded(oldValue => !oldValue)}
+          borderless
+          data-base-with-toggle={baseLevelPadding}
           icon={
             <IconChevron direction={isExpanded ? 'down' : 'right'} legacySize="10px" />
           }
-          borderless
-          baseLevelPadding={baseLevelPadding}
+          onClick={() => setIsExpanded(oldValue => !oldValue)}
+          size="zero"
         />
       ) : null}
       {prefix}
@@ -74,15 +75,13 @@ export function CollapsibleValue({
   );
 }
 
-const CollapsibleDataContainer = styled('span')<{baseLevelPadding: boolean}>`
+const CollapsibleDataContainer = styled('span')`
   position: relative;
 
-  ${p =>
-    p.baseLevelPadding &&
-    css`
-      display: block;
-      padding-left: ${space(3)};
-    `}
+  &[data-base-with-toggle='true'] {
+    display: block;
+    padding-left: ${space(3)};
+  }
 `;
 
 const IndentedValues = styled('div')`
@@ -101,7 +100,7 @@ const NumItemsButton = styled(Button)`
   margin: 0 ${space(0.5)};
 `;
 
-const ToggleButton = styled(Button)<{baseLevelPadding: boolean}>`
+const ToggleButton = styled(Button)`
   position: absolute;
   left: -${space(3)};
   top: 2px;
@@ -111,9 +110,7 @@ const ToggleButton = styled(Button)<{baseLevelPadding: boolean}>`
   background: none;
   border: none;
 
-  ${p =>
-    p.baseLevelPadding &&
-    css`
-      left: 0;
-    `}
+  &[data-base-with-toggle='true'] {
+    left: 0;
+  }
 `;

@@ -1,22 +1,16 @@
 import {Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
-import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import ExternalLink from 'sentry/components/links/externalLink';
+import AnnotatedValue from 'sentry/components/structuredEventData/annotatedValue';
 import {CollapsibleValue} from 'sentry/components/structuredEventData/collapsibleValue';
-import {IconOpen} from 'sentry/icons';
-import {t} from 'sentry/locale';
-import {space} from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
-import {isUrl} from 'sentry/utils/string/isUrl';
-
+import LinkHint from 'sentry/components/structuredEventData/linkHint';
 import {
   looksLikeMultiLineString,
   looksLikeStrippedValue,
   naturalCaseInsensitiveSort,
-} from './utils';
+} from 'sentry/components/structuredEventData/utils';
+import {space} from 'sentry/styles/space';
 
 export type StructedEventDataConfig = {
   isBoolean?: (value: unknown) => boolean;
@@ -50,52 +44,8 @@ export type StructuredEventDataProps = {
   withAnnotatedText?: boolean;
 };
 
-function AnnotatedValue({
-  value,
-  withAnnotatedText,
-  withOnlyFormattedText = false,
-  meta,
-}: {
-  meta: Record<any, any> | undefined;
-  withAnnotatedText: boolean;
-  value?: React.ReactNode;
-  withOnlyFormattedText?: boolean;
-}) {
-  if (!withAnnotatedText || !meta) {
-    return <Fragment>{value}</Fragment>;
-  }
-
-  return (
-    <AnnotatedText
-      value={value}
-      meta={meta?.[''] ?? meta}
-      withOnlyFormattedText={withOnlyFormattedText}
-    />
-  );
-}
-
-function LinkHint({meta, value}: {value: string; meta?: Record<any, any>}) {
-  if (!isUrl(value) || defined(meta)) {
-    return null;
-  }
-
-  return (
-    <ExternalLink
-      onClick={e => {
-        e.preventDefault();
-        openNavigateToExternalLinkModal({linkText: value});
-      }}
-      role="link"
-      className="external-icon"
-    >
-      <StyledIconOpen size="xs" aria-label={t('Open link')} />
-    </ExternalLink>
-  );
-}
-
 export function StructuredData({
   config,
-  depth,
   value = null,
   maxDefaultDepth,
   withAnnotatedText,
@@ -104,9 +54,48 @@ export function StructuredData({
   objectKey,
   forceDefaultExpand,
 }: {
+  maxDefaultDepth: number;
+  meta: Record<any, any> | undefined;
+  withAnnotatedText: boolean;
+  config?: StructedEventDataConfig;
+  forceDefaultExpand?: boolean;
+  objectKey?: string;
+  showCopyButton?: boolean;
+  // TODO(TS): What possible types can `value` be?
+  value?: any;
+  withOnlyFormattedText?: boolean;
+}) {
+  return (
+    <RecursiveStructuredData
+      config={config}
+      depth={0}
+      forceDefaultExpand={forceDefaultExpand}
+      maxDefaultDepth={maxDefaultDepth}
+      meta={meta}
+      objectKey={objectKey}
+      path="$"
+      value={value}
+      withAnnotatedText={withAnnotatedText}
+      withOnlyFormattedText={withOnlyFormattedText}
+    />
+  );
+}
+function RecursiveStructuredData({
+  config,
+  depth,
+  forceDefaultExpand,
+  maxDefaultDepth,
+  meta,
+  objectKey,
+  path,
+  value = null,
+  withAnnotatedText,
+  withOnlyFormattedText = false,
+}: {
   depth: number;
   maxDefaultDepth: number;
   meta: Record<any, any> | undefined;
+  path: string;
   withAnnotatedText: boolean;
   config?: StructedEventDataConfig;
   forceDefaultExpand?: boolean;
@@ -257,13 +246,14 @@ export function StructuredData({
     for (i = 0; i < value.length; i++) {
       children.push(
         <div key={i}>
-          <StructuredData
+          <RecursiveStructuredData
             config={config}
-            value={value[i]}
             depth={depth + 1}
-            withAnnotatedText={withAnnotatedText}
-            meta={meta?.[i]}
             maxDefaultDepth={maxDefaultDepth}
+            meta={meta?.[i]}
+            path={path + '.' + i}
+            value={value[i]}
+            withAnnotatedText={withAnnotatedText}
           />
           {i < value.length - 1 ? <span>{','}</span> : null}
         </div>
@@ -273,6 +263,7 @@ export function StructuredData({
       <CollapsibleValue
         openTag="["
         closeTag="]"
+        path={path}
         prefix={formattedObjectKey}
         maxDefaultDepth={maxDefaultDepth}
         depth={depth}
@@ -293,14 +284,15 @@ export function StructuredData({
 
     children.push(
       <div key={key}>
-        <StructuredData
+        <RecursiveStructuredData
           config={config}
-          value={value[key]}
           depth={depth + 1}
-          withAnnotatedText={withAnnotatedText}
-          meta={meta?.[key]}
           maxDefaultDepth={maxDefaultDepth}
+          meta={meta?.[key]}
           objectKey={key}
+          path={path + '.' + key}
+          value={value[key]}
+          withAnnotatedText={withAnnotatedText}
         />
         {i < keys.length - 1 ? <span>{','}</span> : null}
       </div>
@@ -311,6 +303,7 @@ export function StructuredData({
     <CollapsibleValue
       openTag="{"
       closeTag="}"
+      path={path}
       prefix={formattedObjectKey}
       maxDefaultDepth={maxDefaultDepth}
       depth={depth}
@@ -338,7 +331,6 @@ export default function StructuredEventData({
       <StructuredData
         config={config}
         value={data}
-        depth={0}
         maxDefaultDepth={maxDefaultDepth}
         meta={meta}
         withAnnotatedText={withAnnotatedText}
@@ -357,11 +349,6 @@ export default function StructuredEventData({
     </StructuredDataWrapper>
   );
 }
-
-const StyledIconOpen = styled(IconOpen)`
-  position: relative;
-  top: 1px;
-`;
 
 const ValueNull = styled('span')`
   font-weight: ${p => p.theme.fontWeightBold};

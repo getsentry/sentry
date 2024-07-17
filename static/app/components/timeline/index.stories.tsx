@@ -63,7 +63,7 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
         <CodeSnippet language="jsx">
           {`<Timeline.Item ...>
   <Timeline.Data>
-    <StructuredData value={someJson} />
+    <StructuredData value={someJson} ... />
   </Timeline.Data>
 </Timeline.Item>`}
         </CodeSnippet>
@@ -82,7 +82,6 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
         <Timeline.Data>
           <StructuredData
             value={JSONPayload}
-            depth={0}
             maxDefaultDepth={1}
             meta={undefined}
             withAnnotatedText
@@ -172,7 +171,6 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
         <Timeline.Data>
           <StructuredData
             value={JSONPayload}
-            depth={0}
             maxDefaultDepth={1}
             meta={undefined}
             withAnnotatedText
@@ -229,7 +227,6 @@ export default storyBook('Timeline (Updated 06/17/24)', story => {
           <Timeline.Data>
             <StructuredData
               value={JSONPayload}
-              depth={0}
               maxDefaultDepth={1}
               meta={undefined}
               withAnnotatedText
