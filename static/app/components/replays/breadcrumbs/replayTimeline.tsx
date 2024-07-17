@@ -74,9 +74,8 @@ export default function ReplayTimeline() {
         {organization.features.includes('session-replay-timeline-gap') ? (
           <TimelineGaps
             durationMs={durationMs}
+            startTimestampMs={startTimestampMs}
             frames={appFrames}
-            totalFrames={chapterFrames.length}
-            width={width}
           />
         ) : null}
         <TimelineEventsContainer>
