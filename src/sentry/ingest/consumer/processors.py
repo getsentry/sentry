@@ -10,7 +10,7 @@ from django.conf import settings
 from django.core.cache import cache
 from usageaccountant import UsageUnit
 
-from sentry import eventstore, features
+from sentry import eventstore, features, options
 from sentry.attachments import CachedAttachment, attachment_cache
 from sentry.event_manager import save_attachment
 from sentry.eventstore.processing import event_processing_store
@@ -41,8 +41,8 @@ def trace_func(**span_kwargs):
     def wrapper(f):
         @functools.wraps(f)
         def inner(*args, **kwargs):
-            if True:
-                # New behavior is to add a custom `sample_rate`` that is picked up by `traces_sampler`
+            if options.get("ingest-consumer.use-traces-sampler", False):
+                # New behavior is to add a custom `sample_rate` that is picked up by `traces_sampler`
                 span_kwargs.setdefault(
                     "custom_sampling_context",
                     {"sample_rate": getattr(settings, "SENTRY_INGEST_CONSUMER_APM_SAMPLING", 0)},

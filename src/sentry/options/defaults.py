@@ -2606,6 +2606,13 @@ register(
 
 
 register(
+    "ingest-consumer.use-traces-sampler",
+    type=Bool,
+    default=False,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
     "sentry.save-event-attachments.project-per-5-minute-limit",
     type=Int,
     default=2000,
