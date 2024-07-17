@@ -687,11 +687,11 @@ describe('WidgetBuilder', function () {
 
       await userEvent.click(await screen.findByText('Table'));
       await userEvent.click(screen.getByText('Line Chart'));
-      // expect(
-      //   screen.getByRole('radio', {
-      //     name: 'Errors',
-      //   })
-      // ).toBeEnabled();
+      expect(
+        screen.getByRole('radio', {
+          name: 'Errors (TypeError, InvalidSearchQuery, etc)',
+        })
+      ).toBeEnabled();
       expect(
         screen.getByRole('radio', {
           name: 'Transactions',

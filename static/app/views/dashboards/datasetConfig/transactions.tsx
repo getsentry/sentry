@@ -112,7 +112,7 @@ function getEventsTableFieldOptions(
   });
 }
 
-export function getCustomEventsFieldRenderer(field: string, meta: MetaType) {
+function getCustomEventsFieldRenderer(field: string, meta: MetaType) {
   if (field === 'id') {
     return renderEventIdAsLinkable;
   }
@@ -124,7 +124,7 @@ export function getCustomEventsFieldRenderer(field: string, meta: MetaType) {
   return getFieldRenderer(field, meta, false);
 }
 
-export function getEventsRequest(
+function getEventsRequest(
   api: Client,
   query: WidgetQuery,
   organization: Organization,
