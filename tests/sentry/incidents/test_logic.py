@@ -57,7 +57,10 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleDetectionType,
     AlertRuleMonitorTypeInt,
+    AlertRuleSeasonality,
+    AlertRuleSensitivity,
     AlertRuleStatus,
     AlertRuleThresholdType,
     AlertRuleTrigger,
@@ -700,6 +703,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             AlertRuleThresholdType.ABOVE,
             1,
             comparison_delta=comparison_delta,
+            detection_type=AlertRuleDetectionType.PERCENT,
         )
         assert alert_rule.snuba_query.subscriptions.get().project == self.project
         assert alert_rule.comparison_delta == comparison_delta * 60
@@ -796,6 +800,7 @@ class CreateAlertRuleTest(TestCase, BaseIncidentsTest):
             query_type=SnubaQuery.Type.PERFORMANCE,
             dataset=Dataset.Metrics,
             comparison_delta=60,
+            detection_type=AlertRuleDetectionType.PERCENT,
         )
 
         assert (
@@ -1192,6 +1197,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             query_type=SnubaQuery.Type.PERFORMANCE,
             dataset=Dataset.Metrics,
             comparison_delta=comparison_delta,
+            detection_type=AlertRuleDetectionType.PERCENT,
         )
 
         assert (
@@ -1227,6 +1233,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             query_type=SnubaQuery.Type.PERFORMANCE,
             dataset=Dataset.Metrics,
             comparison_delta=comparison_delta,
+            detection_type=AlertRuleDetectionType.PERCENT,
         )
 
         assert alert_rule.snuba_query.resolution == 1800
@@ -1254,6 +1261,7 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             query_type=SnubaQuery.Type.PERFORMANCE,
             dataset=Dataset.Metrics,
             comparison_delta=comparison_delta,
+            detection_type=AlertRuleDetectionType.PERCENT,
         )
 
         assert alert_rule.snuba_query.resolution == 1800
@@ -1267,6 +1275,94 @@ class UpdateAlertRuleTest(TestCase, BaseIncidentsTest):
             * DEFAULT_CMP_ALERT_RULE_RESOLUTION_MULTIPLIER
             * 60
         )
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    def test_update_detection_type(self):
+        comparison_delta = 60
+        # test percent to dynamic
+        rule = self.create_alert_rule(
+            comparison_delta=comparison_delta,
+            detection_type=AlertRuleDetectionType.PERCENT,
+        )
+
+        updated_rule = update_alert_rule(
+            rule,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+
+        assert updated_rule.comparison_delta is None
+        assert updated_rule.sensitivity == AlertRuleSensitivity.HIGH
+        assert updated_rule.seasonality == AlertRuleSeasonality.AUTO
+        assert updated_rule.detection_type == AlertRuleDetectionType.DYNAMIC
+
+        # test dynamic to percent
+        rule = self.create_alert_rule(
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+
+        updated_rule = update_alert_rule(
+            rule, comparison_delta=comparison_delta, detection_type=AlertRuleDetectionType.PERCENT
+        )
+
+        assert updated_rule.comparison_delta == comparison_delta * 60
+        assert updated_rule.sensitivity is None
+        assert updated_rule.seasonality is None
+        assert updated_rule.detection_type == AlertRuleDetectionType.PERCENT
+
+        # test static to percent
+        rule = self.create_alert_rule()
+
+        updated_rule = update_alert_rule(
+            rule, comparison_delta=comparison_delta, detection_type=AlertRuleDetectionType.PERCENT
+        )
+
+        assert updated_rule.comparison_delta == comparison_delta * 60
+        assert updated_rule.detection_type == AlertRuleDetectionType.PERCENT
+
+        # test static to dynamic
+        rule = self.create_alert_rule()
+
+        updated_rule = update_alert_rule(
+            rule,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+
+        assert updated_rule.sensitivity == AlertRuleSensitivity.HIGH
+        assert updated_rule.seasonality == AlertRuleSeasonality.AUTO
+        assert updated_rule.detection_type == AlertRuleDetectionType.DYNAMIC
+
+        # test percent to static
+        rule = self.create_alert_rule(
+            comparison_delta=comparison_delta,
+            detection_type=AlertRuleDetectionType.PERCENT,
+        )
+
+        updated_rule = update_alert_rule(rule, detection_type=AlertRuleDetectionType.STATIC)
+
+        assert updated_rule.comparison_delta is None
+        assert updated_rule.sensitivity is None
+        assert updated_rule.seasonality is None
+        assert updated_rule.detection_type == AlertRuleDetectionType.STATIC
+
+        # test dynamic to static
+        rule = self.create_alert_rule(
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+        )
+
+        updated_rule = update_alert_rule(rule, detection_type=AlertRuleDetectionType.STATIC)
+
+        assert updated_rule.comparison_delta is None
+        assert updated_rule.sensitivity is None
+        assert updated_rule.seasonality is None
+        assert updated_rule.detection_type == AlertRuleDetectionType.STATIC
 
 
 class DeleteAlertRuleTest(TestCase, BaseIncidentsTest):

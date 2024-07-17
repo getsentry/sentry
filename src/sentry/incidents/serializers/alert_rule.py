@@ -28,6 +28,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleDetectionType,
     AlertRuleMonitorTypeInt,
     AlertRuleThresholdType,
     AlertRuleTrigger,
@@ -94,6 +95,10 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
     activation_condition = serializers.IntegerField(required=False, allow_null=True, min_value=0)
     description = serializers.CharField(required=False, allow_blank=True)
 
+    sensitivity = serializers.CharField(required=False, allow_null=True)
+    seasonality = serializers.CharField(required=False, allow_null=True)
+    detection_type = serializers.CharField(required=False, default=AlertRuleDetectionType.STATIC)
+
     class Meta:
         model = AlertRule
         fields = [
@@ -117,6 +122,9 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
             "monitor_type",
             "activation_condition",
             "description",
+            "sensitivity",
+            "seasonality",
+            "detection_type",
         ]
         extra_kwargs = {
             "name": {"min_length": 1, "max_length": 256},

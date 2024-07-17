@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 import pytest
 import responses
+from django.core.exceptions import ValidationError
 from django.test import override_settings
 from rest_framework import serializers
 from rest_framework.exceptions import ErrorDetail
@@ -20,6 +21,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleDetectionType,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
 )
@@ -675,12 +677,25 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         assert alert_rule.user_id == self.user.id
         assert alert_rule.team_id is None
 
+    def test_invalid_detection_type(self):
+        with self.feature("organizations:anomaly-detection-alerts"):
+            params = self.valid_params.copy()
+            params["detection_type"] = AlertRuleDetectionType.PERCENT  # requires comparison delta
+            serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
+            assert serializer.is_valid()
+            with pytest.raises(
+                ValidationError,
+                match="Percentage-based alerts require a comparison delta",
+            ):
+                serializer.save()
+
     def test_comparison_delta_above(self):
         params = self.valid_params.copy()
         params["comparison_delta"] = 60
         params["resolveThreshold"] = 10
         params["triggers"][0]["alertThreshold"] = 50
         params["triggers"][1]["alertThreshold"] = 40
+        params["detection_type"] = AlertRuleDetectionType.PERCENT
         serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
@@ -700,6 +715,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         params["resolveThreshold"] = 10
         params["triggers"][0]["alertThreshold"] = 50
         params["triggers"][1]["alertThreshold"] = 40
+        params["detection_type"] = AlertRuleDetectionType.PERCENT
         serializer = AlertRuleSerializer(context=self.context, data=params, partial=True)
         assert serializer.is_valid(), serializer.errors
         alert_rule = serializer.save()
