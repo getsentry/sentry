@@ -51,7 +51,11 @@ class TransactionsTimeseriesQueryTest(TimeseriesBase):
                 selected_columns=["min(transaction)"],
                 query="transaction:api.issue.delete",
                 referrer="test_discover_query",
-                params={"project_id": [self.project.id]},
+                params={
+                    "start": self.day_ago,
+                    "end": self.day_ago + timedelta(hours=2),
+                    "project_id": [self.project.id],
+                },
                 rollup=1800,
             )
 
@@ -61,7 +65,7 @@ class TransactionsTimeseriesQueryTest(TimeseriesBase):
                 selected_columns=["count()"],
                 query="transaction:api.issue.delete",
                 referrer="test_discover_query",
-                params={"project_id": [self.project.id]},
+                params={"start": self.day_ago},
                 rollup=1800,
             )
 

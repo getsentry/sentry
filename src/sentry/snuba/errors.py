@@ -9,9 +9,9 @@ from sentry.exceptions import InvalidSearchQuery
 from sentry.models.group import STATUS_QUERY_CHOICES
 from sentry.search.events.builder.errors import ErrorsQueryBuilder, ErrorsTimeseriesQueryBuilder
 from sentry.search.events.fields import get_json_meta_type
-from sentry.search.events.types import QueryBuilderConfig
+from sentry.search.events.types import EventsResponse, QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.discover import EventsResponse, transform_tips, zerofill
+from sentry.snuba.discover import transform_tips, zerofill
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.utils.snuba import SnubaTSResult, bulk_snuba_queries
 

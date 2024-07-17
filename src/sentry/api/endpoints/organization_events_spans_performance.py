@@ -26,7 +26,7 @@ from sentry.models.organization import Organization
 from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.builder.discover import DiscoverQueryBuilder, TimeseriesQueryBuilder
 from sentry.search.events.datasets.discover import DiscoverDatasetConfig
-from sentry.search.events.types import ParamsType, QueryBuilderConfig
+from sentry.search.events.types import ParamsType, QueryBuilderConfig, Span
 from sentry.snuba import discover
 from sentry.snuba.dataset import Dataset
 from sentry.utils.cursors import Cursor, CursorResult
@@ -461,23 +461,6 @@ class SuspectSpan:
             "p95ExclusiveTime": self.p95_exclusive_time,
             "p99ExclusiveTime": self.p99_exclusive_time,
         }
-
-
-@dataclasses.dataclass(frozen=True)
-class Span:
-    op: str
-    group: str
-
-    @staticmethod
-    def from_str(s: str) -> Span:
-        parts = s.rsplit(":", 1)
-        if len(parts) != 2:
-            raise ValueError(
-                "span must consist of of a span op and a valid 16 character hex delimited by a colon (:)"
-            )
-        if not is_span_id(parts[1]):
-            raise ValueError(INVALID_SPAN_ID.format("spanGroup"))
-        return Span(op=parts[0], group=parts[1])
 
 
 @dataclasses.dataclass(frozen=True)

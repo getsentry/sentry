@@ -497,7 +497,7 @@ class GroupManager(BaseManager["Group"]):
 
     def get_issues_mapping(
         self,
-        group_ids: Sequence[int],
+        group_ids: Iterable[int],
         project_ids: Sequence[int],
         organization: Organization,
     ) -> Mapping[int, str | None]:
