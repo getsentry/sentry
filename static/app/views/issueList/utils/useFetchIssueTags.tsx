@@ -13,6 +13,7 @@ import {
   IssueType,
   type Organization,
   PriorityLevel,
+  type Tag,
   type TagCollection,
   type User,
 } from 'sentry/types';
@@ -105,22 +106,32 @@ export const useFetchIssueTags = ({
       ],
     },
   ];
-  const eventsTags = [
-    ...(eventsTagsQuery.data || []),
-    ...(issuePlatformTagsQuery.data || []),
-  ];
-  const eventsTagCollection = eventsTags.reduce<TagCollection>((acc, tag) => {
-    acc[tag.key] = {...tag, kind: FieldKind.TAG};
-    return acc;
-  }, {});
+  const eventsTags: Tag[] = eventsTagsQuery.data || [];
+  const issuePlatformTags: Tag[] = issuePlatformTagsQuery.data || [];
 
-  const additionalTags = builtInIssuesFields(org, eventsTagCollection, assignedValues, [
+  const allTagsCollection: TagCollection = eventsTags.reduce<TagCollection>(
+    (acc, tag) => {
+      acc[tag.key] = {...tag, kind: FieldKind.TAG};
+      return acc;
+    },
+    {}
+  );
+  issuePlatformTags.forEach(tag => {
+    if (allTagsCollection[tag.key]) {
+      allTagsCollection[tag.key].totalValues =
+        (allTagsCollection[tag.key].totalValues ?? 0) + (tag.totalValues ?? 0);
+    } else {
+      allTagsCollection[tag.key] = {...tag, kind: FieldKind.TAG};
+    }
+  });
+
+  const additionalTags = builtInIssuesFields(org, allTagsCollection, assignedValues, [
     'me',
     ...usernames,
   ]);
 
   const allTags = {
-    ...eventsTagCollection,
+    ...allTagsCollection,
     ...additionalTags,
   };
 
