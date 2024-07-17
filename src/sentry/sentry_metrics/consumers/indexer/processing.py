@@ -74,6 +74,7 @@ class MessageProcessor:
         ).validate
 
     def process_messages(self, outer_message: Message[MessageBatch]) -> IndexerOutputMessageBatch:
+        # TODO-anton: remove sampled here and let traces_sampler decide
         with sentry_sdk.start_transaction(
             name="sentry.sentry_metrics.consumers.indexer.processing.process_messages",
             sampled=random.random() < settings.SENTRY_METRICS_INDEXER_TRANSACTIONS_SAMPLE_RATE,

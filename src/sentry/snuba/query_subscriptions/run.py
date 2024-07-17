@@ -73,11 +73,15 @@ def process_message(
     from sentry.snuba.query_subscriptions.consumer import handle_message
     from sentry.utils import metrics
 
-    with sentry_sdk.start_transaction(
-        op="handle_message",
-        name="query_subscription_consumer_process_message",
-        sampled=in_random_rollout("subscriptions-query.sample-rate"),
-    ), metrics.timer("snuba_query_subscriber.handle_message", tags={"dataset": dataset.value}):
+    # TODO-anton: remove sampled here and let traces_sampler decide
+    with (
+        sentry_sdk.start_transaction(
+            op="handle_message",
+            name="query_subscription_consumer_process_message",
+            sampled=in_random_rollout("subscriptions-query.sample-rate"),
+        ),
+        metrics.timer("snuba_query_subscriber.handle_message", tags={"dataset": dataset.value}),
+    ):
         value = message.value
         assert isinstance(value, BrokerValue)
         offset = value.offset
