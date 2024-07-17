@@ -158,6 +158,7 @@ class GenericWidgetQueries<SeriesResponse, TableResponse> extends Component<
       customDidUpdateComparator
         ? customDidUpdateComparator(prevProps, this.props)
         : widget.limit !== prevProps.widget.limit ||
+          !isEqual(widget.widgetType, prevProps.widget.widgetType) ||
           !isEqual(widget.displayType, prevProps.widget.displayType) ||
           !isEqual(widget.interval, prevProps.widget.interval) ||
           !isEqual(new Set(widgetQueries), new Set(prevWidgetQueries)) ||
