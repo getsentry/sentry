@@ -3,7 +3,6 @@ import startCase from 'lodash/startCase';
 import moment from 'moment';
 
 import type {TooltipSubLabel} from 'sentry/components/charts/components/tooltip';
-import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import type {DataCategoryInfo, IntervalPeriod} from 'sentry/types';
 import {Outcome} from 'sentry/types';
 
@@ -87,15 +86,7 @@ export function mapSeriesToChart({
     };
 
     orgStats.groups.forEach(group => {
-      const {outcome, category} = group.by;
-
-      // HACK: The backend enum are singular, but the frontend enums are plural
-      const fullDataCategory = Object.values(DATA_CATEGORY_INFO).find(
-        data => data.plural === dataCategory
-      );
-      if (fullDataCategory?.apiName !== category) {
-        return;
-      }
+      const {outcome} = group.by;
 
       if (outcome !== Outcome.CLIENT_DISCARD) {
         count.total += group.totals['sum(quantity)'];
@@ -104,10 +95,7 @@ export function mapSeriesToChart({
       count[outcome] += group.totals['sum(quantity)'];
 
       group.series['sum(quantity)'].forEach((stat, i) => {
-        const dataObject = {
-          name: orgStats.intervals[i],
-          value: stat,
-        };
+        const dataObject = {name: orgStats.intervals[i], value: stat};
 
         const strigfiedReason = String(group.by.reason ?? '');
         const reason = getReasonGroupName(outcome, strigfiedReason);

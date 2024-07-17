@@ -32,6 +32,7 @@ import {isDisplayUtc} from './utils';
 
 export interface UsageStatsOrganizationProps extends WithRouterProps {
   dataCategory: DataCategoryInfo['plural'];
+  dataCategoryApiName: DataCategoryInfo['apiName'];
   dataCategoryName: string;
   dataDatetime: DateTimeObject;
   handleChangeState: (state: {
@@ -104,16 +105,17 @@ class UsageStatsOrganization<
   }
 
   get endpointQuery() {
-    const {dataDatetime, projectIds} = this.props;
+    const {dataDatetime, projectIds, dataCategoryApiName} = this.props;
 
     const queryDatetime = this.endpointQueryDatetime;
 
     return {
       ...queryDatetime,
       interval: getSeriesApiInterval(dataDatetime),
-      groupBy: ['category', 'outcome', 'reason'],
+      groupBy: ['outcome', 'reason'],
       project: projectIds,
       field: ['sum(quantity)'],
+      category: dataCategoryApiName,
     };
   }
 

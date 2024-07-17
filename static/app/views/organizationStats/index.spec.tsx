@@ -100,10 +100,12 @@ describe('OrganizationStats', function () {
 
     // Render the cards
     expect(screen.getAllByText('Total')[0]).toBeInTheDocument();
-    expect(screen.getByText('67')).toBeInTheDocument();
+    // Total from cards and project table should match
+    expect(screen.getAllByText('67')).toHaveLength(2);
 
     expect(screen.getAllByText('Accepted')[0]).toBeInTheDocument();
-    expect(screen.getByText('28')).toBeInTheDocument();
+    // Total from cards and project table should match
+    expect(screen.getAllByText('28')).toHaveLength(2);
     expect(await screen.findByText('6 in last min')).toBeInTheDocument();
 
     expect(screen.getAllByText('Filtered')[0]).toBeInTheDocument();
@@ -120,9 +122,10 @@ describe('OrganizationStats', function () {
       UsageStatsOrg: {
         statsPeriod: DEFAULT_STATS_PERIOD,
         interval: '1h',
-        groupBy: ['category', 'outcome', 'reason'],
+        groupBy: ['outcome', 'reason'],
         project: [-1],
         field: ['sum(quantity)'],
+        category: 'error',
       },
       UsageStatsPerMin: {
         statsPeriod: '5m',
@@ -319,9 +322,10 @@ describe('OrganizationStats', function () {
         query: {
           statsPeriod: DEFAULT_STATS_PERIOD,
           interval: '1h',
-          groupBy: ['category', 'outcome', 'reason'],
+          groupBy: ['outcome', 'reason'],
           project: selectedProjects,
           field: ['sum(quantity)'],
+          category: 'error',
         },
       })
     );
@@ -360,9 +364,10 @@ describe('OrganizationStats', function () {
         query: {
           statsPeriod: DEFAULT_STATS_PERIOD,
           interval: '1h',
-          groupBy: ['category', 'outcome', 'reason'],
+          groupBy: ['outcome', 'reason'],
           project: selectedProject,
           field: ['sum(quantity)'],
+          category: 'error',
         },
       })
     );
@@ -424,32 +429,6 @@ const mockStatsResponse = {
     '2021-01-07T00:00:00Z',
   ],
   groups: [
-    {
-      by: {
-        project: 1,
-        category: 'attachment',
-        outcome: 'accepted',
-      },
-      totals: {
-        'sum(quantity)': 28000,
-      },
-      series: {
-        'sum(quantity)': [1000, 2000, 3000, 4000, 5000, 6000, 7000],
-      },
-    },
-    {
-      by: {
-        project: 1,
-        outcome: 'accepted',
-        category: 'transaction',
-      },
-      totals: {
-        'sum(quantity)': 28,
-      },
-      series: {
-        'sum(quantity)': [1, 2, 3, 4, 5, 6, 7],
-      },
-    },
     {
       by: {
         project: 1,
