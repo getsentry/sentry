@@ -3,7 +3,7 @@ import {Replayer} from '@sentry-internal/rrweb';
 import type {RecordingFrame} from 'sentry/utils/replays/types';
 
 export function createHiddenPlayer(rrwebEvents: RecordingFrame[]): {
-  cleanupPlayer: () => void;
+  cleanupReplayer: () => void;
   replayer: Replayer;
 } {
   const domRoot = document.createElement('div');
@@ -26,21 +26,24 @@ export function createHiddenPlayer(rrwebEvents: RecordingFrame[]): {
     hiddenIframe.contentDocument.body.appendChild(domRoot);
   }
 
-  const cleanupPlayer = () => {
+  const replayer = new Replayer(rrwebEvents, {
+    root: domRoot,
+    loadTimeout: 1,
+    showWarning: false,
+    blockClass: 'sentry-block',
+    speed: 99999,
+    skipInactive: true,
+    triggerFocus: false,
+    mouseTail: false,
+  });
+
+  const cleanupReplayer = () => {
     hiddenIframe.remove();
+    replayer.destroy();
   };
 
   return {
-    replayer: new Replayer(rrwebEvents, {
-      root: domRoot,
-      loadTimeout: 1,
-      showWarning: false,
-      blockClass: 'sentry-block',
-      speed: 99999,
-      skipInactive: true,
-      triggerFocus: false,
-      mouseTail: false,
-    }),
-    cleanupPlayer,
+    replayer,
+    cleanupReplayer,
   };
 }
