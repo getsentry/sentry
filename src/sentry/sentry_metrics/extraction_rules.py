@@ -7,6 +7,7 @@ from sentry.sentry_metrics.configuration import (
     ALLOWED_TYPES,
     HARD_CODED_UNITS,
 )
+from sentry.sentry_metrics.models.spanattributeextractionrules import SPAN_ATTRIBUTE_PREFIX
 from sentry.sentry_metrics.use_case_utils import string_to_use_case_id
 
 METRICS_EXTRACTION_RULES_OPTION_KEY = "sentry:metrics_extraction_rules"
@@ -71,7 +72,7 @@ class MetricsExtractionRule:
     def generate_mri(self, use_case: str = "custom"):
         """Generate the Metric Resource Identifier (MRI) associated with the extraction rule."""
         use_case_id = string_to_use_case_id(use_case)
-        return f"{self.type}:{use_case_id.value}/span_attribute_{self.id}@none"
+        return f"{self.type}:{use_case_id.value}/{SPAN_ATTRIBUTE_PREFIX}{self.id}@none"
 
     def __hash__(self):
         return hash(self.generate_mri())
