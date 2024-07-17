@@ -112,7 +112,10 @@ describe('Screen Summary', function () {
     let eventsStatsMock;
     let organization;
     beforeEach(function () {
-      const project = ProjectFixture({platform: 'react-native'});
+      const project = ProjectFixture({
+        platform: 'react-native',
+        hasInsightsScreenLoad: true,
+      });
       organization = OrganizationFixture({features: ['insights-initial-modules']});
       mockResponses(organization, project);
       localStorage.clear();
@@ -205,7 +208,7 @@ describe('Screen Summary', function () {
     let eventsStatsMock;
     let organization;
     beforeEach(function () {
-      const project = ProjectFixture({platform: 'android'});
+      const project = ProjectFixture({platform: 'android', hasInsightsScreenLoad: true});
       organization = OrganizationFixture({features: ['insights-initial-modules']});
       mockResponses(organization, project);
       localStorage.clear();

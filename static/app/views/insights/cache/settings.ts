@@ -23,11 +23,3 @@ export const MODULE_DESCRIPTION = t(
   'Discover whether your application is utilizing caching effectively and understand the latency associated with cache misses.'
 );
 export const MODULE_DOC_LINK = 'https://docs.sentry.io/product/insights/caches/';
-
-export const ONBOARDING_CONTENT = {
-  title: t('Make sure your application’s caching is behaving properly'),
-  description: t(
-    'We tell you if your application is hitting cache as often as expected and whether it’s delivering the anticipated performance improvements.'
-  ),
-  link: MODULE_DOC_LINK,
-};
