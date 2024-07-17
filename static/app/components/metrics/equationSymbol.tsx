@@ -4,9 +4,9 @@ import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 
 import {QueryInputGroup} from './queryInputGroup';
-import {Symbol} from './querySymbol';
+import {DeprecatedSymbol} from './styles';
 
-interface EquationSymbolProps extends React.ComponentProps<typeof Symbol> {
+interface EquationSymbolProps extends React.ComponentProps<typeof DeprecatedSymbol> {
   equationId: number;
 }
 
@@ -17,7 +17,9 @@ export function getEquationSymbol(equationId: number) {
 export const EquationSymbol = forwardRef<HTMLSpanElement, EquationSymbolProps>(
   function EquationSymbol({equationId, ...props}, ref) {
     const organization = useOrganization();
-    const Component = hasMetricsNewInputs(organization) ? QueryInputGroup.Symbol : Symbol;
+    const Component = hasMetricsNewInputs(organization)
+      ? QueryInputGroup.Symbol
+      : DeprecatedSymbol;
     return (
       <Component ref={ref} {...props}>
         <span>

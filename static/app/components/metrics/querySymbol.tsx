@@ -3,7 +3,8 @@ import {forwardRef} from 'react';
 import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import {_Symbol, QueryInputGroup} from './queryInputGroup';
+import {QueryInputGroup} from './queryInputGroup';
+import {DeprecatedSymbol} from './styles';
 
 const indexToChar = 'abcdefghijklmnopqrstuvwxyz';
 
@@ -17,8 +18,7 @@ export const getQuerySymbol = (index: number) => {
   return result;
 };
 
-export const Symbol = _Symbol;
-interface QuerySymbolProps extends React.ComponentProps<typeof Symbol> {
+interface QuerySymbolProps extends React.ComponentProps<typeof DeprecatedSymbol> {
   queryId: number;
 }
 
@@ -30,7 +30,9 @@ export const QuerySymbol = forwardRef<HTMLSpanElement, QuerySymbolProps>(
       return null;
     }
 
-    const Component = hasMetricsNewInputs(organization) ? QueryInputGroup.Symbol : Symbol;
+    const Component = hasMetricsNewInputs(organization)
+      ? QueryInputGroup.Symbol
+      : DeprecatedSymbol;
 
     return (
       <Component ref={ref} {...props}>
