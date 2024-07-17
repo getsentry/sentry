@@ -2,7 +2,7 @@ import {useRef} from 'react';
 import {useTheme} from '@emotion/react';
 import type {YAXisComponentOption} from 'echarts';
 import type {Location} from 'history';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import EventsRequest from 'sentry/components/charts/eventsRequest';
 import type {LineChartSeries} from 'sentry/components/charts/lineChart';
