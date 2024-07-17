@@ -116,6 +116,7 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
 
     if message.replay_video:
         # Record video size for COGS analysis.
+        metrics.incr("replays.recording_consumer.replay_video_count")
         metrics.distribution(
             "replays.recording_consumer.replay_video_size",
             len(message.replay_video),
