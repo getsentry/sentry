@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Self
 
 from django.db import models
 from django.utils import timezone
@@ -37,9 +37,7 @@ class OrganizationIntegration(ReplicatedControlModel):
     # After the grace period, we will mark the status as disabled.
     grace_period_end = models.DateTimeField(null=True, blank=True, db_index=True)
 
-    objects: ClassVar[
-        ControlOutboxProducingManager[OrganizationIntegration]
-    ] = ControlOutboxProducingManager()
+    objects: ClassVar[ControlOutboxProducingManager[Self]] = ControlOutboxProducingManager()
 
     class Meta:
         app_label = "sentry"

@@ -1,5 +1,12 @@
 import type {MetricType, MRI, ParsedMRI, UseCase} from 'sentry/types/metrics';
-import {getUseCaseFromMRI, parseField, parseMRI, toMRI} from 'sentry/utils/metrics/mri';
+import {
+  formatMRI,
+  getUseCaseFromMRI,
+  isExtractedCustomMetric,
+  parseField,
+  parseMRI,
+  toMRI,
+} from 'sentry/utils/metrics/mri';
 
 describe('parseMRI', () => {
   it('should handle falsy values', () => {
@@ -116,14 +123,14 @@ describe('getUseCaseFromMRI', () => {
 });
 
 describe('parseField', () => {
-  it('should return the correct mri and op from field', () => {
-    const field = 'op(c:test/project)';
+  it('should return the correct mri and aggregation from field', () => {
+    const field = 'aggregation(c:test/project)';
 
     const result = parseField(field);
 
     expect(result).toEqual({
       mri: 'c:test/project',
-      op: 'op',
+      aggregation: 'aggregation',
     });
   });
 
@@ -133,7 +140,7 @@ describe('parseField', () => {
     const result = parseField(field);
 
     expect(result?.mri).toBe('my-metric');
-    expect(result?.op).toBe('sum');
+    expect(result?.aggregation).toBe('sum');
   });
 
   it('should return null mri invalid field', () => {
@@ -203,4 +210,32 @@ describe('toMRI', () => {
       expect(toMRI(parsedMRI)).toEqual(mri);
     }
   );
+});
+
+describe('formatMRI', () => {
+  it('returns the metric name', () => {
+    expect(formatMRI('c:custom/foo@none')).toEqual('foo');
+    expect(formatMRI('c:custom/bar@ms')).toEqual('bar');
+    expect(formatMRI('d:transactions/baz@ms')).toEqual('baz');
+  });
+
+  it('strips the projectId from virtual metrics', () => {
+    expect(formatMRI('v:custom/foo|123@none')).toEqual('foo');
+    expect(formatMRI('v:custom/bar|456@ms')).toEqual('bar');
+  });
+});
+
+describe('isExtractedCustomMetric', () => {
+  it('should return true if the metric name is prefixed', () => {
+    expect(isExtractedCustomMetric({mri: 'c:custom/span_attribute_123@none'})).toBe(true);
+    expect(isExtractedCustomMetric({mri: 's:custom/span_attribute_foo@none'})).toBe(true);
+    expect(isExtractedCustomMetric({mri: 'g:custom/span_attribute_baz@none'})).toBe(true);
+  });
+
+  it('should return false if the metric name is not prefixed', () => {
+    expect(isExtractedCustomMetric({mri: 'c:custom/12span_attribute_@none'})).toBe(false);
+    expect(isExtractedCustomMetric({mri: 's:custom/foo@none'})).toBe(false);
+    expect(isExtractedCustomMetric({mri: 'd:custom/_span_attribute_@none'})).toBe(false);
+    expect(isExtractedCustomMetric({mri: 'g:custom/span_attributebaz@none'})).toBe(false);
+  });
 });

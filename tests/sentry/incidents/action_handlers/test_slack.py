@@ -1,6 +1,7 @@
 from unittest.mock import patch
 
 import orjson
+import pytest
 import responses
 
 from sentry.constants import ObjectStatus
@@ -17,12 +18,28 @@ from sentry.models.notificationmessage import NotificationMessage
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.utils import json
+from tests.sentry.integrations.slack.utils.test_mock_slack_response import mock_slack_response
 
 from . import FireTest
 
 
 @freeze_time()
 class SlackActionHandlerTest(FireTest):
+    @pytest.fixture(autouse=True)
+    def mock_chat_postEphemeral(self):
+        with mock_slack_response(
+            "chat_scheduleMessage",
+            body={"ok": True, "channel": "chan-id", "scheduled_message_id": "Q1298393284"},
+        ) as self.mock_schedule:
+            yield
+
+    @pytest.fixture(autouse=True)
+    def mock_chat_unfurl(self):
+        with mock_slack_response(
+            "chat_deleteScheduledMessage", body={"ok": True}
+        ) as self.mock_delete:
+            yield
+
     @responses.activate
     def setUp(self):
         token = "xoxp-xxxxxxxxx-xxxxxxxxxx-xxxxxxxxxxxx"
@@ -103,6 +120,7 @@ class SlackActionHandlerTest(FireTest):
         assert NotificationMessage.objects.all().count() == 1
         msg = NotificationMessage.objects.all()[0]
         assert msg.error_code == 200
+        assert msg.error_details is not None
         assert msg.error_details["data"] == {"ok": False, "error": "invalid_auth"}
 
         mock_metrics.incr.assert_called_with(

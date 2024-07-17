@@ -9,16 +9,15 @@ from django.utils import timezone
 from sentry.charts.types import ChartType
 from sentry.discover.models import DiscoverSavedQuery
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
+from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.integrations.slack.message_builder.discover import SlackDiscoverMessageBuilder
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.integrations.slack.unfurl import LinkType, UnfurlableUrl, link_handlers, match_link
-from sentry.services.hybrid_cloud.integration.serial import serialize_integration
 from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import install_slack
 from sentry.testutils.helpers.datetime import before_now, freeze_time, iso_format
-from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba, pytest.mark.sentry_metrics]
@@ -216,7 +215,6 @@ class UnfurlTest(TestCase):
             ).build()
         )
 
-    @with_feature("organizations:slack-block-kit")
     def test_unfurl_issues_block_kit(self):
         min_ago = iso_format(before_now(minutes=1))
         event = self.store_event(
@@ -246,7 +244,6 @@ class UnfurlTest(TestCase):
             ).build()
         )
 
-    @with_feature({"organizations:slack-block-kit": False})
     def test_escape_issue(self):
         # wraps text in markdown code block
         escape_text = "<https://example.com/|*Click Here*>"

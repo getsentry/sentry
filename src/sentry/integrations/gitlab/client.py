@@ -8,15 +8,14 @@ from urllib.parse import quote
 from django.urls import reverse
 from requests import PreparedRequest
 
+from sentry.identity.services.identity.model import RpcIdentity
 from sentry.integrations.gitlab.blame import fetch_file_blames
 from sentry.integrations.gitlab.utils import GitLabApiClientPath
 from sentry.integrations.mixins.commit_context import FileBlameInfo, SourceLineInfo
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.identity.model import RpcIdentity
-from sentry.services.hybrid_cloud.util import control_silo_function
 from sentry.shared_integrations.client.proxy import IntegrationProxyClient
 from sentry.shared_integrations.exceptions import ApiError, ApiUnauthorized
-from sentry.silo.base import SiloMode
+from sentry.silo.base import SiloMode, control_silo_function
 from sentry.utils import metrics
 from sentry.utils.http import absolute_uri
 

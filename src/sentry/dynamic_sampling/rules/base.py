@@ -48,9 +48,9 @@ def get_guarded_blended_sample_rate(organization: Organization, project: Project
         organization_id=organization.id, project=project
     )
 
-    # If the sample rate is None, it means that dynamic sampling rules shouldn't be generated.
+    # get_blended_sample_rate returns None if the organization doesn't have dynamic sampling
     if sample_rate is None:
-        raise Exception("get_blended_sample_rate returns none")
+        return 1.0
 
     # If the sample rate is 100%, we don't want to use any special dynamic sample rate, we will just sample at 100%.
     if sample_rate == 1.0:

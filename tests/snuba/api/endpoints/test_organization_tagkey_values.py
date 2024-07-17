@@ -739,6 +739,63 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
             ],
         )
 
+    def test_replays_tags_values_query(self):
+        # requests may pass in a "query" param to filter the return values with a substring
+
+        # custom tag
+        self.run_test("fruit", expected=[("orange", 2)], qs_params={"query": "ora"})
+        self.run_test("fruit", expected=[("apple", 1), ("orange", 2)], qs_params={"query": "e"})
+        self.run_test("fruit", expected=[], qs_params={"query": "zz"})
+
+        # column aliases
+        self.run_test("replay_type", expected=[("error", 1)], qs_params={"query": "err"})
+        self.run_test(
+            "environment",
+            expected=[("development", 1), ("production", 3)],
+            qs_params={"query": "d"},
+        )
+        self.run_test("dist", expected=[], qs_params={"query": "z"})
+
+        self.run_test("platform", expected=[("python", 1)], qs_params={"query": "o"})
+        self.run_test(
+            "release", expected=[("1.0.0", 1), ("version@1.3", 3)], qs_params={"query": "1."}
+        )
+        self.run_test("user.id", expected=[("123", 3)], qs_params={"query": "1"})
+        self.run_test("user.username", expected=[("username", 3)], qs_params={"query": "a"})
+        self.run_test(
+            "user.email",
+            expected=[("test@bacon.com", 1), ("username@example.com", 3)],
+            qs_params={"query": "@"},
+        )
+        self.run_test("user.ip", expected=[], qs_params={"query": "!^"})
+        self.run_test("sdk.name", expected=[], qs_params={"query": "sentry-javascript"})
+        self.run_test(
+            "sdk.version", expected=[("5.15.5", 1), ("6.18.1", 3)], qs_params={"query": ".1"}
+        )
+        self.run_test("os.name", expected=[("SuseLinux", 1)], qs_params={"query": "Linux"})
+        self.run_test("os.version", expected=[("1.0.0", 1)], qs_params={"query": "0.0"})
+        self.run_test("browser.name", expected=[("Chrome", 3)], qs_params={"query": "Chrome"})
+        self.run_test("browser.version", expected=[("99.0.0", 1)], qs_params={"query": "99"})
+        self.run_test(
+            "device.name",
+            expected=[("Microwave", 1), ("iPhone 13 Pro", 3)],
+            qs_params={"query": "i"},
+        )
+        self.run_test("device.brand", expected=[("Samsung", 1)], qs_params={"query": "S"})
+        self.run_test("device.family", expected=[], qs_params={"query": "$$$"})
+
+    def test_replays_tags_values_query_case_insensitive(self):
+        # custom tag
+        self.run_test("fruit", expected=[("orange", 2)], qs_params={"query": "OrA"})
+
+        # some column aliases
+        self.run_test("browser.name", expected=[("Chrome", 3)], qs_params={"query": "chrom"})
+        self.run_test(
+            "environment",
+            expected=[("development", 1), ("production", 3)],
+            qs_params={"query": "D"},
+        )
+
     def test_schema(self):
 
         res = self.get_replays_response("fruit", {})

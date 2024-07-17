@@ -8,9 +8,7 @@ import {space} from 'sentry/styles/space';
 import type {Event} from 'sentry/types/event';
 import useRouteAnalyticsParams from 'sentry/utils/routeAnalytics/useRouteAnalyticsParams';
 import {useDimensions} from 'sentry/utils/useDimensions';
-import useOrganization from 'sentry/utils/useOrganization';
 
-import {TraceIssueEvent} from './traceIssue';
 import {TraceTimelineEvents} from './traceTimelineEvents';
 import {useTraceTimelineEvents} from './useTraceTimelineEvents';
 
@@ -19,7 +17,6 @@ interface TraceTimelineProps {
 }
 
 export function TraceTimeline({event}: TraceTimelineProps) {
-  const organization = useOrganization();
   const timelineRef = useRef<HTMLDivElement>(null);
   const {width} = useDimensions({elementRef: timelineRef});
   const {isError, isLoading, traceEvents, oneOtherIssueEvent} = useTraceTimelineEvents({
@@ -30,24 +27,14 @@ export function TraceTimeline({event}: TraceTimelineProps) {
 
   let timelineStatus: string | undefined = 'empty';
   if (hasTraceId && !isLoading) {
-    if (!organization.features.includes('related-issues-issue-details-page')) {
-      timelineStatus = traceEvents.length > 1 ? 'shown' : 'empty';
-    } else {
-      // When we have another issue we skip the timeline
-      timelineStatus = oneOtherIssueEvent ? 'empty' : 'shown';
-    }
+    // When we have another issue we skip the timeline
+    timelineStatus = oneOtherIssueEvent ? 'empty' : 'shown';
   } else if (!hasTraceId) {
     timelineStatus = 'no_trace_id';
   }
 
-  const showTraceRelatedIssue =
-    timelineStatus !== 'shown' &&
-    organization.features.includes('related-issues-issue-details-page') &&
-    oneOtherIssueEvent !== undefined;
-
   useRouteAnalyticsParams({
     trace_timeline_status: timelineStatus,
-    has_related_trace_issue: showTraceRelatedIssue,
   });
 
   if (!hasTraceId) {
@@ -89,7 +76,6 @@ export function TraceTimeline({event}: TraceTimelineProps) {
           </TimelineWrapper>
         </Fragment>
       )}
-      {showTraceRelatedIssue && <TraceIssueEvent event={oneOtherIssueEvent} />}
     </ErrorBoundary>
   );
 }

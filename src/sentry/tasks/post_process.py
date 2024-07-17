@@ -26,6 +26,7 @@ from sentry.signals import event_processed, issue_unignored, transaction_process
 from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.types.group import GroupSubStatus
+from sentry.uptime.detectors.detector import detect_base_url_for_project
 from sentry.utils import json, metrics
 from sentry.utils.cache import cache
 from sentry.utils.event_frames import get_sdk_name
@@ -45,7 +46,7 @@ if TYPE_CHECKING:
     from sentry.models.project import Project
     from sentry.models.team import Team
     from sentry.ownership.grammar import Rule
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.services.user import RpcUser
 
 logger = logging.getLogger(__name__)
 
@@ -335,7 +336,7 @@ def handle_group_owners(
     from sentry.models.groupowner import GroupOwner, GroupOwnerType, OwnerRuleType
     from sentry.models.team import Team
     from sentry.models.user import User
-    from sentry.services.hybrid_cloud.user import RpcUser
+    from sentry.users.services.user import RpcUser
 
     lock = locks.get(f"groupowner-bulk:{group.id}", duration=10, name="groupowner_bulk")
     logging_params = {
@@ -1108,7 +1109,7 @@ def process_commits(job: PostProcessJob) -> None:
                 )
                 has_integrations = cache.get(integration_cache_key)
                 if has_integrations is None:
-                    from sentry.services.hybrid_cloud.integration import integration_service
+                    from sentry.integrations.services.integration import integration_service
 
                     org_integrations = integration_service.get_organization_integrations(
                         organization_id=event.project.organization_id,
@@ -1420,6 +1421,7 @@ def link_event_to_user_report(job: PostProcessJob) -> None:
                 project,
                 FeedbackCreationSource.USER_REPORT_ENVELOPE,
             )
+            metrics.incr("event_manager.save._update_user_reports_with_event_link.shim_to_feedback")
 
         user_reports_updated = user_reports_without_group.update(
             group_id=group.id, environment_id=event.get_environment().id
@@ -1512,6 +1514,11 @@ def detect_new_escalation(job: PostProcessJob):
         return
 
 
+def detect_base_urls_for_uptime(job: PostProcessJob):
+    url = get_path(job["event"].data, "request", "url")
+    detect_base_url_for_project(job["event"].project, url)
+
+
 GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
     GroupCategory.ERROR: [
         _capture_group_stats,
@@ -1533,6 +1540,7 @@ GROUP_CATEGORY_POST_PROCESS_PIPELINE = {
         sdk_crash_monitoring,
         process_replay_link,
         link_event_to_user_report,
+        detect_base_urls_for_uptime,
     ],
     GroupCategory.FEEDBACK: [
         feedback_filter_decorator(process_snoozes),

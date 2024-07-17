@@ -14,6 +14,7 @@ interface OffsetOptions {
 }
 
 interface VideoReplayerOptions {
+  config: VideoReplayerConfig;
   durationMs: number;
   onBuffer: (isBuffering: boolean) => void;
   onFinished: () => void;
@@ -58,10 +59,7 @@ export class VideoReplayer {
   private _videoApiPrefix: string;
   private _clipDuration: number | undefined;
   private _durationMs: number;
-  public config: VideoReplayerConfig = {
-    skipInactive: false,
-    speed: 1.0,
-  };
+  public config: VideoReplayerConfig;
   public wrapper: HTMLElement;
   public iframe = {};
 
@@ -76,6 +74,7 @@ export class VideoReplayer {
       onLoaded,
       clipWindow,
       durationMs,
+      config,
     }: VideoReplayerOptions
   ) {
     this._attachments = attachments;
@@ -90,6 +89,7 @@ export class VideoReplayer {
     this._videos = new Map<any, HTMLVideoElement>();
     this._clipDuration = undefined;
     this._durationMs = durationMs;
+    this.config = config;
 
     this.wrapper = document.createElement('div');
     if (root) {
@@ -204,7 +204,6 @@ export class VideoReplayer {
     el.setAttribute('muted', '');
     el.setAttribute('playinline', '');
     el.setAttribute('preload', 'auto');
-    // TODO: Timer needs to also account for playback speed
     el.setAttribute('playbackRate', `${this.config.speed}`);
     el.appendChild(sourceEl);
 
@@ -413,6 +412,10 @@ export class VideoReplayer {
     // This is the soon-to-be previous video that needs to be hidden
     if (this._currentVideo) {
       this._currentVideo.style.display = 'none';
+      // resets the soon-to-be previous video to the beginning if it's ended so it starts from the beginning on restart
+      if (this._currentVideo.ended) {
+        this.setVideoTime(this._currentVideo, 0);
+      }
     }
 
     nextVideo.style.display = 'block';
@@ -446,6 +449,14 @@ export class VideoReplayer {
   }
 
   protected setVideoTime(video: HTMLVideoElement, timeMs: number) {
+    // If 'ended' is true, the current time will be overwritten to 0 after hitting play.
+    // Setting currentTime will cause a side-effect of resetting 'ended' to false.
+    // The additional assignment of currentTime is required to make sure ended is reset before we assign the actual currentTime
+    if (video.ended && timeMs > 0) {
+      // we set it to 1ms before to reduce flickering
+      video.currentTime = (timeMs - 1) / 1000;
+    }
+
     // Needs to be in seconds
     video.currentTime = timeMs / 1000;
   }
@@ -677,6 +688,7 @@ export class VideoReplayer {
         return;
       }
       currentVideo.playbackRate = this.config.speed;
+      this._timer.setSpeed(this.config.speed);
     }
   }
 }

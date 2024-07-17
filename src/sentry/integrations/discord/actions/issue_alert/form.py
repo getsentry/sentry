@@ -8,7 +8,7 @@ from django.forms.fields import ChoiceField
 
 from sentry.integrations.discord.utils.channel import validate_channel_id
 from sentry.integrations.discord.utils.channel_from_url import get_channel_id_from_url
-from sentry.services.hybrid_cloud.integration import integration_service
+from sentry.integrations.services.integration import integration_service
 from sentry.shared_integrations.exceptions import ApiTimeoutError, IntegrationError
 
 

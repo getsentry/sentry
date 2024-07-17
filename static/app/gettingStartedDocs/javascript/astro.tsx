@@ -53,9 +53,15 @@ export default defineConfig({
 
 const getVerifyAstroSnippet = () => `
 <!-- your-page.astro -->
-<button onclick="throw new Error('This is a test error')">
-  Throw test error
-</button>
+---
+---
+<button id="error-button">Throw test error</button>
+<script>
+  function handleClick () {
+    throw new Error('This is a test error');
+  }
+  document.querySelector("#error-button").addEventListener("click", handleClick);
+</script>
 `;
 
 const getInstallConfig = () => [
@@ -189,7 +195,7 @@ const onboarding: OnboardingConfig = {
       description: t(
         'Track down transactions to connect the dots between 10-second page loads and poor-performing API calls or slow database queries.'
       ),
-      link: 'https://docs.sentry.io/platforms/javascript/guides/astro/performance/',
+      link: 'https://docs.sentry.io/platforms/javascript/guides/astro/tracing/',
     },
     {
       id: 'session-replay',

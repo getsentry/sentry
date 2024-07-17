@@ -50,6 +50,9 @@ COMPARISON_INTERVALS: dict[str, tuple[str, timedelta]] = {
 SNUBA_LIMIT = 10000
 
 
+DEFAULT_COMPARISON_INTERVAL = "5m"
+
+
 class ComparisonType(TextChoices):
     COUNT = "count"
     PERCENT = "percent"
@@ -165,7 +168,9 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             return False
 
         comparison_type = self.get_option("comparisonType", ComparisonType.COUNT)
-        comparison_interval_option = self.get_option("comparisonInterval", "5m")
+        comparison_interval_option = self.get_option(
+            "comparisonInterval", DEFAULT_COMPARISON_INTERVAL
+        )
         if comparison_interval_option == "":
             return False
         comparison_interval = COMPARISON_INTERVALS[comparison_interval_option][1]
@@ -255,16 +260,11 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
             option_override_cm = options_override({"consistent": False})
         return option_override_cm
 
-    def get_comparison_start_end(
-        self, interval: timedelta, duration: timedelta
-    ) -> tuple[datetime, datetime]:
+    def get_query_window(self, end: datetime, duration: timedelta) -> tuple[datetime, datetime]:
         """
-        Calculate the start and end times for the query. `interval` is only used for EventFrequencyPercentCondition
-        as the '5 minutes' in The issue affects more than 100 percent of sessions in 5 minutes, otherwise it's the current time.
-        `duration` is the time frame in which the condition is measuring counts, e.g. the '10 minutes' in
-        "The issue is seen more than 100 times in 10 minutes"
+        Calculate the start and end times for the query.
+        "duration" is the length of the window we're querying over.
         """
-        end = timezone.now() - interval
         start = end - duration
         return (start, end)
 
@@ -276,14 +276,16 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
         environment_id: int,
         comparison_type: str,
     ) -> int:
-        start, end = self.get_comparison_start_end(timedelta(), duration)
+        current_time = timezone.now()
+        start, end = self.get_query_window(end=current_time, duration=duration)
         with self.disable_consistent_snuba_mode(duration):
             result = self.query(event, start, end, environment_id=environment_id)
             if comparison_type == ComparisonType.PERCENT:
                 # TODO: Figure out if there's a way we can do this less frequently. All queries are
                 # automatically cached for 10s. We could consider trying to cache this and the main
                 # query for 20s to reduce the load.
-                start, end = self.get_comparison_start_end(comparison_interval, duration)
+                current_time -= comparison_interval
+                start, end = self.get_query_window(end=current_time, duration=duration)
                 comparison_result = self.query(event, start, end, environment_id=environment_id)
                 result = percent_increase(result, comparison_result)
 
@@ -292,12 +294,25 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
     def get_rate_bulk(
         self,
         duration: timedelta,
-        comparison_interval: timedelta,
         group_ids: set[int],
         environment_id: int,
-        comparison_type: str,
+        current_time: datetime,
+        comparison_interval: timedelta | None,
     ) -> dict[int, int]:
-        start, end = self.get_comparison_start_end(timedelta(), duration)
+        """
+        Make a batch query for multiple groups. The return value is a dictionary
+        of group_id to the result for that group.
+
+        If comparison_interval is not None, we're making the second query in a
+        percent comparison condition. For example, if the condition is:
+            - num of issues is {}% higher in 1 hr compared to 5 min ago
+        The second query would be querying for num of events from:
+            -  5 min ago to 1 hr 5 min ago
+        """
+        if comparison_interval:
+            current_time -= comparison_interval
+        start, end = self.get_query_window(end=current_time, duration=duration)
+
         with self.disable_consistent_snuba_mode(duration):
             result = self.batch_query(
                 group_ids=group_ids,
@@ -305,18 +320,6 @@ class BaseEventFrequencyCondition(EventCondition, abc.ABC):
                 end=end,
                 environment_id=environment_id,
             )
-        if comparison_type == ComparisonType.PERCENT:
-            start, comparison_end = self.get_comparison_start_end(comparison_interval, duration)
-            comparison_result = self.batch_query(
-                group_ids=group_ids,
-                start=start,
-                end=comparison_end,
-                environment_id=environment_id,
-            )
-            result = {
-                group_id: percent_increase(result[group_id], comparison_result[group_id])
-                for group_id in group_ids
-            }
         return result
 
     def get_snuba_query_result(

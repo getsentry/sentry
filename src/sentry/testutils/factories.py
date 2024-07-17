@@ -29,6 +29,7 @@ from django.utils.encoding import force_str
 from django.utils.text import slugify
 
 from sentry.auth.access import RpcBackedAccess
+from sentry.auth.services.auth.model import RpcAuthState, RpcMemberSsoState
 from sentry.constants import SentryAppInstallationStatus, SentryAppStatus
 from sentry.event_manager import EventManager
 from sentry.eventstore.models import Event
@@ -41,7 +42,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import (
     AlertRule,
-    AlertRuleMonitorType,
+    AlertRuleMonitorTypeInt,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
 )
@@ -117,6 +118,7 @@ from sentry.models.platformexternalissue import PlatformExternalIssue
 from sentry.models.project import Project
 from sentry.models.projectbookmark import ProjectBookmark
 from sentry.models.projectcodeowners import ProjectCodeOwners
+from sentry.models.projecttemplate import ProjectTemplate
 from sentry.models.release import Release
 from sentry.models.releasecommit import ReleaseCommit
 from sentry.models.releaseenvironment import ReleaseEnvironment
@@ -133,17 +135,15 @@ from sentry.models.useremail import UserEmail
 from sentry.models.userpermission import UserPermission
 from sentry.models.userreport import UserReport
 from sentry.models.userrole import UserRole
+from sentry.organizations.services.organization import RpcOrganization, RpcUserOrganizationContext
 from sentry.sentry_apps.apps import SentryAppCreator
 from sentry.sentry_apps.installations import (
     SentryAppInstallationCreator,
     SentryAppInstallationTokenCreator,
 )
-from sentry.services.hybrid_cloud.app.serial import serialize_sentry_app_installation
-from sentry.services.hybrid_cloud.auth.model import RpcAuthState, RpcMemberSsoState
-from sentry.services.hybrid_cloud.hook import hook_service
-from sentry.services.hybrid_cloud.organization import RpcOrganization
-from sentry.services.hybrid_cloud.organization.model import RpcUserOrganizationContext
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.sentry_apps.services.app.serial import serialize_sentry_app_installation
+from sentry.sentry_apps.services.hook import hook_service
+from sentry.sentry_metrics.models import SpanAttributeExtractionRuleConfig
 from sentry.signals import project_created
 from sentry.silo.base import SiloMode
 from sentry.snuba.dataset import Dataset
@@ -153,6 +153,12 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.region import Region, get_local_region, get_region_by_name
 from sentry.types.token import AuthTokenType
+from sentry.uptime.models import (
+    ProjectUptimeSubscription,
+    ProjectUptimeSubscriptionMode,
+    UptimeSubscription,
+)
+from sentry.users.services.user import RpcUser
 from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
 from social_auth.models import UserSocialAuth
@@ -471,7 +477,9 @@ class Factories:
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
-    def create_project(organization=None, teams=None, fire_project_created=False, **kwargs):
+    def create_project(
+        organization=None, teams=None, fire_project_created=False, **kwargs
+    ) -> Project:
         if not kwargs.get("name"):
             kwargs["name"] = petname.generate(2, " ", letters=10).title()
         if not kwargs.get("slug"):
@@ -489,6 +497,17 @@ class Factories:
                     project=project, user=AnonymousUser(), default_rules=True, sender=Factories
                 )
         return project
+
+    @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_project_template(project=None, organization=None, **kwargs) -> ProjectTemplate:
+        if not kwargs.get("name"):
+            kwargs["name"] = petname.generate(2, " ", letters=10).title()
+
+        with transaction.atomic(router.db_for_write(Project)):
+            project_template = ProjectTemplate.objects.create(organization=organization, **kwargs)
+
+        return project_template
 
     @staticmethod
     @assume_test_silo_mode(SiloMode.REGION)
@@ -1190,6 +1209,13 @@ class Factories:
         )
 
     @staticmethod
+    @assume_test_silo_mode(SiloMode.REGION)
+    def create_span_attribute_extraction_config(
+        dictionary: dict[str, Any], user_id: int, project: Project
+    ) -> SpanAttributeExtractionRuleConfig:
+        return SpanAttributeExtractionRuleConfig.from_dict(dictionary, user_id, project)
+
+    @staticmethod
     @assume_test_silo_mode(SiloMode.CONTROL)
     def create_stacktrace_link_schema():
         return {"type": "stacktrace-link", "uri": "/redirect/"}
@@ -1459,6 +1485,7 @@ class Factories:
         seen_by=None,
         alert_rule=None,
         subscription=None,
+        activation=None,
     ):
         if not title:
             title = petname.generate(2, " ", letters=10).title()
@@ -1478,6 +1505,7 @@ class Factories:
             date_closed=timezone.now() if date_closed is not None else date_closed,
             type=IncidentType.ALERT_TRIGGERED.value,
             subscription=subscription,
+            activation=activation,
         )
         for project in projects:
             IncidentProject.objects.create(incident=incident, project=project)
@@ -1517,7 +1545,7 @@ class Factories:
         user=None,
         event_types=None,
         comparison_delta=None,
-        monitor_type=AlertRuleMonitorType.CONTINUOUS,
+        monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS,
         activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
         description=None,
     ):
@@ -1890,4 +1918,34 @@ class Factories:
         }
         return WebhookPayload.objects.create(
             mailbox_name=mailbox_name, region_name=region_name, **payload_kwargs
+        )
+
+    @staticmethod
+    def create_uptime_subscription(
+        type: str,
+        subscription_id: str | None,
+        status: UptimeSubscription.Status,
+        url: str,
+        interval_seconds: int,
+        timeout_ms: int,
+    ):
+        return UptimeSubscription.objects.create(
+            type=type,
+            subscription_id=subscription_id,
+            status=status.value,
+            url=url,
+            interval_seconds=interval_seconds,
+            timeout_ms=timeout_ms,
+        )
+
+    @staticmethod
+    def create_project_uptime_subscription(
+        project: Project,
+        uptime_subscription: UptimeSubscription,
+        mode: ProjectUptimeSubscriptionMode,
+    ):
+        return ProjectUptimeSubscription.objects.create(
+            uptime_subscription=uptime_subscription,
+            project=project,
+            mode=mode,
         )

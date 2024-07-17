@@ -3,7 +3,6 @@ from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
 import orjson
-import responses
 from django.core import mail
 
 from sentry.models.authprovider import AuthProvider
@@ -12,7 +11,6 @@ from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SlackActivityNotificationTest
 from sentry.testutils.helpers.features import with_feature
-from sentry.testutils.helpers.slack import get_blocks_and_fallback_text
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
@@ -154,7 +152,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
             assert mail.outbox[i].to in ([user.email] for user in users_able_to_approve_requests)
             assert mail.outbox[i].subject == expected_subject
 
-    @with_feature("organizations:customer-domains")
+    @with_feature("system:multi-region")
     def test_request_to_join_email_customer_domains(self):
         manager = self.create_user(email="manager@localhost")
         self.create_member(organization=self.organization, user=manager, role="manager")
@@ -174,12 +172,13 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
         assert mail.outbox[0].subject == f"Access request to {self.organization.name}"
         assert self.organization.absolute_url("/settings/members/") in mail.outbox[0].body
 
-    @responses.activate
     def test_request_to_join_slack(self):
         with self.tasks():
             self.get_success_response(self.organization.slug, email=self.email, status_code=204)
 
-        blocks, fallback_text = get_blocks_and_fallback_text()
+        blocks = orjson.loads(self.mock_post.call_args.kwargs["blocks"])
+        fallback_text = self.mock_post.call_args.kwargs["text"]
+
         assert fallback_text == f"{self.email} is requesting to join {self.organization.name}"
         query_params = parse_qs(urlparse(blocks[1]["elements"][0]["text"]).query)
         notification_uuid = query_params["notification_uuid"][0]
@@ -197,7 +196,7 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
             {
                 "type": "button",
                 "text": {"type": "plain_text", "text": "Reject"},
-                "action_id": "approve_request",
+                "action_id": "reject_request",
                 "value": "reject_member",
             },
             {
@@ -207,12 +206,11 @@ class OrganizationJoinRequestTest(APITestCase, SlackActivityNotificationTest, Hy
                 "value": "link_clicked",
             },
         ]
-
-        data = parse_qs(responses.calls[0].request.body)
+        callback_id = orjson.loads(self.mock_post.call_args.kwargs["callback_id"])
 
         with outbox_runner():
             member = OrganizationMember.objects.get(email=self.email)
-        assert orjson.loads(data["callback_id"][0]) == {
+        assert callback_id == {
             "member_id": member.id,
             "member_email": self.email,
         }

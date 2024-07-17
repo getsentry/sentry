@@ -1,3 +1,5 @@
+import type {Location} from 'history';
+
 import {
   deleteHomepageQuery,
   updateHomepageQuery,
@@ -14,8 +16,14 @@ import type {NewQuery, Organization, SavedQuery} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {SaveQueryEventParameters} from 'sentry/utils/analytics/discoverAnalyticsEvents';
 import type EventView from 'sentry/utils/discover/eventView';
-import {DisplayModes} from 'sentry/utils/discover/types';
+import {
+  DiscoverDatasets,
+  DisplayModes,
+  SavedQueryDatasets,
+} from 'sentry/utils/discover/types';
+import {decodeScalar} from 'sentry/utils/queryString';
 import {DisplayType} from 'sentry/views/dashboards/types';
+import {DATASET_PARAM} from 'sentry/views/discover/savedQuery/datasetSelector';
 
 export function handleCreateQuery(
   api: Client,
@@ -240,5 +248,77 @@ export function displayModeToDisplayType(displayMode: DisplayModes): DisplayType
       return DisplayType.TOP_N;
     default:
       return DisplayType.LINE;
+  }
+}
+
+export function getSavedQueryDataset(
+  location: Location | undefined,
+  savedQuery: SavedQuery | undefined,
+  splitDecision?: SavedQueryDatasets
+): SavedQueryDatasets {
+  const dataset = decodeScalar(location?.query?.[DATASET_PARAM]);
+  if (dataset) {
+    return dataset as SavedQueryDatasets;
+  }
+  if (savedQuery?.queryDataset === SavedQueryDatasets.DISCOVER && splitDecision) {
+    return splitDecision;
+  }
+  return (savedQuery?.queryDataset ?? SavedQueryDatasets.DISCOVER) as SavedQueryDatasets;
+}
+
+export function getSavedQueryWithDataset(
+  savedQuery?: SavedQuery
+): SavedQuery | undefined {
+  if (!savedQuery) {
+    return undefined;
+  }
+  return {
+    ...savedQuery,
+    dataset: getDatasetFromLocationOrSavedQueryDataset(
+      undefined,
+      savedQuery?.queryDataset
+    ),
+  } as SavedQuery;
+}
+
+export function getDatasetFromLocationOrSavedQueryDataset(
+  location: Location | undefined,
+  queryDataset: SavedQueryDatasets | undefined
+): DiscoverDatasets | undefined {
+  const dataset = decodeScalar(location?.query?.dataset);
+  if (dataset) {
+    return dataset as DiscoverDatasets;
+  }
+  const savedQueryDataset = decodeScalar(location?.query?.queryDataset) ?? queryDataset;
+  switch (savedQueryDataset) {
+    case SavedQueryDatasets.ERRORS:
+      return DiscoverDatasets.ERRORS;
+    case SavedQueryDatasets.TRANSACTIONS:
+      return DiscoverDatasets.TRANSACTIONS;
+    case SavedQueryDatasets.DISCOVER:
+      return DiscoverDatasets.DISCOVER;
+    default:
+      return undefined;
+  }
+}
+
+export function getSavedQueryDatasetFromLocationOrDataset(
+  location: Location | undefined,
+  dataset: DiscoverDatasets | undefined
+): SavedQueryDatasets | undefined {
+  const savedQueryDataset = decodeScalar(location?.query?.queryDataset);
+  if (savedQueryDataset) {
+    return savedQueryDataset as SavedQueryDatasets;
+  }
+  const discoverDataset = decodeScalar(location?.query?.dataset) ?? dataset;
+  switch (discoverDataset) {
+    case DiscoverDatasets.ERRORS:
+      return SavedQueryDatasets.ERRORS;
+    case DiscoverDatasets.TRANSACTIONS:
+      return SavedQueryDatasets.TRANSACTIONS;
+    case DiscoverDatasets.DISCOVER:
+      return SavedQueryDatasets.DISCOVER;
+    default:
+      return undefined;
   }
 }

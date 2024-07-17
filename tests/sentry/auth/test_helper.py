@@ -1,3 +1,6 @@
+from __future__ import annotations
+
+from typing import TypedDict
 from unittest import mock
 
 from django.contrib.auth.models import AnonymousUser
@@ -17,7 +20,7 @@ from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.outbox import outbox_context
-from sentry.services.hybrid_cloud.organization.serial import serialize_rpc_organization
+from sentry.organizations.services.organization.serial import serialize_rpc_organization
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.hybrid_cloud import HybridCloudTestMixin
@@ -33,6 +36,13 @@ def _set_up_request():
     return request
 
 
+class _Identity(TypedDict):
+    id: str
+    email: str
+    name: str
+    data: dict[str, str]
+
+
 class AuthIdentityHandlerTest(TestCase):
     def setUp(self):
         self.provider = "dummy"
@@ -42,7 +52,7 @@ class AuthIdentityHandlerTest(TestCase):
             organization_id=self.organization.id, provider=self.provider
         )
         self.email = "test@example.com"
-        self.identity = {
+        self.identity: _Identity = {
             "id": "1234",
             "email": self.email,
             "name": "Morty",

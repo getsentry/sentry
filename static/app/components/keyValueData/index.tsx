@@ -47,9 +47,10 @@ export function Content({
   disableFormattedData = false,
   ...props
 }: KeyValueDataContentProps) {
-  const {subject, subjectNode, value: contextValue, action = {}} = item;
+  const {subject, subjectNode, value: contextValue, action = {}, actionButton} = item;
 
   const hasErrors = errors.length > 0;
+  const hasSuffix = !!(hasErrors || actionButton);
 
   const dataComponent = disableFormattedData ? (
     React.isValidElement(contextValue) ? (
@@ -72,16 +73,17 @@ export function Content({
     <ContentWrapper hasErrors={hasErrors} {...props}>
       {subjectNode !== undefined ? subjectNode : <Subject>{subject}</Subject>}
       <ValueSection hasErrors={hasErrors} hasEmptySubject={subjectNode === null}>
-        <ValueWrapper hasErrors={hasErrors}>
+        <ValueWrapper hasSuffix={hasSuffix}>
           {!disableLink && defined(action?.link) ? (
             <ValueLink to={action.link}>{dataComponent}</ValueLink>
           ) : (
             dataComponent
           )}
         </ValueWrapper>
-        {hasErrors && (
+        {hasSuffix && (
           <div>
-            <AnnotatedTextErrors errors={errors} />
+            {hasErrors && <AnnotatedTextErrors errors={errors} />}
+            {actionButton && <ActionButtonWrapper>{actionButton}</ActionButtonWrapper>}
           </div>
         )}
       </ValueSection>
@@ -198,7 +200,7 @@ export function Container({children}: {children: React.ReactNode}) {
   );
 }
 
-const CardPanel = styled(Panel)`
+export const CardPanel = styled(Panel)`
   padding: ${space(0.75)};
   display: grid;
   column-gap: ${space(1.5)};
@@ -231,13 +233,15 @@ const ContentWrapper = styled('div')<{hasErrors: boolean}>`
   }
 `;
 
-const Subject = styled('div')`
+export const Subject = styled('div')`
   grid-column: span 1;
   font-family: ${p => p.theme.text.familyMono};
   word-break: break-word;
 `;
 
-const ValueSection = styled(Subject)<{hasEmptySubject: boolean; hasErrors: boolean}>`
+const ValueSection = styled('div')<{hasEmptySubject: boolean; hasErrors: boolean}>`
+  font-family: ${p => p.theme.text.familyMono};
+  word-break: break-word;
   color: ${p => (p.hasErrors ? 'inherit' : p.theme.textColor)};
   grid-column: ${p => (p.hasEmptySubject ? '1 / -1' : 'span 1')};
   display: grid;
@@ -245,9 +249,9 @@ const ValueSection = styled(Subject)<{hasEmptySubject: boolean; hasErrors: boole
   grid-column-gap: ${space(0.5)};
 `;
 
-const ValueWrapper = styled('div')<{hasErrors: boolean}>`
+const ValueWrapper = styled('div')<{hasSuffix: boolean}>`
   word-break: break-word;
-  grid-column: ${p => (p.hasErrors ? 'span 1' : '1 / -1')};
+  grid-column: ${p => (p.hasSuffix ? 'span 1' : '1 / -1')};
 `;
 
 const TruncateWrapper = styled('a')`
@@ -271,6 +275,13 @@ const CardColumn = styled('div')`
 
 const ValueLink = styled(Link)`
   text-decoration: ${p => p.theme.linkUnderline} underline dotted;
+`;
+
+const ActionButtonWrapper = styled('div')`
+  visibility: hidden;
+  ${ContentWrapper}:hover & {
+    visibility: visible;
+  }
 `;
 
 export const KeyValueData = {

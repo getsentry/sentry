@@ -1,7 +1,7 @@
 from sentry.app import env
 from sentry.models.team import Team
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.testutils.cases import TestCase
+from sentry.users.services.user.service import user_service
 
 
 class TeamManagerTest(TestCase):

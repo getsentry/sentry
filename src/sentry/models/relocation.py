@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from enum import Enum, unique
+from enum import Enum, IntEnum, unique
 from uuid import uuid4
 
 from django.db import models
@@ -81,6 +81,15 @@ class Relocation(DefaultFieldsModel):
         def get_choices(cls) -> list[tuple[int, str]]:
             return [(key.value, key.name) for key in cls]
 
+    class Provenance(IntEnum):
+        SELF_HOSTED = 0
+        SAAS_TO_SAAS = 1
+
+        # TODO(azaslavsky): Could we dedup this with a mixin in the future?
+        @classmethod
+        def get_choices(cls) -> list[tuple[int, str]]:
+            return [(key.value, key.name) for key in cls]
+
     # The user that requested this relocation - if the request was made by an admin on behalf of a
     # user, this will be different from `owner`. Otherwise, they are identical.
     creator_id = BoundedBigIntegerField()
@@ -98,6 +107,12 @@ class Relocation(DefaultFieldsModel):
 
     # Possible values are in the Stage enum.
     step = models.SmallIntegerField(choices=Step.get_choices(), default=None)
+
+    # Possible values are in the Provenance enum. The relocation pipeline has different behaviors
+    # depending on the source of the relocation.
+    provenance = models.SmallIntegerField(
+        choices=Provenance.get_choices(), default=Provenance.SELF_HOSTED
+    )
 
     # Possible values are in the Status enum.
     status = models.SmallIntegerField(
@@ -186,18 +201,18 @@ class RelocationFile(DefaultFieldsModel):
         #
         # TODO(getsentry/team-ospo#216): Add a normalization step to the relocation flow
         NORMALIZED_USER_DATA = 2
-        # (Deprecated) The global configuration we're going to validate against - pulled from the
-        # live Sentry instance, not supplied by the user.
+        # The global configuration we're going to validate against - pulled from the live Sentry
+        # instance, not supplied by the user.
         #
-        # TODO(getsentry/team-ospo#216): Deprecated, since we no longer store these in main bucket.
-        # Remove in the future.
+        # Note: These files are only ever stored in the relocation-specific GCP bucket, never in the
+        # main filestore, so in practice no DB entry should have this value set.
         BASELINE_CONFIG_VALIDATION_DATA = 3
         # (Deprecated) The colliding users we're going to validate against - pulled from the live
         # Sentry instance, not supplied by the user. However, to determine what is a "colliding
         # user", we must inspect the user-provided data.
         #
-        # TODO(getsentry/team-ospo#216): Deprecated, since we no longer store these in main bucket.
-        # Remove in the future.
+        # Note: These files are only ever stored in the relocation-specific GCP bucket, never in the
+        # main filestore, so in practice no DB entry should have this value set.
         COLLIDING_USERS_VALIDATION_DATA = 4
 
         # TODO(getsentry/team-ospo#190): Could we dedup this with a mixin in the future?
@@ -227,7 +242,7 @@ class RelocationFile(DefaultFieldsModel):
     __repr__ = sane_repr("relocation", "file")
 
     class Meta:
-        unique_together = (("relocation", "file"),)
+        unique_together = (("relocation", "file"), ("relocation", "kind"))
         app_label = "sentry"
         db_table = "sentry_relocationfile"
 

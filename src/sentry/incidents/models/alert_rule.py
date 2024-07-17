@@ -2,10 +2,10 @@ from __future__ import annotations
 
 import logging
 from collections import namedtuple
-from collections.abc import Callable
+from collections.abc import Callable, Collection, Iterable
 from datetime import timedelta
-from enum import Enum, StrEnum
-from typing import Any, ClassVar, Protocol, Self
+from enum import Enum, IntEnum, StrEnum
+from typing import TYPE_CHECKING, Any, ClassVar, Protocol, Self
 
 from django.conf import settings
 from django.core.cache import cache
@@ -13,6 +13,7 @@ from django.db import models
 from django.db.models import QuerySet
 from django.db.models.signals import post_delete, post_save
 from django.utils import timezone
+from django.utils.translation import gettext_lazy
 
 from sentry.backup.scopes import RelocationScope
 from sentry.constants import ObjectStatus
@@ -25,19 +26,26 @@ from sentry.db.models import (
     sane_repr,
 )
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
-from sentry.db.models.manager import BaseManager
+from sentry.db.models.manager.base import BaseManager
+from sentry.db.models.manager.base_query_set import BaseQuerySet
 from sentry.incidents.models.alert_rule_activations import AlertRuleActivations
-from sentry.incidents.models.incident import IncidentTrigger
+from sentry.incidents.models.incident import Incident, IncidentStatus, IncidentTrigger
 from sentry.incidents.utils.constants import INCIDENTS_SNUBA_SUBSCRIPTION_TYPE
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.notificationaction import AbstractNotificationAction, ActionService, ActionTarget
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import QuerySubscription
 from sentry.snuba.subscriptions import bulk_create_snuba_subscriptions, delete_snuba_subscription
 from sentry.types.actor import Actor
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
+
+if TYPE_CHECKING:
+    from sentry.incidents.action_handlers import ActionHandler
+
 
 logger = logging.getLogger(__name__)
 
@@ -47,11 +55,11 @@ class SubscriptionCallback(Protocol):
         ...
 
 
-alert_subscription_callback_registry: dict[AlertRuleMonitorType, SubscriptionCallback] = {}
+alert_subscription_callback_registry: dict[AlertRuleMonitorTypeInt, SubscriptionCallback] = {}
 
 
 def register_alert_subscription_callback(
-    monitor_type: AlertRuleMonitorType,
+    monitor_type: AlertRuleMonitorTypeInt,
 ) -> Callable[[Callable], Callable]:
     def decorator(func: Callable) -> Callable:
         alert_subscription_callback_registry[monitor_type] = func
@@ -61,7 +69,7 @@ def register_alert_subscription_callback(
 
 
 def invoke_alert_subscription_callback(
-    monitor_type: AlertRuleMonitorType, subscription: QuerySubscription, **kwargs: Any
+    monitor_type: AlertRuleMonitorTypeInt, subscription: QuerySubscription, **kwargs: Any
 ) -> bool:
     try:
         callback = alert_subscription_callback_registry[monitor_type]
@@ -77,6 +85,33 @@ class AlertRuleStatus(Enum):
     DISABLED = 5
 
 
+class AlertRuleDetectionType(models.TextChoices):
+    STATIC = "static", gettext_lazy("Static")
+    PERCENT = "percent", gettext_lazy("Percent")
+    DYNAMIC = "dynamic", gettext_lazy("Dynamic")
+
+
+class AlertRuleSensitivity(models.TextChoices):
+    LOW = "low", gettext_lazy("Low")
+    MEDIUM = "medium", gettext_lazy("Medium")
+    HIGH = "high", gettext_lazy("High")
+
+
+class AlertRuleSeasonality(models.TextChoices):
+    """All combinations of multi select fields for anomaly detection alerts
+    We do not anticipate adding more
+    """
+
+    AUTO = "auto", gettext_lazy("Auto")
+    HOURLY = "hourly", gettext_lazy("Hourly")
+    DAILY = "daily", gettext_lazy("Daily")
+    WEEKLY = "weekly", gettext_lazy("Weekly")
+    HOURLY_DAILY = "hourly_daily", gettext_lazy("Hourly & Daily")
+    HOURLY_WEEKLY = "hourly_weekly", gettext_lazy("Hourly & Weekly")
+    HOURLY_DAILY_WEEKLY = "hourly_daily_weekly", gettext_lazy("Hourly, Daily, & Weekly")
+    DAILY_WEEKLY = "daily_weekly", gettext_lazy("Daily & Weekly")
+
+
 class AlertRuleManager(BaseManager["AlertRule"]):
     """
     A manager that excludes all rows that are snapshots.
@@ -84,24 +119,26 @@ class AlertRuleManager(BaseManager["AlertRule"]):
 
     CACHE_SUBSCRIPTION_KEY = "alert_rule:subscription:%s"
 
-    def get_queryset(self):
+    def get_queryset(self) -> BaseQuerySet[AlertRule]:
         return super().get_queryset().exclude(status=AlertRuleStatus.SNAPSHOT.value)
 
-    def fetch_for_organization(self, organization, projects=None):
+    def fetch_for_organization(
+        self, organization: Organization, projects: Collection[Project] | None = None
+    ):
         queryset = self.filter(organization=organization)
         if projects is not None:
             queryset = queryset.filter(projects__in=projects).distinct()
 
         return queryset
 
-    def fetch_for_project(self, project):
+    def fetch_for_project(self, project: Project) -> BaseQuerySet[AlertRule]:
         return self.filter(projects=project).distinct()
 
     @classmethod
-    def __build_subscription_cache_key(cls, subscription_id):
+    def __build_subscription_cache_key(cls, subscription_id: int) -> str:
         return cls.CACHE_SUBSCRIPTION_KEY % subscription_id
 
-    def get_for_subscription(self, subscription):
+    def get_for_subscription(self, subscription: Model) -> AlertRule:
         """
         Fetches the AlertRule associated with a Subscription. Attempts to fetch from
         cache then hits the database
@@ -115,12 +152,12 @@ class AlertRuleManager(BaseManager["AlertRule"]):
         return alert_rule
 
     @classmethod
-    def clear_subscription_cache(cls, instance, **kwargs):
+    def clear_subscription_cache(cls, instance, **kwargs: Any) -> None:
         cache.delete(cls.__build_subscription_cache_key(instance.id))
         assert cache.get(cls.__build_subscription_cache_key(instance.id)) is None
 
     @classmethod
-    def clear_alert_rule_subscription_caches(cls, instance, **kwargs):
+    def clear_alert_rule_subscription_caches(cls, instance: AlertRule, **kwargs: Any) -> None:
         subscription_ids = QuerySubscription.objects.filter(
             snuba_query=instance.snuba_query
         ).values_list("id", flat=True)
@@ -148,7 +185,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
         try:
             project_alert_rules: QuerySet[AlertRule] = self.filter(
                 projects=project,
-                monitor_type=AlertRuleMonitorType.ACTIVATED.value,
+                monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
             )
             created_subscriptions = []
             for alert_rule in project_alert_rules:
@@ -169,7 +206,7 @@ class AlertRuleManager(BaseManager["AlertRule"]):
                     created_subscriptions.extend(
                         alert_rule.subscribe_projects(
                             projects=[project],
-                            monitor_type=AlertRuleMonitorType.ACTIVATED,
+                            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
                             query_extra=query_extra,
                             activation_condition=activation_condition,
                             activator=activator,
@@ -225,7 +262,7 @@ class AlertRuleProjects(Model):
         unique_together = (("alert_rule", "project"),)
 
 
-class AlertRuleMonitorType(Enum):
+class AlertRuleMonitorTypeInt(IntEnum):
     CONTINUOUS = 0
     ACTIVATED = 1
 
@@ -251,13 +288,13 @@ class AlertRule(Model):
     excluded_projects = models.ManyToManyField(
         "sentry.Project", related_name="alert_rule_exclusions", through=AlertRuleExcludedProjects
     )  # NOTE: This feature is not currently utilized.
-    name = models.TextField()
-    status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
     # Determines whether we include all current and future projects from this
     # organization in this rule.
     include_all_projects = models.BooleanField(
         default=False
     )  # NOTE: This feature is not currently utilized.
+    name = models.TextField()
+    status = models.SmallIntegerField(default=AlertRuleStatus.PENDING.value)
     threshold_type = models.SmallIntegerField(null=True)
     resolve_threshold = models.FloatField(null=True)
     # How many times an alert value must exceed the threshold to fire/resolve the alert
@@ -267,8 +304,13 @@ class AlertRule(Model):
     comparison_delta = models.IntegerField(null=True)
     date_modified = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)
-    monitor_type = models.IntegerField(default=AlertRuleMonitorType.CONTINUOUS.value)
+    monitor_type = models.IntegerField(default=AlertRuleMonitorTypeInt.CONTINUOUS)
     description = models.CharField(max_length=1000, null=True)
+    detection_type = models.CharField(
+        default=AlertRuleDetectionType.STATIC, choices=AlertRuleDetectionType.choices
+    )
+    sensitivity = models.CharField(choices=AlertRuleSensitivity.choices, null=True)
+    seasonality = models.CharField(choices=AlertRuleSeasonality.choices, null=True)
 
     class Meta:
         app_label = "sentry"
@@ -279,7 +321,7 @@ class AlertRule(Model):
     __repr__ = sane_repr("id", "name", "date_added")
 
     @property
-    def created_by_id(self):
+    def created_by_id(self) -> int | None:
         try:
             created_activity = AlertRuleActivity.objects.get(
                 alert_rule=self, type=AlertRuleActivityType.CREATED.value
@@ -304,13 +346,13 @@ class AlertRule(Model):
         if actor and actor.is_team:
             self.team_id = actor.id
 
-    def get_audit_log_data(self):
+    def get_audit_log_data(self) -> dict[str, Any]:
         return {"label": self.name}
 
     def subscribe_projects(
         self,
         projects: list[Project],
-        monitor_type: AlertRuleMonitorType = AlertRuleMonitorType.CONTINUOUS,
+        monitor_type: AlertRuleMonitorTypeInt = AlertRuleMonitorTypeInt.CONTINUOUS,
         query_extra: str | None = None,
         activation_condition: AlertRuleActivationConditionType | None = None,
         activator: str | None = None,
@@ -324,14 +366,14 @@ class AlertRule(Model):
             "Subscribing projects to alert rule",
             extra={
                 "alert_rule.monitor_type": self.monitor_type,
-                "conditional_monitor_type": monitor_type.value,
+                "conditional_monitor_type": monitor_type,
                 "query_extra": query_extra,
             },
         )
-        # NOTE: AlertRuleMonitorType.ACTIVATED will be conditionally subscribed given activation triggers
+        # NOTE: AlertRuleMonitorTypeInt.ACTIVATED will be conditionally subscribed given activation triggers
         # On activated subscription, additional query parameters will be added to the constructed query in Snuba
         created_subscriptions = []
-        if self.monitor_type == monitor_type.value:
+        if self.monitor_type == monitor_type:
             # NOTE: QuerySubscriptions hold reference to Projects which should match the AlertRule's project reference
             created_subscriptions = bulk_create_snuba_subscriptions(
                 projects,
@@ -339,7 +381,7 @@ class AlertRule(Model):
                 self.snuba_query,
                 query_extra=query_extra,
             )
-            if self.monitor_type == AlertRuleMonitorType.ACTIVATED.value:
+            if self.monitor_type == AlertRuleMonitorTypeInt.ACTIVATED:
                 # NOTE: Activated Alert Rules are conditionally subscribed
                 # Meaning at time of subscription, the rule must have been activated
                 if not activator or activation_condition is None:
@@ -362,10 +404,10 @@ class AlertRuleTriggerManager(BaseManager["AlertRuleTrigger"]):
     CACHE_KEY = "alert_rule_triggers:alert_rule:%s"
 
     @classmethod
-    def _build_trigger_cache_key(cls, alert_rule_id):
+    def _build_trigger_cache_key(cls, alert_rule_id: int) -> str:
         return cls.CACHE_KEY % alert_rule_id
 
-    def get_for_alert_rule(self, alert_rule):
+    def get_for_alert_rule(self, alert_rule: AlertRule) -> list[AlertRuleTrigger]:
         """
         Fetches the AlertRuleTriggers associated with an AlertRule. Attempts to fetch
         from cache then hits the database
@@ -378,12 +420,12 @@ class AlertRuleTriggerManager(BaseManager["AlertRuleTrigger"]):
         return triggers
 
     @classmethod
-    def clear_trigger_cache(cls, instance, **kwargs):
+    def clear_trigger_cache(cls, instance: AlertRuleTrigger, **kwargs: Any) -> None:
         cache.delete(cls._build_trigger_cache_key(instance.alert_rule_id))
         assert cache.get(cls._build_trigger_cache_key(instance.alert_rule_id)) is None
 
     @classmethod
-    def clear_alert_rule_trigger_cache(cls, instance, **kwargs):
+    def clear_alert_rule_trigger_cache(cls, instance: AlertRuleTrigger, **kwargs: Any) -> None:
         cache.delete(cls._build_trigger_cache_key(instance.id))
         assert cache.get(cls._build_trigger_cache_key(instance.id)) is None
 
@@ -450,7 +492,7 @@ class AlertRuleTriggerActionManager(BaseManager["AlertRuleTriggerAction"]):
     A manager that excludes trigger actions that are pending to be deleted
     """
 
-    def get_queryset(self):
+    def get_queryset(self) -> BaseQuerySet[AlertRuleTriggerAction]:
         return super().get_queryset().exclude(status=ObjectStatus.PENDING_DELETION)
 
 
@@ -506,7 +548,7 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         db_table = "sentry_alertruletriggeraction"
 
     @property
-    def target(self):
+    def target(self) -> RpcUser | Team | str | None:
         if self.target_identifier is None:
             return None
 
@@ -521,53 +563,81 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
             # TODO: This is only for email. We should have a way of validating that it's
             # ok to contact this email.
             return self.target_identifier
+        return None
 
-    def build_handler(self, action, incident, project):
+    def build_handler(
+        self, action: AlertRuleTriggerAction, incident: Incident, project: Project
+    ) -> ActionHandler | None:
         type = AlertRuleTriggerAction.Type(self.type)
         if type in self._type_registrations:
             return self._type_registrations[type].handler(action, incident, project)
         else:
             metrics.incr(f"alert_rule_trigger.unhandled_type.{self.type}")
+            return None
 
-    def fire(self, action, incident, project, metric_value, new_status, notification_uuid=None):
+    def fire(
+        self,
+        action: AlertRuleTriggerAction,
+        incident: Incident,
+        project: Project,
+        metric_value: int | float,
+        new_status: IncidentStatus,
+        notification_uuid: str | None = None,
+    ) -> None:
         handler = self.build_handler(action, incident, project)
         if handler:
             return handler.fire(metric_value, new_status, notification_uuid)
 
-    def resolve(self, action, incident, project, metric_value, new_status, notification_uuid=None):
+    def resolve(
+        self,
+        action: AlertRuleTriggerAction,
+        incident: Incident,
+        project: Project,
+        metric_value: int | float,
+        new_status: IncidentStatus,
+        notification_uuid: str | None = None,
+    ) -> None:
         handler = self.build_handler(action, incident, project)
         if handler:
             return handler.resolve(metric_value, new_status, notification_uuid)
 
     @classmethod
-    def register_type(cls, slug, type, supported_target_types, integration_provider=None):
+    def register_type(
+        cls,
+        slug: str,
+        service_type: ActionService,
+        supported_target_types: Iterable[ActionTarget],
+        integration_provider: str | None = None,
+    ) -> Callable[[type[ActionHandler]], type[ActionHandler]]:
         """
         Registers a handler for a given type.
         :param slug: A string representing the name of this type registration
-        :param type: The `Type` to handle.
+        :param service_type: The `Type` to handle.
         :param handler: A subclass of `ActionHandler` that accepts the
         `AlertRuleTriggerAction` and `Incident`.
         :param integration_provider: String representing the integration provider
         related to this type.
         """
 
-        def inner(handler):
-            if type not in cls._type_registrations:
-                cls._type_registrations[type] = cls.TypeRegistration(
-                    handler, slug, type, frozenset(supported_target_types), integration_provider
+        supported_target_types_set = frozenset(supported_target_types)
+
+        def inner(handler: type[ActionHandler]) -> type[ActionHandler]:
+            if service_type not in cls._type_registrations:
+                cls._type_registrations[service_type] = cls.TypeRegistration(
+                    handler, slug, service_type, supported_target_types_set, integration_provider
                 )
             else:
-                raise Exception("Handler already registered for type %s" % type)
+                raise Exception("Handler already registered for type %s" % service_type)
             return handler
 
         return inner
 
     @classmethod
-    def get_registered_type(cls, type):
+    def get_registered_type(cls, type: ActionService) -> TypeRegistration:
         return cls._type_registrations[type]
 
     @classmethod
-    def get_registered_types(cls):
+    def get_registered_types(cls) -> list[TypeRegistration]:
         return list(cls._type_registrations.values())
 
 
@@ -603,7 +673,7 @@ class AlertRuleActivity(Model):
         db_table = "sentry_alertruleactivity"
 
 
-@register_alert_subscription_callback(AlertRuleMonitorType.ACTIVATED)
+@register_alert_subscription_callback(AlertRuleMonitorTypeInt.ACTIVATED)
 def update_alert_activations(
     subscription: QuerySubscription, alert_rule: AlertRule, value: float
 ) -> bool:

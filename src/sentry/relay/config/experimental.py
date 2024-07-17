@@ -44,7 +44,7 @@ class ExperimentalConfigBuilder(Protocol):
 
 
 #: Timeout for an experimental feature build.
-_FEATURE_BUILD_TIMEOUT = timedelta(seconds=15)
+_FEATURE_BUILD_TIMEOUT = timedelta(seconds=20)
 
 
 def add_experimental_config(

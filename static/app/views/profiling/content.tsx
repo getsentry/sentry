@@ -23,7 +23,6 @@ import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
 import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
-import SmartSearchBar from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
@@ -32,13 +31,11 @@ import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
-import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
 import {formatError, formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {ProfilingUnsupportedAlert} from 'sentry/views/profiling/unsupportedAlert';
 import {DEFAULT_PROFILING_DATETIME_SELECTION} from 'sentry/views/profiling/utils';
 
 import {LandingWidgetSelector} from './landing/landingWidgetSelector';
@@ -61,10 +58,6 @@ function ProfilingContent({location}: ProfilingContentProps) {
   const cursor = decodeScalar(location.query.cursor);
   const query = decodeScalar(location.query.query, '');
 
-  const profilingUsingTransactions = organization.features.includes(
-    'profiling-using-transactions'
-  );
-
   const fields = ALL_FIELDS;
 
   const sort = formatSort<FieldType>(decodeScalar(location.query.sort), fields, {
@@ -72,11 +65,6 @@ function ProfilingContent({location}: ProfilingContentProps) {
     order: 'desc',
   });
 
-  const profileFilters = useProfileFilters({
-    query: '',
-    selection,
-    disabled: profilingUsingTransactions,
-  });
   const {projects} = useProjects();
 
   const transactions = useProfileEvents<FieldType>({
@@ -141,11 +129,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
       <PageFiltersContainer
-        defaultSelection={
-          profilingUsingTransactions
-            ? {datetime: DEFAULT_PROFILING_DATETIME_SELECTION}
-            : undefined
-        }
+        defaultSelection={{datetime: DEFAULT_PROFILING_DATETIME_SELECTION}}
       >
         <Layout.Page>
           <ProfilingBetaAlertBanner organization={organization} />
@@ -176,31 +160,17 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
                   <DatePageFilter resetParamsOnChange={CURSOR_PARAMS} />
                 </PageFilterBar>
-                {profilingUsingTransactions ? (
-                  <SearchBar
-                    searchSource="profile_landing"
-                    organization={organization}
-                    projectIds={selection.projects}
-                    query={query}
-                    onSearch={handleSearch}
-                    maxQueryLength={MAX_QUERY_LENGTH}
-                  />
-                ) : (
-                  <SmartSearchBar
-                    organization={organization}
-                    hasRecentSearches
-                    projectIds={projects.map(p => parseInt(p.id, 10))}
-                    searchSource="profile_landing"
-                    supportedTags={profileFilters}
-                    query={query}
-                    onSearch={handleSearch}
-                    maxQueryLength={MAX_QUERY_LENGTH}
-                  />
-                )}
+                <SearchBar
+                  searchSource="profile_landing"
+                  organization={organization}
+                  projectIds={selection.projects}
+                  query={query}
+                  onSearch={handleSearch}
+                  maxQueryLength={MAX_QUERY_LENGTH}
+                />
               </ActionBar>
               {shouldShowProfilingOnboardingPanel ? (
                 <Fragment>
-                  <ProfilingUnsupportedAlert selectedProjects={selection.projects} />
                   <ProfilingOnboardingPanel
                     content={
                       // If user is on m2, show default
@@ -243,12 +213,16 @@ function ProfilingContent({location}: ProfilingContentProps) {
                     'profiling-global-suspect-functions'
                   ) ? (
                     <Fragment>
-                      <ProfilesChartWidget
-                        chartHeight={150}
-                        referrer="api.profiling.landing-chart"
-                        userQuery={query}
-                        selection={selection}
-                      />
+                      {organization.features.includes(
+                        'continuous-profiling-ui'
+                      ) ? null : (
+                        <ProfilesChartWidget
+                          chartHeight={150}
+                          referrer="api.profiling.landing-chart"
+                          userQuery={query}
+                          selection={selection}
+                        />
+                      )}
                       <WidgetsContainer>
                         <LandingWidgetSelector
                           cursorName={LEFT_WIDGET_CURSOR}

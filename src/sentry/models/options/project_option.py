@@ -35,7 +35,6 @@ OPTION_KEYS = frozenset(
         "sentry:csp_ignored_sources_defaults",
         "sentry:csp_ignored_sources",
         "sentry:default_environment",
-        "sentry:reprocessing_active",
         "sentry:blacklisted_ips",
         "sentry:releases",
         "sentry:error_messages",
@@ -62,6 +61,8 @@ OPTION_KEYS = frozenset(
         "sentry:breakdowns",
         "sentry:transaction_name_cluster_rules",
         "sentry:span_description_cluster_rules",
+        "sentry:extrapolate_metrics",
+        "sentry:uptime_autodetection",
         "quotas:spike-protection-disabled",
         "feedback:branding",
         "digests:mail:minimum_delay",
@@ -150,6 +151,9 @@ class ProjectOptionManager(OptionManager["ProjectOption"]):
 
     def post_delete(self, instance: ProjectOption, **kwargs: Any) -> None:
         self.reload_cache(instance.project_id, "projectoption.post_delete")
+
+    def isset(self, project: Project, key: str) -> bool:
+        return self.get_value(project, key, default=Ellipsis) is not Ellipsis
 
 
 @region_silo_model

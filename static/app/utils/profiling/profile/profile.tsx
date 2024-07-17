@@ -1,3 +1,5 @@
+import type {ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
+
 import {CallTreeNode} from '../callTreeNode';
 import {Frame} from '../frame';
 
@@ -21,7 +23,7 @@ export class Profile {
   type: string;
 
   // Unit in which the timings are reported in
-  unit = 'microseconds';
+  unit: ProfilingFormatterUnit = 'microseconds';
   // Name of the profile
   name = 'Unknown';
 
@@ -30,6 +32,9 @@ export class Profile {
 
   // Min duration of a single frame in our profile
   minFrameDuration = Number.POSITIVE_INFINITY;
+
+  // Max stack size of each sample
+  readonly MAX_STACK_SIZE = 256;
 
   samples: CallTreeNode[] = [];
   sample_durations_ns: number[] = [];
@@ -58,8 +63,8 @@ export class Profile {
     name: string;
     startedAt: number;
     threadId: number;
-    type: string;
-    unit: string;
+    type: 'flamechart' | 'flamegraph' | 'empty';
+    unit: ProfilingFormatterUnit;
     timestamp?: number;
   }) {
     this.threadId = threadId;
@@ -79,7 +84,7 @@ export class Profile {
     name: 'Empty Profile',
     unit: 'milliseconds',
     threadId: 0,
-    type: '',
+    type: 'empty',
   }).build();
 
   isEmpty(): boolean {

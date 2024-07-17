@@ -1,85 +1,144 @@
-import {
-  BREADCRUMB_TIMESTAMP_PLACEHOLDER,
-  BreadcrumbIcon,
-  BreadcrumbTimeDisplay,
-  getBreadcrumbColorConfig,
-  getBreadcrumbTitle,
-} from 'sentry/components/events/breadcrumbs/utils';
-import {BreadcrumbSort} from 'sentry/components/events/interfaces/breadcrumbs';
-import {convertCrumbType} from 'sentry/components/events/interfaces/breadcrumbs/utils';
-import {StructuredData} from 'sentry/components/structuredEventData';
+import {Fragment, useRef} from 'react';
+import styled from '@emotion/styled';
+import {useVirtualizer} from '@tanstack/react-virtual';
+import moment from 'moment-timezone';
+
+import DateTime from 'sentry/components/dateTime';
+import Duration from 'sentry/components/duration';
+import BreadcrumbItemContent from 'sentry/components/events/breadcrumbs/breadcrumbItemContent';
+import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
 import Timeline from 'sentry/components/timeline';
-import type {RawCrumb} from 'sentry/types/breadcrumbs';
+import {Tooltip} from 'sentry/components/tooltip';
+import {t} from 'sentry/locale';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
+import isValidDate from 'sentry/utils/date/isValidDate';
+import {shouldUse24Hours} from 'sentry/utils/dates';
 
 interface BreadcrumbsTimelineProps {
-  breadcrumbs: RawCrumb[];
-  meta?: Record<string, any>;
-  sort?: BreadcrumbSort;
-  timeDisplay?: BreadcrumbTimeDisplay;
-  virtualCrumbIndex?: number;
+  breadcrumbs: EnhancedCrumb[];
+  /**
+   * If false, expands the contents of the breadcrumb's data payload, adds padding.
+   */
+  isCompact?: boolean;
+  /**
+   * Shows the line after the last breadcrumbs icon.
+   * Useful for connecting timeline to components rendered after it.
+   */
+  showLastLine?: boolean;
+  /**
+   * If specified, will display time relatively.
+   */
+  startTimeString?: string;
 }
+
 export default function BreadcrumbsTimeline({
   breadcrumbs,
-  virtualCrumbIndex,
-  sort = BreadcrumbSort.NEWEST,
-  timeDisplay = BreadcrumbTimeDisplay.RELATIVE,
-  meta = {},
+  startTimeString,
+  isCompact = false,
+  showLastLine = false,
 }: BreadcrumbsTimelineProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const virtualizer = useVirtualizer({
+    count: breadcrumbs.length,
+    getScrollElement: () => containerRef.current,
+    estimateSize: () => 35,
+    // Must match rendered item margins.
+    gap: 8,
+    overscan: 10,
+  });
+
   if (!breadcrumbs.length) {
     return null;
   }
 
-  const startTimestamp =
-    timeDisplay === BreadcrumbTimeDisplay.RELATIVE
-      ? breadcrumbs?.at(-1)?.timestamp
-      : undefined;
-  const items = breadcrumbs.map((breadcrumb, i) => {
-    const bc = convertCrumbType(breadcrumb);
-    const bcMeta = meta[i];
-    const isVirtualCrumb = defined(virtualCrumbIndex) && i === virtualCrumbIndex;
+  const virtualItems = virtualizer.getVirtualItems();
+  const items = virtualItems.map(virtualizedRow => {
+    const {breadcrumb, raw, title, meta, iconComponent, colorConfig, levelComponent} =
+      breadcrumbs[virtualizedRow.index];
+    const isVirtualCrumb = !defined(raw);
+
+    const timeDate = new Date(breadcrumb.timestamp ?? '');
+    const startTimeDate = new Date(startTimeString ?? '');
+
+    const absoluteFormat = shouldUse24Hours() ? 'HH:mm:ss.SSS' : 'hh:mm:ss.SSS';
+    const timestampComponent = isValidDate(timeDate) ? (
+      <Timestamp>
+        <Tooltip
+          title={<DateTime date={timeDate} format={`ll - ${absoluteFormat} (z)`} />}
+        >
+          {isValidDate(startTimeDate) ? (
+            <Duration
+              seconds={moment(timeDate).diff(moment(startTimeDate), 's', true)}
+              exact
+              abbreviation
+            />
+          ) : (
+            <DateTime date={timeDate} format={absoluteFormat} />
+          )}
+        </Tooltip>
+      </Timestamp>
+    ) : null;
+
     return (
       <Timeline.Item
-        key={i}
-        title={getBreadcrumbTitle(bc.category)}
-        colorConfig={getBreadcrumbColorConfig(bc.type)}
-        icon={<BreadcrumbIcon type={bc.type} />}
-        timeString={bc.timestamp ?? BREADCRUMB_TIMESTAMP_PLACEHOLDER}
-        startTimeString={startTimestamp}
+        key={virtualizedRow.key}
+        ref={virtualizer.measureElement}
+        title={
+          <Fragment>
+            {title}
+            {isVirtualCrumb && <Subtitle> - {t('This event')}</Subtitle>}
+            {levelComponent}
+          </Fragment>
+        }
+        colorConfig={colorConfig}
+        icon={iconComponent}
+        timestamp={timestampComponent}
         // XXX: Only the virtual crumb can be marked as active for breadcrumbs
         isActive={isVirtualCrumb ?? false}
+        style={showLastLine ? {background: 'transparent'} : {}}
+        data-index={virtualizedRow.index}
       >
-        {defined(bc.message) && (
-          <Timeline.Text>
-            <StructuredData
-              value={bc.message}
-              depth={0}
-              maxDefaultDepth={1}
-              meta={bcMeta?.message}
-              withAnnotatedText
-              withOnlyFormattedText
-            />
-          </Timeline.Text>
-        )}
-        {defined(bc.data) && (
-          <Timeline.Data>
-            <StructuredData
-              value={bc.data}
-              depth={0}
-              maxDefaultDepth={1}
-              meta={bcMeta?.data}
-              withAnnotatedText
-              withOnlyFormattedText
-            />
-          </Timeline.Data>
-        )}
+        <ContentWrapper isCompact={isCompact}>
+          <BreadcrumbItemContent
+            breadcrumb={breadcrumb}
+            meta={meta}
+            fullyExpanded={!isCompact}
+          />
+        </ContentWrapper>
       </Timeline.Item>
     );
   });
 
   return (
-    <Timeline.Container>
-      {sort === BreadcrumbSort.NEWEST ? items.reverse() : items}
-    </Timeline.Container>
+    <div
+      ref={containerRef}
+      style={{
+        height: virtualizer.getTotalSize(),
+        contain: 'layout size',
+      }}
+    >
+      <Timeline.Container>{items}</Timeline.Container>
+    </div>
   );
 }
+
+const Subtitle = styled('p')`
+  margin: 0;
+  font-weight: normal;
+  font-size: ${p => p.theme.fontSizeSmall};
+  display: inline;
+`;
+
+const Timestamp = styled('div')`
+  margin: 0 ${space(1)};
+  color: ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeSmall};
+  span {
+    text-decoration: underline dashed ${p => p.theme.translucentBorder};
+  }
+`;
+
+const ContentWrapper = styled('div')<{isCompact: boolean}>`
+  padding-bottom: ${p => space(p.isCompact ? 0.5 : 1.0)};
+`;

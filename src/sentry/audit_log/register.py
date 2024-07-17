@@ -509,3 +509,38 @@ default_manager.add(
         template="Deleted issue {issue_id} for project {project_slug}",
     )
 )
+default_manager.add(
+    AuditLogEvent(
+        event_id=187,
+        name="SPAN_BASED_METRIC_CREATE",
+        api_name="span_extraction_rule_config.create",
+        template="Created span-based metric for span attribute {span_attribute} for project {project_slug}",
+    )
+)
+
+default_manager.add(
+    AuditLogEvent(
+        event_id=188,
+        name="SPAN_BASED_METRIC_UPDATE",
+        api_name="span_extraction_rule_config.update",
+        template="Updated span-based metric for span attribute {span_attribute} for project {project_slug}",
+    )
+)
+
+default_manager.add(
+    AuditLogEvent(
+        event_id=189,
+        name="SPAN_BASED_METRIC_DELETE",
+        api_name="span_extraction_rule_config.delete",
+        template="Deleted span-based metric for span attribute {span_attribute} for project {project_slug}",
+    )
+)
+
+default_manager.add(
+    AuditLogEvent(
+        event_id=190,
+        name="PROJECT_TEMPLATE_CREATED",
+        api_name="project_template.create",
+        template="Created project template {name} for organization {organization_id}",
+    )
+)

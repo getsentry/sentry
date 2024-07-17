@@ -17,9 +17,9 @@ import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import localStorage from 'sentry/utils/localStorage';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
 import useRouter from 'sentry/utils/useRouter';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 
 import type {SidebarOrientation} from './types';
 import {SIDEBAR_NAVIGATION_SOURCE} from './utils';
@@ -218,63 +218,61 @@ function SidebarItem({
       position={placement}
     >
       <SidebarNavigationItemHook id={id}>
-        {({disabled, additionalContent, Wrapper}) => (
-          <Wrapper>
-            <StyledSidebarItem
-              {...props}
-              id={`sidebar-item-${id}`}
-              isInFloatingAccordion={isInFloatingAccordion}
-              active={isActive ? 'true' : undefined}
-              to={disabled ? '' : toProps}
-              disabled={!hasLink && isInFloatingAccordion}
-              className={className}
-              aria-current={isActive ? 'page' : undefined}
-              onClick={handleItemClick}
-            >
-              <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
-              <SidebarItemWrapper collapsed={isInCollapsedState}>
-                {!isInFloatingAccordion && <SidebarItemIcon>{icon}</SidebarItemIcon>}
-                {!isInCollapsedState && !isTop && (
-                  <SidebarItemLabel
-                    isInFloatingAccordion={isInFloatingAccordion}
-                    isNested={isNested}
-                  >
-                    <LabelHook id={id}>
-                      <TruncatedLabel>{label}</TruncatedLabel>
-                      {additionalContent ?? badges}
-                    </LabelHook>
-                  </SidebarItemLabel>
-                )}
-                {isInCollapsedState && showIsNew && (
-                  <CollapsedFeatureBadge
-                    type="new"
-                    variant="indicator"
-                    tooltipProps={tooltipDisabledProps}
-                  />
-                )}
-                {isInCollapsedState && isBeta && (
-                  <CollapsedFeatureBadge
-                    type="beta"
-                    variant="indicator"
-                    tooltipProps={tooltipDisabledProps}
-                  />
-                )}
-                {isInCollapsedState && isAlpha && (
-                  <CollapsedFeatureBadge
-                    type="alpha"
-                    variant="indicator"
-                    tooltipProps={tooltipDisabledProps}
-                  />
-                )}
-                {badge !== undefined && badge > 0 && (
-                  <SidebarItemBadge collapsed={isInCollapsedState}>
-                    {badge}
-                  </SidebarItemBadge>
-                )}
-                {trailingItems}
-              </SidebarItemWrapper>
-            </StyledSidebarItem>
-          </Wrapper>
+        {({additionalContent}) => (
+          <StyledSidebarItem
+            {...props}
+            id={`sidebar-item-${id}`}
+            isInFloatingAccordion={isInFloatingAccordion}
+            active={isActive ? 'true' : undefined}
+            to={toProps}
+            disabled={!hasLink && isInFloatingAccordion}
+            className={className}
+            aria-current={isActive ? 'page' : undefined}
+            onClick={handleItemClick}
+          >
+            <InteractionStateLayer isPressed={isActive} color="white" higherOpacity />
+            <SidebarItemWrapper collapsed={isInCollapsedState}>
+              {!isInFloatingAccordion && <SidebarItemIcon>{icon}</SidebarItemIcon>}
+              {!isInCollapsedState && !isTop && (
+                <SidebarItemLabel
+                  isInFloatingAccordion={isInFloatingAccordion}
+                  isNested={isNested}
+                >
+                  <LabelHook id={id}>
+                    <TruncatedLabel>{label}</TruncatedLabel>
+                    {additionalContent ?? badges}
+                  </LabelHook>
+                </SidebarItemLabel>
+              )}
+              {isInCollapsedState && showIsNew && (
+                <CollapsedFeatureBadge
+                  type="new"
+                  variant="indicator"
+                  tooltipProps={tooltipDisabledProps}
+                />
+              )}
+              {isInCollapsedState && isBeta && (
+                <CollapsedFeatureBadge
+                  type="beta"
+                  variant="indicator"
+                  tooltipProps={tooltipDisabledProps}
+                />
+              )}
+              {isInCollapsedState && isAlpha && (
+                <CollapsedFeatureBadge
+                  type="alpha"
+                  variant="indicator"
+                  tooltipProps={tooltipDisabledProps}
+                />
+              )}
+              {badge !== undefined && badge > 0 && (
+                <SidebarItemBadge collapsed={isInCollapsedState}>
+                  {badge}
+                </SidebarItemBadge>
+              )}
+              {trailingItems}
+            </SidebarItemWrapper>
+          </StyledSidebarItem>
         )}
       </SidebarNavigationItemHook>
     </Tooltip>

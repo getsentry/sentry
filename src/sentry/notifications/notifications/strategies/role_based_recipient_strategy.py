@@ -9,9 +9,9 @@ from django.db.models import QuerySet
 from sentry import roles
 from sentry.models.organizationmember import OrganizationMember
 from sentry.roles.manager import OrganizationRole
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.actor import Actor, ActorType
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 
 if TYPE_CHECKING:
     from sentry.models.organization import Organization
@@ -41,7 +41,8 @@ class RoleBasedRecipientStrategy(metaclass=ABCMeta):
         """
         A way to set a member in a cache to avoid a query.
         """
-        self.member_by_user_id[member.user_id] = member
+        if member.user_id is not None:
+            self.member_by_user_id[member.user_id] = member
 
     def determine_recipients(
         self,

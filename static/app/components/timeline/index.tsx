@@ -1,111 +1,80 @@
-import {useRef} from 'react';
+import type {CSSProperties} from 'react';
+import {forwardRef} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 
-import {getFormattedTimestamp} from 'sentry/components/events/interfaces/breadcrumbs/breadcrumb/time/utils';
-import {Tooltip} from 'sentry/components/tooltip';
 import {space} from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
 import type {Color} from 'sentry/utils/theme';
 
 export interface ColorConfig {
-  primary: Color;
-  secondary: Color;
+  icon: Color;
+  iconBorder: Color;
+  title: Color;
 }
 
 export interface TimelineItemProps {
   icon: React.ReactNode;
-  timeString: string;
   title: React.ReactNode;
   children?: React.ReactNode;
+  className?: string;
   colorConfig?: ColorConfig;
   isActive?: boolean;
   onClick?: React.MouseEventHandler<HTMLDivElement>;
   onMouseEnter?: React.MouseEventHandler<HTMLDivElement>;
   onMouseLeave?: React.MouseEventHandler<HTMLDivElement>;
-  startTimeString?: string;
+  style?: CSSProperties;
+  timestamp?: React.ReactNode;
 }
 
-export function Item({
-  title,
-  children,
-  icon,
-  timeString,
-  startTimeString,
-  colorConfig = {primary: 'gray300', secondary: 'gray200'},
-  isActive = false,
-  onClick,
-  onMouseEnter,
-  onMouseLeave,
-}: TimelineItemProps) {
+export const Item = forwardRef(function _Item(
+  {
+    title,
+    children,
+    icon,
+    colorConfig = {title: 'gray400', icon: 'gray300', iconBorder: 'gray200'},
+    timestamp,
+    isActive = false,
+    style,
+    ...props
+  }: TimelineItemProps,
+  ref: React.ForwardedRef<HTMLDivElement>
+) {
   const theme = useTheme();
-  const placeholderTime = useRef(new Date().toTimeString()).current;
-  const {primary, secondary} = colorConfig;
-  const hasRelativeTime = defined(startTimeString);
-  const {
-    displayTime,
-    date,
-    timeWithMilliseconds: preciseTime,
-  } = hasRelativeTime
-    ? getFormattedTimestamp(timeString, startTimeString, true)
-    : getFormattedTimestamp(timeString, placeholderTime);
-
   return (
     <Row
-      color={secondary}
-      hasLowerBorder={isActive}
-      onClick={onClick}
-      onMouseEnter={onMouseEnter}
-      onMouseLeave={onMouseLeave}
       style={{
-        borderBottom: `1px solid ${isActive ? theme[secondary] : 'transparent'}`,
+        borderBottom: `1px solid ${isActive ? theme[colorConfig.icon] : 'transparent'}`,
+        ...style,
       }}
+      ref={ref}
+      {...props}
     >
       <IconWrapper
         style={{
-          borderColor: isActive ? theme[secondary] : 'transparent',
-          color: theme[primary],
+          borderColor: isActive ? theme[colorConfig.iconBorder] : 'transparent',
+          color: theme[colorConfig.icon],
         }}
+        className="icon-wrapper"
       >
         {icon}
       </IconWrapper>
-      <Title style={{color: theme[primary]}}>{title}</Title>
-      <Timestamp>
-        <Tooltip title={`${preciseTime} - ${date}`} skipWrapper>
-          {displayTime}
-        </Tooltip>
-      </Timestamp>
+      <Title style={{color: theme[colorConfig.title]}}>{title}</Title>
+      {timestamp ?? <div />}
       <Spacer
         style={{borderLeft: `1px solid ${isActive ? theme.border : 'transparent'}`}}
       />
-      <Content>{children}</Content>
+      <Content
+        style={{
+          marginBottom: `${isActive ? space(1) : 0}`,
+        }}
+      >
+        {children}
+      </Content>
     </Row>
   );
-}
+});
 
-interface GroupProps {
-  children: React.ReactNode;
-}
-
-export function Container({children}: GroupProps) {
-  return <Wrapper>{children}</Wrapper>;
-}
-
-const Wrapper = styled('div')`
-  position: relative;
-  /* vertical line connecting items */
-  &::before {
-    content: '';
-    position: absolute;
-    left: 10.5px;
-    width: 1px;
-    top: 0;
-    bottom: 0;
-    background: ${p => p.theme.border};
-  }
-`;
-
-const Row = styled('div')<{hasLowerBorder: boolean}>`
+const Row = styled('div')`
   position: relative;
   color: ${p => p.theme.subText};
   display: grid;
@@ -120,9 +89,6 @@ const Row = styled('div')<{hasLowerBorder: boolean}>`
     margin-bottom: 0;
     background: ${p => p.theme.background};
   }
-  &:last-child > :last-child {
-    margin-bottom: ${p => (p.hasLowerBorder ? space(1) : 0)};
-  }
 `;
 
 const IconWrapper = styled('div')`
@@ -130,23 +96,18 @@ const IconWrapper = styled('div')`
   border-radius: 100%;
   border: 1px solid;
   background: ${p => p.theme.background};
+  z-index: 10;
   svg {
     display: block;
     margin: ${space(0.5)};
   }
 `;
 
-const Title = styled('p')`
-  margin: 0;
+const Title = styled('div')`
   font-weight: bold;
-  text-transform: capitalize;
+  text-align: left;
   grid-column: span 1;
-`;
-
-const Timestamp = styled('p')`
-  margin: 0 ${space(1)};
-  color: ${p => p.theme.subText};
-  text-decoration: underline dashed ${p => p.theme.subText};
+  font-size: ${p => p.theme.fontSizeMedium};
 `;
 
 const Spacer = styled('div')`
@@ -157,12 +118,17 @@ const Spacer = styled('div')`
 `;
 
 const Content = styled('div')`
+  text-align: left;
   grid-column: span 2;
   color: ${p => p.theme.subText};
-  margin: ${space(0.25)} 0 ${space(2)};
+  margin: ${space(0.25)} 0 0;
+  font-size: ${p => p.theme.fontSizeSmall};
+  word-wrap: break-word;
 `;
 
 export const Text = styled('div')`
+  text-align: left;
+  font-size: ${p => p.theme.fontSizeSmall};
   &:only-child {
     margin-top: 0;
   }
@@ -179,6 +145,20 @@ export const Data = styled('div')`
   position: relative;
   &:only-child {
     margin-top: 0;
+  }
+`;
+
+export const Container = styled('div')`
+  position: relative;
+  /* vertical line connecting items */
+  &::before {
+    content: '';
+    position: absolute;
+    left: 10.5px;
+    width: 1px;
+    top: 0;
+    bottom: 0;
+    background: ${p => p.theme.border};
   }
 `;
 

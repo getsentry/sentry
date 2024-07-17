@@ -18,35 +18,35 @@ const replayRecord = ReplayRecordFixture({
 
 const PAGELOAD_FRAME = replayInitBreadcrumb(replayRecord);
 
-const [NAV_FRAME_1, NAV_FRAME_2] = hydrateBreadcrumbs(
-  replayRecord,
-  [
-    ReplayNavFrameFixture({
-      data: {to: 'MainActivityScreen'},
-      timestamp: NAVIGATION_DATE_1,
-    }),
-    ReplayNavFrameFixture({
-      data: {to: 'ConfirmPayment'},
-      timestamp: NAVIGATION_DATE_2,
-    }),
-  ],
-  []
-);
+const [NAV_FRAME_1, NAV_FRAME_2] = hydrateBreadcrumbs(replayRecord, [
+  ReplayNavFrameFixture({
+    data: {to: 'MainActivityScreen'},
+    timestamp: NAVIGATION_DATE_1,
+  }),
+  ReplayNavFrameFixture({
+    data: {to: 'ConfirmPayment'},
+    timestamp: NAVIGATION_DATE_2,
+  }),
+]);
 
 describe('getCurrentScreenName', () => {
   it('should return the screen name based on the closest navigation crumb', () => {
     const frames = [PAGELOAD_FRAME, NAV_FRAME_1, NAV_FRAME_2];
 
-    const offsetMS = 1; // at the beginning
-    const screenName = getCurrentScreenName(frames, offsetMS);
-    expect(screenName).toBe('');
+    const offsetMS = 0; // at the beginning
+    const screenName = getCurrentScreenName(
+      ReplayRecordFixture({urls: ['MainActivityScreen', 'ConfirmPayment']}),
+      frames,
+      offsetMS
+    );
+    expect(screenName).toBe('MainActivityScreen');
 
     const offsetMS2 = Number(NAVIGATION_DATE_1) - Number(START_DATE) + 3;
-    const screenName2 = getCurrentScreenName(frames, offsetMS2);
+    const screenName2 = getCurrentScreenName(replayRecord, frames, offsetMS2);
     expect(screenName2).toBe('MainActivityScreen');
 
     const offsetMS3 = Number(NAVIGATION_DATE_2) - Number(START_DATE) + 1;
-    const screenName3 = getCurrentScreenName(frames, offsetMS3);
+    const screenName3 = getCurrentScreenName(replayRecord, frames, offsetMS3);
     expect(screenName3).toBe('ConfirmPayment');
   });
 });

@@ -7,8 +7,7 @@ import sentry_sdk
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.group import STATUS_QUERY_CHOICES
-from sentry.search.events.builder import ErrorsQueryBuilder
-from sentry.search.events.builder.errors import ErrorsTimeseriesQueryBuilder
+from sentry.search.events.builder.errors import ErrorsQueryBuilder, ErrorsTimeseriesQueryBuilder
 from sentry.search.events.fields import get_json_meta_type
 from sentry.search.events.types import QueryBuilderConfig
 from sentry.snuba.dataset import Dataset
@@ -46,6 +45,7 @@ def query(
     skip_tag_resolution=False,
     on_demand_metrics_enabled=False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    fallback_to_transactions=False,
 ) -> EventsResponse:
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")

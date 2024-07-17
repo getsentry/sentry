@@ -21,15 +21,15 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
 from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
+from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
-from sentry.services.hybrid_cloud.app import RpcSentryAppInstallation, app_service
-from sentry.services.hybrid_cloud.integration import RpcIntegration
-from sentry.services.hybrid_cloud.util import region_silo_function
+from sentry.sentry_apps.services.app import RpcSentryAppInstallation, app_service
+from sentry.silo.base import region_silo_function
 
 
 @region_silo_function
 def build_action_response(
-    registered_type,
+    registered_type: AlertRuleTriggerAction.TypeRegistration,
     integration: RpcIntegration | None = None,
     organization: Organization | None = None,
     sentry_app_installation: RpcSentryAppInstallation | None = None,

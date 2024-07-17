@@ -11,20 +11,20 @@ from django.conf import settings
 from django.contrib.contenttypes.models import ContentType
 from django.db.models import Model
 
-from sentry.services.hybrid_cloud import RpcModel
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.hybridcloud.rpc import RpcModel
+from sentry.users.services.user import RpcUser
 
 LEAVE_CHARS = getattr(settings, "SOCIAL_AUTH_LOG_SANITIZE_LEAVE_CHARS", 4)
 
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.usersocialauth.model import RpcUserSocialAuth
-    from social_auth.backends import SocialAuthBackend
+    from sentry.users.services.usersocialauth.model import RpcUserSocialAuth
+    from social_auth.backends import BaseAuth
 
     from .models import UserSocialAuth
 
 
-def get_backend(instance: UserSocialAuth | RpcUserSocialAuth) -> type[SocialAuthBackend] | None:
+def get_backend(instance: UserSocialAuth | RpcUserSocialAuth) -> type[BaseAuth] | None:
     # Make import here to avoid recursive imports :-/
     from social_auth.backends import get_backends
 

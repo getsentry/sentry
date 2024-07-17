@@ -1,17 +1,12 @@
-import {useEffect, useState} from 'react';
-
 import LoadingError from 'sentry/components/loadingError';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {OnboardingLayout} from 'sentry/components/onboarding/gettingStartedDoc/onboardingLayout';
-import type {
-  ConfigType,
-  Docs,
-} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {ConfigType} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import type {ProductSolution} from 'sentry/components/onboarding/productSelection';
+import {t} from 'sentry/locale';
 import type {Organization} from 'sentry/types/organization';
-import type {PlatformIntegration, Project, ProjectKey} from 'sentry/types/project';
-import {getPlatformPath} from 'sentry/utils/gettingStartedDocs/getPlatformPath';
-import {useApiQuery} from 'sentry/utils/queryClient';
+import type {PlatformIntegration, Project} from 'sentry/types/project';
 
 type SdkDocumentationProps = {
   activeProductSelection: ProductSolution[];
@@ -29,54 +24,56 @@ export function SdkDocumentation({
   projectSlug,
   activeProductSelection,
   newOrg,
-  organization,
   projectId,
   configType,
+  organization,
 }: SdkDocumentationProps) {
-  const [module, setModule] = useState<null | {
-    default: Docs<any>;
-  }>(null);
-
-  const platformPath = getPlatformPath(platform);
-
-  const {
-    data: projectKeys,
-    isError: projectKeysIsError,
-    isLoading: projectKeysIsLoading,
-    refetch: refetchProjectKeys,
-  } = useApiQuery<ProjectKey[]>([`/projects/${organization.slug}/${projectSlug}/keys/`], {
-    staleTime: Infinity,
+  const {isLoading, isError, dsn, cdn, docs, refetch} = useLoadGettingStarted({
+    orgSlug: organization.slug,
+    projSlug: projectSlug,
+    platform,
   });
 
-  useEffect(() => {
-    async function getGettingStartedDoc() {
-      const mod = await import(
-        /* webpackExclude: /.spec/ */
-        `sentry/gettingStartedDocs/${platformPath}`
-      );
-      setModule(mod);
-    }
-    getGettingStartedDoc();
-    return () => {
-      setModule(null);
-    };
-  }, [platformPath]);
-
-  if (!module || projectKeysIsLoading) {
+  if (isLoading) {
     return <LoadingIndicator />;
   }
 
-  if (projectKeysIsError) {
-    return <LoadingError onRetry={refetchProjectKeys} />;
+  if (isError) {
+    return (
+      <LoadingError
+        message={t(
+          'We encountered an issue while loading the getting started documentation for this platform.'
+        )}
+      />
+    );
   }
 
-  const {default: docs} = module;
+  if (!docs) {
+    return (
+      <LoadingError
+        message={t(
+          'The getting started documentation for this platform is currently unavailable.'
+        )}
+      />
+    );
+  }
+
+  if (!dsn) {
+    return (
+      <LoadingError
+        message={t(
+          'We encountered an issue while loading the DSN for this getting started documentation.'
+        )}
+        onRetry={refetch}
+      />
+    );
+  }
 
   return (
     <OnboardingLayout
       docsConfig={docs}
-      dsn={projectKeys[0].dsn.public}
-      cdn={projectKeys[0].dsn.cdn}
+      dsn={dsn}
+      cdn={cdn}
       activeProductSelection={activeProductSelection}
       newOrg={newOrg}
       platformKey={platform.id}

@@ -1,4 +1,5 @@
 import {useMemo} from 'react';
+import type {Theme} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
@@ -43,6 +44,24 @@ const TABLE_WIDTH_BREAKPOINTS = {
   THIRD: 500,
   FOURTH: 400,
 };
+
+const issueOrderPriority: Record<keyof Theme['level'], number> = {
+  fatal: 0,
+  error: 1,
+  warning: 2,
+  sample: 3,
+  info: 4,
+  default: 5,
+  unknown: 6,
+};
+
+function sortIssuesByLevel(a: TraceError, b: TraceError): number {
+  // If the level is not defined in the priority map, default to unknown
+  const aPriority = issueOrderPriority[a.level] ?? issueOrderPriority.unknown;
+  const bPriority = issueOrderPriority[b.level] ?? issueOrderPriority.unknown;
+
+  return aPriority - bPriority;
+}
 
 function Issue(props: IssueProps) {
   const {
@@ -140,7 +159,9 @@ export function IssueList({issues, node, organization}: IssueListProps) {
     }
 
     return unique;
-  }, [node]);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [node, node.errors.size]);
 
   const uniquePerformanceIssues = useMemo(() => {
     const unique: TracePerformanceIssue[] = [];
@@ -155,10 +176,12 @@ export function IssueList({issues, node, organization}: IssueListProps) {
     }
 
     return unique;
-  }, [node]);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [node, node.performance_issues.size]);
 
   const uniqueIssues = useMemo(() => {
-    return [...uniqueErrorIssues, ...uniquePerformanceIssues];
+    return [...uniquePerformanceIssues, ...uniqueErrorIssues.sort(sortIssuesByLevel)];
   }, [uniqueErrorIssues, uniquePerformanceIssues]);
 
   if (!issues.length) {

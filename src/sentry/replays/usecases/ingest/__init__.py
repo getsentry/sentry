@@ -6,8 +6,9 @@ import zlib
 from datetime import datetime, timezone
 from typing import TypedDict, cast
 
+import sentry_sdk.scope
 from sentry_kafka_schemas.schema_types.ingest_replay_recordings_v1 import ReplayRecording
-from sentry_sdk import Hub, set_tag
+from sentry_sdk import Scope, set_tag
 from sentry_sdk.tracing import Span
 
 from sentry.constants import DataCategory
@@ -66,9 +67,11 @@ class RecordingIngestMessage:
 
 
 @metrics.wraps("replays.usecases.ingest.ingest_recording")
-def ingest_recording(message_dict: ReplayRecording, transaction: Span, current_hub: Hub) -> None:
+def ingest_recording(
+    message_dict: ReplayRecording, transaction: Span, isolation_scope: Scope
+) -> None:
     """Ingest non-chunked recording messages."""
-    with current_hub:
+    with sentry_sdk.scope.use_isolation_scope(isolation_scope):
         with transaction.start_child(
             op="replays.usecases.ingest.ingest_recording",
             description="ingest_recording",
@@ -113,6 +116,7 @@ def _ingest_recording(message: RecordingIngestMessage, transaction: Span) -> Non
 
     if message.replay_video:
         # Record video size for COGS analysis.
+        metrics.incr("replays.recording_consumer.replay_video_count")
         metrics.distribution(
             "replays.recording_consumer.replay_video_size",
             len(message.replay_video),
@@ -258,6 +262,19 @@ def recording_post_processor(
             message.replay_id,
             parsed_segment_data,
         )
+
+        # Log # of rrweb events to bigquery.
+        logger.info(
+            "sentry.replays.slow_click",
+            extra={
+                "event_type": "rrweb_event_count",
+                "org_id": message.org_id,
+                "project_id": message.project_id,
+                "replay_id": message.replay_id,
+                "size": len(parsed_segment_data),
+            },
+        )
+
     except Exception:
         logging.exception(
             "Failed to parse recording org=%s, project=%s, replay=%s, segment=%s",

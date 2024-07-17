@@ -33,6 +33,8 @@ from sentry.api.endpoints.project_backfill_similar_issues_embeddings_records imp
 )
 from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
+from sentry.api.endpoints.project_template_detail import OrganizationProjectTemplateDetailEndpoint
+from sentry.api.endpoints.project_templates_index import OrganizationProjectTemplatesIndexEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThresholdEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold_details import (
     ReleaseThresholdDetailsEndpoint,
@@ -164,6 +166,9 @@ from sentry.monitors.endpoints.project_monitor_stats import ProjectMonitorStatsE
 from sentry.monitors.endpoints.project_processing_errors_details import (
     ProjectProcessingErrorsDetailsEndpoint,
 )
+from sentry.monitors.endpoints.project_processing_errors_index import (
+    ProjectProcessingErrorsIndexEndpoint,
+)
 from sentry.remote_config.endpoints import (
     ProjectConfigurationEndpoint,
     ProjectConfigurationProxyEndpoint,
@@ -205,6 +210,7 @@ from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_application_rotate_secret import ApiApplicationRotateSecretEndpoint
 from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
+from .endpoints.api_token_details import ApiTokenDetailsEndpoint
 from .endpoints.api_tokens import ApiTokensEndpoint
 from .endpoints.artifact_bundles import ArtifactBundlesEndpoint
 from .endpoints.artifact_lookup import ProjectArtifactLookupEndpoint
@@ -423,6 +429,9 @@ from .endpoints.organization_member_unreleased_commits import (
 )
 from .endpoints.organization_metrics_code_locations import OrganizationMetricsCodeLocationsEndpoint
 from .endpoints.organization_metrics_details import OrganizationMetricsDetailsEndpoint
+from .endpoints.organization_metrics_extraction_rules import (
+    OrganizationMetricsExtractionRulesEndpoint,
+)
 from .endpoints.organization_metrics_meta import (
     OrganizationMetricsCompatibility,
     OrganizationMetricsCompatibilitySums,
@@ -439,11 +448,10 @@ from .endpoints.organization_onboarding_continuation_email import (
 )
 from .endpoints.organization_onboarding_tasks import OrganizationOnboardingTaskEndpoint
 from .endpoints.organization_pinned_searches import OrganizationPinnedSearchEndpoint
-from .endpoints.organization_processingissues import OrganizationProcessingIssuesEndpoint
 from .endpoints.organization_profiling_functions import OrganizationProfilingFunctionTrendsEndpoint
 from .endpoints.organization_profiling_profiles import (
     OrganizationProfilingChunksEndpoint,
-    OrganizationProfilingFiltersEndpoint,
+    OrganizationProfilingChunksFlamegraphEndpoint,
     OrganizationProfilingFlamegraphEndpoint,
 )
 from .endpoints.organization_projects import (
@@ -502,13 +510,6 @@ from .endpoints.organization_user_reports import OrganizationUserReportsEndpoint
 from .endpoints.organization_user_teams import OrganizationUserTeamsEndpoint
 from .endpoints.organization_users import OrganizationUsersEndpoint
 from .endpoints.project_agnostic_rule_conditions import ProjectAgnosticRuleConditionsEndpoint
-from .endpoints.project_app_store_connect_credentials import (
-    AppStoreConnectAppsEndpoint,
-    AppStoreConnectCreateCredentialsEndpoint,
-    AppStoreConnectRefreshEndpoint,
-    AppStoreConnectStatusEndpoint,
-    AppStoreConnectUpdateCredentialsEndpoint,
-)
 from .endpoints.project_artifact_bundle_file_details import ProjectArtifactBundleFileDetailsEndpoint
 from .endpoints.project_artifact_bundle_files import ProjectArtifactBundleFilesEndpoint
 from .endpoints.project_autofix_codebase_index_status import (
@@ -547,10 +548,6 @@ from .endpoints.project_performance_issue_settings import ProjectPerformanceIssu
 from .endpoints.project_platforms import ProjectPlatformsEndpoint
 from .endpoints.project_plugin_details import ProjectPluginDetailsEndpoint
 from .endpoints.project_plugins import ProjectPluginsEndpoint
-from .endpoints.project_processingissues import (
-    ProjectProcessingIssuesDiscardEndpoint,
-    ProjectProcessingIssuesEndpoint,
-)
 from .endpoints.project_profiling_profile import (
     ProjectProfilingEventEndpoint,
     ProjectProfilingProfileEndpoint,
@@ -1406,6 +1403,16 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-events-stats",
     ),
     re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/project-templates/$",
+        OrganizationProjectTemplatesIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-project-templates",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/project-templates/(?P<template_id>[^\/]+)/$",
+        OrganizationProjectTemplateDetailEndpoint.as_view(),
+        name="sentry-api-0-organization-project-template-detail",
+    ),
+    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/spans/$",
         OrganizationTraceSpansEndpoint.as_view(),
         name="sentry-api-0-organization-trace-spans",
@@ -1494,6 +1501,11 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/metrics-compatibility-sums/$",
         OrganizationMetricsCompatibilitySums.as_view(),
         name="sentry-api-0-organization-metrics-compatibility-sums",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^/]+)/metrics/extraction-rules/$",
+        OrganizationMetricsExtractionRulesEndpoint.as_view(),
+        name="sentry-api-0-organization-metrics-extraction-rules",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/missing-members/$",
@@ -1764,11 +1776,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/onboarding-continuation-email/$",
         OrganizationOnboardingContinuationEmail.as_view(),
         name="sentry-api-0-organization-onboarding-continuation-email",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/processingissues/$",
-        OrganizationProcessingIssuesEndpoint.as_view(),
-        name="sentry-api-0-organization-processing-issues",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/projects/$",
@@ -2094,14 +2101,14 @@ ORGANIZATION_URLS = [
         include(
             [
                 re_path(
-                    r"^filters/$",
-                    OrganizationProfilingFiltersEndpoint.as_view(),
-                    name="sentry-api-0-organization-profiling-filters",
-                ),
-                re_path(
                     r"^flamegraph/$",
                     OrganizationProfilingFlamegraphEndpoint.as_view(),
                     name="sentry-api-0-organization-profiling-flamegraph",
+                ),
+                re_path(
+                    r"^chunks-flamegraph/$",
+                    OrganizationProfilingChunksFlamegraphEndpoint.as_view(),
+                    name="sentry-api-0-organization-profiling-chunks-flamegraph",
                 ),
                 re_path(
                     r"^function-trends/$",
@@ -2628,19 +2635,9 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-userstats",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/processingissues/$",
-        ProjectProcessingIssuesEndpoint.as_view(),
-        name="sentry-api-0-project-processing-issues",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/reprocessing/$",
         ProjectReprocessingEndpoint.as_view(),
         name="sentry-api-0-project-reprocessing",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/processingissues/discard/$",
-        ProjectProcessingIssuesDiscardEndpoint.as_view(),
-        name="sentry-api-0-project-discard-processing-issues",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/ownership/$",
@@ -2725,31 +2722,6 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         name="sentry-api-0-project-grouping-configs",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/appstoreconnect/$",
-        AppStoreConnectCreateCredentialsEndpoint.as_view(),
-        name="sentry-api-0-project-appstoreconnect-credentials-create",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/appstoreconnect/apps/$",
-        AppStoreConnectAppsEndpoint.as_view(),
-        name="sentry-api-0-project-appstoreconnect-apps",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/appstoreconnect/status/$",
-        AppStoreConnectStatusEndpoint.as_view(),
-        name="sentry-api-0-project-appstoreconnect-status",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/$",
-        AppStoreConnectUpdateCredentialsEndpoint.as_view(),
-        name="sentry-api-0-project-appstoreconnect-credentials-update",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/appstoreconnect/(?P<credentials_id>[^\/]+)/refresh/$",
-        AppStoreConnectRefreshEndpoint.as_view(),
-        name="sentry-api-0-project-appstoreconnect-refresh",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/profiling/profiles/(?P<profile_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/$",
         ProjectProfilingProfileEndpoint.as_view(),
         name="sentry-api-0-project-profiling-profile",
@@ -2793,6 +2765,11 @@ PROJECT_URLS: list[URLPattern | URLResolver] = [
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/processing-errors/(?P<uuid>[^\/]+)/$",
         ProjectProcessingErrorsDetailsEndpoint.as_view(),
         name="sentry-api-0-project-processing-errors-details",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/processing-errors/$",
+        ProjectProcessingErrorsIndexEndpoint.as_view(),
+        name="sentry-api-0-project-processing-errors-index",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/(?P<project_id_or_slug>[^\/]+)/monitors/(?P<monitor_id_or_slug>[^\/]+)/processing-errors/$",
@@ -3163,6 +3140,11 @@ urlpatterns = [
         r"^api-tokens/$",
         ApiTokensEndpoint.as_view(),
         name="sentry-api-0-api-tokens",
+    ),
+    re_path(
+        r"^api-tokens/(?P<token_id>[^\/]+)/$",
+        ApiTokenDetailsEndpoint.as_view(),
+        name="sentry-api-0-api-token-details",
     ),
     re_path(
         r"^prompts-activity/$",

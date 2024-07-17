@@ -12,7 +12,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleActivity,
     AlertRuleActivityType,
-    AlertRuleMonitorType,
+    AlertRuleMonitorTypeInt,
     AlertRuleStatus,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -22,9 +22,9 @@ from sentry.incidents.models.alert_rule import (
 )
 from sentry.incidents.models.incident import IncidentStatus
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import QuerySubscription
 from sentry.testutils.cases import TestCase
+from sentry.users.services.user.service import user_service
 
 
 class IncidentGetForSubscriptionTest(TestCase):
@@ -148,12 +148,12 @@ class AlertRuleTest(TestCase):
     @patch("sentry.incidents.models.alert_rule.bulk_create_snuba_subscriptions")
     def test_subscribes_projects_to_alert_rule(self, mock_bulk_create_snuba_subscriptions):
         # eg. creates QuerySubscription's/SnubaQuery's for AlertRule + Project
-        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
+        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.ACTIVATED)
         assert mock_bulk_create_snuba_subscriptions.call_count == 0
 
         alert_rule.subscribe_projects(
             projects=[self.project],
-            monitor_type=AlertRuleMonitorType.ACTIVATED,
+            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
             activator="testing",
             activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
         )
@@ -164,7 +164,7 @@ class AlertRuleTest(TestCase):
         project = self.create_project(name="foo")
         self.create_alert_rule(
             projects=[project],
-            monitor_type=AlertRuleMonitorType.ACTIVATED,
+            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
             activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
         )
         with self.tasks():
@@ -188,7 +188,7 @@ class AlertRuleTest(TestCase):
         project = self.create_project(name="foo")
         alert_rule = self.create_alert_rule(
             projects=[project],
-            monitor_type=AlertRuleMonitorType.ACTIVATED,
+            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
             activation_condition=AlertRuleActivationConditionType.DEPLOY_CREATION,
         )
 
@@ -317,7 +317,10 @@ class AlertRuleTriggerActionActivateBaseTest:
 
     def test_no_handler(self):
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
-        assert trigger.fire(Mock(), Mock(), Mock(), 123, IncidentStatus.CRITICAL) is None
+        result = trigger.fire(Mock(), Mock(), Mock(), 123, IncidentStatus.CRITICAL)  # type: ignore[func-returns-value]
+
+        # TODO(RyanSkonnord): Remove assertion (see test_handler)
+        assert result is None
 
     def test_handler(self):
         mock_handler = Mock()
@@ -326,10 +329,13 @@ class AlertRuleTriggerActionActivateBaseTest:
         type = AlertRuleTriggerAction.Type.EMAIL
         AlertRuleTriggerAction.register_type("something", type, [])(mock_handler)
         trigger = AlertRuleTriggerAction(type=type.value)
-        assert (
-            getattr(trigger, self.method)(Mock(), Mock(), Mock(), 123, IncidentStatus.CRITICAL)
-            == mock_method.return_value
-        )
+        result = getattr(trigger, self.method)(Mock(), Mock(), Mock(), 123, IncidentStatus.CRITICAL)
+
+        # TODO(RyanSkonnord): Don't assert on return value.
+        # All concrete ActionHandlers return None from their fire and resolve
+        # methods. It seems that this return value's only purpose is to spy on
+        # whether the AlertRuleTriggerAction produced a handler.
+        assert result == mock_method.return_value
 
 
 class AlertRuleTriggerActionFireTest(AlertRuleTriggerActionActivateBaseTest, unittest.TestCase):
@@ -404,10 +410,10 @@ class AlertRuleActivityTest(TestCase):
 class UpdateAlertActivationsTest(TestCase):
     def test_updates_non_expired_alerts(self):
         with self.tasks():
-            alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
+            alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.ACTIVATED)
             alert_rule.subscribe_projects(
                 projects=[self.project],
-                monitor_type=AlertRuleMonitorType.ACTIVATED,
+                monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
                 activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
                 activator="testing",
             )
@@ -429,10 +435,10 @@ class UpdateAlertActivationsTest(TestCase):
 
     def test_cleans_expired_alerts(self):
         with self.tasks():
-            alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
+            alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.ACTIVATED)
             alert_rule.subscribe_projects(
                 projects=[self.project],
-                monitor_type=AlertRuleMonitorType.ACTIVATED,
+                monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
                 activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
                 activator="testing",
             )
@@ -454,21 +460,22 @@ class UpdateAlertActivationsTest(TestCase):
             assert activation.metric_value == expected_value
 
     def test_update_alerts_add_processor(self):
-        @register_alert_subscription_callback(AlertRuleMonitorType.CONTINUOUS)
+        @register_alert_subscription_callback(AlertRuleMonitorTypeInt.CONTINUOUS)
         def mock_processor(_subscription, alert_rule, value):
             # everything other than subscription is passed as a kwarg
             return True
 
-        assert AlertRuleMonitorType.CONTINUOUS in alert_subscription_callback_registry
+        assert AlertRuleMonitorTypeInt.CONTINUOUS in alert_subscription_callback_registry
         assert (
-            alert_subscription_callback_registry[AlertRuleMonitorType.CONTINUOUS] == mock_processor
+            alert_subscription_callback_registry[AlertRuleMonitorTypeInt.CONTINUOUS]
+            == mock_processor
         )
 
     def test_update_alerts_execute_processor(self):
-        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
+        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
         subscription = alert_rule.snuba_query.subscriptions.get()
 
-        callback = alert_subscription_callback_registry[AlertRuleMonitorType.CONTINUOUS]
+        callback = alert_subscription_callback_registry[AlertRuleMonitorTypeInt.CONTINUOUS]
         result = callback(subscription, alert_rule=alert_rule, value=10)
         assert result is True
 

@@ -8,16 +8,17 @@ from sentry.incidents.endpoints.serializers.alert_rule import (
 from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
 from sentry.incidents.models.alert_rule import (
     AlertRule,
-    AlertRuleMonitorType,
+    AlertRuleMonitorTypeInt,
     AlertRuleProjects,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
 )
+from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.models.rule import Rule
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.models import SnubaQueryEventType
 from sentry.testutils.cases import APITestCase, TestCase
 from sentry.types.actor import Actor
+from sentry.users.services.user.service import user_service
 
 NOT_SET = object()
 
@@ -141,25 +142,42 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         assert result[1]["triggers"] == []
 
     def test_activations(self):
-        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
-        other_alert_rule = self.create_alert_rule()
-        activations = self.create_alert_rule_activation(
-            alert_rule=alert_rule, monitor_type=AlertRuleMonitorType.CONTINUOUS
+        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
+        activated_alert_rule = self.create_alert_rule(
+            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED
         )
-        result = serialize([alert_rule, other_alert_rule])
+        other_alert_rule = self.create_alert_rule()
+
+        activations = self.create_alert_rule_activation(
+            alert_rule=alert_rule, monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS
+        )
+        activated_alert_rule.subscribe_projects(
+            projects=[self.project],
+            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED,
+            activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
+            activator="testing",
+        )
+        activated_alert_rule.refresh_from_db()
+
+        result = serialize([alert_rule, other_alert_rule, activated_alert_rule])
         assert result[0]["activations"] == serialize(activations)
         assert result[1]["activations"] == []
+        assert result[2]["activations"] == serialize(list(activated_alert_rule.activations.all()))
+        assert (
+            result[2]["activationCondition"]
+            == AlertRuleActivationConditionType.RELEASE_CREATION.value
+        )
 
     def test_truncated_activations(self):
-        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
-        alert_rule2 = self.create_alert_rule(monitor_type=AlertRuleMonitorType.CONTINUOUS)
+        alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
+        alert_rule2 = self.create_alert_rule(monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS)
         for i in range(11):
             self.create_alert_rule_activation(
-                alert_rule=alert_rule, monitor_type=AlertRuleMonitorType.CONTINUOUS
+                alert_rule=alert_rule, monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS
             )
             if i % 2 == 0:
                 self.create_alert_rule_activation(
-                    alert_rule=alert_rule2, monitor_type=AlertRuleMonitorType.CONTINUOUS
+                    alert_rule=alert_rule2, monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS
                 )
         result = serialize([alert_rule, alert_rule2])
         assert len(result[0]["activations"]) == 10
@@ -167,7 +185,9 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
 
     def test_projects(self):
         regular_alert_rule = self.create_alert_rule()
-        activated_alert_rule = self.create_alert_rule(monitor_type=AlertRuleMonitorType.ACTIVATED)
+        activated_alert_rule = self.create_alert_rule(
+            monitor_type=AlertRuleMonitorTypeInt.ACTIVATED
+        )
         alert_rule_no_projects = self.create_alert_rule()
 
         AlertRuleProjects.objects.filter(alert_rule_id=alert_rule_no_projects.id).delete()

@@ -51,7 +51,9 @@ export function MetricListItemDetails({
   const router = useRouter();
   const organization = useOrganization();
   const queryClient = useQueryClient();
-  const isCustomMetric = parseMRI(metric.mri)?.useCase === 'custom';
+  const parsedMRI = parseMRI(metric.mri);
+  const isCustomMetric = parsedMRI.useCase === 'custom';
+  const isVirtualMetric = parsedMRI.type === 'v';
 
   const [showAllTags, setShowAllTags] = useState(false);
   const [showAllProjects, setShowAllProjects] = useState(false);
@@ -147,7 +149,11 @@ export function MetricListItemDetails({
           (firstMetricProject ? (
             <LinkButton
               size="xs"
-              to={`/settings/projects/${firstMetricProject.slug}/metrics/${encodeURIComponent(metric.mri)}`}
+              to={
+                isVirtualMetric
+                  ? `/settings/projects/${firstMetricProject.slug}/metrics/`
+                  : `/settings/projects/${firstMetricProject.slug}/metrics/${encodeURIComponent(metric.mri)}`
+              }
               aria-label={t('Open metric settings')}
               icon={<IconSettings />}
               borderless
@@ -180,8 +186,12 @@ export function MetricListItemDetails({
             </Button>
           )}
         </DetailsValue>
-        <DetailsLabel>{t('Type')}</DetailsLabel>
-        <DetailsValue>{getReadableMetricType(metric.type)}</DetailsValue>
+        {!isVirtualMetric ? (
+          <Fragment>
+            <DetailsLabel>{t('Type')}</DetailsLabel>
+            <DetailsValue>{getReadableMetricType(metric.type)}</DetailsValue>
+          </Fragment>
+        ) : null}
         <DetailsLabel>{t('Unit')}</DetailsLabel>
         <DetailsValue>{metric.unit}</DetailsValue>
         <DetailsLabel>{t('Tags')}</DetailsLabel>
@@ -197,12 +207,17 @@ export function MetricListItemDetails({
                 return (
                   <Fragment key={tag.key}>
                     <TagWrapper>
-                      <Button
-                        priority="link"
-                        onClick={() => onTagClick(metric.mri, tag.key)}
-                      >
-                        {tag.key}
-                      </Button>
+                      {/* Tags for virtual metrics are not clickable because there is no way of knowing which have been seen and won't cause query error */}
+                      {isVirtualMetric ? (
+                        tag.key
+                      ) : (
+                        <Button
+                          priority="link"
+                          onClick={() => onTagClick(metric.mri, tag.key)}
+                        >
+                          {tag.key}
+                        </Button>
+                      )}
                       {/* Make the comma stick to the Button when the text wraps to the next line */}
                       {shouldAddDelimiter ? ',' : null}
                     </TagWrapper>

@@ -5,8 +5,7 @@ import {getInterval} from 'sentry/components/charts/utils';
 import {CHART_PALETTE} from 'sentry/constants/chartPalette';
 import {t} from 'sentry/locale';
 import type {Series} from 'sentry/types/echarts';
-import {RateUnit} from 'sentry/utils/discover/fields';
-import {formatRate} from 'sentry/utils/formatters';
+import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import {decodeList} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
@@ -14,7 +13,7 @@ import usePageFilters from 'sentry/utils/usePageFilters';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 import ChartPanel from 'sentry/views/insights/common/components/chartPanel';
 import {useSpanIndexedSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
-import {CHART_HEIGHT} from 'sentry/views/performance/database/settings';
+import {CHART_HEIGHT} from 'sentry/views/insights/database/settings';
 
 import {areQueriesEmpty} from './utils';
 
@@ -105,7 +104,7 @@ export function TracesChart({}: Props) {
           aggregateOutputFormat="number"
           showLegend
           tooltipFormatterOptions={{
-            valueFormatter: value => formatRate(value, RateUnit.PER_MINUTE),
+            valueFormatter: value => tooltipFormatter(value),
           }}
         />
       </ChartPanel>

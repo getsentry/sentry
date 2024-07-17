@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 import {useResizeObserver} from '@react-aria/utils';
 import color from 'color';
 import isEqual from 'lodash/isEqual';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {Button} from 'sentry/components/button';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
@@ -89,11 +89,12 @@ export function useFocusArea({
       startBrush();
     };
 
-    // Handle mouse up is called after onBrushEnd
-    // We can use it for a final reliable cleanup as onBrushEnd is not always called (e.g. when simply clicking the chart)
+    // Handle mouse up is called after onBrushEnd. We can use it for a final reliable
+    // cleanup as onBrushEnd is not always called (e.g. when simply clicking the chart)
     const handleMouseUp = () => {
       isDrawingRef.current = false;
     };
+
     chartElement?.addEventListener('mousedown', handleMouseDown, {capture: true});
     window.addEventListener('mouseup', handleMouseUp);
 
@@ -108,18 +109,20 @@ export function useFocusArea({
       if (isDisabled || !isDrawingRef.current) {
         return;
       }
+
       const rect = brushEnd.areas[0];
-      if (!rect) {
+      if (!rect || !rect.coordRange) {
         return;
       }
-      const range = getSelectionRange(brushEnd, !!useFullYAxis, getValueRect(chartRef));
+
+      const range = getSelectionRange(rect, !!useFullYAxis, getValueRect(chartRef));
       onAdd?.({
         widgetIndex,
         range,
       });
 
-      // Remove brush from echarts immediately after adding the focus area
-      // since brushes get added to all charts in the group by default and then randomly
+      // Remove brush from echarts immediately after adding the focus area since
+      // brushes get added to all charts in the group by default and then randomly
       // render in the wrong place
       chartRef.current?.getEchartsInstance().dispatchAction({
         type: 'brush',
@@ -340,12 +343,10 @@ const getDateString = (timestamp: number): string =>
 const getTimestamp = (date: DateString) => moment.utc(date).valueOf();
 
 const getSelectionRange = (
-  params: BrushEndResult,
+  rect: BrushEndResult['areas'][0],
   useFullYAxis: boolean,
   boundingRect: ValueRect
 ): SelectionRange => {
-  const rect = params.areas[0];
-
   const startTimestamp = Math.min(...rect.coordRange[0]);
   const endTimestamp = Math.max(...rect.coordRange[0]);
 

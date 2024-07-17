@@ -59,6 +59,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0]["p50()"] == 0
         assert meta["dataset"] == "spansMetrics"
 
+    @pytest.mark.querybuilder
     def test_count(self):
         self.store_span_metric(
             1,
@@ -1814,6 +1815,37 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         ]
         meta = response.data["meta"]
         assert meta["fields"]["avg(messaging.message.receive.latency)"] == "null"
+
+    def test_cache_item_size_does_not_exist_as_metric(self):
+        self.store_span_metric(
+            100,
+            internal_metric=constants.SPAN_METRICS_MAP["span.duration"],
+            tags={"cache.item": "true"},
+            timestamp=self.min_ago,
+        )
+        response = self.do_request(
+            {
+                "field": [
+                    "avg(cache.item_size)",
+                    "avg(span.duration)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "1h",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        assert data == [
+            {
+                "avg(cache.item_size)": None,
+                "avg(span.duration)": 100,
+            },
+        ]
+        meta = response.data["meta"]
+        assert meta["fields"]["avg(cache.item_size)"] == "null"
 
     def test_trace_status_rate(self):
         self.store_span_metric(

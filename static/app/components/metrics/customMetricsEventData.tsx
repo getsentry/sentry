@@ -22,10 +22,10 @@ import type {
   MRI,
 } from 'sentry/types/metrics';
 import {defined} from 'sentry/utils';
-import {getDefaultAggregate, getMetricsUrl} from 'sentry/utils/metrics';
+import {getDefaultAggregation, getMetricsUrl} from 'sentry/utils/metrics';
 import {hasCustomMetrics} from 'sentry/utils/metrics/features';
 import {formatMetricUsingUnit} from 'sentry/utils/metrics/formatters';
-import {formatMRI, parseMRI} from 'sentry/utils/metrics/mri';
+import {formatMRI, isExtractedCustomMetric, parseMRI} from 'sentry/utils/metrics/mri';
 import {MetricDisplayType} from 'sentry/utils/metrics/types';
 import {useMetricsQuery} from 'sentry/utils/metrics/useMetricsQuery';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
@@ -46,7 +46,9 @@ function flattenMetricsSummary(
       keyof MetricsSummary,
       MetricsSummary[keyof MetricsSummary],
     ][]
-  ).flatMap(([mri, items]) => (items || []).map(item => ({item, mri})));
+  )
+    .flatMap(([mri, items]) => (items || []).map(item => ({item, mri})))
+    .filter(entry => !isExtractedCustomMetric(entry));
 }
 
 function tagToQuery(tagKey: string, tagValue: string) {
@@ -93,7 +95,7 @@ export function CustomMetricsEventData({
       metricsSummaryEntries.map((entry, index) => ({
         mri: entry.mri,
         name: index.toString(),
-        op: getDefaultAggregate(entry.mri),
+        aggregation: getDefaultAggregation(entry.mri),
         query: Object.entries(entry.item.tags ?? {})
           .map(([tagKey, tagValue]) => tagToQuery(tagKey, tagValue))
           .join(' '),
@@ -210,7 +212,7 @@ export function CustomMetricsEventData({
               {
                 mri: mri,
                 displayType: MetricDisplayType.LINE,
-                op: getDefaultAggregate(mri),
+                aggregation: getDefaultAggregation(mri),
                 query: Object.entries(summaryItem.tags ?? {})
                   .map(([tagKey, tagValue]) => tagToQuery(tagKey, tagValue))
                   .join(' '),
@@ -224,7 +226,7 @@ export function CustomMetricsEventData({
 
   return (
     <TraceDrawerComponents.SectionCard
-      title={t('Emitted Metrics')}
+      title={t('Custom Metrics')}
       items={items}
       sortAlphabetically
     />

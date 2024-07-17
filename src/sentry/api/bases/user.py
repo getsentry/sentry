@@ -7,16 +7,16 @@ from typing_extensions import override
 from sentry.api.base import Endpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.permissions import SentryPermission, StaffPermissionMixin
+from sentry.auth.services.access.service import access_service
 from sentry.auth.superuser import is_active_superuser, superuser_has_permission
 from sentry.auth.system import is_system_auth
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.organizationmembermapping import OrganizationMemberMapping
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.access.service import access_service
-from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.organizations.services.organization import organization_service
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 
 
 class UserPermission(SentryPermission):
@@ -102,7 +102,7 @@ class UserEndpoint(Endpoint):
     permission_classes: tuple[type[BasePermission], ...] = (UserPermission,)
 
     @override
-    def convert_args(self, request: Request, user_id: str | None = None, *args, **kwargs):
+    def convert_args(self, request: Request, user_id: int | str | None = None, *args, **kwargs):
         if user_id == "me":
             if not request.user.is_authenticated:
                 raise ResourceDoesNotExist

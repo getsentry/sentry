@@ -2,7 +2,7 @@ import {Fragment, useCallback} from 'react';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 import Color from 'color';
-import moment, {type Moment} from 'moment';
+import moment, {type Moment} from 'moment-timezone';
 
 import Alert from 'sentry/components/alert';
 import {Hovercard} from 'sentry/components/hovercard';

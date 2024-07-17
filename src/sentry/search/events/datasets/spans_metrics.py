@@ -9,7 +9,8 @@ from snuba_sdk import AliasedExpression, Column, Condition, Function, Identifier
 
 from sentry.api.event_search import SearchFilter
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.search.events import builder, constants, fields
+from sentry.search.events import constants, fields
+from sentry.search.events.builder import spans_metrics
 from sentry.search.events.datasets import field_aliases, filter_aliases, function_aliases
 from sentry.search.events.datasets.base import DatasetConfig
 from sentry.search.events.fields import SnQLStringArg, get_function_alias
@@ -26,9 +27,12 @@ class Args(TypedDict):
 
 class SpansMetricsDatasetConfig(DatasetConfig):
     missing_function_error = IncompatibleMetricsQuery
-    nullable_metrics = {constants.SPAN_MESSAGING_LATENCY}
+    nullable_metrics = {
+        constants.SPAN_MESSAGING_LATENCY,
+        constants.SPAN_METRICS_MAP["cache.item_size"],
+    }
 
-    def __init__(self, builder: builder.SpansMetricsQueryBuilder):
+    def __init__(self, builder: spans_metrics.SpansMetricsQueryBuilder):
         self.builder = builder
         self.total_span_duration: float | None = None
 
@@ -774,7 +778,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
         if self.total_span_duration is not None:
             return Function("toFloat64", [self.total_span_duration], alias)
 
-        total_query = builder.SpansMetricsQueryBuilder(
+        total_query = spans_metrics.SpansMetricsQueryBuilder(
             dataset=self.builder.dataset,
             params={},
             snuba_params=self.builder.params,
@@ -1357,7 +1361,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
 class SpansMetricsLayerDatasetConfig(DatasetConfig):
     missing_function_error = IncompatibleMetricsQuery
 
-    def __init__(self, builder: builder.SpansMetricsQueryBuilder):
+    def __init__(self, builder: spans_metrics.SpansMetricsQueryBuilder):
         self.builder = builder
         self.total_span_duration: float | None = None
 

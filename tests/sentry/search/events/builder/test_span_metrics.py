@@ -4,7 +4,7 @@ from datetime import timezone
 import pytest
 from snuba_sdk import And, Column, Condition, Op, Or
 
-from sentry.search.events.builder import (
+from sentry.search.events.builder.spans_metrics import (
     SpansMetricsQueryBuilder,
     TimeseriesSpansMetricsQueryBuilder,
 )
@@ -44,6 +44,7 @@ def create_condition(left_boundary, right_boundary, base_granularity, core_granu
 
 
 class MetricQueryBuilderTest(MetricsEnhancedPerformanceTestCase):
+    @pytest.mark.querybuilder
     def test_granularity(self):
         # Need to pick granularity based on the period
         def get_granularity(start, end):

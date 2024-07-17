@@ -54,7 +54,7 @@ class TimeseriesBase(SnubaTestCase, TestCase):
         )
 
 
-class TimeseriesQueryTest(TimeseriesBase):
+class DiscoverTimeseriesQueryTest(TimeseriesBase):
     def test_invalid_field_in_function(self):
         with pytest.raises(InvalidSearchQuery):
             discover.timeseries_query(

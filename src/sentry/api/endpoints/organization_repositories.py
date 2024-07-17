@@ -12,10 +12,10 @@ from sentry.api.bases.organization import (
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
+from sentry.integrations.services.integration import integration_service
 from sentry.models.repository import Repository
 from sentry.plugins.base import bindings
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils.sdk import capture_exception
 
 UNMIGRATABLE_PROVIDERS = ("bitbucket", "github")

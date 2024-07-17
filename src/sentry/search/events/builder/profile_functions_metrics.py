@@ -1,7 +1,10 @@
-from sentry.search.events.builder import (
+from sentry.search.events.builder.metrics import (
     MetricsQueryBuilder,
     TimeseriesMetricQueryBuilder,
     TopMetricsQueryBuilder,
+)
+from sentry.search.events.datasets.profile_functions_metrics import (
+    ProfileFunctionsMetricsDatasetConfig,
 )
 from sentry.search.events.types import SelectType
 
@@ -9,6 +12,7 @@ from sentry.search.events.types import SelectType
 class ProfileFunctionsMetricsQueryBuilder(MetricsQueryBuilder):
     requires_organization_condition = True
     profile_functions_metrics_builder = True
+    config_class = ProfileFunctionsMetricsDatasetConfig
 
     column_remapping = {
         # We want to remap `message` to `name` for the free

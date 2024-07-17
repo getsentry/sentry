@@ -337,7 +337,9 @@ expected to pass with the current silo mode set to REGION.
 
 
 @contextmanager
-def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) -> Any:
+def assume_test_silo_mode(
+    desired_silo: SiloMode, can_be_monolith: bool = True, region_name: str | None = None
+) -> Any:
     """Potential swap the silo mode in a test class or factory, useful for creating multi SiloMode models and executing
     test code in a special silo context.
     In monolith mode, this context manager has no effect.
@@ -356,8 +358,12 @@ def assume_test_silo_mode(desired_silo: SiloMode, can_be_monolith: bool = True) 
     with override_settings(SILO_MODE=desired_silo):
         if desired_silo == SiloMode.REGION:
             region_dir = get_test_env_directory()
-            with region_dir.swap_to_default_region():
-                yield
+            if region_name is None:
+                with region_dir.swap_to_default_region():
+                    yield
+            else:
+                with region_dir.swap_to_region_by_name(region_name):
+                    yield
         else:
             with override_settings(SENTRY_REGION=None):
                 yield

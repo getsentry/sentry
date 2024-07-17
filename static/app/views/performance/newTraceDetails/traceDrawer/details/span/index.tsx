@@ -40,14 +40,13 @@ function SpanNodeDetailHeader({
   project: Project | undefined;
 }) {
   const span = node.value;
-  const {event} = span;
 
   return (
     <TraceDrawerComponents.HeaderContainer>
       <TraceDrawerComponents.Title>
-        <Tooltip title={event.projectSlug}>
+        <Tooltip title={span.event.projectSlug}>
           <ProjectBadge
-            project={project ? project : {slug: event.projectSlug || ''}}
+            project={project ? project : {slug: span.event.projectSlug || ''}}
             avatarSize={30}
             hideName
           />
@@ -123,7 +122,7 @@ export function SpanNodeDetails({
                   />
                   <SpanHTTPInfo span={node.value} />
                   <Tags span={node.value} />
-                  <SpanKeys node={node} />
+                  <SpanKeys projectId={project?.id} node={node} />
                   <CustomMetricsEventData
                     projectId={project?.id || ''}
                     metricsSummary={node.value._metrics_summary}

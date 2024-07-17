@@ -1,4 +1,4 @@
-import {useMemo} from 'react';
+import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
@@ -284,37 +284,37 @@ function GroupHeader({
               showUnhandled={group.isUnhandled}
             />
           </TitleWrapper>
-          {issueTypeConfig.stats.enabled && (
-            <StatsWrapper>
-              <GuideAnchor target="issue_header_stats">
+          <StatsWrapper>
+            {issueTypeConfig.stats.enabled && (
+              <Fragment>
+                <GuideAnchor target="issue_header_stats">
+                  <div className="count">
+                    <h6 className="nav-header">{t('Events')}</h6>
+                    <Link disabled={disableActions} to={eventRoute}>
+                      <Count className="count" value={group.count} />
+                    </Link>
+                  </div>
+                </GuideAnchor>
                 <div className="count">
-                  <h6 className="nav-header">{t('Events')}</h6>
-                  <Link disabled={disableActions} to={eventRoute}>
-                    <Count className="count" value={group.count} />
-                  </Link>
+                  <h6 className="nav-header">{t('Users')}</h6>
+                  {userCount !== 0 ? (
+                    <Link
+                      disabled={disableActions}
+                      to={`${baseUrl}tags/user/${location.search}`}
+                    >
+                      <Count className="count" value={userCount} />
+                    </Link>
+                  ) : (
+                    <span>0</span>
+                  )}
                 </div>
-              </GuideAnchor>
-              <div className="count">
-                <h6 className="nav-header">{t('Users')}</h6>
-                {userCount !== 0 ? (
-                  <Link
-                    disabled={disableActions}
-                    to={`${baseUrl}tags/user/${location.search}`}
-                  >
-                    <Count className="count" value={userCount} />
-                  </Link>
-                ) : (
-                  <span>0</span>
-                )}
-              </div>
-              {organization.features.includes('issue-priority-ui') && group.priority ? (
-                <PriorityContainer>
-                  <h6 className="nav-header">{t('Priority')}</h6>
-                  <GroupPriority group={group} />
-                </PriorityContainer>
-              ) : null}
-            </StatsWrapper>
-          )}
+              </Fragment>
+            )}
+            <PriorityContainer>
+              <h6 className="nav-header">{t('Priority')}</h6>
+              <GroupPriority group={group} />
+            </PriorityContainer>
+          </StatsWrapper>
         </HeaderRow>
         {/* Environment picker for mobile */}
         <HeaderRow className="hidden-sm hidden-md hidden-lg">

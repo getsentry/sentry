@@ -1,6 +1,8 @@
 import {Fragment, lazy, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {usePrompt} from 'sentry/actionCreators/prompts';
+import {Button} from 'sentry/components/button';
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import BreadcrumbsDataSection from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
@@ -32,26 +34,23 @@ import {actionableItemsEnabled} from 'sentry/components/events/interfaces/crashC
 import {CronTimelineSection} from 'sentry/components/events/interfaces/crons/cronTimelineSection';
 import {AnrRootCause} from 'sentry/components/events/interfaces/performance/anrRootCause';
 import {SpanEvidenceSection} from 'sentry/components/events/interfaces/performance/spanEvidence';
+import {UptimeDataSection} from 'sentry/components/events/interfaces/uptime/uptimeDataSection';
 import {EventPackageData} from 'sentry/components/events/packageData';
 import {EventRRWebIntegration} from 'sentry/components/events/rrwebIntegration';
 import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import LazyLoad from 'sentry/components/lazyLoad';
+import Placeholder from 'sentry/components/placeholder';
 import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
-  type EntryException,
-  type Event,
-  EventOrGroupType,
-  type Group,
-  IssueCategory,
-  IssueType,
-  type Project,
-} from 'sentry/types';
-import type {EventTransaction} from 'sentry/types/event';
-import {EntryType} from 'sentry/types/event';
+import type {EntryException, Event, EventTransaction} from 'sentry/types/event';
+import {EntryType, EventOrGroupType} from 'sentry/types/event';
+import type {Group} from 'sentry/types/group';
+import {IssueCategory, IssueType} from 'sentry/types/group';
+import type {Project} from 'sentry/types/project';
 import {shouldShowCustomErrorResourceConfig} from 'sentry/utils/issueTypeConfig';
 import {QuickTraceContext} from 'sentry/utils/performance/quickTrace/quickTraceContext';
 import QuickTraceQuery from 'sentry/utils/performance/quickTrace/quickTraceQuery';
@@ -59,6 +58,7 @@ import {getReplayIdFromEvent} from 'sentry/utils/replays/getReplayIdFromEvent';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {ResourcesAndPossibleSolutions} from 'sentry/views/issueDetails/resourcesAndPossibleSolutions';
+import {TraceTimeLineOrRelatedIssue} from 'sentry/views/issueDetails/traceTimelineOrRelatedIssue';
 
 const LLMMonitoringSection = lazy(
   () => import('sentry/components/events/interfaces/llm-monitoring/llmMonitoringSection')
@@ -120,12 +120,28 @@ function DefaultGroupEventDetailsContent({
     projectSlug,
   });
 
+  const {
+    isLoading: promptLoading,
+    isError: promptError,
+    isPromptDismissed,
+    dismissPrompt,
+    showPrompt,
+  } = usePrompt({
+    feature: 'issue_feedback_hidden',
+    organization,
+    projectId: project.id,
+  });
+
+  // default to show on error or isPromptDismissed === undefined
+  const showFeedback = !isPromptDismissed || promptError;
+
   return (
     <Fragment>
       {hasActionableItems && (
         <ActionableItems event={event} project={project} isShare={false} />
       )}
       <StyledDataSection>
+        <TraceTimeLineOrRelatedIssue event={event} />
         <SuspectCommits
           project={project}
           eventId={event.id}
@@ -134,13 +150,38 @@ function DefaultGroupEventDetailsContent({
         />
       </StyledDataSection>
       {event.userReport && (
-        <EventDataSection title={t('User Feedback')} type="user-feedback">
-          <EventUserFeedback
-            report={event.userReport}
-            orgSlug={organization.slug}
-            issueId={group.id}
-            showEventLink={false}
-          />
+        <EventDataSection
+          title={t('User Feedback')}
+          type="user-feedback"
+          actions={
+            <ErrorBoundary mini>
+              <Button
+                size="xs"
+                icon={<IconChevron direction={showFeedback ? 'up' : 'down'} />}
+                onClick={showFeedback ? dismissPrompt : showPrompt}
+                title={
+                  showFeedback
+                    ? t('Hide feedback on all issue details')
+                    : t('Unhide feedback on all issue details')
+                }
+                disabled={promptError}
+                busy={promptLoading}
+              >
+                {showFeedback ? t('Hide') : t('Show')}
+              </Button>
+            </ErrorBoundary>
+          }
+        >
+          {promptLoading ? (
+            <Placeholder />
+          ) : showFeedback ? (
+            <EventUserFeedback
+              report={event.userReport}
+              orgSlug={organization.slug}
+              issueId={group.id}
+              showEventLink={false}
+            />
+          ) : null}
         </EventDataSection>
       )}
       {event.type === EventOrGroupType.ERROR &&
@@ -165,6 +206,9 @@ function DefaultGroupEventDetailsContent({
           organization={organization}
         />
       ) : null}
+      {group.issueCategory === IssueCategory.UPTIME && (
+        <UptimeDataSection group={group} />
+      )}
       {group.issueCategory === IssueCategory.CRON && (
         <CronTimelineSection
           event={event}
@@ -172,12 +216,7 @@ function DefaultGroupEventDetailsContent({
           project={project}
         />
       )}
-      <HighlightsDataSection
-        event={event}
-        group={group}
-        project={project}
-        viewAllRef={tagsRef}
-      />
+      <HighlightsDataSection event={event} project={project} viewAllRef={tagsRef} />
       {showPossibleSolutionsHigher && (
         <ResourcesAndPossibleSolutionsIssueDetailsContent
           event={event}
@@ -222,7 +261,7 @@ function DefaultGroupEventDetailsContent({
       <GroupEventEntry entryType={EntryType.EXPECTSTAPLE} {...eventEntryProps} />
       <GroupEventEntry entryType={EntryType.TEMPLATE} {...eventEntryProps} />
       {hasNewTimelineUI ? (
-        <BreadcrumbsDataSection event={event} />
+        <BreadcrumbsDataSection event={event} group={group} project={project} />
       ) : (
         <GroupEventEntry entryType={EntryType.BREADCRUMBS} {...eventEntryProps} />
       )}

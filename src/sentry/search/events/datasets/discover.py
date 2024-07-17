@@ -26,7 +26,8 @@ from sentry.models.transaction_threshold import (
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
 )
-from sentry.search.events import builder
+from sentry.search.events.builder import discover
+from sentry.search.events.builder.base import BaseQueryBuilder
 from sentry.search.events.constants import (
     ARRAY_FIELDS,
     DEFAULT_PROJECT_THRESHOLD,
@@ -34,6 +35,7 @@ from sentry.search.events.constants import (
     DEVICE_CLASS_ALIAS,
     ERROR_HANDLED_ALIAS,
     ERROR_UNHANDLED_ALIAS,
+    EVENT_TYPE_ALIAS,
     FUNCTION_ALIASES,
     HTTP_STATUS_CODE_ALIAS,
     ISSUE_ALIAS,
@@ -93,6 +95,7 @@ from sentry.search.events.fields import (
 from sentry.search.events.filter import to_list
 from sentry.search.events.types import SelectType, WhereType
 from sentry.search.utils import DEVICE_CLASS
+from sentry.snuba.dataset import Dataset
 from sentry.snuba.referrer import Referrer
 from sentry.utils.numbers import format_grouped_length
 
@@ -105,7 +108,7 @@ class DiscoverDatasetConfig(DatasetConfig):
     }
     non_nullable_keys = {"event.type"}
 
-    def __init__(self, builder: builder.QueryBuilder):
+    def __init__(self, builder: BaseQueryBuilder):
         self.builder = builder
         self.total_count: int | None = None
         self.total_sum_transaction_duration: float | None = None
@@ -132,6 +135,7 @@ class DiscoverDatasetConfig(DatasetConfig):
             SEMVER_BUILD_ALIAS: self._semver_build_filter_converter,
             TRACE_PARENT_SPAN_ALIAS: self._trace_parent_span_converter,
             "performance.issue_ids": self._performance_issue_ids_filter_converter,
+            EVENT_TYPE_ALIAS: self._event_type_filter_converter,
         }
 
     @property
@@ -1342,7 +1346,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         self.builder.requires_other_aggregates = True
         if self.total_count is not None:
             return Function("toUInt64", [self.total_count], alias)
-        total_query = builder.QueryBuilder(
+        total_query = discover.DiscoverQueryBuilder(
             dataset=self.builder.dataset,
             params={},
             snuba_params=self.builder.params,
@@ -1364,7 +1368,7 @@ class DiscoverDatasetConfig(DatasetConfig):
         if self.total_sum_transaction_duration is not None:
             return Function("toFloat64", [self.total_sum_transaction_duration], alias)
         # TODO[Shruthi]: Figure out parametrization of the args to sum()
-        total_query = builder.QueryBuilder(
+        total_query = discover.DiscoverQueryBuilder(
             dataset=self.builder.dataset,
             params={},
             snuba_params=self.builder.params,
@@ -2002,3 +2006,13 @@ class DiscoverDatasetConfig(DatasetConfig):
 
     def _key_transaction_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
         return filter_aliases.team_key_transaction_filter(self.builder, search_filter)
+
+    def _event_type_filter_converter(self, search_filter: SearchFilter) -> WhereType | None:
+        if self.builder.dataset == Dataset.Transactions:
+            if search_filter.operator in ["=", "IN"] and search_filter.value.value in [
+                "transaction",
+                ["transaction"],
+            ]:
+                return None
+
+        return self.builder.default_filter_converter(search_filter)

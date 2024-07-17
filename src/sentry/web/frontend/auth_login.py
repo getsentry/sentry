@@ -21,12 +21,12 @@ from sentry.api.utils import generate_organization_url
 from sentry.auth.superuser import is_active_superuser
 from sentry.constants import WARN_SESSION_EXPIRED
 from sentry.http import get_server_hostname
+from sentry.hybridcloud.rpc import coerce_id_from
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organization import OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.user import User
-from sentry.services.hybrid_cloud import coerce_id_from
-from sentry.services.hybrid_cloud.organization import RpcOrganization, organization_service
+from sentry.organizations.services.organization import RpcOrganization, organization_service
 from sentry.signals import join_request_link_viewed, user_signup
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
 from sentry.utils import auth, json, metrics
@@ -457,11 +457,7 @@ class AuthLoginView(BaseView):
             self.refresh_organization_status(request=request, user=user, organization=organization)
         # On login, redirect to onboarding
         if self.active_organization:
-            if features.has(
-                "organizations:customer-domains",
-                self.active_organization.organization,
-                actor=user,
-            ):
+            if features.has("system:multi-region"):
                 setattr(request, "subdomain", self.active_organization.organization.slug)
         return self.redirect(url=get_login_redirect(request=request))
 
@@ -508,10 +504,11 @@ class AuthLoginView(BaseView):
         """
         Returns True if the organization passed in a request exists.
         """
-        return bool(
+        return request.subdomain is not None and (
             organization_service.check_organization_by_slug(
                 slug=request.subdomain, only_visible=True
             )
+            is not None
         )
 
     def can_register(self, request: Request) -> bool:
@@ -567,13 +564,7 @@ class AuthLoginView(BaseView):
         op = request.POST.get("op")
         organization = kwargs.pop("organization", None)
 
-        org_exists = bool(
-            organization_service.check_organization_by_slug(
-                slug=request.subdomain, only_visible=True
-            )
-        )
-
-        if request.method == "GET" and request.subdomain and org_exists:
+        if request.method == "GET" and request.subdomain and self.org_exists(request):
             urls = [
                 reverse("sentry-auth-organization", args=[request.subdomain]),
                 reverse("sentry-register"),
@@ -705,11 +696,7 @@ class AuthLoginView(BaseView):
 
                 # On login, redirect to onboarding
                 if self.active_organization:
-                    if features.has(
-                        "organizations:customer-domains",
-                        self.active_organization.organization,
-                        actor=user,
-                    ):
+                    if features.has("system:multi-region"):
                         setattr(request, "subdomain", self.active_organization.organization.slug)
                 return self.redirect(get_login_redirect(request))
             else:

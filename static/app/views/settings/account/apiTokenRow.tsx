@@ -1,3 +1,4 @@
+import {Link} from 'react-router';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -21,7 +22,18 @@ function ApiTokenRow({token, onRemove, tokenPrefix = ''}: Props) {
   return (
     <StyledPanelItem>
       <Controls>
-        {token.name ? token.name : ''}
+        <LinkWrapper name={token.name}>
+          <Link to={`/settings/account/api/auth-tokens/${token.id}/`}>
+            {token.name ? token.name : 'Token created on '}
+            <DateTime
+              date={getDynamicText({
+                value: token.dateCreated,
+                fixed: new Date(1508208080000), // National Pasta Day
+              })}
+              hidden={!!token.name}
+            />
+          </Link>
+        </LinkWrapper>
         <ButtonWrapper>
           <Confirm
             onConfirm={() => onRemove(token)}
@@ -118,6 +130,10 @@ const Heading = styled('div')`
 
 const TokenPreview = styled('div')`
   color: ${p => p.theme.gray300};
+`;
+
+const LinkWrapper = styled('div')<{name: string}>`
+  font-style: ${p => (p.name ? 'normal' : 'italic')};
 `;
 
 const ButtonWrapper = styled('div')`

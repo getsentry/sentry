@@ -10,7 +10,7 @@ import {
 import type {Location} from 'history';
 import sortBy from 'lodash/sortBy';
 
-import {getUtcDateString} from 'sentry/utils/dates';
+import {getTimeStampFromTableDateField, getUtcDateString} from 'sentry/utils/dates';
 import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
@@ -25,6 +25,7 @@ import {
   getTraceRequestPayload,
   makeEventView,
 } from 'sentry/utils/performance/quickTrace/utils';
+import useEmitTimestampChanges from 'sentry/utils/replays/playback/hooks/useEmitTimestampChanges';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {getTraceSplitResults} from 'sentry/views/performance/traceDetails/utils';
@@ -82,6 +83,7 @@ const TxnContext = createContext<TxnContextProps>({
 function ReplayTransactionContext({children, replayRecord}: Options) {
   const api = useApi();
   const organization = useOrganization();
+  useEmitTimestampChanges();
 
   const [state, setState] = useState<InternalState>(INITIAL_STATE);
 
@@ -109,27 +111,28 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
     });
   }, [replayRecord]);
 
-  const singleTracePayload = useMemo(() => {
-    const start = getUtcDateString(replayRecord?.started_at.getTime());
-    const end = getUtcDateString(replayRecord?.finished_at.getTime());
-    const eventView = makeEventView({start, end});
-
-    if (organization.features.includes('replay-trace-view-v1')) {
-      return {
-        ...getTraceRequestPayload({eventView, location: {} as Location}),
-        useSpans: 1,
-      };
-    }
-
-    return getTraceRequestPayload({eventView, location: {} as Location});
-  }, [replayRecord, organization.features]);
-
   const fetchSingleTraceData = useCallback(
-    async traceId => {
+    async dataRow => {
       try {
+        const {trace: traceId, timestamp} = dataRow;
+        const start = getUtcDateString(replayRecord?.started_at.getTime());
+        const end = getUtcDateString(replayRecord?.finished_at.getTime());
+        const eventView = makeEventView({start, end});
+        let payload;
+
+        if (organization.features.includes('replay-trace-view-v1')) {
+          payload = {
+            limit: 10000,
+            useSpans: 1,
+            timestamp,
+          };
+        } else {
+          payload = getTraceRequestPayload({eventView, location: {} as Location});
+        }
+
         const [trace, _traceResp] = await doDiscoverQuery<
           TraceSplitResults<TraceFullDetailed> | TraceFullDetailed[]
-        >(api, `/organizations/${orgSlug}/events-trace/${traceId}/`, singleTracePayload);
+        >(api, `/organizations/${orgSlug}/events-trace/${traceId}/`, payload);
 
         const {transactions, orphanErrors} = getTraceSplitResults<TraceFullDetailed>(
           trace,
@@ -156,7 +159,39 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
         }));
       }
     },
-    [api, orgSlug, singleTracePayload, organization]
+    [api, orgSlug, organization, replayRecord]
+  );
+
+  const fetchTracesInBatches = useCallback(
+    async data => {
+      const clonedData = [...data];
+
+      while (clonedData.length > 0) {
+        const batch = clonedData.splice(0, 3);
+
+        // Update state for the current batch request
+        setState(
+          prev =>
+            ({
+              ...prev,
+              detailsRequests: prev.detailsRequests + batch.length,
+            }) as InternalState
+        );
+
+        // Wait for the current batch to finish
+        await Promise.allSettled(batch.map(fetchSingleTraceData));
+
+        // Update state for the current batch response
+        setState(
+          prev =>
+            ({
+              ...prev,
+              detailsResponses: prev.detailsResponses + batch.length,
+            }) as InternalState
+        );
+      }
+    },
+    [fetchSingleTraceData]
   );
 
   const fetchTransactionData = useCallback(async () => {
@@ -200,25 +235,15 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
           payload
         );
 
-        const traceIds = data.map(({trace}) => String(trace)).filter(Boolean);
+        const parsedData = data
+          .filter(row => row.trace) // Filter out items where trace is not truthy
+          .map(row => ({
+            trace: row.trace,
+            timestamp: getTimeStampFromTableDateField(row['min(timestamp)']),
+          }));
 
-        // Do not await results here. Do the fetches async and let the loop continue
         (async function () {
-          setState(
-            prev =>
-              ({
-                ...prev,
-                detailsRequests: prev.detailsRequests + traceIds.length,
-              }) as InternalState
-          );
-          await Promise.allSettled(traceIds.map(fetchSingleTraceData));
-          setState(
-            prev =>
-              ({
-                ...prev,
-                detailsResponses: prev.detailsResponses + traceIds.length,
-              }) as InternalState
-          );
+          await fetchTracesInBatches(parsedData);
         })();
 
         const pageLinks = listResp?.getResponseHeader('Link') ?? null;
@@ -230,7 +255,7 @@ function ReplayTransactionContext({children, replayRecord}: Options) {
         cursor = {cursor: '', results: false, href: ''} as ParsedHeader;
       }
     }
-  }, [api, fetchSingleTraceData, listEventView, orgSlug, replayRecord]);
+  }, [api, listEventView, orgSlug, replayRecord, fetchTracesInBatches]);
 
   const externalState = useMemo(() => internalToExternalState(state), [state]);
 

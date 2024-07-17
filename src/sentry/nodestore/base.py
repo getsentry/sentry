@@ -130,6 +130,7 @@ class NodeStorage(local, Service):
     def _get_bytes(self, id: str) -> bytes | None:
         raise NotImplementedError
 
+    @metrics.wraps("nodestore.get.duration")
     def get(self, id: str, subkey: str | None = None) -> Any:
         """
         >>> nodestore.get('key1')
@@ -192,10 +193,11 @@ class NodeStorage(local, Service):
             else:
                 uncached_ids = id_list
 
-            items = {
-                id: self._decode(value, subkey=subkey)
-                for id, value in self._get_bytes_multi(uncached_ids).items()
-            }
+            with sentry_sdk.start_span(op="nodestore._get_bytes_multi_and_decode") as span:
+                items = {
+                    id: self._decode(value, subkey=subkey)
+                    for id, value in self._get_bytes_multi(uncached_ids).items()
+                }
             if subkey is None:
                 self._set_cache_items(items)
                 items.update(cache_items)
@@ -276,6 +278,7 @@ class NodeStorage(local, Service):
             return self.cache.get(item_id)
         return None
 
+    @sentry_sdk.tracing.trace
     def _get_cache_items(self, id_list: list[str]) -> dict[str, Any]:
         if self.cache:
             return self.cache.get_many(id_list)
@@ -285,6 +288,7 @@ class NodeStorage(local, Service):
         if self.cache and data:
             self.cache.set(item_id, data)
 
+    @sentry_sdk.tracing.trace
     def _set_cache_items(self, items: dict[Any, Any]) -> None:
         if self.cache:
             self.cache.set_many(items)
