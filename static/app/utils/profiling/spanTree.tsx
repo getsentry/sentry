@@ -82,17 +82,15 @@ class SpanTree {
 
   constructor(transaction: EventTransaction, spans: RawSpanType[]) {
     this.transaction = transaction;
-
-    if (isEventFromBrowserJavaScriptSDK(transaction)) {
-      this.injectMissingInstrumentationSpans = false;
-    }
+    this.injectMissingInstrumentationSpans =
+      !isEventFromBrowserJavaScriptSDK(transaction);
 
     this.root = SpanTreeNode.Root({
       description: transaction.title,
       start_timestamp: transaction.startTimestamp,
       timestamp: transaction.endTimestamp,
       exclusive_time: transaction.contexts?.trace?.exclusive_time ?? undefined,
-      span_id: transaction.contexts?.trace?.span_id ?? undefined,
+      span_id: transaction.eventID ?? undefined,
       parent_span_id: undefined,
       op: 'transaction',
     });

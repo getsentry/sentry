@@ -174,7 +174,14 @@ export function FlamegraphSpans({
     if (!span_id) {
       return;
     }
-    const span = spanChart.spans.find(s => s.node.span.span_id === span_id);
+
+    const span = spanChart.spans.find(s => {
+      if ('span_id' in s.node.span) {
+        return s.node.span.span_id === span_id;
+      }
+      return false;
+    });
+
     if (!span) {
       return;
     }
