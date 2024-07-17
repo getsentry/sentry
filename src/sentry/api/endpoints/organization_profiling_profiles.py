@@ -15,7 +15,6 @@ from sentry.models.organization import Organization
 from sentry.profiles.flamegraph import (
     get_chunks_from_spans_metadata,
     get_profile_ids,
-    get_profile_ids_with_spans,
     get_profiles_with_function,
     get_spans_from_group,
 )
@@ -41,18 +40,10 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
         if len(project_ids) > 1:
             raise ParseError(detail="You cannot get a flamegraph from multiple projects.")
 
-        span_group = request.query_params.get("spans.group", None)
-        if span_group is not None:
-            sentry_sdk.set_tag("dataset", "spans")
-            profile_ids: object = get_profile_ids_with_spans(
-                organization.id,
-                project_ids[0],
-                params,
-                span_group,
-            )
-        elif request.query_params.get("fingerprint"):
+        if request.query_params.get("fingerprint"):
             sentry_sdk.set_tag("dataset", "functions")
             function_fingerprint = int(request.query_params["fingerprint"])
+
             profile_ids = get_profiles_with_function(
                 organization.id,
                 project_ids[0],

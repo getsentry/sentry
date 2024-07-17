@@ -75,11 +75,18 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
     replayOptions: {block: true, mask: true},
   };
 
+  if (currentPlatformKey === 'java' || currentPlatformKey === 'java-spring-boot') {
+    docParams.platformOptions = {
+      ...docParams.platformOptions,
+      packageManager: 'gradle',
+    };
+  }
+
   const install = loadGettingStarted.docs.onboarding.install(docParams)[0];
   const configure = loadGettingStarted.docs.onboarding.configure(docParams);
   const verify = loadGettingStarted.docs.onboarding.verify(docParams);
 
-  const {description: installDescription} = install;
+  const {description: installDescription, additionalInfo: installInfo} = install;
 
   const installConfigurations = install.configurations ?? [];
 
@@ -130,6 +137,7 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                         </CodeSnippetWrapper>
                       </div>
                     ))}
+                    <DescriptionWrapper>{installInfo}</DescriptionWrapper>
                     {!configurations &&
                       !extraConfigDescription &&
                       !verifyConfigurations && (
@@ -178,6 +186,16 @@ export default function UpdatedEmptyState({project}: {project?: Project}) {
                                   {configuration.code}
                                 </OnboardingCodeSnippet>
                               )
+                            ) : null}
+                          </CodeSnippetWrapper>
+                          <CodeSnippetWrapper>
+                            {configuration.configurations &&
+                            configuration.configurations.length > 0 ? (
+                              Array.isArray(configuration.configurations[0].code) ? (
+                                <TabbedCodeSnippet
+                                  tabs={configuration.configurations[0].code}
+                                />
+                              ) : null
                             ) : null}
                           </CodeSnippetWrapper>
                           <DescriptionWrapper>

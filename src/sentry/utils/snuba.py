@@ -174,6 +174,7 @@ SPAN_COLUMN_MAP = {
 
 METRICS_SUMMARIES_COLUMN_MAP = {
     "project": "project_id",
+    "project.id": "project_id",
     "id": "span_id",
     "trace": "trace_id",
     "metric": "metric_mri",
