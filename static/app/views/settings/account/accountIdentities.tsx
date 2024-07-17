@@ -1,6 +1,6 @@
 import {Fragment, useCallback, useMemo} from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {disconnectIdentity} from 'sentry/actionCreators/account';
 import {Alert} from 'sentry/components/alert';

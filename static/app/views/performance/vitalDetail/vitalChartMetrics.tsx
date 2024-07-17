@@ -1,5 +1,5 @@
 import {useTheme} from '@emotion/react';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import ChartZoom from 'sentry/components/charts/chartZoom';
 import ErrorPanel from 'sentry/components/charts/errorPanel';

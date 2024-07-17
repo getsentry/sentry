@@ -1,4 +1,4 @@
-import type {Duration} from 'moment';
+import type {Duration} from 'moment-timezone';
 
 // Keep this in sync with the backend blueprint
 // "ReplayRecord" is distinct from the common: "replay = new ReplayReader()"
