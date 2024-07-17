@@ -1,9 +1,9 @@
 from __future__ import annotations
 
 from collections import namedtuple
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterable, Mapping, Sequence
 from copy import deepcopy
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, NotRequired, Optional, TypedDict, Union
 
@@ -76,12 +76,13 @@ class EventsResponse(TypedDict):
 class SnubaParams:
     start: datetime | None
     end: datetime | None
-    # The None value in this sequence is because the filter params could include that
-    environments: Sequence[Environment | None]
     projects: Sequence[Project]
-    user: RpcUser | None
-    teams: Sequence[Team]
-    organization: Organization | None
+    # The None value in this sequence is because the filter params could include that
+    environments: Iterable[Environment | None] = field(default_factory=list)
+    user: RpcUser | None = None
+    teams: Iterable[Team] = field(default_factory=list)
+    organization: Organization | None = None
+    use_case_id: int | None = None
 
     def __post_init__(self) -> None:
         if self.start:
@@ -121,6 +122,13 @@ class SnubaParams:
         if self.start and self.end:
             return (self.end - self.start).total_seconds()
         return None
+
+    @property
+    def organization_id(self) -> int | None:
+        if self.organization is None:
+            return None
+        else:
+            return self.organization.id
 
     def copy(self) -> SnubaParams:
         return deepcopy(self)

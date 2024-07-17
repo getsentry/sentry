@@ -179,9 +179,9 @@ class BaseQueryBuilder:
     def __init__(
         self,
         dataset: Dataset,
-        params: ParamsType,
+        snuba_params: SnubaParams,
+        deprecated_params: ParamsType | None = None,
         config: QueryBuilderConfig | None = None,
-        snuba_params: SnubaParams | None = None,
         query: str | None = None,
         selected_columns: list[str] | None = None,
         groupby_columns: list[str] | None = None,
@@ -205,13 +205,10 @@ class BaseQueryBuilder:
         self.dataset = dataset
 
         # filter params is the older style params, shouldn't be used anymore
-        self.filter_params = params
-        self.params = self._dataclass_params(snuba_params, params)
+        self.filter_params = deprecated_params
+        self.params = self._dataclass_params(snuba_params, deprecated_params)
 
-        org_id = params.get("organization_id")
-        self.organization_id: int | None = (
-            org_id if org_id is not None and isinstance(org_id, int) else None
-        )
+        self.organization_id: int | None = self.params.organization_id
         self.raw_equations = equations
         self.raw_orderby = orderby
         self.query = query
@@ -223,14 +220,11 @@ class BaseQueryBuilder:
         }
 
         # Base Tenant IDs for any Snuba Request built/executed using a QueryBuilder
-        org_id = self.organization_id or (
-            self.params.organization.id if self.params.organization else None
-        )
         self.tenant_ids: dict[str, str | None | int] | None = dict()
-        if org_id is not None:
-            self.tenant_ids["organization_id"] = org_id
-        if "use_case_id" in params and params.get("use_case_id") is not None:
-            self.tenant_ids["use_case_id"] = params.get("use_case_id")
+        if self.organization_id is not None:
+            self.tenant_ids["organization_id"] = self.organization_id
+        if self.params.use_case_id is not None:
+            self.tenant_ids["use_case_id"] = self.params.use_case_id
         if not self.tenant_ids:
             self.tenant_ids = None
 

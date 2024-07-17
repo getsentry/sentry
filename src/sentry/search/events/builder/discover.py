@@ -32,6 +32,7 @@ from sentry.search.events.types import (
     ParamsType,
     QueryBuilderConfig,
     SelectType,
+    SnubaParams,
     WhereType,
 )
 from sentry.snuba.dataset import Dataset
@@ -142,6 +143,26 @@ class DiscoverQueryBuilder(BaseQueryBuilder):
 
 
 class UnresolvedQuery(DiscoverQueryBuilder):
+    def __init__(
+        self,
+        dataset: Dataset,
+        snuba_params: SnubaParams | None = None,
+        *args,
+        **kwargs,
+    ):
+        if snuba_params is None:
+            snuba_params = SnubaParams(
+                start=None,
+                end=None,
+                environments=[],
+                projects=[],
+                user=None,
+                teams=[],
+                organization=None,
+                use_case_id=None,
+            )
+        super().__init__(dataset, snuba_params, *args, **kwargs)
+
     def resolve_query(
         self,
         query: str | None = None,
