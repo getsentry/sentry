@@ -134,7 +134,7 @@ function WidgetQueries({
 }: Props) {
   // Discover and Errors datasets are the only datasets processed in this component
   const config = getDatasetConfig(
-    widget.widgetType as WidgetType.DISCOVER | WidgetType.ERRORS
+    widget.widgetType as WidgetType.DISCOVER | WidgetType.ERRORS | WidgetType.TRANSACTIONS
   );
   const context = useContext(DashboardsMEPContext);
   const metricsMeta = useMetricsResultsMeta();
