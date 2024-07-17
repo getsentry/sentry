@@ -26,7 +26,7 @@ import PanelProvider from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 
-interface SearchQueryBuilderProps {
+export interface SearchQueryBuilderProps {
   /**
    * A complete mapping of all possible filter keys.
    * Filter keys not included will not show up when typing and may be shown as invalid.
