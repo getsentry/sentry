@@ -22,12 +22,10 @@ type Config = {
 };
 
 interface Props {
-  depth: number;
-  maxDefaultDepth: number;
   meta: Record<any, any> | undefined;
+  path: string;
   withAnnotatedText: boolean;
   config?: Config;
-  forceDefaultExpand?: boolean;
   objectKey?: string;
   // TODO(TS): What possible types can `value` be?
   value?: any;
@@ -36,14 +34,12 @@ interface Props {
 
 export function RecursiveStructuredData({
   config,
-  depth,
-  value = null,
-  maxDefaultDepth,
-  withAnnotatedText,
-  withOnlyFormattedText = false,
   meta,
   objectKey,
-  forceDefaultExpand,
+  path,
+  value = null,
+  withAnnotatedText,
+  withOnlyFormattedText = false,
 }: Props) {
   let i = 0;
 
@@ -188,24 +184,17 @@ export function RecursiveStructuredData({
         <div key={i}>
           <RecursiveStructuredData
             config={config}
-            value={value[i]}
-            depth={depth + 1}
-            withAnnotatedText={withAnnotatedText}
             meta={meta?.[i]}
-            maxDefaultDepth={maxDefaultDepth}
+            path={path + '.' + i}
+            value={value[i]}
+            withAnnotatedText={withAnnotatedText}
           />
           {i < value.length - 1 ? <span>{','}</span> : null}
         </div>
       );
     }
     return (
-      <CollapsibleValue
-        openTag="["
-        closeTag="]"
-        prefix={formattedObjectKey}
-        maxDefaultDepth={maxDefaultDepth}
-        depth={depth}
-      >
+      <CollapsibleValue closeTag="]" openTag="[" path={path} prefix={formattedObjectKey}>
         {children}
       </CollapsibleValue>
     );
@@ -224,12 +213,11 @@ export function RecursiveStructuredData({
       <div key={key}>
         <RecursiveStructuredData
           config={config}
-          value={value[key]}
-          depth={depth + 1}
-          withAnnotatedText={withAnnotatedText}
           meta={meta?.[key]}
-          maxDefaultDepth={maxDefaultDepth}
           objectKey={key}
+          path={path + '.' + key}
+          value={value[key]}
+          withAnnotatedText={withAnnotatedText}
         />
         {i < keys.length - 1 ? <span>{','}</span> : null}
       </div>
@@ -237,14 +225,7 @@ export function RecursiveStructuredData({
   }
 
   return (
-    <CollapsibleValue
-      openTag="{"
-      closeTag="}"
-      prefix={formattedObjectKey}
-      maxDefaultDepth={maxDefaultDepth}
-      depth={depth}
-      forceDefaultExpand={forceDefaultExpand}
-    >
+    <CollapsibleValue closeTag="}" openTag="{" path={path} prefix={formattedObjectKey}>
       {children}
     </CollapsibleValue>
   );
