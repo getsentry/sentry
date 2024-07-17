@@ -26,18 +26,24 @@ from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
 
-def query_profiles_data(
+class StartEnd(TypedDict):
+    start: str
+    end: str
+
+
+class ProfileIds(TypedDict):
+    profile_ids: list[str]
+
+
+def get_profile_ids(
     params: ParamsType,
-    referrer: str,
-    selected_columns: list[str],
     query: str | None = None,
-    additional_conditions: list[Condition] | None = None,
-) -> list[dict[str, Any]]:
+) -> ProfileIds:
     builder = DiscoverQueryBuilder(
         dataset=Dataset.Discover,
         params=params,
         query=query,
-        selected_columns=selected_columns,
+        selected_columns=["profile.id"],
         limit=options.get("profiling.flamegraph.profile-set.size"),
     )
 
@@ -47,110 +53,10 @@ def query_profiles_data(
             Condition(Column("profile_id"), Op.IS_NOT_NULL),
         ]
     )
-    if additional_conditions is not None:
-        builder.add_conditions(additional_conditions)
 
-    snql_query = builder.get_snql_query()
-    return raw_snql_query(
-        snql_query,
-        referrer,
-    )["data"]
+    result = builder.run_query(Referrer.API_PROFILING_PROFILE_FLAMEGRAPH.value)
 
-
-def get_profile_ids(
-    params: ParamsType,
-    query: str | None = None,
-) -> dict[str, list[str]]:
-    data = query_profiles_data(
-        params,
-        Referrer.API_PROFILING_PROFILE_FLAMEGRAPH.value,
-        selected_columns=["profile.id"],
-        query=query,
-    )
-    return {"profile_ids": [row["profile.id"] for row in data]}
-
-
-class StartEnd(TypedDict):
-    start: str
-    end: str
-
-
-class ProfileIdsWithSpans(TypedDict):
-    profile_ids: list[str]
-    spans: list[list[StartEnd]]
-
-
-def get_profile_ids_with_spans(
-    organization_id: int,
-    project_id: int,
-    params: ParamsType,
-    span_group: str,
-) -> ProfileIdsWithSpans:
-    query = Query(
-        match=Entity(EntityKey.Spans.value),
-        select=[
-            Column("profile_id"),
-            Function(
-                "groupArray(100)",
-                parameters=[
-                    Function(
-                        "tuple",
-                        [
-                            Column("start_timestamp"),
-                            Column("start_ms"),
-                            Column("end_timestamp"),
-                            Column("end_ms"),
-                        ],
-                    )
-                ],
-                alias="intervals",
-            ),
-        ],
-        groupby=[
-            Column("profile_id"),
-        ],
-        where=[
-            Condition(Column("project_id"), Op.EQ, project_id),
-            Condition(Column("timestamp"), Op.GTE, params["start"]),
-            Condition(Column("timestamp"), Op.LT, params["end"]),
-            Condition(Column("group"), Op.EQ, span_group),
-            Condition(Column("profile_id"), Op.IS_NOT_NULL),
-        ],
-        limit=Limit(100),
-    )
-    request = Request(
-        dataset=Dataset.SpansIndexed.value,
-        app_id="default",
-        query=query,
-        tenant_ids={
-            "referrer": Referrer.API_STARFISH_PROFILE_FLAMEGRAPH.value,
-            "organization_id": organization_id,
-        },
-    )
-    data = raw_snql_query(
-        request,
-        referrer=Referrer.API_STARFISH_PROFILE_FLAMEGRAPH.value,
-    )["data"]
-    profile_ids = []
-    spans = []
-    for row in data:
-        transformed_intervals: list[StartEnd] = []
-        profile_ids.append(row["profile_id"].replace("-", ""))
-        for interval in row["intervals"]:
-            start_timestamp, start_ms, end_timestamp, end_ms = interval
-            start_ns = (int(datetime.fromisoformat(start_timestamp).timestamp()) * 10**9) + (
-                start_ms * 10**6
-            )
-            end_ns = (int(datetime.fromisoformat(end_timestamp).timestamp()) * 10**9) + (
-                end_ms * 10**6
-            )
-            transformed_intervals.append({"start": str(start_ns), "end": str(end_ns)})
-        spans.append(transformed_intervals)
-    return {"profile_ids": profile_ids, "spans": spans}
-
-
-class ProfileIds(TypedDict):
-    profile_ids: list[str]
+    return {"profile_ids": [row["profile.id"] for row in result["data"]]}
 
 
 def get_profiles_with_function(
