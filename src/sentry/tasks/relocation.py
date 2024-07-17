@@ -398,7 +398,7 @@ def fulfill_cross_region_export_request(
             requesting_region_name=requesting_region_name,
             replying_region_name=replying_region_name,
             org_slug=org_slug,
-        ).dict(),
+        ).model_dump(),
     ).save()
     logger.info(
         "fulfill_cross_region_export_request: scheduled",

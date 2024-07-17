@@ -157,13 +157,13 @@ def _parse_raw_config(region_config: Any) -> Iterable[Region]:
         config_values = region_config
 
     if not isinstance(config_values, (list, tuple)):
-        config_values = [config_values]  # type: ignore[unreachable]
+        config_values = [config_values]
 
     for config_value in config_values:
         if isinstance(config_value, Region):
             yield config_value
         else:
-            category = config_value["category"]  # type: ignore[unreachable]
+            category = config_value["category"]
             config_value["category"] = (
                 category if isinstance(category, RegionCategory) else RegionCategory[category]
             )

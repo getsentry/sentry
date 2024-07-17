@@ -53,7 +53,7 @@ class InternalRpcServiceEndpoint(Endpoint):
                 # includes an authenticated user that will be injected into the global request context
                 # for compatibility.  Notably, this authentication context is *trusted* as the request comes
                 # from within the privileged RPC channel.
-                auth_context = AuthenticationContext.parse_obj(auth_context_json)
+                auth_context = AuthenticationContext.model_validate(auth_context_json)
             except pydantic.ValidationError as e:
                 capture_exception()
                 raise ParseError from e

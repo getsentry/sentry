@@ -153,7 +153,7 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
             replying_region_name=replying_region_name,
             org_slug=org_slug,
             encrypt_with_public_key=encrypt_with_public_key,
-        ).dict()
+        ).model_dump()
         ControlOutbox(
             region_name=replying_region_name,
             shard_scope=OutboxScope.RELOCATION_SCOPE,
@@ -201,7 +201,7 @@ class ProxyingRelocationExportService(ControlRelocationExportService):
             requesting_region_name=requesting_region_name,
             replying_region_name=replying_region_name,
             org_slug=org_slug,
-        ).dict()
+        ).model_dump()
         ControlOutbox(
             region_name=requesting_region_name,
             shard_scope=OutboxScope.RELOCATION_SCOPE,

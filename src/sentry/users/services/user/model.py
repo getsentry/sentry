@@ -79,7 +79,7 @@ class RpcUser(RpcUserProfile):
     def by_email(self, email: str) -> "RpcUser":
         if email == self.email:
             return self
-        return self.copy(update=dict(email=email))
+        return self.model_copy(update=dict(email=email))
 
     def has_unverified_emails(self) -> bool:
         return len(self.get_unverified_emails()) > 0

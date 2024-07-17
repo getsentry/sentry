@@ -638,7 +638,7 @@ class OrganizationMember(ReplicatedRegionModel):
         )
 
     def handle_async_replication(self, shard_identifier: int) -> None:
-        rpc_org_member_update = RpcOrganizationMemberMappingUpdate.from_orm(self)
+        rpc_org_member_update = RpcOrganizationMemberMappingUpdate.model_validate(self)
 
         organizationmember_mapping_service.upsert_mapping(
             organizationmember_id=self.id,
