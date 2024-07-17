@@ -56,7 +56,7 @@ from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers import parse_link_header
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.helpers.features import with_feature
+from sentry.testutils.helpers.features import apply_feature_flag_on_cls, with_feature
 from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
@@ -65,6 +65,7 @@ from sentry.utils import json
 from tests.sentry.issues.test_utils import SearchIssueTestMixin
 
 
+@apply_feature_flag_on_cls("organizations:issue-search-snuba")
 class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
     endpoint = "sentry-api-0-organization-group-index"
 
