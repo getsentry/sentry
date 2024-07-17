@@ -2,6 +2,7 @@ from datetime import UTC, datetime, timedelta
 from unittest.mock import patch
 from uuid import uuid4
 
+from django.http import HttpResponse
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 from snuba_sdk import Column, Condition, Function, Op
@@ -26,7 +27,10 @@ class OrganizationProfilingFlamegraphTest(APITestCase):
         self.url = reverse(self.endpoint, args=(self.organization.slug,))
 
     @patch("sentry.search.events.builder.base.raw_snql_query", wraps=raw_snql_query)
-    def test_queries_functions(self, mock_raw_snql_query):
+    @patch("sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service")
+    def test_queries_functions(self, mock_proxy_profiling_service, mock_raw_snql_query):
+        mock_proxy_profiling_service.return_value = HttpResponse(status=200)
+
         fingerprint = int(uuid4().hex[:16], 16)
 
         with self.feature(self.features):
@@ -57,7 +61,10 @@ class OrganizationProfilingFlamegraphTest(APITestCase):
         assert Condition(Column("transaction_name"), Op.EQ, "foo") in snql_request.query.where
 
     @patch("sentry.search.events.builder.base.raw_snql_query", wraps=raw_snql_query)
-    def test_queries_transactions(self, mock_raw_snql_query):
+    @patch("sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service")
+    def test_queries_transactions(self, mock_proxy_profiling_service, mock_raw_snql_query):
+        mock_proxy_profiling_service.return_value = HttpResponse(status=200)
+
         with self.feature(self.features):
             response = self.client.get(
                 self.url,
