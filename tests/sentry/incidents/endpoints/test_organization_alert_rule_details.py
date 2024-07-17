@@ -27,6 +27,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleSeasonality,
     AlertRuleSensitivity,
     AlertRuleStatus,
+    AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
 )
@@ -238,6 +239,11 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
             self.create_alert_rule(
                 seasonality=AlertRuleSeasonality.AUTO, sensitivity=AlertRuleSensitivity.HIGH
             )
+        with pytest.raises(
+            ValidationError,
+            match="Above and below is not a valid threshold type for this alert type",
+        ):
+            self.create_alert_rule(threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW)
 
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:incidents")
@@ -270,6 +276,15 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
                 detection_type=AlertRuleDetectionType.PERCENT,
             )
 
+        with pytest.raises(
+            ValidationError,
+            match="Above and below is not a valid threshold type for this alert type",
+        ):
+            self.create_alert_rule(
+                threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW,
+                detection_type=AlertRuleDetectionType.PERCENT,
+            )
+
     @with_feature("organizations:anomaly-detection-alerts")
     @with_feature("organizations:incidents")
     def test_dynamic_detection_type(self):
@@ -278,6 +293,7 @@ class AlertRuleDetailsGetEndpointTest(AlertRuleDetailsBase):
         rule = self.create_alert_rule(
             seasonality=AlertRuleSeasonality.AUTO,
             sensitivity=AlertRuleSensitivity.HIGH,
+            threshold_type=AlertRuleThresholdType.ABOVE_AND_BELOW,
             detection_type=AlertRuleDetectionType.DYNAMIC,
         )
         trigger = self.create_alert_rule_trigger(rule, "hi", 1000)

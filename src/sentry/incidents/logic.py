@@ -30,6 +30,7 @@ from sentry.incidents.models.alert_rule import (
     AlertRuleSeasonality,
     AlertRuleSensitivity,
     AlertRuleStatus,
+    AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
@@ -569,6 +570,10 @@ def create_alert_rule(
         if sensitivity or seasonality:
             raise ValidationError(
                 "Sensitivity and seasonality are not valid fields for this alert type"
+            )
+        if threshold_type == AlertRuleThresholdType.ABOVE_AND_BELOW:
+            raise ValidationError(
+                "Above and below is not a valid threshold type for this alert type"
             )
 
     if detection_type == AlertRuleDetectionType.PERCENT:

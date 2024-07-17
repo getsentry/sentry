@@ -424,7 +424,7 @@ class AlertRuleTriggerManager(BaseManager["AlertRuleTrigger"]):
 class AlertRuleThresholdType(Enum):
     ABOVE = 0
     BELOW = 1
-    BOTH = 2
+    ABOVE_AND_BELOW = 2
 
 
 @region_silo_model
