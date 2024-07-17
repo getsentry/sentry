@@ -28,13 +28,13 @@ describe('AccountAuthorizations', function () {
       method: 'GET',
       body: [
         {
-          application: ApiApplicationFixture({name: 'Shrimp party'}),
+          application: ApiApplicationFixture({name: 'Delete Shrimp'}),
           homepageUrl: 'test.com',
           id: 'delete_shrimp',
           scopes: [],
         },
         {
-          application: ApiApplicationFixture(),
+          application: ApiApplicationFixture({name: 'Keep Shrimp'}),
           homepageUrl: 'test2.com',
           id: 'keep_shrimp',
           scopes: [],
@@ -47,9 +47,10 @@ describe('AccountAuthorizations', function () {
     });
 
     render(<AccountAuthorizations />);
-    expect(await screen.findByText('Adjusted Shrimp')).toBeInTheDocument();
+    expect(await screen.findByText('Delete Shrimp')).toBeInTheDocument();
+    expect(await screen.findByText('Keep Shrimp')).toBeInTheDocument();
 
-    // delete the shrimp party authorization
+    // delete the 'Detete Shrimp' authorization
     await userEvent.click(screen.getByTestId('delete_shrimp'));
 
     expect(deleteMock).toHaveBeenCalledWith(
@@ -61,7 +62,8 @@ describe('AccountAuthorizations', function () {
     );
 
     await waitFor(() =>
-      expect(screen.queryByRole('Adjusted Shrimp')).not.toBeInTheDocument()
+      expect(screen.queryByText('Delete Shrimp')).not.toBeInTheDocument()
     );
+    await waitFor(() => expect(screen.queryByText('Keep Shrimp')).toBeInTheDocument());
   });
 });
