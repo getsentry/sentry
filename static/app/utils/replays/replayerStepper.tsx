@@ -38,7 +38,7 @@ export default function replayerStepper<
       return;
     }
 
-    const replayer = createHiddenPlayer(rrwebEvents);
+    const {replayer, cleanupPlayer} = createHiddenPlayer(rrwebEvents);
 
     const nextFrame = (function () {
       let i = 0;
@@ -47,13 +47,10 @@ export default function replayerStepper<
 
     const onDone = () => {
       resolve(collection);
+      // to avoid recursion, since destroy() calls pause()
       replayer.off('pause', handlePause);
       replayer.destroy();
-      Array.from(document.getElementsByTagName('iframe')).forEach(el => {
-        if (el.style.display === 'none') {
-          el.parentNode?.removeChild(el);
-        }
-      });
+      cleanupPlayer();
     };
 
     const nextOrDone = () => {

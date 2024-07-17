@@ -2,7 +2,10 @@ import {Replayer} from '@sentry-internal/rrweb';
 
 import type {RecordingFrame} from 'sentry/utils/replays/types';
 
-export function createHiddenPlayer(rrwebEvents: RecordingFrame[]): Replayer {
+export function createHiddenPlayer(rrwebEvents: RecordingFrame[]): {
+  cleanupPlayer: () => void;
+  replayer: Replayer;
+} {
   const domRoot = document.createElement('div');
   domRoot.className = 'sentry-block';
   const {style} = domRoot;
@@ -23,14 +26,21 @@ export function createHiddenPlayer(rrwebEvents: RecordingFrame[]): Replayer {
     hiddenIframe.contentDocument.body.appendChild(domRoot);
   }
 
-  return new Replayer(rrwebEvents, {
-    root: domRoot,
-    loadTimeout: 1,
-    showWarning: false,
-    blockClass: 'sentry-block',
-    speed: 99999,
-    skipInactive: true,
-    triggerFocus: false,
-    mouseTail: false,
-  });
+  const cleanupPlayer = () => {
+    hiddenIframe.remove();
+  };
+
+  return {
+    replayer: new Replayer(rrwebEvents, {
+      root: domRoot,
+      loadTimeout: 1,
+      showWarning: false,
+      blockClass: 'sentry-block',
+      speed: 99999,
+      skipInactive: true,
+      triggerFocus: false,
+      mouseTail: false,
+    }),
+    cleanupPlayer,
+  };
 }
