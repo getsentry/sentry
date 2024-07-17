@@ -156,11 +156,6 @@ describe('ReplayReader', () => {
       {
         method: 'getRRWebFrames',
         expected: [
-          {
-            type: EventType.Custom,
-            timestamp: expect.any(Number),
-            data: {tag: 'replay.start', payload: {}},
-          },
           firstDiv,
           secondDiv,
           {
@@ -451,10 +446,6 @@ describe('ReplayReader', () => {
 
     it('should trim rrweb frames from the end but not the beginning', () => {
       expect(replay?.getRRWebFrames()).toEqual([
-        expect.objectContaining({
-          type: EventType.Custom,
-          data: {tag: 'replay.start', payload: {}},
-        }),
         expect.objectContaining({
           type: EventType.FullSnapshot,
           timestamp: rrwebFrame1.timestamp,
