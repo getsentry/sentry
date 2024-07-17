@@ -677,6 +677,28 @@ describe('WidgetBuilder', function () {
       ).toBeDisabled();
     });
 
+    it('renders errors and transactions dataset options', async function () {
+      renderTestComponent({
+        query: {
+          source: DashboardWidgetSource.DISCOVERV2,
+        },
+        orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
+      });
+
+      await userEvent.click(await screen.findByText('Table'));
+      await userEvent.click(screen.getByText('Line Chart'));
+      // expect(
+      //   screen.getByRole('radio', {
+      //     name: 'Errors',
+      //   })
+      // ).toBeEnabled();
+      expect(
+        screen.getByRole('radio', {
+          name: 'Transactions',
+        })
+      ).toBeEnabled();
+    });
+
     it('disables moving and deleting issue column', async function () {
       renderTestComponent();
 
