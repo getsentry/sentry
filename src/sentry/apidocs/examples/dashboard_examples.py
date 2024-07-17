@@ -68,6 +68,11 @@ DASHBOARD_OBJECT = {
     "period": "7d",
 }
 
+DASHBOARDS_OBJECT = [
+    DASHBOARD_OBJECT,
+    {**DASHBOARD_OBJECT, "id": "2", "title": "Dashboard 2"},
+]
+
 
 class DashboardExamples:
     DASHBOARD_GET_RESPONSE = [
@@ -83,6 +88,24 @@ class DashboardExamples:
         OpenApiExample(
             "Dashboard PUT response",
             value=DASHBOARD_OBJECT,
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
+
+    DASHBOARD_POST_RESPONSE = [
+        OpenApiExample(
+            "Create Dashboard",
+            value=DASHBOARD_OBJECT,
+            status_codes=["201"],
+            response_only=True,
+        )
+    ]
+
+    DASHBOARDS_QUERY_RESPONSE = [
+        OpenApiExample(
+            "Query Dashboards",
+            value=DASHBOARDS_OBJECT,
             status_codes=["200"],
             response_only=True,
         )
