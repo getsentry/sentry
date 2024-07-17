@@ -228,6 +228,28 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     default_result_type="duration",
                 ),
                 fields.MetricsFunction(
+                    "sum_if",
+                    required_args=[
+                        fields.MetricArg(
+                            "column",
+                            allow_custom_measurements=False,
+                        ),
+                        fields.MetricArg(
+                            "if_col",
+                            allowed_columns=["release"],
+                        ),
+                        fields.SnQLStringArg(
+                            "if_val", unquote=True, unescape_quotes=True, optional_unquote=True
+                        ),
+                    ],
+                    snql_gauge=lambda args, alias: self._resolve_sum_if(
+                        args["column"], args["if_col"], args["if_val"], alias
+                    ),
+                    snql_distribution=lambda args, alias: self._resolve_sum_if(
+                        args["column"], args["if_col"], args["if_val"], alias
+                    ),
+                ),
+                fields.MetricsFunction(
                     "avg",
                     optional_args=[
                         fields.with_default(
@@ -1247,7 +1269,13 @@ class SpansMetricsDatasetConfig(DatasetConfig):
             alias,
         )
 
-    def _resolve_sum_if(self, metric_name: str, if_col_name: str, if_val: SelectType) -> SelectType:
+    def _resolve_sum_if(
+        self,
+        metric_name: str,
+        if_col_name: str,
+        if_val: SelectType,
+        alias: str | None = None,
+    ) -> SelectType:
         return Function(
             "sumIf",
             [
@@ -1269,6 +1297,7 @@ class SpansMetricsDatasetConfig(DatasetConfig):
                     ],
                 ),
             ],
+            alias,
         )
 
     def _resolve_division_if(

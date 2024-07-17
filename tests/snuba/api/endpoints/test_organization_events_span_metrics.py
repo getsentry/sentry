@@ -120,28 +120,110 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTest(MetricsEnhancedPe
         assert data[0][fieldRelease2] == 1
         assert meta["dataset"] == "spansMetrics"
 
+    def test_sum_if(self):
+        self.store_span_metric(
+            {
+                "min": 1,
+                "max": 1,
+                "sum": 1,
+                "count": 1,
+                "last": 1,
+            },
+            entity="metrics_gauges",
+            metric="mobile.slow_frames",
+            timestamp=self.three_days_ago,
+            tags={"release": "1.0.0"},
+        )
+
+        self.store_span_metric(
+            {
+                "min": 1,
+                "max": 1,
+                "sum": 2,
+                "count": 2,
+                "last": 1,
+            },
+            entity="metrics_gauges",
+            metric="mobile.slow_frames",
+            timestamp=self.three_days_ago,
+            tags={"release": "2.0.0"},
+        )
+
+        release1 = "sum_if(mobile.slow_frames,release,1.0.0)"
+        release2 = "sum_if(mobile.slow_frames,release,2.0.0)"
+
+        response = self.do_request(
+            {
+                "field": [
+                    "sum_if(mobile.slow_frames,release,1.0.0)",
+                    "sum_if(mobile.slow_frames,release,2.0.0)",
+                ],
+                "query": "",
+                "project": self.project.id,
+                "dataset": "spansMetrics",
+                "statsPeriod": "7d",
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        data = response.data["data"]
+        meta = response.data["meta"]
+        assert len(data) == 1
+        assert data[0][release1] == 1
+        assert data[0][release2] == 2
+
+        assert meta["dataset"] == "spansMetrics"
+
     def test_division_if(self):
         self.store_span_metric(
-            1,
-            internal_metric=constants.SPAN_METRICS_MAP["mobile.slow_frames"],
+            {
+                "min": 1,
+                "max": 1,
+                "sum": 1,
+                "count": 1,
+                "last": 1,
+            },
+            entity="metrics_gauges",
+            metric="mobile.slow_frames",
             timestamp=self.three_days_ago,
             tags={"release": "1.0.0"},
         )
         self.store_span_metric(
-            15,
-            internal_metric=constants.SPAN_METRICS_MAP["mobile.total_frames"],
+            {
+                "min": 1,
+                "max": 1,
+                "sum": 15,
+                "count": 15,
+                "last": 1,
+            },
+            entity="metrics_gauges",
+            metric="mobile.total_frames",
             timestamp=self.three_days_ago,
             tags={"release": "1.0.0"},
         )
         self.store_span_metric(
-            2,
-            internal_metric=constants.SPAN_METRICS_MAP["mobile.frozen_frames"],
+            {
+                "min": 1,
+                "max": 1,
+                "sum": 2,
+                "count": 2,
+                "last": 1,
+            },
+            entity="metrics_gauges",
+            metric="mobile.frozen_frames",
             timestamp=self.three_days_ago,
             tags={"release": "2.0.0"},
         )
         self.store_span_metric(
-            10,
-            internal_metric=constants.SPAN_METRICS_MAP["mobile.total_frames"],
+            {
+                "min": 1,
+                "max": 1,
+                "sum": 10,
+                "count": 10,
+                "last": 1,
+            },
+            entity="metrics_gauges",
+            metric="mobile.total_frames",
             timestamp=self.three_days_ago,
             tags={"release": "2.0.0"},
         )
