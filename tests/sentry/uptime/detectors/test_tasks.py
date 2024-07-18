@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest import mock
 from unittest.mock import call
 from urllib.robotparser import RobotFileParser
@@ -98,8 +98,8 @@ class ProcessDetectionBucketTest(TestCase):
             mock_process_project_url_ranking.delay.assert_not_called()
 
     def test_bucket(self):
-        bucket = timezone.now().replace(second=0, microsecond=0)
-        dummy_organization_id = int(bucket.timestamp() % NUMBER_OF_BUCKETS)
+        bucket = datetime(2024, 7, 18, 0, 21)
+        dummy_organization_id = 21
 
         self.project.organization = Organization(id=dummy_organization_id)
 
