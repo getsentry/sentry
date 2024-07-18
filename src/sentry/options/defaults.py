@@ -707,9 +707,6 @@ register(
     "store.race-free-group-creation-force-disable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
-# TODO: Remove this once removed from options-automator
-register("store.use-traces-sampler", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
 # Enable calling the severity modeling API on group creation
 register(
     "processing.calculate-severity-on-group-creation",
