@@ -119,10 +119,6 @@ export type FormatterOptions = Pick<
      */
     limit?: number;
     /**
-     * If true does not display sublabels with a value of 0.
-     */
-    skipZeroValuedSubLabels?: boolean;
-    /**
      * Array containing data that is used to display indented sublabels.
      */
     subLabels?: TooltipSubLabel[];
@@ -142,7 +138,6 @@ export function getFormatter({
   subLabels = [],
   addSecondsToTimeFormat = false,
   limit,
-  skipZeroValuedSubLabels,
 }: FormatterOptions): TooltipComponentFormatterCallback<any> {
   const getFilter = (seriesParam: any) => {
     // Series do not necessarily have `data` defined, e.g. releases don't have `data`, but rather
@@ -258,11 +253,7 @@ export function getFormatter({
           ];
 
           for (const subLabel of filteredSubLabels) {
-            const serieValue = subLabel.data[serie.dataIndex]?.value ?? 0;
-
-            if (skipZeroValuedSubLabels && serieValue === 0) {
-              continue;
-            }
+            const serieValue = subLabel.data[serie.dataIndex].value;
 
             labelWithSubLabels.push(
               `<div><span class="tooltip-label tooltip-label-indent"><strong>${
@@ -270,7 +261,7 @@ export function getFormatter({
               }</strong></span> ${valueFormatter(serieValue)}</div>`
             );
 
-            acc.total = acc.total + serieValue;
+            acc.total = acc.total + subLabel.data[serie.dataIndex].value;
           }
 
           acc.series.push(labelWithSubLabels.join(''));
@@ -345,7 +336,6 @@ export function computeChartTooltip(
     hideDelay,
     subLabels,
     chartId,
-    skipZeroValuedSubLabels,
     ...props
   }: Props,
   theme: Theme
@@ -365,7 +355,6 @@ export function computeChartTooltip(
       nameFormatter,
       markerFormatter,
       subLabels,
-      skipZeroValuedSubLabels,
     });
 
   return {

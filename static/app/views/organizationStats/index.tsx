@@ -270,7 +270,6 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
         organization={organization}
         dataCategory={this.dataCategory}
         dataCategoryName={this.dataCategoryInfo.titleName}
-        dataCategoryApiName={this.dataCategoryInfo.apiName}
         dataDatetime={this.dataDatetime}
         chartTransform={this.chartTransform}
         handleChangeState={this.setStateOnUrl}
