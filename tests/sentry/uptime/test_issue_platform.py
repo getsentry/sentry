@@ -4,8 +4,6 @@ from hashlib import md5
 from itertools import cycle
 from unittest.mock import patch
 
-from django.conf import settings
-
 from sentry.issues.grouptype import UptimeDomainCheckFailure
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType
@@ -51,7 +49,7 @@ class BuildOccurrenceFromResultTest(UptimeTestCase):
         project_subscription = self.create_project_uptime_subscription()
         assert build_occurrence_from_result(result, project_subscription) == IssueOccurrence(
             id=occurrence_id.hex,
-            project_id=settings.UPTIME_POC_PROJECT_ID,
+            project_id=1,
             event_id=event_id.hex,
             fingerprint=[result["subscription_id"]],
             issue_title="Uptime Check Failed for https://sentry.io",
@@ -83,7 +81,7 @@ class BuildEventDataForOccurrenceTest(UptimeTestCase):
         fingerprint = [result["subscription_id"]]
         occurrence = IssueOccurrence(
             id=uuid.uuid4().hex,
-            project_id=settings.UPTIME_POC_PROJECT_ID,
+            project_id=1,
             event_id=event_id.hex,
             fingerprint=fingerprint,
             issue_title="Uptime Check Failed for https://sentry.io",
@@ -102,7 +100,7 @@ class BuildEventDataForOccurrenceTest(UptimeTestCase):
             "event_id": event_id.hex,
             "fingerprint": fingerprint,
             "platform": "other",
-            "project_id": settings.UPTIME_POC_PROJECT_ID,
+            "project_id": 1,
             "received": datetime.datetime.now().replace(microsecond=0),
             "sdk": None,
             "tags": {"subscription_id": result["subscription_id"]},
