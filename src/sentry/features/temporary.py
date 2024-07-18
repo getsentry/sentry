@@ -108,8 +108,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:ds-org-recalibration", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enables data secrecy mode
     manager.add("organizations:enterprise-data-secrecy", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-    # Enable archive/escalating issue workflow in MS Teams
-    manager.add("organizations:escalating-issues-msteams", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable archive/escalating issue workflow features in v2
     manager.add("organizations:escalating-issues-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable emiting escalating data to the metrics backend
@@ -158,6 +156,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:issue-stream-empty-state-additional-platforms", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable issue stream performance improvements
     manager.add("organizations:issue-stream-performance", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:issue-search-snuba", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable the new issue stream search bar UI
     manager.add("organizations:issue-stream-search-query-builder", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:large-debug-files", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -167,6 +166,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:latest-adopted-release-filter", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:mep-rollout-flag", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:mep-use-default-tags", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    # Enable messaging integration onboarding when setting up alerts
+    manager.add("organizations:messaging-integration-onboarding", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable metric alert charts in email/slack
     manager.add("organizations:metric-alert-chartcuterie", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable load shedding for newly created metric alerts
@@ -262,8 +263,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-remove-metrics-compatibility-fallback", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable span search bar in Insights module sample panels
     manager.add("organizations:performance-sample-panel-search", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enables new empty state for insight modules
-    manager.add("organizations:insights-empty-state-page", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable platform selector for screens flow
     manager.add("organizations:performance-screens-platform-selector", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable screens view powered by span metrics

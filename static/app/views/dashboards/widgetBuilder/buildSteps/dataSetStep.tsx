@@ -40,6 +40,7 @@ export function DataSetStep({
   if (organization.features.includes('performance-discover-dataset-selector')) {
     // TODO: Finalize description copy
     datasetChoices.set(DataSet.ERRORS, t('Errors (TypeError, InvalidSearchQuery, etc)'));
+    datasetChoices.set(DataSet.TRANSACTIONS, t('Transactions'));
   }
 
   datasetChoices.set(DataSet.EVENTS, t('Errors and Transactions'));

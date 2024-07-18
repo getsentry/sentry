@@ -2,7 +2,7 @@ import type {ReactNode} from 'react';
 import type {Location} from 'history';
 import omit from 'lodash/omit';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
@@ -68,10 +68,11 @@ export function ActionSelector({
       ];
 
   return (
-    <SelectControl
-      inFieldLabel={`${LABEL_FOR_MODULE_NAME[moduleName]}:`}
-      value={value}
-      options={options ?? []}
+    <CompactSelect
+      style={{maxWidth: '200px'}}
+      triggerProps={{prefix: LABEL_FOR_MODULE_NAME[moduleName]}}
+      options={options}
+      value={value ?? ''}
       onChange={newValue => {
         trackAnalytics('insight.general.select_action_value', {
           organization,
@@ -87,17 +88,9 @@ export function ActionSelector({
           },
         });
       }}
-      styles={{
-        control: provided => ({
-          ...provided,
-          minWidth: MIN_WIDTH,
-        }),
-      }}
     />
   );
 }
-
-const MIN_WIDTH = 230;
 
 const HTTP_ACTION_OPTIONS = [
   {value: '', label: 'All'},

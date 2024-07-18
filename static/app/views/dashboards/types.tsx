@@ -27,6 +27,7 @@ export enum WidgetType {
   RELEASE = 'metrics', // TODO(metrics): rename RELEASE to 'release', and METRICS to 'metrics'
   METRICS = 'custom-metrics',
   ERRORS = 'error-events',
+  TRANSACTIONS = 'transactions',
 }
 
 // These only pertain to on-demand warnings at this point in time

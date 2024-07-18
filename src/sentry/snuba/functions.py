@@ -107,7 +107,7 @@ def timeseries_query(
                 params["start"],
                 params["end"],
                 rollup,
-                "time",
+                ["time"],
             )
             if zerofill_results
             else results["data"],
@@ -209,7 +209,7 @@ def format_top_events_timeseries_results(
     if not allow_empty and not len(result.get("data", [])):
         return SnubaTSResult(
             {
-                "data": zerofill([], params["start"], params["end"], rollup, "time")
+                "data": zerofill([], params["start"], params["end"], rollup, ["time"])
                 if zerofill_results
                 else [],
             },
@@ -248,7 +248,7 @@ def format_top_events_timeseries_results(
         return {
             key: SnubaTSResult(
                 {
-                    "data": zerofill(item["data"], params["start"], params["end"], rollup, "time")
+                    "data": zerofill(item["data"], params["start"], params["end"], rollup, ["time"])
                     if zerofill_results
                     else item["data"],
                     "order": item["order"],

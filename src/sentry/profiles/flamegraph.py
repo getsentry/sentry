@@ -506,7 +506,7 @@ class FlamegraphExecutor:
 
         return continuous_profile_candidates
 
-    def _query_chunks_for_profilers(self, query) -> Mapping[str, Any]:
+    def _query_chunks_for_profilers(self, query: Query) -> Mapping[str, Any]:
         """This function is split out for mocking as we cannot write to the
         profile chunks dataset in tests today"""
 

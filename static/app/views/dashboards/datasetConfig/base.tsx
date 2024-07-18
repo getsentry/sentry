@@ -23,6 +23,7 @@ import {ErrorsConfig} from './errors';
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
 import {ReleasesConfig} from './releases';
+import {TransactionsConfig} from './transactions';
 
 export type WidgetBuilderSearchBarProps = {
   getFilterWarning: SearchBarProps['getFilterWarning'];
@@ -218,7 +219,9 @@ export function getDatasetConfig<T extends WidgetType | undefined>(
     ? typeof ReleasesConfig
     : T extends WidgetType.ERRORS
       ? typeof ErrorsConfig
-      : typeof ErrorsAndTransactionsConfig;
+      : T extends WidgetType.TRANSACTIONS
+        ? typeof TransactionsConfig
+        : typeof ErrorsAndTransactionsConfig;
 
 export function getDatasetConfig(
   widgetType?: WidgetType
@@ -226,7 +229,8 @@ export function getDatasetConfig(
   | typeof IssuesConfig
   | typeof ReleasesConfig
   | typeof ErrorsAndTransactionsConfig
-  | typeof ErrorsConfig {
+  | typeof ErrorsConfig
+  | typeof TransactionsConfig {
   switch (widgetType) {
     case WidgetType.ISSUE:
       return IssuesConfig;
@@ -234,6 +238,8 @@ export function getDatasetConfig(
       return ReleasesConfig;
     case WidgetType.ERRORS:
       return ErrorsConfig;
+    case WidgetType.TRANSACTIONS:
+      return TransactionsConfig;
     case WidgetType.DISCOVER:
     default:
       return ErrorsAndTransactionsConfig;

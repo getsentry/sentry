@@ -517,6 +517,12 @@ register(
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
 )
+register(
+    "github-enterprise-app.allowed-hosts-legacy-webhooks",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
+)
 
 # GitHub Auth
 register(
@@ -700,9 +706,6 @@ register("store.reprocessing-force-disable", default=False, flags=FLAG_AUTOMATOR
 register(
     "store.race-free-group-creation-force-disable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
-
-# TEMPORARY: Use traces_sampler instead of manual sampling for ingest-consumer.
-register("store.use-traces-sampler", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
 
 # Enable calling the severity modeling API on group creation
 register(

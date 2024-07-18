@@ -23,7 +23,6 @@ import useOrganization from 'sentry/utils/useOrganization';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
-import {OnboardingContent} from 'sentry/views/insights/common/components/onboardingContent';
 import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
@@ -38,7 +37,6 @@ import {
   MODULE_DESCRIPTION,
   MODULE_DOC_LINK,
   MODULE_TITLE,
-  ONBOARDING_CONTENT,
 } from 'sentry/views/insights/queues/settings';
 import {ModuleName} from 'sentry/views/insights/types';
 
@@ -120,10 +118,7 @@ function QueuesLandingPage() {
                 <DatePageFilter />
               </PageFilterBar>
             </ModuleLayout.Full>
-            <ModulesOnboarding
-              moduleName={ModuleName.QUEUE}
-              onboardingContent={<OnboardingContent {...ONBOARDING_CONTENT} />}
-            >
+            <ModulesOnboarding moduleName={ModuleName.QUEUE}>
               <ModuleLayout.Half>
                 <LatencyChart referrer={Referrer.QUEUES_LANDING_CHARTS} />
               </ModuleLayout.Half>
