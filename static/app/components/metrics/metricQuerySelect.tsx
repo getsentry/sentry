@@ -28,9 +28,7 @@ export function MetricQuerySelect({onChange, conditionId, mri}: Props) {
     if (!cardinality || !condition) {
       return false;
     }
-    return condition.mris.some(
-      (conditionMri) => cardinality[conditionMri] > 0
-    );
+    return condition.mris.some(conditionMri => cardinality[conditionMri] > 0);
   };
 
   const spanConditions = getConditions(mri);
