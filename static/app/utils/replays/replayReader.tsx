@@ -36,10 +36,8 @@ import {
   BreadcrumbCategories,
   EventType,
   IncrementalSource,
-  isBackgroundFrame,
   isDeadClick,
   isDeadRageClick,
-  isForegroundFrame,
   isPaintFrame,
   isWebVitalFrame,
 } from 'sentry/utils/replays/types';
@@ -533,12 +531,6 @@ export default class ReplayReader {
       return this._sortedSpanFrames.filter(isWebVitalFrame);
     }
     return [];
-  });
-
-  getAppFrames = memoize(() => {
-    return this._sortedBreadcrumbFrames.filter(
-      frame => isBackgroundFrame(frame) || isForegroundFrame(frame)
-    );
   });
 
   getVideoEvents = () => this._videoEvents;

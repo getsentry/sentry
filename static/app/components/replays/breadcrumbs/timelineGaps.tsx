@@ -1,5 +1,4 @@
 import {Fragment} from 'react';
-import {css} from '@emotion/react';
 import styled from '@emotion/styled';
 
 import {Tooltip} from 'sentry/components/tooltip';
@@ -7,7 +6,7 @@ import {t} from 'sentry/locale';
 import toPercent from 'sentry/utils/number/toPercent';
 import {
   isBackgroundFrame,
-  isForegroundFrame,
+  isErrorFrame,
   type ReplayFrame,
 } from 'sentry/utils/replays/types';
 
@@ -21,46 +20,50 @@ interface Props {
 // or background frame to end of replay
 export default function TimelineGaps({durationMs, startTimestampMs, frames}: Props) {
   const ranges: Array<{left: string; width: string}> = [];
-  const gapFrames = frames.entries();
-  let currFrame = gapFrames.next();
 
-  while (!currFrame.done) {
-    let start = -1;
-    // if no foreground frame is found, it means the gap continues to end of replay
-    let end = durationMs;
+  let start = -1;
+  let end = -1;
 
-    // iterate through all frames until we have a start (background frame) and end (foreground frame) of gap or no more frames
-    while ((start === -1 || end === durationMs) && !currFrame.done) {
-      const [, frame] = currFrame.value;
-      // only considered start of gap if background frame hasn't been found yet
-      if (start === -1 && isBackgroundFrame(frame)) {
-        start = frame.timestampMs - startTimestampMs;
-      }
-      // gap only ends if background frame has been found
-      if (start !== -1 && isForegroundFrame(frame)) {
-        end = frame.timestampMs - startTimestampMs;
-      }
-      currFrame = gapFrames.next();
+  for (const currFrame of frames) {
+    // only considered start of gap if background frame hasn't been found yet
+    if (start === -1 && isBackgroundFrame(currFrame)) {
+      start = currFrame.timestampMs - startTimestampMs;
+    }
+    // gap only ends if a frame that's not a background frame or error frame has been found
+    if (start !== -1 && !isBackgroundFrame(currFrame) && !isErrorFrame(currFrame)) {
+      end = currFrame.timestampMs - startTimestampMs;
     }
 
-    // create gap if we found have start (background frame) and end (foreground frame) / end of replay
-    if (start !== -1) {
+    // create gap if we found have start (background frame) and end (another frame)
+    if (start !== -1 && end !== -1) {
       ranges.push({
         left: toPercent(start / durationMs),
         width: toPercent((end - start) / durationMs),
       });
+      start = -1;
+      end = -1;
     }
   }
 
+  // create gap if we still have start (background frame) until end of replay
+  if (start !== -1) {
+    ranges.push({
+      left: toPercent(start / durationMs),
+      width: toPercent((durationMs - start) / durationMs),
+    });
+  }
+
+  // TODO: Fix tooltip position to follow mouse (it currently goes off the timeline when zoomed too much)
   return (
     <Fragment>
       {ranges.map(rangeCss => {
         return (
-          <Range key={JSON.stringify(rangeCss)} css={css``} style={rangeCss}>
+          <Range key={`${rangeCss.left}-${rangeCss.width}`} style={rangeCss}>
             <Tooltip
               title={t('App is suspended')}
               isHoverable
               containerDisplayMode="block"
+              position="top"
             >
               <Gap />
             </Tooltip>
@@ -75,9 +78,8 @@ const Range = styled('div')`
   position: absolute;
 `;
 
-const Gap = styled('span')`
+const Gap = styled('div')`
   background: ${p => p.theme.gray400};
-  display: block;
   opacity: 16%;
   height: 20px;
   width: 100%;
