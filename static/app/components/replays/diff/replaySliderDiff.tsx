@@ -1,4 +1,4 @@
-import {Fragment, useCallback, useRef, useState} from 'react';
+import {Fragment, useCallback, useRef} from 'react';
 import styled from '@emotion/styled';
 
 import NegativeSpaceContainer from 'sentry/components/container/negativeSpaceContainer';
@@ -67,20 +67,20 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
   });
 
   const organization = useOrganization();
-  const [dividerClicked, setDividerClicked] = useState(false); // never flips back to false
+  const dividerClickedRef = useRef(false); // once set, never flips back to false
 
   const onDividerMouseDownWithAnalytics: React.MouseEventHandler<HTMLElement> =
     useCallback(
       (event: React.MouseEvent<HTMLElement>) => {
         // tracks only the first mouseDown, since the first render
-        if (organization && !dividerClicked) {
+        if (organization && !dividerClickedRef.current) {
           trackAnalytics('replay.hydration-modal.slider-interaction', {organization});
-          setDividerClicked(true);
+          dividerClickedRef.current = true;
         }
 
         onDividerMouseDown(event);
       },
-      [onDividerMouseDown, organization, dividerClicked, setDividerClicked]
+      [onDividerMouseDown, organization]
     );
 
   return (
