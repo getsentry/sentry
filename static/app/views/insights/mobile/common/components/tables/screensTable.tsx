@@ -1,4 +1,5 @@
 import {Fragment} from 'react';
+import styled from '@emotion/styled';
 
 import type {
   GridColumn,
@@ -8,6 +9,7 @@ import type {
 import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Pagination from 'sentry/components/pagination';
+import {Tooltip} from 'sentry/components/tooltip';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
@@ -23,6 +25,7 @@ import type {ModuleName} from 'sentry/views/insights/types';
 type Props = {
   columnNameMap: Record<string, string>;
   columnOrder: string[];
+  columnToolTipMap: Record<string, string> | undefined;
   data: TableData | undefined;
   defaultSort: GridColumnSortBy<string>[];
   eventView: EventView;
@@ -42,6 +45,7 @@ export function ScreensTable({
   pageLinks,
   columnNameMap,
   columnOrder,
+  columnToolTipMap,
   defaultSort,
   customBodyCellRenderer,
   moduleName,
@@ -116,6 +120,20 @@ export function ScreensTable({
         generateSortLink={generateSortLink}
       />
     );
+
+    function columnWithToolTip(tooltipTitle: string) {
+      return (
+        <Alignment align={alignment}>
+          <StyledTooltip isHoverable title={<span>{tooltipTitle}</span>}>
+            {sortLink}
+          </StyledTooltip>
+        </Alignment>
+      );
+    }
+
+    if (column.toolTip) {
+      return columnWithToolTip(column.toolTip);
+    }
     return sortLink;
   }
 
@@ -129,6 +147,7 @@ export function ScreensTable({
             key: columnKey,
             name: columnNameMap[columnKey],
             width: COL_WIDTH_UNDEFINED,
+            toolTip: columnToolTipMap ? columnToolTipMap[columnKey] : undefined,
           };
         })}
         columnSortBy={defaultSort}
@@ -152,3 +171,15 @@ export function ScreensTable({
     </Fragment>
   );
 }
+
+const Alignment = styled('span')<{align: string}>`
+  display: block;
+  margin: auto;
+  text-align: ${props => props.align};
+  width: 100%;
+`;
+
+const StyledTooltip = styled(Tooltip)`
+  top: 1px;
+  position: relative;
+`;
