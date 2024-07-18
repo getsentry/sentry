@@ -1,3 +1,4 @@
+import re
 from collections.abc import Sequence
 from typing import Literal, NotRequired, TypedDict
 
@@ -86,7 +87,6 @@ def convert_to_metric_spec(extraction_rule: MetricsExtractionRule) -> SpanAttrib
     Converts a persisted MetricsExtractionRule into a SpanAttributeMetricSpec that satisfies
     MetricSpec of relay metric extraction config.
     """
-
     parsed_search_query = event_search.parse_search_query(extraction_rule.condition)
     extended_search_query = _extend_search_query(parsed_search_query)
 
@@ -171,12 +171,22 @@ def _extend_numeric_token(token: SearchFilter) -> ParenExpression | SearchFilter
     """
 
     if token.operator == "=" or token.operator == "!=":
-        if not str(token.value.value).isdigit():
+        match_comparative_ops = r"[<>]=*"
+        if op := re.match(match_comparative_ops, token.value.value):
+            numeric_value_token = SearchFilter(
+                key=token.key,
+                operator=op.group(),
+                value=SearchValue(int(token.value.value[len(op.group()) :])),
+            )
+            return numeric_value_token
+
+        elif not str(token.value.value).isdigit():
             return token
 
-        numeric_value_token = SearchFilter(
-            key=token.key, operator=token.operator, value=SearchValue(int(token.value.value))
-        )
+        else:
+            numeric_value_token = SearchFilter(
+                key=token.key, operator=token.operator, value=SearchValue(int(token.value.value))
+            )
 
     elif token.is_in_filter:
         str_values = [str(value) for value in token.value.value]
