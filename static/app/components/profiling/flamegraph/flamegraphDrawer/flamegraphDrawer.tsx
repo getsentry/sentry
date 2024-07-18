@@ -18,7 +18,10 @@ import type {FlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/flam
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphState';
 import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
-import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import type {
+  ContinuousProfileGroup,
+  ProfileGroup,
+} from 'sentry/utils/profiling/profile/importProfile';
 import {invertCallTree} from 'sentry/utils/profiling/profile/utils';
 import {useLocalStorageState} from 'sentry/utils/useLocalStorageState';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -34,7 +37,7 @@ interface FlamegraphDrawerProps {
   flamegraph: Flamegraph;
   formatDuration: Flamegraph['formatter'];
   getFrameColor: (frame: FlamegraphFrame) => string;
-  profileGroup: ProfileGroup;
+  profileGroup: ProfileGroup | ContinuousProfileGroup;
   profileTransaction: ReturnType<typeof useProfileTransaction> | null;
   referenceNode: FlamegraphFrame;
   rootNodes: FlamegraphFrame[];

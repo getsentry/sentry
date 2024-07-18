@@ -1,5 +1,3 @@
-from typing import Any
-
 import sentry_sdk
 from django.http import HttpResponse
 from rest_framework.exceptions import ParseError
@@ -12,18 +10,16 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 
 # from sentry.api.bases.organization import OrganizationEndpoint
-from sentry.api.bases import NoProjects, OrganizationEventsV2EndpointBase
-from sentry.exceptions import InvalidSearchQuery
+from sentry.api.bases import OrganizationEventsV2EndpointBase
 from sentry.models.organization import Organization
 from sentry.profiles.flamegraph import (
     get_chunks_from_spans_metadata,
     get_profile_ids,
-    get_profile_ids_with_spans,
     get_profiles_with_function,
     get_spans_from_group,
 )
 from sentry.profiles.profile_chunks import get_chunk_ids
-from sentry.profiles.utils import parse_profile_filters, proxy_profiling_service
+from sentry.profiles.utils import proxy_profiling_service
 
 
 class OrganizationProfilingBaseEndpoint(OrganizationEventsV2EndpointBase):
@@ -31,32 +27,6 @@ class OrganizationProfilingBaseEndpoint(OrganizationEventsV2EndpointBase):
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
-
-    def get_profiling_params(self, request: Request, organization: Organization) -> dict[str, Any]:
-        try:
-            params: dict[str, Any] = parse_profile_filters(request.query_params.get("query", ""))
-        except InvalidSearchQuery as err:
-            raise ParseError(detail=str(err))
-
-        params.update(self.get_filter_params(request, organization))
-
-        return params
-
-
-@region_silo_endpoint
-class OrganizationProfilingFiltersEndpoint(OrganizationProfilingBaseEndpoint):
-    def get(self, request: Request, organization: Organization) -> HttpResponse:
-        if not features.has("organizations:profiling", organization, actor=request.user):
-            return Response(status=404)
-
-        try:
-            params = self.get_profiling_params(request, organization)
-        except NoProjects:
-            return Response([])
-
-        return proxy_profiling_service(
-            "GET", f"/organizations/{organization.id}/filters", params=params
-        )
 
 
 @region_silo_endpoint
@@ -70,18 +40,10 @@ class OrganizationProfilingFlamegraphEndpoint(OrganizationProfilingBaseEndpoint)
         if len(project_ids) > 1:
             raise ParseError(detail="You cannot get a flamegraph from multiple projects.")
 
-        span_group = request.query_params.get("spans.group", None)
-        if span_group is not None:
-            sentry_sdk.set_tag("dataset", "spans")
-            profile_ids: object = get_profile_ids_with_spans(
-                organization.id,
-                project_ids[0],
-                params,
-                span_group,
-            )
-        elif request.query_params.get("fingerprint"):
+        if request.query_params.get("fingerprint"):
             sentry_sdk.set_tag("dataset", "functions")
             function_fingerprint = int(request.query_params["fingerprint"])
+
             profile_ids = get_profiles_with_function(
                 organization.id,
                 project_ids[0],

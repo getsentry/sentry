@@ -1,11 +1,14 @@
-import {createContext, useContext, useLayoutEffect, useState} from 'react';
+import {createContext, useContext, useLayoutEffect, useMemo, useState} from 'react';
 import * as Sentry from '@sentry/react';
+import * as qs from 'query-string';
 
 import type {Client} from 'sentry/api';
 import {ContinuousProfileHeader} from 'sentry/components/profiling/continuousProfileHeader';
 import type {RequestState} from 'sentry/types/core';
+import type {EventTransaction} from 'sentry/types/event';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
+import {useSentryEvent} from 'sentry/utils/profiling/hooks/useSentryEvent';
 import useApi from 'sentry/utils/useApi';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useParams} from 'sentry/utils/useParams';
@@ -47,6 +50,20 @@ export function useContinuousProfile() {
   return context;
 }
 
+type ContinuousProfileSegmentProviderValue = RequestState<EventTransaction>;
+export const ContinuousProfileSegmentContext =
+  createContext<ContinuousProfileSegmentProviderValue | null>(null);
+
+export function useContinuousProfileSegment() {
+  const context = useContext(ContinuousProfileSegmentContext);
+  if (!context) {
+    throw new Error(
+      'useContinuousProfileSegment was called outside of ContinuousProfileSegmentProvider'
+    );
+  }
+  return context;
+}
+
 function isValidDate(date: string): boolean {
   return !isNaN(Date.parse(date));
 }
@@ -54,10 +71,10 @@ function isValidDate(date: string): boolean {
 function getContinuousChunkQueryParams(
   query: string
 ): ContinuousProfileQueryParams | null {
-  const qs = new URLSearchParams(query);
-  const start = qs.get('start');
-  const end = qs.get('end');
-  const profiler_id = qs.get('profilerId');
+  const queryString = new URLSearchParams(query);
+  const start = queryString.get('start');
+  const end = queryString.get('end');
+  const profiler_id = queryString.get('profilerId');
 
   if (!start || !end || !profiler_id) {
     return null;
@@ -123,10 +140,27 @@ function ContinuousProfileProvider(
     return () => api.clear();
   }, [api, organization.slug, projects.projects, params.projectId]);
 
+  const eventPayload = useMemo(() => {
+    const query = qs.parse(window.location.search);
+
+    return {
+      project: projects.projects.find(p => p.slug === params.projectId),
+      eventId: query.eventId as string,
+    };
+  }, [projects, params.projectId]);
+
+  const profileTransaction = useSentryEvent<EventTransaction>(
+    organization.slug,
+    eventPayload.project?.id ?? '',
+    eventPayload.eventId
+  );
+
   return (
     <ContinuousProfileContext.Provider value={profiles}>
-      <ContinuousProfileHeader />
-      {props.children}
+      <ContinuousProfileSegmentContext.Provider value={profileTransaction}>
+        <ContinuousProfileHeader />
+        {props.children}
+      </ContinuousProfileSegmentContext.Provider>
     </ContinuousProfileContext.Provider>
   );
 }

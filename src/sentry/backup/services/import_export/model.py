@@ -121,12 +121,16 @@ class RpcImportFlags(RpcModel):
     merge_users: bool = False
     overwrite_configs: bool = False
     import_uuid: str | None = None
+    # TODO(azaslavsky): Remove `None` variant once rolled out, set default to `False` instead.
+    hide_organizations: bool | None = None
 
     def from_rpc(self) -> ImportFlags:
         return ImportFlags(
             merge_users=self.merge_users,
             overwrite_configs=self.overwrite_configs,
             import_uuid=self.import_uuid,
+            # TODO(azaslavsky): remove cast.
+            hide_organizations=bool(self.hide_organizations),
         )
 
     @classmethod
@@ -135,6 +139,10 @@ class RpcImportFlags(RpcModel):
             merge_users=base_flags.merge_users,
             overwrite_configs=base_flags.overwrite_configs,
             import_uuid=base_flags.import_uuid,
+            # TODO(azaslavsky): remove cast.
+            hide_organizations=(
+                None if not base_flags.hide_organizations else base_flags.hide_organizations
+            ),
         )
 
 

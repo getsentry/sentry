@@ -63,7 +63,7 @@ def register_temporary_features(manager: FeatureManager):
     # Rollout of the new API rate limits for organization events
     manager.add("organizations:api-organization_events-rate-limit-reduced-rollout", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enables the cron job to auto-enable codecov integrations.
-    manager.add("organizations:auto-enable-codecov", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    manager.add("organizations:auto-enable-codecov", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Autofix use new strategy without codebase indexing
     manager.add("organizations:autofix-disable-codebase-indexing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False)
     # Enables getting commit sha from git blame for codecov.
@@ -73,7 +73,7 @@ def register_temporary_features(manager: FeatureManager):
     # Disables legacy cron ingest endpoints
     manager.add("organizations:crons-write-user-feedback", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Enable daily summary
-    manager.add("organizations:daily-summary", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    manager.add("organizations:daily-summary", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable dashboard widget indicators.
     manager.add("organizations:dashboard-widget-indicators", OrganizationFeature, FeatureHandlerStrategy.REMOTE, default=True)
     # Enables import/export functionality for dashboards
@@ -108,8 +108,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:ds-org-recalibration", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enables data secrecy mode
     manager.add("organizations:enterprise-data-secrecy", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-    # Enable archive/escalating issue workflow in MS Teams
-    manager.add("organizations:escalating-issues-msteams", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable archive/escalating issue workflow features in v2
     manager.add("organizations:escalating-issues-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable emiting escalating data to the metrics backend
@@ -158,6 +156,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:issue-stream-empty-state-additional-platforms", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable issue stream performance improvements
     manager.add("organizations:issue-stream-performance", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:issue-search-snuba", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable the new issue stream search bar UI
     manager.add("organizations:issue-stream-search-query-builder", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:large-debug-files", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -167,6 +166,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:latest-adopted-release-filter", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:mep-rollout-flag", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:mep-use-default-tags", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    # Enable messaging integration onboarding when setting up alerts
+    manager.add("organizations:messaging-integration-onboarding", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable metric alert charts in email/slack
     manager.add("organizations:metric-alert-chartcuterie", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable load shedding for newly created metric alerts
@@ -202,6 +203,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:on-demand-metrics-extraction-widgets", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # This spec version includes the environment in the query hash
     manager.add("organizations:on-demand-metrics-query-spec-version-two", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    # Display metrics components with a new design
+    manager.add("organizations:metrics-new-inputs", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Display on demand metrics related UI elements
     manager.add("organizations:on-demand-metrics-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Display on demand metrics related UI elements, for dashboards and widgets. The other flag is for alerts.
@@ -260,8 +263,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-remove-metrics-compatibility-fallback", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable span search bar in Insights module sample panels
     manager.add("organizations:performance-sample-panel-search", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enables new empty state for insight modules
-    manager.add("organizations:insights-empty-state-page", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable platform selector for screens flow
     manager.add("organizations:performance-screens-platform-selector", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable screens view powered by span metrics
@@ -320,7 +321,7 @@ def register_temporary_features(manager: FeatureManager):
     # Display profile durations on the stats page
     manager.add("organizations:continuous-profiling-stats", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable the continuous profiling compatible redesign
-    manager.add("organizations:continuous-profiling-compat", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    manager.add("organizations:continuous-profiling-compat", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable asking for feedback after project-create when replay is disabled
     manager.add("organizations:project-create-replay-feedback", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Limit project events endpoint to only query back a certain number of days
@@ -394,8 +395,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:session-replay-web-vitals", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False)
     # Lets organizations manage grouping configs
     manager.add("organizations:set-grouping-config", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-    # Enable Culprit Blocks in Slack Notifications
-    manager.add("organizations:slack-culprit-blocks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable description field in Slack metric alerts
     manager.add("organizations:slack-metric-alert-description", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable improvements to Slack notifications
@@ -403,8 +402,6 @@ def register_temporary_features(manager: FeatureManager):
     # Feature flags for migrating to the Slack SDK WebClient
     # Use new Slack SDK Client in get_channel_id_with_timeout
     manager.add("organizations:slack-sdk-get-channel-id", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
-    # Use new Slack SDK Client for SlackNotifyBasicMixin
-    manager.add("organizations:slack-sdk-notify-mixin", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Add regression chart as image to slack message
     manager.add("organizations:slack-endpoint-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     manager.add("organizations:slack-function-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)

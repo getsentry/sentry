@@ -1,7 +1,7 @@
 import {forwardRef} from 'react';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {navigateTo} from 'sentry/actionCreators/navigation';
 import Avatar from 'sentry/components/avatar';
