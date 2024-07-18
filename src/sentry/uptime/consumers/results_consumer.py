@@ -19,10 +19,11 @@ from sentry.remote_subscriptions.consumers.result_consumer import (
 )
 from sentry.uptime.detectors.ranking import _get_cluster
 from sentry.uptime.detectors.tasks import set_failed_url
-from sentry.uptime.issue_platform import create_issue_platform_occurrence
+from sentry.uptime.issue_platform import create_issue_platform_occurrence, resolve_uptime_issue
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
+    UptimeStatus,
     UptimeSubscription,
 )
 from sentry.uptime.subscriptions.subscriptions import (
@@ -182,8 +183,18 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
     def handle_result_for_project_active_mode(
         self, project_subscription: ProjectUptimeSubscription, result: CheckResult
     ):
-        if result["status"] == CHECKSTATUS_FAILURE:
+        if (
+            project_subscription.uptime_status == UptimeStatus.OK
+            and result["status"] == CHECKSTATUS_FAILURE
+        ):
             create_issue_platform_occurrence(result, project_subscription)
+            project_subscription.update(uptime_status=UptimeStatus.FAILED)
+        elif (
+            project_subscription.uptime_status == UptimeStatus.FAILED
+            and result["status"] == CHECKSTATUS_SUCCESS
+        ):
+            resolve_uptime_issue(project_subscription)
+            project_subscription.update(uptime_status=UptimeStatus.OK)
 
 
 class UptimeResultsStrategyFactory(ResultsStrategyFactory[CheckResult, UptimeSubscription]):
