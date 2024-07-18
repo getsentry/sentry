@@ -7,6 +7,7 @@ import FileSize from 'sentry/components/fileSize';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {PercentChange, type Polarity} from 'sentry/components/percentChange';
 import {Tooltip} from 'sentry/components/tooltip';
+import {space} from 'sentry/styles/space';
 import {defined} from 'sentry/utils';
 import {
   type CountUnit,
@@ -19,7 +20,6 @@ import {
 } from 'sentry/utils/discover/fields';
 import {formatAbbreviatedNumber, formatRate} from 'sentry/utils/formatters';
 import {formatPercentage} from 'sentry/utils/number/formatPercentage';
-import {Block} from 'sentry/views/insights/common/views/spanSummaryPage/block';
 
 type Unit =
   | DurationUnit.MILLISECOND
@@ -42,9 +42,12 @@ interface Props {
 
 export function MetricReadout(props: Props) {
   return (
-    <Block title={props.title} alignment={props.align}>
-      <ReadoutContent {...props} />
-    </Block>
+    <ReadoutWrapper>
+      <ReadoutTitle alignment={props.align ?? 'right'}>{props.title}</ReadoutTitle>
+      <ReadoutContentWrapper alignment={props.align ?? 'right'}>
+        <ReadoutContent {...props} />
+      </ReadoutContentWrapper>
+    </ReadoutWrapper>
   );
 }
 
@@ -179,3 +182,25 @@ const LoadingContainer = styled('div')<{align: 'left' | 'right'}>`
 function isARateUnit(unit: string): unit is RateUnit {
   return (Object.values(RateUnit) as string[]).includes(unit);
 }
+
+const ReadoutWrapper = styled('div')`
+  flex-grow: 1;
+  min-width: 0;
+  word-break: break-word;
+  padding-bottom: ${space(2)};
+`;
+
+const ReadoutTitle = styled('h3')<{alignment: 'left' | 'right'}>`
+  color: ${p => p.theme.gray300};
+  font-size: ${p => p.theme.fontSizeMedium};
+  margin: 0;
+  white-space: nowrap;
+  height: ${space(3)};
+  text-align: ${p => p.alignment};
+`;
+
+const ReadoutContentWrapper = styled('h4')<{alignment: 'left' | 'right'}>`
+  margin: 0;
+  font-weight: ${p => p.theme.fontWeightNormal};
+  text-align: ${p => p.alignment};
+`;
