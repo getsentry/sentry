@@ -480,7 +480,7 @@ export function getCustomEventsFieldRenderer(field: string, meta: MetaType) {
   return getFieldRenderer(field, meta, false);
 }
 
-function getEventsRequest(
+export function getEventsRequest(
   url: string,
   api: Client,
   query: WidgetQuery,

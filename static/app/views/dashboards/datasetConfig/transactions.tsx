@@ -10,6 +10,7 @@ import type {
   TagCollection,
 } from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
 import {
@@ -25,7 +26,7 @@ import type {
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
 import {DiscoverDatasets, TOP_N} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
   type OnDemandControlContext,
   shouldUseOnDemandMetrics,
@@ -158,9 +159,10 @@ function getEventsRequest(
   limit?: number,
   cursor?: string,
   referrer?: string,
-  _mepSetting?: MEPState | null,
+  mepSetting?: MEPState | null,
   queryExtras?: DiscoverQueryExtras
 ) {
+  const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
   const url = `/organizations/${organization.slug}/events/`;
   const eventView = eventViewFromWidget('', query, pageFilters);
 
@@ -168,7 +170,9 @@ function getEventsRequest(
     per_page: limit,
     cursor,
     referrer,
-    dataset: DiscoverDatasets.METRICS_ENHANCED,
+    dataset: isMEPEnabled
+      ? DiscoverDatasets.METRICS_ENHANCED
+      : DiscoverDatasets.TRANSACTIONS,
     ...queryExtras,
   };
 
@@ -201,8 +205,10 @@ function getEventsSeriesRequest(
   pageFilters: PageFilters,
   onDemandControlContext?: OnDemandControlContext,
   referrer?: string,
-  _mepSetting?: MEPState | null
+  mepSetting?: MEPState | null
 ) {
+  const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
+
   const widgetQuery = widget.queries[queryIndex];
   const {displayType, limit} = widget;
   const {environments, projects} = pageFilters;
@@ -231,7 +237,9 @@ function getEventsSeriesRequest(
       field: [...widgetQuery.columns, ...widgetQuery.aggregates],
       includeAllArgs: true,
       topEvents: TOP_N,
-      dataset: DiscoverDatasets.METRICS_ENHANCED,
+      dataset: isMEPEnabled
+        ? DiscoverDatasets.METRICS_ENHANCED
+        : DiscoverDatasets.TRANSACTIONS,
     };
     if (widgetQuery.orderby) {
       requestData.orderby = widgetQuery.orderby;
@@ -252,7 +260,9 @@ function getEventsSeriesRequest(
       referrer,
       partial: true,
       includeAllArgs: true,
-      dataset: DiscoverDatasets.METRICS_ENHANCED,
+      dataset: isMEPEnabled
+        ? DiscoverDatasets.METRICS_ENHANCED
+        : DiscoverDatasets.TRANSACTIONS,
     };
     if (widgetQuery.columns?.length !== 0) {
       requestData.topEvents = limit ?? TOP_N;
@@ -292,6 +302,10 @@ function getEventsSeriesRequest(
   }
 
   if (shouldUseOnDemandMetrics(organization, widget, onDemandControlContext)) {
+    requestData.queryExtras = {
+      ...requestData.queryExtras,
+      ...{dataset: DiscoverDatasets.METRICS_ENHANCED},
+    };
     return doOnDemandMetricsRequest(api, requestData);
   }
 
