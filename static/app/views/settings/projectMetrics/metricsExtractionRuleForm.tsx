@@ -324,6 +324,14 @@ export function MetricsExtractionRuleForm({
               setCustomeAttributes(curr => [...curr, value]);
               model.setValue('spanAttribute', value);
             }}
+            onChange={value => {
+              if (value in FIXED_UNITS_BY_ATTRIBUTE) {
+                model.setValue('unit', FIXED_UNITS_BY_ATTRIBUTE[value]);
+                setIsUnitDisabled(true);
+              } else {
+                setIsUnitDisabled(false);
+              }
+            }}
             required
           />
           <SelectField
@@ -334,14 +342,6 @@ export function MetricsExtractionRuleForm({
             placeholder={t('Select a unit')}
             creatable
             formatCreateLabel={value => `Custom: "${value}"`}
-            onChange={value => {
-              if (value in FIXED_UNITS_BY_ATTRIBUTE) {
-                model.setValue('unit', FIXED_UNITS_BY_ATTRIBUTE[value]);
-                setIsUnitDisabled(true);
-              } else {
-                setIsUnitDisabled(false);
-              }
-            }}
             onCreateOption={value => {
               setCustomUnit(value);
               model.setValue('unit', value);
