@@ -7,7 +7,6 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconArrow} from 'sentry/icons';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -153,11 +152,6 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
     <MetricsPanelTable
       headers={[
         t('Metric'),
-        <Cell right key="cardinality">
-          <IconArrow size="xs" direction="down" />
-
-          {t('Cardinality')}
-        </Cell>,
         <Cell right key="type">
           {t('Type')}
         </Cell>,
@@ -182,15 +176,6 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
         return (
           <Fragment key={mri}>
             <Cell>
-              <Link
-                to={`/settings/projects/${project.slug}/metrics/${encodeURIComponent(
-                  mri
-                )}`}
-              >
-                {middleEllipsis(formatMRI(mri), 65, /\.|-|_/)}
-              </Link>
-            </Cell>
-            <Cell right>
               {isCardinalityLimited && (
                 <Tooltip
                   title={t(
@@ -200,7 +185,13 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
                   <StyledIconWarning size="sm" color="red300" />
                 </Tooltip>
               )}
-              {cardinality}
+              <Link
+                to={`/settings/projects/${project.slug}/metrics/${encodeURIComponent(
+                  mri
+                )}`}
+              >
+                {middleEllipsis(formatMRI(mri), 65, /\.|-|_/)}
+              </Link>
             </Cell>
             <Cell right>
               <Tag>{getReadableMetricType(type)}</Tag>
@@ -245,7 +236,7 @@ const SearchWrapper = styled('div')`
 
 const MetricsPanelTable = styled(PanelTable)`
   margin-top: ${space(2)};
-  grid-template-columns: 1fr repeat(4, min-content);
+  grid-template-columns: 1fr repeat(3, min-content);
 `;
 
 const Cell = styled('div')<{right?: boolean}>`
