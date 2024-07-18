@@ -378,8 +378,10 @@ const EMPTY_STATE_CONTENT: Record<TitleableModuleNames, EmptyStateContent> = {
       'javascript-nextjs',
       'javascript-react',
       'javascript-remix',
+      'javascript-solid',
       'javascript-svelte',
       'javascript-sveltekit',
+      'javascript-vue',
     ],
   },
   vital: {
