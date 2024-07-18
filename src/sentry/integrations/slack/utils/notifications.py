@@ -20,8 +20,8 @@ from sentry.integrations.repository.metric_alert import (
 from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.incidents import SlackIncidentsMessageBuilder
 from sentry.integrations.slack.metrics import (
-    SLACK_COMMANDS_LINK_IDENTITY_FAILURE_DATADOG_METRIC,
-    SLACK_COMMANDS_LINK_IDENTITY_SUCCESS_DATADOG_METRIC,
+    SLACK_LINK_IDENTITY_MSG_FAILURE_DATADOG_METRIC,
+    SLACK_LINK_IDENTITY_MSG_SUCCESS_DATADOG_METRIC,
     SLACK_METRIC_ALERT_FAILURE_DATADOG_METRIC,
     SLACK_METRIC_ALERT_SUCCESS_DATADOG_METRIC,
 )
@@ -175,14 +175,14 @@ def respond_to_slack_command(
             webhook_client = WebhookClient(params.response_url)
             webhook_client.send(text=text, replace_original=False, response_type="ephemeral")
             metrics.incr(
-                SLACK_COMMANDS_LINK_IDENTITY_SUCCESS_DATADOG_METRIC,
+                SLACK_LINK_IDENTITY_MSG_SUCCESS_DATADOG_METRIC,
                 sample_rate=1.0,
                 tags={"type": "webhook", "command": command},
             )
         except (SlackApiError, SlackRequestError) as e:
             if "Expired url" not in str(e):
                 metrics.incr(
-                    SLACK_COMMANDS_LINK_IDENTITY_FAILURE_DATADOG_METRIC,
+                    SLACK_LINK_IDENTITY_MSG_FAILURE_DATADOG_METRIC,
                     sample_rate=1.0,
                     tags={"type": "webhook", "command": command},
                 )
@@ -198,14 +198,14 @@ def respond_to_slack_command(
                 response_type="ephemeral",
             )
             metrics.incr(
-                SLACK_COMMANDS_LINK_IDENTITY_SUCCESS_DATADOG_METRIC,
+                SLACK_LINK_IDENTITY_MSG_SUCCESS_DATADOG_METRIC,
                 sample_rate=1.0,
                 tags={"type": "ephemeral", "command": command},
             )
         except SlackApiError as e:
             if "Expired url" not in str(e):
                 metrics.incr(
-                    SLACK_COMMANDS_LINK_IDENTITY_FAILURE_DATADOG_METRIC,
+                    SLACK_LINK_IDENTITY_MSG_FAILURE_DATADOG_METRIC,
                     sample_rate=1.0,
                     tags={"type": "ephemeral", "command": command},
                 )

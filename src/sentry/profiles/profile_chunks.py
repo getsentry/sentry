@@ -35,7 +35,8 @@ def get_chunk_ids(
             Condition(Column("project_id"), Op.EQ, project_id),
             Condition(Column("profiler_id"), Op.EQ, profiler_id),
         ],
-        orderby=[OrderBy(Column("start_timestamp"), Direction.ASC)],
+        # We want the generate the flamegraph using the newest data
+        orderby=[OrderBy(Column("start_timestamp"), Direction.DESC)],
     ).set_limit(max_chunks)
 
     request = Request(
@@ -71,6 +72,6 @@ def resolve_datetime64(value: datetime | None, precision: int = 6) -> Function |
         delta = value.utcoffset()
         assert delta is not None
         value -= delta
-        value.replace(tzinfo=None)
+        value = value.replace(tzinfo=None)
 
     return Function("toDateTime64", [value.isoformat(), precision])

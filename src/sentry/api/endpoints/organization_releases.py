@@ -351,9 +351,11 @@ class OrganizationReleasesEndpoint(
                     organization.id,
                     filter_params["project_id"],
                     release_versions,
-                    filter_params["start"]
-                    if filter_params["start"]
-                    else datetime.utcnow() - timedelta(days=90),
+                    (
+                        filter_params["start"]
+                        if filter_params["start"]
+                        else datetime.utcnow() - timedelta(days=90)
+                    ),
                     filter_params["end"] if filter_params["end"] else datetime.utcnow(),
                 )
                 valid_versions = [
@@ -434,7 +436,7 @@ class OrganizationReleasesEndpoint(
         :param url url: a URL that points to the release.  This can be the
                         path to an online interface to the sourcecode
                         for instance.
-        :param array projects: a list of project slugs that are involved in
+        :param array projects: a list of project ids or slugs that are involved in
                                this release
         :param datetime dateReleased: an optional date that indicates when
                                       the release went live.  If not provided
@@ -464,13 +466,19 @@ class OrganizationReleasesEndpoint(
             result = serializer.validated_data
             scope.set_tag("version", result["version"])
 
-            allowed_projects = {p.slug: p for p in self.get_projects(request, organization)}
+            # Get all projects that are available to the user/token
+            # Note: Does not use the "projects" data param from the request
+            projects_from_request = self.get_projects(request, organization)
+            allowed_projects = {}
+            for project in projects_from_request:
+                allowed_projects[project.slug] = project
+                allowed_projects[project.id] = project
 
             projects = []
-            for slug in result["projects"]:
-                if slug not in allowed_projects:
-                    return Response({"projects": ["Invalid project slugs"]}, status=400)
-                projects.append(allowed_projects[slug])
+            for id_or_slug in result["projects"]:
+                if id_or_slug not in allowed_projects:
+                    return Response({"projects": ["Invalid project ids or slugs"]}, status=400)
+                projects.append(allowed_projects[id_or_slug])
 
             new_status = result.get("status")
             owner_id: int | None = None

@@ -51,7 +51,7 @@ export function useTraceSpans<F extends string>({
     query: {
       project: selection.projects,
       environment: selection.environments,
-      ...(datetime ?? normalizeDateTimeParams(selection.datetime)),
+      ...normalizeDateTimeParams(datetime ?? selection.datetime),
       field: fields,
       query,
       sort,

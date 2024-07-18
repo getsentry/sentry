@@ -322,15 +322,19 @@ const StyledAlert = styled(Alert)`
 `;
 
 const StyledBody = styled(Layout.Body)<{fillSpace?: boolean; hasError?: boolean}>`
+  ${p =>
+    p.fillSpace &&
+    `
   display: flex;
   flex-direction: column;
   gap: ${space(3)};
 
-  @media (min-width: ${p => p.theme.breakpoints.large}) {
+  @media (min-width: ${p.theme.breakpoints.large}) {
     display: flex;
     flex-direction: column;
     gap: ${space(3)};
   }
+  `}
 `;
 
 export function redirectToPerformanceHomepage(

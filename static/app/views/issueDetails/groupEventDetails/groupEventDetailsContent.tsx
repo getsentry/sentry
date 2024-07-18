@@ -1,6 +1,8 @@
 import {Fragment, lazy, useRef} from 'react';
 import styled from '@emotion/styled';
 
+import {usePrompt} from 'sentry/actionCreators/prompts';
+import {Button} from 'sentry/components/button';
 import {CommitRow} from 'sentry/components/commitRow';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import BreadcrumbsDataSection from 'sentry/components/events/breadcrumbs/breadcrumbsDataSection';
@@ -39,7 +41,9 @@ import {DataSection} from 'sentry/components/events/styles';
 import {SuspectCommits} from 'sentry/components/events/suspectCommits';
 import {EventUserFeedback} from 'sentry/components/events/userFeedback';
 import LazyLoad from 'sentry/components/lazyLoad';
+import Placeholder from 'sentry/components/placeholder';
 import {useHasNewTimelineUI} from 'sentry/components/timeline/utils';
+import {IconChevron} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {EntryException, Event, EventTransaction} from 'sentry/types/event';
@@ -116,6 +120,21 @@ function DefaultGroupEventDetailsContent({
     projectSlug,
   });
 
+  const {
+    isLoading: promptLoading,
+    isError: promptError,
+    isPromptDismissed,
+    dismissPrompt,
+    showPrompt,
+  } = usePrompt({
+    feature: 'issue_feedback_hidden',
+    organization,
+    projectId: project.id,
+  });
+
+  // default to show on error or isPromptDismissed === undefined
+  const showFeedback = !isPromptDismissed || promptError;
+
   return (
     <Fragment>
       {hasActionableItems && (
@@ -131,13 +150,38 @@ function DefaultGroupEventDetailsContent({
         />
       </StyledDataSection>
       {event.userReport && (
-        <EventDataSection title={t('User Feedback')} type="user-feedback">
-          <EventUserFeedback
-            report={event.userReport}
-            orgSlug={organization.slug}
-            issueId={group.id}
-            showEventLink={false}
-          />
+        <EventDataSection
+          title={t('User Feedback')}
+          type="user-feedback"
+          actions={
+            <ErrorBoundary mini>
+              <Button
+                size="xs"
+                icon={<IconChevron direction={showFeedback ? 'up' : 'down'} />}
+                onClick={showFeedback ? dismissPrompt : showPrompt}
+                title={
+                  showFeedback
+                    ? t('Hide feedback on all issue details')
+                    : t('Unhide feedback on all issue details')
+                }
+                disabled={promptError}
+                busy={promptLoading}
+              >
+                {showFeedback ? t('Hide') : t('Show')}
+              </Button>
+            </ErrorBoundary>
+          }
+        >
+          {promptLoading ? (
+            <Placeholder />
+          ) : showFeedback ? (
+            <EventUserFeedback
+              report={event.userReport}
+              orgSlug={organization.slug}
+              issueId={group.id}
+              showEventLink={false}
+            />
+          ) : null}
         </EventDataSection>
       )}
       {event.type === EventOrGroupType.ERROR &&

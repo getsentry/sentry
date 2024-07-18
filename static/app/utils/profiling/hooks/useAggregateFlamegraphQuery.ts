@@ -5,66 +5,47 @@ import type {PageFilters} from 'sentry/types/core';
 import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import type RequestError from 'sentry/utils/requestError/requestError';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
-type AggregateFlamegraphQueryParametersWithoutFingerprint = {
-  datetime: Partial<PageFilters['datetime']>;
-  environments: string[];
-  projects: number[];
-  transaction: string;
-};
-
-interface AggregateFlamegraphQueryParametersWithFingerprint
-  extends AggregateFlamegraphQueryParametersWithoutFingerprint {
-  fingerprint: string;
+export interface AggregateFlamegraphQueryParameters {
+  query: string;
+  datetime?: PageFilters['datetime'];
+  enabled?: boolean;
+  environments?: PageFilters['environments'];
+  fingerprint?: string;
+  projects?: PageFilters['projects'];
 }
-
-export type AggregateFlamegraphQueryParameters =
-  | AggregateFlamegraphQueryParametersWithoutFingerprint
-  | AggregateFlamegraphQueryParametersWithFingerprint;
 
 export type UseAggregateFlamegraphQueryResult = UseApiQueryResult<
   Profiling.Schema,
   RequestError
 >;
 
-export function useAggregateFlamegraphQuery(
-  props: AggregateFlamegraphQueryParameters
-): UseAggregateFlamegraphQueryResult {
+export function useAggregateFlamegraphQuery({
+  datetime,
+  enabled,
+  environments,
+  projects,
+  query,
+  fingerprint,
+}: AggregateFlamegraphQueryParameters): UseAggregateFlamegraphQueryResult {
   const organization = useOrganization();
+  const {selection} = usePageFilters();
 
-  const query = useMemo(() => {
-    // TODO: this should contain the user query
-    // wait util we fully switch over to the transactions dataset
-    const conditions = new MutableSearch([]);
-    conditions.setFilterValues('transaction', [props.transaction]);
-    return conditions.formatString();
-  }, [props.transaction]);
-
-  const enabled =
-    !!props.transaction && Array.isArray(props.projects) && props.projects.length > 0;
   const endpointOptions = useMemo(() => {
     const params = {
       query: {
-        project: props.projects,
-        environment: props.environments,
-        ...normalizeDateTimeParams(props.datetime),
+        project: projects ?? selection.projects,
+        environment: environments ?? selection.environments,
+        ...normalizeDateTimeParams(datetime ?? selection.datetime),
+        fingerprint,
         query,
       },
     };
 
-    if ('fingerprint' in props) {
-      return {
-        query: {
-          ...params.query,
-          fingerprint: props.fingerprint,
-        },
-      };
-    }
-
     return params;
-  }, [props, query]);
+  }, [datetime, environments, projects, fingerprint, query, selection]);
 
   return useApiQuery<Profiling.Schema>(
     [`/organizations/${organization.slug}/profiling/flamegraph/`, endpointOptions],

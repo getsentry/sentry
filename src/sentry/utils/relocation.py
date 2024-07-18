@@ -44,9 +44,10 @@ class OrderedTask(Enum):
     VALIDATING_COMPLETE = 10
     IMPORTING = 11
     POSTPROCESSING = 12
-    NOTIFYING_USERS = 13
-    NOTIFYING_OWNER = 14
-    COMPLETED = 15
+    NOTIFYING_UNHIDE = 13
+    NOTIFYING_USERS = 14
+    NOTIFYING_OWNER = 15
+    COMPLETED = 16
 
 
 # Match each `OrderedTask` to the `Relocation.Step` it is part of.
@@ -64,13 +65,12 @@ TASK_TO_STEP: dict[OrderedTask, Relocation.Step] = {
     OrderedTask.VALIDATING_COMPLETE: Relocation.Step.VALIDATING,
     OrderedTask.IMPORTING: Relocation.Step.IMPORTING,
     OrderedTask.POSTPROCESSING: Relocation.Step.POSTPROCESSING,
+    OrderedTask.NOTIFYING_UNHIDE: Relocation.Step.NOTIFYING,
     OrderedTask.NOTIFYING_USERS: Relocation.Step.NOTIFYING,
     OrderedTask.NOTIFYING_OWNER: Relocation.Step.NOTIFYING,
     OrderedTask.COMPLETED: Relocation.Step.COMPLETED,
 }
-
-
-assert list(OrderedTask._member_map_.keys()) == [k.name for k in TASK_TO_STEP.keys()]
+assert set(OrderedTask._member_map_.keys()) == {k.name for k in TASK_TO_STEP.keys()}
 
 
 # The file type for a relocation export tarball of any kind.
