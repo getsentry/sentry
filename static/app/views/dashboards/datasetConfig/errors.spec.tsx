@@ -150,4 +150,49 @@ describe('ErrorsConfig', function () {
       );
     });
   });
+
+  describe('getSeriesRequest', function () {
+    let api, organization, mockEventsRequest;
+
+    beforeEach(function () {
+      MockApiClient.clearMockResponses();
+
+      api = new MockApiClient();
+      organization = OrganizationFixture();
+
+      mockEventsRequest = MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/events-stats/',
+        body: {
+          data: [],
+        },
+      });
+    });
+
+    it('makes a request to the errors dataset', function () {
+      const pageFilters = PageFiltersFixture();
+      const widget = WidgetFixture({
+        queries: [
+          {
+            fields: ['count()'],
+            aggregates: ['count()'],
+            columns: [],
+            conditions: '',
+            name: '',
+            orderby: '',
+          },
+        ],
+      });
+
+      ErrorsConfig.getSeriesRequest!(api, widget, 0, organization, pageFilters);
+
+      expect(mockEventsRequest).toHaveBeenCalledWith(
+        '/organizations/org-slug/events-stats/',
+        expect.objectContaining({
+          query: expect.objectContaining({
+            dataset: DiscoverDatasets.ERRORS,
+          }),
+        })
+      );
+    });
+  });
 });
