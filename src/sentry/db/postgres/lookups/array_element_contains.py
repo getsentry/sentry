@@ -8,6 +8,10 @@ class ArrayElementContains(Lookup):
     lookup_name = "element_contains"
 
     def as_sql(self, compiler: Any, connection: Any) -> Any:
+        """
+        Custom lookup for checking if an element of the array contains a value.
+        """
+
         lhs, lhs_params = self.process_lhs(compiler, connection)
         rhs, rhs_params = self.process_rhs(compiler, connection)
         params = lhs_params + rhs_params
