@@ -145,10 +145,7 @@ function Chart({
   const pageFilters = usePageFilters();
   const {start, end, period, utc} = pageFilters.selection.datetime;
 
-  const chartHeightInContext = useContext(ChartHeightContext);
-  // override the height parameter if the chart height is re-specified in the context. for example, this may happen
-  // when the chart is expanded in full-screen.
-  const height = chartHeightInContext !== undefined ? chartHeightInContext : chartHeight;
+  const height = useContext(ChartHeightContext) ?? chartHeight;
 
   const defaultRef = useRef<ReactEchartsRef>(null);
   const chartRef = forwardedRef || defaultRef;
