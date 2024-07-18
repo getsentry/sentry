@@ -27,7 +27,7 @@ class RpcFilter(RpcModel):
     Shadows `sentry.backup.helpers.Filter` for the purpose of passing it over an RPC boundary.
     """
 
-    import_model_name: str
+    for_model: str
     field: str
 
     # While on the original `Filter` type these can be any kind, in practice we only use integers or
@@ -37,7 +37,7 @@ class RpcFilter(RpcModel):
     values: set[StrictStr | StrictInt]
 
     def from_rpc(self) -> Filter:
-        model = get_model(NormalizedModelName(self.import_model_name))
+        model = get_model(NormalizedModelName(self.for_model))
         if model is None:
             raise ValueError("model not found")
 

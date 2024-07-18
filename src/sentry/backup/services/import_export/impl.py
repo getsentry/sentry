@@ -158,7 +158,7 @@ class UniversalImportExportService(ImportExportService):
         in_pk_map = pk_map.from_rpc()
         filters: list[Filter] = []
         for fb in filter_by:
-            if NormalizedModelName(fb.import_model_name) == batch_model_name:
+            if NormalizedModelName(fb.for_model) == batch_model_name:
                 filters.append(fb.from_rpc())
 
         import_chunk_type = (
@@ -427,7 +427,7 @@ class UniversalImportExportService(ImportExportService):
     def export_by_model(
         self,
         *,
-        import_model_name: str = "",
+        export_model_name: str = "",
         from_pk: int = 0,
         scope: RpcExportScope | None = None,
         filter_by: list[RpcFilter],
@@ -438,13 +438,13 @@ class UniversalImportExportService(ImportExportService):
             from sentry.db.models.base import BaseModel
 
             deps = dependencies()
-            batch_model_name = NormalizedModelName(import_model_name)
+            batch_model_name = NormalizedModelName(export_model_name)
             model = get_model(batch_model_name)
             if model is None or not issubclass(model, BaseModel):
                 return RpcExportError(
                     kind=RpcExportErrorKind.UnknownModel,
-                    on=InstanceID(import_model_name),
-                    reason=f"The model `{import_model_name}` could not be found",
+                    on=InstanceID(export_model_name),
+                    reason=f"The model `{export_model_name}` could not be found",
                 )
 
             silo_mode = SiloMode.get_current_mode()
@@ -452,14 +452,14 @@ class UniversalImportExportService(ImportExportService):
             if silo_mode != SiloMode.MONOLITH and silo_mode not in model_modes:
                 return RpcExportError(
                     kind=RpcExportErrorKind.IncorrectSiloModeForModel,
-                    on=InstanceID(import_model_name),
-                    reason=f"The model `{import_model_name}` was forwarded to the incorrect silo (it cannot be exported from the {silo_mode} silo)",
+                    on=InstanceID(export_model_name),
+                    reason=f"The model `{export_model_name}` was forwarded to the incorrect silo (it cannot be exported from the {silo_mode} silo)",
                 )
 
             if scope is None:
                 return RpcExportError(
                     kind=RpcExportErrorKind.UnspecifiedScope,
-                    on=InstanceID(import_model_name),
+                    on=InstanceID(export_model_name),
                     reason="The RPC was called incorrectly, please set an `ExportScope` parameter",
                 )
 
@@ -471,7 +471,7 @@ class UniversalImportExportService(ImportExportService):
             if not includable:
                 return RpcExportError(
                     kind=RpcExportErrorKind.UnexportableModel,
-                    on=InstanceID(import_model_name),
+                    on=InstanceID(export_model_name),
                     reason=f"The model `{batch_model_name}` is not exportable",
                 )
 
@@ -479,7 +479,7 @@ class UniversalImportExportService(ImportExportService):
             out_pk_map = PrimaryKeyMap()
             filters: list[Filter] = []
             for fb in filter_by:
-                if NormalizedModelName(fb.import_model_name) == batch_model_name:
+                if NormalizedModelName(fb.for_model) == batch_model_name:
                     filters.append(fb.from_rpc())
 
             def filter_objects(queryset_iterator):
@@ -569,7 +569,7 @@ class UniversalImportExportService(ImportExportService):
             sentry_sdk.capture_exception()
             return RpcExportError(
                 kind=RpcExportErrorKind.Unknown,
-                on=InstanceID(import_model_name),
+                on=InstanceID(export_model_name),
                 reason=f"Unknown internal error occurred: {traceback.format_exc()}",
             )
 
