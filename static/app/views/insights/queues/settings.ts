@@ -9,10 +9,6 @@ export const CHART_HEIGHT = 160;
 
 export const DESTINATION_TITLE = t('Destination Summary');
 
-export const releaseLevelAsBadgeProps = {
-  isNew: true,
-};
-
 export const DEFAULT_QUERY_FILTER = 'span.op:[queue.process,queue.publish]';
 export const CONSUMER_QUERY_FILTER = 'span.op:queue.process';
 export const PRODUCER_QUERY_FILTER = 'span.op:queue.publish';

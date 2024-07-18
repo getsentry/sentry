@@ -51,11 +51,8 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useMedia from 'sentry/utils/useMedia';
 import useOrganization from 'sentry/utils/useOrganization';
 import useProjects from 'sentry/utils/useProjects';
-import {releaseLevelAsBadgeProps as CacheModuleBadgeProps} from 'sentry/views/insights/cache/settings';
 import {useModuleURLBuilder} from 'sentry/views/insights/common/utils/useModuleURL';
 import {MODULE_SIDEBAR_TITLE as HTTP_MODULE_SIDEBAR_TITLE} from 'sentry/views/insights/http/settings';
-import {releaseLevelAsBadgeProps as LLMModuleBadgeProps} from 'sentry/views/insights/llmMonitoring/settings';
-import {releaseLevelAsBadgeProps as QueuesModuleBadgeProps} from 'sentry/views/insights/queues/settings';
 import {MODULE_TITLES} from 'sentry/views/insights/settings';
 import MetricsOnboardingSidebar from 'sentry/views/metrics/ddmOnboarding/sidebar';
 
@@ -276,7 +273,6 @@ function Sidebar() {
         to={`/organizations/${organization.slug}/${moduleURLBuilder('cache')}/`}
         id="performance-cache"
         icon={<SubitemDot collapsed />}
-        {...CacheModuleBadgeProps}
       />
     </Feature>
   );
@@ -302,7 +298,6 @@ function Sidebar() {
         label={
           <GuideAnchor target="performance-queues">{MODULE_TITLES.queue}</GuideAnchor>
         }
-        {...QueuesModuleBadgeProps}
         to={`/organizations/${organization.slug}/${moduleURLBuilder('queue')}/`}
         id="performance-queues"
         icon={<SubitemDot collapsed />}
@@ -386,7 +381,6 @@ function Sidebar() {
         {...sidebarItemProps}
         icon={<SubitemDot collapsed />}
         label={MODULE_TITLES.ai}
-        {...LLMModuleBadgeProps}
         to={`/organizations/${organization.slug}/${moduleURLBuilder('ai')}/`}
         id="llm-monitoring"
       />
@@ -559,7 +553,6 @@ function Sidebar() {
         label={<GuideAnchor target="insights">{t('Insights')}</GuideAnchor>}
         id="insights"
         initiallyExpanded={false}
-        isNew
         exact={!shouldAccordionFloat}
       >
         {requests}
