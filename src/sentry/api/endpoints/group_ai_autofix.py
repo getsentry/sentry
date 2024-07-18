@@ -201,7 +201,7 @@ class GroupAutofixEndpoint(GroupEndpoint):
                 500,
             )
 
-        check_autofix_status.apply_async(args=[run_id], countdown=timedelta(seconds=10).seconds)
+        check_autofix_status.apply_async(args=[run_id], countdown=timedelta(minutes=15).seconds)
 
         return Response(
             status=202,
