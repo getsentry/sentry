@@ -424,12 +424,9 @@ const dataCategory = {
  * Default colors for data usage outcomes
  */
 const outcome = {
-  [Outcome.ACCEPTED]: CHART_PALETTE[5][0], // #444674 - chart 100
-  [Outcome.FILTERED]: CHART_PALETTE[5][2], // #B85586 - chart 300
-  [Outcome.RATE_LIMITED]: CHART_PALETTE[5][3], // #E9626E - chart 400
-  [Outcome.INVALID]: CHART_PALETTE[5][4], // #F58C46 - chart 500
-  [Outcome.CLIENT_DISCARD]: CHART_PALETTE[5][5], // #F2B712 - chart 600
-  [Outcome.DROPPED]: CHART_PALETTE[5][3], // #F58C46 - chart 500
+  [Outcome.ACCEPTED]: CHART_PALETTE[0][0],
+  [Outcome.FILTERED]: CHART_PALETTE[1][1],
+  [Outcome.DROPPED]: CHART_PALETTE[5][3],
 };
 
 const generateAlertTheme = (colors: BaseColors, alias: Aliases) => ({

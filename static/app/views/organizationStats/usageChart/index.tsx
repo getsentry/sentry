@@ -1,5 +1,6 @@
-import {useTheme} from '@emotion/react';
+import {type Theme, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
+import Color from 'color';
 import type {
   BarSeriesOption,
   LegendComponentOption,
@@ -19,16 +20,27 @@ import {DATA_CATEGORY_INFO} from 'sentry/constants';
 import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Outcome} from 'sentry/types';
 import type {DataCategoryInfo, IntervalPeriod, SelectValue} from 'sentry/types/core';
 import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
+import commonTheme from 'sentry/utils/theme';
 
 import {formatUsageWithUnits} from '../utils';
 
 import {getTooltipFormatter, getXAxisDates, getXAxisLabelInterval} from './utils';
 
 const GIGABYTE = 10 ** 9;
+
+const COLOR_ERRORS = Color(commonTheme.dataCategory.errors).lighten(0.25).string();
+const COLOR_TRANSACTIONS = Color(commonTheme.dataCategory.transactions)
+  .lighten(0.35)
+  .string();
+const COLOR_ATTACHMENTS = Color(commonTheme.dataCategory.attachments)
+  .lighten(0.65)
+  .string();
+
+const COLOR_DROPPED = commonTheme.red300;
+const COLOR_FILTERED = commonTheme.pink100;
 
 export type CategoryOption = {
   /**
@@ -106,13 +118,11 @@ export const CHART_OPTIONS_DATA_TRANSFORM: SelectValue<ChartDataTransform>[] = [
   },
 ];
 
-export const enum SeriesTypes {
+const enum SeriesTypes {
   ACCEPTED = 'Accepted',
-  FILTERED = 'Filtered',
-  RATE_LIMITED = 'Rate Limited',
-  INVALID = 'Invalid',
-  CLIENT_DISCARD = 'Client Discard',
+  DROPPED = 'Dropped',
   PROJECTED = 'Projected',
+  FILTERED = 'Filtered',
 }
 
 export type UsageChartProps = {
@@ -182,11 +192,9 @@ const cumulativeTotalDataTransformation: UsageChartProps['handleDataTransformati
 ) => {
   const chartData: ChartStats = {
     accepted: [],
-    filtered: [],
-    rateLimited: [],
-    invalid: [],
-    clientDiscard: [],
+    dropped: [],
     projected: [],
+    filtered: [],
     reserved: [],
     onDemand: [],
   };
@@ -218,13 +226,10 @@ const getUnitYaxisFormatter =
 
 export type ChartStats = {
   accepted: NonNullable<BarSeriesOption['data']>;
+  dropped: NonNullable<BarSeriesOption['data']>;
   projected: NonNullable<BarSeriesOption['data']>;
-  clientDiscard?: NonNullable<BarSeriesOption['data']>;
-  dropped?: NonNullable<BarSeriesOption['data']>;
   filtered?: NonNullable<BarSeriesOption['data']>;
-  invalid?: NonNullable<BarSeriesOption['data']>;
   onDemand?: NonNullable<BarSeriesOption['data']>;
-  rateLimited?: NonNullable<BarSeriesOption['data']>;
   reserved?: NonNullable<BarSeriesOption['data']>;
 };
 
@@ -322,6 +327,20 @@ function chartMetadata({
   };
 }
 
+function chartColors(theme: Theme, dataCategory: UsageChartProps['dataCategory']) {
+  const COLOR_PROJECTED = theme.chartOther;
+
+  if (dataCategory === DATA_CATEGORY_INFO.error.plural) {
+    return [COLOR_ERRORS, COLOR_FILTERED, COLOR_DROPPED, COLOR_PROJECTED];
+  }
+
+  if (dataCategory === DATA_CATEGORY_INFO.attachment.plural) {
+    return [COLOR_ATTACHMENTS, COLOR_FILTERED, COLOR_DROPPED, COLOR_PROJECTED];
+  }
+
+  return [COLOR_TRANSACTIONS, COLOR_FILTERED, COLOR_DROPPED, COLOR_PROJECTED];
+}
+
 function UsageChartBody({
   usageDateStart,
   usageDateEnd,
@@ -382,31 +401,34 @@ function UsageChartBody({
     usageDateInterval,
     usageDateShowUtc,
   });
-  function chartLegendData(): LegendComponentOption['data'] {
-    const legend: LegendComponentOption['data'] = [];
 
-    if (!chartData.reserved || chartData.reserved.length === 0) {
-      legend.push({name: SeriesTypes.ACCEPTED});
+  function chartLegendData() {
+    const legend: LegendComponentOption['data'] = [
+      ...(chartData.reserved && chartData.reserved.length > 0
+        ? []
+        : [
+            {
+              name: SeriesTypes.ACCEPTED,
+            },
+          ]),
+    ];
+
+    if (chartData.filtered && chartData.filtered.length > 0) {
+      legend.push({
+        name: SeriesTypes.FILTERED,
+      });
     }
 
-    if ((chartData.filtered ?? []).length > 0) {
-      legend.push({name: SeriesTypes.FILTERED});
-    }
-
-    if ((chartData.rateLimited ?? []).length > 0) {
-      legend.push({name: SeriesTypes.RATE_LIMITED});
-    }
-
-    if ((chartData.invalid ?? []).length > 0) {
-      legend.push({name: SeriesTypes.INVALID});
-    }
-
-    if ((chartData.clientDiscard ?? []).length > 0) {
-      legend.push({name: SeriesTypes.CLIENT_DISCARD});
+    if (chartData.dropped.length > 0) {
+      legend.push({
+        name: SeriesTypes.DROPPED,
+      });
     }
 
     if (chartData.projected.length > 0) {
-      legend.push({name: SeriesTypes.PROJECTED});
+      legend.push({
+        name: SeriesTypes.PROJECTED,
+      });
     }
 
     if (chartSeries) {
@@ -422,14 +444,7 @@ function UsageChartBody({
 
   const colors = categoryColors?.length
     ? categoryColors
-    : [
-        theme.outcome[Outcome.ACCEPTED],
-        theme.outcome[Outcome.FILTERED],
-        theme.outcome[Outcome.RATE_LIMITED],
-        theme.outcome[Outcome.INVALID],
-        theme.outcome[Outcome.CLIENT_DISCARD],
-        theme.chartOther, // Projected
-      ];
+    : chartColors(theme, dataCategory);
 
   const series: SeriesOption[] = [
     barSeries({
@@ -447,21 +462,8 @@ function UsageChartBody({
       legendHoverLink: false,
     }),
     barSeries({
-      name: SeriesTypes.RATE_LIMITED,
-      data: chartData.rateLimited,
-      barMinHeight: 1,
-      stack: 'usage',
-      legendHoverLink: false,
-    }),
-    barSeries({
-      name: SeriesTypes.INVALID,
-      data: chartData.invalid,
-      stack: 'usage',
-      legendHoverLink: false,
-    }),
-    barSeries({
-      name: SeriesTypes.CLIENT_DISCARD,
-      data: chartData.clientDiscard,
+      name: SeriesTypes.DROPPED,
+      data: chartData.dropped,
       stack: 'usage',
       legendHoverLink: false,
     }),
@@ -520,14 +522,6 @@ function UsageChartBody({
         top: 5,
         data: chartLegendData(),
         theme,
-        selected: {
-          [SeriesTypes.ACCEPTED]: true,
-          [SeriesTypes.FILTERED]: true,
-          [SeriesTypes.RATE_LIMITED]: true,
-          [SeriesTypes.INVALID]: true,
-          [SeriesTypes.CLIENT_DISCARD]: false,
-          [SeriesTypes.PROJECTED]: true,
-        },
       })}
     />
   );

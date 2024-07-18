@@ -118,11 +118,10 @@ export enum Outcome {
   ACCEPTED = 'accepted',
   FILTERED = 'filtered',
   INVALID = 'invalid',
-  ABUSE = 'abuse',
+  DROPPED = 'dropped', // this is not a real outcome coming from the server
   RATE_LIMITED = 'rate_limited',
   CLIENT_DISCARD = 'client_discard',
   CARDINALITY_LIMITED = 'cardinality_limited',
-  DROPPED = 'dropped', // this is not a real outcome coming from the server
 }
 
 export type IntervalPeriod = ReturnType<typeof getInterval>;
