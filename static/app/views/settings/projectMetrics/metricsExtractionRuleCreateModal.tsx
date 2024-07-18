@@ -14,7 +14,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
-import {useMetricsCardinality} from 'sentry/utils/metrics/useMetricsCardinality';
+import {useCardinalityLimitedMetricVolume} from 'sentry/utils/metrics/useCardinalityLimitedMetricVolume';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -33,6 +33,7 @@ interface Props {
 
 const INITIAL_DATA: FormData = {
   spanAttribute: null,
+  unit: 'none',
   aggregates: ['count'],
   tags: ['release', 'environment'],
   conditions: [createCondition()],
@@ -151,7 +152,7 @@ function FormWrapper({
     projectId
   );
 
-  const {data: cardinality} = useMetricsCardinality({
+  const {data: cardinality} = useCardinalityLimitedMetricVolume({
     projects: [projectId],
   });
 
@@ -165,7 +166,7 @@ function FormWrapper({
         spanAttribute: data.spanAttribute!,
         tags: data.tags,
         aggregates: data.aggregates.flatMap(explodeAggregateGroup),
-        unit: 'none',
+        unit: data.unit,
         conditions: data.conditions,
         projectId: Number(projectId),
         // Will be set by the backend
