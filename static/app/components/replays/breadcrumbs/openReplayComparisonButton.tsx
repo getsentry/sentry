@@ -1,6 +1,5 @@
 import {Fragment, lazy, type ReactNode, Suspense} from 'react';
 import {css} from '@emotion/react';
-import {getLocationHref} from '@sentry/utils';
 
 import {openModal} from 'sentry/actionCreators/modal';
 import FeatureBadge from 'sentry/components/badge/featureBadge';
@@ -18,6 +17,7 @@ interface Props {
   leftOffsetMs: number;
   replay: null | ReplayReader;
   rightOffsetMs: number;
+  surface: string;
   size?: ButtonProps['size'];
 }
 
@@ -26,6 +26,7 @@ export function OpenReplayComparisonButton({
   leftOffsetMs,
   replay,
   rightOffsetMs,
+  surface,
   size,
 }: Props) {
   const organization = useOrganization();
@@ -36,7 +37,7 @@ export function OpenReplayComparisonButton({
       size={size}
       analyticsEventKey="replay.hydration-modal.opened"
       analyticsEventName="Hydration Modal Opened"
-      analyticsParams={{url: getLocationHref()}}
+      analyticsParams={{surface}}
       onClick={event => {
         event.stopPropagation();
         openModal(
