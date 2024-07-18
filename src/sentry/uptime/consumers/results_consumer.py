@@ -10,6 +10,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CheckResult,
 )
 
+from sentry import features
 from sentry.conf.types.kafka_definition import Topic
 from sentry.remote_subscriptions.consumers.result_consumer import (
     ResultProcessor,
@@ -175,13 +176,19 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
             project_subscription.uptime_status == UptimeStatus.OK
             and result["status"] == CHECKSTATUS_FAILURE
         ):
-            create_issue_platform_occurrence(result, project_subscription)
+            if features.has(
+                "organizations:uptime-create-issues", project_subscription.project.organization
+            ):
+                create_issue_platform_occurrence(result, project_subscription)
             project_subscription.update(uptime_status=UptimeStatus.FAILED)
         elif (
             project_subscription.uptime_status == UptimeStatus.FAILED
             and result["status"] == CHECKSTATUS_SUCCESS
         ):
-            resolve_uptime_issue(project_subscription)
+            if features.has(
+                "organizations:uptime-create-issues", project_subscription.project.organization
+            ):
+                resolve_uptime_issue(project_subscription)
             project_subscription.update(uptime_status=UptimeStatus.OK)
 
 
