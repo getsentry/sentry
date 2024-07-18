@@ -245,7 +245,7 @@ class UsageStatsOrganization<
   }
 
   get chartProps(): UsageChartProps {
-    const {dataCategory, clientDiscard} = this.props;
+    const {dataCategory, clientDiscard, handleChangeState} = this.props;
     const {error, errors, loading} = this.state;
     const {
       chartStats,
@@ -278,6 +278,11 @@ class UsageStatsOrganization<
         skipZeroValuedSubLabels: true,
       },
       legendSelected: !clientDiscard ? {[SeriesTypes.CLIENT_DISCARD]: false} : undefined,
+      onLegendSelectChanged: ({name, selected}) => {
+        if (name === SeriesTypes.CLIENT_DISCARD) {
+          handleChangeState({clientDiscard: selected[name]});
+        }
+      },
     } as UsageChartProps;
 
     return chartProps;
