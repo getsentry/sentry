@@ -512,77 +512,312 @@ export const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
 
 export const TRACE_FIELDS: Record<SpanIndexedField | SpanMetricsField, FieldDefinition> =
   {
-    [SpanIndexedField.ENVIRONMENT]: undefined,
-    [SpanIndexedField.RESOURCE_RENDER_BLOCKING_STATUS]: undefined,
-    [SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH]: undefined,
-    [SpanIndexedField.SPAN_CATEGORY]: undefined,
-    [SpanIndexedField.SPAN_DURATION]: undefined,
-    [SpanIndexedField.SPAN_SELF_TIME]: undefined,
-    [SpanIndexedField.SPAN_GROUP]: undefined,
-    [SpanIndexedField.SPAN_MODULE]: undefined,
-    [SpanIndexedField.SPAN_DESCRIPTION]: undefined,
-    [SpanIndexedField.SPAN_STATUS]: undefined,
-    [SpanIndexedField.SPAN_OP]: undefined,
-    [SpanIndexedField.ID]: undefined,
-    [SpanIndexedField.SPAN_ACTION]: undefined,
-    [SpanIndexedField.SPAN_AI_PIPELINE_GROUP]: undefined,
-    [SpanIndexedField.SDK_NAME]: undefined,
-    [SpanIndexedField.TRACE]: undefined,
-    [SpanIndexedField.TRANSACTION_ID]: undefined,
-    [SpanIndexedField.TRANSACTION_METHOD]: undefined,
-    [SpanIndexedField.TRANSACTION_OP]: undefined,
-    [SpanIndexedField.SPAN_DOMAIN]: undefined,
-    [SpanIndexedField.TIMESTAMP]: undefined,
-    [SpanIndexedField.RAW_DOMAIN]: undefined,
-    [SpanIndexedField.PROJECT]: undefined,
-    [SpanIndexedField.PROJECT_ID]: undefined,
-    [SpanIndexedField.PROFILE_ID]: undefined,
-    [SpanIndexedField.RELEASE]: undefined,
-    [SpanIndexedField.TRANSACTION]: undefined,
-    [SpanIndexedField.ORIGIN_TRANSACTION]: undefined,
-    [SpanIndexedField.REPLAY_ID]: undefined,
-    [SpanIndexedField.BROWSER_NAME]: undefined,
-    [SpanIndexedField.USER]: undefined,
-    [SpanIndexedField.USER_ID]: undefined,
-    [SpanIndexedField.USER_EMAIL]: undefined,
-    [SpanIndexedField.USER_USERNAME]: undefined,
-    [SpanIndexedField.INP]: undefined,
-    [SpanIndexedField.INP_SCORE]: undefined,
-    [SpanIndexedField.INP_SCORE_WEIGHT]: undefined,
-    [SpanIndexedField.TOTAL_SCORE]: undefined,
-    [SpanIndexedField.RESPONSE_CODE]: undefined,
-    [SpanIndexedField.CACHE_HIT]: undefined,
-    [SpanIndexedField.CACHE_ITEM_SIZE]: undefined,
-    [SpanIndexedField.TRACE_STATUS]: undefined,
-    [SpanIndexedField.MESSAGING_MESSAGE_ID]: undefined,
-    [SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE]: undefined,
-    [SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY]: undefined,
-    [SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT]: undefined,
-    [SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME]: undefined,
-
-    [SpanMetricsField.PROJECT_ID]: undefined,
-    [SpanMetricsField.HTTP_DECODED_RESPONSE_CONTENT_LENGTH]: undefined,
-    [SpanMetricsField.HTTP_RESPONSE_TRANSFER_SIZE]: undefined,
-    [SpanMetricsField.FILE_EXTENSION]: undefined,
-    [SpanMetricsField.AI_TOTAL_TOKENS_USED]: undefined,
-    [SpanMetricsField.AI_TOTAL_COST]: undefined,
-    [SpanMetricsField.OS_NAME]: undefined,
-    [SpanMetricsField.APP_START_TYPE]: undefined,
-    [SpanMetricsField.DEVICE_CLASS]: undefined,
-    [SpanMetricsField.CACHE_ITEM_SIZE]: undefined,
-    [SpanMetricsField.MESSAGING_MESSAGE_RECEIVE_LATENCY]: undefined,
+    /** Indexed Fields */
+    [SpanIndexedField.ENVIRONMENT]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.RESOURCE_RENDER_BLOCKING_STATUS]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.SPAN_CATEGORY]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.SPAN_DURATION]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.SPAN_SELF_TIME]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.SPAN_GROUP]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.SPAN_MODULE]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.SPAN_DESCRIPTION]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.SPAN_STATUS]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.SPAN_OP]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.ID]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.SPAN_ACTION]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.SPAN_AI_PIPELINE_GROUP]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.SDK_NAME]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.TRACE]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.TRANSACTION_ID]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.TRANSACTION_METHOD]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.TRANSACTION_OP]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.SPAN_DOMAIN]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.TIMESTAMP]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.RAW_DOMAIN]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.PROJECT]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.PROJECT_ID]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.PROFILE_ID]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.RELEASE]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.TRANSACTION]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.ORIGIN_TRANSACTION]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.REPLAY_ID]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.BROWSER_NAME]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.USER]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.USER_ID]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.USER_EMAIL]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.USER_USERNAME]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.INP]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.INP_SCORE]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.INP_SCORE_WEIGHT]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.TOTAL_SCORE]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.RESPONSE_CODE]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.CACHE_HIT]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.CACHE_ITEM_SIZE]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.TRACE_STATUS]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.MESSAGING_MESSAGE_ID]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    /** Metrics Fields */
+    [SpanMetricsField.PROJECT_ID]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanMetricsField.HTTP_DECODED_RESPONSE_CONTENT_LENGTH]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanMetricsField.HTTP_RESPONSE_TRANSFER_SIZE]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanMetricsField.FILE_EXTENSION]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanMetricsField.AI_TOTAL_TOKENS_USED]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanMetricsField.AI_TOTAL_COST]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanMetricsField.OS_NAME]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanMetricsField.APP_START_TYPE]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanMetricsField.DEVICE_CLASS]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanMetricsField.CACHE_ITEM_SIZE]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
+    [SpanMetricsField.MESSAGING_MESSAGE_RECEIVE_LATENCY]: {
+      desc: t('Placeholder description'),
+      kind: FieldKind.FIELD,
+      valueType: FieldValueType.NEVER,
+    },
   };
 
 type AllEventFieldKeys =
   | keyof typeof AGGREGATION_FIELDS
   | keyof typeof MEASUREMENT_FIELDS
   | keyof typeof SPAN_OP_FIELDS
+  | keyof typeof TRACE_FIELDS
   | FieldKey;
 
 const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   ...AGGREGATION_FIELDS,
   ...MEASUREMENT_FIELDS,
   ...SPAN_OP_FIELDS,
+  ...TRACE_FIELDS,
   [FieldKey.AGE]: {
     desc: t('The age of the issue in relative time'),
     kind: FieldKind.FIELD,
