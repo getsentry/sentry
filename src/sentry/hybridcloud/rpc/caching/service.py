@@ -96,7 +96,7 @@ class SiloCacheBackedCallable(Generic[_R]):
         metrics.incr("hybridcloud.caching.one.rpc", tags={"base_key": self.base_key})
         r = self.cb(i)
         if r is not None:
-            _consume_generator(_set_cache(key, r.json(), version, self.timeout))
+            _consume_generator(_set_cache(key, r.model_dump_json(), version, self.timeout))
         return r
 
     def get_one(self, object_id: int) -> _R | None:
