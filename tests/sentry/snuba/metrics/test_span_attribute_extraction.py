@@ -19,7 +19,7 @@ def test_convert_to_spec():
 
     expected_spec = {
         "category": "span",
-        "mri": "d:custom/span_attribute_1@millisecond",
+        "mri": "d:custom/span_attribute_1@none",
         "field": "span.duration",
         "tags": [
             {"key": "region", "field": "span.data.region"},

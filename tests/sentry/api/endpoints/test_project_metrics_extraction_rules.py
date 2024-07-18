@@ -183,9 +183,10 @@ class ProjectMetricsExtractionEndpointTestCase(APITestCase):
         data = response.data
         assert len(data) == 1
         assert data[0]["spanAttribute"] == "span.duration"
+        assert data[0]["unit"] == "millisecond"
         conditions = data[0]["conditions"]
-        assert conditions[0]["mris"][0].endswith("millisecond")
-        assert conditions[0]["mris"][1].endswith("millisecond")
+        assert conditions[0]["mris"][0].endswith("none")
+        assert conditions[0]["mris"][1].endswith("none")
 
     @django_db_all
     @with_feature("organizations:custom-metrics-extraction-rule")

@@ -41,7 +41,7 @@ from typing import cast
 from sentry_kafka_schemas.codecs import ValidationError
 
 from sentry.exceptions import InvalidParams
-from sentry.sentry_metrics.models.spanattributeextractionrules import SPAN_ATTRIBUTE_PREFIX
+from sentry.sentry_metrics.extraction_rules import SPAN_ATTRIBUTE_PREFIX
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.dataset import EntityKey
 from sentry.snuba.metrics.units import format_value_using_unit_and_op
