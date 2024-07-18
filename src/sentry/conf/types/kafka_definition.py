@@ -21,6 +21,7 @@ class Topic(Enum):
     OUTCOMES = "outcomes"
     OUTCOMES_DLQ = "outcomes-dlq"
     OUTCOMES_BILLING = "outcomes-billing"
+    OUTCOMES_BILLING_DLQ = "outcomes-billing-dlq"
     EVENTS_SUBSCRIPTIONS_RESULTS = "events-subscription-results"
     TRANSACTIONS_SUBSCRIPTIONS_RESULTS = "transactions-subscription-results"
     GENERIC_METRICS_SUBSCRIPTIONS_RESULTS = "generic-metrics-subscription-results"
