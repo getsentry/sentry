@@ -235,6 +235,7 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
         both alert and resolve 'after' the warning trigger (whether that means
         > or < the value depends on threshold type).
         """
+        print("validating yeahh")
         self._validate_query(data)
         query_type = data["query_type"]
 
@@ -341,7 +342,8 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
 
     def _validate_snql_query(self, data, entity_subscription, projects):
         end = timezone.now()
-        start = end - timedelta(minutes=10)
+        start = end - timedelta(hours=2)
+        print("entity sub: ", entity_subscription)
         try:
             query_builder = entity_subscription.build_query_builder(
                 query=data["query"],
@@ -353,10 +355,12 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                     "start": start,
                     "end": end,
                 },
+                use_timeseries_version=True,
             )
         except (InvalidSearchQuery, ValueError) as e:
             raise serializers.ValidationError(f"Invalid Query or Metric: {e}")
 
+        print("query builder: ", query_builder)
         if not query_builder.are_columns_resolved():
             raise serializers.ValidationError(
                 "Invalid Metric: Please pass a valid function for aggregation"
@@ -374,8 +378,10 @@ class AlertRuleSerializer(CamelSnakeModelSerializer[AlertRule]):
                 Condition(Column(time_col, entity=entity), Op.LT, end),
             ]
         )
-        query_builder.limit = Limit(1)
+        # query_builder.limit = Limit(100)
 
+        print("query results: ", query_builder.run_query(referrer="alertruleserializer.test_query"))
+        # {'data': [{'count': 0}], 'meta': [{'name': 'count', 'type': 'UInt64'}],
         try:
             query_builder.run_query(referrer="alertruleserializer.test_query")
         except Exception:

@@ -1512,6 +1512,7 @@ class BaseQueryBuilder:
     def run_query(self, referrer: str | None, use_cache: bool = False) -> Any:
         if not referrer:
             InvalidSearchQuery("Query missing referrer.")
+        print("query: ", self.get_snql_query())
         return raw_snql_query(self.get_snql_query(), referrer, use_cache)
 
     def process_results(self, results: Any) -> EventsResponse:

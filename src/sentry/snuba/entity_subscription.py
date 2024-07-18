@@ -145,6 +145,7 @@ class BaseEntitySubscription(ABC, _EntitySubscription):
         environment: Environment | None,
         params: ParamsType | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
+        use_timeseries_version: bool = False,
     ) -> BaseQueryBuilder:
         raise NotImplementedError
 
@@ -166,8 +167,9 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
         environment: Environment | None,
         params: ParamsType | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
+        use_timeseries_version: bool = False,
     ) -> BaseQueryBuilder:
-        from sentry.search.events.builder.errors import ErrorsQueryBuilder
+        from sentry.search.events.builder.errors import ErrorsQueryBuilder, ErrorsTimeseriesQueryBuilder
 
         if params is None:
             params = {}
@@ -183,7 +185,7 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
         if self.dataset == Dataset.Events:
             from sentry.snuba.errors import PARSER_CONFIG_OVERRIDES
 
-            query_builder_cls = ErrorsQueryBuilder
+            query_builder_cls = ErrorsQueryBuilder if not use_timeseries_version else ErrorsTimeseriesQueryBuilder
             parser_config_overrides.update(PARSER_CONFIG_OVERRIDES)
 
         return query_builder_cls(
@@ -191,10 +193,12 @@ class BaseEventsAndTransactionEntitySubscription(BaseEntitySubscription, ABC):
             query=query,
             selected_columns=[self.aggregate],
             params=params,
-            offset=None,
+            # rollup=3600,
+            interval=3600, # need interval for ts
+            # offset=None, # need offset for non-ts
             limit=None,
             config=QueryBuilderConfig(
-                skip_time_conditions=True,
+                skip_time_conditions=False, # should be true for basic alert rule validation
                 parser_config_overrides=parser_config_overrides,
                 skip_field_validation_for_entity_subscription_deletion=skip_field_validation_for_entity_subscription_deletion,
             ),
@@ -290,6 +294,7 @@ class BaseMetricsEntitySubscription(BaseEntitySubscription, ABC):
         environment: Environment | None,
         params: ParamsType | None = None,
         skip_field_validation_for_entity_subscription_deletion: bool = False,
+        use_timeseries_version: bool = False,
     ) -> BaseQueryBuilder:
 
         if params is None:
