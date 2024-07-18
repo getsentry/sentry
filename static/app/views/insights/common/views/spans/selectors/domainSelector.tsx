@@ -126,6 +126,7 @@ export function DomainSelector({
       loading={isLoading}
       searchable
       menuTitle={LABEL_FOR_MODULE_NAME[moduleName]}
+      maxMenuWidth={'500px'}
       onSearch={newValue => {
         if (!wasSearchSpaceExhausted) {
           debouncedSetSearch(newValue);
