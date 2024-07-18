@@ -277,7 +277,7 @@ class UsageStatsOrganization<
         subLabels: chartSubLabels,
         skipZeroValuedSubLabels: true,
       },
-      legendSelected: !clientDiscard ? {[SeriesTypes.CLIENT_DISCARD]: false} : undefined,
+      legendSelected: {[SeriesTypes.CLIENT_DISCARD]: !!clientDiscard},
       onLegendSelectChanged: ({name, selected}) => {
         if (name === SeriesTypes.CLIENT_DISCARD) {
           handleChangeState({clientDiscard: selected[name]});
