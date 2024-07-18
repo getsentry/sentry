@@ -43,12 +43,6 @@ describe('PerformanceScoreBreakdownChart', function () {
       },
     });
 
-    eventsMock = MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/events/`,
-      body: {
-        data: [],
-      },
-    });
     eventsStatsMock = MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-stats/`,
       body: {},
