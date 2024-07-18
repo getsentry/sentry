@@ -69,6 +69,7 @@ export function ActionSelector({
 
   return (
     <CompactSelect
+      style={{maxWidth: '200px'}}
       triggerProps={{prefix: LABEL_FOR_MODULE_NAME[moduleName]}}
       options={options}
       value={value ?? ''}

@@ -64,12 +64,12 @@ export function TransactionSelector({
 
   return (
     <CompactSelect
+      style={{maxWidth: '400px'}}
       value={value}
       options={options}
       emptyMessage={t('No results')}
       loading={isLoading}
       searchable
-      style={{maxWidth: '400px'}}
       menuTitle={t('Pages')}
       onSearch={newValue => {
         if (!wasSearchSpaceExhausted) {

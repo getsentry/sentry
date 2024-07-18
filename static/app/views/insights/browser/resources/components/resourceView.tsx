@@ -106,6 +106,7 @@ function ResourceTypeSelector({value}: {value?: string}) {
 
   return (
     <CompactSelect
+      style={{maxWidth: '200px'}}
       triggerProps={{prefix: `${t('Type')}`}}
       options={options}
       value={value ?? ''}
