@@ -3,7 +3,6 @@ import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
 // eslint-disable-next-line no-restricted-imports
-import {fetchTagValues} from 'sentry/actionCreators/tags';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
 import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types';
 import SmartSearchBar from 'sentry/components/smartSearchBar';
@@ -20,11 +19,10 @@ import {
 } from 'sentry/types';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {FieldKind, getFieldDefinition} from 'sentry/utils/fields';
-import useApi from 'sentry/utils/useApi';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import type {WithIssueTagsProps} from 'sentry/utils/withIssueTags';
 import withIssueTags from 'sentry/utils/withIssueTags';
-import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
+import {makeGetIssueTagKeyValues} from 'sentry/views/issueList/utils/getIssueTagValues';
 import {useFetchIssueTags} from 'sentry/views/issueList/utils/useFetchIssueTags';
 
 const getSupportedTags = (supportedTags: TagCollection): TagCollection => {
@@ -92,7 +90,6 @@ interface Props extends React.ComponentProps<typeof SmartSearchBar>, WithIssueTa
 const EXCLUDED_TAGS = ['environment'];
 
 function IssueListSearchBar({organization, tags, onClose, ...props}: Props) {
-  const api = useApi();
   const {selection: pageFilters} = usePageFilters();
   const {tags: issueTags} = useFetchIssueTags({
     org: organization,
@@ -108,42 +105,9 @@ function IssueListSearchBar({organization, tags, onClose, ...props}: Props) {
     statsPeriod: pageFilters.datetime.period,
   });
 
-  const tagValueLoader = useCallback(
-    (key: string, search: string) => {
-      const orgSlug = organization.slug;
-      const projectIds = pageFilters.projects.map(id => id.toString());
-      const endpointParams = {
-        start: pageFilters.datetime.start
-          ? getUtcDateString(pageFilters.datetime.start)
-          : undefined,
-        end: pageFilters.datetime.end
-          ? getUtcDateString(pageFilters.datetime.end)
-          : undefined,
-        statsPeriod: pageFilters.datetime.period,
-      };
-
-      return fetchTagValues({
-        api,
-        orgSlug,
-        tagKey: key,
-        search,
-        projectIds,
-        endpointParams,
-      });
-    },
-    [
-      api,
-      organization.slug,
-      pageFilters.datetime.end,
-      pageFilters.datetime.period,
-      pageFilters.datetime.start,
-      pageFilters.projects,
-    ]
-  );
-
   const getTagValues = useMemo(
-    () => makeGetIssueTagValues(tagValueLoader),
-    [tagValueLoader]
+    () => makeGetIssueTagKeyValues({organization, pageFilters}),
+    [organization, pageFilters]
   );
 
   const recommendedGroup: SearchGroup = {

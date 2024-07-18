@@ -249,3 +249,79 @@ export const useFetchOrganizationTags = (
     ...options,
   });
 };
+
+type FetchOrganizationTagKeyValuesParams = {
+  orgSlug: string;
+  tagKey: string;
+  dataset?: Dataset;
+  enabled?: boolean;
+  end?: string;
+  includeReplays?: boolean;
+  includeSessions?: boolean;
+  includeTransactions?: boolean;
+  keepPreviousData?: boolean;
+  projectIds?: string[];
+  search?: string;
+  sort?: string;
+  start?: string;
+  statsPeriod?: string | null;
+  useCache?: boolean;
+};
+
+export const makeFetchOrganizationTagKeyValues = ({
+  orgSlug,
+  tagKey,
+  dataset,
+  projectIds,
+  useCache = true,
+  statsPeriod,
+  start,
+  end,
+  search,
+  includeReplays,
+  includeSessions,
+  includeTransactions,
+  sort,
+}: FetchOrganizationTagKeyValuesParams): ApiQueryKey => {
+  const query: Query = {};
+
+  query.useCache = useCache ? '1' : '0';
+  query.includeReplays = includeReplays ? '1' : '0';
+  query.includeSessions = includeSessions ? '1' : '0';
+  query.includeTransactions = includeTransactions ? '1' : '0';
+
+  query.project = projectIds;
+
+  if (statsPeriod) {
+    query.statsPeriod = statsPeriod;
+  }
+  if (start) {
+    query.start = start;
+  }
+  if (end) {
+    query.end = end;
+  }
+  if (search) {
+    query.search = search;
+  }
+  if (sort) {
+    query.sort = sort;
+  }
+  if (dataset) {
+    query.dataset = dataset;
+  }
+
+  return [`/organizations/${orgSlug}/tags/${tagKey}/values/`, {query: query}];
+};
+
+export const useFetchOrganizationTagKeyValues = (
+  params: FetchOrganizationTagKeyValuesParams,
+  options: Partial<UseApiQueryOptions<TagValue[]>>
+) => {
+  return useApiQuery<TagValue[]>(makeFetchOrganizationTagKeyValues(params), {
+    staleTime: Infinity,
+    keepPreviousData: params.keepPreviousData,
+    enabled: params.enabled ?? true,
+    ...options,
+  });
+};

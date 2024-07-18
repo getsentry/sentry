@@ -4,7 +4,6 @@ import styled from '@emotion/styled';
 import orderBy from 'lodash/orderBy';
 
 import {useFetchIssueTags} from 'sentry/actionCreators/group';
-import {fetchTagValues} from 'sentry/actionCreators/tags';
 import EventSearchBar from 'sentry/components/events/searchBar';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {SearchQueryBuilder} from 'sentry/components/searchQueryBuilder';
@@ -15,10 +14,10 @@ import type {Group, Tag, TagCollection} from 'sentry/types/group';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {FieldKind, ISSUE_EVENT_PROPERTY_FIELDS} from 'sentry/utils/fields';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
-import useApi from 'sentry/utils/useApi';
 import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import useOrganization from 'sentry/utils/useOrganization';
-import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
+import usePageFilters from 'sentry/utils/usePageFilters';
+import {makeGetIssueTagKeyValues} from 'sentry/views/issueList/utils/getIssueTagValues';
 
 import AllEventsTable from './allEventsTable';
 
@@ -75,8 +74,8 @@ function UpdatedSearchBar({
   handleSearch: (value: string) => void;
   query: string;
 }) {
-  const api = useApi();
   const organization = useOrganization();
+  const {selection: pageFilters} = usePageFilters();
 
   const {data = []} = useFetchIssueTags({
     orgSlug: organization.slug,
@@ -100,25 +99,9 @@ function UpdatedSearchBar({
     }, {});
   }, [data]);
 
-  const tagValueLoader = useCallback(
-    (key: string, search: string) => {
-      const orgSlug = organization.slug;
-      const projectIds = [group.project.id];
-
-      return fetchTagValues({
-        api,
-        orgSlug,
-        tagKey: key,
-        search,
-        projectIds,
-      });
-    },
-    [api, group.project.id, organization.slug]
-  );
-
   const getTagValues = useMemo(
-    () => makeGetIssueTagValues(tagValueLoader),
-    [tagValueLoader]
+    () => makeGetIssueTagKeyValues({organization, pageFilters}),
+    [organization, pageFilters]
   );
 
   const filterKeySections = useMemo(() => getFilterKeySections(filterKeys), [filterKeys]);
