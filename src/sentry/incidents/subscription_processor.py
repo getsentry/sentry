@@ -511,7 +511,7 @@ class SubscriptionProcessor:
         )
 
         if self.has_feature_flag:
-            # I would prefer not to have this all be in an if statement. But what can you do ¯\_(ツ)_/¯
+            # MF: I would prefer not to have this all be in an if statement. But what can you do ¯\_(ツ)_/¯
             seer_anomaly_detection_connection_pool = connection_from_url(
                 settings.SEER_ANOMALY_DETECTION_URL,
                 timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
@@ -549,12 +549,13 @@ class SubscriptionProcessor:
                     extra={
                         "subscription_id": self.subscription.id,
                         "dataset": self.subscription.snuba_query.dataset,
-                        # TODO: add other, relevant fields here
+                        # TODO (MF): add other, relevant fields here
                     },
                 )
                 return []
 
-            # TODO: handle response codes if status code != 200
+            # TODO (MF): handle response codes if status code != 200
+            # MF: But it doesn't seem like the mock response has status codes. So.
 
             try:
                 anomalies = json.loads(response.data.decode("utf-8")).get("anomalies")
@@ -607,9 +608,43 @@ class SubscriptionProcessor:
         with transaction.atomic(router.db_for_write(AlertRule)):
             # Triggers is the threshold - NOT an instance of a trigger
             for trigger in self.triggers:
-                if trigger.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
-                    # TODO: loop through list of anomalies and fire alert if anomaly type matches threshold_type
-                    pass
+                if self.has_feature_flag:
+                    if trigger.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
+                        # MF: There should only be one anomaly in the list
+                        for anomaly in anomalies:
+                            if self.get_anomaly_detected(
+                                anomaly
+                            ) and not self.check_trigger_matches_status(
+                                trigger, TriggerStatus.ACTIVE
+                            ):
+                                metrics.incr(
+                                    "incidents.alert_rules.threshold", tags={"type": "alert"}
+                                )
+                                incident_trigger = self.trigger_alert_threshold(
+                                    trigger, aggregation_value
+                                )
+                                if incident_trigger is not None:
+                                    fired_incident_triggers.append(incident_trigger)
+                            else:
+                                self.trigger_alert_counts[trigger.id] = 0
+
+                            # MF: There's no explicit "resolve threshold" for anomaly detection. I chose to resolve if no anomaly detected, but unsure if that's correct.
+                            if (
+                                not self.get_anomaly_detected(anomaly)
+                                and self.active_incident
+                                and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
+                            ):
+                                metrics.incr(
+                                    "incidents.alert_rules.threshold", tags={"type": "resolve"}
+                                )
+                                incident_trigger = self.trigger_resolve_threshold(
+                                    trigger, aggregation_value
+                                )
+
+                                if incident_trigger is not None:
+                                    fired_incident_triggers.append(incident_trigger)
+                            else:
+                                self.trigger_resolve_counts[trigger.id] = 0
                 else:
                     if alert_operator(
                         aggregation_value, trigger.alert_threshold
@@ -654,6 +689,31 @@ class SubscriptionProcessor:
         # this will have no effect, but if someone manages to close a triggered incident
         # before the next one then we might alert twice.
         self.update_alert_rule_stats()
+
+    def get_anomaly_detected(
+        self, anomaly
+    ) -> bool:  # TODO: add the anomaly type once that's added to Sentry
+        """
+        Helper function to determine whether we care about an anomaly based on the
+        anomaly type and the alert rule's threshold type.
+        """
+        # need to define constants for anomaly types
+        anomaly_type = anomaly.anomaly_type
+        if anomaly_type == "none" or anomaly_type == "no_data":
+            return False
+        elif anomaly_type == "anomaly_high":
+            if (
+                self.alert_rule.threshold_type == AlertRuleThresholdType.ABOVE
+                or self.alert_rule.threshold_type == AlertRuleThresholdType.ABOVE_AND_BELOW
+            ):
+                return True
+        else:
+            if (
+                self.alert_rule.threshold_type == AlertRuleThresholdType.BELOW
+                or self.alert_rule.threshold_type == AlertRuleThresholdType.ABOVE_AND_BELOW
+            ):
+                return True
+        return False
 
     def calculate_event_date_from_update_date(self, update_date: datetime) -> datetime:
         """
