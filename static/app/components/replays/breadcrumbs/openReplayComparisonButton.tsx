@@ -17,6 +17,7 @@ interface Props {
   leftOffsetMs: number;
   replay: null | ReplayReader;
   rightOffsetMs: number;
+  surface: string;
   size?: ButtonProps['size'];
 }
 
@@ -25,6 +26,7 @@ export function OpenReplayComparisonButton({
   leftOffsetMs,
   replay,
   rightOffsetMs,
+  surface,
   size,
 }: Props) {
   const organization = useOrganization();
@@ -33,8 +35,9 @@ export function OpenReplayComparisonButton({
     <Button
       role="button"
       size={size}
-      analyticsEventKey="replay.details-hydration-modal-opened"
-      analyticsEventName="Replay Details Hydration Modal Opened"
+      analyticsEventKey="replay.hydration-modal.opened"
+      analyticsEventName="Hydration Modal Opened"
+      analyticsParams={{surface, organization}}
       onClick={event => {
         event.stopPropagation();
         openModal(
