@@ -118,6 +118,8 @@ describe('WebVitalsLandingPage', function () {
         query: expect.objectContaining({
           dataset: 'metrics',
           field: [
+            'project.id',
+            'project',
             'transaction',
             'p75(measurements.lcp)',
             'p75(measurements.fcp)',
