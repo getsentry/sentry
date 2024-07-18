@@ -34,8 +34,8 @@ export function OpenReplayComparisonButton({
     <Button
       role="button"
       size={size}
-      analyticsEventKey="replay.details-hydration-modal-opened"
-      analyticsEventName="Replay Details Hydration Modal Opened"
+      analyticsEventKey="replay.hydration-modal.opened"
+      analyticsEventName="Hydration Modal Opened"
       analyticsParams={{url: getLocationHref()}}
       onClick={event => {
         event.stopPropagation();
