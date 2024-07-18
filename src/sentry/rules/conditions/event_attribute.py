@@ -305,10 +305,10 @@ class EventAttributeCondition(EventCondition):
             return True
 
         elif option_match == MatchType.IS_SET:
-            return bool(option_value)
+            return bool(attr_values)
 
         elif option_match == MatchType.NOT_SET:
-            return not option_value
+            return not attr_values
 
         elif option_match == MatchType.IS_IN:
             values = option_value.replace(" ", "").split(",")

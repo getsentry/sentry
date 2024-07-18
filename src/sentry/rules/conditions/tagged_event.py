@@ -132,7 +132,6 @@ class TaggedEventCondition(EventCondition):
             return True
 
         elif option_match == MatchType.IS_IN:
-            # "foo, bar, biz, baz"
             values = option_value.replace(" ", "").split(",")
             for t_value in tag_values:
                 if t_value in values:
