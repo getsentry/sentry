@@ -16,6 +16,7 @@ from sentry.uptime.detectors.ranking import (
     delete_project_bucket,
     get_candidate_urls_for_project,
     get_project_bucket,
+    should_detect_for_project,
 )
 from sentry.uptime.models import ProjectUptimeSubscriptionMode
 from sentry.uptime.subscriptions.subscriptions import (
@@ -118,7 +119,6 @@ def process_project_url_ranking(project_id: int, project_url_count: int):
 
     for url, url_count in get_candidate_urls_for_project(project)[:5]:
         if process_candidate_url(project, project_url_count, url, url_count):
-            # TODO: On success, we want to mark this project as not needing to be checked for a while
             break
     else:
         # TODO: If we don't find any urls to monitor, we want to increment a counter in redis and check the value.
@@ -188,6 +188,9 @@ def process_candidate_url(
     if features.has("organizations:uptime-automatic-subscription-creation", project.organization):
         # If we hit this point, then the url looks worth monitoring. Create an uptime subscription in monitor mode.
         monitor_url_for_project(project, url)
+        # Disable auto-detection on this project now that we've successfully found a hostname
+        project.update_option("sentry:uptime_autodetection", False)
+
     return True
 
 
@@ -243,10 +246,3 @@ def get_robots_txt_parser(url: str) -> RobotFileParser:
     robot_parser = RobotFileParser(url=urljoin(url, "robots.txt"))
     robot_parser.read()
     return robot_parser
-
-
-def should_detect_for_project(project: Project) -> bool:
-    # TODO: Check if project has detection disabled
-    # TODO: If we're already running a detected url monitor for this project, we should stop attempting to
-    # detect urls for a while
-    return True

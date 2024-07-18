@@ -126,3 +126,7 @@ def delete_project_bucket(bucket: datetime) -> None:
     key = get_project_bucket_key_for_datetime(bucket)
     cluster = _get_cluster()
     cluster.delete(key)
+
+
+def should_detect_for_project(project: Project) -> bool:
+    return project.get_option("sentry:uptime_autodetection", True)

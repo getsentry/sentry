@@ -13,6 +13,7 @@ from sentry.uptime.detectors.ranking import (
     get_project_base_url_rank_key,
     get_project_bucket,
     get_project_bucket_key,
+    should_detect_for_project,
 )
 
 
@@ -145,3 +146,12 @@ class DeleteProjectBucketTest(TestCase):
         assert get_project_bucket(bucket) == {self.project.id: 1}
         delete_project_bucket(bucket)
         assert get_project_bucket(bucket) == {}
+
+
+class ShouldDetectForProjectTest(TestCase):
+    def test(self):
+        assert should_detect_for_project(self.project)
+        self.project.update_option("sentry:uptime_autodetection", False)
+        assert not should_detect_for_project(self.project)
+        self.project.update_option("sentry:uptime_autodetection", True)
+        assert should_detect_for_project(self.project)
