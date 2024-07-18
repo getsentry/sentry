@@ -33,7 +33,7 @@ class IntegrationEndpointTest(TestCase):
         assert resp.status_code == 400
         assert resp.exception is True
 
-    @patch("sentry.api.bases.integration.capture_exception")
+    @patch("sentry.integrations.api.bases.integration.capture_exception")
     def test_handle_exception_503(
         self, mock_capture_exception: MagicMock, mock_stderror_write: MagicMock
     ):

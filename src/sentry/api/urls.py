@@ -204,6 +204,8 @@ from sentry.scim.endpoints.members import OrganizationSCIMMemberDetails, Organiz
 from sentry.scim.endpoints.schemas import OrganizationSCIMSchemaIndex
 from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
 
+from ..integrations.api.endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
+from ..integrations.api.endpoints.group_integrations import GroupIntegrationsEndpoint
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
 from .endpoints.admin_project_configs import AdminRelayProjectConfigsEndpoint
@@ -270,8 +272,6 @@ from .endpoints.group_external_issue_details import GroupExternalIssueDetailsEnd
 from .endpoints.group_external_issues import GroupExternalIssuesEndpoint
 from .endpoints.group_first_last_release import GroupFirstLastReleaseEndpoint
 from .endpoints.group_hashes import GroupHashesEndpoint
-from .endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
-from .endpoints.group_integrations import GroupIntegrationsEndpoint
 from .endpoints.group_notes import GroupNotesEndpoint
 from .endpoints.group_notes_details import GroupNotesDetailsEndpoint
 from .endpoints.group_participants import GroupParticipantsEndpoint

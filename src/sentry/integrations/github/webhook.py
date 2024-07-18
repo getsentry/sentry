@@ -23,6 +23,7 @@ from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.autofix.webhooks import handle_github_pr_webhook_for_autofix
 from sentry.constants import EXTENSION_LANGUAGE_MAP, ObjectStatus
 from sentry.identity.services.identity.service import identity_service
+from sentry.integrations.github.tasks.open_pr_comment import open_pr_comment_workflow
 from sentry.integrations.pipeline import ensure_integration
 from sentry.integrations.services.integration.model import (
     RpcIntegration,
@@ -44,7 +45,6 @@ from sentry.plugins.providers.integration_repository import (
     get_integration_repository_provider,
 )
 from sentry.shared_integrations.exceptions import ApiError
-from sentry.tasks.integrations.github.open_pr_comment import open_pr_comment_workflow
 from sentry.users.services.user.service import user_service
 from sentry.utils import metrics
 

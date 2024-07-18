@@ -4,4 +4,8 @@ from sentry.integrations.api.bases.integration import (
     RegionIntegrationEndpoint,
 )
 
-__all__ = ("IntegrationEndpoint", "RegionIntegrationEndpoint", "PARANOID_GET")
+__all__ = (
+    "IntegrationEndpoint",
+    "RegionIntegrationEndpoint",
+    "PARANOID_GET",
+)
