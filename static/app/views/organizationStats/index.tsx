@@ -52,6 +52,8 @@ export const PAGE_QUERY_PARAMS = [
   'query',
   'cursor',
   'spikeCursor',
+  // From show data discarded on client toggle
+  'clientDiscard',
 ];
 
 export type OrganizationStatsProps = {
@@ -117,6 +119,10 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
     }
 
     return {period: DEFAULT_STATS_PERIOD};
+  }
+
+  get clientDiscard(): boolean {
+    return this.props.location?.query?.clientDiscard === 'true';
   }
 
   // Validation and type-casting should be handled by chart
@@ -186,6 +192,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
    */
   setStateOnUrl = (
     nextState: {
+      clientDiscard?: boolean;
       cursor?: string;
       dataCategory?: DataCategoryInfo['plural'];
       query?: string;
@@ -273,6 +280,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
         dataCategoryApiName={this.dataCategoryInfo.apiName}
         dataDatetime={this.dataDatetime}
         chartTransform={this.chartTransform}
+        clientDiscard={this.clientDiscard}
         handleChangeState={this.setStateOnUrl}
         router={router}
         location={location}
@@ -336,12 +344,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
   }
 }
 
-const HookOrgStats = HookOrDefault({
-  hookName: 'component:enhanced-org-stats',
-  defaultComponent: OrganizationStats,
-});
-
-export default withPageFilters(withOrganization(HookOrgStats));
+export default withPageFilters(withOrganization(OrganizationStats));
 
 const DropdownDataCategory = styled(CompactSelect)`
   width: auto;

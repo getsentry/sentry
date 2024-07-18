@@ -12,9 +12,7 @@ import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
 import {Flex} from 'sentry/components/container/flex';
-import DeprecatedAsyncComponent, {
-  type AsyncComponentState,
-} from 'sentry/components/deprecatedAsyncComponent';
+import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import NotAvailable from 'sentry/components/notAvailable';
 import type {ScoreCardProps} from 'sentry/components/scoreCard';
@@ -29,8 +27,12 @@ import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {FORMAT_DATETIME_DAILY, FORMAT_DATETIME_HOURLY} from './usageChart/utils';
 import {mapSeriesToChart} from './mapSeriesToChart';
 import type {UsageSeries} from './types';
-import type {ChartStats, SeriesTypes, UsageChartProps} from './usageChart';
-import UsageChart, {CHART_OPTIONS_DATA_TRANSFORM, ChartDataTransform} from './usageChart';
+import type {ChartStats, UsageChartProps} from './usageChart';
+import UsageChart, {
+  CHART_OPTIONS_DATA_TRANSFORM,
+  ChartDataTransform,
+  SeriesTypes,
+} from './usageChart';
 import UsageStatsPerMin from './usageStatsPerMin';
 import {isDisplayUtc} from './utils';
 
@@ -40,6 +42,7 @@ export interface UsageStatsOrganizationProps extends WithRouterProps {
   dataCategoryName: string;
   dataDatetime: DateTimeObject;
   handleChangeState: (state: {
+    clientDiscard?: boolean;
     dataCategory?: DataCategoryInfo['plural'];
     pagePeriod?: string | null;
     transform?: ChartDataTransform;
@@ -48,14 +51,11 @@ export interface UsageStatsOrganizationProps extends WithRouterProps {
   organization: Organization;
   projectIds: number[];
   chartTransform?: string;
+  clientDiscard?: boolean;
 }
 
 type UsageStatsOrganizationState = {
   orgStats: UsageSeries | undefined;
-  /**
-   * Show client discarded data in the chart
-   */
-  showClientDiscard: boolean;
   metricOrgStats?: UsageSeries | undefined;
 } & DeprecatedAsyncComponent['state'];
 
@@ -68,15 +68,6 @@ class UsageStatsOrganization<
   P extends UsageStatsOrganizationProps = UsageStatsOrganizationProps,
   S extends UsageStatsOrganizationState = UsageStatsOrganizationState,
 > extends DeprecatedAsyncComponent<P, S> {
-  getDefaultState(): AsyncComponentState {
-    return {
-      ...super.getDefaultState(),
-      orgStats: undefined,
-      metricOrgStats: undefined,
-      showClientDiscard: false,
-    };
-  }
-
   componentDidUpdate(prevProps: UsageStatsOrganizationProps) {
     const {
       dataDatetime: prevDateTime,
@@ -254,7 +245,7 @@ class UsageStatsOrganization<
   }
 
   get chartProps(): UsageChartProps {
-    const {dataCategory} = this.props;
+    const {dataCategory, clientDiscard} = this.props;
     const {error, errors, loading} = this.state;
     const {
       chartStats,
@@ -286,9 +277,7 @@ class UsageStatsOrganization<
         subLabels: chartSubLabels,
         skipZeroValuedSubLabels: true,
       },
-      legendSelected: !this.state.showClientDiscard
-        ? {[SeriesTypes.CLIENT_DISCARD]: false}
-        : undefined,
+      legendSelected: !clientDiscard ? {[SeriesTypes.CLIENT_DISCARD]: false} : undefined,
     } as UsageChartProps;
 
     return chartProps;
@@ -381,7 +370,7 @@ class UsageStatsOrganization<
   }
 
   renderChartFooter = () => {
-    const {handleChangeState} = this.props;
+    const {handleChangeState, clientDiscard} = this.props;
     const {loading, error} = this.state;
     const {
       chartDateInterval,
@@ -415,15 +404,15 @@ class UsageStatsOrganization<
             <Flex align="center" gap={space(1)}>
               <strong>{t('Show client-discarded data:')}</strong>
               <SwitchButton
-                toggle={() =>
-                  this.setState(state => ({
-                    showClientDiscard: !state.showClientDiscard,
-                  }))
-                }
-                isActive={this.state.showClientDiscard}
+                toggle={() => {
+                  handleChangeState({clientDiscard: !clientDiscard});
+                }}
+                isActive={clientDiscard}
               />
             </Flex>
           )}
+        </InlineContainer>
+        <InlineContainer>
           <OptionSelector
             title={t('Type')}
             selected={chartTransform}
@@ -489,10 +478,14 @@ const ChartWrapper = styled('div')`
 const Footer = styled('div')`
   display: flex;
   flex-direction: row;
-  justify-content: space-between;
   flex-wrap: wrap;
+  align-items: center;
+  gap: ${space(1.5)};
   padding: ${space(1)} ${space(3)};
   border-top: 1px solid ${p => p.theme.border};
+  > *:first-child {
+    flex-grow: 1;
+  }
 `;
 const FooterDate = styled('div')`
   display: flex;
