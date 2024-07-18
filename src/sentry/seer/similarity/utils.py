@@ -120,7 +120,9 @@ def event_content_is_seer_eligible(event: Event) -> bool:
     return True
 
 
-def killswitch_enabled(project_id: int, event: Event | None = None) -> bool:
+def killswitch_enabled(
+    project_id: int, event: Event | None = None, check_delete_killswitch: bool = False
+) -> bool:
     """
     Check both the global and similarity-specific Seer killswitches.
     """
@@ -151,6 +153,11 @@ def killswitch_enabled(project_id: int, event: Event | None = None) -> bool:
             sample_rate=1.0,
             tags={"call_made": False, "blocker": "similarity-killswitch"},
         )
+        return True
+
+    if check_delete_killswitch and options.get(
+        "seer.similarity-embeddings-delete-by-hash-killswitch.enabled"
+    ):
         return True
 
     return False
