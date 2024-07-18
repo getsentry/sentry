@@ -70,7 +70,7 @@ export function TransactionSelector({
       emptyMessage={t('No results')}
       loading={isLoading}
       searchable
-      menuTitle={t('Pages')}
+      menuTitle={t('Page')}
       onSearch={newValue => {
         if (!wasSearchSpaceExhausted) {
           debouncedSetSearch(newValue);
