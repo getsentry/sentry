@@ -133,7 +133,7 @@ export function SetupReplaysCTA({
         <AnswerContent>
           <div>
             {t(
-              'Session Replay supports all browser-based applications and certain native mobile platforms, such as iOS, React Native, and Android. Our native Android, React Native, and iOS SDKs are currently in beta. Features are still in progress and may have some bugs. We recognize the irony.'
+              'Session Replay supports all browser-based applications and certain native mobile platforms, such as Android, iOS, and React Native. Our mobile SDKs are currently in beta. Features are still in progress and may have some bugs. We recognize the irony.'
             )}
           </div>
           <div>
@@ -169,8 +169,19 @@ export function SetupReplaysCTA({
             )}
           </div>
           <div>
-            {t(
-              'With early customers of Mobile Replay, the overhead was not noticeable by end-users, but depending on your application complexity, you may discover the recording overhead may negatively impact your mobile application performance.'
+            {tct(
+              'With early customers of Mobile Replay, the overhead was not noticeable by end-users, but depending on your application complexity, you may discover the recording overhead may negatively impact your mobile application performance. If you do, please let us know on GitHub: [android:Android], [ios:iOS], and [rn:React Native].',
+              {
+                android: (
+                  <ExternalLink href="https://github.com/getsentry/sentry-java/issues/new/choose" />
+                ),
+                ios: (
+                  <ExternalLink href="https://github.com/getsentry/sentry-cocoa/issues/new/choose" />
+                ),
+                rn: (
+                  <ExternalLink href="https://github.com/getsentry/sentry-react-native/issues/new/choose" />
+                ),
+              }
             )}
           </div>
           <div>
