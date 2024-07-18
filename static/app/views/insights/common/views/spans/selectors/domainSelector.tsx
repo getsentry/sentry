@@ -4,7 +4,7 @@ import type {Location} from 'history';
 import debounce from 'lodash/debounce';
 import omit from 'lodash/omit';
 
-import SelectControl from 'sentry/components/forms/controls/selectControl';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import {t} from 'sentry/locale';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
@@ -46,7 +46,6 @@ export function DomainSelector({
   const organization = useOrganization();
   const pageFilters = usePageFilters();
 
-  const [searchInputValue, setSearchInputValue] = useState<string>(''); // Realtime domain search value in UI
   const [searchQuery, setSearchQuery] = useState<string>(''); // Debounced copy of `searchInputValue` used for the Discover query
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -119,18 +118,22 @@ export function DomainSelector({
   ];
 
   return (
-    <SelectControl
-      inFieldLabel={`${LABEL_FOR_MODULE_NAME[moduleName]}:`}
-      inputValue={searchInputValue}
+    <CompactSelect
+      style={{maxWidth: '300px'}}
       value={value}
       options={options}
-      isLoading={isLoading}
-      onInputChange={input => {
-        setSearchInputValue(input);
-
+      emptyMessage={t('No results')}
+      loading={isLoading}
+      searchable
+      menuTitle={LABEL_FOR_MODULE_NAME[moduleName]}
+      maxMenuWidth={'500px'}
+      onSearch={newValue => {
         if (!wasSearchSpaceExhausted) {
-          debouncedSetSearch(input);
+          debouncedSetSearch(newValue);
         }
+      }}
+      triggerProps={{
+        prefix: LABEL_FOR_MODULE_NAME[moduleName],
       }}
       onChange={newValue => {
         trackAnalytics('insight.general.select_domain_value', {
@@ -146,18 +149,9 @@ export function DomainSelector({
           },
         });
       }}
-      noOptionsMessage={() => t('No results')}
-      styles={{
-        control: provided => ({
-          ...provided,
-          minWidth: MIN_WIDTH,
-        }),
-      }}
     />
   );
 }
-
-const MIN_WIDTH = 300;
 
 const LIMIT = 100;
 
