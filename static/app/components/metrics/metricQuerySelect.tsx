@@ -24,13 +24,12 @@ export function MetricQuerySelect({onChange, conditionId, mri}: Props) {
   const {data: cardinality} = useMetricsCardinality(pageFilters.selection);
   const {getConditions} = useVirtualMetricsContext();
 
-  const getMaxCardinality = (condition?: MetricsExtractionCondition) => {
+  const isCardinalityLimited = (condition?: MetricsExtractionCondition): boolean => {
     if (!cardinality || !condition) {
-      return 0;
+      return false;
     }
-    return condition.mris.reduce(
-      (acc, conditionMri) => Math.max(acc, cardinality[conditionMri] || 0),
-      0
+    return condition.mris.some(
+      (conditionMri) => cardinality[conditionMri] > 0
     );
   };
 
