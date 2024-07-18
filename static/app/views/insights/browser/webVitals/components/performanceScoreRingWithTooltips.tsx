@@ -1,7 +1,7 @@
 import {Fragment, useRef, useState} from 'react';
 import {css, useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
-import type {Location} from '@sentry/react/types/types';
+import type {Location} from 'history';
 
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';

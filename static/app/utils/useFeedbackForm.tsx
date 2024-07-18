@@ -6,7 +6,7 @@ import {
   useEffect,
   useRef,
 } from 'react';
-import type {FeedbackDialog} from '@sentry/types';
+import type {FeedbackModalIntegration} from '@sentry/types';
 
 import {
   useFeedback,
@@ -21,6 +21,8 @@ import {
  * and feedback triggers should not be rendered.
  */
 type OpenForm = ((options?: UseFeedbackOptions) => Promise<void>) | null;
+
+type FeedbackDialog = ReturnType<FeedbackModalIntegration['createDialog']>;
 
 const GlobalFeedbackFormContext = createContext<OpenForm>(null);
 
