@@ -64,7 +64,7 @@ export const useFetchIssueTags = ({
     {
       orgSlug: org.slug,
       projectIds,
-      dataset: 'search_issues',
+      dataset: Dataset.ISSUE_PLATFORM,
       useCache,
       enabled,
       keepPreviousData,

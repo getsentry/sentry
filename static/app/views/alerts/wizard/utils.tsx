@@ -8,7 +8,10 @@ import {Dataset, SessionsAggregate} from 'sentry/views/alerts/rules/metric/types
 import type {MetricAlertType, WizardRuleTemplate} from './options';
 
 // A set of unique identifiers to be able to tie aggregate and dataset back to a wizard alert type
-const alertTypeIdentifiers: Record<Dataset, Partial<Record<MetricAlertType, string>>> = {
+const alertTypeIdentifiers: Record<
+  Exclude<Dataset, 'search_issues'>, // IssuePlatform (search_issues) is not used in alerts, so we can exclude it here
+  Partial<Record<MetricAlertType, string>>
+> = {
   [Dataset.ERRORS]: {
     num_errors: 'count()',
     users_experiencing_errors: 'count_unique(user)',
@@ -62,7 +65,7 @@ export function getAlertTypeFromAggregateDataset({
 
   const identifierForDataset = alertTypeIdentifiers[dataset];
   const matchingAlertTypeEntry = Object.entries(identifierForDataset).find(
-    ([_alertType, identifier]) => identifier && aggregate.includes(identifier)
+    ([_alertType, identifier]) => identifier && aggregate.includes(identifier as string)
   );
   const alertType =
     matchingAlertTypeEntry && (matchingAlertTypeEntry[0] as MetricAlertType);
