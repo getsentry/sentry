@@ -7,8 +7,8 @@ import JumpButtons from 'sentry/components/replays/jumpButtons';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
+import extractDomNodes from 'sentry/utils/replays/hooks/extractDomNodes';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
-import useExtractedDomNodes from 'sentry/utils/replays/hooks/useExtractedDomNodes';
 import useVirtualizedInspector from 'sentry/views/replays/detail//useVirtualizedInspector';
 import BreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/breadcrumbFilters';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
@@ -30,8 +30,12 @@ const cellMeasurer = {
 function Breadcrumbs() {
   const {currentTime, replay} = useReplayContext();
   const {onClickTimestamp} = useCrumbHandlers();
-  const {data: frameToExtraction, isFetching: isFetchingExtractions} =
-    useExtractedDomNodes({replay});
+  // const {data: frameToExtraction, isFetching: isFetchingExtractions} =
+  //   useExtractedDomNodes({replay});
+
+  const frameToExtraction = extractDomNodes({
+    replay,
+  });
 
   const startTimestampMs = replay?.getStartTimestampMs() ?? 0;
   const frames = replay?.getChapterFrames();
@@ -75,10 +79,11 @@ function Breadcrumbs() {
 
   // Need to refresh the item dimensions as DOM data gets loaded
   useEffect(() => {
-    if (!isFetchingExtractions) {
+    // if (!isFetchingExtractions) {
+    if (frameToExtraction) {
       updateList();
     }
-  }, [isFetchingExtractions, updateList]);
+  }, [frameToExtraction, updateList]);
 
   const renderRow = ({index, key, style, parent}: ListRowProps) => {
     const item = (items || [])[index];
@@ -109,7 +114,8 @@ function Breadcrumbs() {
 
   return (
     <FluidHeight>
-      <FilterLoadingIndicator isLoading={isFetchingExtractions}>
+      {/* <FilterLoadingIndicator isLoading={isFetchingExtractions}> */}
+      <FilterLoadingIndicator isLoading={!frameToExtraction}>
         <BreadcrumbFilters frames={frames} {...filterProps} />
       </FilterLoadingIndicator>
       <TabItemContainer data-test-id="replay-details-breadcrumbs-tab">

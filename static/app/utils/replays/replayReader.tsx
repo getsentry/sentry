@@ -6,6 +6,7 @@ import {defined} from 'sentry/utils';
 import domId from 'sentry/utils/domId';
 import localStorageWrapper from 'sentry/utils/localStorage';
 import clamp from 'sentry/utils/number/clamp';
+import extractHtml from 'sentry/utils/replays/extractHtml';
 import hydrateBreadcrumbs, {
   replayInitBreadcrumb,
 } from 'sentry/utils/replays/hydrateBreadcrumbs';
@@ -17,6 +18,7 @@ import {
 } from 'sentry/utils/replays/hydrateRRWebRecordingFrames';
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 import {replayTimestamps} from 'sentry/utils/replays/replayDataUtils';
+import replayerStepper from 'sentry/utils/replays/replayerStepper';
 import type {
   BreadcrumbFrame,
   ClipWindow,
@@ -26,6 +28,7 @@ import type {
   MemoryFrame,
   OptionFrame,
   RecordingFrame,
+  ReplayFrame,
   serializedNodeWithId,
   SlowClickFrame,
   SpanFrame,
@@ -34,6 +37,7 @@ import type {
 import {
   BreadcrumbCategories,
   EventType,
+  getNodeId,
   IncrementalSource,
   isBackgroundFrame,
   isDeadClick,
@@ -138,6 +142,65 @@ function removeDuplicateNavCrumbs(
   );
   return otherBreadcrumbFrames.concat(uniqueNavCrumbs);
 }
+
+const extractPageHtml = {
+  shouldVisitFrame: () => {
+    // Visit all the timestamps (converted to frames) that are passed in
+    return true;
+  },
+  onVisitFrame: (frame, collection, replayer) => {
+    const doc = replayer.getMirror().getNode(1);
+    const html = (doc as Document)?.body.outerHTML ?? '';
+    collection.set(frame, html);
+  },
+};
+
+const extractDomNodes = {
+  shouldVisitFrame: frame => {
+    const nodeId = getNodeId(frame);
+    return nodeId !== undefined && nodeId !== -1;
+  },
+  onVisitFrame: (frame, collection, replayer) => {
+    const mirror = replayer.getMirror();
+    const nodeId = getNodeId(frame);
+    const html = extractHtml(nodeId as number, mirror);
+    collection.set(frame as ReplayFrame, {
+      frame,
+      html,
+      timestamp: frame.timestampMs,
+    });
+  },
+};
+
+const countDomNodes = function () {
+  let frameCount = 0;
+  const length = frames?.length ?? 0;
+  const frameStep = Math.max(Math.round(length * 0.007), 1);
+
+  let prevIds: number[] = [];
+
+  return {
+    shouldVisitFrame() {
+      frameCount++;
+      return frameCount % frameStep === 0;
+    },
+    onVisitFrame(frame, collection, replayer) {
+      const ids = replayer.getMirror().getIds(); // gets list of DOM nodes present
+      const count = ids.length;
+      const added = ids.filter(id => !prevIds.includes(id)).length;
+      const removed = prevIds.filter(id => !ids.includes(id)).length;
+      collection.set(frame as RecordingFrame, {
+        count,
+        added,
+        removed,
+        timestampMs: frame.timestamp,
+        startTimestampMs: frame.timestamp,
+        endTimestampMs: frame.timestamp,
+      });
+      prevIds = ids;
+    },
+  };
+};
 
 export default class ReplayReader {
   static factory({
@@ -291,8 +354,9 @@ export default class ReplayReader {
   private _startOffsetMs = 0;
   private _videoEvents: VideoEvent[] = [];
   private _clipWindow: ClipWindow | undefined = undefined;
+  private _collections: Record<string, Map<any, any>> = {};
 
-  private _applyClipWindow = (clipWindow: ClipWindow) => {
+  private _applyClipWindow = async (clipWindow: ClipWindow) => {
     const clipStartTimestampMs = clamp(
       clipWindow.startTimestampMs,
       this._replayRecord.started_at.getTime(),
@@ -341,6 +405,17 @@ export default class ReplayReader {
 
       return;
     }
+
+    this._collections = await replayerStepper({
+      frames: this.getRRWebMutations(),
+      rrwebEvents: this.getRRWebFrames(),
+      startTimestampMs: this.getReplay().started_at.getTime() ?? 0,
+      visitFrameCallbacks: {
+        extractDomNodes,
+        extractPageHtml,
+        countDomNodes: countDomNodes(),
+      },
+    });
 
     // For RRWeb frames we only trim from the end because playback will
     // not work otherwise. The start offset is used to begin playback at
@@ -413,6 +488,12 @@ export default class ReplayReader {
   hasProcessingErrors = () => {
     return this.processingErrors().length;
   };
+
+  getCountDomNodes = () => this._collections.countDomNodes;
+
+  getExtractDomNodes = () => this._collections.extractDomNodes;
+
+  getExtractPageHtml = () => this._collections.extractPageHtml;
 
   getClipWindow = () => this._clipWindow;
 
