@@ -3,7 +3,6 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta, timezone
 
-from django.conf import settings
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUS_MISSED_WINDOW,
@@ -12,7 +11,6 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 )
 
 from sentry.conf.types.kafka_definition import Topic
-from sentry.models.project import Project
 from sentry.remote_subscriptions.consumers.result_consumer import (
     ResultProcessor,
     ResultsStrategyFactory,
@@ -62,24 +60,14 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
     def get_subscription_id(self, result: CheckResult) -> str:
         return result["subscription_id"]
 
-    def handle_result(self, subscription: UptimeSubscription, result: CheckResult):
+    def handle_result(self, subscription: UptimeSubscription | None, result: CheckResult):
+        if subscription is None:
+            # TODO: We probably want to want to publish a tombstone
+            # subscription here
+            metrics.incr("uptime.result_processor.subscription_not_found")
+            return
+
         project_subscriptions = list(subscription.projectuptimesubscription_set.all())
-        if not project_subscriptions:
-            # XXX: Hack for now, just create a fake row. Once we remove this, we should instead
-            # drop the uptime subscription
-            try:
-                project = Project.objects.get(id=settings.UPTIME_POC_PROJECT_ID)
-            except Project.DoesNotExist:
-                pass
-            else:
-                project_subscriptions = [
-                    ProjectUptimeSubscription(
-                        id=subscription.id,
-                        uptime_subscription=subscription,
-                        project=project,
-                        mode=ProjectUptimeSubscriptionMode.AUTO_DETECTED_ACTIVE,
-                    )
-                ]
 
         cluster = _get_cluster()
         last_updates: list[str | None] = cluster.mget(

@@ -3428,9 +3428,6 @@ SEER_HASH_GROUPING_RECORDS_DELETE_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete-by-hash"
 )
 
-# TODO: Remove this soon, just a way to configure a project for this before we implement properly
-UPTIME_POC_PROJECT_ID = 1
-
 SIMILARITY_BACKFILL_COHORT_MAP: dict[str, list[int]] = {}
 
 # Devserver configuration overrides.
