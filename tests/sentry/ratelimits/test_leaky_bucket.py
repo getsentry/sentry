@@ -29,6 +29,26 @@ class LeakyBucketRateLimiterTest(TestCase):
             for _ in range(3):
                 assert self.limiter.is_limited("foo")
 
+    def test_default_key(self) -> None:
+        limiter = LeakyBucketRateLimiter(burst_limit=5, drip_rate=2, key="my_default_key")
+
+        assert limiter._redis_key() == "leaky_bucket_limiter:my_default_key"
+        assert limiter._redis_key("foo") == "leaky_bucket_limiter:foo"
+
+        with mock.patch.object(limiter, "_redis_key", wraps=limiter._redis_key) as _redis_key_spy:
+            limiter.is_limited()
+            limiter.is_limited("foo")
+
+            assert _redis_key_spy.call_args_list == [
+                mock.call(None),
+                mock.call("foo"),
+            ]
+
+    def test_key_required(self) -> None:
+        with pytest.raises(ValueError):
+            self.limiter.is_limited()
+            assert "Either key or default_key must be set" in self._caplog.text
+
     def test_drip_rate(self) -> None:
         with freeze_time("2077-09-13") as time_traveler:
             # exhaust the burst limit
@@ -41,24 +61,6 @@ class LeakyBucketRateLimiterTest(TestCase):
                     assert self.limiter.is_limited("foo")
                 else:
                     assert not self.limiter.is_limited("foo")
-
-    def test_context_manager(self) -> None:
-        with freeze_time("2077-09-13"):
-            with self.limiter.context("foo") as info:
-                assert info.current_level == 0.0
-                assert info.wait_time == 0.0
-
-            # exhaust the burst limit
-            for _ in range(5):
-                self.limiter.is_limited("foo")
-
-            try:
-                with self.limiter.context("foo") as info:
-                    assert False, "This should not be executed"
-            except self.limiter.LimitExceeded as e:
-                info = e.info
-                assert info.current_level == 5
-                assert info.wait_time != 0
 
     def test_decorator(self) -> None:
         @self.limiter("foo")
@@ -105,6 +107,21 @@ class LeakyBucketRateLimiterTest(TestCase):
             assert last_info[0] == info
             assert info.wait_time > 0
             assert info.current_level == 5
+
+    def test_decorator_default_key(self) -> None:
+        limiter = LeakyBucketRateLimiter(burst_limit=5, drip_rate=2)
+
+        with mock.patch.object(limiter, "_redis_key", wraps=limiter._redis_key) as _redis_key_spy:
+
+            @limiter()
+            def foo() -> None:
+                pass
+
+            foo()
+
+            assert _redis_key_spy.call_args_list == [
+                mock.call("LeakyBucketRateLimiterTest.test_decorator_default_key.<locals>.foo")
+            ]
 
     def test_get_bucket_state(self) -> None:
         with freeze_time("2077-09-13"):

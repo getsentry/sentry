@@ -2,11 +2,10 @@ from __future__ import annotations
 
 import functools
 import logging
-from collections.abc import Callable, Generator
-from contextlib import contextmanager
+from collections.abc import Callable
 from dataclasses import dataclass
 from time import time
-from typing import Any, ContextManager
+from typing import Any
 
 from django.conf import settings
 
@@ -35,13 +34,17 @@ class LeakyBucketRateLimiter:
         def __init__(self, info: LeakyBucketLimitInfo) -> None:
             self.info = info
 
-    def __init__(self, burst_limit: int, drip_rate: int) -> None:
+    def __init__(self, burst_limit: int, drip_rate: int, key: str | None = None) -> None:
         cluster_key = settings.SENTRY_RATE_LIMIT_REDIS_CLUSTER
         self.client = redis.redis_clusters.get(cluster_key)
         self.burst_limit = burst_limit
         self.drip_rate = drip_rate
+        self.default_key = key
 
-    def redis_key(self, key: str) -> str:
+    def _redis_key(self, key: str | None = None) -> str:
+        key = key or self.default_key
+        if not key:
+            raise ValueError("Either key or default_key must be set")
         return f"{self.NAMESPACE}:{key}"
 
     def validate(self) -> None:
@@ -51,22 +54,28 @@ class LeakyBucketRateLimiter:
         except Exception as e:
             raise InvalidConfiguration(str(e))
 
-    def use_and_get_info(self, key: str, timestamp: float | None = None) -> LeakyBucketLimitInfo:
+    def use_and_get_info(
+        self, key: str | None = None, timestamp: float | None = None
+    ) -> LeakyBucketLimitInfo:
+        """
+        Consumes a request from the bucket and returns the current state of the bucket.
+        """
         if timestamp is None:
             timestamp = time()
 
-        redis_key = self.redis_key(key)
+        redis_key = self._redis_key(key)
         try:
             bucket_size, drip_rate, last_drip, current_level, wait_time = leaky_bucket_info(
                 [redis_key],
                 [self.burst_limit, self.drip_rate, timestamp],
                 client=self.client,
             )
-            last_drip = float(last_drip)
-            current_level = float(current_level)
-            wait_time = float(wait_time)
-            info = LeakyBucketLimitInfo(bucket_size, drip_rate, last_drip, current_level, wait_time)
-            return info
+            last_drip, current_level, wait_time = (
+                float(last_drip),
+                float(current_level),
+                float(wait_time),
+            )
+            return LeakyBucketLimitInfo(bucket_size, drip_rate, last_drip, current_level, wait_time)
         except Exception:
             logger.exception(
                 "Could not determine leaky bucket limiter state", dict(redis_key=redis_key)
@@ -74,20 +83,23 @@ class LeakyBucketRateLimiter:
         # fail open
         return LeakyBucketLimitInfo(self.burst_limit, self.drip_rate)
 
-    def is_limited(self, key: str, timestamp: float | None = None) -> bool:
+    def is_limited(self, key: str | None = None, timestamp: float | None = None) -> bool:
         return bool(self.use_and_get_info(key, timestamp).wait_time)
 
-    def get_bucket_state(self, key: str) -> LeakyBucketLimitInfo:
+    def get_bucket_state(self, key: str | None = None) -> LeakyBucketLimitInfo:
+        """
+        Get the current state of the bucket without consuming any requests.
+        """
         try:
             last_drip, current_level = map(
                 lambda x: float(x or 0),
                 self.client.hmget(
-                    self.redis_key(key),
+                    self._redis_key(key),
                     ["last_drip", "current_level"],
                 ),
             )
         except Exception:
-            logger.exception("Could not get bucket state", dict(key=self.redis_key))
+            logger.exception("Could not get bucket state", extra={"key": self._redis_key(key)})
             return LeakyBucketLimitInfo(self.burst_limit, self.drip_rate)
 
         return LeakyBucketLimitInfo(
@@ -98,52 +110,17 @@ class LeakyBucketRateLimiter:
             max(0, (current_level - self.burst_limit) / self.drip_rate),
         )
 
-    def context(self, key: str) -> ContextManager[LeakyBucketLimitInfo]:
-        """
-        Context manager to limit the rate of requests to a given key
-
-        Usage:
-
-            - basic usage:
-            ```
-            limiter = LeakyBucketRateLimiter(burst_limit=10, drip_rate=1)
-
-            try:
-                with limiter.context(key):
-                    value = do_something()
-            except LeakyBucketRateLimiter.LimitExceeded as e:
-                print(f"Rate limited, needs to wait for {e.wait_time} seconds")
-
-            ```
-
-            - checking info even if not limited:
-            ```
-            try:
-                with limiter.context(key) as limiter_info:
-                    value = do_something()
-            except LeakyBucketRateLimiter.LimitExceeded as e:
-                limiter_info = e.info
-            ```z
-        """
-
-        @contextmanager
-        def limit_context() -> Generator[LeakyBucketLimitInfo, None, None]:
-            info = self.use_and_get_info(key)
-            if info.wait_time:
-                raise self.LimitExceeded(info)
-
-            yield info
-
-        return limit_context()
-
-    def __call__(
+    def decorator(
         self,
-        key: str,
+        key_override: str | None = None,
         limited_handler: Callable[[LeakyBucketLimitInfo, dict[str, Any]], Any] | None = None,
         raise_exception: bool = False,
     ) -> Callable[[Any], Any]:
         """
-        Decorator to limit the rate of requests on a given key
+        Decorator to limit the rate of requests
+
+        key_override: a string that will be used as the key to identify the rate limit,
+                      if not provided fully qualified function name will be used
 
         limited_handler: a callback function that will be called when the rate limit is exceeded,
                             it will receive the LeakyBucketLimitInfo instance as an argument,
@@ -162,6 +139,15 @@ class LeakyBucketRateLimiter:
         usage:
 
             - basic usage:
+            ```
+            limiter = LeakyBucketRateLimiter(burst_limit=10, drip_rate=1)
+
+            @limiter()
+            def my_function():
+                do_something()
+            ```
+
+
             ```
             limiter = LeakyBucketRateLimiter(burst_limit=10, drip_rate=1)
 
@@ -199,8 +185,11 @@ class LeakyBucketRateLimiter:
             @functools.wraps(func)
             def wrapper(*args: Any, **kwargs: Any) -> Any:
                 try:
-                    with self.context(key):
-                        return func(*args, **kwargs)
+                    key = key_override or func.__qualname__
+                    info = self.use_and_get_info(key)
+                    if info.wait_time:
+                        raise self.LimitExceeded(info)
+                    return func(*args, **kwargs)
                 except self.LimitExceeded as e:
                     if limited_handler:
                         return limited_handler(e.info, {"args": args, "kwargs": kwargs})
@@ -210,3 +199,5 @@ class LeakyBucketRateLimiter:
             return wrapper
 
         return decorator
+
+    __call__ = decorator
