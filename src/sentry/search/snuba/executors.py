@@ -1740,7 +1740,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             select.append(sort_func)
 
             query = Query(
-                match=Join([Relationship(joined_entity, "attributes", attr_entity)]),
+                match=Join([Relationship(joined_entity, "attributes_inner", attr_entity)]),
                 select=select,
                 where=where_conditions,
                 groupby=groupby,
@@ -1759,7 +1759,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
 
             if count_hits:
                 hits_query = Query(
-                    match=Join([Relationship(joined_entity, "attributes", attr_entity)]),
+                    match=Join([Relationship(joined_entity, "attributes_inner", attr_entity)]),
                     select=[
                         Function("uniq", [Column("group_id", attr_entity)], alias="count"),
                     ],
