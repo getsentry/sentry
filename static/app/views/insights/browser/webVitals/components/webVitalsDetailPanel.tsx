@@ -215,6 +215,7 @@ export function WebVitalsDetailPanel({
                 ...location.query,
                 transaction: row.transaction,
                 webVital,
+                project: row['project.id'],
               },
             }}
           >
