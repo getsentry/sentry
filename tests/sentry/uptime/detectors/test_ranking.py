@@ -146,9 +146,9 @@ class DeleteCandidateUrlsForProjectTest(TestCase):
 
 class GetOrganizationBucketTest(TestCase):
     def test(self):
-        bucket = datetime.now().replace(second=0, microsecond=0)
+        bucket = datetime(2024, 7, 18, 0, 47)
         assert get_organization_bucket(bucket) == set()
-        dummy_org_id = int(bucket.timestamp() % NUMBER_OF_BUCKETS)
+        dummy_org_id = 47
         self.project.organization = Organization(id=dummy_org_id)
         self.project.organization_id = dummy_org_id
         add_base_url_to_rank(self.project, "https://sentry.io")
