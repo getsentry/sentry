@@ -182,7 +182,7 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
                     'The tag cardinality of this metric exceeded the limit, causing the data to be dropped.'
                   )}
                 >
-                  <StyledIconWarning size="sm" color="red300" />
+                  <StyledIconWarning size="sm" color="yellow300" />
                 </Tooltip>
               )}
               <Link
