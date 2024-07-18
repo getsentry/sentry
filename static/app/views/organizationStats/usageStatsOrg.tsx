@@ -11,13 +11,11 @@ import OptionSelector from 'sentry/components/charts/optionSelector';
 import {InlineContainer, SectionHeading} from 'sentry/components/charts/styles';
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {getSeriesApiInterval} from 'sentry/components/charts/utils';
-import {Flex} from 'sentry/components/container/flex';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import NotAvailable from 'sentry/components/notAvailable';
 import type {ScoreCardProps} from 'sentry/components/scoreCard';
 import ScoreCard from 'sentry/components/scoreCard';
-import SwitchButton from 'sentry/components/switchButton';
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -28,11 +26,7 @@ import {FORMAT_DATETIME_DAILY, FORMAT_DATETIME_HOURLY} from './usageChart/utils'
 import {mapSeriesToChart} from './mapSeriesToChart';
 import type {UsageSeries} from './types';
 import type {ChartStats, UsageChartProps} from './usageChart';
-import UsageChart, {
-  CHART_OPTIONS_DATA_TRANSFORM,
-  ChartDataTransform,
-  SeriesTypes,
-} from './usageChart';
+import UsageChart, {CHART_OPTIONS_DATA_TRANSFORM, ChartDataTransform} from './usageChart';
 import UsageStatsPerMin from './usageStatsPerMin';
 import {isDisplayUtc} from './utils';
 
@@ -42,7 +36,6 @@ export interface UsageStatsOrganizationProps extends WithRouterProps {
   dataCategoryName: string;
   dataDatetime: DateTimeObject;
   handleChangeState: (state: {
-    clientDiscard?: boolean;
     dataCategory?: DataCategoryInfo['plural'];
     pagePeriod?: string | null;
     transform?: ChartDataTransform;
@@ -51,7 +44,6 @@ export interface UsageStatsOrganizationProps extends WithRouterProps {
   organization: Organization;
   projectIds: number[];
   chartTransform?: string;
-  clientDiscard?: boolean;
 }
 
 type UsageStatsOrganizationState = {
@@ -245,7 +237,7 @@ class UsageStatsOrganization<
   }
 
   get chartProps(): UsageChartProps {
-    const {dataCategory, clientDiscard, handleChangeState} = this.props;
+    const {dataCategory} = this.props;
     const {error, errors, loading} = this.state;
     const {
       chartStats,
@@ -276,12 +268,6 @@ class UsageStatsOrganization<
       chartTooltip: {
         subLabels: chartSubLabels,
         skipZeroValuedSubLabels: true,
-      },
-      legendSelected: {[SeriesTypes.CLIENT_DISCARD]: !!clientDiscard},
-      onLegendSelectChanged: ({name, selected}) => {
-        if (name === SeriesTypes.CLIENT_DISCARD) {
-          handleChangeState({clientDiscard: selected[name]});
-        }
       },
     } as UsageChartProps;
 
@@ -375,7 +361,7 @@ class UsageStatsOrganization<
   }
 
   renderChartFooter = () => {
-    const {handleChangeState, clientDiscard} = this.props;
+    const {handleChangeState} = this.props;
     const {loading, error} = this.state;
     const {
       chartDateInterval,
@@ -403,19 +389,6 @@ class UsageStatsOrganization<
               )}
             </span>
           </FooterDate>
-        </InlineContainer>
-        <InlineContainer>
-          {(this.chartData.chartStats.clientDiscard ?? []).length > 0 && (
-            <Flex align="center" gap={space(1)}>
-              <strong>{t('Show client-discarded data:')}</strong>
-              <SwitchButton
-                toggle={() => {
-                  handleChangeState({clientDiscard: !clientDiscard});
-                }}
-                isActive={clientDiscard}
-              />
-            </Flex>
-          )}
         </InlineContainer>
         <InlineContainer>
           <OptionSelector
@@ -483,14 +456,9 @@ const ChartWrapper = styled('div')`
 const Footer = styled('div')`
   display: flex;
   flex-direction: row;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: ${space(1.5)};
+  justify-content: space-between;
   padding: ${space(1)} ${space(3)};
   border-top: 1px solid ${p => p.theme.border};
-  > *:first-child {
-    flex-grow: 1;
-  }
 `;
 const FooterDate = styled('div')`
   display: flex;
