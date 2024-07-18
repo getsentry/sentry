@@ -282,19 +282,23 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
         mock_proxy_profiling_service.assert_called_once_with(
             method="POST",
             path=f"/organizations/{self.project.organization.id}/flamegraph",
-            json_data=[
-                {
-                    "project_id": self.project.id,
-                    "profiler_id": profiler_id,
-                    "chunk_id": chunk["chunk_id"],
-                    "start": str(int(profiler_transaction["start_timestamp"] * 1e9)),
-                    "end": str(int(profiler_transaction["timestamp"] * 1e9)),
-                },
-                {
-                    "project_id": self.project.id,
-                    "profile_id": profile_id,
-                },
-            ],
+            json_data={
+                "transaction": [
+                    {
+                        "project_id": self.project.id,
+                        "profile_id": profile_id,
+                    },
+                ],
+                "continuous": [
+                    {
+                        "project_id": self.project.id,
+                        "profiler_id": profiler_id,
+                        "chunk_id": chunk["chunk_id"],
+                        "start": str(int(profiler_transaction["start_timestamp"] * 1e9)),
+                        "end": str(int(profiler_transaction["timestamp"] * 1e9)),
+                    },
+                ],
+            },
         )
 
 

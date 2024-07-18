@@ -278,7 +278,9 @@ class ContinuousProfileCandidate(TypedDict):
     end: str
 
 
-ProfileCandidate = TransactionProfileCandidate | ContinuousProfileCandidate
+class ProfileCandidates(TypedDict):
+    transaction: list[TransactionProfileCandidate]
+    continuous: list[ContinuousProfileCandidate]
 
 
 @dataclass(frozen=True)
@@ -321,7 +323,7 @@ class FlamegraphExecutor:
         self.query = query
         self.fingerprint = fingerprint
 
-    def get_profile_candidates(self) -> list[ProfileCandidate]:
+    def get_profile_candidates(self) -> ProfileCandidates:
         if self.dataset == Dataset.Functions:
             return self.get_profile_candidates_from_functions()
         elif self.dataset == Dataset.Discover:
@@ -329,11 +331,9 @@ class FlamegraphExecutor:
 
         raise NotImplementedError
 
-    def get_profile_candidates_from_functions(self) -> list[ProfileCandidate]:
+    def get_profile_candidates_from_functions(self) -> ProfileCandidates:
         # TODO: continuous profiles support
         max_profiles = options.get("profiling.flamegraph.profile-set.size")
-
-        profile_candidates: list[ProfileCandidate] = []
 
         builder = ProfileFunctionsQueryBuilder(
             dataset=Dataset.Functions,
@@ -351,22 +351,27 @@ class FlamegraphExecutor:
 
         result = builder.run_query(Referrer.API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH.value)
 
+        transaction_profile_candidates: list[TransactionProfileCandidate] = []
+
         for row in result["data"]:
             project = row["project.id"]
             examples = row["unique_examples()"]
             for example in examples:
-                if len(profile_candidates) > max_profiles:
+                if len(transaction_profile_candidates) > max_profiles:
                     break
-                profile_candidates.append(
+                transaction_profile_candidates.append(
                     {
                         "project_id": project,
                         "profile_id": example,
                     }
                 )
 
-        return profile_candidates
+        return {
+            "transaction": transaction_profile_candidates,
+            "continuous": [],
+        }
 
-    def get_profile_candidates_from_transactions(self) -> list[ProfileCandidate]:
+    def get_profile_candidates_from_transactions(self) -> ProfileCandidates:
         # TODO: continuous profiles support
         max_profiles = options.get("profiling.flamegraph.profile-set.size")
 
@@ -400,32 +405,34 @@ class FlamegraphExecutor:
             Referrer.API_PROFILING_PROFILE_FLAMEGRAPH_TRANSACTION_CANDIDATES.value,
         )
 
-        profile_candidates: list[ProfileCandidate] = []
-
-        profile_candidates.extend(
-            self.get_chunks_for_profilers(
-                [
-                    ProfilerMeta(
-                        project_id=row["project.id"],
-                        profiler_id=row["profiler.id"],
-                        start=row["precise.start_ts"],
-                        end=row["precise.finish_ts"],
-                    )
-                    for row in result["data"]
-                    if row["profiler.id"] is not None
-                ]
-            )
+        continuous_profile_candidates: list[
+            ContinuousProfileCandidate
+        ] = self.get_chunks_for_profilers(
+            [
+                ProfilerMeta(
+                    project_id=row["project.id"],
+                    profiler_id=row["profiler.id"],
+                    start=row["precise.start_ts"],
+                    end=row["precise.finish_ts"],
+                )
+                for row in result["data"]
+                if row["profiler.id"] is not None
+            ]
         )
-        profile_candidates.extend(
+
+        transaction_profile_candidates: list[TransactionProfileCandidate] = [
             {
                 "project_id": row["project.id"],
                 "profile_id": row["profile.id"],
             }
             for row in result["data"]
             if row["profile.id"] is not None
-        )
+        ]
 
-        return profile_candidates
+        return {
+            "transaction": transaction_profile_candidates,
+            "continuous": continuous_profile_candidates,
+        }
 
     def get_chunks_for_profilers(
         self, profiler_metas: list[ProfilerMeta]
