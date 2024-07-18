@@ -210,7 +210,10 @@ class GroupAutofixEndpoint(GroupEndpoint):
     def get(self, request: Request, group: Group) -> Response:
         autofix_state = get_autofix_state(group_id=group.id)
 
+        response_state: dict[str, Any] | None = None
+
         if autofix_state:
+            response_state = autofix_state.dict()
             user_ids = autofix_state.actor_ids
             if user_ids:
                 users = user_service.serialize_many(
@@ -220,6 +223,6 @@ class GroupAutofixEndpoint(GroupEndpoint):
 
                 users_map = {user["id"]: user for user in users}
 
-                autofix_state.users = users_map
+                response_state["users"] = users_map
 
-        return Response({"autofix": autofix_state.dict() if autofix_state else None})
+        return Response({"autofix": response_state})

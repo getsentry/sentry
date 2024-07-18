@@ -11,14 +11,14 @@ from sentry.utils import metrics
 def get_webhook_analytics_fields(autofix_state: AutofixState) -> dict[str, Any]:
     webhook_analytics_fields = {}
 
-    autofix_request = autofix_state.get("request", {})
+    autofix_request = autofix_state.request
 
     webhook_analytics_fields["project_id"] = autofix_request.get("project_id", None)
 
     issue = autofix_request.get("issue", None)
     webhook_analytics_fields["group_id"] = issue.get("id", None) if issue else None
 
-    webhook_analytics_fields["run_id"] = autofix_state.get("run_id", None)
+    webhook_analytics_fields["run_id"] = autofix_state.run_id
 
     return webhook_analytics_fields
 
