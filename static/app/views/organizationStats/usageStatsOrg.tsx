@@ -61,14 +61,23 @@ class UsageStatsOrganization<
   S extends UsageStatsOrganizationState = UsageStatsOrganizationState,
 > extends DeprecatedAsyncComponent<P, S> {
   componentDidUpdate(prevProps: UsageStatsOrganizationProps) {
-    const {dataDatetime: prevDateTime, projectIds: prevProjectIds} = prevProps;
-    const {dataDatetime: currDateTime, projectIds: currProjectIds} = this.props;
+    const {
+      dataDatetime: prevDateTime,
+      projectIds: prevProjectIds,
+      dataCategoryApiName: prevDataCategoryApiName,
+    } = prevProps;
+    const {
+      dataDatetime: currDateTime,
+      projectIds: currProjectIds,
+      dataCategoryApiName: currentDataCategoryApiName,
+    } = this.props;
 
     if (
       prevDateTime.start !== currDateTime.start ||
       prevDateTime.end !== currDateTime.end ||
       prevDateTime.period !== currDateTime.period ||
       prevDateTime.utc !== currDateTime.utc ||
+      prevDataCategoryApiName !== currentDataCategoryApiName ||
       !isEqual(prevProjectIds, currProjectIds)
     ) {
       this.reloadData();
