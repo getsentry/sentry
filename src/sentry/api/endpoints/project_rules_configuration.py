@@ -8,7 +8,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.constants import MIGRATED_CONDITIONS, SENTRY_APP_ACTIONS, TICKET_ACTIONS
 from sentry.receivers.rules import has_high_priority_issue_alerts
-from sentry.rules import rules
+from sentry.rules import MatchType, rules
 
 
 @region_silo_endpoint
@@ -35,6 +35,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         has_latest_adopted_release = features.has(
             "organizations:latest-adopted-release-filter", project.organization
         )
+        has_is_in = features.has("organizations:issues-alerts-is-in", project.organization)
 
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
@@ -88,6 +89,15 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                     and not has_latest_adopted_release
                 ):
                     continue
+                if (
+                    context["id"] == "sentry.rules.filters.tagged_event.TaggedEventFilter"
+                    or context["id"] == "sentry.rules.filters.event_attribute.EventAttributeFilter"
+                ) and not has_is_in:
+                    # Filter the form_fields to strip `is_in` choices
+                    match_choices = context["formFields"]["match"]["choices"]
+                    context["formFields"]["match"]["choices"] = [
+                        choice for choice in match_choices if choice[0] != MatchType.IS_IN
+                    ]
                 filter_list.append(context)
             elif rule_type.startswith("action/"):
                 action_list.append(context)
