@@ -1,4 +1,4 @@
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import type {DateString} from 'sentry/types/core';

@@ -51,6 +51,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:alert-filters", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enables the migration of alerts (checked in a migration script).
     manager.add("organizations:alerts-migration-enabled", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    # Enable anomaly detection alerts
+    manager.add("organizations:anomaly-detection-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable anr frame analysis
     manager.add("organizations:anr-analyze-frames", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable anr improvements ui
@@ -61,7 +63,7 @@ def register_temporary_features(manager: FeatureManager):
     # Rollout of the new API rate limits for organization events
     manager.add("organizations:api-organization_events-rate-limit-reduced-rollout", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enables the cron job to auto-enable codecov integrations.
-    manager.add("organizations:auto-enable-codecov", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    manager.add("organizations:auto-enable-codecov", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Autofix use new strategy without codebase indexing
     manager.add("organizations:autofix-disable-codebase-indexing", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False)
     # Enables getting commit sha from git blame for codecov.
@@ -71,7 +73,7 @@ def register_temporary_features(manager: FeatureManager):
     # Disables legacy cron ingest endpoints
     manager.add("organizations:crons-write-user-feedback", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Enable daily summary
-    manager.add("organizations:daily-summary", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    manager.add("organizations:daily-summary", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable dashboard widget indicators.
     manager.add("organizations:dashboard-widget-indicators", OrganizationFeature, FeatureHandlerStrategy.REMOTE, default=True)
     # Enables import/export functionality for dashboards
@@ -106,8 +108,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:ds-org-recalibration", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enables data secrecy mode
     manager.add("organizations:enterprise-data-secrecy", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-    # Enable archive/escalating issue workflow in MS Teams
-    manager.add("organizations:escalating-issues-msteams", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable archive/escalating issue workflow features in v2
     manager.add("organizations:escalating-issues-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable emiting escalating data to the metrics backend
@@ -156,6 +156,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:issue-stream-empty-state-additional-platforms", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable issue stream performance improvements
     manager.add("organizations:issue-stream-performance", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:issue-search-snuba", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable the new issue stream search bar UI
     manager.add("organizations:issue-stream-search-query-builder", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:large-debug-files", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -165,6 +166,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:latest-adopted-release-filter", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:mep-rollout-flag", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:mep-use-default-tags", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    # Enable messaging integration onboarding when setting up alerts
+    manager.add("organizations:messaging-integration-onboarding", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable metric alert charts in email/slack
     manager.add("organizations:metric-alert-chartcuterie", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable load shedding for newly created metric alerts
@@ -200,6 +203,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:on-demand-metrics-extraction-widgets", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # This spec version includes the environment in the query hash
     manager.add("organizations:on-demand-metrics-query-spec-version-two", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    # Display metrics components with a new design
+    manager.add("organizations:metrics-new-inputs", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Display on demand metrics related UI elements
     manager.add("organizations:on-demand-metrics-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Display on demand metrics related UI elements, for dashboards and widgets. The other flag is for alerts.
@@ -315,6 +320,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:continuous-profiling-ui", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Display profile durations on the stats page
     manager.add("organizations:continuous-profiling-stats", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    # Enable the continuous profiling compatible redesign
+    manager.add("organizations:continuous-profiling-compat", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable asking for feedback after project-create when replay is disabled
     manager.add("organizations:project-create-replay-feedback", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Limit project events endpoint to only query back a certain number of days
@@ -334,9 +341,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:releases-v2-st", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable playing replays from the replay tab
     manager.add("organizations:replay-play-from-replay-tab", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Mobile replay killswitch
-    # TODO: Delete me on or before public beta.
-    manager.add("organizations:session-replay-video", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Enable version 2 of reprocessing (completely distinct from v1)
     manager.add("organizations:reprocessing-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:required-email-verification", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
@@ -369,8 +373,10 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:session-replay-materialized-view", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False)
     # Enable mobile replay player
     manager.add("organizations:session-replay-mobile-player", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enable mobile replay player network tab
-    manager.add("organizations:session-replay-mobile-network-tab", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    # Disable select orgs from ingesting mobile replay events.
+    manager.add("organizations:session-replay-video-disabled", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
+    # Enable replay player timeline gaps
+    manager.add("organizations:session-replay-timeline-gap", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False)
     # Enable the new event linking columns to be queried
     manager.add("organizations:session-replay-new-event-counts", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable Rage Click Issue Creation In Recording Consumer
@@ -389,8 +395,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:session-replay-web-vitals", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False)
     # Lets organizations manage grouping configs
     manager.add("organizations:set-grouping-config", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-    # Enable Culprit Blocks in Slack Notifications
-    manager.add("organizations:slack-culprit-blocks", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable description field in Slack metric alerts
     manager.add("organizations:slack-metric-alert-description", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable improvements to Slack notifications
@@ -398,14 +402,6 @@ def register_temporary_features(manager: FeatureManager):
     # Feature flags for migrating to the Slack SDK WebClient
     # Use new Slack SDK Client in get_channel_id_with_timeout
     manager.add("organizations:slack-sdk-get-channel-id", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
-    # Use new Slack SDK Client to respond to link commands
-    manager.add("organizations:slack-sdk-link-commands", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
-    # Use new Slack SDK Client in SlackActionEndpoint
-    manager.add("organizations:slack-sdk-webhook-handling", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
-    # Use new Slack SDK Client in SlackActionEndpoint's `view.open`
-    manager.add("organizations:slack-sdk-action-view-open", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
-    # Use new Slack SDK Client for SlackNotifyBasicMixin
-    manager.add("organizations:slack-sdk-notify-mixin", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Add regression chart as image to slack message
     manager.add("organizations:slack-endpoint-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     manager.add("organizations:slack-function-regression-image", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
@@ -421,6 +417,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:insights-browser-webvitals-static-weights", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Sets all web vitals to optional when calculating performance scores
     manager.add("organizations:insights-browser-webvitals-optional-components", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
+    # Add default browser performance score profile for fallback when no or unknown browser name is provided
+    manager.add("organizations:insights-default-performance-score-profiles", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable standalone span ingestion
     manager.add("organizations:standalone-span-ingestion", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable the aggregate span waterfall view
@@ -467,6 +465,10 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:transaction-name-sanitization", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enables automatic hostname detection in uptime
     manager.add("organizations:uptime-automatic-hostname-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
+    # Enables automatic subscription creation in uptime
+    manager.add("organizations:uptime-automatic-subscription-creation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
+    # Enables uptime related settings for projects and orgs
+    manager.add('organizations:uptime-settings', OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     manager.add("organizations:use-metrics-layer", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable User Feedback v2 ingest
     manager.add("organizations:user-feedback-ingest", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -486,6 +488,7 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enabled unresolved issue webhook for organization
     manager.add("organizations:webhooks-unresolved", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
+    manager.add("organizations:project-templates", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # NOTE: Don't add features down here! Add them to their specific group and sort
     #       them alphabetically! The order features are registered is not important.
 
@@ -508,14 +511,14 @@ def register_temporary_features(manager: FeatureManager):
     # Enable alternative version of group creation that is supposed to be less racy.
     manager.add("projects:race-free-group-creation", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Enable similarity embeddings API call
-    manager.add("projects:similarity-embeddings", ProjectFeature, FeatureHandlerStrategy.OPTIONS)
+    manager.add("projects:similarity-embeddings", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=False)
     # Enable similarity embeddings backfill
     manager.add("projects:similarity-embeddings-backfill", ProjectFeature, FeatureHandlerStrategy.OPTIONS)
     manager.add("projects:similarity-embeddings-delete-by-hash", ProjectFeature, FeatureHandlerStrategy.OPTIONS)
     # Enable similarity embeddings grouping
-    manager.add("projects:similarity-embeddings-grouping", ProjectFeature, FeatureHandlerStrategy.OPTIONS)
+    manager.add("projects:similarity-embeddings-grouping", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=False)
     # Enable adding seer grouping metadata to new groups
-    manager.add("projects:similarity-embeddings-metadata", ProjectFeature, FeatureHandlerStrategy.OPTIONS)
+    manager.add("projects:similarity-embeddings-metadata", ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=False)
     manager.add("projects:similarity-indexing", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("projects:similarity-view", ProjectFeature, FeatureHandlerStrategy.INTERNAL)
     # Starfish: extract metrics from the spans

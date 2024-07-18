@@ -398,6 +398,13 @@ function buildRoutes() {
             name={t('Create New Token')}
             component={make(() => import('sentry/views/settings/account/apiNewToken'))}
           />
+          <Route
+            path=":tokenId/"
+            name={t('Edit User Auth Token')}
+            component={make(
+              () => import('sentry/views/settings/account/apiTokenDetails')
+            )}
+          />
         </Route>
         <Route path="applications/" name={t('Applications')}>
           <IndexRoute
@@ -1961,25 +1968,23 @@ function buildRoutes() {
         component={make(() => import('sentry/views/profiling/differentialFlamegraph'))}
       />
       <Route
+        path="profile/:projectId/"
+        component={make(() => import('sentry/views/profiling/continuousProfileProvider'))}
+      >
+        <Route
+          path="flamegraph/"
+          component={make(
+            () => import('sentry/views/profiling/continuousProfileFlamegraph')
+          )}
+        />
+      </Route>
+      <Route
         path="profile/:projectId/:eventId/"
         component={make(() => import('sentry/views/profiling/profilesProvider'))}
       >
         <Route
           path="flamegraph/"
           component={make(() => import('sentry/views/profiling/profileFlamechart'))}
-        />
-      </Route>
-      <Route
-        path="profile/:projectId/"
-        component={make(
-          () => import('sentry/views/profiling/continuousProfilesProvider')
-        )}
-      >
-        <Route
-          path="flamegraph/"
-          component={make(
-            () => import('sentry/views/profiling/continuousProfileFlamechart')
-          )}
         />
       </Route>
     </Route>

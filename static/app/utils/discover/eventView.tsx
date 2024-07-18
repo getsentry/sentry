@@ -4,7 +4,7 @@ import isEqual from 'lodash/isEqual';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
 import uniqBy from 'lodash/uniqBy';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import type {EventQuery} from 'sentry/actionCreators/events';
 import {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
@@ -42,7 +42,7 @@ import {
 } from 'sentry/utils/discover/types';
 import {statsPeriodToDays} from 'sentry/utils/duration/statsPeriodToDays';
 import {decodeList, decodeScalar, decodeSorts} from 'sentry/utils/queryString';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {getSavedQueryDatasetFromLocationOrDataset} from 'sentry/views/discover/savedQuery/utils';
 import type {TableColumn, TableColumnSort} from 'sentry/views/discover/table/types';
 import {FieldValueKind} from 'sentry/views/discover/table/types';

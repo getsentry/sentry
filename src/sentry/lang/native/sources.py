@@ -138,8 +138,6 @@ SOURCES_SCHEMA = {
     "items": SOURCE_SCHEMA,
 }
 
-# TODO(@anonrig): Remove this when AppStore connect integration is sunset.
-# Ref: https://github.com/getsentry/sentry/issues/51994
 SOURCES_WITHOUT_APPSTORE_CONNECT = {
     "type": "array",
     "items": {
@@ -368,15 +366,15 @@ def secret_fields(source_type):
     yield from []
 
 
-def validate_sources(sources, schema=SOURCES_SCHEMA):
+def validate_sources(sources, schema=SOURCES_WITHOUT_APPSTORE_CONNECT):
     """
     Validates sources against the JSON schema and checks that
     their IDs are ok.
     """
     try:
         jsonschema.validate(sources, schema)
-    except jsonschema.ValidationError as e:
-        raise InvalidSourcesError(f"{e}")
+    except jsonschema.ValidationError:
+        raise InvalidSourcesError(f"Failed to validate source {redact_source_secrets(sources)}")
 
     ids = set()
     for source in sources:
@@ -387,7 +385,7 @@ def validate_sources(sources, schema=SOURCES_SCHEMA):
         ids.add(source["id"])
 
 
-def parse_sources(config, filter_appconnect=True):
+def parse_sources(config, filter_appconnect):
     """
     Parses the given sources in the config string (from JSON).
     """
@@ -398,13 +396,13 @@ def parse_sources(config, filter_appconnect=True):
     try:
         sources = orjson.loads(config)
     except Exception as e:
-        raise InvalidSourcesError(f"{e}")
-
-    validate_sources(sources)
+        raise InvalidSourcesError("Sources are not valid serialised JSON") from e
 
     # remove App Store Connect sources (we don't need them in Symbolicator)
     if filter_appconnect:
-        filter(lambda src: src.get("type") != "appStoreConnect", sources)
+        sources = [src for src in sources if src.get("type") != "appStoreConnect"]
+
+    validate_sources(sources)
 
     return sources
 
@@ -428,7 +426,7 @@ def parse_backfill_sources(sources_json, original_sources):
     for source in sources:
         backfill_source(source, orig_by_id)
 
-    validate_sources(sources)
+    validate_sources(sources, schema=SOURCES_SCHEMA)
 
     return sources
 
@@ -497,7 +495,7 @@ def get_sources_for_project(project):
 
     if sources_config:
         try:
-            custom_sources = parse_sources(sources_config)
+            custom_sources = parse_sources(sources_config, filter_appconnect=True)
             sources.extend(
                 normalize_user_source(source)
                 for source in custom_sources

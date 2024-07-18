@@ -1,7 +1,10 @@
 import {Fragment} from 'react';
 
+import {addSuccessMessage} from 'sentry/actionCreators/indicator';
+import {CodeSnippet} from 'sentry/components/codeSnippet';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
+import Matrix from 'sentry/components/stories/matrix';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import storyBook from 'sentry/stories/storyBook';
 
@@ -23,6 +26,31 @@ export default storyBook(StructuredEventData, story => {
       </Fragment>
     );
   });
+
+  story('Auto-Expanded items', () => (
+    <Matrix
+      propMatrix={{
+        data: [
+          {
+            foo: 'bar',
+            'the_real_world?': {
+              the_city: {
+                the_hotel: {
+                  the_fortress: 'a pinwheel',
+                },
+              },
+            },
+            arr5: [1, 2, 3, 4, 5],
+            arr6: [1, 2, 3, 4, 5, 6],
+          },
+        ],
+        forceDefaultExpand: [undefined, true, false],
+        maxDefaultDepth: [undefined, 0, 1, 2, 3],
+      }}
+      render={StructuredEventData}
+      selectedProps={['forceDefaultExpand', 'maxDefaultDepth']}
+    />
+  ));
 
   story('Annotations', () => {
     return (
@@ -48,11 +76,53 @@ export default storyBook(StructuredEventData, story => {
           Using the <JSXProperty name="config" value /> property, you can customize when
           and how certain data types are displayed.
         </p>
+        <p>Input:</p>
+        <CodeSnippet language="javascript">{`data: {nil: null, bool: 'this_should_look_like_a_boolean'}`}</CodeSnippet>
+        <p>Config:</p>
+        <CodeSnippet language="javascript">
+          {`const config = {
+  renderNull: () => 'nulllllll',
+  isBoolean: value => value === 'this_should_look_like_a_boolean',
+}`}
+        </CodeSnippet>
+        <p>Output:</p>
         <StructuredEventData
           data={{nil: null, bool: 'this_should_look_like_a_boolean'}}
           config={{
             renderNull: () => 'nulllllll',
             isBoolean: value => value === 'this_should_look_like_a_boolean',
+          }}
+        />
+        <p>
+          By default, strings within object values will render without quotes around them,
+          as you can see in the example above. In order to render values with quotes (or
+          any other custom formatting), you can set the <code>isString</code>
+          <JSXProperty name=" config" value /> with something like this:
+        </p>
+        <CodeSnippet language="javascript">
+          {`const config = {
+  isString: (v: any) => {
+    return typeof v === 'string';
+  },
+}; `}
+        </CodeSnippet>
+      </Fragment>
+    );
+  });
+
+  story('Allow copy to clipboard', () => {
+    return (
+      <Fragment>
+        <p>
+          Using the <JSXProperty name="showCopyButton" value /> property and
+          <JSXProperty name="onCopy" value /> callback, you can customize whether to show
+          a copy to clipboard button, and what happens when copy is pressed.
+        </p>
+        <StructuredEventData
+          data={{red: 'fish', blue: 'fish'}}
+          showCopyButton
+          onCopy={() => {
+            addSuccessMessage('Copied successfully!');
           }}
         />
       </Fragment>

@@ -14,9 +14,9 @@ import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
 import type {ColorOrAlias} from 'sentry/utils/theme';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
   ContentContainer,
   HeaderContainer,

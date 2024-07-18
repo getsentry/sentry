@@ -8,6 +8,7 @@ from sentry.incidents.endpoints.serializers.alert_rule import (
 from sentry.incidents.logic import create_alert_rule_trigger, create_alert_rule_trigger_action
 from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleDetectionType,
     AlertRuleMonitorTypeInt,
     AlertRuleProjects,
     AlertRuleThresholdType,
@@ -233,13 +234,20 @@ class AlertRuleSerializerTest(BaseAlertRuleSerializerTest, TestCase):
         assert alert_rule.user_id is None
 
     def test_comparison_delta_above(self):
-        alert_rule = self.create_alert_rule(comparison_delta=60, resolve_threshold=110)
+        alert_rule = self.create_alert_rule(
+            comparison_delta=60,
+            resolve_threshold=110,
+            detection_type=AlertRuleDetectionType.PERCENT,
+        )
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result, resolve_threshold=10)
 
     def test_comparison_delta_below(self):
         alert_rule = self.create_alert_rule(
-            comparison_delta=60, resolve_threshold=90, threshold_type=AlertRuleThresholdType.BELOW
+            comparison_delta=60,
+            resolve_threshold=90,
+            threshold_type=AlertRuleThresholdType.BELOW,
+            detection_type=AlertRuleDetectionType.PERCENT,
         )
         result = serialize(alert_rule)
         self.assert_alert_rule_serialized(alert_rule, result, resolve_threshold=10)

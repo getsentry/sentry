@@ -13,12 +13,12 @@ from sentry.integrations.types import ExternalProviders
 from sentry.notifications.additional_attachment_manager import manager
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import RuleTestCase
-from sentry.testutils.helpers.options import override_options
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from tests.sentry.integrations.slack.test_notifications import (
     additional_attachment_generator_block_kit,
 )
+from tests.sentry.integrations.slack.utils.test_mock_slack_response import mock_slack_response
 
 pytestmark = [requires_snuba]
 
@@ -26,33 +26,33 @@ pytestmark = [requires_snuba]
 class SlackNotifyActionTest(RuleTestCase):
     rule_cls = SlackNotifyServiceAction
 
-    def mock_conversations_list(self, channels):
-        return patch(
-            "slack_sdk.web.client.WebClient.conversations_list",
-            return_value=SlackResponse(
-                client=None,
-                http_verb="POST",
-                api_url="https://slack.com/api/conversations.list",
-                req_args={},
-                data={"ok": True, "channels": channels},
-                headers={},
-                status_code=200,
-            ),
-        )
+    def mock_list(self, list_type, channels, result_name="channels"):
+        return mock_slack_response(f"{list_type}_list", body={"ok": True, result_name: channels})
 
     def mock_conversations_info(self, channel):
-        return patch(
-            "slack_sdk.web.client.WebClient.conversations_info",
-            return_value=SlackResponse(
-                client=None,
-                http_verb="POST",
-                api_url="https://slack.com/api/conversations.info",
-                req_args={"channel": channel},
-                data={"ok": True, "channel": channel},
-                headers={},
-                status_code=200,
-            ),
+        return mock_slack_response(
+            "conversations_info",
+            body={"ok": True, "channel": channel},
+            req_args={"channel": channel},
         )
+
+    def mock_msg_schedule_response(self, channel_id, result_name="channel"):
+        if channel_id == "channel_not_found":
+            body = {"ok": False, "error": "channel_not_found"}
+        else:
+            body = {
+                "ok": True,
+                result_name: channel_id,
+                "scheduled_message_id": "Q1298393284",
+            }
+        return mock_slack_response("chat_scheduleMessage", body)
+
+    def mock_msg_delete_scheduled_response(self, channel_id, result_name="channel"):
+        if channel_id == "channel_not_found":
+            body = {"ok": False, "error": "channel_not_found"}
+        else:
+            body = {"ok": True}
+        return mock_slack_response("chat_deleteScheduledMessage", body)
 
     def setUp(self):
         self.organization = self.get_event().project.organization
@@ -149,39 +149,16 @@ class SlackNotifyActionTest(RuleTestCase):
             data={"workspace": integration.id, "channel": "#my-channel", "tags": ""}
         )
 
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.scheduleMessage",
-            status=200,
-            content_type="application/json",
-            body=orjson.dumps(
-                {"ok": "true", "channel": "chan-id", "scheduled_message_id": "Q1298393284"}
-            ),
-        )
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.deleteScheduledMessage",
-            status=200,
-            content_type="application/json",
-            body=orjson.dumps({"ok": True}),
-        )
-
-        form = rule.get_form_instance()
-        assert form.is_valid()
-        self.assert_form_valid(form, "chan-id", "#my-channel")
+        with self.mock_msg_schedule_response("chan-id"):
+            with self.mock_msg_delete_scheduled_response("chan-id"):
+                form = rule.get_form_instance()
+                assert form.is_valid()
+                self.assert_form_valid(form, "chan-id", "#my-channel")
 
     @responses.activate
     def test_valid_member_selected(self):
         rule = self.get_rule(
             data={"workspace": self.integration.id, "channel": "@morty", "tags": ""}
-        )
-
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.scheduleMessage",
-            status=200,
-            content_type="application/json",
-            body=orjson.dumps({"ok": False, "error": "channel_not_found"}),
         )
 
         members = {
@@ -192,16 +169,11 @@ class SlackNotifyActionTest(RuleTestCase):
             ],
         }
 
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/users.list",
-            status=200,
-            content_type="application/json",
-            body=orjson.dumps(members),
-        )
-
-        form = rule.get_form_instance()
-        self.assert_form_valid(form, "morty-id", "@morty")
+        with self.mock_msg_schedule_response("channel_not_found"):
+            with self.mock_list("users", members["members"], "members"):
+                form = rule.get_form_instance()
+                assert form.is_valid()
+                self.assert_form_valid(form, "morty-id", "@morty")
 
     @responses.activate
     def test_invalid_channel_selected(self):
@@ -233,58 +205,37 @@ class SlackNotifyActionTest(RuleTestCase):
         assert len(form.errors) == 1
 
     @responses.activate
-    def test_rate_limited_response(self):
+    @patch("slack_sdk.web.client.WebClient.users_list")
+    def test_rate_limited_response(self, mock_api_call):
         """Should surface a 429 from Slack to the frontend form"""
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.scheduleMessage",
-            status=200,
-            content_type="application/json",
-            body=orjson.dumps({"ok": False, "error": "channel_not_found"}),
+
+        mock_api_call.side_effect = SlackApiError(
+            message="ratelimited",
+            response=SlackResponse(
+                client=None,
+                http_verb="POST",
+                api_url="https://slack.com/api/users.list",
+                req_args={},
+                data={"ok": False, "error": "rate_limited"},
+                headers={},
+                status_code=429,
+            ),
         )
 
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/users.list",
-            status=429,
-            content_type="application/json",
-            body=orjson.dumps({"ok": False, "error": "ratelimited"}),
-        )
-        rule = self.get_rule(
-            data={
-                "workspace": self.integration.id,
-                "channel": "#my-channel",
-                "input_channel_id": "",
-                "tags": "",
-            }
-        )
+        with self.mock_msg_schedule_response("channel_not_found"):
+            rule = self.get_rule(
+                data={
+                    "workspace": self.integration.id,
+                    "channel": "#my-channel",
+                    "input_channel_id": "",
+                    "tags": "",
+                }
+            )
 
-        form = rule.get_form_instance()
-        assert not form.is_valid()
-        assert SLACK_RATE_LIMITED_MESSAGE in str(form.errors.values())
+            form = rule.get_form_instance()
+            assert not form.is_valid()
+            assert SLACK_RATE_LIMITED_MESSAGE in str(form.errors.values())
 
-    @responses.activate
-    def test_channel_id_provided(self):
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.info",
-            status=200,
-            content_type="application/json",
-            body=orjson.dumps({"ok": "true", "channel": {"name": "my-channel", "id": "C2349874"}}),
-        )
-        rule = self.get_rule(
-            data={
-                "workspace": self.integration.id,
-                "channel": "#my-channel",
-                "input_channel_id": "C2349874",
-                "tags": "",
-            }
-        )
-
-        form = rule.get_form_instance()
-        assert form.is_valid()
-
-    @override_options({"slack-sdk.valid_channel_id": True})
     def test_channel_id_provided_sdk(self):
         channel = {"name": "my-channel", "id": "C2349874"}
         with self.mock_conversations_info(channel):
@@ -300,29 +251,6 @@ class SlackNotifyActionTest(RuleTestCase):
             form = rule.get_form_instance()
             assert form.is_valid()
 
-    @responses.activate
-    def test_invalid_channel_id_provided(self):
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.info",
-            status=200,
-            content_type="application/json",
-            body=orjson.dumps({"ok": False, "error": "channel_not_found"}),
-        )
-        rule = self.get_rule(
-            data={
-                "workspace": self.integration.id,
-                "channel": "#my-chanel",
-                "input_channel_id": "C1234567",
-                "tags": "",
-            }
-        )
-
-        form = rule.get_form_instance()
-        assert not form.is_valid()
-        assert "Channel not found. Invalid ID provided." in str(form.errors.values())
-
-    @override_options({"slack-sdk.valid_channel_id": True})
     def test_invalid_channel_id_provided_sdk(self):
         with patch(
             "slack_sdk.web.client.WebClient.conversations_info",
@@ -341,32 +269,6 @@ class SlackNotifyActionTest(RuleTestCase):
             assert not form.is_valid()
             assert "Channel not found. Invalid ID provided." in str(form.errors.values())
 
-    @responses.activate
-    def test_invalid_channel_name_provided(self):
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/conversations.info",
-            status=200,
-            content_type="application/json",
-            body=orjson.dumps({"ok": "true", "channel": {"name": "my-channel", "id": "C2349874"}}),
-        )
-        rule = self.get_rule(
-            data={
-                "workspace": self.integration.id,
-                "channel": "#my-chanel",
-                "input_channel_id": "C1234567",
-                "tags": "",
-            }
-        )
-
-        form = rule.get_form_instance()
-        assert not form.is_valid()
-        assert (
-            "Received channel name my-channel does not match inputted channel name my-chanel."
-            in str(form.errors.values())
-        )
-
-    @override_options({"slack-sdk.valid_channel_id": True})
     def test_invalid_channel_name_provided_sdk(self):
         channel = {"name": "my-channel", "id": "C2349874"}
         with self.mock_conversations_info(channel):
@@ -401,14 +303,6 @@ class SlackNotifyActionTest(RuleTestCase):
             data={"workspace": self.integration.id, "channel": "@morty", "tags": ""}
         )
 
-        responses.add(
-            method=responses.POST,
-            url="https://slack.com/api/chat.scheduleMessage",
-            status=200,
-            content_type="application/json",
-            body=orjson.dumps({"ok": False, "error": "channel_not_found"}),
-        )
-
         members = {
             "ok": "true",
             "members": [
@@ -417,19 +311,13 @@ class SlackNotifyActionTest(RuleTestCase):
             ],
         }
 
-        responses.add(
-            method=responses.GET,
-            url="https://slack.com/api/users.list",
-            status=200,
-            content_type="application/json",
-            body=orjson.dumps(members),
-        )
-
-        form = rule.get_form_instance()
-        assert not form.is_valid()
-        assert [
-            "Slack: Multiple users were found with display name '@morty'. Please use your username, found at sentry.slack.com/account/settings#username."
-        ] in form.errors.values()
+        with self.mock_msg_schedule_response("channel_not_found"):
+            with self.mock_list("users", members["members"], "members"):
+                form = rule.get_form_instance()
+                assert not form.is_valid()
+                assert [
+                    "Slack: Multiple users were found with display name '@morty'. Please use your username, found at sentry.slack.com/account/settings#username."
+                ] in form.errors.values()
 
     def test_disabled_org_integration(self):
         org = self.create_organization(owner=self.user)

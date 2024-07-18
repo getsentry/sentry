@@ -54,8 +54,8 @@ SAMPLED_TASKS = {
     "sentry.tasks.store.process_event": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.store.process_event_from_reprocessing": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
     "sentry.tasks.store.save_event_transaction": settings.SENTRY_PROCESS_EVENT_APM_SAMPLING,
+    # TODO(@anonrig): Remove this once AppStore connect integration is removed.
     "sentry.tasks.app_store_connect.dsym_download": settings.SENTRY_APPCONNECT_APM_SAMPLING,
-    "sentry.tasks.app_store_connect.refresh_all_builds": settings.SENTRY_APPCONNECT_APM_SAMPLING,
     "sentry.tasks.process_suspect_commits": settings.SENTRY_SUSPECT_COMMITS_APM_SAMPLING,
     "sentry.tasks.process_commit_context": settings.SENTRY_SUSPECT_COMMITS_APM_SAMPLING,
     "sentry.tasks.post_process.post_process_group": settings.SENTRY_POST_PROCESS_GROUP_APM_SAMPLING,
@@ -174,6 +174,11 @@ def get_project_key():
 
 
 def traces_sampler(sampling_context):
+    # Apply sample_rate from custom_sampling_context
+    custom_sample_rate = sampling_context.get("sample_rate")
+    if custom_sample_rate is not None:
+        return float(custom_sample_rate)
+
     # If there's already a sampling decision, just use that
     if sampling_context["parent_sampled"] is not None:
         return sampling_context["parent_sampled"]

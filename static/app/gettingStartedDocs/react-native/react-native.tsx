@@ -155,7 +155,7 @@ const onboarding: OnboardingConfig = {
                 <ExternalLink href="https://docs.sentry.io/platforms/react-native/touchevents/" />
               ),
               automaticPerformanceMonitoringLink: (
-                <ExternalLink href="https://docs.sentry.io/platforms/react-native/performance/instrumentation/automatic-instrumentation/" />
+                <ExternalLink href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/automatic-instrumentation/" />
               ),
             }
           ),
@@ -206,18 +206,23 @@ const onboarding: OnboardingConfig = {
                 )}
                 <List symbol="bullet">
                   <ListItem>
-                    <ExternalLink href="https://docs.sentry.io/platforms/react-native/performance/instrumentation/automatic-instrumentation/#react-navigation">
+                    <ExternalLink href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/react-navigation/">
                       {t('React Navigation')}
                     </ExternalLink>
                   </ListItem>
                   <ListItem>
-                    <ExternalLink href="https://docs.sentry.io/platforms/react-native/performance/instrumentation/automatic-instrumentation/#react-navigation-v4">
+                    <ExternalLink href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/react-navigation-v4/">
                       {t('React Navigation V4 and prior')}
                     </ExternalLink>
                   </ListItem>
                   <ListItem>
-                    <ExternalLink href="https://docs.sentry.io/platforms/react-native/performance/instrumentation/automatic-instrumentation/#react-native-navigation">
+                    <ExternalLink href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/react-native-navigation/">
                       {t('React Native Navigation')}
+                    </ExternalLink>
+                  </ListItem>
+                  <ListItem>
+                    <ExternalLink href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/expo-router/">
+                      {t('Expo Router')}
                     </ExternalLink>
                   </ListItem>
                 </List>
@@ -235,7 +240,7 @@ const onboarding: OnboardingConfig = {
                   'For more information, please refer to the [docLink: Sentry React Native documentation].',
                   {
                     docLink: (
-                      <ExternalLink href="https://docs.sentry.io/platforms/react-native/performance/instrumentation/" />
+                      <ExternalLink href="https://docs.sentry.io/platforms/react-native/tracing/instrumentation/" />
                     ),
                   }
                 ),

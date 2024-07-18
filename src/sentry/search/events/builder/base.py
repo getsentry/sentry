@@ -72,18 +72,20 @@ from sentry.utils.snuba import (
     raw_snql_query,
     resolve_column,
 )
+from sentry.utils.validators import INVALID_ID_DETAILS, INVALID_SPAN_ID, WILDCARD_NOT_ALLOWED
 
 
 class BaseQueryBuilder:
     requires_organization_condition: bool = False
     organization_column: str = "organization.id"
-    uuid_fields = {"id", "trace", "profile.id", "replay.id"}
     function_alias_prefix: str | None = None
     spans_metrics_builder = False
     profile_functions_metrics_builder = False
     entity: Entity | None = None
     config_class: type[DatasetConfig] | None = None
     duration_fields: set[str] = set()
+    uuid_fields: set[str] = set()
+    span_id_fields: set[str] = set()
 
     def get_middle(self):
         """Get the middle for comparison functions"""
@@ -160,8 +162,8 @@ class BaseQueryBuilder:
         user_id = params.get("user_id")
         user = user_service.get_user(user_id=user_id) if user_id is not None else None  # type: ignore[arg-type]
         teams = (
-            Team.objects.filter(id__in=params["team_id"])  # type: ignore[typeddict-item]
-            if "team_id" in params and isinstance(params["team_id"], list)  # type: ignore[typeddict-item]
+            Team.objects.filter(id__in=params["team_id"])
+            if "team_id" in params and isinstance(params["team_id"], list)
             else None
         )
         return SnubaParams(
@@ -1202,9 +1204,32 @@ class BaseQueryBuilder:
         converter = self.search_filter_converter.get(name, self.default_filter_converter)
         return converter(search_filter)
 
+    def validate_uuid_like_filters(self, search_filter: event_search.SearchFilter):
+        name = search_filter.key.name
+        value = search_filter.value
+
+        if name in self.uuid_fields:
+            if value.is_wildcard():
+                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
+            if not value.is_event_id():
+                raise InvalidSearchQuery(INVALID_ID_DETAILS.format(name))
+
+    def validate_span_id_like_filters(self, search_filter: event_search.SearchFilter):
+        name = search_filter.key.name
+        value = search_filter.value
+
+        if name in self.span_id_fields:
+            if value.is_wildcard():
+                raise InvalidSearchQuery(WILDCARD_NOT_ALLOWED.format(name))
+            if not value.is_span_id():
+                raise InvalidSearchQuery(INVALID_SPAN_ID.format(name))
+
     def default_filter_converter(
         self, search_filter: event_search.SearchFilter
     ) -> WhereType | None:
+        self.validate_uuid_like_filters(search_filter)
+        self.validate_span_id_like_filters(search_filter)
+
         name = search_filter.key.name
         operator = search_filter.operator
         value = search_filter.value.value
@@ -1279,6 +1304,7 @@ class BaseQueryBuilder:
         if (
             search_filter.operator in ("!=", "NOT IN")
             and not search_filter.key.is_tag
+            and not is_tag
             and name not in self.config.non_nullable_keys
         ):
             # Handle null columns on inequality comparisons. Any comparison
@@ -1483,7 +1509,7 @@ class BaseQueryBuilder:
             return None
         return value
 
-    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+    def run_query(self, referrer: str | None, use_cache: bool = False) -> Any:
         if not referrer:
             InvalidSearchQuery("Query missing referrer.")
         return raw_snql_query(self.get_snql_query(), referrer, use_cache)

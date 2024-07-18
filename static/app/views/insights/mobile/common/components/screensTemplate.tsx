@@ -1,4 +1,4 @@
-import {type ReactNode, useCallback} from 'react';
+import {Fragment, type ReactNode, useCallback} from 'react';
 import styled from '@emotion/styled';
 import omit from 'lodash/omit';
 
@@ -16,14 +16,13 @@ import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
-import useOrganization from 'sentry/utils/useOrganization';
+import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
-import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
+import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
 import type {ModuleName} from 'sentry/views/insights/types';
-import Onboarding from 'sentry/views/performance/onboarding';
 
 type ScreensTemplateProps = {
   content: ReactNode;
@@ -42,10 +41,9 @@ export default function ScreensTemplate({
   additionalSelectors,
   content,
 }: ScreensTemplateProps) {
-  const organization = useOrganization();
-  const onboardingProject = useOnboardingProject();
   const location = useLocation();
   const {isProjectCrossPlatform} = useCrossPlatformProject();
+  const hasModuleData = useHasFirstSpan(moduleName);
 
   const handleProjectChange = useCallback(() => {
     browserHistory.replace({
@@ -88,15 +86,16 @@ export default function ScreensTemplate({
                 <EnvironmentPageFilter />
                 <DatePageFilter />
               </PageFilterBar>
-              <ReleaseComparisonSelector />
-              {additionalSelectors}
+              {hasModuleData && (
+                <Fragment>
+                  <ReleaseComparisonSelector />
+                  {additionalSelectors}
+                </Fragment>
+              )}
             </Container>
             <PageAlert />
             <ErrorBoundary mini>
-              {onboardingProject && (
-                <Onboarding organization={organization} project={onboardingProject} />
-              )}
-              {!onboardingProject && content}
+              <ModulesOnboarding moduleName={moduleName}>{content}</ModulesOnboarding>
             </ErrorBoundary>
           </Layout.Main>
         </Layout.Body>

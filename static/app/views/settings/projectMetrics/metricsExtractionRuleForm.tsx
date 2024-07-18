@@ -12,13 +12,13 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconClose, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {SelectValue} from 'sentry/types/core';
 import type {MetricAggregation, MetricsExtractionCondition} from 'sentry/types/metrics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {DEFAULT_METRICS_CARDINALITY_LIMIT} from 'sentry/utils/metrics/constants';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
-import {useMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/api';
+import {useMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/useMetricsExtractionRules';
 
 export type AggregateGroup = 'count' | 'count_unique' | 'min_max' | 'percentiles';
 export interface FormData {
@@ -26,6 +26,7 @@ export interface FormData {
   conditions: MetricsExtractionCondition[];
   spanAttribute: string | null;
   tags: string[];
+  unit: string;
 }
 
 interface Props extends Omit<FormProps, 'onSubmit'> {
@@ -128,6 +129,38 @@ export function createCondition(): MetricsExtractionCondition {
   };
 }
 
+const SUPPORTED_UNITS = [
+  'none',
+  'nanosecond',
+  'microsecond',
+  'millisecond',
+  'second',
+  'minute',
+  'hour',
+  'day',
+  'week',
+  'ratio',
+  'percent',
+  'bit',
+  'byte',
+  'kibibyte',
+  'kilobyte',
+  'mebibyte',
+  'megabyte',
+  'gibibyte',
+  'gigabyte',
+  'tebibyte',
+  'terabyte',
+  'pebibyte',
+  'petabyte',
+  'exbibyte',
+  'exabyte',
+] as const;
+
+const isSupportedUnit = (unit: string): unit is (typeof SUPPORTED_UNITS)[number] => {
+  return SUPPORTED_UNITS.includes(unit as (typeof SUPPORTED_UNITS)[number]);
+};
+
 const EMPTY_SET = new Set<never>();
 const SPAN_SEARCH_CONFIG = {
   booleanKeys: EMPTY_SET,
@@ -140,6 +173,10 @@ const SPAN_SEARCH_CONFIG = {
   disallowFreeText: true,
   disallowWildcard: true,
   disallowNegation: true,
+};
+
+const FIXED_UNITS_BY_ATTRIBUTE: Record<string, (typeof SUPPORTED_UNITS)[number]> = {
+  [SpanIndexedField.SPAN_DURATION]: 'millisecond',
 };
 
 export function MetricsExtractionRuleForm({
@@ -156,7 +193,20 @@ export function MetricsExtractionRuleForm({
     return [...new Set(spanAttribute ? [...tags, spanAttribute] : tags)];
   });
 
-  const {data: extractionRules} = useMetricsExtractionRules(organization.slug, projectId);
+  const [customUnit, setCustomUnit] = useState<string | null>(() => {
+    const {unit} = props.initialData;
+    return unit && !isSupportedUnit(unit) ? unit : null;
+  });
+
+  const [isUnitDisabled, setIsUnitDisabled] = useState(() => {
+    const {spanAttribute} = props.initialData;
+    return !!(spanAttribute && spanAttribute in FIXED_UNITS_BY_ATTRIBUTE);
+  });
+
+  const {data: extractionRules} = useMetricsExtractionRules({
+    orgId: organization.slug,
+    projectId: projectId,
+  });
   const tags = useSpanFieldSupportedTags({projects: [Number(projectId)]});
 
   // TODO(aknaus): Make this nicer
@@ -179,7 +229,7 @@ export function MetricsExtractionRuleForm({
 
     return (
       allAttributeOptions
-        .map(key => ({
+        .map<SelectValue<string>>(key => ({
           label: key,
           value: key,
           disabled: disabledKeys.has(key),
@@ -201,11 +251,25 @@ export function MetricsExtractionRuleForm({
         // We don't want to suggest numeric fields as tags as they would explode cardinality
         option => !HIGH_CARDINALITY_TAGS.has(option as SpanIndexedField)
       )
-      .map(option => ({
+      .map<SelectValue<string>>(option => ({
         label: option,
         value: option,
       }));
   }, [allAttributeOptions]);
+
+  const unitOptions = useMemo(() => {
+    const options: SelectValue<string>[] = SUPPORTED_UNITS.map(unit => ({
+      label: unit,
+      value: unit,
+    }));
+    if (customUnit) {
+      options.push({
+        label: customUnit,
+        value: customUnit,
+      });
+    }
+    return options;
+  }, [customUnit]);
 
   const handleSubmit = useCallback(
     (
@@ -259,6 +323,28 @@ export function MetricsExtractionRuleForm({
               setCustomeAttributes(curr => [...curr, value]);
               model.setValue('spanAttribute', value);
             }}
+            onChange={value => {
+              if (value in FIXED_UNITS_BY_ATTRIBUTE) {
+                model.setValue('unit', FIXED_UNITS_BY_ATTRIBUTE[value]);
+                setIsUnitDisabled(true);
+              } else {
+                setIsUnitDisabled(false);
+              }
+            }}
+            required
+          />
+          <SelectField
+            name="unit"
+            options={unitOptions}
+            disabled={isUnitDisabled}
+            label={t('Unit')}
+            placeholder={t('Select a unit')}
+            creatable
+            formatCreateLabel={value => `Custom: "${value}"`}
+            onCreateOption={value => {
+              setCustomUnit(value);
+              model.setValue('unit', value);
+            }}
             required
           />
           <SelectField
@@ -283,7 +369,9 @@ export function MetricsExtractionRuleForm({
             label={t('Group and filter by')}
             multiple
             placeholder={t('Select tags')}
-            help={t('Select the tags that can be used to group and filter the metric.')}
+            help={t(
+              'Select the tags that can be used to group and filter the metric. Tag values have to be non-numeric.'
+            )}
             creatable
             formatCreateLabel={value => `Custom: "${value}"`}
             onCreateOption={value => {
@@ -293,9 +381,9 @@ export function MetricsExtractionRuleForm({
             }}
           />
           <FormField
-            label={t('Queries')}
+            label={t('Filters')}
             help={t(
-              'Define queries to narrow down the metric extraction to a specific set of spans.'
+              'Define filters to narrow down the metric to a specific set of spans.'
             )}
             name="conditions"
             inline={false}
@@ -317,24 +405,20 @@ export function MetricsExtractionRuleForm({
                 );
               };
 
-              const getMaxCardinality = (condition: MetricsExtractionCondition) => {
+              const isCardinalityLimited = (
+                condition: MetricsExtractionCondition
+              ): boolean => {
                 if (!cardinality) {
-                  return 0;
+                  return false;
                 }
-                return condition.mris.reduce(
-                  (acc, mri) => Math.max(acc, cardinality[mri] || 0),
-                  0
-                );
+                return condition.mris.some(conditionMri => cardinality[conditionMri] > 0);
               };
 
               return (
                 <Fragment>
                   <ConditionsWrapper hasDelete={value.length > 1}>
                     {conditions.map((condition, index) => {
-                      const maxCardinality = getMaxCardinality(condition);
-                      const isExeedingCardinalityLimit =
-                        // TODO: Retrieve limit from BE
-                        maxCardinality >= DEFAULT_METRICS_CARDINALITY_LIMIT;
+                      const isExeedingCardinalityLimit = isCardinalityLimited(condition);
                       const hasSiblings = conditions.length > 1;
 
                       return (
@@ -346,7 +430,7 @@ export function MetricsExtractionRuleForm({
                               isExeedingCardinalityLimit ? (
                                 <Tooltip
                                   title={t(
-                                    'This query is exeeding the cardinality limit. Remove tags or add more filters to receive accurate data.'
+                                    'This filter is exeeding the cardinality limit. Remove tags or add more conditions to receive accurate data.'
                                   )}
                                 >
                                   <StyledIconWarning size="xs" color="yellow300" />
@@ -369,7 +453,6 @@ export function MetricsExtractionRuleForm({
                               }}
                               placeholder={t('Search for span attributes')}
                               organization={organization}
-                              metricAlert={false}
                               supportedTags={supportedTags}
                               dataset={DiscoverDatasets.SPANS_INDEXED}
                               projectIds={[Number(projectId)]}
@@ -380,7 +463,7 @@ export function MetricsExtractionRuleForm({
                           </SearchWrapper>
                           {value.length > 1 && (
                             <Button
-                              aria-label={t('Remove Query')}
+                              aria-label={t('Remove Filter')}
                               onClick={() => onChange(conditions.toSpliced(index, 1), {})}
                               icon={<IconClose />}
                             />
@@ -395,7 +478,7 @@ export function MetricsExtractionRuleForm({
                       onClick={() => onChange([...conditions, createCondition()], {})}
                       icon={<IconAdd />}
                     >
-                      {t('Add Query')}
+                      {t('Add Filter')}
                     </Button>
                   </ConditionsButtonBar>
                 </Fragment>

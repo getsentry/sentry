@@ -104,6 +104,7 @@ export {IconSubscribed} from './iconSubscribed';
 export {IconSubtract} from './iconSubtract';
 export {IconSupport} from './iconSupport';
 export {IconSync} from './iconSync';
+export {IconTable} from './iconTable';
 export {IconTag} from './iconTag';
 export {IconTap} from './iconTap';
 export {IconTeamwork} from './iconTeamwork';

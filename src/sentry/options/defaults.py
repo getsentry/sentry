@@ -347,14 +347,6 @@ register(
 register("filestore.control.backend", default="", flags=FLAG_NOSTORE)
 register("filestore.control.options", default={}, flags=FLAG_NOSTORE)
 
-# Throttle filestore access in proguard processing. This is in response to
-# INC-635.
-register(
-    "filestore.proguard-throttle",
-    default=1.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
-)
-
 # Whether to use a redis lock on fileblob uploads and deletes
 register("fileblob.upload.use_lock", default=True, flags=FLAG_AUTOMATOR_MODIFIABLE)
 # Whether to use redis to cache `FileBlob.id` lookups
@@ -458,12 +450,6 @@ register(
     default=True,
     flags=FLAG_ALLOW_EMPTY | FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
 )
-register(
-    "replay.organizations.video-slug-denylist",
-    type=Sequence,
-    default=[],
-    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
-)
 
 # User Feedback Options
 register(
@@ -513,13 +499,6 @@ register(
     flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
-
-# Use Slack SDK in `validate_channel_id`
-register("slack-sdk.valid_channel_id", type=Bool, default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-register(
-    "slack-sdk.valid_channel_id_la_integration_ids", default=[], flags=FLAG_AUTOMATOR_MODIFIABLE
-)
-
 # Codecov Integration
 register("codecov.client-secret", flags=FLAG_CREDENTIAL | FLAG_PRIORITIZE_DISK)
 
@@ -537,6 +516,12 @@ register(
     type=Bool,
     default=False,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "github-enterprise-app.allowed-hosts-legacy-webhooks",
+    type=Sequence,
+    default=[],
+    flags=FLAG_ALLOW_EMPTY | FLAG_AUTOMATOR_MODIFIABLE,
 )
 
 # GitHub Auth
@@ -663,14 +648,6 @@ register(
     "store.eventstream-per-type-topic",
     default=False,
     flags=FLAG_PRIORITIZE_DISK | FLAG_AUTOMATOR_MODIFIABLE,
-)
-
-# The fraction of prooguard events that will be routed to the
-# separate `store.process_event_proguard` queue
-register(
-    "store.separate-proguard-queue-rate",
-    default=0.0,
-    flags=FLAG_AUTOMATOR_MODIFIABLE | FLAG_MODIFIABLE_RATE,
 )
 
 # Query and supply Bundle Indexes to Symbolicator SourceMap processing
@@ -849,6 +826,30 @@ register(
 )
 register(
     "seer.similarity-backfill-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.similarity-embeddings-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.similarity-embeddings-grouping-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.similarity-embeddings-metadata-killswitch.enabled",
+    default=False,
+    type=Bool,
+    flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
+)
+register(
+    "seer.similarity-embeddings-delete-by-hash-killswitch.enabled",
     default=False,
     type=Bool,
     flags=FLAG_MODIFIABLE_BOOL | FLAG_AUTOMATOR_MODIFIABLE,
@@ -2079,6 +2080,12 @@ register(
 register(
     "delightful_metrics.metrics_summary_sample_rate",
     default=0.0,
+    flags=FLAG_AUTOMATOR_MODIFIABLE,
+)
+
+register(
+    "delightful_metrics.enable_span_attributes",
+    default=False,
     flags=FLAG_AUTOMATOR_MODIFIABLE,
 )
 

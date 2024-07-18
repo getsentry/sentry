@@ -78,7 +78,7 @@ describe('Profile', () => {
       startedAt: 0,
       endedAt: 1000,
       name: 'profile',
-      unit: 'ms',
+      unit: 'millisecond',
       threadId: 0,
       type: 'flamechart',
     });
@@ -114,7 +114,7 @@ describe('Profile', () => {
       startedAt: 0,
       endedAt: 1000,
       name: 'profile',
-      unit: 'ms',
+      unit: 'millisecond',
       threadId: 0,
       type: 'flamechart',
     });
@@ -156,7 +156,7 @@ describe('Profile', () => {
       startedAt: 0,
       endedAt: 1000,
       name: 'profile',
-      unit: 'ms',
+      unit: 'millisecond',
       threadId: 0,
       type: 'flamechart',
     });
@@ -197,7 +197,7 @@ describe('Profile', () => {
       startedAt: 0,
       endedAt: 1000,
       name: 'profile',
-      unit: 'ms',
+      unit: 'millisecond',
       threadId: 0,
       type: 'flamechart',
     });

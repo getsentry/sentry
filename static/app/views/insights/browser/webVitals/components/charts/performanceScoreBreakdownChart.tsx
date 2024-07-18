@@ -20,7 +20,7 @@ import {useStaticWeightsSetting} from 'sentry/views/insights/browser/webVitals/u
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 
 type Props = {
-  browserType?: BrowserType;
+  browserTypes?: BrowserType[];
   transaction?: string;
 };
 
@@ -46,16 +46,16 @@ export const formatTimeSeriesResultsToChartData = (
   });
 };
 
-export function PerformanceScoreBreakdownChart({transaction, browserType}: Props) {
+export function PerformanceScoreBreakdownChart({transaction, browserTypes}: Props) {
   const theme = useTheme();
   const segmentColors = [...theme.charts.getColorPalette(3).slice(0, 5)];
 
   const pageFilters = usePageFilters();
 
   const {data: timeseriesData, isLoading: isTimeseriesLoading} =
-    useProjectWebVitalsScoresTimeseriesQuery({transaction, browserType});
+    useProjectWebVitalsScoresTimeseriesQuery({transaction, browserTypes});
   const {data: projectScores, isLoading: isProjectScoresLoading} =
-    useProjectWebVitalsScoresQuery({transaction, browserType});
+    useProjectWebVitalsScoresQuery({transaction, browserTypes});
 
   const projectScore = isProjectScoresLoading
     ? undefined

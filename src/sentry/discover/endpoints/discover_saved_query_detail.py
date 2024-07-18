@@ -13,7 +13,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
-from sentry.discover.models import DiscoverSavedQuery
+from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery
 
 
 class DiscoverSavedQueryBase(OrganizationEndpoint):
@@ -89,6 +89,7 @@ class DiscoverSavedQueryDetailEndpoint(DiscoverSavedQueryBase):
             query=data["query"],
             version=data["version"],
             dataset=data["query_dataset"],
+            dataset_source=DatasetSourcesTypes.UNKNOWN.value,
         )
 
         query.set_projects(data["project_ids"])

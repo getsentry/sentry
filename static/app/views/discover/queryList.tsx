@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location, Query} from 'history';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
 import type {Client} from 'sentry/api';
@@ -25,6 +25,7 @@ import {decodeList} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 
 import {
+  getSavedQueryWithDataset,
   handleCreateQuery,
   handleDeleteQuery,
   handleUpdateHomepageQuery,
@@ -233,7 +234,12 @@ class QueryList extends Component<Props> {
       return [];
     }
 
-    return savedQueries.map((savedQuery, index) => {
+    return savedQueries.map((query, index) => {
+      const savedQuery = organization.features.includes(
+        'performance-discover-dataset-selector'
+      )
+        ? (getSavedQueryWithDataset(query) as SavedQuery)
+        : query;
       const eventView = EventView.fromSavedQuery(savedQuery);
       const recentTimeline = t('Last ') + eventView.statsPeriod;
       const customTimeline =

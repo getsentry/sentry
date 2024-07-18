@@ -34,6 +34,7 @@ def query(
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
+    fallback_to_transactions=False,
 ) -> Any:
     if not selected_columns:
         raise InvalidSearchQuery("No columns selected")
@@ -94,7 +95,7 @@ def timeseries_query(
                 params["start"],
                 params["end"],
                 rollup,
-                "time",
+                ["time"],
             )
             if zerofill_results
             else results["data"],

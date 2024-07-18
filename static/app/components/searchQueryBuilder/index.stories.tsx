@@ -7,7 +7,7 @@ import type {FilterKeySection} from 'sentry/components/searchQueryBuilder/types'
 import SizingWindow from 'sentry/components/stories/sizingWindow';
 import storyBook from 'sentry/stories/storyBook';
 import type {TagCollection} from 'sentry/types/group';
-import {FieldKey, FieldKind} from 'sentry/utils/fields';
+import {FieldKey, FieldKind, WebVital} from 'sentry/utils/fields';
 
 const FILTER_KEYS: TagCollection = {
   [FieldKey.AGE]: {key: FieldKey.AGE, name: 'Age', kind: FieldKind.FIELD},
@@ -49,6 +49,11 @@ const FILTER_KEYS: TagCollection = {
     name: 'timesSeen',
     kind: FieldKind.FIELD,
   },
+  [WebVital.LCP]: {
+    key: WebVital.LCP,
+    name: 'lcp',
+    kind: FieldKind.FIELD,
+  },
   custom_tag_name: {
     key: 'custom_tag_name',
     name: 'Custom_Tag_Name',
@@ -65,6 +70,7 @@ const FITLER_KEY_SECTIONS: FilterKeySection[] = [
       FieldKey.BROWSER_NAME,
       FieldKey.IS,
       FieldKey.TIMES_SEEN,
+      WebVital.LCP,
     ],
   },
   {

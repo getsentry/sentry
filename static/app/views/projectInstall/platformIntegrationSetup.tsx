@@ -12,7 +12,7 @@ import type {IntegrationProvider, Organization, Project} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {trackIntegrationAnalytics} from 'sentry/utils/integrationUtil';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withOrganization from 'sentry/utils/withOrganization';
 import AddInstallationInstructions from 'sentry/views/onboarding/components/integrations/addInstallationInstructions';
 import PostInstallCodeSnippet from 'sentry/views/onboarding/components/integrations/postInstallCodeSnippet';

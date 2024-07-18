@@ -9,7 +9,7 @@ import {
 } from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {MetricsExtractionRule} from 'sentry/types/metrics';
-import {useMetricsCardinality} from 'sentry/utils/metrics/useMetricsCardinality';
+import {useCardinalityLimitedMetricVolume} from 'sentry/utils/metrics/useCardinalityLimitedMetricVolume';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   aggregatesToGroups,
@@ -18,10 +18,11 @@ import {
   type FormData,
   MetricsExtractionRuleForm,
 } from 'sentry/views/settings/projectMetrics/metricsExtractionRuleForm';
-import {useUpdateMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/api';
+import {useUpdateMetricsExtractionRules} from 'sentry/views/settings/projectMetrics/utils/useMetricsExtractionRules';
 
 interface Props {
   metricExtractionRule: MetricsExtractionRule;
+  onSubmitSuccess?: (data: FormData) => void;
 }
 
 export function MetricsExtractionRuleEditModal({
@@ -30,6 +31,7 @@ export function MetricsExtractionRuleEditModal({
   closeModal,
   CloseButton,
   metricExtractionRule,
+  onSubmitSuccess: onSubmitSuccessProp,
 }: Props & ModalRenderProps) {
   const organization = useOrganization();
   const updateExtractionRuleMutation = useUpdateMetricsExtractionRules(
@@ -37,13 +39,14 @@ export function MetricsExtractionRuleEditModal({
     metricExtractionRule.projectId
   );
 
-  const {data: cardinality} = useMetricsCardinality({
+  const {data: cardinality} = useCardinalityLimitedMetricVolume({
     projects: [metricExtractionRule.projectId],
   });
 
   const initialData: FormData = useMemo(() => {
     return {
       spanAttribute: metricExtractionRule.spanAttribute,
+      unit: metricExtractionRule.unit,
       aggregates: aggregatesToGroups(metricExtractionRule.aggregates),
       tags: metricExtractionRule.tags,
       conditions: metricExtractionRule.conditions.length
@@ -59,12 +62,12 @@ export function MetricsExtractionRuleEditModal({
       onSubmitError: (error: any) => void
     ) => {
       const extractionRule: MetricsExtractionRule = {
+        ...metricExtractionRule,
         spanAttribute: data.spanAttribute!,
         tags: data.tags,
         aggregates: data.aggregates.flatMap(explodeAggregateGroup),
-        unit: 'none',
+        unit: data.unit,
         conditions: data.conditions,
-        projectId: metricExtractionRule.projectId,
       };
 
       updateExtractionRuleMutation.mutate(
@@ -74,6 +77,7 @@ export function MetricsExtractionRuleEditModal({
         {
           onSuccess: () => {
             onSubmitSuccess(data);
+            onSubmitSuccessProp?.(data);
             addSuccessMessage(t('Metric extraction rule updated'));
             closeModal();
           },
@@ -88,7 +92,7 @@ export function MetricsExtractionRuleEditModal({
       );
       onSubmitSuccess(data);
     },
-    [closeModal, metricExtractionRule.projectId, updateExtractionRuleMutation]
+    [closeModal, metricExtractionRule, onSubmitSuccessProp, updateExtractionRuleMutation]
   );
 
   return (

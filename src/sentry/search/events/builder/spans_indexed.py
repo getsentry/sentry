@@ -8,6 +8,27 @@ from sentry.search.events.datasets.spans_indexed import SpansIndexedDatasetConfi
 from sentry.search.events.fields import custom_time_processor
 from sentry.search.events.types import SelectType
 
+SPAN_UUID_FIELDS = {
+    "trace",
+    "trace_id",
+    "transaction.id",
+    "transaction_id",
+    "profile.id",
+    "profile_id",
+    "replay.id",
+    "replay_id",
+}
+
+
+SPAN_ID_FIELDS = {
+    "id",
+    "span_id",
+    "parent_span",
+    "parent_span_id",
+    "segment.id",
+    "segment_id",
+}
+
 
 class SpansIndexedQueryBuilderMixin:
     meta_resolver_map: dict[str, str]
@@ -23,7 +44,8 @@ class SpansIndexedQueryBuilderMixin:
 
 class SpansIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
     requires_organization_condition = False
-    uuid_fields = {"transaction.id", "replay.id", "profile.id", "trace"}
+    uuid_fields = SPAN_UUID_FIELDS
+    span_id_fields = SPAN_ID_FIELDS
     config_class = SpansIndexedDatasetConfig
 
     def __init__(self, *args, **kwargs):
@@ -35,6 +57,8 @@ class SpansIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, BaseQueryBuilder):
 
 class TimeseriesSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, TimeseriesQueryBuilder):
     config_class = SpansIndexedDatasetConfig
+    uuid_fields = SPAN_UUID_FIELDS
+    span_id_fields = SPAN_ID_FIELDS
 
     @property
     def time_column(self) -> SelectType:
@@ -45,6 +69,8 @@ class TimeseriesSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, Timeserie
 
 class TopEventsSpanIndexedQueryBuilder(SpansIndexedQueryBuilderMixin, TopEventsQueryBuilder):
     config_class = SpansIndexedDatasetConfig
+    uuid_fields = SPAN_UUID_FIELDS
+    span_id_fields = SPAN_ID_FIELDS
 
     @property
     def time_column(self) -> SelectType:
