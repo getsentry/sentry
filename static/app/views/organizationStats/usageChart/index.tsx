@@ -117,17 +117,13 @@ export const enum SeriesTypes {
 
 export type UsageChartProps = {
   dataCategory: DataCategoryInfo['plural'];
-
   dataTransform: ChartDataTransform;
-
   usageDateEnd: string;
   usageDateStart: string;
-
   /**
    * Usage data to draw on chart
    */
   usageStats: ChartStats;
-
   /**
    * Override chart colors for each outcome
    */
@@ -136,7 +132,6 @@ export type UsageChartProps = {
    * Config for category dropdown options
    */
   categoryOptions?: CategoryOption[];
-
   /**
    * Additional data to draw on the chart alongside usage
    */
@@ -145,9 +140,7 @@ export type UsageChartProps = {
    * Replace default tooltip
    */
   chartTooltip?: TooltipComponentOption;
-
   errors?: Record<string, Error>;
-
   /**
    * Modify the usageStats using the transformation method selected.
    * If the parent component will handle the data transformation, you should
@@ -158,7 +151,6 @@ export type UsageChartProps = {
     transform: Readonly<ChartDataTransform>
   ) => ChartStats;
   isError?: boolean;
-
   isLoading?: boolean;
   /**
    * Selected map of each legend item.
