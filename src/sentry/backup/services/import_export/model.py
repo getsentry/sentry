@@ -46,7 +46,7 @@ class RpcFilter(RpcModel):
     @classmethod
     def into_rpc(cls, base_filter: Filter) -> "RpcFilter":
         return cls(
-            import_model_name=str(get_model_name(base_filter.model)),
+            for_model=str(get_model_name(base_filter.model)),
             field=base_filter.field,
             values=base_filter.values,
         )
