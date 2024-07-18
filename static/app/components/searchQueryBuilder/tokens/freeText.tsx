@@ -11,6 +11,7 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import {useQueryBuilderGridItem} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderGridItem';
 import {replaceTokensWithPadding} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
+import {InvalidTokenTooltip} from 'sentry/components/searchQueryBuilder/tokens/invalidTokenTooltip';
 import {
   getDefaultFilterValue,
   useShiftFocusToChild,
@@ -38,15 +39,14 @@ import useOrganization from 'sentry/utils/useOrganization';
 type SearchQueryBuilderInputProps = {
   item: Node<ParseResultToken>;
   state: ListState<ParseResultToken>;
-  token: TokenResult<Token.FREE_TEXT> | TokenResult<Token.SPACES>;
+  token: TokenResult<Token.FREE_TEXT>;
 };
 
 type SearchQueryBuilderInputInternalProps = {
   item: Node<ParseResultToken>;
   rowRef: React.RefObject<HTMLDivElement>;
   state: ListState<ParseResultToken>;
-  tabIndex: number;
-  token: TokenResult<Token.FREE_TEXT> | TokenResult<Token.SPACES>;
+  token: TokenResult<Token.FREE_TEXT>;
 };
 
 type KeyItem = {
@@ -261,10 +261,36 @@ function KeyDescription({tag}: {tag: Tag}) {
   );
 }
 
+function InvalidText({
+  token,
+  state,
+  item,
+  inputValue,
+}: {
+  inputValue: string;
+  item: Node<ParseResultToken>;
+  state: ListState<ParseResultToken>;
+  token: TokenResult<Token.FREE_TEXT>;
+}) {
+  // Because the text input may be larger than the actual text, we use a div
+  // with the same text contents to determine where the tooltip should be
+  // positioned.
+  return (
+    <PositionedTooltip
+      state={state}
+      token={token}
+      item={item}
+      forceVisible={!inputValue.includes('*') ? false : undefined}
+      skipWrapper={false}
+    >
+      <InvisibleText aria-hidden>{inputValue}</InvisibleText>
+    </PositionedTooltip>
+  );
+}
+
 function SearchQueryBuilderInputInternal({
   item,
   token,
-  tabIndex,
   state,
   rowRef,
 }: SearchQueryBuilderInputInternalProps) {
@@ -273,6 +299,8 @@ function SearchQueryBuilderInputInternal({
   const trimmedTokenValue = token.text.trim();
   const [inputValue, setInputValue] = useState(trimmedTokenValue);
   const [selectionIndex, setSelectionIndex] = useState(0);
+  const isFocused =
+    state.selectionManager.isFocused && item.key === state.selectionManager.focusedKey;
 
   const updateSelectionIndex = useCallback(() => {
     setSelectionIndex(inputRef.current?.selectionStart ?? 0);
@@ -379,112 +407,116 @@ function SearchQueryBuilderInputInternal({
   }, [updateSelectionIndex]);
 
   return (
-    <SearchQueryBuilderCombobox
-      ref={inputRef}
-      items={items}
-      placeholder={query === '' ? placeholder : undefined}
-      onOptionSelected={value => {
-        dispatch({
-          type: 'UPDATE_FREE_TEXT',
-          tokens: [token],
-          text: replaceFocusedWordWithFilter(
-            inputValue,
-            selectionIndex,
-            value,
-            getFieldDefinition
-          ),
-          focusOverride: calculateNextFocusForFilter(state),
-        });
-        resetInputValue();
-        const selectedKey = filterKeys[value];
-        trackAnalytics('search.key_autocompleted', {
-          organization,
-          search_type: savedSearchType === 0 ? 'issues' : 'events',
-          search_source: searchSource,
-          item_name: value,
-          item_kind: selectedKey?.kind ?? FieldKind.FIELD,
-          item_value_type: getFieldDefinition(value)?.valueType ?? FieldValueType.STRING,
-          filtered: Boolean(filterValue),
-          new_experience: true,
-        });
-      }}
-      onCustomValueBlurred={value => {
-        dispatch({type: 'UPDATE_FREE_TEXT', tokens: [token], text: value});
-        resetInputValue();
-      }}
-      onCustomValueCommitted={value => {
-        dispatch({type: 'UPDATE_FREE_TEXT', tokens: [token], text: value});
-        resetInputValue();
-
-        // Because the query does not change until a subsequent render,
-        // we need to do the replacement that is does in the reducer here
-        handleSearch(replaceTokensWithPadding(query, [token], value));
-      }}
-      onExit={() => {
-        if (inputValue !== token.value.trim()) {
-          dispatch({type: 'UPDATE_FREE_TEXT', tokens: [token], text: inputValue});
-          resetInputValue();
-        }
-      }}
-      inputValue={inputValue}
-      token={token}
-      inputLabel={t('Add a search term')}
-      onInputChange={e => {
-        if (e.target.value.includes('(') || e.target.value.includes(')')) {
+    <Fragment>
+      <SearchQueryBuilderCombobox
+        ref={inputRef}
+        items={items}
+        placeholder={query === '' ? placeholder : undefined}
+        onOptionSelected={value => {
           dispatch({
             type: 'UPDATE_FREE_TEXT',
             tokens: [token],
-            text: e.target.value,
-            focusOverride: calculateNextFocusForParen(item),
-          });
-          resetInputValue();
-          return;
-        }
-
-        if (e.target.value.includes(':')) {
-          dispatch({
-            type: 'UPDATE_FREE_TEXT',
-            tokens: [token],
-            text: e.target.value,
+            text: replaceFocusedWordWithFilter(
+              inputValue,
+              selectionIndex,
+              value,
+              getFieldDefinition
+            ),
             focusOverride: calculateNextFocusForFilter(state),
           });
           resetInputValue();
-          return;
-        }
+          const selectedKey = filterKeys[value];
+          trackAnalytics('search.key_autocompleted', {
+            organization,
+            search_type: savedSearchType === 0 ? 'issues' : 'events',
+            search_source: searchSource,
+            item_name: value,
+            item_kind: selectedKey?.kind ?? FieldKind.FIELD,
+            item_value_type:
+              getFieldDefinition(value)?.valueType ?? FieldValueType.STRING,
+            filtered: Boolean(filterValue),
+            new_experience: true,
+          });
+        }}
+        onCustomValueBlurred={value => {
+          dispatch({type: 'UPDATE_FREE_TEXT', tokens: [token], text: value});
+          resetInputValue();
+        }}
+        onCustomValueCommitted={value => {
+          dispatch({type: 'UPDATE_FREE_TEXT', tokens: [token], text: value});
+          resetInputValue();
 
-        setInputValue(e.target.value);
-        setSelectionIndex(e.target.selectionStart ?? 0);
-      }}
-      onKeyDown={onKeyDown}
-      tabIndex={tabIndex}
-      maxOptions={50}
-      onPaste={onPaste}
-      displayTabbedMenu={inputValue.length === 0 && filterKeySections.length > 0}
-      shouldFilterResults={false}
-      shouldCloseOnInteractOutside={el => {
-        if (rowRef.current?.contains(el)) {
-          return false;
+          // Because the query does not change until a subsequent render,
+          // we need to do the replacement that is does in the reducer here
+          handleSearch(replaceTokensWithPadding(query, [token], value));
+        }}
+        onExit={() => {
+          if (inputValue !== token.value.trim()) {
+            dispatch({type: 'UPDATE_FREE_TEXT', tokens: [token], text: inputValue});
+            resetInputValue();
+          }
+        }}
+        inputValue={inputValue}
+        token={token}
+        inputLabel={t('Add a search term')}
+        onInputChange={e => {
+          if (e.target.value.includes('(') || e.target.value.includes(')')) {
+            dispatch({
+              type: 'UPDATE_FREE_TEXT',
+              tokens: [token],
+              text: e.target.value,
+              focusOverride: calculateNextFocusForParen(item),
+            });
+            resetInputValue();
+            return;
+          }
+
+          if (e.target.value.includes(':')) {
+            dispatch({
+              type: 'UPDATE_FREE_TEXT',
+              tokens: [token],
+              text: e.target.value,
+              focusOverride: calculateNextFocusForFilter(state),
+            });
+            resetInputValue();
+            return;
+          }
+
+          setInputValue(e.target.value);
+          setSelectionIndex(e.target.selectionStart ?? 0);
+        }}
+        onKeyDown={onKeyDown}
+        tabIndex={isFocused ? 0 : -1}
+        maxOptions={50}
+        onPaste={onPaste}
+        displayTabbedMenu={inputValue.length === 0 && filterKeySections.length > 0}
+        shouldFilterResults={false}
+        shouldCloseOnInteractOutside={el => {
+          if (rowRef.current?.contains(el)) {
+            return false;
+          }
+          return true;
+        }}
+        onClick={onClick}
+      >
+        {keyItem =>
+          isSection(keyItem) ? (
+            <Section title={keyItem.title} key={keyItem.key}>
+              {keyItem.options.map(child => (
+                <Item {...child} key={child.key}>
+                  {child.label}
+                </Item>
+              ))}
+            </Section>
+          ) : (
+            <Item {...keyItem} key={keyItem.key}>
+              {keyItem.label}
+            </Item>
+          )
         }
-        return true;
-      }}
-      onClick={onClick}
-    >
-      {keyItem =>
-        isSection(keyItem) ? (
-          <Section title={keyItem.title} key={keyItem.key}>
-            {keyItem.options.map(child => (
-              <Item {...child} key={child.key}>
-                {child.label}
-              </Item>
-            ))}
-          </Section>
-        ) : (
-          <Item {...keyItem} key={keyItem.key}>
-            {keyItem.label}
-          </Item>
-        )
-      }
-    </SearchQueryBuilderCombobox>
+      </SearchQueryBuilderCombobox>
+      <InvalidText token={token} state={state} item={item} inputValue={inputValue} />
+    </Fragment>
   );
 }
 
@@ -502,16 +534,20 @@ export function SearchQueryBuilderFreeText({
   const {rowProps, gridCellProps} = useQueryBuilderGridItem(item, state, ref);
   const {shiftFocusProps} = useShiftFocusToChild(item, state);
 
-  const isFocused = item.key === state.selectionManager.focusedKey;
+  const isInvalid = Boolean(token.invalid);
 
   return (
-    <Row {...mergeProps(rowProps, shiftFocusProps)} ref={ref} tabIndex={-1}>
+    <Row
+      {...mergeProps(rowProps, shiftFocusProps)}
+      ref={ref}
+      tabIndex={-1}
+      aria-invalid={isInvalid}
+    >
       <GridCell {...gridCellProps} onClick={e => e.stopPropagation()}>
         <SearchQueryBuilderInputInternal
           item={item}
           state={state}
           token={token}
-          tabIndex={isFocused ? 0 : -1}
           rowRef={ref}
         />
       </GridCell>
@@ -528,6 +564,12 @@ const Row = styled('div')`
 
   &:last-child {
     flex-grow: 1;
+  }
+
+  &[aria-invalid='true'] {
+    input {
+      color: ${p => p.theme.red400};
+    }
   }
 
   &[aria-selected='true'] {
@@ -550,6 +592,7 @@ const Row = styled('div')`
 `;
 
 const GridCell = styled('div')`
+  position: relative;
   display: flex;
   align-items: stretch;
   height: 100%;
@@ -585,3 +628,19 @@ const Term = styled('dt')`
 `;
 
 const Details = styled('dd')``;
+
+const PositionedTooltip = styled(InvalidTokenTooltip)`
+  position: absolute;
+  z-index: -1;
+  top: 0;
+  left: 0;
+  height: 100%;
+`;
+
+const InvisibleText = styled('div')`
+  color: transparent;
+  visibility: hidden;
+  padding: 0 ${space(0.5)};
+  min-width: 9px;
+  height: 100%;
+`;

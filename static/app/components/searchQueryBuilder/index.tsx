@@ -45,6 +45,10 @@ export interface SearchQueryBuilderProps {
    */
   disallowLogicalOperators?: boolean;
   /**
+   * When true, the wildcard (*) in filter values or free text will be marked as invalid.
+   */
+  disallowWildcard?: boolean;
+  /**
    * The lookup strategy for field definitions.
    * Each SearchQueryBuilder instance can support a different list of fields and
    * tags, their definitions may not overlap.
@@ -92,6 +96,7 @@ function ActionButtons() {
 export function SearchQueryBuilder({
   className,
   disallowLogicalOperators,
+  disallowWildcard,
   label,
   initialQuery,
   fieldDefinitionGetter = getFieldDefinition,
@@ -113,9 +118,16 @@ export function SearchQueryBuilder({
     () =>
       parseQueryBuilderValue(state.query, fieldDefinitionGetter, {
         disallowLogicalOperators,
+        disallowWildcard,
         filterKeys,
       }),
-    [disallowLogicalOperators, fieldDefinitionGetter, filterKeys, state.query]
+    [
+      disallowLogicalOperators,
+      disallowWildcard,
+      fieldDefinitionGetter,
+      filterKeys,
+      state.query,
+    ]
   );
 
   useEffectAfterFirstRender(() => {
