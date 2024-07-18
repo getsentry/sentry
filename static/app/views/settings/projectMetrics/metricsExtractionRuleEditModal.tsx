@@ -22,6 +22,7 @@ import {useUpdateMetricsExtractionRules} from 'sentry/views/settings/projectMetr
 
 interface Props {
   metricExtractionRule: MetricsExtractionRule;
+  onSubmitSuccess?: (data: FormData) => void;
 }
 
 export function MetricsExtractionRuleEditModal({
@@ -30,6 +31,7 @@ export function MetricsExtractionRuleEditModal({
   closeModal,
   CloseButton,
   metricExtractionRule,
+  onSubmitSuccess: onSubmitSuccessProp,
 }: Props & ModalRenderProps) {
   const organization = useOrganization();
   const updateExtractionRuleMutation = useUpdateMetricsExtractionRules(
@@ -44,6 +46,7 @@ export function MetricsExtractionRuleEditModal({
   const initialData: FormData = useMemo(() => {
     return {
       spanAttribute: metricExtractionRule.spanAttribute,
+      unit: metricExtractionRule.unit,
       aggregates: aggregatesToGroups(metricExtractionRule.aggregates),
       tags: metricExtractionRule.tags,
       conditions: metricExtractionRule.conditions.length
@@ -63,7 +66,7 @@ export function MetricsExtractionRuleEditModal({
         spanAttribute: data.spanAttribute!,
         tags: data.tags,
         aggregates: data.aggregates.flatMap(explodeAggregateGroup),
-        unit: 'none',
+        unit: data.unit,
         conditions: data.conditions,
       };
 
@@ -74,6 +77,7 @@ export function MetricsExtractionRuleEditModal({
         {
           onSuccess: () => {
             onSubmitSuccess(data);
+            onSubmitSuccessProp?.(data);
             addSuccessMessage(t('Metric extraction rule updated'));
             closeModal();
           },
@@ -88,7 +92,7 @@ export function MetricsExtractionRuleEditModal({
       );
       onSubmitSuccess(data);
     },
-    [closeModal, metricExtractionRule, updateExtractionRuleMutation]
+    [closeModal, metricExtractionRule, onSubmitSuccessProp, updateExtractionRuleMutation]
   );
 
   return (

@@ -12,6 +12,7 @@ import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconClose, IconWarning} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import type {SelectValue} from 'sentry/types/core';
 import type {MetricAggregation, MetricsExtractionCondition} from 'sentry/types/metrics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {DEFAULT_METRICS_CARDINALITY_LIMIT} from 'sentry/utils/metrics/constants';
@@ -26,6 +27,7 @@ export interface FormData {
   conditions: MetricsExtractionCondition[];
   spanAttribute: string | null;
   tags: string[];
+  unit: string;
 }
 
 interface Props extends Omit<FormProps, 'onSubmit'> {
@@ -128,6 +130,38 @@ export function createCondition(): MetricsExtractionCondition {
   };
 }
 
+const SUPPORTED_UNITS = [
+  'none',
+  'nanosecond',
+  'microsecond',
+  'millisecond',
+  'second',
+  'minute',
+  'hour',
+  'day',
+  'week',
+  'ratio',
+  'percent',
+  'bit',
+  'byte',
+  'kibibyte',
+  'kilobyte',
+  'mebibyte',
+  'megabyte',
+  'gibibyte',
+  'gigabyte',
+  'tebibyte',
+  'terabyte',
+  'pebibyte',
+  'petabyte',
+  'exbibyte',
+  'exabyte',
+] as const;
+
+const isSupportedUnit = (unit: string): unit is (typeof SUPPORTED_UNITS)[number] => {
+  return SUPPORTED_UNITS.includes(unit as (typeof SUPPORTED_UNITS)[number]);
+};
+
 const EMPTY_SET = new Set<never>();
 const SPAN_SEARCH_CONFIG = {
   booleanKeys: EMPTY_SET,
@@ -142,6 +176,10 @@ const SPAN_SEARCH_CONFIG = {
   disallowNegation: true,
 };
 
+const FIXED_UNITS_BY_ATTRIBUTE: Record<string, (typeof SUPPORTED_UNITS)[number]> = {
+  [SpanIndexedField.SPAN_DURATION]: 'millisecond',
+};
+
 export function MetricsExtractionRuleForm({
   isEdit,
   projectId,
@@ -154,6 +192,16 @@ export function MetricsExtractionRuleForm({
   const [customAttributes, setCustomeAttributes] = useState<string[]>(() => {
     const {spanAttribute, tags} = props.initialData;
     return [...new Set(spanAttribute ? [...tags, spanAttribute] : tags)];
+  });
+
+  const [customUnit, setCustomUnit] = useState<string | null>(() => {
+    const {unit} = props.initialData;
+    return unit && !isSupportedUnit(unit) ? unit : null;
+  });
+
+  const [isUnitDisabled, setIsUnitDisabled] = useState(() => {
+    const {spanAttribute} = props.initialData;
+    return !!(spanAttribute && spanAttribute in FIXED_UNITS_BY_ATTRIBUTE);
   });
 
   const {data: extractionRules} = useMetricsExtractionRules({
@@ -182,7 +230,7 @@ export function MetricsExtractionRuleForm({
 
     return (
       allAttributeOptions
-        .map(key => ({
+        .map<SelectValue<string>>(key => ({
           label: key,
           value: key,
           disabled: disabledKeys.has(key),
@@ -204,11 +252,25 @@ export function MetricsExtractionRuleForm({
         // We don't want to suggest numeric fields as tags as they would explode cardinality
         option => !HIGH_CARDINALITY_TAGS.has(option as SpanIndexedField)
       )
-      .map(option => ({
+      .map<SelectValue<string>>(option => ({
         label: option,
         value: option,
       }));
   }, [allAttributeOptions]);
+
+  const unitOptions = useMemo(() => {
+    const options: SelectValue<string>[] = SUPPORTED_UNITS.map(unit => ({
+      label: unit,
+      value: unit,
+    }));
+    if (customUnit) {
+      options.push({
+        label: customUnit,
+        value: customUnit,
+      });
+    }
+    return options;
+  }, [customUnit]);
 
   const handleSubmit = useCallback(
     (
@@ -261,6 +323,28 @@ export function MetricsExtractionRuleForm({
             onCreateOption={value => {
               setCustomeAttributes(curr => [...curr, value]);
               model.setValue('spanAttribute', value);
+            }}
+            required
+          />
+          <SelectField
+            name="unit"
+            options={unitOptions}
+            disabled={isUnitDisabled}
+            label={t('Unit')}
+            placeholder={t('Select a unit')}
+            creatable
+            formatCreateLabel={value => `Custom: "${value}"`}
+            onChange={value => {
+              if (value in FIXED_UNITS_BY_ATTRIBUTE) {
+                model.setValue('unit', FIXED_UNITS_BY_ATTRIBUTE[value]);
+                setIsUnitDisabled(true);
+              } else {
+                setIsUnitDisabled(false);
+              }
+            }}
+            onCreateOption={value => {
+              setCustomUnit(value);
+              model.setValue('unit', value);
             }}
             required
           />
