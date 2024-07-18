@@ -7,7 +7,7 @@ import type {
   TooltipComponentOption,
 } from 'echarts';
 
-import BaseChart from 'sentry/components/charts/baseChart';
+import BaseChart, {type BaseChartProps} from 'sentry/components/charts/baseChart';
 import Legend from 'sentry/components/charts/components/legend';
 import xAxis from 'sentry/components/charts/components/xAxis';
 import barSeries from 'sentry/components/charts/series/barSeries';
@@ -117,21 +117,17 @@ export const enum SeriesTypes {
 
 export type UsageChartProps = {
   dataCategory: DataCategoryInfo['plural'];
-
   dataTransform: ChartDataTransform;
   usageDateEnd: string;
-
   usageDateStart: string;
   /**
    * Usage data to draw on chart
    */
   usageStats: ChartStats;
-
   /**
    * Override chart colors for each outcome
    */
   categoryColors?: string[];
-
   /**
    * Config for category dropdown options
    */
@@ -140,13 +136,11 @@ export type UsageChartProps = {
    * Additional data to draw on the chart alongside usage
    */
   chartSeries?: SeriesOption[];
-
   /**
    * Replace default tooltip
    */
   chartTooltip?: TooltipComponentOption;
   errors?: Record<string, Error>;
-
   /**
    * Modify the usageStats using the transformation method selected.
    * If the parent component will handle the data transformation, you should
@@ -156,15 +150,18 @@ export type UsageChartProps = {
     stats: Readonly<ChartStats>,
     transform: Readonly<ChartDataTransform>
   ) => ChartStats;
-
   isError?: boolean;
   isLoading?: boolean;
-
+  /**
+   * Selected map of each legend item.
+   * Default to be selected if item is not in the map
+   */
+  legendSelected?: Record<string, boolean>;
+  onLegendSelectChanged?: BaseChartProps['onLegendSelectChanged'];
   /**
    * Intervals between the x-axis values
    */
   usageDateInterval?: IntervalPeriod;
-
   /**
    * Display datetime in UTC
    */
@@ -339,6 +336,8 @@ function UsageChartBody({
   usageDateShowUtc = true,
   yAxisFormatter,
   handleDataTransformation = cumulativeTotalDataTransformation,
+  legendSelected,
+  onLegendSelectChanged,
 }: UsageChartProps) {
   const theme = useTheme();
 
@@ -514,20 +513,13 @@ function UsageChartBody({
               valueFormatter: tooltipValueFormatter,
             }
       }
-      onLegendSelectChanged={() => {}}
+      onLegendSelectChanged={onLegendSelectChanged}
       legend={Legend({
         right: 10,
         top: 5,
         data: chartLegendData(),
         theme,
-        selected: {
-          [SeriesTypes.ACCEPTED]: true,
-          [SeriesTypes.FILTERED]: true,
-          [SeriesTypes.RATE_LIMITED]: true,
-          [SeriesTypes.INVALID]: true,
-          [SeriesTypes.CLIENT_DISCARD]: false,
-          [SeriesTypes.PROJECTED]: true,
-        },
+        selected: legendSelected,
       })}
     />
   );
