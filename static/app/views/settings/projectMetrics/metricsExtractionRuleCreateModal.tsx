@@ -33,6 +33,7 @@ interface Props {
 
 const INITIAL_DATA: FormData = {
   spanAttribute: null,
+  unit: 'none',
   aggregates: ['count'],
   tags: ['release', 'environment'],
   conditions: [createCondition()],
@@ -165,7 +166,7 @@ function FormWrapper({
         spanAttribute: data.spanAttribute!,
         tags: data.tags,
         aggregates: data.aggregates.flatMap(explodeAggregateGroup),
-        unit: 'none',
+        unit: data.unit,
         conditions: data.conditions,
         projectId: Number(projectId),
         // Will be set by the backend
