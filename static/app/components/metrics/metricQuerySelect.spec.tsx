@@ -4,7 +4,7 @@ import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {MetricQuerySelect} from 'sentry/components/metrics/metricQuerySelect';
-import type {PageFilters} from 'sentry/types';
+import type {MetricsQueryApiResponse, PageFilters} from 'sentry/types';
 import {
   useVirtualMetricsContext,
   VirtualMetricsContextProvider,
@@ -47,57 +47,68 @@ function MetricQuerySelectWithMRI(
   return <MetricQuerySelect {...props} mri={mri} />;
 }
 
+function renderMockRequests({
+  orgSlug,
+  projectId,
+  metricsQueryApiResponse,
+}: {
+  orgSlug: string;
+  projectId: string;
+  metricsQueryApiResponse?: Partial<MetricsQueryApiResponse>;
+}) {
+  MockApiClient.addMockResponse({
+    url: `/organizations/${orgSlug}/metrics/query/`,
+    method: 'POST',
+    body: metricsQueryApiResponse ?? {
+      data: [
+        [
+          {
+            by: {
+              mri: SELECTED_MRI,
+            },
+            totals: 2703.0,
+          },
+        ],
+      ],
+      start: '2024-07-16T21:00:00Z',
+      end: '2024-07-17T22:00:00Z',
+    },
+  });
+  MockApiClient.addMockResponse({
+    url: `/organizations/${orgSlug}/metrics/extraction-rules/`,
+    method: 'GET',
+    body: [
+      {
+        spanAttribute: 'span.duration',
+        aggregates: ['count'],
+        unit: 'millisecond',
+        tags: ['browser.name'],
+        conditions: [
+          {
+            id: 66,
+            value: '',
+            mris: ['c:custom/span_attribute_66@none'],
+          },
+        ],
+        projectId,
+        createdById: 3242858,
+        dateAdded: '2024-07-17T07:06:33.253094Z',
+        dateUpdated: '2024-07-17T21:27:54.742586Z',
+      },
+    ],
+  });
+}
+
 describe('Metric Query Select', function () {
   const {project, organization} = initializeOrg();
 
-  beforeEach(function () {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/metrics/query/`,
-      method: 'POST',
-      body: {
-        data: [
-          [
-            {
-              by: {
-                mri: SELECTED_MRI,
-              },
-              totals: 2703.0,
-            },
-          ],
-        ],
-        start: '2024-07-16T21:00:00Z',
-        end: '2024-07-17T22:00:00Z',
-      },
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${organization.slug}/metrics/extraction-rules/`,
-      method: 'GET',
-      body: [
-        {
-          spanAttribute: 'span.duration',
-          aggregates: ['count'],
-          unit: 'millisecond',
-          tags: ['browser.name'],
-          conditions: [
-            {
-              id: 66,
-              value: '',
-              mris: ['c:custom/span_attribute_66@none'],
-            },
-          ],
-          projectId: project.id,
-          createdById: 3242858,
-          dateAdded: '2024-07-17T07:06:33.253094Z',
-          dateUpdated: '2024-07-17T21:27:54.742586Z',
-        },
-      ],
-    });
-  });
-
   it('shall display cardinality limit warning', async function () {
+    renderMockRequests({orgSlug: organization.slug, projectId: project.id});
+
     usePageFilters.mockImplementation(() =>
       makeFilterProps({projects: [Number(project.id)]})
     );
+
     render(
       <VirtualMetricsContextProvider>
         <MetricQuerySelectWithMRI onChange={jest.fn()} conditionId={66} />
@@ -107,5 +118,31 @@ describe('Metric Query Select', function () {
     expect(
       await screen.findByLabelText('Exceeding the cardinality limit warning')
     ).toBeInTheDocument();
+  });
+
+  it('shall NOT display cardinality limit warning', async function () {
+    renderMockRequests({
+      orgSlug: organization.slug,
+      projectId: project.id,
+      metricsQueryApiResponse: {
+        data: [],
+      },
+    });
+
+    usePageFilters.mockImplementation(() =>
+      makeFilterProps({projects: [Number(project.id)]})
+    );
+
+    render(
+      <VirtualMetricsContextProvider>
+        <MetricQuerySelectWithMRI onChange={jest.fn()} conditionId={66} />
+      </VirtualMetricsContextProvider>
+    );
+
+    expect(await screen.findByText(/query/i)).toBeInTheDocument();
+
+    expect(
+      screen.queryByLabelText('Exceeding the cardinality limit warning')
+    ).not.toBeInTheDocument();
   });
 });
