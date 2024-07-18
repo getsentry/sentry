@@ -305,7 +305,7 @@ class PostRelocationsTest(APITestCase):
         return (tmp_priv_key_path, tmp_pub_key_path)
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-    @patch("sentry.tasks.relocation.uploading_start.delay")
+    @patch("sentry.tasks.relocation.uploading_start.apply_async")
     def test_good_simple(
         self,
         uploading_start_mock: Mock,
@@ -351,6 +351,7 @@ class PostRelocationsTest(APITestCase):
         assert RelocationFile.objects.count() == relocation_file_count + 1
 
         assert uploading_start_mock.call_count == 1
+        uploading_start_mock.assert_called_with(args=[UUID(response.data["uuid"]), None, None])
 
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
@@ -368,7 +369,7 @@ class PostRelocationsTest(APITestCase):
         )
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-    @patch("sentry.tasks.relocation.uploading_start.delay")
+    @patch("sentry.tasks.relocation.uploading_start.apply_async")
     def test_good_promo_code(
         self,
         uploading_start_mock: Mock,
@@ -415,6 +416,7 @@ class PostRelocationsTest(APITestCase):
         assert RelocationFile.objects.count() == relocation_file_count + 1
 
         assert uploading_start_mock.call_count == 1
+        uploading_start_mock.assert_called_with(args=[UUID(response.data["uuid"]), None, None])
 
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
@@ -438,7 +440,7 @@ class PostRelocationsTest(APITestCase):
             "relocation.autopause": "IMPORTING",
         }
     )
-    @patch("sentry.tasks.relocation.uploading_start.delay")
+    @patch("sentry.tasks.relocation.uploading_start.apply_async")
     def test_good_with_valid_autopause_option(
         self,
         uploading_start_mock: Mock,
@@ -469,6 +471,7 @@ class PostRelocationsTest(APITestCase):
         assert response.data["scheduledPauseAtStep"] == Relocation.Step.IMPORTING.name
 
         assert uploading_start_mock.call_count == 1
+        uploading_start_mock.assert_called_with(args=[UUID(response.data["uuid"]), None, None])
 
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
@@ -492,7 +495,7 @@ class PostRelocationsTest(APITestCase):
             "relocation.autopause": "DOESNOTEXIST",
         }
     )
-    @patch("sentry.tasks.relocation.uploading_start.delay")
+    @patch("sentry.tasks.relocation.uploading_start.apply_async")
     def test_good_with_invalid_autopause_option(
         self,
         uploading_start_mock: Mock,
@@ -523,6 +526,8 @@ class PostRelocationsTest(APITestCase):
         assert response.data["scheduledPauseAtStep"] is None
 
         assert uploading_start_mock.call_count == 1
+        uploading_start_mock.assert_called_with(args=[UUID(response.data["uuid"]), None, None])
+
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
             "relocation.created",
@@ -541,7 +546,7 @@ class PostRelocationsTest(APITestCase):
     @override_options(
         {"relocation.enabled": False, "relocation.daily-limit.small": 1, "staff.ga-rollout": True}
     )
-    @patch("sentry.tasks.relocation.uploading_start.delay")
+    @patch("sentry.tasks.relocation.uploading_start.apply_async")
     def test_good_staff_when_feature_disabled(
         self,
         uploading_start_mock: Mock,
@@ -585,6 +590,7 @@ class PostRelocationsTest(APITestCase):
         assert RelocationFile.objects.count() == relocation_file_count + 1
 
         assert uploading_start_mock.call_count == 1
+        uploading_start_mock.assert_called_with(args=[UUID(response.data["uuid"]), None, None])
 
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
@@ -602,7 +608,7 @@ class PostRelocationsTest(APITestCase):
         )
 
     @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 1})
-    @patch("sentry.tasks.relocation.uploading_start.delay")
+    @patch("sentry.tasks.relocation.uploading_start.apply_async")
     def test_good_superuser_when_feature_disabled(
         self,
         uploading_start_mock: Mock,
@@ -646,6 +652,7 @@ class PostRelocationsTest(APITestCase):
         assert RelocationFile.objects.count() == relocation_file_count + 1
 
         assert uploading_start_mock.call_count == 1
+        uploading_start_mock.assert_called_with(args=[UUID(response.data["uuid"]), None, None])
 
         assert analytics_record_mock.call_count == 1
         analytics_record_mock.assert_called_with(
@@ -725,7 +732,7 @@ class PostRelocationsTest(APITestCase):
     ]:
 
         @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-        @patch("sentry.tasks.relocation.uploading_start.delay")
+        @patch("sentry.tasks.relocation.uploading_start.apply_async")
         def test_good_valid_org_slugs(
             self,
             uploading_start_mock: Mock,
@@ -761,6 +768,7 @@ class PostRelocationsTest(APITestCase):
             assert RelocationFile.objects.count() == relocation_file_count + 1
             assert Relocation.objects.get(owner_id=self.owner.id).want_org_slugs == expected
             assert uploading_start_mock.call_count == 1
+            uploading_start_mock.assert_called_with(args=[UUID(response.data["uuid"]), None, None])
 
             assert analytics_record_mock.call_count == 1
             analytics_record_mock.assert_called_with(
@@ -785,7 +793,7 @@ class PostRelocationsTest(APITestCase):
     ]:
 
         @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-        @patch("sentry.tasks.relocation.uploading_start.delay")
+        @patch("sentry.tasks.relocation.uploading_start.apply_async")
         def test_bad_invalid_org_slugs(
             self,
             analytics_record_mock: Mock,
