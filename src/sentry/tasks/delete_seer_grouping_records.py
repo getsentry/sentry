@@ -34,7 +34,7 @@ def delete_seer_grouping_records_by_hash(
     Task to delete seer grouping records by hash list.
     Calls the seer delete by hash endpoint with batches of hashes of size `BATCH_SIZE`.
     """
-    if killswitch_enabled(project_id):
+    if killswitch_enabled(project_id, check_delete_killswitch=True):
         return
 
     batch_size = options.get("embeddings-grouping.seer.delete-record-batch-size")
@@ -55,7 +55,7 @@ def call_delete_seer_grouping_records_by_hash(
     if (
         project
         and features.has("projects:similarity-embeddings-grouping", project)
-        and not killswitch_enabled(project.id)
+        and not killswitch_enabled(project.id, check_delete_killswitch=True)
     ):
         # TODO (jangjodi): once we store seer grouping info in GroupHash, we should filter by that here
         group_hash_objects = GroupHash.objects.filter(
@@ -83,7 +83,7 @@ def call_seer_delete_project_grouping_records(
     *args: Any,
     **kwargs: Any,
 ) -> None:
-    if killswitch_enabled(project_id):
+    if killswitch_enabled(project_id, check_delete_killswitch=True):
         return
 
     logger.info("calling seer delete records by project", extra={"project_id": project_id})
