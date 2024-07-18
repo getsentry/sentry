@@ -136,11 +136,8 @@ class ProcessProjectUrlRankingTest(TestCase):
             )
 
     def test_should_not_detect(self):
+        self.project.update_option("sentry:uptime_autodetection", False)
         with mock.patch(
-            # TODO: Replace this mock with real tests when we implement this function properly
-            "sentry.uptime.detectors.tasks.should_detect_for_project",
-            return_value=False,
-        ), mock.patch(
             "sentry.uptime.detectors.tasks.get_candidate_urls_for_project"
         ) as mock_get_candidate_urls_for_project:
             process_project_url_ranking(self.project.id, 5)
