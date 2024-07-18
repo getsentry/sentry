@@ -165,7 +165,6 @@ export function MetricQueryContextMenu({
             if (extractionRule) {
               openExtractionRuleEditModal({
                 metricExtractionRule: extractionRule,
-                // TODO: Remove virtual MRI as identifier
                 onSubmitSuccess: data => {
                   // Keep the unit of the MRI in sync with the unit of the extraction rule
                   // TODO: Remove this once we have a better way to handle this
