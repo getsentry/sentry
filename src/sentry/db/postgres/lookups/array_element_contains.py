@@ -3,6 +3,8 @@ from typing import Any
 from django.contrib.postgres.fields import ArrayField
 from django.db.models import Lookup
 
+__all__ = ["ArrayElementContains"]
+
 
 class ArrayElementContains(Lookup):
     lookup_name = "element_contains"
