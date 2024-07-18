@@ -15,7 +15,6 @@ import {space} from 'sentry/styles/space';
 import type {SelectValue} from 'sentry/types/core';
 import type {MetricAggregation, MetricsExtractionCondition} from 'sentry/types/metrics';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {DEFAULT_METRICS_CARDINALITY_LIMIT} from 'sentry/utils/metrics/constants';
 import useOrganization from 'sentry/utils/useOrganization';
 import {SpanIndexedField} from 'sentry/views/insights/types';
 import {useSpanFieldSupportedTags} from 'sentry/views/performance/utils/useSpanFieldSupportedTags';
@@ -406,24 +405,20 @@ export function MetricsExtractionRuleForm({
                 );
               };
 
-              const getMaxCardinality = (condition: MetricsExtractionCondition) => {
+              const isCardinalityLimited = (
+                condition: MetricsExtractionCondition
+              ): boolean => {
                 if (!cardinality) {
-                  return 0;
+                  return false;
                 }
-                return condition.mris.reduce(
-                  (acc, mri) => Math.max(acc, cardinality[mri] || 0),
-                  0
-                );
+                return condition.mris.some(conditionMri => cardinality[conditionMri] > 0);
               };
 
               return (
                 <Fragment>
                   <ConditionsWrapper hasDelete={value.length > 1}>
                     {conditions.map((condition, index) => {
-                      const maxCardinality = getMaxCardinality(condition);
-                      const isExeedingCardinalityLimit =
-                        // TODO: Retrieve limit from BE
-                        maxCardinality >= DEFAULT_METRICS_CARDINALITY_LIMIT;
+                      const isExeedingCardinalityLimit = isCardinalityLimited(condition);
                       const hasSiblings = conditions.length > 1;
 
                       return (
