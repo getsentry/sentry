@@ -1,4 +1,4 @@
-import {Children, type ReactNode} from 'react';
+import {Children, type ReactNode, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
@@ -22,8 +22,9 @@ export function CollapsibleValue({
   path,
   prefix = null,
 }: Props) {
-  const {collapse, expand, expandedPaths} = useExpandedState();
-  const isExpanded = expandedPaths.includes(path);
+  const {collapse, expand, isExpanded: isInitiallyExpanded} = useExpandedState({path});
+  const [isExpanded, setIsExpanded] = useState(isInitiallyExpanded);
+  // const isExpanded = expandedPaths.includes(path);
 
   const numChildren = Children.count(children);
 
@@ -40,7 +41,15 @@ export function CollapsibleValue({
         <ToggleButton
           size="zero"
           aria-label={isExpanded ? t('Collapse') : t('Expand')}
-          onClick={() => (isExpanded ? collapse(path) : expand(path))}
+          onClick={() => {
+            if (isExpanded) {
+              collapse();
+              setIsExpanded(false);
+            } else {
+              expand();
+              setIsExpanded(true);
+            }
+          }}
           icon={
             <IconChevron direction={isExpanded ? 'down' : 'right'} legacySize="10px" />
           }
@@ -51,7 +60,13 @@ export function CollapsibleValue({
       {prefix}
       <span>{openTag}</span>
       {shouldShowToggleButton && !isExpanded ? (
-        <NumItemsButton size="zero" onClick={() => expand(path)}>
+        <NumItemsButton
+          size="zero"
+          onClick={() => {
+            expand();
+            setIsExpanded(true);
+          }}
+        >
           {tn('%s item', '%s items', numChildren)}
         </NumItemsButton>
       ) : null}

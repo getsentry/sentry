@@ -58,8 +58,8 @@ interface BaseProps {
    * Pass this into `initialExpandedPaths` to re-render a previous expanded state
    */
   onToggleExpand?: (
-    path: string,
     expandedPaths: string[],
+    path: string,
     state: 'expanded' | 'collapsed'
   ) => void;
 }

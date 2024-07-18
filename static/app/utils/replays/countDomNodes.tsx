@@ -1,5 +1,6 @@
 import replayerStepper from 'sentry/utils/replays/replayerStepper';
 import type {RecordingFrame} from 'sentry/utils/replays/types';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export type DomNodeChartDatapoint = {
   added: number;
@@ -26,6 +27,7 @@ export default function countDomNodes({
   const frameStep = Math.max(Math.round(length * 0.007), 1);
 
   let prevIds: number[] = [];
+  useOrganization();
 
   return replayerStepper<RecordingFrame, DomNodeChartDatapoint>({
     frames,

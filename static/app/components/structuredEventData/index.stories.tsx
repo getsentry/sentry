@@ -1,4 +1,4 @@
-import {Fragment} from 'react';
+import {Fragment, useState} from 'react';
 
 import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
@@ -97,6 +97,28 @@ export default storyBook(StructuredEventData, story => {
           />
         </div>
       </SideBySide>
+    );
+  });
+
+  story('onToggleExpand', () => {
+    const [state, setState] = useState<string[]>();
+    return (
+      <Fragment>
+        <p>
+          You can keep track of the expanded/collapsed state so the component looks the
+          same even if it's re-rendered on the screen at a later time (like in a virtual
+          scrolling list).
+        </p>
+        <p>
+          The <JSXProperty name="onToggleExpand" value={Function} /> callback is not
+          triggered on mount.
+        </p>
+        <p>Current expanded state: {JSON.stringify(state, null, '\t')}</p>
+        <StructuredEventData
+          data={{foo: 'bar', arr: [1, 2, 3, 4, 5, 6]}}
+          onToggleExpand={expandedPaths => setState(expandedPaths)}
+        />
+      </Fragment>
     );
   });
 

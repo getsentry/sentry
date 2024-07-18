@@ -1,5 +1,5 @@
 import type {ReactNode} from 'react';
-import {createContext, useCallback, useContext, useMemo, useState} from 'react';
+import {createContext, useCallback, useContext, useMemo, useRef} from 'react';
 
 import {uniq} from 'sentry/utils/array/uniq';
 
@@ -17,8 +17,8 @@ const context = createContext<{
 
 interface Props {
   children: ReactNode;
-  initialExpandedPaths: string[] | (() => string[]);
-  onToggleExpand?: (path: string, expandedPaths: string[], state: State) => void;
+  initialExpandedPaths: () => string[];
+  onToggleExpand?: (expandedPaths: string[], path: string, state: State) => void;
 }
 
 export function ExpandedStateContextProvider({
@@ -26,34 +26,41 @@ export function ExpandedStateContextProvider({
   initialExpandedPaths,
   onToggleExpand,
 }: Props) {
-  const [expandedPaths, setState] = useState<string[]>(initialExpandedPaths);
+  const expandedRef = useRef<string[]>(initialExpandedPaths());
 
   const expand = useCallback(
     path => {
-      const newState = uniq(expandedPaths.concat(path));
-      setState(newState);
-      onToggleExpand?.(path, newState, 'expanded');
+      expandedRef.current = uniq(expandedRef.current.concat(path));
+      onToggleExpand?.(expandedRef.current, path, 'expanded');
     },
-    [expandedPaths, onToggleExpand]
+    [onToggleExpand]
   );
 
   const collapse = useCallback(
     path => {
-      const newState = expandedPaths.filter(prevPath => path !== prevPath);
-      setState(newState);
-      onToggleExpand?.(path, newState, 'collapsed');
+      expandedRef.current = expandedRef.current.filter(prevPath => path !== prevPath);
+      onToggleExpand?.(expandedRef.current, path, 'collapsed');
     },
-    [expandedPaths, onToggleExpand]
+    [onToggleExpand]
   );
 
   const value = useMemo(
-    () => ({collapse, expand, expandedPaths}),
-    [collapse, expand, expandedPaths]
+    () => ({collapse, expand, expandedPaths: expandedRef.current}),
+    [collapse, expand]
   );
 
   return <context.Provider value={value}>{children}</context.Provider>;
 }
 
-export default function useExpandedState() {
-  return useContext(context);
+export default function useExpandedState({path}: {path: string}) {
+  const {collapse, expand, expandedPaths} = useContext(context);
+  const isExpanded = expandedPaths.includes(path);
+  return useMemo(
+    () => ({
+      collapse: () => collapse(path),
+      expand: () => expand(path),
+      isExpanded,
+    }),
+    [collapse, expand, isExpanded, path]
+  );
 }
