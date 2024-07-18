@@ -17,7 +17,7 @@ import {hasCustomMetricsExtractionRules} from 'sentry/utils/metrics/features';
 import {getReadableMetricType} from 'sentry/utils/metrics/formatters';
 import {formatMRI, isExtractedCustomMetric} from 'sentry/utils/metrics/mri';
 import {useBlockMetric} from 'sentry/utils/metrics/useBlockMetric';
-import {useMetricsCardinality} from 'sentry/utils/metrics/useMetricsCardinality';
+import {useCardinalityLimitedMetricVolume} from 'sentry/utils/metrics/useCardinalityLimitedMetricVolume';
 import {useMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {middleEllipsis} from 'sentry/utils/string/middleEllipsis';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -47,7 +47,7 @@ export function CustomMetricsTable({project}: Props) {
     false
   );
 
-  const metricsCardinality = useMetricsCardinality({
+  const metricsCardinality = useCardinalityLimitedMetricVolume({
     projects: [parseInt(project.id, 10)],
   });
 

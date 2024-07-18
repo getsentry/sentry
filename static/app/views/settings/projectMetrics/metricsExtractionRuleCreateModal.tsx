@@ -14,7 +14,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
-import {useMetricsCardinality} from 'sentry/utils/metrics/useMetricsCardinality';
+import {useCardinalityLimitedMetricVolume} from 'sentry/utils/metrics/useCardinalityLimitedMetricVolume';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
@@ -151,7 +151,7 @@ function FormWrapper({
     projectId
   );
 
-  const {data: cardinality} = useMetricsCardinality({
+  const {data: cardinality} = useCardinalityLimitedMetricVolume({
     projects: [projectId],
   });
 

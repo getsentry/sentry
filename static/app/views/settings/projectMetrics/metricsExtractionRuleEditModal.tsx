@@ -9,7 +9,7 @@ import {
 } from 'sentry/actionCreators/modal';
 import {t} from 'sentry/locale';
 import type {MetricsExtractionRule} from 'sentry/types/metrics';
-import {useMetricsCardinality} from 'sentry/utils/metrics/useMetricsCardinality';
+import {useCardinalityLimitedMetricVolume} from 'sentry/utils/metrics/useCardinalityLimitedMetricVolume';
 import useOrganization from 'sentry/utils/useOrganization';
 import {
   aggregatesToGroups,
@@ -37,7 +37,7 @@ export function MetricsExtractionRuleEditModal({
     metricExtractionRule.projectId
   );
 
-  const {data: cardinality} = useMetricsCardinality({
+  const {data: cardinality} = useCardinalityLimitedMetricVolume({
     projects: [metricExtractionRule.projectId],
   });
 

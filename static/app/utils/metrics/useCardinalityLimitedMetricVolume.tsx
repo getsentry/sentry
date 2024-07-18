@@ -27,7 +27,7 @@ const CARDINALITY_DATE_TIME = {
 
 const CARDINALITY_INTERVAL = '1h';
 
-export function useMetricsCardinality({projects}: Props) {
+export function useCardinalityLimitedMetricVolume({projects}: Props) {
   const cardinalityQuery = useMetricsQuery(
     CARDINALITY_QUERIES,
     {

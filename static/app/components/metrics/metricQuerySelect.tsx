@@ -7,7 +7,7 @@ import {IconAdd, IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricsExtractionCondition, MRI} from 'sentry/types/metrics';
-import {useMetricsCardinality} from 'sentry/utils/metrics/useMetricsCardinality';
+import {useCardinalityLimitedMetricVolume} from 'sentry/utils/metrics/useCardinalityLimitedMetricVolume';
 import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {useSelectedProjects} from 'sentry/views/metrics/utils/useSelectedProjects';
@@ -21,7 +21,7 @@ interface Props {
 
 export function MetricQuerySelect({onChange, conditionId, mri}: Props) {
   const pageFilters = usePageFilters();
-  const {data: cardinality} = useMetricsCardinality(pageFilters.selection);
+  const {data: cardinality} = useCardinalityLimitedMetricVolume(pageFilters.selection);
   const {getConditions} = useVirtualMetricsContext();
 
   const isCardinalityLimited = (condition?: MetricsExtractionCondition): boolean => {
@@ -38,10 +38,9 @@ export function MetricQuerySelect({onChange, conditionId, mri}: Props) {
       size="md"
       triggerProps={{
         prefix: t('Query'),
-        icon:
-          getMaxCardinality(spanConditions.find(c => c.id === conditionId)) > 0 ? (
-            <CardinalityWarningIcon />
-          ) : null,
+        icon: isCardinalityLimited(spanConditions.find(c => c.id === conditionId)) ? (
+          <CardinalityWarningIcon />
+        ) : null,
       }}
       options={spanConditions.map(condition => ({
         label: condition.value ? (
@@ -52,7 +51,7 @@ export function MetricQuerySelect({onChange, conditionId, mri}: Props) {
           t('All spans')
         ),
         trailingItems: [
-          getMaxCardinality(condition) > 0 ? (
+          isCardinalityLimited(condition) ? (
             <CardinalityWarningIcon key="cardinality-warning" />
           ) : undefined,
         ],

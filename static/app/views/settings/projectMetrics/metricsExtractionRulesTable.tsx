@@ -17,7 +17,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricsExtractionRule} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
-import {useMetricsCardinality} from 'sentry/utils/metrics/useMetricsCardinality';
+import {useCardinalityLimitedMetricVolume} from 'sentry/utils/metrics/useCardinalityLimitedMetricVolume';
 import {useMembers} from 'sentry/utils/useMembers';
 import useOrganization from 'sentry/utils/useOrganization';
 import {openExtractionRuleCreateModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleCreateModal';
@@ -46,9 +46,10 @@ export function MetricsExtractionRulesTable({project}: Props) {
     organization.slug,
     project.id
   );
-  const {data: cardinality, isLoading: isLoadingCardinality} = useMetricsCardinality({
-    projects: [project.id],
-  });
+  const {data: cardinality, isLoading: isLoadingCardinality} =
+    useCardinalityLimitedMetricVolume({
+      projects: [project.id],
+    });
 
   const handleDelete = useCallback(
     (rule: MetricsExtractionRule) => {
@@ -127,9 +128,10 @@ function RulesTable({
   hasSearch,
 }: RulesTableProps) {
   const {members} = useMembers();
-  const getMaxCardinality = (rule: MetricsExtractionRule) => {
+
+  const isCardinalityLimited = (rule: MetricsExtractionRule): boolean => {
     const mris = rule.conditions.flatMap(condition => condition.mris);
-    return mris.reduce((acc, mri) => Math.max(acc, cardinality[mri] || 0), 0);
+    return mris.some(conditionMri => cardinality[conditionMri] > 0);
   };
 
   return (
@@ -164,7 +166,7 @@ function RulesTable({
           return (
             <Fragment key={rule.spanAttribute + rule.unit}>
               <Cell>
-                {getMaxCardinality(rule) > 0 ? (
+                {isCardinalityLimited(rule) ? (
                   <Tooltip
                     title={t(
                       'Some of your defined queries are exeeding the cardinality limit. Remove tags or add filters to receive accurate data.'

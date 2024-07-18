@@ -321,22 +321,20 @@ export function MetricsExtractionRuleForm({
                 );
               };
 
-              const getMaxCardinality = (condition: MetricsExtractionCondition) => {
+              const isCardinalityLimited = (
+                condition: MetricsExtractionCondition
+              ): boolean => {
                 if (!cardinality) {
-                  return 0;
+                  return false;
                 }
-                return condition.mris.reduce(
-                  (acc, mri) => Math.max(acc, cardinality[mri] || 0),
-                  0
-                );
+                return condition.mris.some(conditionMri => cardinality[conditionMri] > 0);
               };
 
               return (
                 <Fragment>
                   <ConditionsWrapper hasDelete={value.length > 1}>
                     {conditions.map((condition, index) => {
-                      const maxCardinality = getMaxCardinality(condition);
-                      const isExeedingCardinalityLimit = maxCardinality > 0;
+                      const isExeedingCardinalityLimit = isCardinalityLimited(condition);
                       const hasSiblings = conditions.length > 1;
 
                       return (
