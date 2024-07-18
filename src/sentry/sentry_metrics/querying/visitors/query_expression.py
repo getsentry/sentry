@@ -418,10 +418,10 @@ class UnitsNormalizationVisitor(QueryExpressionVisitor[tuple[UnitMetadata, Query
         """
         Extracts the unit from the timeseries, by parsing its MRI.
         """
-        if timeseries.aggregate in self.UNITLESS_AGGREGATES:
+        parsed_mri = parse_mri(timeseries.metric.mri)
+        if parsed_mri.entity == "c" or timeseries.aggregate in self.UNITLESS_AGGREGATES:
             return None
 
-        parsed_mri = parse_mri(timeseries.metric.mri)
         if parsed_mri is not None:
             if rule_id := parsed_mri.span_attribute_rule_id:
                 try:
