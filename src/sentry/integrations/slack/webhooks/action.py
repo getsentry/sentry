@@ -37,6 +37,7 @@ from sentry.integrations.slack.views.link_identity import build_linking_url
 from sentry.integrations.slack.views.unlink_identity import build_unlinking_url
 from sentry.integrations.types import ExternalProviderEnum
 from sentry.integrations.utils.scope import bind_org_context_from_integration
+from sentry.models.activity import ActivityIntegration
 from sentry.models.group import Group
 from sentry.models.organizationmember import InviteStatus, OrganizationMember
 from sentry.models.rule import Rule
@@ -239,6 +240,27 @@ class SlackActionEndpoint(Endpoint):
 
         text: str = list(*error.detail.values())[0]
         return self.respond_ephemeral(text)
+
+    def on_assign(
+        self, request: Request, user: RpcUser, group: Group, action: MessageAction
+    ) -> None:
+        if not (action.selected_options and len(action.selected_options)):
+            # Short-circuit if action is invalid
+            return
+        assignee = action.selected_options[0]["value"]
+        if assignee == "none":
+            assignee = None
+
+        update_group(
+            group,
+            user,
+            {
+                "assignedTo": assignee,
+                "integration": ActivityIntegration.SLACK.value,
+            },
+            request,
+        )
+        analytics.record("integrations.slack.assign", actor_id=user.id)
 
     def on_status(
         self,
@@ -563,6 +585,10 @@ class SlackActionEndpoint(Endpoint):
                     "unresolved:ongoing",
                 ):
                     self.on_status(request, identity_user, group, action)
+                elif (
+                    action.name == "assign"
+                ):  # TODO: remove this as it is replaced by the options-load endpoint
+                    self.on_assign(request, identity_user, group, action)
                 elif action.name == "resolve_dialog":
                     self.open_resolve_dialog(slack_request, group)
                     defer_attachment_update = True
