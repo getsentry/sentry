@@ -9,7 +9,7 @@ import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow} from 'sentry/icons';
 import {IconWarning} from 'sentry/icons/iconWarning';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricMeta} from 'sentry/types/metrics';
 import type {Project} from 'sentry/types/project';
@@ -148,9 +148,6 @@ interface MetricsTableProps {
 function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
   const blockMetricMutation = useBlockMetric(project);
   const {hasAccess} = useAccess({access: ['project:write'], project});
-  const cardinalityLimit =
-    // Retrive limit from BE
-    project.relayCustomMetricCardinalityLimit ?? 140000;
 
   return (
     <MetricsPanelTable
@@ -181,7 +178,7 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
     >
       {metrics.map(({mri, type, unit, cardinality, blockingStatus}) => {
         const isBlocked = blockingStatus[0]?.isBlocked;
-        const isCardinalityLimited = cardinality >= cardinalityLimit;
+        const isCardinalityLimited = cardinality > 0;
         return (
           <Fragment key={mri}>
             <Cell>
@@ -196,9 +193,8 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
             <Cell right>
               {isCardinalityLimited && (
                 <Tooltip
-                  title={tct(
-                    'The tag cardinality of this metric exceeded our limit of [cardinalityLimit], which led to the data being dropped',
-                    {cardinalityLimit}
+                  title={t(
+                    'The tag cardinality of this metric exceeded the limit, causing the data to be dropped.'
                   )}
                 >
                   <StyledIconWarning size="sm" color="red300" />
