@@ -1,6 +1,5 @@
-import {Fragment, useCallback, useEffect, useState} from 'react';
+import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import debounce from 'lodash/debounce';
 
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -16,7 +15,6 @@ import {
   FONT_FILE_EXTENSIONS,
   IMAGE_FILE_EXTENSIONS,
 } from 'sentry/views/insights/browser/resources/constants';
-import {useResourcePagesQuery} from 'sentry/views/insights/browser/resources/queries/useResourcePagesQuery';
 import {
   DEFAULT_RESOURCE_TYPES,
   RESOURCE_THROUGHPUT_UNIT,
@@ -29,6 +27,7 @@ import {
 import {useResourceSort} from 'sentry/views/insights/browser/resources/utils/useResourceSort';
 import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {QueryParameterNames} from 'sentry/views/insights/common/views/queryParameters';
+import {TransactionSelector} from 'sentry/views/insights/common/views/spans/selectors/transactionSelector';
 import {SpanTimeCharts} from 'sentry/views/insights/common/views/spans/spanTimeCharts';
 import type {ModuleFilters} from 'sentry/views/insights/common/views/spans/useModuleFilters';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -120,82 +119,6 @@ function ResourceTypeSelector({value}: {value?: string}) {
           query: {
             ...location.query,
             [RESOURCE_TYPE]: newValue?.value,
-            [QueryParameterNames.SPANS_CURSOR]: undefined,
-          },
-        });
-      }}
-    />
-  );
-}
-
-export function TransactionSelector({
-  value,
-  defaultResourceTypes,
-}: {
-  defaultResourceTypes?: string[];
-  value?: string;
-}) {
-  const [state, setState] = useState({
-    search: '',
-    inputChanged: false,
-    shouldRequeryOnInputChange: false,
-  });
-  const location = useLocation();
-  const organization = useOrganization();
-
-  const {data: pages, isLoading} = useResourcePagesQuery(
-    defaultResourceTypes,
-    state.search
-  );
-
-  // If the maximum number of pages is returned, we need to requery on input change to get full results
-  if (!state.shouldRequeryOnInputChange && pages && pages.length >= 100) {
-    setState({...state, shouldRequeryOnInputChange: true});
-  }
-
-  // Everytime loading is complete, reset the inputChanged state
-  useEffect(() => {
-    if (!isLoading && state.inputChanged) {
-      setState({...state, inputChanged: false});
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isLoading]);
-
-  const optionsReady = !isLoading && !state.inputChanged;
-
-  const options: Option[] = optionsReady
-    ? [{value: '', label: 'All'}, ...pages.map(page => ({value: page, label: page}))]
-    : [];
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const debounceUpdateSearch = useCallback(
-    debounce((search, currentState) => {
-      setState({...currentState, search});
-    }, 500),
-    []
-  );
-
-  return (
-    <SelectControlWithProps
-      inFieldLabel={`${t('Page')}:`}
-      options={options}
-      value={value}
-      onInputChange={input => {
-        if (state.shouldRequeryOnInputChange) {
-          setState({...state, inputChanged: true});
-          debounceUpdateSearch(input, state);
-        }
-      }}
-      noOptionsMessage={() => (optionsReady ? undefined : t('Loading...'))}
-      onChange={newValue => {
-        trackAnalytics('insight.asset.filter_by_page', {
-          organization,
-        });
-        browserHistory.push({
-          ...location,
-          query: {
-            ...location.query,
-            [TRANSACTION]: newValue?.value,
             [QueryParameterNames.SPANS_CURSOR]: undefined,
           },
         });
