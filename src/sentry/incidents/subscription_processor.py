@@ -511,79 +511,8 @@ class SubscriptionProcessor:
         )
 
         if self.has_feature_flag:
-            # MF: I would prefer not to have this all be in an if statement. But what can you do ¯\_(ツ)_/¯
-            seer_anomaly_detection_connection_pool = connection_from_url(
-                settings.SEER_ANOMALY_DETECTION_URL,
-                timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
-            )
-            try:
-                ad_config = {
-                    "time_period": self.alert_rule.threshold_period,
-                    "sensitivity": self.alert_rule.sensitivity,
-                    "seasonality": self.alert_rule.seasonality,
-                    "direction": self.alert_rule.detection_type,
-                }
-
-                context = {
-                    "id": self.alert_rule.id,
-                    "cur_window": {
-                        "timestamp": self.last_update,
-                        "value": aggregation_value,
-                    },
-                }
-                response = make_signed_seer_api_request(
-                    seer_anomaly_detection_connection_pool,
-                    SEER_ANOMALY_DETECTION_URL,
-                    json.dumps(
-                        {
-                            "organization_id": self.subscription.project.organization.id,
-                            "project_id": self.subscription.project_id,
-                            "config": ad_config,
-                            "context": context,
-                        }
-                    ),
-                )
-            except (TimeoutError, MaxRetryError):
-                logger.warning(
-                    "Timeout error when hitting anomaly detection endpoint",
-                    extra={
-                        "subscription_id": self.subscription.id,
-                        "dataset": self.subscription.snuba_query.dataset,
-                        # TODO (MF): add other, relevant fields here
-                    },
-                )
-                return []
-
-            # TODO (MF): handle response codes if status code != 200
-            # MF: But it doesn't seem like the mock response has status codes. So.
-
-            try:
-                anomalies = json.loads(response.data.decode("utf-8")).get("anomalies")
-            except (
-                AttributeError,
-                UnicodeError,
-                JSONDecodeError,
-            ):
-                logger.exception(
-                    "Failed to parse Seer anomaly detection response",
-                    extra={
-                        "ad_config": ad_config,
-                        "context": context,
-                        "response_data": response.data,
-                        "reponse_code": response.status,
-                    },
-                )
-                return []
-            if not anomalies:
-                logger.warning(
-                    "Seer anomaly detection response returned an empty list",
-                    extra={
-                        "ad_config": ad_config,
-                        "context": context,
-                        "response_data": response.data,
-                        "reponse_code": response.status,
-                    },
-                )
+            anomalies = self.get_anomaly_data_from_seer(aggregation_value)
+            if anomalies is None:
                 return []
 
         # Trigger callbacks for any AlertRules that may need to know about the subscription update
@@ -608,43 +537,41 @@ class SubscriptionProcessor:
         with transaction.atomic(router.db_for_write(AlertRule)):
             # Triggers is the threshold - NOT an instance of a trigger
             for trigger in self.triggers:
-                if self.has_feature_flag:
-                    if trigger.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
-                        # MF: There should only be one anomaly in the list
-                        for anomaly in anomalies:
-                            if self.get_anomaly_detected(
-                                anomaly
-                            ) and not self.check_trigger_matches_status(
-                                trigger, TriggerStatus.ACTIVE
-                            ):
-                                metrics.incr(
-                                    "incidents.alert_rules.threshold", tags={"type": "alert"}
-                                )
-                                incident_trigger = self.trigger_alert_threshold(
-                                    trigger, aggregation_value
-                                )
-                                if incident_trigger is not None:
-                                    fired_incident_triggers.append(incident_trigger)
-                            else:
-                                self.trigger_alert_counts[trigger.id] = 0
+                if (
+                    self.has_feature_flag
+                    and trigger.alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC
+                ):
+                    # MF: There should only be one anomaly in the list
+                    for anomaly in anomalies:
+                        if self.get_anomaly_detected(
+                            anomaly
+                        ) and not self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE):
+                            metrics.incr("incidents.alert_rules.threshold", tags={"type": "alert"})
+                            incident_trigger = self.trigger_alert_threshold(
+                                trigger, aggregation_value
+                            )
+                            if incident_trigger is not None:
+                                fired_incident_triggers.append(incident_trigger)
+                        else:
+                            self.trigger_alert_counts[trigger.id] = 0
 
-                            # MF: There's no explicit "resolve threshold" for anomaly detection. I chose to resolve if no anomaly detected, but unsure if that's correct.
-                            if (
-                                not self.get_anomaly_detected(anomaly)
-                                and self.active_incident
-                                and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
-                            ):
-                                metrics.incr(
-                                    "incidents.alert_rules.threshold", tags={"type": "resolve"}
-                                )
-                                incident_trigger = self.trigger_resolve_threshold(
-                                    trigger, aggregation_value
-                                )
+                        # MF: There's no explicit "resolve threshold" for anomaly detection. I chose to resolve if no anomaly detected, but unsure if that's correct.
+                        if (
+                            not self.get_anomaly_detected(anomaly)
+                            and self.active_incident
+                            and self.check_trigger_matches_status(trigger, TriggerStatus.ACTIVE)
+                        ):
+                            metrics.incr(
+                                "incidents.alert_rules.threshold", tags={"type": "resolve"}
+                            )
+                            incident_trigger = self.trigger_resolve_threshold(
+                                trigger, aggregation_value
+                            )
 
-                                if incident_trigger is not None:
-                                    fired_incident_triggers.append(incident_trigger)
-                            else:
-                                self.trigger_resolve_counts[trigger.id] = 0
+                            if incident_trigger is not None:
+                                fired_incident_triggers.append(incident_trigger)
+                        else:
+                            self.trigger_resolve_counts[trigger.id] = 0
                 else:
                     if alert_operator(
                         aggregation_value, trigger.alert_threshold
@@ -714,6 +641,82 @@ class SubscriptionProcessor:
             ):
                 return True
         return False
+
+    def get_anomaly_data_from_seer(self, aggregation_value: float | None):
+        seer_anomaly_detection_connection_pool = connection_from_url(
+            settings.SEER_ANOMALY_DETECTION_URL,
+            timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
+        )
+        try:
+            ad_config = {
+                "time_period": self.alert_rule.threshold_period,
+                "sensitivity": self.alert_rule.sensitivity,
+                "seasonality": self.alert_rule.seasonality,
+                "direction": self.alert_rule.detection_type,
+            }
+
+            context = {
+                "id": self.alert_rule.id,
+                "cur_window": {
+                    "timestamp": self.last_update,
+                    "value": aggregation_value,
+                },
+            }
+            response = make_signed_seer_api_request(
+                seer_anomaly_detection_connection_pool,
+                SEER_ANOMALY_DETECTION_URL,
+                json.dumps(
+                    {
+                        "organization_id": self.subscription.project.organization.id,
+                        "project_id": self.subscription.project_id,
+                        "config": ad_config,
+                        "context": context,
+                    }
+                ),
+            )
+        except (TimeoutError, MaxRetryError):
+            logger.warning(
+                "Timeout error when hitting anomaly detection endpoint",
+                extra={
+                    "subscription_id": self.subscription.id,
+                    "dataset": self.subscription.snuba_query.dataset,
+                    # TODO (MF): add other, relevant fields here
+                },
+            )
+            return None
+
+        # TODO (MF): handle response codes if status code != 200
+        # MF: But it doesn't seem like the mock response has status codes. So.
+
+        try:
+            anomalies = json.loads(response.data.decode("utf-8")).get("anomalies")
+            return anomalies
+        except (
+            AttributeError,
+            UnicodeError,
+            JSONDecodeError,
+        ):
+            logger.exception(
+                "Failed to parse Seer anomaly detection response",
+                extra={
+                    "ad_config": ad_config,
+                    "context": context,
+                    "response_data": response.data,
+                    "reponse_code": response.status,
+                },
+            )
+            return None
+        if not anomalies:
+            logger.warning(
+                "Seer anomaly detection response returned an empty list",
+                extra={
+                    "ad_config": ad_config,
+                    "context": context,
+                    "response_data": response.data,
+                    "reponse_code": response.status,
+                },
+            )
+            return None
 
     def calculate_event_date_from_update_date(self, update_date: datetime) -> datetime:
         """
