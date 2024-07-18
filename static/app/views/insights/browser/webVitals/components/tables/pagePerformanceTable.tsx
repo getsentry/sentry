@@ -342,7 +342,7 @@ export function PagePerformanceTable() {
           data={tableData}
           grid={{
             renderHeadCell,
-            renderBodyCell: (column, row) => renderBodyCell(column, row),
+            renderBodyCell,
           }}
         />
       </GridContainer>
