@@ -136,11 +136,8 @@ class ProcessProjectUrlRankingTest(TestCase):
             )
 
     def test_should_not_detect(self):
+        self.project.update_option("sentry:uptime_autodetection", False)
         with mock.patch(
-            # TODO: Replace this mock with real tests when we implement this function properly
-            "sentry.uptime.detectors.tasks.should_detect_for_project",
-            return_value=False,
-        ), mock.patch(
             "sentry.uptime.detectors.tasks.get_candidate_urls_for_project"
         ) as mock_get_candidate_urls_for_project:
             process_project_url_ranking(self.project.id, 5)
@@ -155,6 +152,7 @@ class ProcessCandidateUrlTest(TestCase):
         assert not is_url_auto_monitored_for_project(self.project, url)
         assert process_candidate_url(self.project, 100, url, 50)
         assert is_url_auto_monitored_for_project(self.project, url)
+        assert self.project.get_option("sentry:uptime_autodetection") is False
 
     def test_succeeds_new_no_feature(self):
         with mock.patch(
@@ -162,6 +160,7 @@ class ProcessCandidateUrlTest(TestCase):
         ) as mock_monitor_url_for_project:
             assert process_candidate_url(self.project, 100, "https://sentry.io", 50)
             mock_monitor_url_for_project.assert_not_called()
+            assert self.project.get_option("sentry:uptime_autodetection") is None
 
     @with_feature("organizations:uptime-automatic-subscription-creation")
     def test_succeeds_existing_subscription_other_project(self):
@@ -176,6 +175,7 @@ class ProcessCandidateUrlTest(TestCase):
         assert not is_url_auto_monitored_for_project(self.project, url)
         assert process_candidate_url(self.project, 100, url, 50)
         assert is_url_auto_monitored_for_project(self.project, url)
+        assert self.project.get_option("sentry:uptime_autodetection") is False
 
     @with_feature("organizations:uptime-automatic-subscription-creation")
     def test_succeeds_existing_subscription_this_project(self):
@@ -185,6 +185,7 @@ class ProcessCandidateUrlTest(TestCase):
         assert process_candidate_url(self.project, 100, url, 50)
         new_subscription = get_auto_monitored_subscriptions_for_project(self.project)[0]
         assert subscription.id == new_subscription.id
+        assert self.project.get_option("sentry:uptime_autodetection") is False
 
     def test_below_thresholds(self):
         assert not process_candidate_url(self.project, 500, "https://sentry.io", 1)
