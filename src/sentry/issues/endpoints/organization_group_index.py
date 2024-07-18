@@ -39,15 +39,13 @@ from sentry.models.groupinbox import GroupInbox
 from sentry.models.project import Project
 from sentry.search.events.constants import EQUALITY_OPERATORS
 from sentry.search.snuba.backend import assigned_or_suggested_filter
-from sentry.search.snuba.executors import get_search_filter
+from sentry.search.snuba.executors import FIRST_RELEASE_FILTERS, get_search_filter
 from sentry.snuba import discover
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.validators import normalize_event_id
 
 ERR_INVALID_STATS_PERIOD = "Invalid stats_period. Valid choices are '', '24h', and '14d'"
 allowed_inbox_search_terms = frozenset(["date", "status", "for_review", "assigned_or_suggested"])
-
-FIRST_RELEASE_FILTERS = ["first_release", "firstRelease"]
 
 
 def inbox_search(
