@@ -111,7 +111,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 202
 
-        mock_check_autofix_status.assert_called_once_with(args=[123], countdown=10)
+        mock_check_autofix_status.assert_called_once_with(args=[123], countdown=900)
 
     @patch("sentry.api.endpoints.group_ai_autofix.GroupAutofixEndpoint._call_autofix")
     @patch("sentry.tasks.autofix.check_autofix_status.apply_async")
@@ -172,7 +172,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
         )
         assert response.status_code == 202
 
-        mock_check_autofix_status.assert_called_once_with(args=[123], countdown=10)
+        mock_check_autofix_status.assert_called_once_with(args=[123], countdown=900)
 
     @patch("sentry.models.Group.get_recommended_event_for_environments", return_value=None)
     @patch("sentry.api.endpoints.group_ai_autofix.GroupAutofixEndpoint._call_autofix")
@@ -237,7 +237,7 @@ class GroupAutofixEndpointTest(APITestCase, SnubaTestCase):
 
         assert response.status_code == 202
 
-        mock_check_autofix_status.assert_called_once_with(args=[123], countdown=10)
+        mock_check_autofix_status.assert_called_once_with(args=[123], countdown=900)
 
     @patch("sentry.models.Group.get_recommended_event_for_environments", return_value=None)
     @patch("sentry.models.Group.get_latest_event", return_value=None)
