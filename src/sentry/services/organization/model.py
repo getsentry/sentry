@@ -9,7 +9,7 @@ class OrganizationOptions(pydantic.BaseModel):
     owning_user_id: int | None = None
     owning_email: str | None = None
     create_default_team: bool = True
-    is_test = False
+    is_test: bool = False
 
 
 class PostProvisionOptions(pydantic.BaseModel):

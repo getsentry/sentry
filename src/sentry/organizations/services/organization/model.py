@@ -5,11 +5,12 @@
 from collections.abc import Callable, Iterable, Mapping, Sequence
 from datetime import datetime
 from enum import IntEnum
-from typing import Any, TypedDict
+from typing import Any
 
 from django.dispatch import Signal
 from django.utils import timezone
 from pydantic import Field
+from typing_extensions import TypedDict
 
 from sentry import roles
 from sentry.hybridcloud.rpc import RpcModel
