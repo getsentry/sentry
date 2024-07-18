@@ -7,6 +7,7 @@ import {PanelTable} from 'sentry/components/panels/panelTable';
 import SearchBar from 'sentry/components/searchBar';
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {Tooltip} from 'sentry/components/tooltip';
+import {IconArrow} from 'sentry/icons';
 import {IconWarning} from 'sentry/icons/iconWarning';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
@@ -59,7 +60,6 @@ export function CustomMetricsTable({project}: Props) {
 
     // Do not show internal extracted metrics in this table
     const filteredMeta = metricsMeta.data.filter(meta => !isExtractedCustomMetric(meta));
-
     if (!metricsCardinality.data) {
       return filteredMeta.map(meta => ({...meta, cardinality: 0}));
     }
@@ -73,7 +73,12 @@ export function CustomMetricsTable({project}: Props) {
         };
       })
       .sort((a, b) => {
-        return b.cardinality - a.cardinality;
+        // First sort by cardinality (descending)
+        if (b.cardinality !== a.cardinality) {
+          return b.cardinality - a.cardinality;
+        }
+        // If cardinality is the same, sort by name (ascending)
+        return a.mri.localeCompare(b.mri);
       }) as MetricWithCardinality[];
   }, [metricsCardinality.data, metricsMeta.data]);
 
@@ -151,7 +156,10 @@ function MetricsTable({metrics, isLoading, query, project}: MetricsTableProps) {
   return (
     <MetricsPanelTable
       headers={[
-        t('Metric'),
+        <Cell key="metric">
+          <IconArrow size="xs" direction="down" />
+          {t('Metric')}
+        </Cell>,
         <Cell right key="type">
           {t('Type')}
         </Cell>,
