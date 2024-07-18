@@ -134,9 +134,7 @@ def get_organization_bucket_key(organization: Organization) -> str:
 
 
 def get_organization_bucket_key_for_datetime(bucket_datetime: datetime) -> str:
-    date_bucket = int(
-        bucket_datetime.replace(second=0, microsecond=0).timestamp() % NUMBER_OF_BUCKETS
-    )
+    date_bucket = int((bucket_datetime.timestamp() // 60) % NUMBER_OF_BUCKETS)
     return build_organization_bucket_key(date_bucket)
 
 

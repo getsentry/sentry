@@ -5,7 +5,6 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
 from sentry.uptime.detectors.ranking import (
-    NUMBER_OF_BUCKETS,
     _get_cluster,
     add_base_url_to_rank,
     build_org_projects_key,
@@ -146,9 +145,9 @@ class DeleteCandidateUrlsForProjectTest(TestCase):
 
 class GetOrganizationBucketTest(TestCase):
     def test(self):
-        bucket = datetime.now().replace(second=0, microsecond=0)
+        bucket = datetime(2024, 7, 18, 0, 47)
         assert get_organization_bucket(bucket) == set()
-        dummy_org_id = int(bucket.timestamp() % NUMBER_OF_BUCKETS)
+        dummy_org_id = 47
         self.project.organization = Organization(id=dummy_org_id)
         self.project.organization_id = dummy_org_id
         add_base_url_to_rank(self.project, "https://sentry.io")
@@ -157,9 +156,9 @@ class GetOrganizationBucketTest(TestCase):
 
 class DeleteOrganizationBucketTest(TestCase):
     def test(self):
-        bucket = datetime.now().replace(second=0, microsecond=0)
+        bucket = datetime(2024, 7, 18, 0, 47)
         delete_organization_bucket(bucket)
-        dummy_org_id = int(bucket.timestamp() % NUMBER_OF_BUCKETS)
+        dummy_org_id = 1487
         self.project.organization = Organization(id=dummy_org_id)
         self.project.organization_id = dummy_org_id
         add_base_url_to_rank(self.project, "https://sentry.io")
