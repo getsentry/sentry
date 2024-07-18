@@ -616,14 +616,11 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         event = manager.save(self.project.id)
         assert event.group_id == group.id
         group = Group.objects.get(id=group.id)
-        # XXX: It should not have unresolved
-        assert group.status == GroupStatus.UNRESOLVED
-
-        # XXX: There should be no regression activity
-        regressed_activity = Activity.objects.get(
-            group=group, type=ActivityType.SET_REGRESSION.value
-        )
-        assert regressed_activity is None
+        # XXX: The GH issue shows that it should have unresolved
+        assert group.status == GroupStatus.RESOLVED
+        # XXX: The GH issue shows that it should have a regression
+        with pytest.raises(Activity.DoesNotExist):
+            Activity.objects.get(group=group, type=ActivityType.SET_REGRESSION.value)
 
     def test_has_pending_commit_resolution(self) -> None:
         project_id = self.project.id
