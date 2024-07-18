@@ -564,6 +564,67 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert regressed_activity.data["follows_semver"] is True
         assert regressed_activity.data["resolved_in_version"] == "foo@1.0.0"
 
+    @mock.patch("sentry.event_manager.plugin_is_regression")
+    def test_does_not_resolve_for_semver(self, plugin_is_regression: mock.MagicMock) -> None:
+        plugin_is_regression.return_value = True
+
+        patch_version6 = "com.foo.FooTest@388.0+388.0.6"
+        patch_version8 = "com.foo.Foo@388.0+388.0.8"
+        creation_date_06 = timezone.now() - timedelta(minutes=30)
+        creation_date_08 = timezone.now() - timedelta(minutes=20)
+        release_06 = self.create_release(version=patch_version6, date_added=creation_date_06)
+        release_08 = self.create_release(version=patch_version8, date_added=creation_date_08)
+
+        manager = EventManager(
+            make_event(
+                event_id="a" * 32,
+                checksum="a" * 32,
+                timestamp=time() - 50000,
+                # XXX: Does it matter the first event?
+                release=release_06.version,
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.group is not None
+        group = event.group
+
+        # XXX: This block of code should be a function we call rather than doing this
+        # Resolved in a future known release
+        group.update(status=GroupStatus.RESOLVED, substatus=None)
+        # Marked as resolved in the most recent release
+        resolution = GroupResolution.objects.create(release=release_08, group=group)
+        activity = Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+            ident=resolution.id,
+            data={"version": patch_version8},
+        )
+        assert activity.data["version"] == patch_version8
+        assert group.status == GroupStatus.RESOLVED
+
+        # Creates event for an older release
+        manager = EventManager(
+            make_event(
+                event_id="c" * 32,
+                checksum="a" * 32,
+                timestamp=time(),
+                # Notice that the event is for an older release
+                release=release_06.version,
+            )
+        )
+        event = manager.save(self.project.id)
+        assert event.group_id == group.id
+        group = Group.objects.get(id=group.id)
+        # XXX: It should not have unresolved
+        assert group.status == GroupStatus.UNRESOLVED
+
+        # XXX: There should be no regression activity
+        regressed_activity = Activity.objects.get(
+            group=group, type=ActivityType.SET_REGRESSION.value
+        )
+        assert regressed_activity is None
+
     def test_has_pending_commit_resolution(self) -> None:
         project_id = self.project.id
         event = self.make_release_event("1.0", project_id)
