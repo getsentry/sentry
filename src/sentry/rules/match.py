@@ -39,5 +39,5 @@ MATCH_CHOICES = {
     MatchType.NOT_SET: "is not set",
     MatchType.NOT_STARTS_WITH: "does not start with",
     MatchType.STARTS_WITH: "starts with",
-    MatchType.IS_IN: "is in",
+    MatchType.IS_IN: "is in (comma separated)",
 }

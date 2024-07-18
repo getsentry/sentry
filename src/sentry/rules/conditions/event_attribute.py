@@ -313,8 +313,9 @@ class EventAttributeCondition(EventCondition):
         elif option_match == MatchType.IS_IN:
             values = option_value.replace(" ", "").split(",")
             for a_value in attr_values:
-                if values.indexOf(a_value) != -1:
+                if a_value in values:
                     return True
+            return False
 
         raise RuntimeError("Invalid Match")
 
