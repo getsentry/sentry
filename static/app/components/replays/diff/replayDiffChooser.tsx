@@ -8,6 +8,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
+import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
   leftOffsetMs: number;
@@ -30,8 +31,9 @@ export default function ReplayDiffChooser({
 }: Props) {
   const isSameTimestamp = leftOffsetMs === rightOffsetMs;
 
+  const organization = useOrganization();
   const onTabChange = (tabKey: DiffType) => {
-    trackAnalytics('replay.hydration-modal.tab-change', {tabKey, organization: null});
+    trackAnalytics('replay.hydration-modal.tab-change', {tabKey, organization});
   };
 
   return (
