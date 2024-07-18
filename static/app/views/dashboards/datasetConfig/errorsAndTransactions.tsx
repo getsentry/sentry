@@ -183,7 +183,7 @@ export function getTableSortOptions(
   return options;
 }
 
-function filterSeriesSortOptions(columns: Set<string>) {
+export function filterSeriesSortOptions(columns: Set<string>) {
   return (option: FieldValueOption) => {
     if (
       option.value.kind === FieldValueKind.FUNCTION ||
@@ -199,7 +199,7 @@ function filterSeriesSortOptions(columns: Set<string>) {
   };
 }
 
-function getTimeseriesSortOptions(
+export function getTimeseriesSortOptions(
   organization: Organization,
   widgetQuery: WidgetQuery,
   tags?: TagCollection
@@ -275,7 +275,7 @@ export function transformEventsResponseToTable(
   return tableData as TableData;
 }
 
-function filterYAxisAggregateParams(
+export function filterYAxisAggregateParams(
   fieldValue: QueryFieldValue,
   displayType: DisplayType
 ) {
@@ -311,7 +311,7 @@ function filterYAxisAggregateParams(
   };
 }
 
-function filterYAxisOptions(displayType: DisplayType) {
+export function filterYAxisOptions(displayType: DisplayType) {
   return (option: FieldValueOption) => {
     // Only validate function names for timeseries widgets and
     // world map widgets.
@@ -333,7 +333,7 @@ function filterYAxisOptions(displayType: DisplayType) {
   };
 }
 
-function transformEventsResponseToSeries(
+export function transformEventsResponseToSeries(
   data: EventsStats | MultiSeriesEventsStats,
   widgetQuery: WidgetQuery
 ): Series[] {
@@ -636,7 +636,7 @@ function getEventsSeriesRequest(
   return doEventsRequest<true>(api, requestData);
 }
 
-async function doOnDemandMetricsRequest(
+export async function doOnDemandMetricsRequest(
   api,
   requestData
 ): Promise<
