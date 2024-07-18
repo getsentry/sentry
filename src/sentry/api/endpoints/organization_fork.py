@@ -5,7 +5,9 @@ from django.db import router
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
+from sentry_sdk import capture_exception
 
+from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
@@ -154,5 +156,18 @@ class OrganizationForkEndpoint(Endpoint):
         uploading_start.apply_async(
             args=[new_relocation.uuid, replying_region_name, organization.slug]
         )
+
+        try:
+            analytics.record(
+                "relocation.forked",
+                creator_id=request.user.id,
+                owner_id=owner.id,
+                uuid=str(new_relocation.uuid),
+                from_org_slug=organization.slug,
+                requesting_region_name=requesting_region_name,
+                replying_region_name=replying_region_name,
+            )
+        except Exception as e:
+            capture_exception(e)
 
         return Response(serialize(new_relocation), status=status.HTTP_201_CREATED)

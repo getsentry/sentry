@@ -18,6 +18,8 @@ EXPORTING_TEST_REGION = "exporting"
 SAAS_TO_SAAS_TEST_REGIONS = create_test_regions(REQUESTING_TEST_REGION, EXPORTING_TEST_REGION)
 
 
+@patch("sentry.analytics.record")
+@patch("sentry.tasks.relocation.uploading_start.apply_async")
 @region_silo_test(regions=SAAS_TO_SAAS_TEST_REGIONS)
 class OrganizationForkTest(APITestCase):
     endpoint = "sentry-api-0-organization-fork"
@@ -42,11 +44,11 @@ class OrganizationForkTest(APITestCase):
         )
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-    @patch("sentry.tasks.relocation.uploading_start.apply_async")
     @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
     def test_good_simple(
         self,
         uploading_start_mock: Mock,
+        analytics_record_mock: Mock,
     ):
         self.login_as(user=self.superuser, superuser=True)
         relocation_count = Relocation.objects.count()
@@ -76,12 +78,23 @@ class OrganizationForkTest(APITestCase):
             args=[UUID(response.data["uuid"]), EXPORTING_TEST_REGION, self.requested_org_slug]
         )
 
+        assert analytics_record_mock.call_count == 1
+        analytics_record_mock.assert_called_with(
+            "relocation.forked",
+            creator_id=int(response.data["creator"]["id"]),
+            owner_id=int(response.data["owner"]["id"]),
+            uuid=response.data["uuid"],
+            from_org_slug=self.requested_org_slug,
+            requesting_region_name=REQUESTING_TEST_REGION,
+            replying_region_name=EXPORTING_TEST_REGION,
+        )
+
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-    @patch("sentry.tasks.relocation.uploading_start.apply_async")
     @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
     def test_good_simple_using_organization_id(
         self,
         uploading_start_mock: Mock,
+        analytics_record_mock: Mock,
     ):
         self.login_as(user=self.superuser, superuser=True)
         relocation_count = Relocation.objects.count()
@@ -104,6 +117,17 @@ class OrganizationForkTest(APITestCase):
             args=[UUID(response.data["uuid"]), EXPORTING_TEST_REGION, self.requested_org_slug]
         )
 
+        assert analytics_record_mock.call_count == 1
+        analytics_record_mock.assert_called_with(
+            "relocation.forked",
+            creator_id=int(response.data["creator"]["id"]),
+            owner_id=int(response.data["owner"]["id"]),
+            uuid=response.data["uuid"],
+            from_org_slug=self.requested_org_slug,
+            requesting_region_name=REQUESTING_TEST_REGION,
+            replying_region_name=EXPORTING_TEST_REGION,
+        )
+
     @override_options(
         {
             "relocation.enabled": True,
@@ -111,11 +135,11 @@ class OrganizationForkTest(APITestCase):
             "relocation.autopause": "IMPORTING",
         }
     )
-    @patch("sentry.tasks.relocation.uploading_start.apply_async")
     @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
     def test_good_with_valid_autopause_option(
         self,
         uploading_start_mock: Mock,
+        analytics_record_mock: Mock,
     ):
         self.login_as(user=self.superuser, superuser=True)
 
@@ -131,14 +155,25 @@ class OrganizationForkTest(APITestCase):
             args=[UUID(response.data["uuid"]), EXPORTING_TEST_REGION, self.requested_org_slug]
         )
 
+        assert analytics_record_mock.call_count == 1
+        analytics_record_mock.assert_called_with(
+            "relocation.forked",
+            creator_id=int(response.data["creator"]["id"]),
+            owner_id=int(response.data["owner"]["id"]),
+            uuid=response.data["uuid"],
+            from_org_slug=self.requested_org_slug,
+            requesting_region_name=REQUESTING_TEST_REGION,
+            replying_region_name=EXPORTING_TEST_REGION,
+        )
+
     @override_options(
         {"relocation.enabled": False, "relocation.daily-limit.small": 1, "staff.ga-rollout": True}
     )
-    @patch("sentry.tasks.relocation.uploading_start.apply_async")
     @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
     def test_good_staff_when_feature_disabled(
         self,
         uploading_start_mock: Mock,
+        analytics_record_mock: Mock,
     ):
         self.login_as(user=self.staff_user, staff=True)
         relocation_count = Relocation.objects.count()
@@ -168,12 +203,23 @@ class OrganizationForkTest(APITestCase):
             args=[UUID(response.data["uuid"]), EXPORTING_TEST_REGION, self.requested_org_slug]
         )
 
+        assert analytics_record_mock.call_count == 1
+        analytics_record_mock.assert_called_with(
+            "relocation.forked",
+            creator_id=int(response.data["creator"]["id"]),
+            owner_id=int(response.data["owner"]["id"]),
+            uuid=response.data["uuid"],
+            from_org_slug=self.requested_org_slug,
+            requesting_region_name=REQUESTING_TEST_REGION,
+            replying_region_name=EXPORTING_TEST_REGION,
+        )
+
     @override_options({"relocation.enabled": False, "relocation.daily-limit.small": 1})
-    @patch("sentry.tasks.relocation.uploading_start.apply_async")
     @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
     def test_good_superuser_when_feature_disabled(
         self,
         uploading_start_mock: Mock,
+        analytics_record_mock: Mock,
     ):
         self.login_as(user=self.superuser, superuser=True)
         relocation_count = Relocation.objects.count()
@@ -203,12 +249,23 @@ class OrganizationForkTest(APITestCase):
             args=[UUID(response.data["uuid"]), EXPORTING_TEST_REGION, self.requested_org_slug]
         )
 
+        assert analytics_record_mock.call_count == 1
+        analytics_record_mock.assert_called_with(
+            "relocation.forked",
+            creator_id=int(response.data["creator"]["id"]),
+            owner_id=int(response.data["owner"]["id"]),
+            uuid=response.data["uuid"],
+            from_org_slug=self.requested_org_slug,
+            requesting_region_name=REQUESTING_TEST_REGION,
+            replying_region_name=EXPORTING_TEST_REGION,
+        )
+
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-    @patch("sentry.tasks.relocation.uploading_start.apply_async")
     @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
     def test_bad_organization_not_found(
         self,
         uploading_start_mock: Mock,
+        analytics_record_mock: Mock,
     ):
         self.login_as(user=self.superuser, superuser=True)
         relocation_count = Relocation.objects.count()
@@ -221,15 +278,16 @@ class OrganizationForkTest(APITestCase):
             pointer="does-not-exist"
         )
         assert uploading_start_mock.call_count == 0
+        assert analytics_record_mock.call_count == 0
         assert Relocation.objects.count() == relocation_count
         assert RelocationFile.objects.count() == relocation_file_count
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-    @patch("sentry.tasks.relocation.uploading_start.apply_async")
     @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
     def test_bad_cannot_fork_deleted_organization(
         self,
         uploading_start_mock: Mock,
+        analytics_record_mock: Mock,
     ):
         self.login_as(user=self.superuser, superuser=True)
 
@@ -246,16 +304,17 @@ class OrganizationForkTest(APITestCase):
             pointer=self.existing_org.slug
         )
         assert uploading_start_mock.call_count == 0
+        assert analytics_record_mock.call_count == 0
         assert Relocation.objects.count() == relocation_count
         assert RelocationFile.objects.count() == relocation_file_count
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-    @patch("sentry.tasks.relocation.uploading_start.apply_async")
     # Note that for this test we've changed this to `EXPORTING_TEST_REGION`
     @assume_test_silo_mode(SiloMode.REGION, region_name=EXPORTING_TEST_REGION)
     def test_bad_organization_already_in_region(
         self,
         uploading_start_mock: Mock,
+        analytics_record_mock: Mock,
     ):
         self.login_as(user=self.superuser, superuser=True)
         relocation_count = Relocation.objects.count()
@@ -268,6 +327,7 @@ class OrganizationForkTest(APITestCase):
             region=EXPORTING_TEST_REGION,
         )
         assert uploading_start_mock.call_count == 0
+        assert analytics_record_mock.call_count == 0
         assert Relocation.objects.count() == relocation_count
         assert RelocationFile.objects.count() == relocation_file_count
 
@@ -277,11 +337,11 @@ class OrganizationForkTest(APITestCase):
     ]:
 
         @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-        @patch("sentry.tasks.relocation.uploading_start.apply_async")
         @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
         def test_good_completed_relocation_for_same_organization(
             self,
             uploading_start_mock: Mock,
+            analytics_record_mock: Mock,
             stat=stat,
         ):
             self.login_as(user=self.superuser, superuser=True)
@@ -315,17 +375,28 @@ class OrganizationForkTest(APITestCase):
                 args=[UUID(response.data["uuid"]), EXPORTING_TEST_REGION, self.requested_org_slug]
             )
 
+            assert analytics_record_mock.call_count == 1
+            analytics_record_mock.assert_called_with(
+                "relocation.forked",
+                creator_id=int(response.data["creator"]["id"]),
+                owner_id=int(response.data["owner"]["id"]),
+                uuid=response.data["uuid"],
+                from_org_slug=self.requested_org_slug,
+                requesting_region_name=REQUESTING_TEST_REGION,
+                replying_region_name=EXPORTING_TEST_REGION,
+            )
+
     for stat in [
         Relocation.Status.IN_PROGRESS,
         Relocation.Status.PAUSE,
     ]:
 
         @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-        @patch("sentry.tasks.relocation.uploading_start.apply_async")
         @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
         def test_bad_active_relocation_for_same_organization(
             self,
             uploading_start_mock: Mock,
+            analytics_record_mock: Mock,
             stat=stat,
         ):
             self.login_as(user=self.superuser, superuser=True)
@@ -345,15 +416,16 @@ class OrganizationForkTest(APITestCase):
                 uuid=str(existing_relocation.uuid)
             )
             assert uploading_start_mock.call_count == 0
+            assert analytics_record_mock.call_count == 0
 
     @override_options(
         {"relocation.enabled": True, "relocation.daily-limit.small": 1, "staff.ga-rollout": True}
     )
-    @patch("sentry.tasks.relocation.uploading_start.apply_async")
     @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
     def test_good_no_throttle_for_staff(
         self,
         uploading_start_mock: Mock,
+        analytics_record_mock: Mock,
     ):
         self.login_as(user=self.staff_user, staff=True)
         Relocation.objects.create(
@@ -386,12 +458,23 @@ class OrganizationForkTest(APITestCase):
             args=[UUID(response.data["uuid"]), EXPORTING_TEST_REGION, self.requested_org_slug]
         )
 
+        assert analytics_record_mock.call_count == 1
+        analytics_record_mock.assert_called_with(
+            "relocation.forked",
+            creator_id=int(response.data["creator"]["id"]),
+            owner_id=int(response.data["owner"]["id"]),
+            uuid=response.data["uuid"],
+            from_org_slug=self.requested_org_slug,
+            requesting_region_name=REQUESTING_TEST_REGION,
+            replying_region_name=EXPORTING_TEST_REGION,
+        )
+
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-    @patch("sentry.tasks.relocation.uploading_start.apply_async")
     @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
     def test_good_no_throttle_for_superuser(
         self,
         uploading_start_mock: Mock,
+        analytics_record_mock: Mock,
     ):
         self.login_as(user=self.superuser, superuser=True)
         Relocation.objects.create(
@@ -424,11 +507,22 @@ class OrganizationForkTest(APITestCase):
             args=[UUID(response.data["uuid"]), EXPORTING_TEST_REGION, self.requested_org_slug]
         )
 
-    @patch("sentry.tasks.relocation.uploading_start.apply_async")
+        assert analytics_record_mock.call_count == 1
+        analytics_record_mock.assert_called_with(
+            "relocation.forked",
+            creator_id=int(response.data["creator"]["id"]),
+            owner_id=int(response.data["owner"]["id"]),
+            uuid=response.data["uuid"],
+            from_org_slug=self.requested_org_slug,
+            requesting_region_name=REQUESTING_TEST_REGION,
+            replying_region_name=EXPORTING_TEST_REGION,
+        )
+
     @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
     def test_bad_without_superuser_or_staff(
         self,
         uploading_start_mock: Mock,
+        analytics_record_mock: Mock,
     ):
         self.login_as(user=self.existing_org_owner, superuser=False, staff=False)
         relocation_count = Relocation.objects.count()
@@ -437,14 +531,15 @@ class OrganizationForkTest(APITestCase):
         self.get_error_response(self.existing_org.slug, status_code=403)
 
         assert uploading_start_mock.call_count == 0
+        assert analytics_record_mock.call_count == 0
         assert Relocation.objects.count() == relocation_count
         assert RelocationFile.objects.count() == relocation_file_count
 
-    @patch("sentry.tasks.relocation.uploading_start.apply_async")
     @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
     def test_bad_superuser_not_active(
         self,
         uploading_start_mock: Mock,
+        analytics_record_mock: Mock,
     ):
         self.login_as(user=self.superuser, superuser=False)
         relocation_count = Relocation.objects.count()
@@ -453,15 +548,16 @@ class OrganizationForkTest(APITestCase):
         self.get_error_response(self.existing_org.slug, status_code=403)
 
         assert uploading_start_mock.call_count == 0
+        assert analytics_record_mock.call_count == 0
         assert Relocation.objects.count() == relocation_count
         assert RelocationFile.objects.count() == relocation_file_count
 
     @override_options({"relocation.enabled": True, "relocation.daily-limit.small": 1})
-    @patch("sentry.tasks.relocation.uploading_start.apply_async")
     @assume_test_silo_mode(SiloMode.REGION, region_name=REQUESTING_TEST_REGION)
     def test_bad_no_auth(
         self,
         uploading_start_mock: Mock,
+        analytics_record_mock: Mock,
     ):
         relocation_count = Relocation.objects.count()
         relocation_file_count = RelocationFile.objects.count()
@@ -469,5 +565,6 @@ class OrganizationForkTest(APITestCase):
         self.get_error_response(self.existing_org.slug, status_code=401)
 
         assert uploading_start_mock.call_count == 0
+        assert analytics_record_mock.call_count == 0
         assert Relocation.objects.count() == relocation_count
         assert RelocationFile.objects.count() == relocation_file_count
