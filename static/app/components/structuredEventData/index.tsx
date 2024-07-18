@@ -1,22 +1,8 @@
-import {Fragment, isValidElement} from 'react';
 import styled from '@emotion/styled';
 
-import {openNavigateToExternalLinkModal} from 'sentry/actionCreators/modal';
 import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
-import {AnnotatedText} from 'sentry/components/events/meta/annotatedText';
-import ExternalLink from 'sentry/components/links/externalLink';
-import {CollapsibleValue} from 'sentry/components/structuredEventData/collapsibleValue';
-import {IconOpen} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import {RecursiveStructuredData} from 'sentry/components/structuredEventData/recursiveStructuredData';
 import {space} from 'sentry/styles/space';
-import {defined} from 'sentry/utils';
-import {isUrl} from 'sentry/utils/string/isUrl';
-
-import {
-  looksLikeMultiLineString,
-  looksLikeStrippedValue,
-  naturalCaseInsensitiveSort,
-} from './utils';
 
 export type StructedEventDataConfig = {
   isBoolean?: (value: unknown) => boolean;
@@ -29,7 +15,44 @@ export type StructedEventDataConfig = {
   renderString?: (value: string) => string;
 };
 
-export type StructuredEventDataProps = {
+interface StructuredDataProps {
+  maxDefaultDepth: number;
+  withAnnotatedText: boolean;
+  config?: StructedEventDataConfig;
+  forceDefaultExpand?: boolean;
+  meta?: Record<any, any>;
+  objectKey?: string;
+  // TODO(TS): What possible types can `value` be?
+  value?: any;
+  withOnlyFormattedText?: boolean;
+}
+
+export function StructuredData({
+  config,
+  value = null,
+  maxDefaultDepth,
+  withAnnotatedText,
+  withOnlyFormattedText = false,
+  meta,
+  objectKey,
+  forceDefaultExpand,
+}: StructuredDataProps) {
+  return (
+    <RecursiveStructuredData
+      config={config}
+      depth={0}
+      value={value}
+      maxDefaultDepth={maxDefaultDepth}
+      withAnnotatedText={withAnnotatedText}
+      withOnlyFormattedText={withOnlyFormattedText}
+      meta={meta}
+      objectKey={objectKey}
+      forceDefaultExpand={forceDefaultExpand}
+    />
+  );
+}
+
+export interface StructuredEventDataProps {
   children?: React.ReactNode;
   className?: string;
   /**
@@ -48,277 +71,6 @@ export type StructuredEventDataProps = {
   onCopy?: (copiedCode: string) => void;
   showCopyButton?: boolean;
   withAnnotatedText?: boolean;
-};
-
-function AnnotatedValue({
-  value,
-  withAnnotatedText,
-  withOnlyFormattedText = false,
-  meta,
-}: {
-  meta: Record<any, any> | undefined;
-  withAnnotatedText: boolean;
-  value?: React.ReactNode;
-  withOnlyFormattedText?: boolean;
-}) {
-  if (!withAnnotatedText || !meta) {
-    return <Fragment>{value}</Fragment>;
-  }
-
-  return (
-    <AnnotatedText
-      value={value}
-      meta={meta?.[''] ?? meta}
-      withOnlyFormattedText={withOnlyFormattedText}
-    />
-  );
-}
-
-function LinkHint({meta, value}: {value: string; meta?: Record<any, any>}) {
-  if (!isUrl(value) || defined(meta)) {
-    return null;
-  }
-
-  return (
-    <ExternalLink
-      onClick={e => {
-        e.preventDefault();
-        openNavigateToExternalLinkModal({linkText: value});
-      }}
-      role="link"
-      className="external-icon"
-    >
-      <StyledIconOpen size="xs" aria-label={t('Open link')} />
-    </ExternalLink>
-  );
-}
-
-export function StructuredData({
-  config,
-  depth,
-  value = null,
-  maxDefaultDepth,
-  withAnnotatedText,
-  withOnlyFormattedText = false,
-  meta,
-  objectKey,
-  forceDefaultExpand,
-}: {
-  depth: number;
-  maxDefaultDepth: number;
-  meta: Record<any, any> | undefined;
-  withAnnotatedText: boolean;
-  config?: StructedEventDataConfig;
-  forceDefaultExpand?: boolean;
-  objectKey?: string;
-  showCopyButton?: boolean;
-  // TODO(TS): What possible types can `value` be?
-  value?: any;
-  withOnlyFormattedText?: boolean;
-}) {
-  let i = 0;
-
-  const formattedObjectKey = objectKey ? (
-    <Fragment>
-      <ValueObjectKey>
-        {config?.renderObjectKeys?.(objectKey) ?? objectKey}
-      </ValueObjectKey>
-      <span>{': '}</span>
-    </Fragment>
-  ) : null;
-
-  function Wrapper({children}: {children: React.ReactNode}) {
-    return (
-      <Fragment>
-        {formattedObjectKey}
-        {children}
-      </Fragment>
-    );
-  }
-
-  if (config?.isNull?.(value) || value === null) {
-    const nullValue = config?.renderNull?.(value) ?? String(value);
-
-    return (
-      <Wrapper>
-        <ValueNull data-test-id="value-null">
-          <AnnotatedValue
-            value={nullValue}
-            meta={meta}
-            withAnnotatedText={withAnnotatedText}
-            withOnlyFormattedText={withOnlyFormattedText}
-          />
-        </ValueNull>
-      </Wrapper>
-    );
-  }
-
-  if (config?.isBoolean?.(value) || value === true || value === false) {
-    const booleanValue = config?.renderBoolean?.(value) ?? String(value);
-
-    return (
-      <Wrapper>
-        <ValueBoolean data-test-id="value-boolean">
-          <AnnotatedValue
-            value={booleanValue}
-            meta={meta}
-            withAnnotatedText={withAnnotatedText}
-            withOnlyFormattedText={withOnlyFormattedText}
-          />
-        </ValueBoolean>
-      </Wrapper>
-    );
-  }
-
-  if (typeof value === 'number' || config?.isNumber?.(value)) {
-    return (
-      <Wrapper>
-        <ValueNumber data-test-id="value-number">
-          <AnnotatedValue
-            value={value}
-            meta={meta}
-            withAnnotatedText={withAnnotatedText}
-            withOnlyFormattedText={withOnlyFormattedText}
-          />
-        </ValueNumber>
-      </Wrapper>
-    );
-  }
-
-  if (typeof value === 'string') {
-    if (config?.isString?.(value)) {
-      const stringValue = config.renderString?.(value) ?? value;
-
-      return (
-        <Wrapper>
-          <ValueString data-test-id="value-string">
-            {'"'}
-            <AnnotatedValue
-              value={stringValue}
-              meta={meta}
-              withAnnotatedText={withAnnotatedText}
-              withOnlyFormattedText={withOnlyFormattedText}
-            />
-            {'"'}
-            <LinkHint meta={meta} value={stringValue} />
-          </ValueString>
-        </Wrapper>
-      );
-    }
-
-    if (looksLikeStrippedValue(value)) {
-      return (
-        <Wrapper>
-          <ValueStrippedString>
-            <AnnotatedValue
-              value={value}
-              meta={meta}
-              withAnnotatedText={withAnnotatedText}
-              withOnlyFormattedText={withOnlyFormattedText}
-            />
-          </ValueStrippedString>
-        </Wrapper>
-      );
-    }
-
-    if (looksLikeMultiLineString(value)) {
-      return (
-        <Wrapper>
-          <ValueMultiLineString data-test-id="value-multiline-string">
-            <AnnotatedValue
-              value={value}
-              meta={meta}
-              withAnnotatedText={withAnnotatedText}
-              withOnlyFormattedText={withOnlyFormattedText}
-            />
-          </ValueMultiLineString>
-        </Wrapper>
-      );
-    }
-
-    return (
-      <Wrapper>
-        <span data-test-id="value-unformatted">
-          <AnnotatedValue
-            value={value}
-            meta={meta}
-            withAnnotatedText={withAnnotatedText}
-            withOnlyFormattedText={withOnlyFormattedText}
-          />
-          <LinkHint meta={meta} value={value} />
-        </span>
-      </Wrapper>
-    );
-  }
-
-  const children: React.ReactNode[] = [];
-
-  if (Array.isArray(value)) {
-    for (i = 0; i < value.length; i++) {
-      children.push(
-        <div key={i}>
-          <StructuredData
-            config={config}
-            value={value[i]}
-            depth={depth + 1}
-            withAnnotatedText={withAnnotatedText}
-            meta={meta?.[i]}
-            maxDefaultDepth={maxDefaultDepth}
-          />
-          {i < value.length - 1 ? <span>{','}</span> : null}
-        </div>
-      );
-    }
-    return (
-      <CollapsibleValue
-        openTag="["
-        closeTag="]"
-        prefix={formattedObjectKey}
-        maxDefaultDepth={maxDefaultDepth}
-        depth={depth}
-      >
-        {children}
-      </CollapsibleValue>
-    );
-  }
-
-  if (isValidElement(value)) {
-    return value;
-  }
-
-  const keys = Object.keys(value);
-  keys.sort(naturalCaseInsensitiveSort);
-  for (i = 0; i < keys.length; i++) {
-    const key = keys[i];
-
-    children.push(
-      <div key={key}>
-        <StructuredData
-          config={config}
-          value={value[key]}
-          depth={depth + 1}
-          withAnnotatedText={withAnnotatedText}
-          meta={meta?.[key]}
-          maxDefaultDepth={maxDefaultDepth}
-          objectKey={key}
-        />
-        {i < keys.length - 1 ? <span>{','}</span> : null}
-      </div>
-    );
-  }
-
-  return (
-    <CollapsibleValue
-      openTag="{"
-      closeTag="}"
-      prefix={formattedObjectKey}
-      maxDefaultDepth={maxDefaultDepth}
-      depth={depth}
-      forceDefaultExpand={forceDefaultExpand}
-    >
-      {children}
-    </CollapsibleValue>
-  );
 }
 
 export default function StructuredEventData({
@@ -335,7 +87,7 @@ export default function StructuredEventData({
 }: StructuredEventDataProps) {
   return (
     <StructuredDataWrapper {...props}>
-      <StructuredData
+      <RecursiveStructuredData
         config={config}
         value={data}
         depth={0}
@@ -357,45 +109,6 @@ export default function StructuredEventData({
     </StructuredDataWrapper>
   );
 }
-
-const StyledIconOpen = styled(IconOpen)`
-  position: relative;
-  top: 1px;
-`;
-
-const ValueNull = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
-  color: var(--prism-property);
-`;
-
-const ValueBoolean = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
-  color: var(--prism-property);
-`;
-
-const ValueString = styled('span')`
-  color: var(--prism-selector);
-`;
-
-const ValueMultiLineString = styled('span')`
-  display: block;
-  overflow: auto;
-  border-radius: 4px;
-  padding: 2px 4px;
-`;
-
-const ValueStrippedString = styled('span')`
-  font-weight: ${p => p.theme.fontWeightBold};
-  color: var(--prism-keyword);
-`;
-
-const ValueNumber = styled('span')`
-  color: var(--prism-property);
-`;
-
-const ValueObjectKey = styled('span')`
-  color: var(--prism-keyword);
-`;
 
 const StyledCopyButton = styled(CopyToClipboardButton)`
   position: absolute;

@@ -9,6 +9,7 @@ import {getItemsWithKeys} from 'sentry/components/compactSelect/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
+import {parseFilterValueDuration} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/duration/parser';
 import SpecificDatePicker from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
 import {
   escapeTagValue,
@@ -81,7 +82,7 @@ function isStringFilterValues(
 
 const NUMERIC_UNITS = ['k', 'm', 'b'] as const;
 const RELATIVE_DATE_UNITS = ['m', 'h', 'd', 'w'] as const;
-const DURATION_UNITS = ['ms', 's', 'm', 'h', 'd', 'w'] as const;
+const DURATION_UNIT_SUGGESTIONS = ['ms', 's', 'm', 'h'] as const;
 
 const DEFAULT_NUMERIC_SUGGESTIONS: SuggestionSection[] = [
   {
@@ -93,7 +94,7 @@ const DEFAULT_NUMERIC_SUGGESTIONS: SuggestionSection[] = [
 const DEFAULT_DURATION_SUGGESTIONS: SuggestionSection[] = [
   {
     sectionText: '',
-    suggestions: [{value: '100'}, {value: '100k'}, {value: '100m'}, {value: '100b'}],
+    suggestions: DURATION_UNIT_SUGGESTIONS.map(unit => ({value: `10${unit}`})),
   },
 ];
 
@@ -276,23 +277,42 @@ function getNumericSuggestions(inputValue: string): SuggestionSection[] {
   return [];
 }
 
-function getDurationSuggestions(inputValue: string): SuggestionSection[] {
+function getDurationSuggestions(
+  inputValue: string,
+  token: TokenResult<Token.FILTER>
+): SuggestionSection[] {
   if (!inputValue) {
-    return DEFAULT_DURATION_SUGGESTIONS;
-  }
+    const currentValue =
+      token.value.type === Token.VALUE_DURATION ? token.value.value : null;
 
-  if (isNumeric(inputValue)) {
+    if (!currentValue) {
+      return DEFAULT_DURATION_SUGGESTIONS;
+    }
+
     return [
       {
         sectionText: '',
-        suggestions: DURATION_UNITS.map(unit => ({
-          value: `${inputValue}${unit}`,
+        suggestions: DURATION_UNIT_SUGGESTIONS.map(unit => ({
+          value: `${currentValue}${unit}`,
         })),
       },
     ];
   }
 
-  // If the value is not numeric, don't show any suggestions
+  const parsed = parseFilterValueDuration(inputValue);
+
+  if (parsed) {
+    return [
+      {
+        sectionText: '',
+        suggestions: DURATION_UNIT_SUGGESTIONS.map(unit => ({
+          value: `${parsed.value}${unit}`,
+        })),
+      },
+    ];
+  }
+
+  // If the value doesn't contain any valid number or duration, don't show any suggestions
   return [];
 }
 
@@ -348,9 +368,9 @@ function getPredefinedValues({
   filterValue: string;
   token: TokenResult<Token.FILTER>;
   key?: Tag;
-}): SuggestionSection[] {
+}): SuggestionSection[] | null {
   if (!key) {
-    return [];
+    return null;
   }
 
   if (!key.values?.length) {
@@ -358,14 +378,13 @@ function getPredefinedValues({
       case FieldValueType.NUMBER:
         return getNumericSuggestions(filterValue);
       case FieldValueType.DURATION:
-        return getDurationSuggestions(filterValue);
+        return getDurationSuggestions(filterValue, token);
       case FieldValueType.BOOLEAN:
         return DEFAULT_BOOLEAN_SUGGESTIONS;
-      // TODO(malwilley): Better date suggestions
       case FieldValueType.DATE:
         return getRelativeDateSuggestions(filterValue, token);
       default:
-        return [];
+        return null;
     }
   }
 
@@ -450,6 +469,17 @@ function cleanFilterValue(
         return value;
       }
       return null;
+    case FieldValueType.DURATION: {
+      const parsed = parseFilterValueDuration(value);
+      if (!parsed) {
+        return null;
+      }
+      // Default to ms if no unit is provided
+      if (!parsed.unit) {
+        return `${parsed.value}ms`;
+      }
+      return value;
+    }
     case FieldValueType.DATE:
       const parsed = parseFilterValueDate(value);
 
@@ -517,7 +547,7 @@ function useFilterSuggestions({
       }),
     [key, filterValue, token, fieldDefinition]
   );
-  const shouldFetchValues = key && !key.predefined && !predefinedValues.length;
+  const shouldFetchValues = key && !key.predefined && predefinedValues === null;
   const canSelectMultipleValues = tokenSupportsMultipleValues(
     token,
     filterKeys,
@@ -572,7 +602,7 @@ function useFilterSuggestions({
   const suggestionGroups: SuggestionSection[] = useMemo(() => {
     return shouldFetchValues
       ? [{sectionText: '', suggestions: data?.map(value => ({value})) ?? []}]
-      : predefinedValues;
+      : predefinedValues ?? [];
   }, [data, predefinedValues, shouldFetchValues]);
 
   // Grouped sections for rendering purposes

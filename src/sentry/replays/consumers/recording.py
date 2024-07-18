@@ -1,6 +1,5 @@
 import dataclasses
 import logging
-import random
 from collections.abc import Mapping
 from typing import Any
 
@@ -108,8 +107,9 @@ def initialize_threaded_context(message: Message[KafkaPayload]) -> MessageContex
     transaction = sentry_sdk.start_transaction(
         name="replays.consumer.process_recording",
         op="replays.consumer",
-        sampled=random.random()
-        < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
+        custom_sampling_context={
+            "sample_rate": getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0)
+        },
     )
     isolation_scope = sentry_sdk.Scope.get_isolation_scope().fork()
     return MessageContext(message.payload.value, transaction, isolation_scope)
@@ -135,8 +135,9 @@ def process_message(message: Message[KafkaPayload]) -> Any:
     transaction = sentry_sdk.start_transaction(
         name="replays.consumer.process_recording",
         op="replays.consumer",
-        sampled=random.random()
-        < getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0),
+        custom_sampling_context={
+            "sample_rate": getattr(settings, "SENTRY_REPLAY_RECORDINGS_CONSUMER_APM_SAMPLING", 0)
+        },
     )
     isolation_scope = sentry_sdk.Scope.get_isolation_scope().fork()
 

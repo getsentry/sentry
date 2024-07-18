@@ -707,9 +707,6 @@ register(
     "store.race-free-group-creation-force-disable", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE
 )
 
-# TEMPORARY: Use traces_sampler instead of manual sampling for ingest-consumer.
-register("store.use-traces-sampler", default=False, flags=FLAG_AUTOMATOR_MODIFIABLE)
-
 # Enable calling the severity modeling API on group creation
 register(
     "processing.calculate-severity-on-group-creation",
