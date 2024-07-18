@@ -7,7 +7,7 @@ import {DurationUnit, SizeUnit} from 'sentry/utils/discover/fields';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {RESOURCE_THROUGHPUT_UNIT} from 'sentry/views/insights/browser/resources/settings';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
-import {Ribbon} from 'sentry/views/insights/common/components/ribbon';
+import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
   DataTitles,
@@ -69,7 +69,7 @@ function ResourceInfo(props: Props) {
 
   return (
     <Fragment>
-      <Ribbon>
+      <ReadoutRibbon>
         <MetricReadout
           align="left"
           title={getThroughputTitle('resource')}
@@ -121,7 +121,7 @@ function ResourceInfo(props: Props) {
           tooltip={getTimeSpentExplanation(timeSpentPercentage, 'resource')}
           isLoading={isLoading}
         />
-      </Ribbon>
+      </ReadoutRibbon>
 
       {hasNoData && (
         <Alert style={{width: '100%'}} type="warning" showIcon>

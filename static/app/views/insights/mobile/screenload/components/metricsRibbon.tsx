@@ -1,7 +1,9 @@
 import type {ComponentProps} from 'react';
 import {useMemo} from 'react';
+import styled from '@emotion/styled';
 
 import type {Polarity} from 'sentry/components/percentChange';
+import {space} from 'sentry/styles/space';
 import type {NewQuery} from 'sentry/types/organization';
 import type {TableData, TableDataRow} from 'sentry/utils/discover/discoverQuery';
 import EventView from 'sentry/utils/discover/eventView';
@@ -10,7 +12,7 @@ import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
-import {Ribbon} from 'sentry/views/insights/common/components/ribbon';
+import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useReleaseSelection} from 'sentry/views/insights/common/queries/useReleases';
 import {appendReleaseFilters} from 'sentry/views/insights/common/utils/releaseComparison';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
@@ -80,7 +82,7 @@ export function MobileMetricsRibbon({
   });
 
   return (
-    <Ribbon>
+    <StyledReadoutRibbon>
       {blocks.map(({title, dataKey, unit, preferredPolarity}) => (
         <MetricsBlock
           key={title}
@@ -92,9 +94,13 @@ export function MobileMetricsRibbon({
           preferredPolarity={preferredPolarity}
         />
       ))}
-    </Ribbon>
+    </StyledReadoutRibbon>
   );
 }
+
+const StyledReadoutRibbon = styled(ReadoutRibbon)`
+  margin-bottom: ${space(2)};
+`;
 
 function MetricsBlock({
   title,

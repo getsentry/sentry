@@ -2,7 +2,7 @@ import {DurationUnit, RateUnit} from 'sentry/utils/discover/fields';
 import {usePageAlert} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
-import {Ribbon} from 'sentry/views/insights/common/components/ribbon';
+import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
 import {
@@ -54,7 +54,7 @@ function SampleInfo(props: Props) {
   }
 
   return (
-    <Ribbon>
+    <ReadoutRibbon>
       <MetricReadout
         title={getThroughputTitle(spanMetrics?.[SpanMetricsField.SPAN_OP])}
         align="left"
@@ -82,7 +82,7 @@ function SampleInfo(props: Props) {
         )}
         isLoading={isLoading}
       />
-    </Ribbon>
+    </ReadoutRibbon>
   );
 }
 

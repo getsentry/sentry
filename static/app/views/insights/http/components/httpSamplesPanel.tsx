@@ -32,7 +32,7 @@ import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
-import {Ribbon} from 'sentry/views/insights/common/components/ribbon';
+import {ReadoutRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {getTimeSpentExplanation} from 'sentry/views/insights/common/components/tableCells/timeSpentCell';
 import {
   useSpanMetrics,
@@ -355,7 +355,7 @@ export function HTTPSamplesPanel() {
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>
-            <Ribbon>
+            <ReadoutRibbon>
               <MetricReadout
                 align="left"
                 title={getThroughputTitle('http')}
@@ -411,7 +411,7 @@ export function HTTPSamplesPanel() {
                 )}
                 isLoading={areDomainTransactionMetricsFetching}
               />
-            </Ribbon>
+            </ReadoutRibbon>
           </ModuleLayout.Full>
 
           <ModuleLayout.Full>

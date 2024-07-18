@@ -184,10 +184,9 @@ function isARateUnit(unit: string): unit is RateUnit {
 }
 
 const ReadoutWrapper = styled('div')`
-  flex-grow: 1;
+  flex-grow: 0;
   min-width: 0;
   word-break: break-word;
-  padding-bottom: ${space(2)};
 `;
 
 const ReadoutTitle = styled('h3')<{alignment: 'left' | 'right'}>`

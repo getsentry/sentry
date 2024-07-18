@@ -13,9 +13,7 @@ import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionT
 import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {DEFAULT_RESOURCE_FILTERS} from 'sentry/views/insights/browser/common/queries/useResourcesQuery';
-import ResourceView, {
-  FilterOptionsContainer,
-} from 'sentry/views/insights/browser/resources/components/resourceView';
+import ResourceView from 'sentry/views/insights/browser/resources/components/resourceView';
 import {
   DEFAULT_RESOURCE_TYPES,
   MODULE_DESCRIPTION,
@@ -26,8 +24,10 @@ import {
   BrowserStarfishFields,
   useResourceModuleFilters,
 } from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
+import {HeaderContainer} from 'sentry/views/insights/common/components/headerContainer';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
+import {ToolRibbon} from 'sentry/views/insights/common/components/ribbon';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
@@ -64,23 +64,25 @@ function ResourcesLandingPage() {
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageAlert />
-            <FilterOptionsContainer columnCount={2}>
-              <PageFilterBar condensed>
-                <ProjectPageFilter />
-                <EnvironmentPageFilter />
-                <DatePageFilter />
-              </PageFilterBar>
-              {hasModuleData && (
-                <DomainSelector
-                  emptyOptionLocation="top"
-                  value={filters[SPAN_DOMAIN] || ''}
-                  additionalQuery={[
-                    ...DEFAULT_RESOURCE_FILTERS,
-                    `${SPAN_OP}:[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
-                  ]}
-                />
-              )}
-            </FilterOptionsContainer>
+            <HeaderContainer>
+              <ToolRibbon>
+                <PageFilterBar condensed>
+                  <ProjectPageFilter />
+                  <EnvironmentPageFilter />
+                  <DatePageFilter />
+                </PageFilterBar>
+                {hasModuleData && (
+                  <DomainSelector
+                    emptyOptionLocation="top"
+                    value={filters[SPAN_DOMAIN] || ''}
+                    additionalQuery={[
+                      ...DEFAULT_RESOURCE_FILTERS,
+                      `${SPAN_OP}:[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
+                    ]}
+                  />
+                )}
+              </ToolRibbon>
+            </HeaderContainer>
             <ModulesOnboarding moduleName={ModuleName.RESOURCE}>
               <ResourceView />
             </ModulesOnboarding>
