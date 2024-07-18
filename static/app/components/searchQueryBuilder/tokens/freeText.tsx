@@ -98,6 +98,7 @@ function getInitialFilterText(key: string, fieldDefinition: FieldDefinition | nu
   switch (fieldDefinition?.valueType) {
     case FieldValueType.INTEGER:
     case FieldValueType.NUMBER:
+    case FieldValueType.DURATION:
       return `${key}:>${defaultValue}`;
     case FieldValueType.STRING:
     default:

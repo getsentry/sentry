@@ -2188,7 +2188,7 @@ def test_get_span_attribute_metrics(default_project: Project) -> None:
                 "category": "span",
                 "condition": {"name": "span.data.bar", "op": "eq", "value": "baz"},
                 "field": "span.duration",
-                "mri": "d:custom/span_attribute_1@millisecond",
+                "mri": "d:custom/span_attribute_1@none",
                 "tags": [
                     {"field": "span.data.bar", "key": "bar"},
                     {"field": "span.data.foo", "key": "foo"},
@@ -2198,7 +2198,7 @@ def test_get_span_attribute_metrics(default_project: Project) -> None:
                 "category": "span",
                 "condition": {"name": "span.data.abc", "op": "eq", "value": "xyz"},
                 "field": "span.duration",
-                "mri": "d:custom/span_attribute_2@millisecond",
+                "mri": "d:custom/span_attribute_2@none",
                 "tags": [
                     {"field": "span.data.abc", "key": "abc"},
                     {"field": "span.data.foo", "key": "foo"},
