@@ -232,7 +232,7 @@ function getErrorsSeriesRequest(
       field: [...widgetQuery.columns, ...widgetQuery.aggregates],
       includeAllArgs: true,
       topEvents: TOP_N,
-      queryExtras: {dataset: DiscoverDatasets.ERRORS},
+      dataset: DiscoverDatasets.ERRORS,
     };
     if (widgetQuery.orderby) {
       requestData.orderby = widgetQuery.orderby;
@@ -253,7 +253,7 @@ function getErrorsSeriesRequest(
       referrer,
       partial: true,
       includeAllArgs: true,
-      queryExtras: {dataset: DiscoverDatasets.ERRORS},
+      dataset: DiscoverDatasets.ERRORS,
     };
     if (widgetQuery.columns?.length !== 0) {
       requestData.topEvents = limit ?? TOP_N;
