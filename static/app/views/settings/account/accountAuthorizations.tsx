@@ -1,4 +1,3 @@
-import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
@@ -6,15 +5,19 @@ import {Button} from 'sentry/components/button';
 import EmptyMessage from 'sentry/components/emptyMessage';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
+import LoadingError from 'sentry/components/loadingError';
+import LoadingIndicator from 'sentry/components/loadingIndicator';
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
 import PanelHeader from 'sentry/components/panels/panelHeader';
 import PanelItem from 'sentry/components/panels/panelItem';
+import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {IconDelete} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {ApiApplication} from 'sentry/types';
-import DeprecatedAsyncView from 'sentry/views/deprecatedAsyncView';
+import {setApiQueryData, useApiQuery, useQueryClient} from 'sentry/utils/queryClient';
+import useApi from 'sentry/utils/useApi';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 
 type Authorization = {
@@ -24,98 +27,90 @@ type Authorization = {
   scopes: string[];
 };
 
-type Props = RouteComponentProps<{}, {}>;
+function AccountAuthorizations() {
+  const api = useApi();
+  const queryClient = useQueryClient();
+  const ENDPOINT = '/api-authorizations/';
 
-type State = {
-  data: Authorization[];
-} & DeprecatedAsyncView['state'];
+  const {data, isLoading, isError, refetch} = useApiQuery<Authorization[]>([ENDPOINT], {
+    staleTime: 0,
+  });
 
-class AccountAuthorizations extends DeprecatedAsyncView<Props, State> {
-  getEndpoints(): ReturnType<DeprecatedAsyncView['getEndpoints']> {
-    return [['data', '/api-authorizations/']];
+  if (isLoading) {
+    return <LoadingIndicator />;
   }
 
-  getTitle() {
-    return 'Approved Applications';
+  if (isError) {
+    return <LoadingError onRetry={refetch} />;
   }
 
-  handleRevoke = authorization => {
-    const oldData = this.state.data;
-
-    this.setState(
-      state => ({
-        data: state.data.filter(({id}) => id !== authorization.id),
-      }),
-      async () => {
-        try {
-          await this.api.requestPromise('/api-authorizations/', {
-            method: 'DELETE',
-            data: {authorization: authorization.id},
-          });
-
-          addSuccessMessage(t('Saved changes'));
-        } catch (_err) {
-          this.setState({
-            data: oldData,
-          });
-          addErrorMessage(t('Unable to save changes, please try again'));
-        }
-      }
+  const handleRevoke = async (authorization: Authorization) => {
+    const oldData = data;
+    setApiQueryData<Authorization[]>(queryClient, [ENDPOINT], prevData =>
+      prevData.filter(a => a.id !== authorization.id)
     );
+    try {
+      await api.requestPromise('/api-authorizations/', {
+        method: 'DELETE',
+        data: {authorization: authorization.id},
+      });
+      addSuccessMessage(t('Saved changes'));
+    } catch (_err) {
+      setApiQueryData<any>(queryClient, [ENDPOINT], oldData);
+      addErrorMessage(t('Unable to save changes, please try again'));
+    }
   };
 
-  renderBody() {
-    const {data} = this.state;
-    const isEmpty = data.length === 0;
-    return (
-      <div>
-        <SettingsPageHeader title="Authorized Applications" />
-        <Description>
-          {tct('You can manage your own applications via the [link:API dashboard].', {
-            link: <Link to="/settings/account/api/" />,
-          })}
-        </Description>
+  const isEmpty = data.length === 0;
+  return (
+    <SentryDocumentTitle title={t('Approved Applications')}>
+      <SettingsPageHeader title="Authorized Applications" />
+      <Description>
+        {tct('You can manage your own applications via the [link:API dashboard].', {
+          link: <Link to="/settings/account/api/" />,
+        })}
+      </Description>
 
-        <Panel>
-          <PanelHeader>{t('Approved Applications')}</PanelHeader>
+      <Panel>
+        <PanelHeader>{t('Approved Applications')}</PanelHeader>
 
-          <PanelBody>
-            {isEmpty && (
-              <EmptyMessage>
-                {t("You haven't approved any third party applications.")}
-              </EmptyMessage>
-            )}
+        <PanelBody>
+          {isEmpty && (
+            <EmptyMessage>
+              {t("You haven't approved any third party applications.")}
+            </EmptyMessage>
+          )}
 
-            {!isEmpty && (
-              <div>
-                {data.map(authorization => (
-                  <PanelItemCenter key={authorization.id}>
-                    <ApplicationDetails>
-                      <ApplicationName>{authorization.application.name}</ApplicationName>
-                      {authorization.homepageUrl && (
-                        <Url>
-                          <ExternalLink href={authorization.homepageUrl}>
-                            {authorization.homepageUrl}
-                          </ExternalLink>
-                        </Url>
-                      )}
-                      <Scopes>{authorization.scopes.join(', ')}</Scopes>
-                    </ApplicationDetails>
-                    <Button
-                      size="sm"
-                      onClick={() => this.handleRevoke(authorization)}
-                      icon={<IconDelete />}
-                      aria-label={t('Delete')}
-                    />
-                  </PanelItemCenter>
-                ))}
-              </div>
-            )}
-          </PanelBody>
-        </Panel>
-      </div>
-    );
-  }
+          {!isEmpty && (
+            <div>
+              {data.map(authorization => (
+                <PanelItemCenter key={authorization.id}>
+                  <ApplicationDetails>
+                    <ApplicationName>{authorization.application.name}</ApplicationName>
+                    {authorization.homepageUrl && (
+                      <Url>
+                        <ExternalLink href={authorization.homepageUrl}>
+                          {authorization.homepageUrl}
+                        </ExternalLink>
+                      </Url>
+                    )}
+                    <Scopes>{authorization.scopes.join(', ')}</Scopes>
+                  </ApplicationDetails>
+                  <Button
+                    size="sm"
+                    onClick={() => handleRevoke(authorization)}
+                    icon={<IconDelete />}
+                    aria-label={t('Delete')}
+                    data-test-id={authorization.id}
+                  />
+                </PanelItemCenter>
+              ))}
+            </div>
+          )}
+        </PanelBody>
+      </Panel>
+    </SentryDocumentTitle>
+  );
 }
 
 export default AccountAuthorizations;
