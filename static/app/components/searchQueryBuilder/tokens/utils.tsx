@@ -63,6 +63,8 @@ export function getDefaultFilterValue({
       return '-24h';
     case FieldValueType.DURATION:
       return '10ms';
+    case FieldValueType.PERCENTAGE:
+      return '0.5';
     case FieldValueType.STRING:
     default:
       return '""';
