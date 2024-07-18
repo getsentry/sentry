@@ -64,7 +64,7 @@ describe('PagePerformanceTable', function () {
     });
     render(<PagePerformanceTable />, {organization});
     await waitFor(() => {
-      expect(eventsMock).toHaveBeenCalledTimes(2);
+      expect(eventsMock).toHaveBeenCalledTimes(1);
       expect(eventsMock).toHaveBeenLastCalledWith(
         '/organizations/org-slug/events/',
         expect.objectContaining({

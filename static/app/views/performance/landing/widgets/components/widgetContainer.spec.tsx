@@ -1063,7 +1063,7 @@ describe('Performance > Widgets > WidgetContainer', function () {
             'p75(measurements.ttfb)',
             'p75(measurements.inp)',
             'opportunity_score(measurements.score.total)',
-            'avg(measurements.score.total)',
+            'performance_score(measurements.score.total)',
             'count()',
             'count_scores(measurements.score.lcp)',
             'count_scores(measurements.score.fcp)',
