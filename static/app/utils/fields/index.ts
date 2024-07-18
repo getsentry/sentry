@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
 import type {TagCollection} from 'sentry/types/group';
+import {SpanIndexedField, SpanMetricsField} from 'sentry/views/insights/types';
 
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
@@ -508,6 +509,69 @@ export const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
     valueType: FieldValueType.DURATION,
   },
 };
+
+export const TRACE_FIELDS: Record<SpanIndexedField | SpanMetricsField, FieldDefinition> =
+  {
+    [SpanIndexedField.ENVIRONMENT]: undefined,
+    [SpanIndexedField.RESOURCE_RENDER_BLOCKING_STATUS]: undefined,
+    [SpanIndexedField.HTTP_RESPONSE_CONTENT_LENGTH]: undefined,
+    [SpanIndexedField.SPAN_CATEGORY]: undefined,
+    [SpanIndexedField.SPAN_DURATION]: undefined,
+    [SpanIndexedField.SPAN_SELF_TIME]: undefined,
+    [SpanIndexedField.SPAN_GROUP]: undefined,
+    [SpanIndexedField.SPAN_MODULE]: undefined,
+    [SpanIndexedField.SPAN_DESCRIPTION]: undefined,
+    [SpanIndexedField.SPAN_STATUS]: undefined,
+    [SpanIndexedField.SPAN_OP]: undefined,
+    [SpanIndexedField.ID]: undefined,
+    [SpanIndexedField.SPAN_ACTION]: undefined,
+    [SpanIndexedField.SPAN_AI_PIPELINE_GROUP]: undefined,
+    [SpanIndexedField.SDK_NAME]: undefined,
+    [SpanIndexedField.TRACE]: undefined,
+    [SpanIndexedField.TRANSACTION_ID]: undefined,
+    [SpanIndexedField.TRANSACTION_METHOD]: undefined,
+    [SpanIndexedField.TRANSACTION_OP]: undefined,
+    [SpanIndexedField.SPAN_DOMAIN]: undefined,
+    [SpanIndexedField.TIMESTAMP]: undefined,
+    [SpanIndexedField.RAW_DOMAIN]: undefined,
+    [SpanIndexedField.PROJECT]: undefined,
+    [SpanIndexedField.PROJECT_ID]: undefined,
+    [SpanIndexedField.PROFILE_ID]: undefined,
+    [SpanIndexedField.RELEASE]: undefined,
+    [SpanIndexedField.TRANSACTION]: undefined,
+    [SpanIndexedField.ORIGIN_TRANSACTION]: undefined,
+    [SpanIndexedField.REPLAY_ID]: undefined,
+    [SpanIndexedField.BROWSER_NAME]: undefined,
+    [SpanIndexedField.USER]: undefined,
+    [SpanIndexedField.USER_ID]: undefined,
+    [SpanIndexedField.USER_EMAIL]: undefined,
+    [SpanIndexedField.USER_USERNAME]: undefined,
+    [SpanIndexedField.INP]: undefined,
+    [SpanIndexedField.INP_SCORE]: undefined,
+    [SpanIndexedField.INP_SCORE_WEIGHT]: undefined,
+    [SpanIndexedField.TOTAL_SCORE]: undefined,
+    [SpanIndexedField.RESPONSE_CODE]: undefined,
+    [SpanIndexedField.CACHE_HIT]: undefined,
+    [SpanIndexedField.CACHE_ITEM_SIZE]: undefined,
+    [SpanIndexedField.TRACE_STATUS]: undefined,
+    [SpanIndexedField.MESSAGING_MESSAGE_ID]: undefined,
+    [SpanIndexedField.MESSAGING_MESSAGE_BODY_SIZE]: undefined,
+    [SpanIndexedField.MESSAGING_MESSAGE_RECEIVE_LATENCY]: undefined,
+    [SpanIndexedField.MESSAGING_MESSAGE_RETRY_COUNT]: undefined,
+    [SpanIndexedField.MESSAGING_MESSAGE_DESTINATION_NAME]: undefined,
+
+    [SpanMetricsField.PROJECT_ID]: undefined,
+    [SpanMetricsField.HTTP_DECODED_RESPONSE_CONTENT_LENGTH]: undefined,
+    [SpanMetricsField.HTTP_RESPONSE_TRANSFER_SIZE]: undefined,
+    [SpanMetricsField.FILE_EXTENSION]: undefined,
+    [SpanMetricsField.AI_TOTAL_TOKENS_USED]: undefined,
+    [SpanMetricsField.AI_TOTAL_COST]: undefined,
+    [SpanMetricsField.OS_NAME]: undefined,
+    [SpanMetricsField.APP_START_TYPE]: undefined,
+    [SpanMetricsField.DEVICE_CLASS]: undefined,
+    [SpanMetricsField.CACHE_ITEM_SIZE]: undefined,
+    [SpanMetricsField.MESSAGING_MESSAGE_RECEIVE_LATENCY]: undefined,
+  };
 
 type AllEventFieldKeys =
   | keyof typeof AGGREGATION_FIELDS
