@@ -3007,21 +3007,23 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         # give time for consumers to run and propogate changes to clickhouse
         sleep(1)
 
-        response = self.get_success_response(
-            sort="new",
-            useGroupSnubaDataset=1,
-            query="is:linked",
-        )
-        assert len(response.data) == 1
-        assert int(response.data[0]["id"]) == event1.group.id
+        for value in [0, 5]:
+            with override_options({"snuba.search.max-pre-snuba-candidates": value}):
+                response = self.get_success_response(
+                    sort="new",
+                    useGroupSnubaDataset=1,
+                    query="is:linked",
+                )
+                assert len(response.data) == 1
+                assert int(response.data[0]["id"]) == event1.group.id
 
-        response = self.get_success_response(
-            sort="new",
-            useGroupSnubaDataset=1,
-            query="is:unlinked",
-        )
-        assert len(response.data) == 1
-        assert int(response.data[0]["id"]) == event2.group.id
+                response = self.get_success_response(
+                    sort="new",
+                    useGroupSnubaDataset=1,
+                    query="is:unlinked",
+                )
+                assert len(response.data) == 1
+                assert int(response.data[0]["id"]) == event2.group.id
 
     @patch(
         "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
