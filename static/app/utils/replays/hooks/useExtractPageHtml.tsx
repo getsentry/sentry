@@ -13,7 +13,7 @@ async function extractPageHtml({replay}: {replay: null | ReplayReader}) {
   });
 }
 
-export default function useExtractedPageHtml({replay}: Props) {
+export default function useExtractPageHtml({replay}: Props) {
   return useQuery(
     ['extactPageHtml', replay],
     () =>

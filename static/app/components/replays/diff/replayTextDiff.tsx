@@ -7,7 +7,7 @@ import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import SplitDiff from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import useExtractedPageHtml from 'sentry/utils/replays/hooks/useExtractedPageHtml';
+import useExtractPageHtml from 'sentry/utils/replays/hooks/useExtractPageHtml';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 
 interface Props {
@@ -18,7 +18,7 @@ interface Props {
 
 export function ReplayTextDiff({replay}: Props) {
   const {data} =
-    useExtractedPageHtml({
+    useExtractPageHtml({
       replay,
       // offsetMsToStopAt: [leftOffsetMs, rightOffsetMs],
     }) ?? new Map();

@@ -47,7 +47,7 @@ export default function replayerStepper<
 
   return new Promise(resolve => {
     if (!frames?.length || !rrwebEvents?.length) {
-      resolve({result: new Map()});
+      resolve({});
       return;
     }
 
