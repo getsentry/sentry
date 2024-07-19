@@ -1401,13 +1401,7 @@ describe('WidgetBuilder', function () {
         params: {
           widgetIndex: '0',
         },
-        orgFeatures: [
-          ...defaultOrgFeatures,
-          'performance-discover-dataset-selector',
-          // TODO: This is an old flag, it should be removed to consistently
-          // show the device.class field
-          'device-classification',
-        ],
+        orgFeatures: [...defaultOrgFeatures, 'performance-discover-dataset-selector'],
       });
 
       expect(await screen.findByText('Select group')).toBeInTheDocument();

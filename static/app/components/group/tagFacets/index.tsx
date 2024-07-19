@@ -170,12 +170,8 @@ export default function TagFacets({
     const formatted =
       tagFormatter?.(keyed as Record<string, GroupTagResponseItem>) ?? keyed;
 
-    if (!organization.features.includes('device-classification')) {
-      delete formatted['device.class'];
-    }
-
     return formatted as Record<string, GroupTagResponseItem>;
-  }, [data, tagFormatter, organization, isStatisticalDetector]);
+  }, [data, tagFormatter, isStatisticalDetector]);
 
   const topTagKeys = tagKeys.filter(tagKey => Object.keys(tagsData).includes(tagKey));
   const remainingTagKeys = Object.keys(tagsData)
