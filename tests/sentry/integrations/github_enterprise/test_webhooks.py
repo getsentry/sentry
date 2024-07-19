@@ -108,6 +108,21 @@ class WebhookTest(APITestCase):
         assert b"Signature value does not match the expected format" in response.content
 
     @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
+    def test_sha256_signature_ok(self, mock_installation):
+        mock_installation.return_value = self.metadata
+
+        response = self.client.post(
+            path=self.url,
+            data=PUSH_EVENT_EXAMPLE_INSTALLATION,
+            content_type="application/json",
+            HTTP_X_GITHUB_EVENT="push",
+            HTTP_X_GITHUB_ENTERPRISE_HOST="35.232.149.196",
+            HTTP_X_HUB_SIGNATURE_256="sha256=7fb2fed663d2f386f29c1cff8980e11738a435b7e3c9332c1ab1fcc870f8964b",
+            HTTP_X_GITHUB_DELIVERY=str(uuid4()),
+        )
+        assert response.status_code == 204
+
+    @patch("sentry.integrations.github_enterprise.webhook.get_installation_metadata")
     @override_options({"github-enterprise-app.allowed-hosts-legacy-webhooks": ["35.232.149.196"]})
     def test_missing_signature_ok(self, mock_installation):
         # Old Github:e doesn't send a signature, so we have to accept that, but only for specific hosts.

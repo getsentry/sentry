@@ -53,6 +53,10 @@ class MalformedSignatureError(Exception):
     """Signature value does not match the expected format"""
 
 
+class UnsupportedSignatureAlgorithmError(Exception):
+    """Signature algorithm is unsupported"""
+
+
 def get_host(request: HttpRequest) -> str:
     # XXX: There's lots of customers that are giving us an IP rather than a host name
     # Use HTTP_X_REAL_IP in a follow up PR (#42405)
@@ -122,11 +126,18 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         return self._handlers.get(event_type)
 
     def is_valid_signature(self, method, body, secret, signature):
-        if method != "sha1":
-            raise NotImplementedError(f"signature method {method} is not supported")
-        expected = hmac.new(
-            key=secret.encode("utf-8"), msg=body, digestmod=hashlib.sha1
-        ).hexdigest()
+        if method != "sha1" and method != "sha256":
+            raise UnsupportedSignatureAlgorithmError("Unsupported signature algorithm")
+
+        if method == "sha256":
+            expected = hmac.new(
+                key=secret.encode("utf-8"), msg=body, digestmod=hashlib.sha256
+            ).hexdigest()
+        else:
+            expected = hmac.new(
+                key=secret.encode("utf-8"), msg=body, digestmod=hashlib.sha1
+            ).hexdigest()
+
         return constant_time_compare(expected, signature)
 
     @method_decorator(csrf_exempt)
@@ -245,6 +256,15 @@ class GitHubEnterpriseWebhookBase(Endpoint):
 
             return HttpResponse(str(e), status=401)
 
+            # we should never end up here with the regex checks above on the signature format,
+            # but just in case
+            logger.exception(
+                "github-enterprise-app.webhook.unsupported-signature-algorithm",
+                extra=extra,
+            )
+            sentry_sdk.capture_exception(e)
+            return HttpResponse(str(e), 400)
+
         except MissingRequiredHeaderError as e:
             # older versions of GitHub 2.14.0 and older do not always send signature headers
             # Setting a signature secret is optional in GitHub, but we require it on Sentry
@@ -262,6 +282,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 return HttpResponse(str(e), status=400)
             else:
                 # the host is allowed to skip signature verification
+                logger.info("github_enterprise.webhook.allowed-missing-signature", extra=extra)
                 logger.info("github_enterprise.webhook.allowed-missing-signature", extra=extra)
 
         except (MalformedSignatureError, IndexError) as e:
