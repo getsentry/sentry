@@ -62,15 +62,10 @@ class UnsupportedSignatureAlgorithmError(Exception):
     """Signature algorithm is unsupported"""
 
 
-def get_host(request: HttpRequest) -> str:
+def get_host(request: HttpRequest) -> str | None:
     # XXX: There's lots of customers that are giving us an IP rather than a host name
     # Use HTTP_X_REAL_IP in a follow up PR (#42405)
-    host = request.headers.get("x-github-enterprise-host")
-
-    if not host:
-        raise MissingRequiredHeaderError("Missing X-GitHub-Enterprise-Host header")
-
-    return host
+    return request.headers.get("x-github-enterprise-host")
 
 
 def get_installation_metadata(event, host):
@@ -163,11 +158,12 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         clear_tags_and_context()
         scope = Scope.get_isolation_scope()
 
-        host = None
         try:
             host = get_host(request=request)
+            if not host:
+                raise MissingRequiredHeaderError("Missing X-GitHub-Enterprise-Host header")
         except MissingRequiredHeaderError as e:
-            logger.warning("github_enterprise.webhook.missing-enterprise-host")
+            logger.exception("github_enterprise.webhook.missing-enterprise-host")
             sentry_sdk.capture_exception(e)
             return HttpResponse(str(e), status=400)
 
