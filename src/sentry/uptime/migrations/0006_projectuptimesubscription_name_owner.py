@@ -33,7 +33,7 @@ class Migration(CheckedMigration):
             database_operations=[
                 migrations.RunSQL(
                     """
-                    ALTER TABLE "uptime_projectuptimesubscription" ADD COLUMN "name" integer NOT NULL;
+                    ALTER TABLE "uptime_projectuptimesubscription" ADD COLUMN "name" text NOT NULL;
                     """,
                     reverse_sql="""
                 ALTER TABLE "uptime_projectuptimesubscription" DROP COLUMN "name";
