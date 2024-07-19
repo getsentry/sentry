@@ -116,7 +116,6 @@ from sentry.incidents.endpoints.team_alerts_triggered import (
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
     GroupEventsEndpoint,
-    OrganizationActivityEndpoint,
     OrganizationGroupIndexEndpoint,
     OrganizationGroupSearchViewsEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
@@ -1327,11 +1326,6 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/access-requests/(?P<request_id>\d+)/$",
         OrganizationAccessRequestDetailsEndpoint.as_view(),
         name="sentry-api-0-organization-access-request-details",
-    ),
-    re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/activity/$",
-        OrganizationActivityEndpoint.as_view(),
-        name="sentry-api-0-organization-activity",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/api-keys/$",
