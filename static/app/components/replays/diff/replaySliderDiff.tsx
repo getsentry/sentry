@@ -57,12 +57,6 @@ export function ReplaySliderDiff({leftOffsetMs, replay, rightOffsetMs}: Props) {
   );
 }
 
-const Header = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-`;
-
 function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width}) {
   const rightSideElem = useRef<HTMLDivElement>(null);
   const dividerElem = useRef<HTMLDivElement>(null);
@@ -185,4 +179,10 @@ const Divider = styled('div')`
     bottom: 0;
     transform: translate(calc(var(--handle-size) / -2 + var(--line-width) / 2), 100%);
   }
+`;
+
+const Header = styled('div')`
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 `;
