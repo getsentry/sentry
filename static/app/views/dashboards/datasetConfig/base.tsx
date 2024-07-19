@@ -10,6 +10,7 @@ import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {isEquation} from 'sentry/utils/discover/fields';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
@@ -32,6 +33,7 @@ export type WidgetBuilderSearchBarProps = {
   organization: Organization;
   pageFilters: PageFilters;
   widgetQuery: WidgetQuery;
+  dataset?: DiscoverDatasets;
 };
 
 export interface DatasetConfig<SeriesResponse, TableResponse> {
