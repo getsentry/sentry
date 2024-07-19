@@ -6,11 +6,6 @@ export const BASE_URL = 'caches';
 export const DATA_TYPE = t('Cache');
 export const DATA_TYPE_PLURAL = t('Caches');
 
-// NOTE: Awkward typing, but without it `RELEASE_LEVEL` is narrowed and the comparison is not allowed
-export const releaseLevelAsBadgeProps = {
-  isNew: true,
-};
-
 export const CHART_HEIGHT = 160;
 
 export const CACHE_BASE_URL = `/performance/${BASE_URL}`;

@@ -1,4 +1,5 @@
 import type {ComponentProps} from 'react';
+import {destroyAnnouncer} from '@react-aria/live-announcer';
 
 import {
   render,
@@ -99,6 +100,9 @@ describe('SearchQueryBuilder', function () {
   beforeEach(() => {
     // `useDimensions` is used to hide things when the component is too small, so we need to mock a large width
     Object.defineProperty(Element.prototype, 'clientWidth', {value: 1000});
+
+    // Combobox announcements will pollute the test output if we don't clear them
+    destroyAnnouncer();
   });
 
   afterEach(function () {
@@ -1479,6 +1483,113 @@ describe('SearchQueryBuilder', function () {
         expect(
           await screen.findByRole('row', {name: 'duration:>100ms'})
         ).toBeInTheDocument();
+        expect(mockOnChange).not.toHaveBeenCalled();
+      });
+    });
+
+    describe('percentage', function () {
+      const percentageFilterKeys: TagCollection = {
+        rate: {
+          key: 'rate',
+          name: 'rate',
+        },
+      };
+
+      const fieldDefinitionGetter: FieldDefinitionGetter = () => ({
+        valueType: FieldValueType.PERCENTAGE,
+        kind: FieldKind.FIELD,
+      });
+
+      const percentageProps: SearchQueryBuilderProps = {
+        ...defaultProps,
+        filterKeys: percentageFilterKeys,
+        filterKeySections: [],
+        fieldDefinitionGetter,
+      };
+
+      it('new percentage filters start with greater than operator and default value', async function () {
+        render(<SearchQueryBuilder {...percentageProps} />);
+        await userEvent.click(getLastInput());
+        await userEvent.click(screen.getByRole('option', {name: 'rate'}));
+
+        // Should start with the > operator and a value of 50%
+        expect(await screen.findByRole('row', {name: 'rate:>0.5'})).toBeInTheDocument();
+      });
+
+      it('percentage filters have the correct operator options', async function () {
+        render(<SearchQueryBuilder {...percentageProps} initialQuery="rate:>0.5" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: rate'})
+        );
+
+        expect(await screen.findByRole('option', {name: 'rate is'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'rate is not'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'rate >'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'rate <'})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'rate >='})).toBeInTheDocument();
+        expect(screen.getByRole('option', {name: 'rate <='})).toBeInTheDocument();
+      });
+
+      it('percentage filters can change operator', async function () {
+        render(<SearchQueryBuilder {...percentageProps} initialQuery="rate:>0.5" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit operator for filter: rate'})
+        );
+
+        await userEvent.click(await screen.findByRole('option', {name: 'rate <='}));
+
+        expect(await screen.findByRole('row', {name: 'rate:<=0.5'})).toBeInTheDocument();
+      });
+
+      it('percentage filters do not allow invalid values', async function () {
+        render(<SearchQueryBuilder {...percentageProps} initialQuery="rate:>0.5" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: rate'})
+        );
+
+        await userEvent.keyboard('a{Enter}');
+
+        // Should have the same value because "a" is not a numeric value
+        expect(screen.getByRole('row', {name: 'rate:>0.5'})).toBeInTheDocument();
+
+        await userEvent.keyboard('{Backspace}0.2{Enter}');
+
+        // Should accept "0.2" as a valid value
+        expect(await screen.findByRole('row', {name: 'rate:>0.2'})).toBeInTheDocument();
+      });
+
+      it('percentage filters will convert values with % to ratio', async function () {
+        render(<SearchQueryBuilder {...percentageProps} initialQuery="rate:>0.5" />);
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: rate'})
+        );
+
+        await userEvent.keyboard('70%{Enter}');
+
+        // 70% should be accepted and converted to 0.7
+        expect(await screen.findByRole('row', {name: 'rate:>0.7'})).toBeInTheDocument();
+      });
+
+      it('keeps previous value when confirming empty value', async function () {
+        const mockOnChange = jest.fn();
+        render(
+          <SearchQueryBuilder
+            {...percentageProps}
+            onChange={mockOnChange}
+            initialQuery="rate:>0.5"
+          />
+        );
+
+        await userEvent.click(
+          screen.getByRole('button', {name: 'Edit value for filter: rate'})
+        );
+        await userEvent.clear(
+          await screen.findByRole('combobox', {name: 'Edit filter value'})
+        );
+        await userEvent.keyboard('{enter}');
+
+        // Should have the same value
+        expect(await screen.findByRole('row', {name: 'rate:>0.5'})).toBeInTheDocument();
         expect(mockOnChange).not.toHaveBeenCalled();
       });
     });

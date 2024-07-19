@@ -37,6 +37,7 @@ export enum Dataset {
   SESSIONS = 'sessions',
   /** Also used for crash free alerts */
   METRICS = 'metrics',
+  ISSUE_PLATFORM = 'search_issues',
 }
 
 export enum EventTypes {
