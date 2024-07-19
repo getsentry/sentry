@@ -1,6 +1,7 @@
 import {useCallback, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {Button} from 'sentry/components/button';
 import PluginIcon from 'sentry/plugins/components/pluginIcon';
 import {space} from 'sentry/styles/space';
 import type {IntegrationProvider, Project} from 'sentry/types';
@@ -46,21 +47,45 @@ function AddIntegrationRow({integrationSlug, organization, project, closeModal}:
     return null;
   }
 
+  const {metadata} = provider;
+  const size = 'sm' as const;
+  const priority = 'primary' as const;
+
+  const buttonProps = {
+    style: {margin: 0},
+    size,
+    priority,
+    'data-test-id': 'install-button',
+    organization,
+  };
+
+  // TODO(Mia): disable button if user does not have necessary permissions
+  const integrationButton = metadata.aspects.externalInstall ? (
+    <Button
+      href={metadata.aspects.externalInstall.url}
+      onClick={() => closeModal()}
+      external
+      {...buttonProps}
+    >
+      Add Installationq
+    </Button>
+  ) : (
+    <AddIntegrationButton
+      provider={provider}
+      onAddIntegration={() => closeModal}
+      analyticsParams={{view: 'onboarding', already_installed: false}}
+      modalParams={{projectId: project.id}}
+      {...buttonProps}
+    />
+  );
+
   return (
     <RowWrapper>
       <IconTextWrapper>
         <PluginIcon pluginId={integrationSlug} size={40} />
         <NameHeader>Connect {provider.name}</NameHeader>
       </IconTextWrapper>
-      <AddIntegrationButton
-        provider={provider}
-        onAddIntegration={() => closeModal}
-        organization={organization}
-        priority="primary"
-        size="sm"
-        analyticsParams={{view: 'onboarding', already_installed: false}}
-        modalParams={{projectId: project.id}}
-      />
+      {integrationButton}
     </RowWrapper>
   );
 }
