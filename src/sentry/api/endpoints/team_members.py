@@ -10,6 +10,7 @@ from sentry.api.bases.team import TeamEndpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.organization_member.response import OrganizationMemberResponse
+from sentry.api.serializers.models.user import UserSerializerResponse
 from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
@@ -19,6 +20,9 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 
 
 class OrganizationMemberOnTeamResponse(OrganizationMemberResponse):
+    # We override users to be required b/c team members must already have a user
+    # account to be part of a team.
+    user: UserSerializerResponse
     teamRole: str | None
     teamSlug: str
 
