@@ -24,6 +24,35 @@ class OrganizationProfilingFlamegraphTestLegacy(APITestCase):
         self.login_as(user=self.user)
         self.url = reverse(self.endpoint, args=(self.organization.slug,))
 
+    def do_request(self, query, features=None, compat=True, **kwargs):
+        if features is None:
+            features = self.features
+        with self.feature(features):
+            return self.client.get(
+                self.url,
+                query,
+                format="json",
+                **kwargs,
+            )
+
+    def test_more_than_one_project(self):
+        projects = [
+            self.create_project(),
+            self.create_project(),
+        ]
+        response = self.do_request(
+            {
+                "projects": [p.id for p in projects],
+            }
+        )
+        assert response.status_code == 400, response.data
+        assert response.data == {
+            "detail": ErrorDetail(
+                "You cannot view events from multiple projects.",
+                code="parse_error",
+            ),
+        }
+
     @patch("sentry.search.events.builder.base.raw_snql_query", wraps=raw_snql_query)
     @patch("sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service")
     def test_queries_functions(self, mock_proxy_profiling_service, mock_raw_snql_query):
@@ -32,8 +61,7 @@ class OrganizationProfilingFlamegraphTestLegacy(APITestCase):
         fingerprint = int(uuid4().hex[:8], 16)
 
         with self.feature(self.features):
-            response = self.client.get(
-                self.url,
+            response = self.do_request(
                 {
                     "project": [self.project.id],
                     "query": "transaction:foo",
@@ -64,8 +92,7 @@ class OrganizationProfilingFlamegraphTestLegacy(APITestCase):
         mock_proxy_profiling_service.return_value = HttpResponse(status=200)
 
         with self.feature(self.features):
-            response = self.client.get(
-                self.url,
+            response = self.do_request(
                 {
                     "project": [self.project.id],
                     "query": "transaction:foo",
@@ -130,6 +157,14 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
 
         return data
 
+    def test_no_feature(self):
+        response = self.do_request({}, features=[])
+        assert response.status_code == 404, response.data
+
+    def test_no_project(self):
+        response = self.do_request({})
+        assert response.status_code == 404, response.data
+
     def test_invalid_params(self):
         with self.feature(self.features):
             response = self.do_request(
@@ -169,46 +204,103 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
             ),
         }
 
-    @patch("sentry.search.events.builder.base.raw_snql_query", wraps=raw_snql_query)
-    @patch("sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service")
-    def test_queries_profile_candidates_from_functions(
-        self, mock_proxy_profiling_service, mock_raw_snql_query
-    ):
-        mock_proxy_profiling_service.return_value = HttpResponse(status=200)
+    def test_queries_profile_candidates_from_functions(self):
         fingerprint = int(uuid4().hex[:8], 16)
 
-        with self.feature(self.features):
-            response = self.do_request(
-                {
-                    "project": [self.project.id],
-                    "dataset": "functions",
-                    "query": "transaction:foo",
-                    "fingerprint": str(fingerprint),
-                },
-            )
+        for query in [
+            {
+                "project": [self.project.id],
+                "dataset": "functions",
+                "query": "transaction:foo",
+                "fingerprint": str(fingerprint),
+            },
+            {
+                "project": [self.project.id],
+                "query": "transaction:foo",
+                "fingerprint": str(fingerprint),
+            },
+        ]:
+            with (
+                patch(
+                    "sentry.search.events.builder.base.raw_snql_query", wraps=raw_snql_query
+                ) as mock_raw_snql_query,
+                patch(
+                    "sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service"
+                ) as mock_proxy_profiling_service,
+            ):
+                mock_proxy_profiling_service.return_value = HttpResponse(status=200)
 
-        assert response.status_code == 200, response.content
+                with self.feature(self.features):
+                    response = self.do_request(query)
 
-        mock_raw_snql_query.assert_called_once()
+                assert response.status_code == 200, response.content
 
-        call_args = mock_raw_snql_query.call_args.args
-        snql_request = call_args[0]
+                mock_raw_snql_query.assert_called_once()
 
-        assert snql_request.dataset == Dataset.Functions.value
-        assert (
-            Condition(
-                Function("toUInt32", [Column("fingerprint")], "fingerprint"),
-                Op.EQ,
-                fingerprint,
-            )
-            in snql_request.query.where
-        )
-        assert Condition(Column("transaction_name"), Op.EQ, "foo") in snql_request.query.where
+                call_args = mock_raw_snql_query.call_args.args
+                snql_request = call_args[0]
+
+                assert snql_request.dataset == Dataset.Functions.value
+                assert (
+                    Condition(
+                        Function("toUInt32", [Column("fingerprint")], "fingerprint"),
+                        Op.EQ,
+                        fingerprint,
+                    )
+                    in snql_request.query.where
+                )
+                assert (
+                    Condition(Column("transaction_name"), Op.EQ, "foo") in snql_request.query.where
+                )
+
+    def test_queries_profile_candidates_from_transactions(self):
+        for query in [
+            {
+                "project": [self.project.id],
+                "dataset": "discover",
+                "query": "transaction:foo",
+            },
+            {
+                "project": [self.project.id],
+                "query": "transaction:foo",
+            },
+        ]:
+            with (
+                patch(
+                    "sentry.search.events.builder.base.raw_snql_query", wraps=raw_snql_query
+                ) as mock_raw_snql_query,
+                patch(
+                    "sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service"
+                ) as mock_proxy_profiling_service,
+            ):
+                mock_proxy_profiling_service.return_value = HttpResponse(status=200)
+
+                with self.feature(self.features):
+                    response = self.do_request(query)
+
+                assert response.status_code == 200, response.content
+
+                mock_raw_snql_query.assert_called_once()
+
+                call_args = mock_raw_snql_query.call_args.args
+                snql_request = call_args[0]
+
+                assert snql_request.dataset == Dataset.Discover.value
+                assert (
+                    Or(
+                        conditions=[
+                            Condition(Column("profile_id"), Op.IS_NOT_NULL),
+                            Condition(Column("profiler_id"), Op.IS_NOT_NULL),
+                        ],
+                    )
+                    in snql_request.query.where
+                )
+                assert Condition(Column("transaction"), Op.EQ, "foo") in snql_request.query.where
 
     @patch.object(FlamegraphExecutor, "_query_chunks_for_profilers")
     @patch("sentry.search.events.builder.base.raw_snql_query", wraps=raw_snql_query)
     @patch("sentry.api.endpoints.organization_profiling_profiles.proxy_profiling_service")
-    def test_queries_profile_candidates_from_transactions(
+    def test_queries_profile_candidates_from_transactions_with_data(
         self,
         mock_proxy_profiling_service,
         mock_raw_snql_query,

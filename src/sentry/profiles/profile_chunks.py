@@ -67,13 +67,14 @@ def resolve_datetime64(
 
     value: str | float | None = None
 
-    if isinstance(raw_value, datetime) and raw_value.tzinfo is not None:
-        # This is adapted from snuba-sdk
-        # See https://github.com/getsentry/snuba-sdk/blob/2f7f014920b4f527a87f18c05b6aa818212bec6e/snuba_sdk/visitors.py#L168-L172
-        delta = raw_value.utcoffset()
-        assert delta is not None
-        raw_value -= delta
-        raw_value = raw_value.replace(tzinfo=None)
+    if isinstance(raw_value, datetime):
+        if raw_value.tzinfo is not None:
+            # This is adapted from snuba-sdk
+            # See https://github.com/getsentry/snuba-sdk/blob/2f7f014920b4f527a87f18c05b6aa818212bec6e/snuba_sdk/visitors.py#L168-L172
+            delta = raw_value.utcoffset()
+            assert delta is not None
+            raw_value -= delta
+            raw_value = raw_value.replace(tzinfo=None)
         value = raw_value.isoformat()
     elif isinstance(raw_value, float):
         value = raw_value
