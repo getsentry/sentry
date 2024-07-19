@@ -90,6 +90,9 @@ class SubscriptionProcessor:
     }
 
     def __init__(self, subscription: QuerySubscription) -> None:
+        """
+        initialization pulls data from the passed subscription and sets to the class instance
+        """
         self.subscription = subscription
         try:
             self.alert_rule = AlertRule.objects.get_for_subscription(subscription)
@@ -99,11 +102,16 @@ class SubscriptionProcessor:
         self.triggers = AlertRuleTrigger.objects.get_for_alert_rule(self.alert_rule)
         self.triggers.sort(key=lambda trigger: trigger.alert_threshold)
 
+        # NOTE: may not work if rule has multiple subscriptions?
         (
-            self.last_update,
-            self.trigger_alert_counts,
-            self.trigger_resolve_counts,
+            last_update,
+            trigger_alert_counts,
+            trigger_resolve_counts,
         ) = get_alert_rule_stats(self.alert_rule, self.subscription, self.triggers)
+        self.last_update = last_update
+        self.trigger_alert_counts = trigger_alert_counts
+        self.trigger_resolve_counts = trigger_resolve_counts
+
         self.orig_trigger_alert_counts = deepcopy(self.trigger_alert_counts)
         self.orig_trigger_resolve_counts = deepcopy(self.trigger_resolve_counts)
 
@@ -424,10 +432,12 @@ class SubscriptionProcessor:
 
     def get_aggregation_value(self, subscription_update: QuerySubscriptionUpdate) -> float | None:
         if self.subscription.snuba_query.dataset == Dataset.Metrics.value:
+            # If the snubaquery dataset is a metrics
             aggregation_value = self.get_crash_rate_alert_metrics_aggregation_value(
                 subscription_update
             )
         else:
+            # (update.values.data first().values()) first()
             aggregation_value = list(subscription_update["values"]["data"][0].values())[0]
             # In some cases Snuba can return a None value for an aggregation. This means
             # there were no rows present when we made the query for certain types of aggregations
@@ -447,6 +457,9 @@ class SubscriptionProcessor:
         """
         This is the core processing method utilized when Query Subscription Consumer fetches updates from kafka
         """
+        # ===========================
+        # VALIDATIONS / METRICS
+        # ===========================
         dataset = self.subscription.snuba_query.dataset
         try:
             # Check that the project exists
@@ -482,6 +495,10 @@ class SubscriptionProcessor:
             metrics.incr("incidents.alert_rules.skipping_already_processed_update")
             return
 
+        # ===========================
+        #       PROCESS UPDATE
+        # ===========================
+
         self.last_update = subscription_update["timestamp"]
 
         if (
@@ -498,6 +515,7 @@ class SubscriptionProcessor:
                 },
             )
 
+        # TODO: aggregate multiple values
         aggregation_value = self.get_aggregation_value(subscription_update)
 
         # Trigger callbacks for any AlertRules that may need to know about the subscription update
