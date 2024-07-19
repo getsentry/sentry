@@ -675,7 +675,11 @@ function ItemCheckbox({
   const {dispatch} = useSearchQueryBuilder();
 
   return (
-    <TrailingWrap onPointerUp={e => e.stopPropagation()}>
+    <TrailingWrap
+      onPointerUp={e => e.stopPropagation()}
+      onMouseUp={e => e.stopPropagation()}
+      onClick={e => e.stopPropagation()}
+    >
       <CheckWrap visible={isFocused || selected} role="presentation">
         <Checkbox
           size="sm"
@@ -688,7 +692,7 @@ function ItemCheckbox({
               value: escapeTagValue(value),
             });
           }}
-          aria-label={t('Select %s', value)}
+          aria-label={t('Toggle %s', value)}
           tabIndex={-1}
         />
       </CheckWrap>
