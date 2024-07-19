@@ -10,7 +10,7 @@ import time
 from enum import Enum
 from typing import Any, Literal, NotRequired, TypedDict, overload
 
-from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter
+from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter, RequestedQuota
 
 logger = logging.getLogger(__name__)
 
@@ -184,6 +184,52 @@ class CircuitBreaker:
                 self.recovery_duration,
                 self.window,
             )
+
+    @overload
+    def _get_remaining_error_quota(self, quota: None, window_end: int | None) -> None:
+        ...
+
+    @overload
+    def _get_remaining_error_quota(self, quota: Quota, window_end: int | None) -> int:
+        ...
+
+    @overload
+    def _get_remaining_error_quota(self, quota: None) -> None:
+        ...
+
+    @overload
+    def _get_remaining_error_quota(self, quota: Quota) -> int:
+        ...
+
+    @overload
+    def _get_remaining_error_quota(self) -> int | None:
+        ...
+
+    def _get_remaining_error_quota(
+        self, quota: Quota | None = None, window_end: int | None = None
+    ) -> int | None:
+        """
+        Get the number of allowable errors remaining in the given quota for the time window ending
+        at the given time.
+
+        If no quota is given, in OK and RECOVERY states, return the current controlling quota's
+        remaining errors. In BROKEN state, return None.
+
+        If no time window end is given, return the current amount of quota remaining.
+        """
+        if not quota:
+            quota = self._get_controlling_quota()
+            if quota is None:  # BROKEN state
+                return None
+
+        now = int(time.time())
+        window_end = window_end or now
+
+        _, result = self.limiter.check_within_quotas(
+            [RequestedQuota(self.key, quota.limit, [quota])], window_end
+        )
+
+        return result[0].granted
 
     @overload
     def _get_controlling_quota(
