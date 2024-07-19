@@ -1,5 +1,6 @@
-import {useQuery} from 'sentry/utils/queryClient';
+import {useQuery, type UseQueryResult} from 'sentry/utils/queryClient';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
+import type {RecordingFrame} from 'sentry/utils/replays/types';
 
 export type DomNodeChartDatapoint = {
   added: number;
@@ -10,7 +11,11 @@ export type DomNodeChartDatapoint = {
   timestampMs: number;
 };
 
-export default function useCountDomNodes({replay}: {replay: null | ReplayReader}) {
+export default function useCountDomNodes({
+  replay,
+}: {
+  replay: null | ReplayReader;
+}): UseQueryResult<Map<RecordingFrame, DomNodeChartDatapoint>> {
   return useQuery(
     ['countDomNodes', replay],
     () => {
