@@ -308,7 +308,7 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
         parsed_data = {
             (self.rule.id, self.group1.id): {
                 "event_id": self.event1.event_id,
-                "occurrence_id": self.occurrence1["occurrence_id"],
+                **self.occurrence1,
             },
         }
 
@@ -322,11 +322,11 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
         parsed_data = {
             (self.rule.id, self.group1.id): {
                 "event_id": self.event1.event_id,
-                "occurrence_id": self.occurrence1["occurrence_id"],
+                **self.occurrence1,
             },
             (self.rule.id, self.group2.id): {
                 "event_id": self.event2.event_id,
-                "occurrence_id": self.occurrence2["occurrence_id"],
+                **self.occurrence2,
             },
         }
 
@@ -340,11 +340,11 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
         parsed_data = {
             (self.rule.id, self.group1.id): {
                 "event_id": self.event1.event_id,
-                "occurrence_id": self.occurrence1["occurrence_id"],
+                **self.occurrence1,
             },
             (self.rule.id, self.group2.id): {
                 "event_id": "0",
-                "occurrence_id": self.occurrence2["occurrence_id"],
+                **self.occurrence2,
             },
         }
 
@@ -361,7 +361,7 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
         parsed_data = {
             (self.rule.id, self.group1.id): {
                 "event_id": self.event1.event_id,
-                "occurrence_id": self.occurrence1["occurrence_id"],
+                **self.occurrence1,
             },
             (self.rule.id, self.group2.id): {
                 "event_id": self.event2.event_id,
@@ -387,7 +387,7 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
         parsed_data = {
             (self.rule.id, self.group1.id): {
                 "event_id": self.event1.event_id,
-                "occurrence_id": self.occurrence1["occurrence_id"],
+                **self.occurrence1,
             },
         }
         group_ids = {self.group1.id}
@@ -398,7 +398,7 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
         parsed_data = {
             (self.rule.id, self.group1.id): {
                 "event_id": self.event1.event_id,
-                "occurrence_id": self.occurrence1["occurrence_id"],
+                **self.occurrence1,
             },
         }
         group_ids = {0}
