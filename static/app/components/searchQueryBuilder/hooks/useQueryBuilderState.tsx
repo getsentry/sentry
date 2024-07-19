@@ -318,7 +318,7 @@ function updateFilterMultipleValues(
     new Set(values.filter(value => value.length > 0))
   );
   if (uniqNonEmptyValues.length === 0) {
-    return {...state, query: replaceQueryToken(state.query, token.value, '')};
+    return {...state, query: replaceQueryToken(state.query, token.value, '""')};
   }
 
   const newValue =
@@ -349,10 +349,10 @@ function multiSelectTokenValue(
       if (tokenValue.text === action.value) {
         return updateFilterMultipleValues(state, action.token, ['']);
       }
-      return updateFilterMultipleValues(state, action.token, [
-        tokenValue.text,
-        action.value,
-      ]);
+      const newValue = tokenValue.value
+        ? [tokenValue.text, action.value]
+        : [action.value];
+      return updateFilterMultipleValues(state, action.token, newValue);
   }
 }
 
