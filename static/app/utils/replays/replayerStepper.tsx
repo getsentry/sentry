@@ -47,7 +47,7 @@ export default function replayerStepper<
 
   return new Promise(resolve => {
     if (!frames?.length || !rrwebEvents?.length) {
-      resolve({});
+      resolve(collection);
       return;
     }
 
@@ -86,11 +86,10 @@ export default function replayerStepper<
 
     const considerFrame = (frame: Frame) => {
       activeCallbacks.current = Object.fromEntries(
-        Object.entries(visitFrameCallbacks).filter(([_, v]) => {
+        Object.entries(visitFrameCallbacks).filter(([, v]) => {
           return v.shouldVisitFrame(frame, replayer);
         })
       );
-      // console.log(activeCallbacks.current);
 
       if (Object.values(activeCallbacks.current).length) {
         frameRef.current = frame;
@@ -106,7 +105,6 @@ export default function replayerStepper<
     };
 
     const handlePause = () => {
-      // console.log(collection);
       Object.entries(activeCallbacks.current).forEach(([k, v]) => {
         v.onVisitFrame(frameRef.current!, collection[k], replayer);
       });

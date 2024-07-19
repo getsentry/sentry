@@ -1,4 +1,5 @@
 import * as Sentry from '@sentry/react';
+import type {eventWithTime} from '@sentry-internal/rrweb';
 import memoize from 'lodash/memoize';
 import {type Duration, duration} from 'moment-timezone';
 
@@ -160,7 +161,7 @@ const extractDomNodes = {
   },
 };
 
-const countDomNodes = function (frames) {
+const countDomNodes = function (frames: eventWithTime[]) {
   let frameCount = 0;
   const length = frames?.length ?? 0;
   const frameStep = Math.max(Math.round(length * 0.007), 1);
@@ -342,8 +343,8 @@ export default class ReplayReader {
   private _startOffsetMs = 0;
   private _videoEvents: VideoEvent[] = [];
   private _clipWindow: ClipWindow | undefined = undefined;
-  private _collections: any = undefined;
-  private _allFrames: any[] = [];
+  private _collections: Record<string, any> | undefined = undefined;
+  private _allFrames: (RecordingFrame | ReplayFrame)[] = [];
 
   private _getCollections = () => {
     if (this._collections) {
@@ -364,8 +365,6 @@ export default class ReplayReader {
           countDomNodes: countDomNodes(this.getRRWebMutations()),
         },
       });
-
-      return this._collections;
     }
     return this._collections;
   };
@@ -494,12 +493,12 @@ export default class ReplayReader {
 
   getCountDomNodes = async () => {
     const results = await this._getCollections();
-    return results.countDomNodes;
+    return results?.countDomNodes;
   };
 
   getExtractDomNodes = async () => {
     const results = await this._getCollections();
-    return results.extractDomNodes;
+    return results?.extractDomNodes;
   };
 
   getClipWindow = () => this._clipWindow;
