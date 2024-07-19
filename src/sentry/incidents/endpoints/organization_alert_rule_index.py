@@ -285,8 +285,6 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             )
             issue_rules = issue_rules.annotate(date_triggered=far_past_date)
             uptime_rules = uptime_rules.annotate(date_triggered=far_past_date)
-        alert_rules_count = alert_rules.count()
-        issue_rules_count = issue_rules.count()
         alert_rule_intermediary = CombinedQuerysetIntermediary(alert_rules, sort_key)
         rule_intermediary = CombinedQuerysetIntermediary(issue_rules, rule_sort_key)
         uptime_intermediary = CombinedQuerysetIntermediary(uptime_rules, rule_sort_key)
@@ -300,8 +298,6 @@ class OrganizationCombinedRuleIndexEndpoint(OrganizationEndpoint):
             cursor_cls=StringCursor if case_insensitive else Cursor,
             case_insensitive=case_insensitive,
         )
-        response["X-Sentry-Issue-Rule-Hits"] = issue_rules_count
-        response[ALERT_RULES_COUNT_HEADER] = alert_rules_count
         response[MAX_QUERY_SUBSCRIPTIONS_HEADER] = settings.MAX_QUERY_SUBSCRIPTIONS_PER_ORG
         return response
 
