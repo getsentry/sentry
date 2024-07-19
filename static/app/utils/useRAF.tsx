@@ -1,10 +1,6 @@
 import {useEffect} from 'react';
 
-// TODO: move into app/utils/*
-export default function useRAF(
-  callback: () => unknown,
-  opts?: {enabled: undefined | null | boolean}
-) {
+export default function useRAF(callback: () => unknown, opts?: {enabled: boolean}) {
   const {enabled = true} = opts ?? {};
   useEffect(() => {
     if (enabled) {
