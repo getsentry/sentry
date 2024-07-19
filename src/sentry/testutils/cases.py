@@ -2333,11 +2333,8 @@ class ProfilesSnubaTestCase(
         extras=None,
         timestamp=None,
     ):
-        if timestamp is None:
-            timestamp = before_now(minutes=10)
-
         if transaction is None:
-            transaction = load_data("transaction", timestamp=timestamp)
+            transaction = load_data("transaction", timestamp=timestamp or before_now(minutes=10))
 
         profile_context = transaction.setdefault("contexts", {}).setdefault("profile", {})
         if profile_context.get("profile_id") is None:

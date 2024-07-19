@@ -25,7 +25,7 @@ from sentry import options
 from sentry.profiles.profile_chunks import resolve_datetime64
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.profile_functions import ProfileFunctionsQueryBuilder
-from sentry.search.events.types import ParamsType, SnubaParams
+from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset, EntityKey, StorageKey
 from sentry.snuba.referrer import Referrer
@@ -342,6 +342,9 @@ class FlamegraphExecutor:
             selected_columns=["project.id", "timestamp", "unique_examples()"],
             query=self.query,
             limit=max_profiles,
+            config=QueryBuilderConfig(
+                transform_alias_to_input_format=True,
+            ),
         )
 
         if self.fingerprint is not None:
@@ -349,14 +352,14 @@ class FlamegraphExecutor:
                 [Condition(builder.resolve_column("fingerprint"), Op.EQ, self.fingerprint)]
             )
 
-        result = builder.run_query(Referrer.API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH.value)
+        results = builder.run_query(Referrer.API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH.value)
+        results = builder.process_results(results)
 
         transaction_profile_candidates: list[TransactionProfileCandidate] = []
 
-        for row in result["data"]:
+        for row in results["data"]:
             project = row["project.id"]
-            examples = row["unique_examples()"]
-            for example in examples:
+            for example in row["unique_examples()"]:
                 if len(transaction_profile_candidates) > max_profiles:
                     break
                 transaction_profile_candidates.append(
@@ -388,6 +391,9 @@ class FlamegraphExecutor:
             ],
             query=self.query,
             limit=max_profiles,
+            config=QueryBuilderConfig(
+                transform_alias_to_input_format=True,
+            ),
         )
 
         builder.add_conditions(
@@ -401,9 +407,10 @@ class FlamegraphExecutor:
             ],
         )
 
-        result = builder.run_query(
+        results = builder.run_query(
             Referrer.API_PROFILING_PROFILE_FLAMEGRAPH_TRANSACTION_CANDIDATES.value,
         )
+        results = builder.process_results(results)
 
         continuous_profile_candidates: list[
             ContinuousProfileCandidate
@@ -415,7 +422,7 @@ class FlamegraphExecutor:
                     start=row["precise.start_ts"],
                     end=row["precise.finish_ts"],
                 )
-                for row in result["data"]
+                for row in results["data"]
                 if row["profiler.id"] is not None
             ]
         )
@@ -425,7 +432,7 @@ class FlamegraphExecutor:
                 "project_id": row["project.id"],
                 "profile_id": row["profile.id"],
             }
-            for row in result["data"]
+            for row in results["data"]
             if row["profile.id"] is not None
         ]
 
