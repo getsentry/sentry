@@ -28,7 +28,7 @@ from sentry.apidocs.constants import (
     RESPONSE_NOT_FOUND,
 )
 from sentry.apidocs.examples.dashboard_examples import DashboardExamples
-from sentry.apidocs.parameters import GlobalParams
+from sentry.apidocs.parameters import CursorQueryParam, GlobalParams, VisibilityParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
 from sentry.models.dashboard import Dashboard
 from sentry.models.organization import Organization
@@ -69,7 +69,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="Retrieve an Organization's Dashboards",
-        parameters=[GlobalParams.ORG_ID_OR_SLUG],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, VisibilityParams.PER_PAGE, CursorQueryParam],
         request=None,
         responses={
             200: inline_sentry_response_serializer(
@@ -84,8 +84,6 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
     def get(self, request: Request, organization) -> Response:
         """
         Retrieve a list of dashboards that are associated with the given organization.
-        If on the first page, this endpoint will also include any pre-built dashboards
-        that haven't been replaced or removed.
         """
         if not features.has("organizations:dashboards-basic", organization, actor=request.user):
             return Response(status=404)
