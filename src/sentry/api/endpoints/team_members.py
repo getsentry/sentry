@@ -20,8 +20,8 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 
 
 class OrganizationMemberOnTeamResponse(OrganizationMemberResponse):
-    # We override users to be required b/c team members must already have a user
-    # account to be part of a team.
+    # NOTE: We override users to be required b/c team members will always have
+    # an existing user to be part of a team.
     user: UserSerializerResponse
     teamRole: str | None
     teamSlug: str
