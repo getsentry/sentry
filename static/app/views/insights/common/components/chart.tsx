@@ -1,5 +1,5 @@
 import type {RefObject} from 'react';
-import {useEffect, useMemo, useRef, useState} from 'react';
+import {createContext, useContext, useEffect, useMemo, useRef, useState} from 'react';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import type {LineSeriesOption} from 'echarts';
@@ -63,6 +63,8 @@ export enum ChartType {
   AREA = 2,
 }
 
+export const ChartHeightContext = createContext<number | undefined>(undefined);
+
 type Props = {
   data: Series[];
   loading: boolean;
@@ -107,7 +109,7 @@ function Chart({
   dataMax,
   previousData,
   loading,
-  height,
+  height: chartHeight,
   grid,
   disableXAxis,
   definedAxisTicks,
@@ -142,6 +144,8 @@ function Chart({
   const theme = useTheme();
   const pageFilters = usePageFilters();
   const {start, end, period, utc} = pageFilters.selection.datetime;
+
+  const height = useContext(ChartHeightContext) ?? chartHeight;
 
   const defaultRef = useRef<ReactEchartsRef>(null);
   const chartRef = forwardedRef || defaultRef;
