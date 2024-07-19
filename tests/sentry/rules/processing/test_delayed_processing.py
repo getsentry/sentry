@@ -2,13 +2,14 @@ from collections import defaultdict
 from collections.abc import Sequence
 from copy import deepcopy
 from datetime import datetime, timedelta
+from typing import cast
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
 import pytest
 
 from sentry import buffer
-from sentry.eventstore.models import Event, GroupEvent
+from sentry.eventstore.models import GroupEvent
 from sentry.models.project import Project
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.conditions.event_frequency import (
@@ -76,7 +77,7 @@ class CreateEventTestCase(TestCase, BaseEventFrequencyPercentTest):
         fingerprint: str,
         environment=None,
         tags: list[list[str]] | None = None,
-    ) -> Event:
+    ) -> GroupEvent:
         data = {
             "timestamp": iso_format(timestamp),
             "environment": environment,
@@ -95,8 +96,12 @@ class CreateEventTestCase(TestCase, BaseEventFrequencyPercentTest):
         if tags:
             data["tags"] = tags
 
-        return self.store_event(
-            data=data, project_id=project_id, assert_no_errors=False, event_type=EventType.ERROR
+        # Cast the event to GroupEvent to avoid type errors
+        return cast(
+            GroupEvent,
+            self.store_event(
+                data=data, project_id=project_id, assert_no_errors=False, event_type=EventType.ERROR
+            ),
         )
 
     def create_event_frequency_condition(
@@ -134,7 +139,7 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
     interval = "1h"
     comparison_interval = "15m"
 
-    def create_events(self, comparison_type: ComparisonType) -> Event:
+    def create_events(self, comparison_type: ComparisonType) -> GroupEvent:
         # Create current events for the first query
         event = self.create_event(self.project.id, FROZEN_TIME, "group-1", self.environment.name)
         self.create_event(self.project.id, FROZEN_TIME, "group-1", self.environment.name)
