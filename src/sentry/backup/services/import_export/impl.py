@@ -158,7 +158,7 @@ class UniversalImportExportService(ImportExportService):
         in_pk_map = pk_map.from_rpc()
         filters: list[Filter] = []
         for fb in filter_by:
-            if NormalizedModelName(fb.for_model) == batch_model_name:
+            if NormalizedModelName(fb.on_model) == batch_model_name:
                 filters.append(fb.from_rpc())
 
         import_chunk_type = (
@@ -479,7 +479,7 @@ class UniversalImportExportService(ImportExportService):
             out_pk_map = PrimaryKeyMap()
             filters: list[Filter] = []
             for fb in filter_by:
-                if NormalizedModelName(fb.for_model) == batch_model_name:
+                if NormalizedModelName(fb.on_model) == batch_model_name:
                     filters.append(fb.from_rpc())
 
             def filter_objects(queryset_iterator):
