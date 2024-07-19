@@ -317,7 +317,7 @@ def _import(
         logger.info("import_by_model.request_import", extra=extra)
 
         result = import_by_model(
-            model_name=model_name_str,
+            import_model_name=model_name_str,
             scope=import_write_context.scope,
             flags=import_write_context.flags,
             filter_by=import_write_context.filter_by,
