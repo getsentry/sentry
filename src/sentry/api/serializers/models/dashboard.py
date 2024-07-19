@@ -205,7 +205,7 @@ class DashboardDetailsResponse(TypedDict):
     id: str
     title: str
     dateCreated: str
-    createdBy: list[OpaqueSerializedResponse]
+    createdBy: OpaqueSerializedResponse
     widgets: list[DashboardWidgetResponse]
     projects: list[int]
     filters: DashboardFilters
