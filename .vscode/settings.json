@@ -22,7 +22,7 @@
   },
 
   "editor.codeActionsOnSave": {
-    "source.fixAll.eslint": "explicit"
+    "source.fixAll.eslint": "true"
   },
 
   "[javascript]": {
@@ -60,8 +60,8 @@
   "[python]": {
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.organizeImports": "explicit",
-      "source.fixAll.eslint": "never"
+      "source.organizeImports": true,
+      "source.fixAll.eslint": false
     },
     "editor.defaultFormatter": "ms-python.black-formatter"
   },
