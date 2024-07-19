@@ -56,7 +56,6 @@ export enum SortBy {
   TOTAL = 'total',
   ACCEPTED = 'accepted',
   FILTERED = 'filtered',
-  DROPPED = 'dropped',
   INVALID = 'invalid',
   RATE_LIMITED = 'rate_limited',
 }
@@ -158,7 +157,8 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
       case SortBy.TOTAL:
       case SortBy.ACCEPTED:
       case SortBy.FILTERED:
-      case SortBy.DROPPED:
+      case SortBy.INVALID:
+      case SortBy.RATE_LIMITED:
         return {key, direction};
       default:
         return {key: SortBy.ACCEPTED, direction: -1};
@@ -250,11 +250,18 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
         onClick: () => this.handleChangeSort(SortBy.FILTERED),
       },
       {
-        key: SortBy.DROPPED,
-        title: t('Dropped'),
+        key: SortBy.RATE_LIMITED,
+        title: t('Rate Limited'),
         align: 'right',
-        direction: getArrowDirection(SortBy.DROPPED),
-        onClick: () => this.handleChangeSort(SortBy.DROPPED),
+        direction: getArrowDirection(SortBy.RATE_LIMITED),
+        onClick: () => this.handleChangeSort(SortBy.RATE_LIMITED),
+      },
+      {
+        key: SortBy.INVALID,
+        title: t('Invalid'),
+        align: 'right',
+        direction: getArrowDirection(SortBy.INVALID),
+        onClick: () => this.handleChangeSort(SortBy.INVALID),
       },
     ]
       .map(h => {
@@ -346,7 +353,8 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
         [SortBy.TOTAL]: 0,
         [SortBy.ACCEPTED]: 0,
         [SortBy.FILTERED]: 0,
-        [SortBy.DROPPED]: 0,
+        [SortBy.INVALID]: 0,
+        [SortBy.RATE_LIMITED]: 0,
       };
 
       const projectList = this.filteredProjects;
@@ -368,15 +376,20 @@ class UsageStatsProjects extends DeprecatedAsyncComponent<Props, State> {
           stats[projectId].total += group.totals['sum(quantity)'];
         }
 
-        if (outcome === Outcome.ACCEPTED || outcome === Outcome.FILTERED) {
+        if (
+          outcome === Outcome.ACCEPTED ||
+          outcome === Outcome.FILTERED ||
+          outcome === Outcome.INVALID
+        ) {
           stats[projectId][outcome] += group.totals['sum(quantity)'];
-        } else if (
+        }
+
+        if (
           outcome === Outcome.RATE_LIMITED ||
           outcome === Outcome.CARDINALITY_LIMITED ||
-          outcome === Outcome.INVALID ||
-          outcome === Outcome.DROPPED
+          outcome === Outcome.ABUSE
         ) {
-          stats[projectId][SortBy.DROPPED] += group.totals['sum(quantity)'];
+          stats[projectId][SortBy.RATE_LIMITED] += group.totals['sum(quantity)'];
         }
       });
 
