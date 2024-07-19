@@ -235,7 +235,7 @@ def call_next_backfill(
     last_processed_project_index: int,
     cohort: str | list[int] | None = None,
     only_delete: bool = False,
-    enable_ingestion: bool = True,
+    enable_ingestion: bool = False,
 ):
     if last_processed_group_id is not None:
         redis_client.set(

@@ -131,7 +131,7 @@ def initialize_backfill(
 
 @sentry_sdk.tracing.trace
 def get_current_batch_groups_from_postgres(
-    project, last_processed_group_id, batch_size, enable_ingestion
+    project, last_processed_group_id, batch_size, enable_ingestion: bool = False
 ):
     group_id_filter = Q()
     if last_processed_group_id is not None:
