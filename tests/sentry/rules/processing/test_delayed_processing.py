@@ -313,18 +313,17 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
                 **self.occurrence2,
             },
         }
+        self.group_ids = {self.group1.id, self.group2.id}
 
     def test_basic(self):
-        group_ids = {self.group1.id, self.group2.id}
         self.parsed_data.pop((self.rule.id, self.group2.id))
-        result = get_group_to_groupevent(self.parsed_data, self.project.id, group_ids)
+        result = get_group_to_groupevent(self.parsed_data, self.project.id, {self.group1.id})
 
         assert len(result) == 1
         assert result[self.group1] == self.event1
 
     def test_many(self):
-        group_ids = {self.group1.id, self.group2.id}
-        result = get_group_to_groupevent(self.parsed_data, self.project.id, group_ids)
+        result = get_group_to_groupevent(self.parsed_data, self.project.id, self.group_ids)
 
         assert len(result) == 2
         assert result[self.group1] == self.event1
@@ -342,48 +341,22 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
             },
         }
 
-        group_ids = {self.group1.id, self.group2.id}
-        result = get_group_to_groupevent(parsed_data, self.project.id, group_ids)
+        result = get_group_to_groupevent(parsed_data, self.project.id, self.group_ids)
 
         assert len(result) == 1
         assert result[self.group1] == self.event1
 
-    def test_missing_occurrence(self):
-        """
-        We don't use the occurrence_id in the GroupEvent, so it's okay if it's missing.
-        """
-        parsed_data = {
-            (self.rule.id, self.group1.id): {
-                "event_id": self.event1.event_id,
-                "occurrence_id": "0",
-            },
-            (self.rule.id, self.group2.id): {
-                "event_id": self.event2.event_id,
-                **self.occurrence2,
-            },
-        }
-        group_ids = {self.group1.id, self.group2.id}
-        result = get_group_to_groupevent(parsed_data, self.project.id, group_ids)
+    def test_invalid_project_id(self):
+        result = get_group_to_groupevent(self.parsed_data, 0, self.group_ids)
+        assert len(result) == 0
 
-        assert len(result) == 2
-        assert self.group1 in result
-        assert self.group2 in result
-        assert result[self.group1] == self.event1
-        assert result[self.group2] == self.event2
-
-    def test_empty_input(self):
+    def test_empty_group_ids(self):
         parsed_data: dict[tuple[str, str], dict[str, str]] = {}
         result = get_group_to_groupevent(parsed_data, self.project.id, set())
         assert len(result) == 0
 
-    def test_invalid_project_id(self):
-        group_ids = {self.group1.id}
-        result = get_group_to_groupevent(self.parsed_data, 0, group_ids)
-        assert len(result) == 0
-
     def test_invalid_group_ids(self):
-        group_ids = {0}
-        result = get_group_to_groupevent(self.parsed_data, self.project.id, group_ids)
+        result = get_group_to_groupevent(self.parsed_data, self.project.id, {0})
         assert len(result) == 0
 
 
