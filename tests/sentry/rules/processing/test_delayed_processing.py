@@ -331,13 +331,13 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
 
     def test_missing_event(self):
         parsed_data = {
-            (self.rule.id, self.group1.id): {
-                "event_id": self.event1.event_id,
-                **self.occurrence1,
-            },
             (self.rule.id, self.group2.id): {
                 "event_id": "0",
                 **self.occurrence2,
+            },
+            (self.rule.id, self.group1.id): {
+                "event_id": self.event1.event_id,
+                **self.occurrence1,
             },
         }
 
