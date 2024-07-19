@@ -309,11 +309,11 @@ class AlertRuleTriggerActionActivateBaseTest:
     method: str
 
     def setUp(self):
-        self.old_handlers = AlertRuleTriggerAction._type_registrations
-        AlertRuleTriggerAction._type_registrations = {}
+        self.old_handlers = AlertRuleTriggerAction._factory_registrations
+        AlertRuleTriggerAction._factory_registrations = {}
 
     def tearDown(self):
-        AlertRuleTriggerAction._type_registrations = self.old_handlers
+        AlertRuleTriggerAction._factory_registrations = self.old_handlers
 
     def test_no_handler(self):
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
@@ -353,11 +353,11 @@ class AlertRuleTriggerActionActivateTest(TestCase):
             yield
 
     def setUp(self):
-        self.old_handlers = AlertRuleTriggerAction._type_registrations
-        AlertRuleTriggerAction._type_registrations = {}
+        self.old_handlers = AlertRuleTriggerAction._factory_registrations
+        AlertRuleTriggerAction._factory_registrations = {}
 
     def tearDown(self):
-        AlertRuleTriggerAction._type_registrations = self.old_handlers
+        AlertRuleTriggerAction._factory_registrations = self.old_handlers
 
     def test_unhandled(self):
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
