@@ -14,22 +14,6 @@ from sentry.signals import post_update
 class BaseQuerySet(QuerySet[M, R]):
     def __init__(self, *args: Any, **kwargs: Any) -> None:
         super().__init__(*args, **kwargs)
-        self._with_post_update_signal = False
-
-    def with_post_update_signal(self, enable: bool) -> Self:
-        """
-        Enables sending a `post_update` signal after this queryset runs an update command. Note that this is less
-        efficient than just running the update. To get the list of group ids affected, we first run the query to
-        fetch the rows we want to update, then run the update using those ids.
-        """
-        qs = self.all()
-        qs._with_post_update_signal = enable
-        return qs
-
-    def _clone(self) -> Self:
-        qs = super()._clone()  # type: ignore[misc]
-        qs._with_post_update_signal = self._with_post_update_signal
-        return qs
 
     def update_with_returning(self, returned_fields: list[str], **kwargs: Any) -> list[tuple[int]]:
         """
@@ -60,6 +44,9 @@ class BaseQuerySet(QuerySet[M, R]):
         with transaction.mark_for_rollback_on_error(using=self.db):
             try:
                 query_sql, query_params = query.get_compiler(self.db).as_sql()
+                if query_sql == "":
+                    raise EmptyResultSet
+
                 query_sql += f" RETURNING {', '.join(returned_fields)} "
                 using = router.db_for_write(self.model)
 
@@ -78,15 +65,12 @@ class BaseQuerySet(QuerySet[M, R]):
     update_with_returning.alters_data = True  # type: ignore[attr-defined]
 
     def update(self, **kwargs: Any) -> int:
-        if self._with_post_update_signal:
-            pk = self.model._meta.pk.name
-            ids = [result[0] for result in self.update_with_returning([pk], **kwargs)]
-            if ids:
-                updated_fields = list(kwargs.keys())
-                post_update.send(sender=self.model, updated_fields=updated_fields, model_ids=ids)
-            return len(ids)
-        else:
-            return super().update(**kwargs)
+        pk = self.model._meta.pk.name
+        ids = [result[0] for result in self.update_with_returning([pk], **kwargs)]
+        if ids:
+            updated_fields = list(kwargs.keys())
+            post_update.send(sender=self.model, updated_fields=updated_fields, model_ids=ids)
+        return len(ids)
 
     def using_replica(self) -> Self:
         """
