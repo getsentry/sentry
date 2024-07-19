@@ -686,11 +686,11 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         return inner
 
     @classmethod
-    def get_registered_type(cls, type: ActionService) -> ActionHandlerFactory:
-        return cls._factory_registrations[type]
+    def get_registered_factory(cls, service_type: ActionService) -> ActionHandlerFactory:
+        return cls._factory_registrations[service_type]
 
     @classmethod
-    def get_registered_types(cls) -> list[ActionHandlerFactory]:
+    def get_registered_factories(cls) -> list[ActionHandlerFactory]:
         return list(cls._factory_registrations.values())
 
 

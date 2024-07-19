@@ -107,7 +107,7 @@ class OrganizationAlertRuleAvailableActionIndexEndpoint(OrganizationEndpoint):
         for integration in get_available_action_integrations_for_org(organization):
             provider_integrations[integration.provider].append(integration)
 
-        for registered_type in AlertRuleTriggerAction.get_registered_types():
+        for registered_type in AlertRuleTriggerAction.get_registered_factories():
             # Used cached integrations for each `registered_type` instead of making N calls.
             if registered_type.integration_provider:
                 actions += [

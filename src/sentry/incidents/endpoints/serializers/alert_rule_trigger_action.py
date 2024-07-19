@@ -70,7 +70,7 @@ class AlertRuleTriggerActionSerializer(Serializer):
         result = {
             "id": str(obj.id),
             "alertRuleTriggerId": str(obj.alert_rule_trigger_id),
-            "type": AlertRuleTriggerAction.get_registered_type(
+            "type": AlertRuleTriggerAction.get_registered_factory(
                 AlertRuleTriggerAction.Type(obj.type)
             ).slug,
             "targetType": ACTION_TARGET_TYPE_TO_STRING[
