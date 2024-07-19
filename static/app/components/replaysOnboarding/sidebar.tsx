@@ -161,7 +161,7 @@ function OnboardingContent({
   currentProject: Project;
   hasDocs: boolean;
 }) {
-  const jsFrameworkSelectOptions = replayJsFrameworkOptions.map(platform => {
+  const jsFrameworkSelectOptions = replayJsFrameworkOptions().map(platform => {
     return {
       value: platform.id,
       textValue: platform.name,
@@ -283,7 +283,8 @@ function OnboardingContent({
           onChange={setSetupMode}
         />
       ) : (
-        docs?.platformOptions && (
+        docs?.platformOptions &&
+        !isProjKeysLoading && (
           <PlatformSelect>
             {tct("I'm using [platformSelect]", {
               platformSelect: (

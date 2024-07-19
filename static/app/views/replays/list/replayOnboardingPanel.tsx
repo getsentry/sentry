@@ -22,6 +22,7 @@ import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {HeaderContainer, WidgetContainer} from 'sentry/views/profiling/landing/styles';
+import useAllMobileProj from 'sentry/views/replays/detail/useAllMobileProj';
 import ReplayPanel from 'sentry/views/replays/list/replayPanel';
 
 type Breakpoints = {
@@ -121,6 +122,8 @@ export function SetupReplaysCTA({
 }: SetupReplaysCTAProps) {
   const {activateSidebar} = useReplayOnboardingSidebarPanel();
   const [expanded, setExpanded] = useState(-1);
+  const {allMobileProj} = useAllMobileProj();
+
   const FAQ = [
     {
       header: (
@@ -273,7 +276,11 @@ export function SetupReplaysCTA({
       <ButtonList gap={1}>
         {renderCTA()}
         <Button
-          href="https://docs.sentry.io/product/session-replay/getting-started/"
+          href={
+            allMobileProj
+              ? 'https://docs.sentry.io/product/explore/session-replay/mobile/'
+              : 'https://docs.sentry.io/product/session-replay/getting-started/'
+          }
           external
         >
           {t('Read Docs')}
