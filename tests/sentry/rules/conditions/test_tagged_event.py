@@ -131,3 +131,13 @@ class TaggedEventConditionTest(RuleTestCase):
 
         rule = self.get_rule(data={"match": MatchType.NOT_SET, "key": "missing"})
         self.assertPasses(rule, event)
+
+    def test_is_in(self):
+        event = self.get_event()
+        rule = self.get_rule(
+            data={"match": MatchType.IS_IN, "key": "logger", "value": "bar.foo, wee, wow"}
+        )
+        self.assertDoesNotPass(rule, event)
+
+        rule = self.get_rule(data={"match": MatchType.IS_IN, "key": "logger", "value": "foo.bar"})
+        self.assertPasses(rule, event)
