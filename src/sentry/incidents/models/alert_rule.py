@@ -497,8 +497,8 @@ class AlertRuleTriggerActionManager(BaseManager["AlertRuleTriggerAction"]):
         return super().get_queryset().exclude(status=ObjectStatus.PENDING_DELETION)
 
 
-class AlertRuleActionHandlerFactory(abc.ABC):
-    """A factory for action handlers tied to a specific service.
+class ActionHandlerFactory(abc.ABC):
+    """A factory for action handlers tied to a specific incident service.
 
     The factory's builder method is augmented with metadata about which service it is
     for and which target types that service supports.
@@ -526,7 +526,7 @@ class AlertRuleActionHandlerFactory(abc.ABC):
         raise NotImplementedError
 
 
-class _AlertRuleActionHandlerClassFactory(AlertRuleActionHandlerFactory):
+class _AlertRuleActionHandlerClassFactory(ActionHandlerFactory):
     """A factory derived from a concrete ActionHandler class.
 
     The factory builds a handler simply by instantiating the provided class. The
@@ -564,7 +564,7 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     Type = ActionService
     TargetType = ActionTarget
 
-    _factory_registrations: dict[ActionService, AlertRuleActionHandlerFactory] = {}
+    _factory_registrations: dict[ActionService, ActionHandlerFactory] = {}
 
     INTEGRATION_TYPES = frozenset(
         (
@@ -652,7 +652,7 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
             return handler.resolve(metric_value, new_status, notification_uuid)
 
     @classmethod
-    def register_factory(cls, factory: AlertRuleActionHandlerFactory) -> None:
+    def register_factory(cls, factory: ActionHandlerFactory) -> None:
         if factory.service_type not in cls._factory_registrations:
             cls._factory_registrations[factory.service_type] = factory
         else:
@@ -686,11 +686,11 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         return inner
 
     @classmethod
-    def get_registered_type(cls, type: ActionService) -> AlertRuleActionHandlerFactory:
+    def get_registered_type(cls, type: ActionService) -> ActionHandlerFactory:
         return cls._factory_registrations[type]
 
     @classmethod
-    def get_registered_types(cls) -> list[AlertRuleActionHandlerFactory]:
+    def get_registered_types(cls) -> list[ActionHandlerFactory]:
         return list(cls._factory_registrations.values())
 
 

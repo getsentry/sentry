@@ -19,7 +19,7 @@ from sentry.incidents.logic import (
     get_opsgenie_teams,
     get_pagerduty_services,
 )
-from sentry.incidents.models.alert_rule import AlertRuleActionHandlerFactory, AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import ActionHandlerFactory, AlertRuleTriggerAction
 from sentry.incidents.serializers import ACTION_TARGET_TYPE_TO_STRING
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.models.organization import Organization
@@ -29,7 +29,7 @@ from sentry.silo.base import region_silo_function
 
 @region_silo_function
 def build_action_response(
-    registered_type: AlertRuleActionHandlerFactory,
+    registered_type: ActionHandlerFactory,
     integration: RpcIntegration | None = None,
     organization: Organization | None = None,
     sentry_app_installation: RpcSentryAppInstallation | None = None,
