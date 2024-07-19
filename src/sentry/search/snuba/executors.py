@@ -1665,7 +1665,10 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             group_ids_to_pass_to_snuba = list(
                 group_queryset.using_replica().values_list("id", flat=True)[: max_candidates + 1]
             )
-        if len(group_ids_to_pass_to_snuba) > max_candidates:
+        if (
+            group_ids_to_pass_to_snuba is not None
+            and len(group_ids_to_pass_to_snuba) > max_candidates
+        ):
             metrics.incr("snuba.search.too_many_candidates", skip_internal=False)
             too_many_candidates = True
             group_ids_to_pass_to_snuba = []
