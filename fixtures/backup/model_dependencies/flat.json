@@ -848,6 +848,8 @@
   ],
   "uptime.projectuptimesubscription": [
     "sentry.project",
+    "sentry.team",
+    "sentry.user",
     "uptime.uptimesubscription"
   ],
   "uptime.uptimesubscription": []
