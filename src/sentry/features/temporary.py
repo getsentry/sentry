@@ -44,8 +44,6 @@ def register_temporary_features(manager: FeatureManager):
 
     # Enables activated alert rules
     manager.add("organizations:activated-alert-rules", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
-    # Enables IS_IN for issue alerts
-    manager.add("organizations:issues-alerts-is-in", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
     manager.add("organizations:alert-allow-indexed", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Use metrics as the dataset for crash free metric alerts
