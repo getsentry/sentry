@@ -143,18 +143,6 @@ function removeDuplicateNavCrumbs(
   return otherBreadcrumbFrames.concat(uniqueNavCrumbs);
 }
 
-const extractPageHtml = {
-  shouldVisitFrame: () => {
-    // Visit all the timestamps (converted to frames) that are passed in
-    return true;
-  },
-  onVisitFrame: (frame, collection, replayer) => {
-    const doc = replayer.getMirror().getNode(1);
-    const html = (doc as Document)?.body.outerHTML ?? '';
-    collection.set(frame, html);
-  },
-};
-
 const extractDomNodes = {
   shouldVisitFrame: frame => {
     const nodeId = getNodeId(frame);
@@ -172,7 +160,7 @@ const extractDomNodes = {
   },
 };
 
-const countDomNodes = function () {
+const countDomNodes = function (frames) {
   let frameCount = 0;
   const length = frames?.length ?? 0;
   const frameStep = Math.max(Math.round(length * 0.007), 1);
@@ -354,6 +342,33 @@ export default class ReplayReader {
   private _startOffsetMs = 0;
   private _videoEvents: VideoEvent[] = [];
   private _clipWindow: ClipWindow | undefined = undefined;
+  private _collections: any = undefined;
+  private _allFrames: any[] = [];
+
+  private _getCollections = () => {
+    if (this._collections) {
+      return this._collections;
+    }
+
+    if (this.getRRWebFrames().length > 2) {
+      this._allFrames = (this.getRRWebMutations() as (RecordingFrame | ReplayFrame)[])
+        .concat(this.getDOMFrames())
+        .sort(sortFrames);
+
+      this._collections = replayerStepper({
+        frames: this._allFrames,
+        rrwebEvents: this.getRRWebFrames(),
+        startTimestampMs: this.getReplay().started_at.getTime() ?? 0,
+        visitFrameCallbacks: {
+          extractDomNodes,
+          countDomNodes: countDomNodes(this.getRRWebMutations()),
+        },
+      });
+
+      return this._collections;
+    }
+    return this._collections;
+  };
 
   private _applyClipWindow = (clipWindow: ClipWindow) => {
     const clipStartTimestampMs = clamp(
@@ -478,18 +493,13 @@ export default class ReplayReader {
   };
 
   getCountDomNodes = async () => {
-    const results = await this._collections;
+    const results = await this._getCollections();
     return results.countDomNodes;
   };
 
   getExtractDomNodes = async () => {
-    const results = await this._collections;
+    const results = await this._getCollections();
     return results.extractDomNodes;
-  };
-
-  getExtractPageHtml = async () => {
-    const results = await this._collections;
-    return results.extractPageHtml;
   };
 
   getClipWindow = () => this._clipWindow;
@@ -644,17 +654,6 @@ export default class ReplayReader {
   getPaintFrames = memoize(() => this._sortedSpanFrames.filter(isPaintFrame));
 
   getSDKOptions = () => this._optionFrame;
-
-  private _collections = replayerStepper({
-    frames: this.getRRWebMutations(),
-    rrwebEvents: this.getRRWebFrames(),
-    startTimestampMs: this.getReplay().started_at.getTime() ?? 0,
-    visitFrameCallbacks: {
-      extractDomNodes,
-      extractPageHtml,
-      countDomNodes: countDomNodes(),
-    },
-  });
 
   /**
    * Checks the replay to see if user has any canvas elements in their

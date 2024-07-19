@@ -6,7 +6,9 @@ import Placeholder from 'sentry/components/placeholder';
 import {useReplayContext} from 'sentry/components/replays/replayContext';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import useCountDomNodes from 'sentry/utils/replays/hooks/useCountDomNodes';
+import useCountDomNodes, {
+  type DomNodeChartDatapoint,
+} from 'sentry/utils/replays/hooks/useCountDomNodes';
 import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 import DomNodesChart from 'sentry/views/replays/detail/memoryPanel/domNodesChart';
 import MemoryChart from 'sentry/views/replays/detail/memoryPanel/memoryChart';
@@ -59,7 +61,7 @@ export default function MemoryPanel() {
           currentHoverTime={currentHoverTime}
           currentTime={currentTime}
           durationMs={replay.getDurationMs()}
-          datapoints={domNodeData}
+          datapoints={domNodeData as DomNodeChartDatapoint[]}
           setCurrentHoverTime={setCurrentHoverTime}
           setCurrentTime={setCurrentTime}
           startTimestampMs={replay.getStartTimestampMs()}

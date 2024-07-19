@@ -16,12 +16,11 @@ interface Props {
   rightOffsetMs: number;
 }
 
-export function ReplayTextDiff({replay}: Props) {
-  const {data} =
-    useExtractPageHtml({
-      replay,
-      // offsetMsToStopAt: [leftOffsetMs, rightOffsetMs],
-    }) ?? new Map();
+export function ReplayTextDiff({replay, leftOffsetMs, rightOffsetMs}: Props) {
+  const {data} = useExtractPageHtml({
+    replay,
+    offsetMsToStopAt: [leftOffsetMs, rightOffsetMs],
+  });
 
   const [leftBody, rightBody] = useMemo(
     () => data?.map(([_, html]) => beautify.html(html, {indent_size: 2})) ?? [],

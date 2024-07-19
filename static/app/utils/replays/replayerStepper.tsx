@@ -28,7 +28,7 @@ interface Args<Frame extends ReplayFrame | RecordingFrame, CollectionData> {
 }
 
 type FrameRef<Frame extends ReplayFrame | RecordingFrame> = {
-  frame: Frame | undefined;
+  current: Frame | undefined;
 };
 
 export default function replayerStepper<
@@ -75,30 +75,42 @@ export default function replayerStepper<
     };
 
     const frameRef: FrameRef<Frame> = {
-      frame: undefined,
+      current: undefined,
+    };
+
+    const activeCallbacks: {
+      current: Record<string, CallbackArgs<Frame, CollectionData>>;
+    } = {
+      current: {},
     };
 
     const considerFrame = (frame: Frame) => {
-      Object.values(visitFrameCallbacks).forEach(v => {
-        if (v.shouldVisitFrame(frame, replayer)) {
-          frameRef.frame = frame;
-          window.setTimeout(() => {
-            const timestamp =
-              'offsetMs' in frame ? frame.offsetMs : frame.timestamp - startTimestampMs;
-            replayer.pause(timestamp);
-          }, 0);
-        } else {
-          frameRef.frame = undefined;
-          nextOrDone();
-        }
-      });
+      activeCallbacks.current = Object.fromEntries(
+        Object.entries(visitFrameCallbacks).filter(([_, v]) => {
+          return v.shouldVisitFrame(frame, replayer);
+        })
+      );
+      // console.log(activeCallbacks.current);
+
+      if (Object.values(activeCallbacks.current).length) {
+        frameRef.current = frame;
+        window.setTimeout(() => {
+          const timestamp =
+            'offsetMs' in frame ? frame.offsetMs : frame.timestamp - startTimestampMs;
+          replayer.pause(timestamp);
+        }, 0);
+      } else {
+        frameRef.current = undefined;
+        nextOrDone();
+      }
     };
 
     const handlePause = () => {
-      Object.entries(visitFrameCallbacks).forEach(([k, v]) => {
-        v.onVisitFrame(frameRef.frame!, collection[k], replayer);
-        nextOrDone();
+      // console.log(collection);
+      Object.entries(activeCallbacks.current).forEach(([k, v]) => {
+        v.onVisitFrame(frameRef.current!, collection[k], replayer);
       });
+      nextOrDone();
     };
 
     replayer.on('pause', handlePause);
