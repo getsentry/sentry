@@ -421,8 +421,9 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                         )
                         has_transactions = self.check_if_results_have_data(transaction_results)
 
+                    # TODO: Inferred decisions haven't been ported over to events-stats yet.
                     decision = self.save_dashboard_widget_split_decision(
-                        widget, has_errors, has_transactions
+                        widget, None, has_errors, has_transactions
                     )
 
                     if decision == DashboardWidgetTypes.DISCOVER:
