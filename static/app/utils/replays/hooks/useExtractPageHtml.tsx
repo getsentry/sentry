@@ -34,21 +34,17 @@ async function extractPageHtml({
     frames,
     rrwebEvents,
     startTimestampMs,
-    visitFrameCallbacks: {
-      extractPageHtml: {
-        shouldVisitFrame: () => {
-          // Visit all the timestamps (converted to frames) that were passed in above
-          return true;
-        },
-        onVisitFrame: (frame, collection, replayer) => {
-          const doc = replayer.getMirror().getNode(1);
-          const html = (doc as Document)?.body.outerHTML ?? '';
-          collection.set(frame, html);
-        },
-      },
+    shouldVisitFrame: () => {
+      // Visit all the timestamps (converted to frames) that were passed in above
+      return true;
+    },
+    onVisitFrame: (frame, collection, replayer) => {
+      const doc = replayer.getMirror().getNode(1);
+      const html = (doc as Document)?.body.outerHTML ?? '';
+      collection.set(frame, html);
     },
   });
-  return Array.from(results.extractPageHtml.entries()).map(([frame, html]) => {
+  return Array.from(results.entries()).map(([frame, html]) => {
     return [frame.offsetMs, html];
   });
 }

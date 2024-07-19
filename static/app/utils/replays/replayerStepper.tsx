@@ -4,27 +4,16 @@ import type {RecordingFrame, ReplayFrame} from 'sentry/utils/replays/types';
 
 import {createHiddenPlayer} from './createHiddenPlayer';
 
-type OnVisitFrameType<Frame extends ReplayFrame | RecordingFrame, CollectionData> = (
-  frame: Frame,
-  collection: Map<Frame, CollectionData>,
-  replayer: Replayer
-) => void;
-
-type ShouldVisitFrameType<Frame extends ReplayFrame | RecordingFrame> = (
-  frame: Frame,
-  replayer: Replayer
-) => boolean;
-
-type CallbackArgs<Frame extends ReplayFrame | RecordingFrame, CollectionData> = {
-  onVisitFrame: OnVisitFrameType<Frame, CollectionData>;
-  shouldVisitFrame: ShouldVisitFrameType<Frame>;
-};
-
 interface Args<Frame extends ReplayFrame | RecordingFrame, CollectionData> {
   frames: Frame[] | undefined;
+  onVisitFrame: (
+    frame: Frame,
+    collection: Map<Frame, CollectionData>,
+    replayer: Replayer
+  ) => void;
   rrwebEvents: RecordingFrame[] | undefined;
+  shouldVisitFrame: (frame: Frame, replayer: Replayer) => boolean;
   startTimestampMs: number;
-  visitFrameCallbacks: Record<string, CallbackArgs<Frame, CollectionData>>;
 }
 
 type FrameRef<Frame extends ReplayFrame | RecordingFrame> = {
@@ -36,18 +25,16 @@ export default function replayerStepper<
   CollectionData,
 >({
   frames,
+  onVisitFrame,
   rrwebEvents,
-  visitFrameCallbacks,
+  shouldVisitFrame,
   startTimestampMs,
-}: Args<Frame, CollectionData>): Promise<Record<string, Map<Frame, CollectionData>>> {
-  const collection = {};
-  Object.keys(visitFrameCallbacks).forEach(
-    k => (collection[k] = new Map<Frame, CollectionData>())
-  );
+}: Args<Frame, CollectionData>): Promise<Map<Frame, CollectionData>> {
+  const collection = new Map<Frame, CollectionData>();
 
   return new Promise(resolve => {
     if (!frames?.length || !rrwebEvents?.length) {
-      resolve(collection);
+      resolve(new Map());
       return;
     }
 
@@ -78,20 +65,8 @@ export default function replayerStepper<
       current: undefined,
     };
 
-    const activeCallbacks: {
-      current: Record<string, CallbackArgs<Frame, CollectionData>>;
-    } = {
-      current: {},
-    };
-
     const considerFrame = (frame: Frame) => {
-      activeCallbacks.current = Object.fromEntries(
-        Object.entries(visitFrameCallbacks).filter(([, v]) => {
-          return v.shouldVisitFrame(frame, replayer);
-        })
-      );
-
-      if (Object.values(activeCallbacks.current).length) {
+      if (shouldVisitFrame(frame, replayer)) {
         frameRef.current = frame;
         window.setTimeout(() => {
           const timestamp =
@@ -105,9 +80,7 @@ export default function replayerStepper<
     };
 
     const handlePause = () => {
-      Object.entries(activeCallbacks.current).forEach(([k, v]) => {
-        v.onVisitFrame(frameRef.current!, collection[k], replayer);
-      });
+      onVisitFrame(frameRef.current!, collection, replayer);
       nextOrDone();
     };
 

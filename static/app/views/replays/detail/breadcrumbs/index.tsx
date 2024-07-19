@@ -9,6 +9,7 @@ import useJumpButtons from 'sentry/components/replays/useJumpButtons';
 import {t} from 'sentry/locale';
 import useCrumbHandlers from 'sentry/utils/replays/hooks/useCrumbHandlers';
 import useExtractDomNodes from 'sentry/utils/replays/hooks/useExtractDomNodes';
+import type {BreadcrumbFrame} from 'sentry/utils/replays/types';
 import useVirtualizedInspector from 'sentry/views/replays/detail//useVirtualizedInspector';
 import BreadcrumbFilters from 'sentry/views/replays/detail/breadcrumbs/breadcrumbFilters';
 import BreadcrumbRow from 'sentry/views/replays/detail/breadcrumbs/breadcrumbRow';
@@ -32,9 +33,7 @@ function Breadcrumbs() {
   const {onClickTimestamp} = useCrumbHandlers();
 
   const {data: frameToExtraction, isFetching: isFetchingExtractions} = useExtractDomNodes(
-    {
-      replay,
-    }
+    {replay}
   );
 
   const startTimestampMs = replay?.getStartTimestampMs() ?? 0;
@@ -98,7 +97,7 @@ function Breadcrumbs() {
         <BreadcrumbRow
           index={index}
           frame={item}
-          extraction={frameToExtraction?.get(item)}
+          extraction={frameToExtraction?.get(item as BreadcrumbFrame)}
           startTimestampMs={startTimestampMs}
           style={style}
           expandPaths={Array.from(expandPathsRef.current?.get(index) || [])}

@@ -343,31 +343,6 @@ export default class ReplayReader {
   private _startOffsetMs = 0;
   private _videoEvents: VideoEvent[] = [];
   private _clipWindow: ClipWindow | undefined = undefined;
-  private _collections: Record<string, any> | undefined = undefined;
-  private _allFrames: (RecordingFrame | ReplayFrame)[] = [];
-
-  private _getCollections = () => {
-    if (this._collections) {
-      return this._collections;
-    }
-
-    if (this.getRRWebFrames().length > 2) {
-      this._allFrames = (this.getRRWebMutations() as (RecordingFrame | ReplayFrame)[])
-        .concat(this.getDOMFrames())
-        .sort(sortFrames);
-
-      this._collections = replayerStepper({
-        frames: this._allFrames,
-        rrwebEvents: this.getRRWebFrames(),
-        startTimestampMs: this.getReplay().started_at.getTime() ?? 0,
-        visitFrameCallbacks: {
-          extractDomNodes,
-          countDomNodes: countDomNodes(this.getRRWebMutations()),
-        },
-      });
-    }
-    return this._collections;
-  };
 
   private _applyClipWindow = (clipWindow: ClipWindow) => {
     const clipStartTimestampMs = clamp(
@@ -491,15 +466,33 @@ export default class ReplayReader {
     return this.processingErrors().length;
   };
 
-  getCountDomNodes = async () => {
-    const results = await this._getCollections();
-    return results?.countDomNodes;
-  };
+  getCountDomNodes = memoize(async () => {
+    const {onVisitFrame, shouldVisitFrame} = countDomNodes(this.getRRWebMutations());
 
-  getExtractDomNodes = async () => {
-    const results = await this._getCollections();
-    return results?.extractDomNodes;
-  };
+    const results = await replayerStepper({
+      frames: this.getRRWebMutations(),
+      rrwebEvents: this.getRRWebFrames(),
+      startTimestampMs: this.getReplay().started_at.getTime() ?? 0,
+      onVisitFrame,
+      shouldVisitFrame,
+    });
+
+    return results;
+  });
+
+  getExtractDomNodes = memoize(async () => {
+    const {onVisitFrame, shouldVisitFrame} = extractDomNodes;
+
+    const results = await replayerStepper({
+      frames: this.getDOMFrames(),
+      rrwebEvents: this.getRRWebFrames(),
+      startTimestampMs: this.getReplay().started_at.getTime() ?? 0,
+      onVisitFrame,
+      shouldVisitFrame,
+    });
+
+    return results;
+  });
 
   getClipWindow = () => this._clipWindow;
 
