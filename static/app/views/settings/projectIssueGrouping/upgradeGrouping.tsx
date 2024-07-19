@@ -46,7 +46,7 @@ function UpgradeGrouping({
     groupingConfigs
   );
   const {riskNote, alertType} = getGroupingRisk(riskLevel);
-  const noUpdates = project.groupingAutoUpdate || !latestGroupingConfig;
+  const noUpdates = !latestGroupingConfig;
   const priority = riskLevel >= 2 ? 'danger' : 'primary';
 
   useEffect(() => {
@@ -123,10 +123,6 @@ function UpgradeGrouping({
   }
 
   function getButtonTitle() {
-    if (project.groupingAutoUpdate) {
-      return t('Disabled because automatic upgrading is enabled');
-    }
-
     if (!hasProjectWriteAccess) {
       return t('You do not have sufficient permissions to do this');
     }
