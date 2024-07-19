@@ -2975,7 +2975,8 @@ SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
 
 # If this is turned on, then sentry will perform automatic grouping updates.
 # This is enabled in production
-SENTRY_GROUPING_AUTO_UPDATE_ENABLED = False
+# XXX: Remove from getsentry first, then here
+SENTRY_GROUPING_AUTO_UPDATE_ENABLED = True
 
 # How long the migration phase for grouping lasts
 SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 30 * 24 * 3600  # 30 days

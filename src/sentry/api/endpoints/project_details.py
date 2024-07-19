@@ -115,7 +115,6 @@ class ProjectMemberSerializer(serializers.Serializer):
         "fingerprintingRules",
         "secondaryGroupingConfig",
         "secondaryGroupingExpiry",
-        "groupingAutoUpdate",
         "scrapeJavaScript",
         "allowedDomains",
         "copy_from_project",
@@ -203,7 +202,6 @@ class ProjectAdminSerializer(ProjectMemberSerializer):
         required=False, allow_blank=True, allow_null=True
     )
     secondaryGroupingExpiry = serializers.IntegerField(min_value=1, required=False, allow_null=True)
-    groupingAutoUpdate = serializers.BooleanField(required=False)
     scrapeJavaScript = serializers.BooleanField(required=False)
     allowedDomains = EmptyListField(child=OriginField(allow_blank=True), required=False)
 
@@ -652,9 +650,6 @@ class ProjectDetailsEndpoint(ProjectEndpoint):
                 changed_proj_settings["sentry:secondary_grouping_expiry"] = result[
                     "secondaryGroupingExpiry"
                 ]
-        if result.get("groupingAutoUpdate") is not None:
-            if project.update_option("sentry:grouping_auto_update", result["groupingAutoUpdate"]):
-                changed_proj_settings["sentry:grouping_auto_update"] = result["groupingAutoUpdate"]
         if result.get("securityToken") is not None:
             if project.update_option("sentry:token", result["securityToken"]):
                 changed_proj_settings["sentry:token"] = result["securityToken"]
