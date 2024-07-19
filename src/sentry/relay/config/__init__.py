@@ -142,32 +142,6 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
 
         error_messages += project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}") or []
 
-    # TODO: remove both error message filters when the generic filters implementation is proved to be on par when it
-    #   comes to filtering capabilities. When both generic and non-generic filters are applied, the generic ones take
-    #   precedence.
-    # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
-    # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
-    # why the value true is determined by either "1" or True.
-    enable_react = project.get_option("filters:react-hydration-errors") in ("1", True)
-    if enable_react:
-        # 418 - Hydration failed because the initial UI does not match what was rendered on the server.
-        # 419 - The server could not finish this Suspense boundary, likely due to an error during server rendering. Switched to client rendering.
-        # 422 - There was an error while hydrating this Suspense boundary. Switched to client rendering.
-        # 423 - There was an error while hydrating. Because the error happened outside of a Suspense boundary, the entire root will switch to client rendering.
-        # 425 - Text content does not match server-rendered HTML.
-        error_messages += [
-            "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*",
-            "*https://react.dev/errors/{418,419,422,423,425}*",
-        ]
-
-    if project.get_option("filters:chunk-load-error") == "1":
-        # ChunkLoadError: Loading chunk 3662 failed.\n(error:
-        # https://DOMAIN.com/_next/static/chunks/29107295-0151559bd23117ba.js)
-        error_messages += [
-            "ChunkLoadError: Loading chunk *",
-            "*Uncaught *: ChunkLoadError: Loading chunk *",
-        ]
-
     if error_messages:
         filter_settings["errorMessages"] = {"patterns": error_messages}
 
