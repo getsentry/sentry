@@ -513,6 +513,23 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         get_condition_query_groups([rule_1, rule_2], rules_to_groups)  # type: ignore[arg-type]
         assert orig_rules_to_groups == rules_to_groups
 
+    @patch("sentry.rules.processing.delayed_processing.logger")
+    def test_apply_delayed_nonexistent_project(self, mock_logger):
+        self.push_to_hash(self.project.id, self.rule1.id, self.group1.id, self.event1.event_id)
+        project_id = self.project.id
+        self.project.delete()
+
+        project_ids = buffer.backend.get_sorted_set(
+            PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
+        )
+        apply_delayed(project_ids[0][0])
+
+        assert RuleFireHistory.objects.count() == 0
+        mock_logger.info.assert_called_once_with(
+            "delayed_processing.project_does_not_exist",
+            extra={"project_id": project_id},
+        )
+
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_apply_delayed_rules_to_fire(self):
         """
