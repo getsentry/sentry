@@ -25,7 +25,7 @@ import type {ModuleName} from 'sentry/views/insights/types';
 type Props = {
   columnNameMap: Record<string, string>;
   columnOrder: string[];
-  columnToolTipMap: Record<string, string> | undefined;
+  columnTooltipMap: Record<string, string> | undefined;
   data: TableData | undefined;
   defaultSort: GridColumnSortBy<string>[];
   eventView: EventView;
@@ -45,7 +45,7 @@ export function ScreensTable({
   pageLinks,
   columnNameMap,
   columnOrder,
-  columnToolTipMap,
+  columnTooltipMap,
   defaultSort,
   customBodyCellRenderer,
   moduleName,
@@ -121,7 +121,7 @@ export function ScreensTable({
       />
     );
 
-    function columnWithToolTip(tooltipTitle: string) {
+    function columnWithTooltip(tooltipTitle: string) {
       return (
         <Alignment align={alignment}>
           <StyledTooltip isHoverable title={<span>{tooltipTitle}</span>}>
@@ -131,8 +131,8 @@ export function ScreensTable({
       );
     }
 
-    if (column.toolTip) {
-      return columnWithToolTip(column.toolTip);
+    if (column.tooltip) {
+      return columnWithTooltip(column.tooltip);
     }
     return sortLink;
   }
@@ -147,7 +147,7 @@ export function ScreensTable({
             key: columnKey,
             name: columnNameMap[columnKey],
             width: COL_WIDTH_UNDEFINED,
-            toolTip: columnToolTipMap ? columnToolTipMap[columnKey] : undefined,
+            toolTip: columnTooltipMap ? columnTooltipMap[columnKey] : undefined,
           };
         })}
         columnSortBy={defaultSort}

@@ -119,7 +119,7 @@ export function SpanOperationTable({
       t('Change'),
   };
 
-  const columnToolTipMap = {
+  const columnTooltipMap = {
     [`division_if(mobile.slow_frames,mobile.total_frames,release,${primaryRelease})`]: t(
       'The number of slow frames divided by total frames (%s)',
       PRIMARY_RELEASE_ALIAS
@@ -179,7 +179,7 @@ export function SpanOperationTable({
   return (
     <ScreensTable
       columnNameMap={columnNameMap}
-      columnToolTipMap={columnToolTipMap}
+      columnTooltipMap={columnTooltipMap}
       data={data}
       eventView={eventView}
       isLoading={isLoading}

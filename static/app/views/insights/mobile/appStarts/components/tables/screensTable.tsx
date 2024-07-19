@@ -64,7 +64,7 @@ export function AppStartScreens({data, eventView, isLoading, pageLinks}: Props) 
     'count_starts(measurements.app_start_warm)': t('Warm Start Count'),
   };
 
-  const columnToolTipMap = {
+  const columnTooltipMap = {
     [`avg_compare(measurements.app_start_cold,release,${primaryRelease},${secondaryRelease})`]:
       t('Average Cold Start difference'),
     [`avg_compare(measurements.app_start_warm,release,${primaryRelease},${secondaryRelease})`]:
@@ -128,7 +128,7 @@ export function AppStartScreens({data, eventView, isLoading, pageLinks}: Props) 
   return (
     <ScreensTable
       columnNameMap={columnNameMap}
-      columnToolTipMap={columnToolTipMap}
+      columnTooltipMap={columnTooltipMap}
       data={data}
       eventView={eventView}
       isLoading={isLoading}
