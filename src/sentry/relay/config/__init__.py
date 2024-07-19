@@ -403,14 +403,7 @@ def _should_extract_abnormal_mechanism(project: Project) -> bool:
     )
 
 
-def _should_performance_profiles_web_vitals_be_optional(organization: Organization) -> bool:
-    return features.has(
-        "organizations:insights-browser-webvitals-optional-components", organization
-    )
-
-
 def _get_desktop_browser_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
-    optional = _should_performance_profiles_web_vitals_be_optional(organization)
     return [
         {
             "name": "Chrome",
@@ -420,28 +413,28 @@ def _get_desktop_browser_performance_profiles(organization: Organization) -> lis
                     "weight": 0.15,
                     "p10": 900.0,
                     "p50": 1600.0,
-                    "optional": optional,
+                    "optional": True,
                 },
                 {
                     "measurement": "lcp",
                     "weight": 0.30,
                     "p10": 1200.0,
                     "p50": 2400.0,
-                    "optional": optional,
+                    "optional": True,
                 },
                 {
                     "measurement": "cls",
                     "weight": 0.15,
                     "p10": 0.1,
                     "p50": 0.25,
-                    "optional": optional,
+                    "optional": True,
                 },
                 {
                     "measurement": "ttfb",
                     "weight": 0.10,
                     "p10": 200.0,
                     "p50": 400.0,
-                    "optional": optional,
+                    "optional": True,
                 },
             ],
             "condition": {
@@ -458,7 +451,7 @@ def _get_desktop_browser_performance_profiles(organization: Organization) -> lis
                     "weight": 0.15,
                     "p10": 900.0,
                     "p50": 1600.0,
-                    "optional": optional,
+                    "optional": True,
                 },
                 {
                     "measurement": "lcp",
@@ -479,7 +472,7 @@ def _get_desktop_browser_performance_profiles(organization: Organization) -> lis
                     "weight": 0.10,
                     "p10": 200.0,
                     "p50": 400.0,
-                    "optional": optional,
+                    "optional": True,
                 },
             ],
             "condition": {
@@ -496,7 +489,7 @@ def _get_desktop_browser_performance_profiles(organization: Organization) -> lis
                     "weight": 0.15,
                     "p10": 900.0,
                     "p50": 1600.0,
-                    "optional": optional,
+                    "optional": True,
                 },
                 {
                     "measurement": "lcp",
@@ -517,7 +510,7 @@ def _get_desktop_browser_performance_profiles(organization: Organization) -> lis
                     "weight": 0.10,
                     "p10": 200.0,
                     "p50": 400.0,
-                    "optional": optional,
+                    "optional": True,
                 },
             ],
             "condition": {
@@ -534,28 +527,28 @@ def _get_desktop_browser_performance_profiles(organization: Organization) -> lis
                     "weight": 0.15,
                     "p10": 900.0,
                     "p50": 1600.0,
-                    "optional": optional,
+                    "optional": True,
                 },
                 {
                     "measurement": "lcp",
                     "weight": 0.30,
                     "p10": 1200.0,
                     "p50": 2400.0,
-                    "optional": optional,
+                    "optional": True,
                 },
                 {
                     "measurement": "cls",
                     "weight": 0.15,
                     "p10": 0.1,
                     "p50": 0.25,
-                    "optional": optional,
+                    "optional": True,
                 },
                 {
                     "measurement": "ttfb",
                     "weight": 0.10,
                     "p10": 200.0,
                     "p50": 400.0,
-                    "optional": optional,
+                    "optional": True,
                 },
             ],
             "condition": {
@@ -572,28 +565,28 @@ def _get_desktop_browser_performance_profiles(organization: Organization) -> lis
                     "weight": 0.15,
                     "p10": 900.0,
                     "p50": 1600.0,
-                    "optional": optional,
+                    "optional": True,
                 },
                 {
                     "measurement": "lcp",
                     "weight": 0.30,
                     "p10": 1200.0,
                     "p50": 2400.0,
-                    "optional": optional,
+                    "optional": True,
                 },
                 {
                     "measurement": "cls",
                     "weight": 0.15,
                     "p10": 0.1,
                     "p50": 0.25,
-                    "optional": optional,
+                    "optional": True,
                 },
                 {
                     "measurement": "ttfb",
                     "weight": 0.10,
                     "p10": 200.0,
                     "p50": 400.0,
-                    "optional": optional,
+                    "optional": True,
                 },
             ],
             "condition": {
@@ -667,7 +660,6 @@ def _get_desktop_browser_performance_profiles(organization: Organization) -> lis
 
 
 def _get_mobile_browser_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
-    optional = _should_performance_profiles_web_vitals_be_optional(organization)
     return [
         {
             "name": "Chrome Mobile",
@@ -677,28 +669,28 @@ def _get_mobile_browser_performance_profiles(organization: Organization) -> list
                     "weight": 0.15,
                     "p10": 1800.0,
                     "p50": 3000.0,
-                    "optional": optional,
+                    "optional": True,
                 },
                 {
                     "measurement": "lcp",
                     "weight": 0.30,
                     "p10": 2500.0,
                     "p50": 4000.0,
-                    "optional": optional,
+                    "optional": True,
                 },
                 {
                     "measurement": "cls",
                     "weight": 0.15,
                     "p10": 0.1,
                     "p50": 0.25,
-                    "optional": optional,
+                    "optional": True,
                 },
                 {
                     "measurement": "ttfb",
                     "weight": 0.10,
                     "p10": 800.0,
                     "p50": 1800.0,
-                    "optional": optional,
+                    "optional": True,
                 },
             ],
             "condition": {
@@ -715,7 +707,7 @@ def _get_mobile_browser_performance_profiles(organization: Organization) -> list
                     "weight": 0.15,
                     "p10": 1800.0,
                     "p50": 3000.0,
-                    "optional": optional,
+                    "optional": True,
                 },
                 {
                     "measurement": "lcp",
@@ -736,7 +728,7 @@ def _get_mobile_browser_performance_profiles(organization: Organization) -> list
                     "weight": 0.10,
                     "p10": 800.0,
                     "p50": 1800.0,
-                    "optional": optional,
+                    "optional": True,
                 },
             ],
             "condition": {
@@ -753,7 +745,7 @@ def _get_mobile_browser_performance_profiles(organization: Organization) -> list
                     "weight": 0.15,
                     "p10": 1800.0,
                     "p50": 3000.0,
-                    "optional": optional,
+                    "optional": True,
                 },
                 {
                     "measurement": "lcp",
@@ -774,7 +766,7 @@ def _get_mobile_browser_performance_profiles(organization: Organization) -> list
                     "weight": 0.10,
                     "p10": 800.0,
                     "p50": 1800.0,
-                    "optional": optional,
+                    "optional": True,
                 },
             ],
             "condition": {
@@ -791,28 +783,28 @@ def _get_mobile_browser_performance_profiles(organization: Organization) -> list
                     "weight": 0.15,
                     "p10": 1800.0,
                     "p50": 3000.0,
-                    "optional": optional,
+                    "optional": True,
                 },
                 {
                     "measurement": "lcp",
                     "weight": 0.30,
                     "p10": 2500.0,
                     "p50": 4000.0,
-                    "optional": optional,
+                    "optional": True,
                 },
                 {
                     "measurement": "cls",
                     "weight": 0.15,
                     "p10": 0.1,
                     "p50": 0.25,
-                    "optional": optional,
+                    "optional": True,
                 },
                 {
                     "measurement": "ttfb",
                     "weight": 0.10,
                     "p10": 800.0,
                     "p50": 1800.0,
-                    "optional": optional,
+                    "optional": True,
                 },
             ],
             "condition": {
@@ -829,28 +821,28 @@ def _get_mobile_browser_performance_profiles(organization: Organization) -> list
                     "weight": 0.15,
                     "p10": 1800.0,
                     "p50": 3000.0,
-                    "optional": optional,
+                    "optional": True,
                 },
                 {
                     "measurement": "lcp",
                     "weight": 0.30,
                     "p10": 2500.0,
                     "p50": 4000.0,
-                    "optional": optional,
+                    "optional": True,
                 },
                 {
                     "measurement": "cls",
                     "weight": 0.15,
                     "p10": 0.1,
                     "p50": 0.25,
-                    "optional": optional,
+                    "optional": True,
                 },
                 {
                     "measurement": "ttfb",
                     "weight": 0.10,
                     "p10": 800.0,
                     "p50": 1800.0,
-                    "optional": optional,
+                    "optional": True,
                 },
             ],
             "condition": {
@@ -919,9 +911,6 @@ def _get_mobile_browser_performance_profiles(organization: Organization) -> list
 
 
 def _get_default_browser_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
-    if not features.has("organizations:insights-default-performance-score-profiles", organization):
-        return []
-    optional = _should_performance_profiles_web_vitals_be_optional(organization)
     return [
         {
             "name": "Default",
@@ -931,28 +920,28 @@ def _get_default_browser_performance_profiles(organization: Organization) -> lis
                     "weight": 0.15,
                     "p10": 900.0,
                     "p50": 1600.0,
-                    "optional": optional,
+                    "optional": True,
                 },
                 {
                     "measurement": "lcp",
                     "weight": 0.30,
                     "p10": 1200.0,
                     "p50": 2400.0,
-                    "optional": optional,
+                    "optional": True,
                 },
                 {
                     "measurement": "cls",
                     "weight": 0.15,
                     "p10": 0.1,
                     "p50": 0.25,
-                    "optional": optional,
+                    "optional": True,
                 },
                 {
                     "measurement": "ttfb",
                     "weight": 0.10,
                     "p10": 200.0,
                     "p50": 400.0,
-                    "optional": optional,
+                    "optional": True,
                 },
             ],
             "condition": {
