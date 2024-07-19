@@ -354,9 +354,8 @@ export default class ReplayReader {
   private _startOffsetMs = 0;
   private _videoEvents: VideoEvent[] = [];
   private _clipWindow: ClipWindow | undefined = undefined;
-  private _collections: Record<string, Map<any, any>> = {};
 
-  private _applyClipWindow = async (clipWindow: ClipWindow) => {
+  private _applyClipWindow = (clipWindow: ClipWindow) => {
     const clipStartTimestampMs = clamp(
       clipWindow.startTimestampMs,
       this._replayRecord.started_at.getTime(),
@@ -405,17 +404,6 @@ export default class ReplayReader {
 
       return;
     }
-
-    this._collections = await replayerStepper({
-      frames: this.getRRWebMutations(),
-      rrwebEvents: this.getRRWebFrames(),
-      startTimestampMs: this.getReplay().started_at.getTime() ?? 0,
-      visitFrameCallbacks: {
-        extractDomNodes,
-        extractPageHtml,
-        countDomNodes: countDomNodes(),
-      },
-    });
 
     // For RRWeb frames we only trim from the end because playback will
     // not work otherwise. The start offset is used to begin playback at
@@ -489,11 +477,20 @@ export default class ReplayReader {
     return this.processingErrors().length;
   };
 
-  getCountDomNodes = () => this._collections.countDomNodes;
+  getCountDomNodes = async () => {
+    const results = await this._collections;
+    return results.countDomNodes;
+  };
 
-  getExtractDomNodes = () => this._collections.extractDomNodes;
+  getExtractDomNodes = async () => {
+    const results = await this._collections;
+    return results.extractDomNodes;
+  };
 
-  getExtractPageHtml = () => this._collections.extractPageHtml;
+  getExtractPageHtml = async () => {
+    const results = await this._collections;
+    return results.extractPageHtml;
+  };
 
   getClipWindow = () => this._clipWindow;
 
@@ -647,6 +644,17 @@ export default class ReplayReader {
   getPaintFrames = memoize(() => this._sortedSpanFrames.filter(isPaintFrame));
 
   getSDKOptions = () => this._optionFrame;
+
+  private _collections = replayerStepper({
+    frames: this.getRRWebMutations(),
+    rrwebEvents: this.getRRWebFrames(),
+    startTimestampMs: this.getReplay().started_at.getTime() ?? 0,
+    visitFrameCallbacks: {
+      extractDomNodes,
+      extractPageHtml,
+      countDomNodes: countDomNodes(),
+    },
+  });
 
   /**
    * Checks the replay to see if user has any canvas elements in their

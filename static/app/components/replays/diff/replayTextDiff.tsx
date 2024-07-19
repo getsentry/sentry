@@ -7,7 +7,7 @@ import {CopyToClipboardButton} from 'sentry/components/copyToClipboardButton';
 import SplitDiff from 'sentry/components/splitDiff';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import extractPageHtml from 'sentry/utils/replays/hooks/extractPageHtml';
+import useExtractedPageHtml from 'sentry/utils/replays/hooks/useExtractedPageHtml';
 import type ReplayReader from 'sentry/utils/replays/replayReader';
 
 interface Props {
@@ -17,14 +17,11 @@ interface Props {
 }
 
 export function ReplayTextDiff({replay}: Props) {
-  const results =
-    extractPageHtml({
+  const {data} =
+    useExtractedPageHtml({
       replay,
       // offsetMsToStopAt: [leftOffsetMs, rightOffsetMs],
     }) ?? new Map();
-  const data = Array.from(results.entries()).map(([frame, html]) => {
-    return [frame.offsetMs, html];
-  });
 
   const [leftBody, rightBody] = useMemo(
     () => data?.map(([_, html]) => beautify.html(html, {indent_size: 2})) ?? [],
