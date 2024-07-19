@@ -50,7 +50,7 @@ def backfill_seer_grouping_records_for_project(
     cohort: str | list[int] | None = None,
     last_processed_project_index_input: int | None = None,
     only_delete: bool = False,
-    enable_ingestion: bool = True,
+    enable_ingestion: bool = False,
     *args: Any,
     **kwargs: Any,
 ) -> None:

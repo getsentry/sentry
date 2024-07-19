@@ -33,7 +33,7 @@ class ProjectBackfillSimilarIssuesEmbeddingsRecords(ProjectEndpoint):
 
         last_processed_id = None
         only_delete = False
-        enable_ingestion = True
+        enable_ingestion = False
 
         if request.data.get("last_processed_id"):
             last_processed_id = int(request.data["last_processed_id"])

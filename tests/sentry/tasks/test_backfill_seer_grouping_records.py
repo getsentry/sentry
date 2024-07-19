@@ -1167,10 +1167,6 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
                 "backfill_seer_grouping_records.no_more_groups",
                 extra={"project_id": self.project.id},
             ),
-            call(
-                "backfill_seer_grouping_records.enable_ingestion",
-                extra={"project_id": self.project.id},
-            ),
         ]
         assert mock_utils_logger.info.call_args_list == expected_utils_call_args_list
 
@@ -1490,7 +1486,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             redis_client=ANY,
             last_processed_project_index=0,
             cohort=None,
-            enable_ingestion=True,
+            enable_ingestion=False,
         )
 
     @with_feature("projects:similarity-embeddings-backfill")
@@ -1547,12 +1543,13 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         self, mock_post_bulk_grouping_records, mock_logger
     ):
         """
-        Test that the metadata is set for all groups showing that the record has been created.
+        Test that when the enable_ingestion flag is True, the project option is set and the
+        log is called.
         """
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(self.project.id, None)
+            backfill_seer_grouping_records_for_project(self.project.id, None, enable_ingestion=True)
 
         groups = Group.objects.filter(project_id=self.project.id)
         for group in groups:
@@ -1574,14 +1571,12 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
         self, mock_post_bulk_grouping_records, mock_logger
     ):
         """
-        Test that the metadata is set for all groups showing that the record has been created.
+        Test that when the enable_ingestion flag is False, the project option is not set.
         """
         mock_post_bulk_grouping_records.return_value = {"success": True, "groups_with_neighbor": {}}
 
         with TaskRunner():
-            backfill_seer_grouping_records_for_project(
-                self.project.id, None, enable_ingestion=False
-            )
+            backfill_seer_grouping_records_for_project(self.project.id, None)
 
         groups = Group.objects.filter(project_id=self.project.id)
         for group in groups:
