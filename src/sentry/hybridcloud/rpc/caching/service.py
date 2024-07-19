@@ -190,7 +190,9 @@ class SiloCacheManyBackedCallable(Generic[_R]):
                 continue
             cache_key = keys[record_id]
             record_version = missing[record_id]
-            _consume_generator(_set_cache(cache_key, record.json(), record_version, self.timeout))
+            _consume_generator(
+                _set_cache(cache_key, record.model_dump_json(), record_version, self.timeout)
+            )
             found[record_id] = record
 
         return [found[id] for id in ids if id in found]

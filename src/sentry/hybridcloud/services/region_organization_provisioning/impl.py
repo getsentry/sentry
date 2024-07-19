@@ -26,7 +26,7 @@ def create_post_provision_outbox(
         shard_identifier=org_id,
         category=OutboxCategory.POST_ORGANIZATION_PROVISION,
         object_identifier=org_id,
-        payload=provisioning_options.post_provision_options.dict(),
+        payload=provisioning_options.post_provision_options.model_dump(),
     )
 
 

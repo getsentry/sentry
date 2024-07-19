@@ -224,7 +224,7 @@ def process_provision_organization_outbox(
     object_identifier: int, region_name: str, payload: Any, **kwds: Any
 ):
     try:
-        provision_payload = OrganizationProvisioningOptions.parse_obj(payload)
+        provision_payload = OrganizationProvisioningOptions.model_validate(payload)
     except ValidationError as e:
         # The provisioning payload is likely malformed and cannot be processed.
         capture_exception(e)
