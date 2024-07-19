@@ -176,7 +176,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         except MissingWebhookPayloadError as e:
             logger.warning("github_enterprise.webhook.missing-body", extra=extra)
             sentry_sdk.capture_exception(e)
-            return HttpResponse(str(e), status=400)
+            return HttpResponse(MISSING_WEBHOOK_PAYLOAD_ERROR, status=400)
 
         try:
             github_event = request.headers.get("x-github-event")
