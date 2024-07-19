@@ -1269,7 +1269,7 @@ class SnubaTestCase(BaseTestCase):
         self.snuba_eventstream = SnubaEventStream()
         self.snuba_tagstore = SnubaTagStorage()
 
-    def store_event(self, *args, **kwargs):
+    def store_event(self, *args, **kwargs) -> Event:
         """
         Simulates storing an event for testing.
 
