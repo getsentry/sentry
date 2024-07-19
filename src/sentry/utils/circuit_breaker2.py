@@ -8,7 +8,7 @@ and get rid of the old one, at which point this can lose the `2`.
 import logging
 import time
 from enum import Enum
-from typing import Any, NotRequired, TypedDict
+from typing import Any, Literal, NotRequired, TypedDict, overload
 
 from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter
 
@@ -184,6 +184,35 @@ class CircuitBreaker:
                 self.recovery_duration,
                 self.window,
             )
+
+    @overload
+    def _get_controlling_quota(
+        self, state: Literal[CircuitBreakerState.OK, CircuitBreakerState.RECOVERY]
+    ) -> Quota:
+        ...
+
+    @overload
+    def _get_controlling_quota(self, state: Literal[CircuitBreakerState.BROKEN]) -> None:
+        ...
+
+    @overload
+    def _get_controlling_quota(self) -> Quota | None:
+        ...
+
+    def _get_controlling_quota(self, state: CircuitBreakerState | None = None) -> Quota | None:
+        """
+        Return the Quota corresponding to the given breaker state (or the current breaker state, if
+        no state is provided). If the state is question is the BROKEN state, return None.
+        """
+        controlling_quota_by_state = {
+            CircuitBreakerState.OK: self.primary_quota,
+            CircuitBreakerState.BROKEN: None,
+            CircuitBreakerState.RECOVERY: self.recovery_quota,
+        }
+
+        _state = state or self._get_state_and_remaining_time()[0]
+
+        return controlling_quota_by_state[_state]
 
     def _get_state_and_remaining_time(
         self,
