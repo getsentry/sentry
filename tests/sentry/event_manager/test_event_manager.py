@@ -565,7 +565,6 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert regressed_activity.data["resolved_in_version"] == "foo@1.0.0"
 
     def resolve_in_release(self, group: Group, release: Release) -> Activity:
-        # Resolved in a future known release
         group.update(status=GroupStatus.RESOLVED, substatus=None)
         resolution = GroupResolution.objects.create(
             release=release,
