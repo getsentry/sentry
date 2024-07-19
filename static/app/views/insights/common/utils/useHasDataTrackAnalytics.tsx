@@ -12,9 +12,7 @@ export function useHasDataTrackAnalytics(module: ModuleName, analyticEvent: stri
   const pageFilters = usePageFilters();
   const hasEverSentData = useHasFirstSpan(module);
 
-  Sentry.withScope(scope => {
-    scope.setTag(`insights.${module}.hasEverSentData`, hasEverSentData);
-  });
+  Sentry.setTag(`insights.${module}.hasEverSentData`, hasEverSentData);
 
   const projects = JSON.stringify(pageFilters.selection.projects);
 
