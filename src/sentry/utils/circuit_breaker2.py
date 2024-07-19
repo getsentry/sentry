@@ -4,3 +4,11 @@ NOTE: This is a replacement for the current circuit breaker implementation, whic
 confident it works we can replace use of the original for the severity service with use of this one
 and get rid of the old one, at which point this can lose the `2`.
 """
+
+from enum import Enum
+
+
+class CircuitBreakerState(Enum):
+    OK = "circuit_okay"
+    BROKEN = "circuit_broken"
+    RECOVERY = "recovery"
