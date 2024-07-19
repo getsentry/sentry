@@ -1,5 +1,5 @@
 import {useDiscoverQuery} from 'sentry/utils/discover/discoverQuery';
-import EventView from 'sentry/utils/discover/eventView';
+import EventView, {type EventsMetaType} from 'sentry/utils/discover/eventView';
 import type {Sort} from 'sentry/utils/discover/fields';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
@@ -68,6 +68,8 @@ export const useTransactionWebVitalsScoresQuery = ({
   const eventView = EventView.fromNewQueryWithPageFilters(
     {
       fields: [
+        'project.id',
+        'project',
         'transaction',
         'p75(measurements.lcp)',
         'p75(measurements.fcp)',
@@ -126,6 +128,8 @@ export const useTransactionWebVitalsScoresQuery = ({
             calculatePerformanceScoreFromStoredTableDataRow(row);
           return {
             transaction: row.transaction?.toString(),
+            project: row.project?.toString(),
+            'project.id': parseInt(row['project.id'].toString(), 10),
             'p75(measurements.lcp)': row['p75(measurements.lcp)'] as number,
             'p75(measurements.fcp)': row['p75(measurements.fcp)'] as number,
             'p75(measurements.cls)': row['p75(measurements.cls)'] as number,
@@ -165,6 +169,7 @@ export const useTransactionWebVitalsScoresQuery = ({
 
   return {
     data: tableData,
+    meta: data?.meta as EventsMetaType,
     isLoading,
     ...rest,
   };

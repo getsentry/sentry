@@ -44,6 +44,7 @@ export default function ReplayDiffContent({event, group, orgSlug, replaySlug}: P
           leftOffsetMs={leftOffsetMs}
           replay={replay}
           rightOffsetMs={rightOffsetMs}
+          surface="issue-details" // TODO: refactor once this component is used in more surfaces
           size="xs"
         >
           {t('Open Diff Viewer')}

@@ -10,7 +10,7 @@ from sentry import analytics
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, control_silo_endpoint
-from sentry.api.endpoints.api_tokens import ApiTokensEndpoint
+from sentry.api.endpoints.api_tokens import get_appropriate_user_id
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.models.apitoken import ApiToken
@@ -35,12 +35,12 @@ class ApiTokenDetailsEndpoint(Endpoint):
     @method_decorator(never_cache)
     def get(self, request: Request, token_id: int) -> Response:
 
-        user_id = ApiTokensEndpoint.get_appropriate_user_id(request=request)
+        user_id = get_appropriate_user_id(request=request)
 
         try:
             instance = ApiToken.objects.get(id=token_id, application__isnull=True, user_id=user_id)
         except ApiToken.DoesNotExist:
-            raise ResourceDoesNotExist
+            raise ResourceDoesNotExist(detail="Invalid token ID")
 
         return Response(serialize(instance, request.user, include_token=False))
 
@@ -59,14 +59,14 @@ class ApiTokenDetailsEndpoint(Endpoint):
 
         result = serializer.validated_data
 
-        user_id = ApiTokensEndpoint.get_appropriate_user_id(request=request)
+        user_id = get_appropriate_user_id(request=request)
 
         try:
             token_to_rename = ApiToken.objects.get(
                 id=token_id, application__isnull=True, user_id=user_id
             )
         except ApiToken.DoesNotExist:
-            raise ResourceDoesNotExist
+            raise ResourceDoesNotExist(detail="Invalid token ID")
 
         token_to_rename.name = result.get("name")
         token_to_rename.save()
@@ -75,14 +75,15 @@ class ApiTokenDetailsEndpoint(Endpoint):
 
     @method_decorator(never_cache)
     def delete(self, request: Request, token_id: int) -> Response:
-        user_id = ApiTokensEndpoint.get_appropriate_user_id(request=request)
+
+        user_id = get_appropriate_user_id(request=request)
 
         try:
             token_to_delete = ApiToken.objects.get(
                 id=token_id, application__isnull=True, user_id=user_id
             )
         except ApiToken.DoesNotExist:
-            raise ResourceDoesNotExist
+            raise ResourceDoesNotExist(detail="Invalid token ID")
 
         token_to_delete.delete()
         analytics.record(

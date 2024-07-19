@@ -162,8 +162,8 @@ class BaseQueryBuilder:
         user_id = params.get("user_id")
         user = user_service.get_user(user_id=user_id) if user_id is not None else None  # type: ignore[arg-type]
         teams = (
-            Team.objects.filter(id__in=params["team_id"])  # type: ignore[typeddict-item]
-            if "team_id" in params and isinstance(params["team_id"], list)  # type: ignore[typeddict-item]
+            Team.objects.filter(id__in=params["team_id"])
+            if "team_id" in params and isinstance(params["team_id"], list)
             else None
         )
         return SnubaParams(
@@ -1304,6 +1304,7 @@ class BaseQueryBuilder:
         if (
             search_filter.operator in ("!=", "NOT IN")
             and not search_filter.key.is_tag
+            and not is_tag
             and name not in self.config.non_nullable_keys
         ):
             # Handle null columns on inequality comparisons. Any comparison
@@ -1508,7 +1509,7 @@ class BaseQueryBuilder:
             return None
         return value
 
-    def run_query(self, referrer: str, use_cache: bool = False) -> Any:
+    def run_query(self, referrer: str | None, use_cache: bool = False) -> Any:
         if not referrer:
             InvalidSearchQuery("Query missing referrer.")
         return raw_snql_query(self.get_snql_query(), referrer, use_cache)

@@ -222,8 +222,8 @@ function OnboardingContent({
   } = useLoadGettingStarted({
     platform:
       showJsFrameworkInstructions && setupMode() === 'npm'
-        ? replayJsFrameworkOptions.find(p => p.id === jsFramework.value) ??
-          replayJsFrameworkOptions[0]
+        ? replayJsFrameworkOptions().find(p => p.id === jsFramework.value) ??
+          replayJsFrameworkOptions()[0]
         : currentPlatform,
     projSlug: currentProject.slug,
     orgSlug: organization.slug,
@@ -233,8 +233,8 @@ function OnboardingContent({
   // New onboarding docs for initial loading of JS Framework options
   const {docs: jsFrameworkDocs} = useLoadGettingStarted({
     platform:
-      replayJsFrameworkOptions.find(p => p.id === jsFramework.value) ??
-      replayJsFrameworkOptions[0],
+      replayJsFrameworkOptions().find(p => p.id === jsFramework.value) ??
+      replayJsFrameworkOptions()[0],
     projSlug: currentProject.slug,
     orgSlug: organization.slug,
     productType: 'replay',

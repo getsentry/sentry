@@ -3,8 +3,7 @@ import type {WithRouterProps} from 'react-router';
 import styled from '@emotion/styled';
 import color from 'color';
 import type {LineSeriesOption} from 'echarts';
-import moment from 'moment';
-import momentTimezone from 'moment-timezone';
+import moment from 'moment-timezone';
 
 import type {Client} from 'sentry/api';
 import Feature from 'sentry/components/acl/feature';
@@ -47,7 +46,6 @@ import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import getDuration from 'sentry/utils/duration/getDuration';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {getForceMetricsLayerQueryExtras} from 'sentry/utils/metrics/features';
-import {formatMRIField} from 'sentry/utils/metrics/mri';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {MINUTES_THRESHOLD_TO_DISPLAY_SECONDS} from 'sentry/utils/sessions';
 import {capitalize} from 'sentry/utils/string/capitalize';
@@ -92,6 +90,7 @@ type Props = WithRouterProps & {
   query: string;
   rule: MetricRule;
   timePeriod: TimePeriodType;
+  formattedAggregate?: string;
   incidents?: Incident[];
   isOnDemandAlert?: boolean;
   selectedIncident?: Incident | null;
@@ -103,7 +102,7 @@ function formatTooltipDate(date: moment.MomentInput, format: string): string {
   const {
     options: {timezone},
   } = ConfigStore.get('user');
-  return momentTimezone.tz(date, timezone).format(format);
+  return moment.tz(date, timezone).format(format);
 }
 
 function getRuleChangeSeries(
@@ -264,6 +263,7 @@ class MetricChart extends PureComponent<Props, State> {
       rule,
       organization,
       timePeriod: {start, end},
+      formattedAggregate,
     } = this.props;
     const {dateModified, timeWindow} = rule;
 
@@ -289,6 +289,7 @@ class MetricChart extends PureComponent<Props, State> {
     } = getMetricAlertChartOption({
       timeseriesData,
       rule,
+      seriesName: formattedAggregate,
       incidents,
       selectedIncident,
       showWaitingForData:
@@ -330,7 +331,7 @@ class MetricChart extends PureComponent<Props, State> {
           </ChartHeader>
           <ChartFilters>
             <StyledCircleIndicator size={8} />
-            <Filters>{formatMRIField(rule.aggregate)}</Filters>
+            <Filters>{formattedAggregate ?? rule.aggregate}</Filters>
             <Tooltip
               title={queryFilter}
               isHoverable
@@ -360,11 +361,13 @@ class MetricChart extends PureComponent<Props, State> {
                       formatter: seriesParams => {
                         // seriesParams can be object instead of array
                         const pointSeries = toArray(seriesParams);
-                        const {marker, data: pointData, seriesName} = pointSeries[0];
+                        const {marker, data: pointData} = pointSeries[0];
+                        const seriesName =
+                          formattedAggregate ?? pointSeries[0].seriesName ?? '';
                         const [pointX, pointY] = pointData as [number, number];
                         const pointYFormatted = alertTooltipValueFormatter(
                           pointY,
-                          seriesName ?? '',
+                          seriesName,
                           rule.aggregate
                         );
 
@@ -398,7 +401,7 @@ class MetricChart extends PureComponent<Props, State> {
                           comparisonPointY !== undefined
                             ? alertTooltipValueFormatter(
                                 comparisonPointY,
-                                seriesName ?? '',
+                                seriesName,
                                 rule.aggregate
                               )
                             : undefined;

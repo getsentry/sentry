@@ -39,7 +39,7 @@ const BUILTIN_TAGS_BY_CATEGORY = {
   }, {}),
 };
 
-function getBuiltInTags(organization: Organization) {
+export function getBuiltInTags(organization: Organization) {
   if (organization.features.includes('issue-stream-search-query-builder')) {
     return BUILTIN_TAGS_BY_CATEGORY;
   }
@@ -243,9 +243,6 @@ const storeConfig: TagStoreDefinition = {
       ...eventTags,
       ...this.getIssueAttributes(org),
     };
-    if (!org.features.includes('device-classification')) {
-      delete issueTags[FieldKey.DEVICE_CLASS];
-    }
     return issueTags;
   },
 

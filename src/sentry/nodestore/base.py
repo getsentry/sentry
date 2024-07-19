@@ -130,6 +130,7 @@ class NodeStorage(local, Service):
     def _get_bytes(self, id: str) -> bytes | None:
         raise NotImplementedError
 
+    @metrics.wraps("nodestore.get.duration")
     def get(self, id: str, subkey: str | None = None) -> Any:
         """
         >>> nodestore.get('key1')

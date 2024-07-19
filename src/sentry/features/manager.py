@@ -328,9 +328,11 @@ class FeatureManager(RegisteredFeatureManager):
         OrganizationFeatures.
         """
         if self._entity_handler:
-            return self._entity_handler.batch_has(
-                feature_names, actor, projects=projects, organization=organization
-            )
+            with metrics.timer("features.entity_batch_has", sample_rate=0.01):
+                return self._entity_handler.batch_has(
+                    feature_names, actor, projects=projects, organization=organization
+                )
+
         else:
             # Fall back to default handler if no entity handler available.
             project_features = [name for name in feature_names if name.startswith("projects:")]

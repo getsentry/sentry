@@ -5099,6 +5099,10 @@
       [
         "file",
         "relocation"
+      ],
+      [
+        "kind",
+        "relocation"
       ]
     ]
   },
@@ -6148,6 +6152,16 @@
   "uptime.projectuptimesubscription": {
     "dangling": false,
     "foreign_keys": {
+      "owner_team": {
+        "kind": "FlexibleForeignKey",
+        "model": "sentry.team",
+        "nullable": true
+      },
+      "owner_user_id": {
+        "kind": "HybridCloudForeignKey",
+        "model": "sentry.user",
+        "nullable": true
+      },
       "project": {
         "kind": "FlexibleForeignKey",
         "model": "sentry.project",
