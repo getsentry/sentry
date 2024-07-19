@@ -28,7 +28,6 @@ ORGANIZATION_MEMBER = {
             }
         ],
         "avatar": {"avatarType": "letter_avatar", "avatarUuid": None},
-        "authenticators": [],
         "canReset2fa": True,
     },
     "orgRole": "member",
