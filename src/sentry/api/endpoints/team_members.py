@@ -83,7 +83,7 @@ class TeamMembersEndpoint(TeamEndpoint):
         """
         List all members on a team.
 
-        The response will not include member's with pending invites.
+        The response will not include members with pending invites.
         """
         queryset = OrganizationMemberTeam.objects.filter(
             Q(organizationmember__user_is_active=True, organizationmember__user_id__isnull=False)
