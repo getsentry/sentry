@@ -1,4 +1,12 @@
+from copy import deepcopy
+
 from drf_spectacular.utils import OpenApiExample
+
+from sentry.apidocs.examples.organization_member_examples import ORGANIZATION_MEMBER
+
+ORGANIZATION_MEMBER_ON_TEAM = deepcopy(ORGANIZATION_MEMBER)
+ORGANIZATION_MEMBER_ON_TEAM["teamRole"] = "member"
+ORGANIZATION_MEMBER_ON_TEAM["teamSlug"] = "powerful-abolitionist"
 
 
 class TeamExamples:
@@ -102,7 +110,14 @@ class TeamExamples:
         )
     ]
 
-    LIST_TEAM_MEMBERS = []
+    LIST_TEAM_MEMBERS = [
+        OpenApiExample(
+            "List Team Members",
+            value=[ORGANIZATION_MEMBER_ON_TEAM],
+            status_codes=["200"],
+            response_only=True,
+        )
+    ]
 
     LIST_ORG_TEAMS = [
         OpenApiExample(

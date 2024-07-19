@@ -59,7 +59,7 @@ class DetailedOrganizationMemberTeamSerializer(Serializer):
 @region_silo_endpoint
 class TeamMembersEndpoint(TeamEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PUBLIC,
     }
     owner = ApiOwner.ENTERPRISE
 
@@ -70,7 +70,6 @@ class TeamMembersEndpoint(TeamEndpoint):
             GlobalParams.TEAM_ID_OR_SLUG,
             CursorQueryParam,
         ],
-        request=None,
         responses={
             200: inline_sentry_response_serializer(
                 "ListMemberOnTeamResponse", list[OrganizationMemberOnTeamResponse]
@@ -78,7 +77,7 @@ class TeamMembersEndpoint(TeamEndpoint):
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
         },
-        examples=TeamExamples.LIST_TEAM_PROJECTS,
+        examples=TeamExamples.LIST_TEAM_MEMBERS,
     )
     def get(self, request: Request, team) -> Response:
         """
