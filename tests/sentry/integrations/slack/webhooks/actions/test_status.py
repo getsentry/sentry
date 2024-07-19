@@ -597,7 +597,6 @@ class StatusActionTest(BaseEventTest, PerformanceIssueTestCase, HybridCloudTestM
             "integration": ActivityIntegration.SLACK.value,
         }
 
-    @with_feature("organizations:slack-sdk-webhook-handling")
     @patch("sentry.integrations.slack.webhooks.action.logger")
     def test_assign_issue_with_sdk_error(self, mock_logger):
         mock_slack_response = SlackResponse(
