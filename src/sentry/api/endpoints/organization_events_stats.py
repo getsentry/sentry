@@ -107,9 +107,7 @@ ALLOWED_EVENTS_STATS_REFERRERS: set[str] = {
 }
 
 
-def add_split_decision_to_meta(
-    results: dict[str, SnubaTSResult] | SnubaTSResult, widget_type: DashboardWidgetTypes
-):
+def add_split_decision_to_meta(results: dict[str, SnubaTSResult] | SnubaTSResult, widget_type: int):
     for result in results.values() if isinstance(results, dict) else [results]:
         if not result.data.get("meta"):
             result.data["meta"] = {}
