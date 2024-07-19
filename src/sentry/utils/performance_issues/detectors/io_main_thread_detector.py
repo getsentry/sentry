@@ -117,7 +117,7 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
 
     __slots__ = ("stored_problems",)
 
-    IGNORED_LIST = {".nib", ".plist", "KBLayout_iPhone.dat"}
+    IGNORED_LIST = {".nib", ".plist", "kblayout_iphone.dat"}
     SPAN_PREFIX = "file"
     type = DetectorType.FILE_IO_MAIN_THREAD
     settings_key = DetectorType.FILE_IO_MAIN_THREAD
@@ -193,7 +193,7 @@ class FileIOMainThreadDetector(BaseIOMainThreadDetector):
         data = span.get("data", {})
         if data is None:
             return False
-        file_path = data.get("file.path", "")
+        file_path = data.get("file.path", "").lower()
         if any(file_path.endswith(ext) for ext in self.IGNORED_LIST):
             return False
         # doing is True since the value can be any type
