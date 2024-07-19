@@ -17,6 +17,7 @@ from sentry.db.models import (
     control_silo_model,
     sane_repr,
 )
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope, outbox_context
 from sentry.types.region import find_all_region_names
@@ -61,6 +62,21 @@ class ApiApplication(Model):
     homepage_url = models.URLField(null=True)
     privacy_url = models.URLField(null=True)
     terms_url = models.URLField(null=True)
+
+    # API applications can be tied to an untrusted organization.
+    #
+    # This represents several security risks. A phishing risk and cross organization access for
+    # the integrator. Before creating an access_token for a user, verify the user has access to
+    # the organization defined on the application. Restrict the access_token to only access the
+    # organization defined on the application. Cross-organization access is not tolerable
+    # regardless of the token's scope.
+    organization_id = HybridCloudForeignKey(
+        "sentry.Organization",
+        db_index=True,
+        null=True,
+        on_delete="CASCADE",
+        unique=True,
+    )
 
     date_added = models.DateTimeField(default=timezone.now)
 

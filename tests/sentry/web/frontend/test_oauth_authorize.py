@@ -346,3 +346,79 @@ class OAuthAuthorizeTokenTest(TestCase):
         assert fragment_d == {"error": ["access_denied"]}
 
         assert not ApiToken.objects.filter(user=self.user).exists()
+
+
+@control_silo_test
+class OrganizationOAuthAuthorizeTokenTest(TestCase):
+    path = "/oauth/authorize/"
+
+    def test_authorization_with_membership(self):
+        self.login_as(self.user)
+
+        self.application = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="https://example.com",
+            organization_id=self.organization.id,
+        )
+
+        resp = self.client.get(
+            f"{self.path}?client_id={self.application.client_id}&response_type=token"
+            "&redirect_uri=https://example.com"
+        )
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/oauth-authorize.html")
+        assert resp.context["application"] == self.application
+
+        resp = self.client.post(self.path, {"op": "approve"})
+
+        # No grant.
+        assert not ApiGrant.objects.filter(user=self.user).exists()
+
+        # Token was created.
+        token = ApiToken.objects.get(user=self.user)
+        assert token.application == self.application
+        assert not token.get_scopes()
+        assert not token.refresh_token
+
+        # Client was redirected with OAuth2 credentials.
+        assert resp.status_code == 302
+        location, fragment = resp["Location"].split("#", 1)
+        assert location == "https://example.com"
+        fragment_d = parse_qs(fragment)
+        assert fragment_d["access_token"] == [token.token]
+        assert fragment_d["token_type"] == ["bearer"]
+        assert "refresh_token" not in fragment_d
+        assert fragment_d["expires_in"]
+        assert fragment_d["token_type"] == ["bearer"]
+
+    def test_authorization_without_membership(self):
+        self.login_as(self.user)
+
+        self.application = ApiApplication.objects.create(
+            owner=self.user,
+            redirect_uris="https://example.com",
+            # NOTE: An organization not known to the user is associated with the application.
+            organization_id=self.create_organization().id,
+        )
+
+        resp = self.client.get(
+            f"{self.path}?client_id={self.application.client_id}&response_type=token"
+            "&redirect_uri=https://example.com"
+        )
+        assert resp.status_code == 200
+        self.assertTemplateUsed("sentry/oauth-authorize.html")
+        assert resp.context["application"] == self.application
+
+        resp = self.client.post(self.path, {"op": "approve"})
+
+        # No grant.
+        assert not ApiGrant.objects.filter(user=self.user).exists()
+
+        # Token was created.
+        assert not ApiToken.objects.filter(user=self.user).exists()
+
+        # Client was redirected with OAuth2 credentials.
+        assert resp.status_code == 302
+        location, fragment = resp["Location"].split("#", 1)
+        assert location == "https://example.com"
+        assert parse_qs(fragment)["error"] == "access_denied"

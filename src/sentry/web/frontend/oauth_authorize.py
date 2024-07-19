@@ -12,6 +12,8 @@ from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
+from sentry.models.organizationmember import OrganizationMember
+from sentry.organizations.services.organization import organization_service
 from sentry.utils import metrics
 from sentry.web.frontend.auth_login import AuthLoginView
 
@@ -252,6 +254,23 @@ class OAuthAuthorizeView(AuthLoginView):
 
         op = request.POST.get("op")
         if op == "approve":
+            if application.organization_id:
+                # For organization tied applications: if the user does not have access to the
+                # organization then absolutely do not issue an access-token.
+                member = organization_service.check_membership_by_id(
+                    organization_id=application.organization_id,
+                    user_id=request.user.id,
+                )
+                if member is None:
+                    return self.error(
+                        request=request,
+                        client_id=payload["cid"],
+                        response_type=response_type,
+                        redirect_uri=redirect_uri,
+                        name="access_denied",
+                        state=payload["st"],
+                    )
+
             return self.approve(
                 request=request,
                 application=application,
