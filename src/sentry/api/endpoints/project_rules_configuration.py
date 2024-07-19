@@ -1,3 +1,5 @@
+import copy
+
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -95,9 +97,12 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                 ) and not has_is_in:
                     # Filter the form_fields to strip `is_in` choices
                     match_choices = context["formFields"]["match"]["choices"]
-                    context["formFields"]["match"]["choices"] = [
+                    copied_context = copy.deepcopy(context)
+                    copied_context["formFields"]["match"]["choices"] = [
                         choice for choice in match_choices if choice[0] != MatchType.IS_IN
                     ]
+                    filter_list.append(copied_context)
+                    continue
                 filter_list.append(context)
             elif rule_type.startswith("action/"):
                 action_list.append(context)
