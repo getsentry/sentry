@@ -43,6 +43,10 @@ SAVED_QUERY_DATASET_MAP = {
     DiscoverSavedQueryTypes.TRANSACTION_LIKE: get_dataset("discover"),
     DiscoverSavedQueryTypes.ERROR_EVENTS: get_dataset("errors"),
 }
+DASHBOARDS_DATASET_MAP = {
+    DashboardWidgetTypes.TRANSACTION_LIKE: get_dataset("metricsEnhanced"),
+    DashboardWidgetTypes.ERROR_EVENTS: get_dataset("errors"),
+}
 
 
 class DiscoverDatasetSplitException(Exception):
@@ -420,6 +424,32 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
 
                     return _data_fn(split_dataset, offset, limit, scoped_query)
 
+                dataset_inferred_from_query = dataset_split_decision_inferred_from_query(
+                    self.get_field_list(organization, request), scoped_query, DashboardWidgetTypes
+                )
+                has_errors = False
+                has_transactions = False
+
+                if dataset_inferred_from_query is not None:
+                    result = _data_fn(
+                        DASHBOARDS_DATASET_MAP[dataset_inferred_from_query],
+                        offset,
+                        limit,
+                        scoped_query,
+                    )
+                    result["meta"]["discoverSplitDecision"] = DashboardWidgetTypes.get_type_name(
+                        dataset_inferred_from_query
+                    )
+
+                    self.save_dashboard_widget_split_decision(
+                        widget,
+                        dataset_inferred_from_query,
+                        has_errors,
+                        has_transactions,
+                    )
+
+                    return result
+
                 try:
                     error_results = _data_fn(errors, offset, limit, scoped_query)
                     # Widget has not split the discover dataset yet, so we need to check if there are errors etc.
@@ -446,7 +476,9 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     transaction_results = _data_fn(transactions, offset, limit, scoped_query)
                     has_transactions = len(transaction_results["data"]) > 0
 
-                decision = self.save_split_decision(widget, has_errors, has_transactions)
+                decision = self.save_dashboard_widget_split_decision(
+                    widget, dataset_inferred_from_query, has_errors, has_transactions
+                )
 
                 if decision == DashboardWidgetTypes.DISCOVER:
                     return _data_fn(discover, offset, limit, scoped_query)

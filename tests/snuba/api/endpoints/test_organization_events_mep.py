@@ -3836,6 +3836,65 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         widget.refresh_from_db()
         assert widget.discover_widget_split is DashboardWidgetTypes.DISCOVER
 
+    @mock.patch("sentry.snuba.metrics_enhanced_performance.query")
+    def test_split_decision_can_be_inferred_from_fields(self, mock_mep_query):
+        _, widget, __ = create_widget(
+            ["count()"], "", self.project, discover_widget_split=None, columns=["error.type"]
+        )
+        assert widget.discover_widget_split is None
+
+        response = self.do_request(
+            {
+                "field": ["error.type", "count()"],
+                "query": "",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": widget.id,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data.get("meta").get(
+            "discoverSplitDecision"
+        ) is DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
+
+        widget.refresh_from_db()
+        assert widget.discover_widget_split is DashboardWidgetTypes.ERROR_EVENTS
+
+        # This is the "original" data call that gets bypassed by the inference
+        mock_mep_query.assert_not_called()
+
+    @mock.patch("sentry.snuba.metrics_enhanced_performance.query")
+    def test_split_decision_can_be_inferred_from_query(self, mock_mep_query):
+        _, widget, __ = create_widget(
+            ["count()"],
+            "",
+            self.project,
+            discover_widget_split=None,
+        )
+        assert widget.discover_widget_split is None
+
+        response = self.do_request(
+            {
+                "field": ["count()"],
+                "query": "error.type:blah",
+                "dataset": "metricsEnhanced",
+                "per_page": 50,
+                "dashboardWidgetId": widget.id,
+            }
+        )
+
+        assert response.status_code == 200, response.content
+        assert response.data.get("meta").get(
+            "discoverSplitDecision"
+        ) is DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
+
+        widget.refresh_from_db()
+        assert widget.discover_widget_split is DashboardWidgetTypes.ERROR_EVENTS
+
+        # This is the "original" data call that gets bypassed by the inference
+        mock_mep_query.assert_not_called()
+
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
     OrganizationEventsMetricsEnhancedPerformanceEndpointTest
