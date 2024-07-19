@@ -1606,7 +1606,7 @@ class ProjectDeleteTest(APITestCase):
             model_name="Project", object_id=self.project.id
         ).exists()
 
-    @with_feature("projects:similarity-embeddings-delete-by-hash")
+    @with_feature("projects:similarity-embeddings-grouping")
     @mock.patch(
         "sentry.tasks.delete_seer_grouping_records.call_seer_delete_project_grouping_records.apply_async"
     )
