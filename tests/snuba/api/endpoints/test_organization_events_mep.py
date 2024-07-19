@@ -3854,15 +3854,16 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         )
 
         assert response.status_code == 200, response.content
+
+        # This is the "original" data call that gets bypassed by the inference
+        mock_mep_query.assert_not_called()
+
         assert response.data.get("meta").get(
             "discoverSplitDecision"
         ) is DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
 
         widget.refresh_from_db()
         assert widget.discover_widget_split is DashboardWidgetTypes.ERROR_EVENTS
-
-        # This is the "original" data call that gets bypassed by the inference
-        mock_mep_query.assert_not_called()
 
     @mock.patch("sentry.snuba.metrics_enhanced_performance.query")
     def test_split_decision_can_be_inferred_from_query(self, mock_mep_query):
@@ -3885,15 +3886,16 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
         )
 
         assert response.status_code == 200, response.content
+
+        # This is the "original" data call that gets bypassed by the inference
+        mock_mep_query.assert_not_called()
+
         assert response.data.get("meta").get(
             "discoverSplitDecision"
         ) is DashboardWidgetTypes.get_type_name(DashboardWidgetTypes.ERROR_EVENTS)
 
         widget.refresh_from_db()
         assert widget.discover_widget_split is DashboardWidgetTypes.ERROR_EVENTS
-
-        # This is the "original" data call that gets bypassed by the inference
-        mock_mep_query.assert_not_called()
 
 
 class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithMetricLayer(
