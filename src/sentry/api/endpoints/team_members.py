@@ -22,7 +22,7 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 class OrganizationMemberOnTeamResponse(OrganizationMemberResponse):
     # NOTE: We override users to be required b/c team members will always have
     # an existing user to be part of a team.
-    user: UserSerializerResponse
+    user: UserSerializerResponse  # type: ignore[misc]
     teamRole: str | None
     teamSlug: str
 
@@ -52,7 +52,7 @@ class DetailedOrganizationMemberTeamSerializer(Serializer):
             }
         return attrs
 
-    def serialize(self, obj, attrs, user) -> OrganizationMemberOnTeamResponse:
+    def serialize(self, obj, attrs, user, **kwargs) -> OrganizationMemberOnTeamResponse:
         org_member = attrs["org_member"]
         org_member["teamRole"] = obj.role
         org_member["teamSlug"] = self.team.slug
