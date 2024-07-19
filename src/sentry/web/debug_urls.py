@@ -2,6 +2,7 @@ from django.urls import re_path
 from django.views.generic import TemplateView
 
 import sentry.web.frontend.debug.mail
+from sentry.integrations.web.debug.debug_notify_disable import DebugNotifyDisableView
 from sentry.web.frontend.debug import debug_auth_views
 from sentry.web.frontend.debug.debug_assigned_email import (
     DebugAssignedEmailView,
@@ -31,7 +32,6 @@ from sentry.web.frontend.debug.debug_missing_member_nudge_email import DebugMiss
 from sentry.web.frontend.debug.debug_new_release_email import DebugNewReleaseEmailView
 from sentry.web.frontend.debug.debug_new_user_feedback_email import DebugNewUserFeedbackEmailView
 from sentry.web.frontend.debug.debug_note_email import DebugNoteEmailView
-from sentry.web.frontend.debug.debug_notify_disable import DebugNotifyDisableView
 from sentry.web.frontend.debug.debug_oauth_authorize import (
     DebugOAuthAuthorizeErrorView,
     DebugOAuthAuthorizeView,

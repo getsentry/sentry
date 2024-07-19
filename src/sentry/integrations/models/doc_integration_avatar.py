@@ -4,8 +4,7 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.db.models import FlexibleForeignKey, control_silo_model
-
-from . import ControlAvatarBase
+from sentry.models.avatars import ControlAvatarBase
 
 
 @control_silo_model

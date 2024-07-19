@@ -1,6 +1,8 @@
 from django.urls import reverse
 
-from sentry.api.endpoints.organization_code_mappings import BRANCH_NAME_ERROR_MESSAGE
+from sentry.integrations.api.endpoints.organization.organization_code_mappings import (
+    BRANCH_NAME_ERROR_MESSAGE,
+)
 from sentry.models.repository import Repository
 from sentry.testutils.cases import APITestCase
 

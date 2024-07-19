@@ -1,10 +1,10 @@
 import orjson
 
-from sentry.utils.signing import unsign
-from sentry.web.frontend.base import control_silo_view
-from sentry.web.frontend.integration_extension_configuration import (
+from sentry.integrations.web.integration_extension_configuration import (
     IntegrationExtensionConfigurationView,
 )
+from sentry.utils.signing import unsign
+from sentry.web.frontend.base import control_silo_view
 
 # 24 hours to finish installation
 INSTALL_EXPIRATION_TIME = 60 * 60 * 24

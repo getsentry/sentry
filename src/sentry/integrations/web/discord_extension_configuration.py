@@ -1,4 +1,6 @@
-from .integration_extension_configuration import IntegrationExtensionConfigurationView
+from sentry.integrations.web.integration_extension_configuration import (
+    IntegrationExtensionConfigurationView,
+)
 
 
 class DiscordExtensionConfigurationView(IntegrationExtensionConfigurationView):

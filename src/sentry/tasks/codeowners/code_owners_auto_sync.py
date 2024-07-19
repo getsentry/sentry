@@ -21,7 +21,9 @@ from sentry.tasks.base import instrumented_task, retry
 def code_owners_auto_sync(commit_id: int, **kwargs):
     from django.db.models import BooleanField, Case, Exists, OuterRef, Subquery, When
 
-    from sentry.api.endpoints.organization_code_mapping_codeowners import get_codeowner_contents
+    from sentry.integrations.api.endpoints.organization.organization_code_mapping_codeowners import (
+        get_codeowner_contents,
+    )
 
     commit = Commit.objects.get(id=commit_id)
 

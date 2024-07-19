@@ -14,9 +14,6 @@ from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
-from sentry.api.endpoints.organization_integration_migrate_opsgenie import (
-    OrganizationIntegrationMigrateOpsgenieEndpoint,
-)
 from sentry.api.endpoints.organization_minimal_projects import OrganizationMinimalProjectsEndpoint
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
 from sentry.api.endpoints.organization_projects_experiment import (
@@ -113,6 +110,18 @@ from sentry.incidents.endpoints.team_alerts_triggered import (
     TeamAlertsTriggeredTotalsEndpoint,
 )
 from sentry.integrations.api.endpoints.integration_features import IntegrationFeaturesEndpoint
+from sentry.integrations.api.endpoints.organization.organization_code_mapping_codeowners import (
+    OrganizationCodeMappingCodeOwnersEndpoint,
+)
+from sentry.integrations.api.endpoints.organization.organization_code_mapping_details import (
+    OrganizationCodeMappingDetailsEndpoint,
+)
+from sentry.integrations.api.endpoints.organization.organization_code_mappings import (
+    OrganizationCodeMappingsEndpoint,
+)
+from sentry.integrations.api.endpoints.organization.organization_integration_migrate_opsgenie import (
+    OrganizationIntegrationMigrateOpsgenieEndpoint,
+)
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
     GroupEventsEndpoint,
@@ -206,6 +215,15 @@ from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, Organizatio
 
 from ..integrations.api.endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
 from ..integrations.api.endpoints.group_integrations import GroupIntegrationsEndpoint
+from ..integrations.api.endpoints.organization.organization_integration_issues import (
+    OrganizationIntegrationIssuesEndpoint,
+)
+from ..integrations.api.endpoints.organization.organization_integration_repos import (
+    OrganizationIntegrationReposEndpoint,
+)
+from ..integrations.api.endpoints.organization.organization_integration_serverless_functions import (
+    OrganizationIntegrationServerlessFunctionsEndpoint,
+)
 from .endpoints.accept_organization_invite import AcceptOrganizationInvite
 from .endpoints.accept_project_transfer import AcceptProjectTransferEndpoint
 from .endpoints.admin_project_configs import AdminRelayProjectConfigsEndpoint
@@ -348,11 +366,6 @@ from .endpoints.organization_artifactbundle_assemble import (
 from .endpoints.organization_auditlogs import OrganizationAuditLogsEndpoint
 from .endpoints.organization_auth_provider_details import OrganizationAuthProviderDetailsEndpoint
 from .endpoints.organization_auth_providers import OrganizationAuthProvidersEndpoint
-from .endpoints.organization_code_mapping_codeowners import (
-    OrganizationCodeMappingCodeOwnersEndpoint,
-)
-from .endpoints.organization_code_mapping_details import OrganizationCodeMappingDetailsEndpoint
-from .endpoints.organization_code_mappings import OrganizationCodeMappingsEndpoint
 from .endpoints.organization_codeowners_associations import (
     OrganizationCodeOwnersAssociationsEndpoint,
 )
@@ -406,11 +419,6 @@ from .endpoints.organization_events_trends_v2 import OrganizationEventsNewTrends
 from .endpoints.organization_events_vitals import OrganizationEventsVitalsEndpoint
 from .endpoints.organization_group_index_stats import OrganizationGroupIndexStatsEndpoint
 from .endpoints.organization_index import OrganizationIndexEndpoint
-from .endpoints.organization_integration_issues import OrganizationIntegrationIssuesEndpoint
-from .endpoints.organization_integration_repos import OrganizationIntegrationReposEndpoint
-from .endpoints.organization_integration_serverless_functions import (
-    OrganizationIntegrationServerlessFunctionsEndpoint,
-)
 from .endpoints.organization_issues_count import OrganizationIssuesCountEndpoint
 from .endpoints.organization_issues_resolved_in_release import (
     OrganizationIssuesResolvedInReleaseEndpoint,

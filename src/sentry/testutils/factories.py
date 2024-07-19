@@ -58,6 +58,7 @@ from sentry.incidents.models.incident import (
 )
 from sentry.incidents.utils.types import AlertRuleActivationConditionType
 from sentry.integrations.models.doc_integration import DocIntegration
+from sentry.integrations.models.doc_integration_avatar import DocIntegrationAvatar
 from sentry.integrations.models.external_actor import ExternalActor
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration import Integration
@@ -78,7 +79,6 @@ from sentry.models.apitoken import ApiToken
 from sentry.models.artifactbundle import ArtifactBundle
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
-from sentry.models.avatars.doc_integration_avatar import DocIntegrationAvatar
 from sentry.models.avatars.sentry_app_avatar import SentryAppAvatar
 from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.commit import Commit

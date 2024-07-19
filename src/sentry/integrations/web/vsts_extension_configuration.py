@@ -1,8 +1,9 @@
 import re
 
+from sentry.integrations.web.integration_extension_configuration import (
+    IntegrationExtensionConfigurationView,
+)
 from sentry.web.frontend.base import control_silo_view
-
-from .integration_extension_configuration import IntegrationExtensionConfigurationView
 
 
 @control_silo_view
