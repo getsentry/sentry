@@ -583,7 +583,7 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
     def test_does_not_resolve_for_semver(self, plugin_is_regression: mock.MagicMock) -> None:
         plugin_is_regression.return_value = True
 
-        def _date(minutes):
+        def _date(minutes: int) -> datetime:
             return timezone.now() - timedelta(minutes=minutes)
 
         first_release_version = "com.foo.FooTest@387.0+387.0.18"
