@@ -7,7 +7,7 @@ and get rid of the old one, at which point this can lose the `2`.
 
 import logging
 from enum import Enum
-from typing import NotRequired, TypedDict
+from typing import Any, NotRequired, TypedDict
 
 from sentry.ratelimits.sliding_windows import Quota, RedisSlidingWindowRateLimiter
 
@@ -183,3 +183,13 @@ class CircuitBreaker:
                 self.recovery_duration,
                 self.window,
             )
+
+    def _set_in_redis(self, keys_values_and_timeouts: list[tuple[str, Any, int]]) -> None:
+        for key, value, timeout in keys_values_and_timeouts:
+            self.redis_pipeline.set(key, value, timeout)
+        self.redis_pipeline.execute()
+
+    def _get_from_redis(self, keys: list[str]) -> Any:
+        for key in keys:
+            self.redis_pipeline.get(key)
+        return self.redis_pipeline.execute()
