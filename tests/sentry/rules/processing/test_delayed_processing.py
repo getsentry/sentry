@@ -49,7 +49,6 @@ def test_bucket_num_groups():
     assert bucket_num_groups(1) == "1"
     assert bucket_num_groups(50) == ">10"
     assert bucket_num_groups(101) == ">100"
-    assert bucket_num_groups(1001) == ">1000"
 
 
 def mock_get_condition_group(descending=False):

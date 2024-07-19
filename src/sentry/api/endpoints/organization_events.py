@@ -1,7 +1,7 @@
 import logging
 from collections.abc import Mapping
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from typing import Any
+from typing import Any, NotRequired, TypedDict
 
 import sentry_sdk
 from drf_spectacular.utils import OpenApiResponse, extend_schema
@@ -39,7 +39,6 @@ from sentry.utils.snuba import SnubaError
 logger = logging.getLogger(__name__)
 
 METRICS_ENHANCED_REFERRERS = {Referrer.API_PERFORMANCE_LANDING_TABLE.value}
-EMPTY_EVENTS_RESPONSE: discover.EventsResponse = {"data": [], "meta": {"fields": {}}}
 SAVED_QUERY_DATASET_MAP = {
     DiscoverSavedQueryTypes.TRANSACTION_LIKE: get_dataset("discover"),
     DiscoverSavedQueryTypes.ERROR_EVENTS: get_dataset("errors"),
@@ -132,6 +131,27 @@ DEFAULT_REDUCED_RATE_LIMIT = dict(
     limit=1000, window=300, concurrent_limit=15  # 1000 requests per 5 minutes
 )
 DEFAULT_INCREASED_RATE_LIMIT = dict(limit=50, window=1, concurrent_limit=50)
+
+
+class EventsMeta(TypedDict):
+    fields: dict[str, str]
+    datasetReason: NotRequired[str]
+    isMetricsData: NotRequired[bool]
+    isMetricsExtractedData: NotRequired[bool]
+
+
+# Only used for api docs
+class EventsApiResponse(TypedDict):
+    data: list[dict[str, Any]]
+    meta: EventsMeta
+
+
+# When calling make build-spectacular-docs we hit this issue
+# https://github.com/tfranzel/drf-spectacular/issues/1041
+# This is a work around
+EventsMeta.__annotations__["datasetReason"] = str
+EventsMeta.__annotations__["isMetricsData"] = bool
+EventsMeta.__annotations__["isMetricsExtractedData"] = bool
 
 
 def rate_limit_events(
@@ -266,7 +286,7 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
         ],
         responses={
             200: inline_sentry_response_serializer(
-                "OrganizationEventsResponseDict", discover.EventsResponse
+                "OrganizationEventsResponseDict", EventsApiResponse
             ),
             400: OpenApiResponse(description="Invalid Query"),
             404: api_constants.RESPONSE_NOT_FOUND,

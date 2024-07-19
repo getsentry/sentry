@@ -1,13 +1,18 @@
 import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitForElementToBeRemoved} from 'sentry-test/reactTestingLibrary';
 
 import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
+import useProjects from 'sentry/utils/useProjects';
 import WebVitalsLandingPage from 'sentry/views/insights/browser/webVitals/views/webVitalsLandingPage';
+import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
+jest.mock('sentry/utils/useProjects');
+jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
 
 describe('WebVitalsLandingPage', function () {
   const organization = OrganizationFixture({
@@ -17,6 +22,17 @@ describe('WebVitalsLandingPage', function () {
   let eventsMock;
 
   beforeEach(function () {
+    jest.mocked(useOnboardingProject).mockReturnValue(undefined);
+    jest.mocked(useProjects).mockReturnValue({
+      projects: [ProjectFixture({hasInsightsVitals: true})],
+      onSearch: jest.fn(),
+      placeholders: [],
+      fetching: false,
+      hasMore: null,
+      fetchError: null,
+      initiallyLoaded: false,
+    });
+
     jest.mocked(useLocation).mockReturnValue({
       pathname: '',
       search: '',
@@ -102,6 +118,8 @@ describe('WebVitalsLandingPage', function () {
         query: expect.objectContaining({
           dataset: 'metrics',
           field: [
+            'project.id',
+            'project',
             'transaction',
             'p75(measurements.lcp)',
             'p75(measurements.fcp)',

@@ -10,7 +10,7 @@ import sentry_sdk
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
 from sentry.models.organization import Organization
-from sentry.search.events.types import ParamsType
+from sentry.search.events.types import EventsResponse, ParamsType
 from sentry.snuba import discover, transactions
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics_performance import histogram_query as metrics_histogram_query
@@ -178,7 +178,7 @@ def timeseries_query(
         )
     return SnubaTSResult(
         {
-            "data": discover.zerofill([], params["start"], params["end"], rollup, "time")
+            "data": discover.zerofill([], params["start"], params["end"], rollup, ["time"])
             if zerofill_results
             else [],
         },
@@ -189,22 +189,22 @@ def timeseries_query(
 
 
 def top_events_timeseries(
-    timeseries_columns: Sequence[str],
-    selected_columns: Sequence[str],
+    timeseries_columns: list[str],
+    selected_columns: list[str],
     user_query: str,
-    params: dict[str, str],
-    orderby: Sequence[str],
+    params: ParamsType,
+    orderby: list[str],
     rollup: int,
     limit: int,
     organization: Organization,
-    equations: Sequence[Any] | None = None,
+    equations: list[str] | None = None,
     referrer: str | None = None,
-    top_events=None,
-    allow_empty: bool | None = True,
-    zerofill_results: bool | None = True,
-    include_other: bool | None = False,
+    top_events: EventsResponse | None = None,
+    allow_empty: bool = True,
+    zerofill_results: bool = True,
+    include_other: bool = False,
     functions_acl: list[str] | None = None,
-    on_demand_metrics_enabled: bool | None = False,
+    on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type: MetricSpecType | None = None,
 ) -> SnubaTSResult | dict[str, Any]:
     metrics_compatible = False
@@ -263,7 +263,7 @@ def top_events_timeseries(
         )
     return SnubaTSResult(
         {
-            "data": discover.zerofill([], params["start"], params["end"], rollup, "time")
+            "data": discover.zerofill([], params["start"], params["end"], rollup, ["time"])
             if zerofill_results
             else [],
         },

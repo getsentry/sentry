@@ -130,7 +130,7 @@ class OrganizationTracesEndpoint(OrganizationTracesEndpointBase):
         serialized = serializer.validated_data
 
         executor = TracesExecutor(
-            params=cast(ParamsType, params),
+            params=params,
             snuba_params=snuba_params,
             user_queries=serialized.get("query", []),
             metrics_max=serialized.get("metricsMax"),
@@ -198,7 +198,7 @@ class OrganizationTraceSpansEndpoint(OrganizationTracesEndpointBase):
         serialized = serializer.validated_data
 
         executor = TraceSpansExecutor(
-            params=cast(ParamsType, params),
+            params=params,
             snuba_params=snuba_params,
             trace_id=trace_id,
             fields=serialized["field"],
@@ -273,7 +273,7 @@ class OrganizationTracesStatsEndpoint(OrganizationTracesEndpointBase):
             comparison_delta: timedelta | None,
         ) -> SnubaTSResult:
             executor = TraceStatsExecutor(
-                params=cast(ParamsType, params),
+                params=params,
                 snuba_params=snuba_params,
                 columns=serialized["yAxis"],
                 user_queries=serialized.get("query", []),
@@ -1159,7 +1159,7 @@ class TraceStatsExecutor:
                 self.params["start"],
                 self.params["end"],
                 self.rollup,
-                "time",
+                ["time"],
             )
             if self.zerofill_results
             else result["data"]

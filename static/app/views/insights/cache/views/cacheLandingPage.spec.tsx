@@ -13,10 +13,12 @@ import {useLocation} from 'sentry/utils/useLocation';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 import {CacheLandingPage} from 'sentry/views/insights/cache/views/cacheLandingPage';
+import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 
 jest.mock('sentry/utils/useLocation');
 jest.mock('sentry/utils/usePageFilters');
 jest.mock('sentry/utils/useProjects');
+jest.mock('sentry/views/insights/common/queries/useOnboardingProject');
 
 const requestMocks = {
   missRateChart: jest.fn(),
@@ -226,6 +228,7 @@ describe('CacheLandingPage', function () {
   });
 
   it('shows module onboarding', async function () {
+    jest.mocked(useOnboardingProject).mockReturnValue(undefined);
     jest.mocked(useProjects).mockReturnValue({
       projects: [
         ProjectFixture({
@@ -249,7 +252,7 @@ describe('CacheLandingPage', function () {
 
     await waitFor(() => {
       expect(
-        screen.getByText('Make sure your application’s caching is behaving properly')
+        screen.getByText('Bringing you one less hard problem in computer science')
       ).toBeInTheDocument();
     });
   });

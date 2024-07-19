@@ -26,6 +26,7 @@ describe('groupEvents', () => {
     router: {} as any,
     routes: [],
     location: {},
+    environments: [],
     group: GroupFixture() as Group,
   });
 
@@ -117,6 +118,12 @@ describe('groupEvents', () => {
       url: '/issues/1/events/latest/',
       body: {},
     });
+
+    requests.tags = MockApiClient.addMockResponse({
+      method: 'GET',
+      url: '/organizations/org-slug/issues/1/tags/',
+      body: [],
+    });
   });
 
   afterEach(() => {
@@ -168,6 +175,56 @@ describe('groupEvents', () => {
         })
       );
     }
+  });
+
+  it('pushes new query parameter when searching (issue-stream-search-query-builder)', async () => {
+    render(<GroupEvents {...baseProps} location={{...location, query: {}}} />, {
+      router,
+      organization: {...organization, features: ['issue-stream-search-query-builder']},
+    });
+
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+    const input = screen.getByPlaceholderText('Search events...');
+
+    await userEvent.click(input);
+    await userEvent.keyboard('foo');
+    await userEvent.keyboard('{enter}');
+
+    await waitFor(() => {
+      expect(browserHistory.push).toHaveBeenCalledWith(
+        expect.objectContaining({
+          query: {query: 'foo'},
+        })
+      );
+    });
+  });
+
+  it('displays event filters and tags (issue-stream-search-query-builder)', async () => {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/1/tags/',
+      body: [{key: 'custom_tag', name: 'custom_tag', totalValues: 1}],
+    });
+
+    render(<GroupEvents {...baseProps} location={{...location, query: {}}} />, {
+      router,
+      organization: {...organization, features: ['issue-stream-search-query-builder']},
+    });
+
+    await waitForElementToBeRemoved(() => screen.queryByTestId('loading-indicator'));
+    const input = screen.getByPlaceholderText('Search events...');
+
+    await userEvent.click(input);
+
+    expect(
+      await screen.findByRole('button', {name: 'Event Filters'})
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', {name: 'Event Tags'})).toBeInTheDocument();
+
+    // Should show custom_tag fetched from group tags
+    expect(screen.getByRole('option', {name: 'custom_tag'})).toBeInTheDocument();
+
+    // Should hardcoded event filters
+    expect(screen.getByRole('option', {name: 'event.type'})).toBeInTheDocument();
   });
 
   it('handles environment filtering', async () => {

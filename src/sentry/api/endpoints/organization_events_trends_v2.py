@@ -210,7 +210,7 @@ class OrganizationEventsNewTrendsStatsEndpoint(OrganizationEventsV2EndpointBase)
                                 pruned_params["start"],
                                 pruned_params["end"],
                                 rollup,
-                                "time",
+                                ["time"],
                             )
                             if zerofill_results
                             else item["data"]

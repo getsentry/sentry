@@ -11,7 +11,7 @@ from django.http import HttpRequest, HttpResponse
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.exceptions import AuthenticationFailed, NotAuthenticated
 
-from sentry import analytics, audit_log, eventstore, features, options
+from sentry import analytics, audit_log, eventstore, options
 from sentry.api import client
 from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
@@ -488,7 +488,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
         integration_service.delete_integration(integration_id=integration.id)
         return self.respond(status=204)
 
-    def make_action_data(self, data, user_id, has_escalating_issues=False):
+    def make_action_data(self, data, user_id):
         action_data = {}
         action_type = data["payload"]["actionType"]
         if action_type == ACTION_TYPE.UNRESOLVE:
@@ -509,8 +509,6 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             ignore_count = data.get("ignoreInput")
             if ignore_count:
                 action_data = {"status": "ignored"}
-                if has_escalating_issues:
-                    action_data.update({"substatus": "archived_until_condition_met"})
                 if int(ignore_count) > 0:
                     action_data.update({"statusDetails": {"ignoreCount": int(ignore_count)}})
         elif action_type == ACTION_TYPE.ASSIGN:
@@ -527,10 +525,6 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             organization_id=group.project.organization_id, scope_list=["event:write"]
         )
 
-        has_escalating_issues = features.has(
-            "organizations:escalating-issues-msteams", group.project.organization
-        )
-
         # undoing the enum structure of ACTION_TYPE to
         # get a more sensible analytics_event
         action_types = {
@@ -540,7 +534,7 @@ class MsTeamsWebhookEndpoint(Endpoint, MsTeamsWebhookMixin):
             ACTION_TYPE.UNRESOLVE: "unresolve",
             ACTION_TYPE.UNASSIGN: "unassign",
         }
-        action_data = self.make_action_data(data, identity.user_id, has_escalating_issues)
+        action_data = self.make_action_data(data, identity.user_id)
         status = action_types[data["payload"]["actionType"]]
         analytics_event = f"integrations.msteams.{status}"
         analytics.record(
