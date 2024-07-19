@@ -755,7 +755,9 @@ export function SearchQueryBuilderValueCombobox({
     if (canSelectMultipleValues) {
       setInputValue(getMultiSelectInputValue(token));
     }
-  }, [canSelectMultipleValues, token]);
+    // We want to avoid resetting the input value if the token text doesn't actually change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canSelectMultipleValues, token.text]);
 
   // On mount, scroll to the end of the input
   useEffect(() => {

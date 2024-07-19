@@ -91,7 +91,7 @@ interface Props extends React.ComponentProps<typeof SmartSearchBar>, WithIssueTa
 
 const EXCLUDED_TAGS = ['environment'];
 
-function IssueListSearchBar({organization, tags, ...props}: Props) {
+function IssueListSearchBar({organization, tags, onClose, ...props}: Props) {
   const api = useApi();
   const {selection: pageFilters} = usePageFilters();
   const {tags: issueTags} = useFetchIssueTags({
@@ -195,6 +195,13 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
     return getFilterKeySections(issueTags, organization);
   }, [organization, issueTags]);
 
+  const onChange = useCallback(
+    (value: string) => {
+      onClose?.(value, {validSearch: true});
+    },
+    [onClose]
+  );
+
   if (organization.features.includes('issue-stream-search-query-builder')) {
     return (
       <SearchQueryBuilder
@@ -205,9 +212,7 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
         filterKeys={issueTags}
         onSearch={props.onSearch}
         onBlur={props.onBlur}
-        onChange={value => {
-          props.onClose?.(value, {validSearch: true});
-        }}
+        onChange={onChange}
         searchSource={props.searchSource ?? 'issues'}
         savedSearchType={SavedSearchType.ISSUE}
         disallowLogicalOperators
@@ -227,6 +232,7 @@ function IssueListSearchBar({organization, tags, ...props}: Props) {
       supportedTags={getSupportedTags(tags)}
       defaultSearchGroup={recommendedGroup}
       organization={organization}
+      onClose={onClose}
       {...props}
     />
   );
