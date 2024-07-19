@@ -40,6 +40,9 @@ INVALID_SIGNATURE_ERROR = "Provided signature does not match the computed body s
 MALFORMED_SIGNATURE_ERROR = "Signature value does not match the expected format"
 UNSUPPORTED_SIGNATURE_ALGORITHM_ERROR = "Signature algorithm is unsupported"
 MISSING_WEBHOOK_PAYLOAD_ERROR = "Webhook payload not found"
+MISSING_GITHUB_ENTERPRISE_HOST_ERROR = "Missing X-GitHub-Enterprise-Host header"
+MISSING_GITHUB_EVENT_HEADER_ERROR = "Missing X-GitHub-Event header"
+MISSING_SIGNATURE_HEADERS_ERROR = "Missing headers X-Hub-Signature-256 or X-Hub-Signature"
 
 
 class MissingRequiredHeaderError(Exception):
@@ -127,7 +130,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
 
     def is_valid_signature(self, method, body, secret, signature):
         if method != "sha1" and method != "sha256":
-            raise UnsupportedSignatureAlgorithmError("Unsupported signature algorithm")
+            raise UnsupportedSignatureAlgorithmError()
 
         if method == "sha256":
             expected = hmac.new(
@@ -161,11 +164,11 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         try:
             host = get_host(request=request)
             if not host:
-                raise MissingRequiredHeaderError("Missing X-GitHub-Enterprise-Host header")
+                raise MissingRequiredHeaderError()
         except MissingRequiredHeaderError as e:
             logger.exception("github_enterprise.webhook.missing-enterprise-host")
             sentry_sdk.capture_exception(e)
-            return HttpResponse(str(e), status=400)
+            return HttpResponse(MISSING_GITHUB_ENTERPRISE_HOST_ERROR, status=400)
 
         extra = {"host": host}
         # If we do tag the host early we can't even investigate
@@ -181,13 +184,13 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         try:
             github_event = request.headers.get("x-github-event")
             if not github_event:
-                raise MissingRequiredHeaderError("Missing X-GitHub-Event header")
+                raise MissingRequiredHeaderError()
 
             handler = self.get_handler(github_event)
         except MissingRequiredHeaderError as e:
-            logger.warning("github_enterprise.webhook.missing-event", extra=extra)
+            logger.exception("github_enterprise.webhook.missing-event", extra=extra)
             sentry_sdk.capture_exception(e)
-            return HttpResponse(str(e), status=400)
+            return HttpResponse(MISSING_GITHUB_EVENT_HEADER_ERROR, status=400)
 
         if not handler:
             return HttpResponse(status=204)
@@ -215,21 +218,19 @@ class GitHubEnterpriseWebhookBase(Endpoint):
             sha1_signature = request.headers.get("x-hub-signature")
 
             if not sha256_signature and not sha1_signature:
-                raise MissingRequiredHeaderError(
-                    "Missing headers X-Hub-Signature-256 or X-Hub-Signature"
-                )
+                raise MissingRequiredHeaderError()
 
             if sha256_signature:
                 if not re.match(SHA256_PATTERN, sha256_signature):
                     # before we try to parse the parts of the signature, make sure it
                     # looks as expected to avoid any IndexErrors when we split it
-                    raise InvalidSignatureError()
+                    raise MalformedSignatureError()
 
                 _, signature = sha256_signature.split("=", 1)
                 extra["signature_algorithm"] = "sha256"
                 is_valid = self.is_valid_signature("sha256", body, secret, signature)
                 if not is_valid:
-                    raise MalformedSignatureError()
+                    raise InvalidSignatureError()
 
             if sha1_signature:
                 if not re.match(SHA1_PATTERN, sha1_signature):
@@ -256,7 +257,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 extra=extra,
             )
             sentry_sdk.capture_exception(e)
-            return HttpResponse(str(e), 400)
+            return HttpResponse(UNSUPPORTED_SIGNATURE_ALGORITHM_ERROR, 400)
 
         except MissingRequiredHeaderError as e:
             # older versions of GitHub 2.14.0 and older do not always send signature headers
@@ -272,7 +273,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 # the host is not allowed to skip signature verification by omitting the headers
                 logger.warning("github_enterprise.webhook.missing-signature", extra=extra)
                 sentry_sdk.capture_exception(e)
-                return HttpResponse(str(e), status=400)
+                return HttpResponse(MISSING_SIGNATURE_HEADERS_ERROR, status=400)
             else:
                 # the host is allowed to skip signature verification
                 logger.info("github_enterprise.webhook.allowed-missing-signature", extra=extra)
