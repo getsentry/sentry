@@ -20,7 +20,8 @@ import {space} from 'sentry/styles/space';
 import {RuleActionsCategories} from 'sentry/types/alerts';
 import type {Organization} from 'sentry/types/organization';
 import type {Project} from 'sentry/types/project';
-import {formatMRIField} from 'sentry/utils/metrics/mri';
+import {findExtractionRuleCondition} from 'sentry/utils/metrics/extractionRules';
+import {formatMRIField, parseField} from 'sentry/utils/metrics/mri';
 import {shouldShowOnDemandMetricAlertUI} from 'sentry/utils/onDemandMetrics/features';
 import {ErrorMigrationWarning} from 'sentry/views/alerts/rules/metric/details/errorMigrationWarning';
 import MetricHistory from 'sentry/views/alerts/rules/metric/details/metricHistory';
@@ -104,6 +105,17 @@ export default function MetricDetailsBody({
     }
 
     const {aggregate, dataset, query} = rule;
+
+    if (isSpanMetricAlert(aggregate)) {
+      const mri = parseField(aggregate)!.mri;
+      const usedCondition = findExtractionRuleCondition(mri, metricExtractionRules || []);
+      const fullQuery = usedCondition?.value
+        ? query
+          ? `(${usedCondition.value}) AND (${query})`
+          : usedCondition.value
+        : query;
+      return fullQuery.trim().split(' ');
+    }
 
     if (isCrashFreeAlert(dataset) || isCustomMetricAlert(aggregate)) {
       return query.trim().split(' ');
