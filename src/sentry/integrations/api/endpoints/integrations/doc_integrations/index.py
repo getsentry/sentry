@@ -9,9 +9,11 @@ from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
-from sentry.api.serializers.rest_framework import DocIntegrationSerializer
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.integrations.api.bases.doc_integrations import DocIntegrationsBaseEndpoint
+from sentry.integrations.api.serializers.rest_framework.doc_integration import (
+    DocIntegrationSerializer,
+)
 from sentry.integrations.models.doc_integration import DocIntegration
 
 logger = logging.getLogger(__name__)

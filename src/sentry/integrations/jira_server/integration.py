@@ -30,7 +30,6 @@ from sentry.integrations.mixins import IssueSyncMixin, ResolveSyncAction
 from sentry.integrations.models.external_issue import ExternalIssue
 from sentry.integrations.models.integration_external_project import IntegrationExternalProject
 from sentry.integrations.services.integration import integration_service
-from sentry.integrations.tasks.migrate_issues import migrate_issues
 from sentry.models.group import Group
 from sentry.models.identity import Identity
 from sentry.organizations.services.organization.service import organization_service
@@ -43,6 +42,7 @@ from sentry.shared_integrations.exceptions import (
     IntegrationFormError,
 )
 from sentry.silo.base import all_silo_function
+from sentry.tasks.integrations.migrate_issues import migrate_issues
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.hashlib import sha1_text

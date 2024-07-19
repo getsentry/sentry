@@ -5,7 +5,7 @@ from sentry.eventstore.models import GroupEvent
 from sentry.integrations.discord.actions.issue_alert.form import DiscordNotifyServiceForm
 from sentry.integrations.discord.client import DiscordClient
 from sentry.integrations.discord.message_builder.issues import DiscordIssuesMessageBuilder
-from sentry.rules.actions import IntegrationEventAction
+from sentry.integrations.rules.actions.base import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
 from sentry.types.rules import RuleFuture
 from sentry.utils import metrics

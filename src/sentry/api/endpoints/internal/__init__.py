@@ -1,7 +1,3 @@
-from sentry.integrations.api.endpoints.internal.integration_proxy import (
-    InternalIntegrationProxyEndpoint,
-)
-
 from .beacon import InternalBeaconEndpoint
 from .environment import InternalEnvironmentEndpoint
 from .feature_flags import InternalFeatureFlagsEndpoint
@@ -17,7 +13,6 @@ __all__ = (
     "InternalBeaconEndpoint",
     "InternalEnvironmentEndpoint",
     "InternalFeatureFlagsEndpoint",
-    "InternalIntegrationProxyEndpoint",
     "InternalMailEndpoint",
     "InternalPackagesEndpoint",
     "InternalQueueTasksEndpoint",

@@ -106,7 +106,7 @@ class TestCreator(TestCase):
             target_id=app.id, target_type=IntegrationTypes.SENTRY_APP.value
         ).exists()
 
-    @patch("sentry.models.integrations.integration_feature.IntegrationFeature.objects.create")
+    @patch("sentry.integrations.models.integration_feature.IntegrationFeature.objects.create")
     def test_raises_error_creating_integration_feature(self, mock_create):
         mock_create.side_effect = IntegrityError()
         self.creator.run(user=self.user)

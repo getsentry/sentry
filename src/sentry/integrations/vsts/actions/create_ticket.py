@@ -1,6 +1,6 @@
 import logging
 
-from sentry.rules.actions import TicketEventAction
+from sentry.integrations.rules.actions.create_ticket.base import TicketEventAction
 from sentry.utils.http import absolute_uri
 
 logger = logging.getLogger("sentry.rules")

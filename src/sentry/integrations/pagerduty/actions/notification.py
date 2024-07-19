@@ -9,7 +9,7 @@ import sentry_sdk
 from sentry import features
 from sentry.integrations.pagerduty.actions import PagerDutyNotifyServiceForm
 from sentry.integrations.pagerduty.client import PAGERDUTY_DEFAULT_SEVERITY, PagerdutySeverity
-from sentry.rules.actions import IntegrationEventAction
+from sentry.integrations.rules.actions.base import IntegrationEventAction
 from sentry.shared_integrations.exceptions import ApiError
 
 logger = logging.getLogger("sentry.integrations.pagerduty")

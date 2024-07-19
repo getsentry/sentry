@@ -109,7 +109,25 @@ from sentry.incidents.endpoints.team_alerts_triggered import (
     TeamAlertsTriggeredIndexEndpoint,
     TeamAlertsTriggeredTotalsEndpoint,
 )
+from sentry.integrations.api.endpoints.avatar.doc_integration import DocIntegrationAvatarEndpoint
+from sentry.integrations.api.endpoints.group_integration_details import (
+    GroupIntegrationDetailsEndpoint,
+)
+from sentry.integrations.api.endpoints.group_integrations import GroupIntegrationsEndpoint
 from sentry.integrations.api.endpoints.integration_features import IntegrationFeaturesEndpoint
+from sentry.integrations.api.endpoints.integrations import (
+    DocIntegrationDetailsEndpoint,
+    DocIntegrationsEndpoint,
+    OrganizationConfigIntegrationsEndpoint,
+    OrganizationIntegrationDetailsEndpoint,
+    OrganizationIntegrationRequestEndpoint,
+    OrganizationIntegrationsEndpoint,
+    OrganizationPluginsConfigsEndpoint,
+    OrganizationPluginsEndpoint,
+)
+from sentry.integrations.api.endpoints.internal.integration_proxy import (
+    InternalIntegrationProxyEndpoint,
+)
 from sentry.integrations.api.endpoints.organization.organization_code_mapping_codeowners import (
     OrganizationCodeMappingCodeOwnersEndpoint,
 )
@@ -119,8 +137,14 @@ from sentry.integrations.api.endpoints.organization.organization_code_mapping_de
 from sentry.integrations.api.endpoints.organization.organization_code_mappings import (
     OrganizationCodeMappingsEndpoint,
 )
+from sentry.integrations.api.endpoints.organization.organization_integration_issues import (
+    OrganizationIntegrationIssuesEndpoint,
+)
 from sentry.integrations.api.endpoints.organization.organization_integration_migrate_opsgenie import (
     OrganizationIntegrationMigrateOpsgenieEndpoint,
+)
+from sentry.integrations.api.endpoints.organization.organization_integration_repos import (
+    OrganizationIntegrationReposEndpoint,
 )
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
@@ -213,14 +237,6 @@ from sentry.scim.endpoints.members import OrganizationSCIMMemberDetails, Organiz
 from sentry.scim.endpoints.schemas import OrganizationSCIMSchemaIndex
 from sentry.scim.endpoints.teams import OrganizationSCIMTeamDetails, OrganizationSCIMTeamIndex
 
-from ..integrations.api.endpoints.group_integration_details import GroupIntegrationDetailsEndpoint
-from ..integrations.api.endpoints.group_integrations import GroupIntegrationsEndpoint
-from ..integrations.api.endpoints.organization.organization_integration_issues import (
-    OrganizationIntegrationIssuesEndpoint,
-)
-from ..integrations.api.endpoints.organization.organization_integration_repos import (
-    OrganizationIntegrationReposEndpoint,
-)
 from ..integrations.api.endpoints.organization.organization_integration_serverless_functions import (
     OrganizationIntegrationServerlessFunctionsEndpoint,
 )
@@ -242,7 +258,6 @@ from .endpoints.auth_login import AuthLoginEndpoint
 from .endpoints.auth_validate import AuthValidateEndpoint
 from .endpoints.authenticator_index import AuthenticatorIndexEndpoint
 from .endpoints.avatar import (
-    DocIntegrationAvatarEndpoint,
     OrganizationAvatarEndpoint,
     SentryAppAvatarEndpoint,
     UserAvatarEndpoint,
@@ -304,16 +319,6 @@ from .endpoints.group_tombstone_details import GroupTombstoneDetailsEndpoint
 from .endpoints.group_user_reports import GroupUserReportsEndpoint
 from .endpoints.grouping_configs import GroupingConfigsEndpoint
 from .endpoints.index import IndexEndpoint
-from .endpoints.integrations import (
-    DocIntegrationDetailsEndpoint,
-    DocIntegrationsEndpoint,
-    OrganizationConfigIntegrationsEndpoint,
-    OrganizationIntegrationDetailsEndpoint,
-    OrganizationIntegrationRequestEndpoint,
-    OrganizationIntegrationsEndpoint,
-    OrganizationPluginsConfigsEndpoint,
-    OrganizationPluginsEndpoint,
-)
 from .endpoints.integrations.sentry_apps import (
     OrganizationSentryAppComponentsEndpoint,
     OrganizationSentryAppsEndpoint,
@@ -341,7 +346,6 @@ from .endpoints.internal import (
     InternalBeaconEndpoint,
     InternalEnvironmentEndpoint,
     InternalFeatureFlagsEndpoint,
-    InternalIntegrationProxyEndpoint,
     InternalMailEndpoint,
     InternalPackagesEndpoint,
     InternalQueueTasksEndpoint,

@@ -5,8 +5,8 @@ from typing import Any
 from django import forms
 from django.utils.translation import gettext_lazy as _
 
+from sentry.integrations.rules.actions.create_ticket.form import IntegrationNotifyServiceForm
 from sentry.integrations.services.integration.service import integration_service
-from sentry.rules.actions import IntegrationNotifyServiceForm
 
 
 class JiraServerNotifyServiceForm(IntegrationNotifyServiceForm):

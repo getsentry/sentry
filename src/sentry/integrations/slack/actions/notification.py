@@ -17,6 +17,7 @@ from sentry.integrations.repository.issue_alert import (
     IssueAlertNotificationMessageRepository,
     NewIssueAlertNotificationMessage,
 )
+from sentry.integrations.rules.actions.base import IntegrationEventAction
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.actions.form import SlackNotifyServiceForm
 from sentry.integrations.slack.message_builder.issues import SlackIssuesMessageBuilder
@@ -33,7 +34,6 @@ from sentry.integrations.slack.utils.channel import SlackChannelIdData
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.rule import Rule
 from sentry.notifications.additional_attachment_manager import get_additional_attachment
-from sentry.rules.actions import IntegrationEventAction
 from sentry.rules.base import CallbackFuture
 from sentry.types.rules import RuleFuture
 from sentry.utils import metrics
