@@ -8,7 +8,6 @@ import pytest
 from arroyo import Message
 from arroyo.backends.kafka import KafkaPayload
 from arroyo.types import BrokerValue, Partition, Topic
-from django.test import override_settings
 from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
     CHECKSTATUS_FAILURE,
     CHECKSTATUS_MISSED_WINDOW,
@@ -18,8 +17,7 @@ from sentry_kafka_schemas.schema_types.uptime_results_v1 import (
 
 from sentry.conf.types import kafka_definition
 from sentry.issues.grouptype import UptimeDomainCheckFailure
-from sentry.models.group import Group
-from sentry.remote_subscriptions.consumers.result_consumer import FAKE_SUBSCRIPTION_ID
+from sentry.models.group import Group, GroupStatus
 from sentry.testutils.cases import UptimeTestCase
 from sentry.uptime.consumers.results_consumer import (
     AUTO_DETECTED_ACTIVE_SUBSCRIPTION_INTERVAL,
@@ -33,6 +31,7 @@ from sentry.uptime.detectors.tasks import is_failed_url
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
+    UptimeStatus,
     UptimeSubscription,
 )
 
@@ -65,24 +64,72 @@ class ProcessResultTest(UptimeTestCase):
 
     def test(self):
         result = self.create_uptime_result(self.subscription.subscription_id)
-        self.send_result(result)
+        with mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics:
+            self.send_result(result)
+            metrics.incr.assert_has_calls(
+                [
+                    call(
+                        "uptime.result_processor.handle_result_for_project",
+                        tags={"status": CHECKSTATUS_FAILURE, "mode": "auto_detected_active"},
+                    ),
+                ]
+            )
+
         hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
         group = Group.objects.get(grouphash__hash=hashed_fingerprint)
         assert group.issue_type == UptimeDomainCheckFailure
+        self.project_subscription.refresh_from_db()
+        assert self.project_subscription.uptime_status == UptimeStatus.FAILED
 
-    def test_no_subscription(self):
-        # Temporary test to make sure hack fake subscription keeps working
-        other_project = self.create_project()
-        subscription_id = uuid.uuid4().hex
-        result = self.create_uptime_result(subscription_id)
-        # TODO: Remove this once we have a subscription
-        with override_settings(UPTIME_POC_PROJECT_ID=other_project.id):
+    def test_resolve(self):
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            scheduled_check_time=datetime.now() - timedelta(minutes=5),
+        )
+        with mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics:
             self.send_result(result)
+            metrics.incr.assert_has_calls(
+                [
+                    call(
+                        "uptime.result_processor.handle_result_for_project",
+                        tags={"status": CHECKSTATUS_FAILURE, "mode": "auto_detected_active"},
+                    ),
+                ]
+            )
 
-        hashed_fingerprint = md5(str(FAKE_SUBSCRIPTION_ID).encode("utf-8")).hexdigest()
-
+        hashed_fingerprint = md5(str(self.project_subscription.id).encode("utf-8")).hexdigest()
         group = Group.objects.get(grouphash__hash=hashed_fingerprint)
         assert group.issue_type == UptimeDomainCheckFailure
+        assert group.status == GroupStatus.UNRESOLVED
+        self.project_subscription.refresh_from_db()
+        assert self.project_subscription.uptime_status == UptimeStatus.FAILED
+
+        result = self.create_uptime_result(
+            self.subscription.subscription_id,
+            status=CHECKSTATUS_SUCCESS,
+            scheduled_check_time=datetime.now() - timedelta(minutes=4),
+        )
+        with mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics:
+            self.send_result(result)
+            metrics.incr.assert_has_calls(
+                [
+                    call(
+                        "uptime.result_processor.handle_result_for_project",
+                        tags={"status": CHECKSTATUS_SUCCESS, "mode": "auto_detected_active"},
+                    ),
+                ]
+            )
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED
+        self.project_subscription.refresh_from_db()
+        assert self.project_subscription.uptime_status == UptimeStatus.OK
+
+    def test_no_subscription(self):
+        subscription_id = uuid.uuid4().hex
+        result = self.create_uptime_result(subscription_id)
+        with mock.patch("sentry.uptime.consumers.results_consumer.metrics") as metrics:
+            self.send_result(result)
+            metrics.incr.assert_has_calls([call("uptime.result_processor.subscription_not_found")])
 
     def test_skip_already_processed(self):
         result = self.create_uptime_result(self.subscription.subscription_id)
