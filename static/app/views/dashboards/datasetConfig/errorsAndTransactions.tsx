@@ -482,7 +482,7 @@ export function getCustomEventsFieldRenderer(field: string, meta: MetaType) {
   return getFieldRenderer(field, meta, false);
 }
 
-function getEventsRequest(
+export function getEventsRequest(
   url: string,
   api: Client,
   query: WidgetQuery,
@@ -638,7 +638,7 @@ function getEventsSeriesRequest(
   return doEventsRequest<true>(api, requestData);
 }
 
-async function doOnDemandMetricsRequest(
+export async function doOnDemandMetricsRequest(
   api,
   requestData
 ): Promise<

@@ -1,3 +1,6 @@
+import trimStart from 'lodash/trimStart';
+
+import {doEventsRequest} from 'sentry/actionCreators/events';
 import type {Client} from 'sentry/api';
 import type {
   EventsStats,
@@ -7,27 +10,45 @@ import type {
   TagCollection,
 } from 'sentry/types';
 import type {Series} from 'sentry/types/echarts';
+import {defined} from 'sentry/utils';
 import type {CustomMeasurementCollection} from 'sentry/utils/customMeasurements/customMeasurements';
 import type {EventsTableData, TableData} from 'sentry/utils/discover/discoverQuery';
-import {SPAN_OP_BREAKDOWN_FIELDS, TRANSACTION_FIELDS} from 'sentry/utils/discover/fields';
-import type {DiscoverQueryRequestParams} from 'sentry/utils/discover/genericDiscoverQuery';
+import {
+  isEquation,
+  isEquationAlias,
+  SPAN_OP_BREAKDOWN_FIELDS,
+  TRANSACTION_FIELDS,
+} from 'sentry/utils/discover/fields';
+import type {
+  DiscoverQueryExtras,
+  DiscoverQueryRequestParams,
+} from 'sentry/utils/discover/genericDiscoverQuery';
 import {doDiscoverQuery} from 'sentry/utils/discover/genericDiscoverQuery';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
+import {DiscoverDatasets, TOP_N} from 'sentry/utils/discover/types';
 import {getMeasurements} from 'sentry/utils/measurements/measurements';
-import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
+import {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
+import {
+  type OnDemandControlContext,
+  shouldUseOnDemandMetrics,
+} from 'sentry/utils/performance/contexts/onDemandControl';
 import {generateFieldOptions} from 'sentry/views/discover/utils';
 
 import type {Widget, WidgetQuery} from '../types';
 import {DisplayType} from '../types';
-import {eventViewFromWidget} from '../utils';
+import {eventViewFromWidget, getNumEquations, getWidgetInterval} from '../utils';
 import {EventsSearchBar} from '../widgetBuilder/buildSteps/filterResultsStep/eventsSearchBar';
 
 import {type DatasetConfig, handleOrderByReset} from './base';
 import {
+  doOnDemandMetricsRequest,
   filterAggregateParams,
+  filterSeriesSortOptions,
+  filterYAxisAggregateParams,
+  filterYAxisOptions,
   getCustomEventsFieldRenderer,
   getTableSortOptions,
+  getTimeseriesSortOptions,
+  transformEventsResponseToSeries,
   transformEventsResponseToTable,
 } from './errorsAndTransactions';
 
@@ -53,27 +74,43 @@ export const TransactionsConfig: DatasetConfig<
   enableEquations: true,
   getCustomFieldRenderer: getCustomEventsFieldRenderer,
   SearchBar: EventsSearchBar,
-  // filterSeriesSortOptions,
-  // filterYAxisAggregateParams,
-  // filterYAxisOptions,
+  filterSeriesSortOptions,
+  filterYAxisAggregateParams,
+  filterYAxisOptions,
   getTableFieldOptions: getEventsTableFieldOptions,
-  // getTimeseriesSortOptions,
+  getTimeseriesSortOptions,
   getTableSortOptions,
   getGroupByFieldOptions: getEventsTableFieldOptions,
   handleOrderByReset,
-  supportedDisplayTypes: [DisplayType.TABLE],
+  supportedDisplayTypes: [
+    DisplayType.AREA,
+    DisplayType.BAR,
+    DisplayType.BIG_NUMBER,
+    DisplayType.LINE,
+    DisplayType.TABLE,
+    DisplayType.TOP_N,
+  ],
   getTableRequest: (
     api: Client,
-    _widget: Widget,
+    widget: Widget,
     query: WidgetQuery,
     organization: Organization,
     pageFilters: PageFilters,
-    _onDemandControlContext?: OnDemandControlContext,
+    onDemandControlContext?: OnDemandControlContext,
     limit?: number,
     cursor?: string,
     referrer?: string,
-    _mepSetting?: MEPState | null
+    mepSetting?: MEPState | null
   ) => {
+    const useOnDemandMetrics = shouldUseOnDemandMetrics(
+      organization,
+      widget,
+      onDemandControlContext
+    );
+    const queryExtras = {
+      useOnDemandMetrics,
+      onDemandType: 'dynamic_query',
+    };
     return getEventsRequest(
       api,
       query,
@@ -81,9 +118,13 @@ export const TransactionsConfig: DatasetConfig<
       pageFilters,
       limit,
       cursor,
-      referrer
+      referrer,
+      mepSetting,
+      queryExtras
     );
   },
+  getSeriesRequest: getEventsSeriesRequest,
+  transformSeries: transformEventsResponseToSeries,
   transformTable: transformEventsResponseToTable,
   filterAggregateParams,
 };
@@ -117,8 +158,11 @@ function getEventsRequest(
   pageFilters: PageFilters,
   limit?: number,
   cursor?: string,
-  referrer?: string
+  referrer?: string,
+  mepSetting?: MEPState | null,
+  queryExtras?: DiscoverQueryExtras
 ) {
+  const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
   const url = `/organizations/${organization.slug}/events/`;
   const eventView = eventViewFromWidget('', query, pageFilters);
 
@@ -126,7 +170,10 @@ function getEventsRequest(
     per_page: limit,
     cursor,
     referrer,
-    dataset: DiscoverDatasets.METRICS_ENHANCED,
+    dataset: isMEPEnabled
+      ? DiscoverDatasets.METRICS_ENHANCED
+      : DiscoverDatasets.TRANSACTIONS,
+    ...queryExtras,
   };
 
   if (query.orderby) {
@@ -148,4 +195,119 @@ function getEventsRequest(
       },
     }
   );
+}
+
+function getEventsSeriesRequest(
+  api: Client,
+  widget: Widget,
+  queryIndex: number,
+  organization: Organization,
+  pageFilters: PageFilters,
+  onDemandControlContext?: OnDemandControlContext,
+  referrer?: string,
+  mepSetting?: MEPState | null
+) {
+  const isMEPEnabled = defined(mepSetting) && mepSetting !== MEPState.TRANSACTIONS_ONLY;
+
+  const widgetQuery = widget.queries[queryIndex];
+  const {displayType, limit} = widget;
+  const {environments, projects} = pageFilters;
+  const {start, end, period: statsPeriod} = pageFilters.datetime;
+  const interval = getWidgetInterval(
+    displayType,
+    {start, end, period: statsPeriod},
+    '1m'
+  );
+
+  let requestData;
+  if (displayType === DisplayType.TOP_N) {
+    requestData = {
+      organization,
+      interval,
+      start,
+      end,
+      project: projects,
+      environment: environments,
+      period: statsPeriod,
+      query: widgetQuery.conditions,
+      yAxis: widgetQuery.aggregates[widgetQuery.aggregates.length - 1],
+      includePrevious: false,
+      referrer,
+      partial: true,
+      field: [...widgetQuery.columns, ...widgetQuery.aggregates],
+      includeAllArgs: true,
+      topEvents: TOP_N,
+      dataset: isMEPEnabled
+        ? DiscoverDatasets.METRICS_ENHANCED
+        : DiscoverDatasets.TRANSACTIONS,
+    };
+    if (widgetQuery.orderby) {
+      requestData.orderby = widgetQuery.orderby;
+    }
+  } else {
+    requestData = {
+      organization,
+      interval,
+      start,
+      end,
+      project: projects,
+      environment: environments,
+      period: statsPeriod,
+      query: widgetQuery.conditions,
+      yAxis: widgetQuery.aggregates,
+      orderby: widgetQuery.orderby,
+      includePrevious: false,
+      referrer,
+      partial: true,
+      includeAllArgs: true,
+      dataset: isMEPEnabled
+        ? DiscoverDatasets.METRICS_ENHANCED
+        : DiscoverDatasets.TRANSACTIONS,
+    };
+    if (widgetQuery.columns?.length !== 0) {
+      requestData.topEvents = limit ?? TOP_N;
+      requestData.field = [...widgetQuery.columns, ...widgetQuery.aggregates];
+
+      // Compare field and orderby as aliases to ensure requestData has
+      // the orderby selected
+      // If the orderby is an equation alias, do not inject it
+      const orderby = trimStart(widgetQuery.orderby, '-');
+      if (
+        widgetQuery.orderby &&
+        !isEquationAlias(orderby) &&
+        !requestData.field.includes(orderby)
+      ) {
+        requestData.field.push(orderby);
+      }
+
+      // The "Other" series is only included when there is one
+      // y-axis and one widgetQuery
+      requestData.excludeOther =
+        widgetQuery.aggregates.length !== 1 || widget.queries.length !== 1;
+
+      if (isEquation(trimStart(widgetQuery.orderby, '-'))) {
+        const nextEquationIndex = getNumEquations(widgetQuery.aggregates);
+        const isDescending = widgetQuery.orderby.startsWith('-');
+        const prefix = isDescending ? '-' : '';
+
+        // Construct the alias form of the equation and inject it into the request
+        requestData.orderby = `${prefix}equation[${nextEquationIndex}]`;
+        requestData.field = [
+          ...widgetQuery.columns,
+          ...widgetQuery.aggregates,
+          trimStart(widgetQuery.orderby, '-'),
+        ];
+      }
+    }
+  }
+
+  if (shouldUseOnDemandMetrics(organization, widget, onDemandControlContext)) {
+    requestData.queryExtras = {
+      ...requestData.queryExtras,
+      ...{dataset: DiscoverDatasets.METRICS_ENHANCED},
+    };
+    return doOnDemandMetricsRequest(api, requestData);
+  }
+
+  return doEventsRequest<true>(api, requestData);
 }

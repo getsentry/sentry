@@ -35,6 +35,7 @@ import {
   type WidgetQuery,
   type WidgetType,
 } from 'sentry/views/dashboards/types';
+import {getDiscoverDatasetFromWidgetType} from 'sentry/views/dashboards/widgetBuilder/utils';
 
 import {BuildStep, SubHeading} from '../buildStep';
 
@@ -177,6 +178,7 @@ export function FilterResultsStep({
                   onClose={handleClose(queryIndex)}
                   onSearch={handleSearch(queryIndex)}
                   widgetQuery={query}
+                  dataset={getDiscoverDatasetFromWidgetType(widgetType)}
                 />
                 {shouldDisplayOnDemandWidgetWarning(query, widgetType, organization) && (
                   <WidgetOnDemandQueryWarning
