@@ -41,7 +41,7 @@ from sentry.backup.services.import_export.model import (
     RpcImportScope,
     RpcPrimaryKeyMap,
 )
-from sentry.backup.services.import_export.service import ImportExportService
+from sentry.backup.services.import_export.service import DEFAULT_IMPORT_FLAGS, ImportExportService
 from sentry.db.models.base import BaseModel
 from sentry.db.postgres.transactions import in_test_hide_transaction_boundary
 from sentry.models.importchunk import ControlImportChunk, RegionImportChunk
@@ -106,28 +106,28 @@ class UniversalImportExportService(ImportExportService):
     def import_by_model(
         self,
         *,
-        model_name: str,
+        import_model_name: str = "",
         scope: RpcImportScope | None = None,
-        flags: RpcImportFlags,
+        flags: RpcImportFlags = DEFAULT_IMPORT_FLAGS,
         filter_by: list[RpcFilter],
         pk_map: RpcPrimaryKeyMap,
-        json_data: str,
+        json_data: str = "",
         min_ordinal: int,
     ) -> RpcImportResult:
         if min_ordinal < 1:
             return RpcImportError(
                 kind=RpcImportErrorKind.InvalidMinOrdinal,
-                on=InstanceID(model_name),
-                reason=f"The model `{model_name}` was offset with an invalid `min_ordinal` of `{min_ordinal}`",
+                on=InstanceID(import_model_name),
+                reason=f"The model `{import_model_name}` was offset with an invalid `min_ordinal` of `{min_ordinal}`",
             )
 
-        batch_model_name = NormalizedModelName(model_name)
+        batch_model_name = NormalizedModelName(import_model_name)
         model = get_model(batch_model_name)
         if model is None:
             return RpcImportError(
                 kind=RpcImportErrorKind.UnknownModel,
-                on=InstanceID(model_name),
-                reason=f"The model `{model_name}` could not be found",
+                on=InstanceID(import_model_name),
+                reason=f"The model `{import_model_name}` could not be found",
             )
 
         silo_mode = SiloMode.get_current_mode()
@@ -135,14 +135,14 @@ class UniversalImportExportService(ImportExportService):
         if silo_mode != SiloMode.MONOLITH and silo_mode not in model_modes:
             return RpcImportError(
                 kind=RpcImportErrorKind.IncorrectSiloModeForModel,
-                on=InstanceID(model_name),
-                reason=f"The model `{model_name}` was forwarded to the incorrect silo (it cannot be imported from the {silo_mode} silo)",
+                on=InstanceID(import_model_name),
+                reason=f"The model `{import_model_name}` was forwarded to the incorrect silo (it cannot be imported from the {silo_mode} silo)",
             )
 
         if scope is None:
             return RpcImportError(
                 kind=RpcImportErrorKind.UnspecifiedScope,
-                on=InstanceID(model_name),
+                on=InstanceID(import_model_name),
                 reason="The RPC was called incorrectly, please set an `ImportScope` parameter",
             )
 
@@ -150,7 +150,7 @@ class UniversalImportExportService(ImportExportService):
         if import_flags.import_uuid is None:
             return RpcImportError(
                 kind=RpcImportErrorKind.MissingImportUUID,
-                on=InstanceID(model_name),
+                on=InstanceID(import_model_name),
                 reason="Must specify `import_uuid` when importing",
             )
 
@@ -158,7 +158,7 @@ class UniversalImportExportService(ImportExportService):
         in_pk_map = pk_map.from_rpc()
         filters: list[Filter] = []
         for fb in filter_by:
-            if NormalizedModelName(fb.model_name) == batch_model_name:
+            if NormalizedModelName(fb.on_model) == batch_model_name:
                 filters.append(fb.from_rpc())
 
         import_chunk_type = (
@@ -198,7 +198,8 @@ class UniversalImportExportService(ImportExportService):
             using = router.db_for_write(model)
             # HACK(azaslavsky): Need to figure out why `OrganizationMemberTeam` in particular is failing, but we can just use async outboxes for it for now.
             with outbox_context(
-                transaction.atomic(using=using), flush=model_name != "sentry.organizationmemberteam"
+                transaction.atomic(using=using),
+                flush=import_model_name != "sentry.organizationmemberteam",
             ):
                 ok_relocation_scopes = import_scope.value
                 out_pk_map = PrimaryKeyMap()
@@ -288,7 +289,7 @@ class UniversalImportExportService(ImportExportService):
                                     errs = {field: error for field, error in e.message_dict.items()}
                                     return RpcImportError(
                                         kind=RpcImportErrorKind.ValidationError,
-                                        on=InstanceID(model_name, ordinal=last_seen_ordinal),
+                                        on=InstanceID(import_model_name, ordinal=last_seen_ordinal),
                                         left_pk=model_instance.pk,
                                         reason=f"Django validation error encountered: {errs}",
                                     )
@@ -296,7 +297,7 @@ class UniversalImportExportService(ImportExportService):
                                 except DjangoRestFrameworkValidationError as e:
                                     return RpcImportError(
                                         kind=RpcImportErrorKind.ValidationError,
-                                        on=InstanceID(model_name, ordinal=last_seen_ordinal),
+                                        on=InstanceID(import_model_name, ordinal=last_seen_ordinal),
                                         left_pk=model_instance.pk,
                                         reason=str(e),
                                     )
@@ -322,17 +323,17 @@ class UniversalImportExportService(ImportExportService):
                     cursor.execute(f"SELECT setval(%s, (SELECT MAX(id) FROM {table}))", [seq])
 
                 inserted = out_pk_map.partition({batch_model_name}, {ImportKind.Inserted}).mapping[
-                    model_name
+                    import_model_name
                 ]
                 existing = out_pk_map.partition({batch_model_name}, {ImportKind.Existing}).mapping[
-                    model_name
+                    import_model_name
                 ]
                 overwrite = out_pk_map.partition(
                     {batch_model_name}, {ImportKind.Overwrite}
-                ).mapping[model_name]
+                ).mapping[import_model_name]
                 import_chunk_args = {
                     "import_uuid": flags.import_uuid,
-                    "model": model_name,
+                    "model": import_model_name,
                     "min_ordinal": min_ordinal,
                     "max_ordinal": last_seen_ordinal,
                     "min_source_pk": min_old_pk,
@@ -368,7 +369,7 @@ class UniversalImportExportService(ImportExportService):
             sentry_sdk.capture_exception()
             return RpcImportError(
                 kind=RpcImportErrorKind.DeserializationFailed,
-                on=InstanceID(model_name),
+                on=InstanceID(import_model_name),
                 reason="The submitted JSON could not be deserialized into Django model instances",
             )
 
@@ -393,7 +394,7 @@ class UniversalImportExportService(ImportExportService):
                         sentry_sdk.capture_exception()
                         return RpcImportError(
                             kind=RpcImportErrorKind.Unknown,
-                            on=InstanceID(model_name),
+                            on=InstanceID(import_model_name),
                             reason=f"Unknown internal error occurred: {traceback.format_exc()}",
                         )
 
@@ -404,14 +405,14 @@ class UniversalImportExportService(ImportExportService):
                 sentry_sdk.capture_exception()
                 return RpcImportError(
                     kind=RpcImportErrorKind.IntegrityError,
-                    on=InstanceID(model_name),
+                    on=InstanceID(import_model_name),
                     reason=str(e),
                 )
 
             sentry_sdk.capture_exception()
             return RpcImportError(
                 kind=RpcImportErrorKind.DatabaseError,
-                on=InstanceID(model_name),
+                on=InstanceID(import_model_name),
                 reason=str(e),
             )
 
@@ -419,14 +420,14 @@ class UniversalImportExportService(ImportExportService):
             sentry_sdk.capture_exception()
             return RpcImportError(
                 kind=RpcImportErrorKind.Unknown,
-                on=InstanceID(model_name),
+                on=InstanceID(import_model_name),
                 reason=f"Unknown internal error occurred: {traceback.format_exc()}",
             )
 
     def export_by_model(
         self,
         *,
-        model_name: str = "",
+        export_model_name: str = "",
         from_pk: int = 0,
         scope: RpcExportScope | None = None,
         filter_by: list[RpcFilter],
@@ -437,13 +438,13 @@ class UniversalImportExportService(ImportExportService):
             from sentry.db.models.base import BaseModel
 
             deps = dependencies()
-            batch_model_name = NormalizedModelName(model_name)
+            batch_model_name = NormalizedModelName(export_model_name)
             model = get_model(batch_model_name)
             if model is None or not issubclass(model, BaseModel):
                 return RpcExportError(
                     kind=RpcExportErrorKind.UnknownModel,
-                    on=InstanceID(model_name),
-                    reason=f"The model `{model_name}` could not be found",
+                    on=InstanceID(export_model_name),
+                    reason=f"The model `{export_model_name}` could not be found",
                 )
 
             silo_mode = SiloMode.get_current_mode()
@@ -451,14 +452,14 @@ class UniversalImportExportService(ImportExportService):
             if silo_mode != SiloMode.MONOLITH and silo_mode not in model_modes:
                 return RpcExportError(
                     kind=RpcExportErrorKind.IncorrectSiloModeForModel,
-                    on=InstanceID(model_name),
-                    reason=f"The model `{model_name}` was forwarded to the incorrect silo (it cannot be exported from the {silo_mode} silo)",
+                    on=InstanceID(export_model_name),
+                    reason=f"The model `{export_model_name}` was forwarded to the incorrect silo (it cannot be exported from the {silo_mode} silo)",
                 )
 
             if scope is None:
                 return RpcExportError(
                     kind=RpcExportErrorKind.UnspecifiedScope,
-                    on=InstanceID(model_name),
+                    on=InstanceID(export_model_name),
                     reason="The RPC was called incorrectly, please set an `ExportScope` parameter",
                 )
 
@@ -470,7 +471,7 @@ class UniversalImportExportService(ImportExportService):
             if not includable:
                 return RpcExportError(
                     kind=RpcExportErrorKind.UnexportableModel,
-                    on=InstanceID(model_name),
+                    on=InstanceID(export_model_name),
                     reason=f"The model `{batch_model_name}` is not exportable",
                 )
 
@@ -478,7 +479,7 @@ class UniversalImportExportService(ImportExportService):
             out_pk_map = PrimaryKeyMap()
             filters: list[Filter] = []
             for fb in filter_by:
-                if NormalizedModelName(fb.model_name) == batch_model_name:
+                if NormalizedModelName(fb.on_model) == batch_model_name:
                     filters.append(fb.from_rpc())
 
             def filter_objects(queryset_iterator):
@@ -568,7 +569,7 @@ class UniversalImportExportService(ImportExportService):
             sentry_sdk.capture_exception()
             return RpcExportError(
                 kind=RpcExportErrorKind.Unknown,
-                on=InstanceID(model_name),
+                on=InstanceID(export_model_name),
                 reason=f"Unknown internal error occurred: {traceback.format_exc()}",
             )
 
