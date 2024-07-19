@@ -27,7 +27,7 @@ export function ReplaySliderDiff({leftOffsetMs, replay, rightOffsetMs}: Props) {
   return (
     <Fragment>
       <Header>
-        <Tooltip title={t('How the initial server-rendered page looked like.')}>
+        <Tooltip title={t('How the initial server-rendered page looked.')}>
           <div style={{color: 'red'}}>{t('Before')}</div>
         </Tooltip>
         <Tooltip
