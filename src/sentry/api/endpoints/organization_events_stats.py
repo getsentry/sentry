@@ -24,6 +24,7 @@ from sentry.snuba import (
 )
 from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.referrer import Referrer
+from sentry.snuba.utils import dataset_split_decision_inferred_from_query
 from sentry.utils.snuba import SnubaError, SnubaTSResult
 
 METRICS_ENHANCED_REFERRERS: set[str] = {
@@ -104,6 +105,17 @@ ALLOWED_EVENTS_STATS_REFERRERS: set[str] = {
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_THROUGHPUT_CHART.value,
     Referrer.API_PERFORMANCE_SPAN_SUMMARY_TRANSACTION_THROUGHPUT_CHART.value,
 }
+
+
+def add_split_decision_to_meta(
+    results: dict[str, SnubaTSResult] | SnubaTSResult, widget_type: DashboardWidgetTypes
+):
+    for result in results.values() if isinstance(results, dict) else [results]:
+        if not result.data.get("meta"):
+            result.data["meta"] = {}
+        result.data["meta"]["discoverSplitDecision"] = DashboardWidgetTypes.get_type_name(
+            widget_type
+        )
 
 
 @region_silo_endpoint
@@ -365,6 +377,44 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             comparison_delta,
                         )
 
+                    dataset_inferred_from_query = dataset_split_decision_inferred_from_query(
+                        self.get_field_list(organization, request),
+                        query,
+                        DashboardWidgetTypes,
+                        False,
+                    )
+                    has_errors = False
+                    has_transactions = False
+                    if dataset_inferred_from_query is not None:
+                        split_query = query
+                        if dataset_inferred_from_query == DashboardWidgetTypes.ERROR_EVENTS:
+                            # The error dataset doesn't have an implementation for top-events yet
+                            # so we need to use the discover dataset for now.
+                            split_dataset = discover
+                            split_query = f"({query}) AND !event.type:transaction"
+                        elif dataset_inferred_from_query == DashboardWidgetTypes.TRANSACTION_LIKE:
+                            # We can't add event.type:transaction for now because of on-demand.
+                            split_dataset = scoped_dataset
+
+                        result = _get_event_stats(
+                            split_dataset,
+                            query_columns,
+                            query,
+                            params,
+                            rollup,
+                            zerofill_results,
+                            comparison_delta,
+                        )
+                        add_split_decision_to_meta(result, dataset_inferred_from_query)
+                        self.save_dashboard_widget_split_decision(
+                            widget,
+                            dataset_inferred_from_query,
+                            has_errors,
+                            has_transactions,
+                        )
+
+                        return result
+
                     # Widget has not split the discover dataset yet, so we need to check if there are errors etc.
                     errors_only_query = f"({query}) AND !event.type:transaction"
                     error_results = None
@@ -438,32 +488,12 @@ class OrganizationEventsStatsEndpoint(OrganizationEventsV2EndpointBase):
                             comparison_delta,
                         )
                     elif decision == DashboardWidgetTypes.TRANSACTION_LIKE:
-                        for result in (
-                            original_results.values()
-                            if isinstance(original_results, dict)
-                            else [original_results]
-                        ):
-                            if not result.data.get("meta"):
-                                result.data["meta"] = {}
-                            result.data["meta"][
-                                "discoverSplitDecision"
-                            ] = DashboardWidgetTypes.get_type_name(
-                                DashboardWidgetTypes.TRANSACTION_LIKE
-                            )
+                        add_split_decision_to_meta(
+                            original_results, DashboardWidgetTypes.TRANSACTION_LIKE
+                        )
                         return original_results
                     elif decision == DashboardWidgetTypes.ERROR_EVENTS and error_results:
-                        for result in (
-                            error_results.values()
-                            if isinstance(error_results, dict)
-                            else [error_results]
-                        ):
-                            if not result.data.get("meta"):
-                                result.data["meta"] = {}
-                            result.data["meta"][
-                                "discoverSplitDecision"
-                            ] = DashboardWidgetTypes.get_type_name(
-                                DashboardWidgetTypes.ERROR_EVENTS
-                            )
+                        add_split_decision_to_meta(error_results, DashboardWidgetTypes.ERROR_EVENTS)
                         return error_results
                     else:
                         return original_results
