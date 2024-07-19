@@ -524,7 +524,9 @@ class FlamegraphExecutor:
         """This function is split out for mocking as we cannot write to the
         profile chunks dataset in tests today"""
 
-        assert self.snuba_params.organization
+        if self.snuba_params.organization is None:
+            raise ValueError("`organization` is required and cannot be `None`")
+
         referrer = Referrer.API_PROFILING_PROFILE_FLAMEGRAPH_CHUNK_CANDIDATES.value
 
         request = Request(
