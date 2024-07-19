@@ -667,16 +667,20 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         integration_provider: str | None = None,
     ) -> Callable[[type[ActionHandler]], type[ActionHandler]]:
         """
-        Registers a handler class for a given type.
+        Register a factory for the decorated ActionHandler class, for a given service type.
+
         :param slug: A string representing the name of this type registration
-        :param service_type: The `Type` to handle.
-        :param handler: A subclass of `ActionHandler` that accepts the
-        `AlertRuleActionHandler` and `Incident`.
+        :param service_type: The action service type the decorated handler supports.
+        :param supported_target_types: The target types the decorated handler supports.
         :param integration_provider: String representing the integration provider
-        related to this type.
+               related to this type.
         """
 
         def inner(handler: type[ActionHandler]) -> type[ActionHandler]:
+            """
+            :param handler: A subclass of `ActionHandler` that accepts the
+                            `AlertRuleActionHandler` and `Incident`.
+            """
             factory = _AlertRuleActionHandlerClassFactory(
                 slug, service_type, supported_target_types, integration_provider, handler
             )
