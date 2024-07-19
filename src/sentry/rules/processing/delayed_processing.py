@@ -256,10 +256,13 @@ def get_rules_to_fire(
     project_id: int,
 ) -> DefaultDict[Rule, set[int]]:
     rules_to_fire = defaultdict(set)
+
     for alert_rule, slow_conditions in rules_to_slow_conditions.items():
         action_match = alert_rule.data.get("action_match", "any")
+
         for group_id in rules_to_groups[alert_rule.id]:
             conditions_matched = 0
+
             for slow_condition in slow_conditions:
                 if _passes_comparison(
                     condition_group_results,
@@ -270,14 +273,12 @@ def get_rules_to_fire(
                 ):
                     if action_match == "any":
                         rules_to_fire[alert_rule].add(group_id)
-                        break
-                    conditions_matched += 1
-                else:
-                    if action_match == "all":
-                        # We failed to match all conditions for this group, skip
-                        break
+                    elif action_match == "all":
+                        conditions_matched += 1
+
             if action_match == "all" and conditions_matched == len(slow_conditions):
                 rules_to_fire[alert_rule].add(group_id)
+
     return rules_to_fire
 
 
