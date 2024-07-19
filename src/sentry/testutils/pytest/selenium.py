@@ -1,13 +1,11 @@
 # TODO(dcramer): this heavily inspired by pytest-selenium, and it's possible
 # we could simply inherit from the plugin at this point
-from __future__ import annotations
-
 import logging
 import os
 import sys
+from collections.abc import MutableSequence
 from contextlib import contextmanager
 from datetime import datetime
-from typing import Callable, MutableSequence
 from urllib.parse import urlparse
 
 import pytest
@@ -22,6 +20,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions
 from selenium.webdriver.support.wait import WebDriverWait
 
+from sentry.silo.base import SiloMode
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.utils.retries import TimedRetryPolicy
 
 logger = logging.getLogger("sentry.testutils")
@@ -117,8 +117,8 @@ class Browser:
             self.set_window_size(size["previous"]["width"], size["previous"]["height"])
 
     @contextmanager
-    def full_viewport(self, width=None, height=None):
-        return self.set_viewport(width, height, fit_content=True)
+    def full_viewport(self, width=None, height=None, fit_content=True):
+        return self.set_viewport(width, height, fit_content)
 
     @contextmanager
     def mobile_viewport(self, width=375, height=812):
@@ -148,40 +148,43 @@ class Browser:
             self.wait_until(selector)
             return self.driver.find_elements(by=By.CSS_SELECTOR, value=selector)
 
-    def element_exists(self, selector):
+    def element_exists(self, selector=None, xpath=None):
         """
         Check if an element exists on the page. This method will *not* wait for the element.
         """
         try:
-            self.driver.find_element(by=By.CSS_SELECTOR, value=selector)
+            if xpath is not None:
+                self.driver.find_element(by=By.XPATH, value=xpath)
+            else:
+                self.driver.find_element(by=By.CSS_SELECTOR, value=selector)
         except NoSuchElementException:
             return False
         return True
 
-    def element_exists_by_test_id(self, selector):
+    def element_exists_by_test_id(self, test_id):
         """
         Check if an element exists on the page using a data-test-id attribute.
         This method will not wait for the element.
         """
-        return self.element_exists('[data-test-id="%s"]' % (selector))
+        return self.element_exists('[data-test-id="%s"]' % (test_id))
 
-    def element_exists_by_aria_label(self, selector):
+    def element_exists_by_aria_label(self, label):
         """
         Check if an element exists on the page using the aria-label attribute.
         This method will not wait for the element.
         """
-        return self.element_exists('[aria-label="%s"]' % (selector))
+        return self.element_exists('[aria-label="%s"]' % (label))
 
     def click(self, selector=None, xpath=None):
         self.element(selector, xpath=xpath).click()
 
-    def click_when_visible(self, selector=None, timeout=3):
+    def click_when_visible(self, selector=None, xpath=None, timeout=3):
         """
         Waits until ``selector`` is available to be clicked before attempting to click
         """
-        if selector:
-            self.wait_until_clickable(selector, timeout)
-            self.click(selector)
+        if selector or xpath:
+            self.wait_until_clickable(selector, xpath, timeout)
+            self.click(selector, xpath)
         else:
             raise ValueError
 
@@ -202,17 +205,18 @@ class Browser:
 
         return self
 
-    def wait_until_clickable(self, selector=None, timeout=10):
+    def wait_until_clickable(self, selector=None, xpath=None, timeout=10):
         """
         Waits until ``selector`` is visible and enabled to be clicked, or until ``timeout``
         is hit, whichever happens first.
         """
+        wait = WebDriverWait(self.driver, timeout)
         if selector:
-            condition = expected_conditions.element_to_be_clickable((By.CSS_SELECTOR, selector))
+            wait.until(expected_conditions.element_to_be_clickable((By.CSS_SELECTOR, selector)))
+        elif xpath:
+            wait.until(expected_conditions.element_to_be_clickable((By.XPATH, xpath)))
         else:
             raise ValueError
-
-        WebDriverWait(self.driver, timeout).until(condition)
 
         return self
 
@@ -221,57 +225,61 @@ class Browser:
         Waits until ``selector`` is found in the browser, or until ``timeout``
         is hit, whichever happens first.
         """
-        condition: Callable[[expected_conditions.AnyDriver], object]
+        wait = WebDriverWait(self.driver, timeout)
         if selector:
-            condition = expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector))
+            wait.until(expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector)))
         elif xpath:
-            condition = expected_conditions.presence_of_element_located((By.XPATH, xpath))
+            wait.until(expected_conditions.presence_of_element_located((By.XPATH, xpath)))
         elif title:
-            condition = expected_conditions.title_is(title)
+            wait.until(expected_conditions.title_is(title))
         else:
             raise ValueError
 
-        WebDriverWait(self.driver, timeout).until(condition)
-
         return self
 
-    def wait_until_test_id(self, selector):
-        return self.wait_until('[data-test-id="%s"]' % (selector))
+    def wait_until_test_id(self, test_id):
+        return self.wait_until('[data-test-id="%s"]' % (test_id))
 
-    def wait_until_not(self, selector=None, title=None, timeout=10):
+    def wait_until_not(self, selector=None, xpath=None, title=None, timeout=10):
         """
         Waits until ``selector`` is NOT found in the browser, or until
         ``timeout`` is hit, whichever happens first.
         """
-        condition: Callable[[expected_conditions.AnyDriver], object]
+        wait = WebDriverWait(self.driver, timeout)
         if selector:
-            condition = expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector))
+            wait.until_not(
+                expected_conditions.presence_of_element_located((By.CSS_SELECTOR, selector))
+            )
+        elif xpath:
+            wait.until_not(expected_conditions.presence_of_element_located((By.XPATH, xpath)))
         elif title:
-            condition = expected_conditions.title_is(title)
+            wait.until_not(expected_conditions.title_is(title))
         else:
-            raise
+            raise ValueError
 
-        WebDriverWait(self.driver, timeout).until_not(condition)
+        return self
+
+    def wait_until_script_execution(self, script, timeout=10):
+        """
+        Waits until ``script`` executes and evaluates truthy,
+        or until ``timeout`` is hit, whichever happens first.
+        """
+        wait = WebDriverWait(self.driver, timeout)
+        wait.until(lambda driver: driver.execute_script(script))
 
         return self
 
     def wait_for_images_loaded(self, timeout=10):
-        wait = WebDriverWait(self.driver, timeout)
-        wait.until(
-            lambda driver: driver.execute_script(
-                """return Object.values(document.querySelectorAll('img')).map(el => el.complete).every(i => i)"""
-            )
+        return self.wait_until_script_execution(
+            """return Object.values(document.querySelectorAll('img')).map(el => el.complete).every(i => i)""",
+            timeout,
         )
-
-        return self
 
     def wait_for_fonts_loaded(self, timeout=10):
-        wait = WebDriverWait(self.driver, timeout)
-        wait.until(
-            lambda driver: driver.execute_script("""return document.fonts.status === 'loaded'""")
+        return self.wait_until_script_execution(
+            """return document.fonts.status === 'loaded'""",
+            timeout,
         )
-
-        return self
 
     @property
     def switch_to(self):
@@ -335,7 +343,7 @@ class Browser:
             self.get("/")
 
         # TODO(dcramer): this should be escaped, but idgaf
-        logger.info(f"selenium.set-cookie.{name}", extra={"value": value})
+        logger.info("selenium.set-cookie.%s", name, extra={"value": value})
         # XXX(dcramer): chromedriver (of certain versions) is complaining about this being
         # an invalid kwarg
         del cookie["secure"]
@@ -349,6 +357,7 @@ def pytest_addoption(parser):
     group._addoption(
         "--selenium-driver",
         dest="selenium_driver",
+        default="chrome",
         help="selenium driver (chrome, or firefox)",
     )
     group._addoption(
@@ -363,7 +372,6 @@ def pytest_addoption(parser):
 
 
 def pytest_configure(config):
-
     if hasattr(config, "workerinput"):
         return  # xdist worker
 
@@ -439,7 +447,8 @@ def browser(request, live_server):
     # capture an issue where cookie lookup in the frontend failed, but did NOT
     # fail in the acceptance tests because the code worked fine when
     # document.cookie only had one cookie in it.
-    browser.save_cookie("acceptance_test_cookie", "1")
+    with assume_test_silo_mode(SiloMode.CONTROL):
+        browser.save_cookie("acceptance_test_cookie", "1", path="/auth/login/")
 
     if hasattr(request, "cls"):
         request.cls.browser = browser
@@ -535,7 +544,7 @@ def format_log(log):
     timestamp_format = "%Y-%m-%d %H:%M:%S.%f"
     entries = [
         "{0} {1[level]} - {1[message]}".format(
-            datetime.utcfromtimestamp(entry["timestamp"] / 1000.0).strftime(timestamp_format), entry
+            datetime.fromtimestamp(entry["timestamp"] / 1000.0).strftime(timestamp_format), entry
         ).rstrip()
         for entry in log
     ]

@@ -5,6 +5,7 @@ export const DEBUG_SOURCE_LAYOUTS = {
   ssqp: 'Microsoft SSQP',
   unified: 'Unified Symbol Server Layout',
   debuginfod: 'debuginfod',
+  slashsymbols: '/symbols',
 } as const;
 
 export const DEBUG_SOURCE_CASINGS = {
@@ -42,7 +43,6 @@ export const DEBUG_SOURCE_TYPES = {
   gcs: 'Google Cloud Storage',
   http: 'SymbolServer (HTTP)',
   s3: 'Amazon S3',
-  appStoreConnect: 'App Store Connect',
 } as const;
 
 export function getDebugSourceName(type: keyof typeof DEBUG_SOURCE_TYPES) {

@@ -1,13 +1,13 @@
 import {Component, createRef, Fragment} from 'react';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import {sprintf} from 'sprintf-js';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
 import {t} from 'sentry/locale';
-import {IgnoredStatusDetails} from 'sentry/types';
+import type {IgnoredStatusDetails} from 'sentry/types/group';
 
 const defaultProps = {
   label: t('Ignore this issue until \u2026'),

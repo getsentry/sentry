@@ -8,7 +8,7 @@ import {
   ProfilingContextMenuLayer,
 } from 'sentry/components/profiling/profilingContextMenu';
 import {t} from 'sentry/locale';
-import {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
+import type {useContextMenu} from 'sentry/utils/profiling/hooks/useContextMenu';
 
 interface AggregateFlamegraphTreeContextMenuProps {
   contextMenu: ReturnType<typeof useContextMenu>;
@@ -23,6 +23,7 @@ export function AggregateFlamegraphTreeContextMenu(
     () => props.contextMenu.setOpen(false),
     [props.contextMenu]
   );
+
   return props.contextMenu.open ? (
     <Fragment>
       <ProfilingContextMenuLayer onClick={closeContextMenu} />

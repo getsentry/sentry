@@ -6,7 +6,7 @@ from sentry.constants import VALID_PLATFORMS
 from sentry.models.group import Group
 from sentry.models.project import Project
 from sentry.models.projectplatform import ProjectPlatform
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 
 
@@ -44,6 +44,8 @@ def collect_project_platforms(paginate=1000, **kwargs):
         )
 
         for platform, project_id in queryset:
+            if platform is None:
+                continue
             platform = platform.lower()
             if platform not in VALID_PLATFORMS:
                 continue

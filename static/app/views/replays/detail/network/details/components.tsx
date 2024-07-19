@@ -1,4 +1,5 @@
-import {Fragment, ReactNode, useState} from 'react';
+import type {ReactNode} from 'react';
+import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
@@ -9,6 +10,10 @@ import {space} from 'sentry/styles/space';
 
 export const Indent = styled('div')`
   padding-left: ${space(4)};
+`;
+
+export const InspectorMargin = styled('div')`
+  padding: ${space(1)};
 `;
 
 const NotFoundText = styled('span')`
@@ -70,7 +75,7 @@ export function keyValueTableOrNotFound(data: KeyValueTuple[], notFoundText: str
 }
 
 const ValueContainer = styled('span')`
-  overflow: scroll;
+  overflow: auto;
 `;
 
 const SectionTitle = styled('dt')``;
@@ -78,7 +83,7 @@ const SectionTitle = styled('dt')``;
 const SectionTitleExtra = styled('span')`
   flex-grow: 1;
   text-align: right;
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 const SectionData = styled('dd')`
@@ -90,7 +95,7 @@ const ToggleButton = styled('button')`
   border: 0;
   color: ${p => p.theme.headingColor};
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   line-height: ${p => p.theme.text.lineHeightBody};
 
   width: 100%;

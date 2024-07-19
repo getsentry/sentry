@@ -2,6 +2,7 @@ from django.db.models import Q
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import (
@@ -11,10 +12,10 @@ from sentry.api.bases.organization import (
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
+from sentry.integrations.services.integration import integration_service
 from sentry.models.repository import Repository
 from sentry.plugins.base import bindings
 from sentry.ratelimits.config import SENTRY_RATELIMITER_GROUP_DEFAULTS, RateLimitConfig
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.utils.sdk import capture_exception
 
 UNMIGRATABLE_PROVIDERS = ("bitbucket", "github")
@@ -22,6 +23,7 @@ UNMIGRATABLE_PROVIDERS = ("bitbucket", "github")
 
 @region_silo_endpoint
 class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,
@@ -38,7 +40,7 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
 
         Return a list of version control repositories for a given organization.
 
-        :pparam string organization_slug: the organization short name
+        :pparam string organization_id_or_slug: the id or slug of the organization
         :qparam string query: optional filter by repository name
         :auth: required
         """
@@ -59,7 +61,6 @@ class OrganizationRepositoriesEndpoint(OrganizationEndpoint):
         # TODO(mn): Remove once old Plugins are removed or everyone migrates to
         # the new Integrations. Hopefully someday?
         elif status == "unmigratable":
-
             integrations = integration_service.get_integrations(
                 status=ObjectStatus.ACTIVE,
                 providers=UNMIGRATABLE_PROVIDERS,

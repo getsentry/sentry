@@ -1,5 +1,3 @@
-from typing import List
-
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
 from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_serializer
@@ -12,7 +10,7 @@ from sentry import audit_log
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPermission
-from sentry.api.fields.sentry_slug import SentrySlugField
+from sentry.api.fields.sentry_slug import SentrySerializerSlugField
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.team import TeamSerializer, TeamSerializerResponse
@@ -43,7 +41,7 @@ class OrganizationTeamsPermission(OrganizationPermission):
 
 @extend_schema_serializer(exclude_fields=["idp_provisioned"], deprecate_fields=["name"])
 class TeamPostSerializer(serializers.Serializer):
-    slug = SentrySlugField(
+    slug = SentrySerializerSlugField(
         help_text="""Uniquely identifies a team and is used for the interface. If not
         provided, it is automatically generated from the name.""",
         max_length=50,
@@ -82,14 +80,14 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="List an Organization's Teams",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
             TeamParams.DETAILED,
             CursorQueryParam,
         ],
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "ListOrgTeamResponse", List[TeamSerializerResponse]
+                "ListOrgTeamResponse", list[TeamSerializerResponse]
             ),
             403: RESPONSE_FORBIDDEN,
             404: RESPONSE_NOT_FOUND,
@@ -163,7 +161,7 @@ class OrganizationTeamsEndpoint(OrganizationEndpoint):
     @extend_schema(
         operation_id="Create a New Team",
         parameters=[
-            GlobalParams.ORG_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
         ],
         request=TeamPostSerializer,
         responses={

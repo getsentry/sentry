@@ -2,11 +2,11 @@ import logging
 
 from django.db import router, transaction
 
+from sentry.integrations.services.integration.service import integration_service
 from sentry.models.integrations.integration import Integration
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.project import Project
 from sentry.models.rule import Rule
-from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.tasks.base import instrumented_task, retry
 from sentry.utils import metrics
 
@@ -28,9 +28,11 @@ logger = logging.getLogger(__name__)
 def migrate_opsgenie_plugin(integration_id: int, organization_id: int) -> None:
     from sentry_plugins.opsgenie.plugin import OpsGeniePlugin
 
-    integration, organization_integration = integration_service.get_organization_context(
+    result = integration_service.organization_context(
         organization_id=organization_id, integration_id=integration_id
     )
+    integration = result.integration
+    organization_integration = result.organization_integration
     if not integration:
         raise Integration.DoesNotExist
     if not organization_integration:

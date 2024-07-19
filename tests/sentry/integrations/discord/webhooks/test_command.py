@@ -1,27 +1,30 @@
 from unittest import mock
 
+from sentry.integrations.discord.message_builder.base.flags import EPHEMERAL_FLAG
 from sentry.integrations.discord.requests.base import DiscordRequestTypes
+from sentry.integrations.discord.webhooks.command import HELP_MESSAGE, NOT_LINKED_MESSAGE
+from sentry.integrations.discord.webhooks.types import DiscordResponseTypes
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 WEBHOOK_URL = "/extensions/discord/interactions/"
 
 
-@region_silo_test(stable=True)
 class DiscordCommandInteractionTest(APITestCase):
     @mock.patch("sentry.integrations.discord.requests.base.verify_signature")
     def test_command_interaction(self, mock_verify_signature):
         mock_verify_signature.return_value = True
-        resp = self.client.post(
+        response = self.client.post(
             path=WEBHOOK_URL,
             data={"type": 2, "data": {"name": "command_name"}},
             format="json",
             HTTP_X_SIGNATURE_ED25519="signature",
             HTTP_X_SIGNATURE_TIMESTAMP="timestamp",
         )
-
-        assert resp.status_code == 200
-        assert resp.json()["type"] == 4
+        data = response.json()
+        assert data["type"] == DiscordResponseTypes.MESSAGE
+        assert HELP_MESSAGE in data["data"]["content"]
+        assert data["data"]["flags"] == EPHEMERAL_FLAG
+        assert response.status_code == 200
 
     def test_link_no_integration(self):
         with mock.patch(
@@ -39,7 +42,7 @@ class DiscordCommandInteractionTest(APITestCase):
                 HTTP_X_SIGNATURE_ED25519="signature",
                 HTTP_X_SIGNATURE_TIMESTAMP="timestamp",
             )
-        assert resp.status_code == 400
+        assert resp.status_code == 200
 
     def test_link_no_user_id(self):
         guild_id = "guild-id"
@@ -64,9 +67,9 @@ class DiscordCommandInteractionTest(APITestCase):
                 HTTP_X_SIGNATURE_ED25519="signature",
                 HTTP_X_SIGNATURE_TIMESTAMP="timestamp",
             )
-        assert resp.status_code == 400
+        assert resp.status_code == 200
 
-    def test_link(self):
+    def test_link_guild(self):
         guild_id = "guild-id"
         self.create_integration(
             provider="discord",
@@ -78,13 +81,11 @@ class DiscordCommandInteractionTest(APITestCase):
         with mock.patch(
             "sentry.integrations.discord.requests.base.verify_signature", return_value=True
         ):
-            resp = self.client.post(
+            response = self.client.post(
                 path=WEBHOOK_URL,
                 data={
                     "type": DiscordRequestTypes.COMMAND,
-                    "data": {
-                        "name": "link",
-                    },
+                    "data": {"name": "link", "type": 1},
                     "guild_id": guild_id,
                     "channel_id": "channel-id",
                     "member": {"user": {"id": "user1234"}},
@@ -93,8 +94,46 @@ class DiscordCommandInteractionTest(APITestCase):
                 HTTP_X_SIGNATURE_ED25519="signature",
                 HTTP_X_SIGNATURE_TIMESTAMP="timestamp",
             )
+            data = response.json()
+            assert data["type"] == DiscordResponseTypes.MESSAGE
+            assert data["data"]["content"].endswith(
+                "to link your Discord account to your Sentry account."
+            )
+            assert data["data"]["flags"] == EPHEMERAL_FLAG
+            assert response.status_code == 200
 
-        assert resp.status_code == 200
+    def test_link_dm(self):
+        guild_id = "guild-id"
+        self.create_integration(
+            provider="discord",
+            name="Cool server",
+            external_id=guild_id,
+            organization=self.organization,
+        )
+
+        with mock.patch(
+            "sentry.integrations.discord.requests.base.verify_signature", return_value=True
+        ):
+            response = self.client.post(
+                path=WEBHOOK_URL,
+                data={
+                    "type": DiscordRequestTypes.COMMAND,
+                    "data": {"name": "link", "type": 1},
+                    "channel_id": "channel-id",
+                    # user object is sent when the command is invoked in a DM
+                    "user": {"id": "user1234"},
+                },
+                format="json",
+                HTTP_X_SIGNATURE_ED25519="signature",
+                HTTP_X_SIGNATURE_TIMESTAMP="timestamp",
+            )
+            data = response.json()
+            assert data["type"] == DiscordResponseTypes.MESSAGE
+            assert data["data"]["content"].endswith(
+                "to link your Discord account to your Sentry account."
+            )
+            assert data["data"]["flags"] == EPHEMERAL_FLAG
+            assert response.status_code == 200
 
     def test_link_already_linked(self):
         guild_id = "guild-id"
@@ -113,7 +152,7 @@ class DiscordCommandInteractionTest(APITestCase):
         with mock.patch(
             "sentry.integrations.discord.requests.base.verify_signature", return_value=True
         ):
-            resp = self.client.post(
+            response = self.client.post(
                 path=WEBHOOK_URL,
                 data={
                     "type": DiscordRequestTypes.COMMAND,
@@ -132,14 +171,19 @@ class DiscordCommandInteractionTest(APITestCase):
                 HTTP_X_SIGNATURE_ED25519="signature",
                 HTTP_X_SIGNATURE_TIMESTAMP="timestamp",
             )
-
-        assert resp.status_code == 200
+            data = response.json()
+            assert data["type"] == DiscordResponseTypes.MESSAGE
+            assert data["data"]["content"].startswith(
+                "You are already linked to the Sentry account with email:"
+            )
+            assert data["data"]["flags"] == EPHEMERAL_FLAG
+            assert response.status_code == 200
 
     def test_unlink_no_identity(self):
         with mock.patch(
             "sentry.integrations.discord.requests.base.verify_signature", return_value=True
         ):
-            resp = self.client.post(
+            response = self.client.post(
                 path=WEBHOOK_URL,
                 data={
                     "type": DiscordRequestTypes.COMMAND,
@@ -151,7 +195,11 @@ class DiscordCommandInteractionTest(APITestCase):
                 HTTP_X_SIGNATURE_ED25519="signature",
                 HTTP_X_SIGNATURE_TIMESTAMP="timestamp",
             )
-        assert resp.status_code == 200
+            data = response.json()
+            assert data["type"] == DiscordResponseTypes.MESSAGE
+            assert data["data"]["content"] == NOT_LINKED_MESSAGE
+            assert data["data"]["flags"] == EPHEMERAL_FLAG
+            assert response.status_code == 200
 
     def test_unlink(self):
         guild_id = "guild-id"
@@ -170,7 +218,7 @@ class DiscordCommandInteractionTest(APITestCase):
         with mock.patch(
             "sentry.integrations.discord.requests.base.verify_signature", return_value=True
         ):
-            resp = self.client.post(
+            response = self.client.post(
                 path=WEBHOOK_URL,
                 data={
                     "type": DiscordRequestTypes.COMMAND,
@@ -190,13 +238,19 @@ class DiscordCommandInteractionTest(APITestCase):
                 HTTP_X_SIGNATURE_TIMESTAMP="timestamp",
             )
 
-        assert resp.status_code == 200
+            data = response.json()
+            assert data["type"] == DiscordResponseTypes.MESSAGE
+            assert data["data"]["content"].endswith(
+                "to unlink your Discord account from your Sentry Account."
+            )
+            assert data["data"]["flags"] == EPHEMERAL_FLAG
+            assert response.status_code == 200
 
     def test_help(self):
         with mock.patch(
             "sentry.integrations.discord.requests.base.verify_signature", return_value=True
         ):
-            resp = self.client.post(
+            response = self.client.post(
                 path=WEBHOOK_URL,
                 data={
                     "type": DiscordRequestTypes.COMMAND,
@@ -208,4 +262,8 @@ class DiscordCommandInteractionTest(APITestCase):
                 HTTP_X_SIGNATURE_ED25519="signature",
                 HTTP_X_SIGNATURE_TIMESTAMP="timestamp",
             )
-        assert resp.status_code == 200
+            data = response.json()
+            assert data["type"] == DiscordResponseTypes.MESSAGE
+            assert HELP_MESSAGE in data["data"]["content"]
+            assert data["data"]["flags"] == EPHEMERAL_FLAG
+            assert response.status_code == 200

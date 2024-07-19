@@ -1,7 +1,6 @@
-from sentry.integrations.msteams.card_builder import AdaptiveCard
 from sentry.integrations.msteams.card_builder.base import MSTeamsMessageBuilder
+from sentry.integrations.msteams.card_builder.block import ActionType, AdaptiveCard, OpenUrlAction
 
-from .block import ActionType, create_action_block
 from .utils import HelpMessages
 
 
@@ -23,8 +22,8 @@ def build_mentioned_card() -> AdaptiveCard:
         title=HelpMessages.MENTIONED_TITLE,
         text=HelpMessages.MENTIONED_TEXT,
         actions=[
-            create_action_block(
-                ActionType.OPEN_URL, title=HelpMessages.DOCS_BUTTON, url=HelpMessages.DOCS_URL
+            OpenUrlAction(
+                type=ActionType.OPEN_URL, title=HelpMessages.DOCS_BUTTON, url=HelpMessages.DOCS_URL
             )
         ],
     )

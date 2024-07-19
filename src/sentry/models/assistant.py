@@ -6,12 +6,12 @@ from sentry.db.models import (
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    control_silo_only_model,
+    control_silo_model,
     sane_repr,
 )
 
 
-@control_silo_only_model
+@control_silo_model
 class AssistantActivity(Model):
     """Records user interactions with the assistant guides."""
 

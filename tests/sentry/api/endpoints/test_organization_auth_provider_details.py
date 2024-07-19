@@ -1,10 +1,8 @@
 from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase, PermissionTestCase, SCIMTestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
 class OrganizationAuthProviderPermissionTest(PermissionTestCase):
     def setUp(self):
         super().setUp()
@@ -17,7 +15,6 @@ class OrganizationAuthProviderPermissionTest(PermissionTestCase):
             self.assert_member_can_access(self.path)
 
 
-@region_silo_test(stable=True)
 class OrganizationAuthProviderTest(SCIMTestCase, APITestCase):
     def setUp(self):
         super().setUp()
@@ -53,7 +50,7 @@ class OrganizationAuthProviderTest(SCIMTestCase, APITestCase):
             }
 
     def test_with_auth_provider_and_customer_domain(self):
-        with self.feature(["organizations:sso-basic", "organizations:customer-domains"]):
+        with self.feature(["organizations:sso-basic", "system:multi-region"]):
             response = self.client.get(self.path)
             assert response.status_code == 200
             assert response.data == {

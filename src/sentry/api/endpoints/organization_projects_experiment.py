@@ -18,7 +18,6 @@ from sentry.api.bases.organization import OrganizationEndpoint, OrganizationPerm
 from sentry.api.endpoints.team_projects import ProjectPostSerializer
 from sentry.api.exceptions import ConflictError, ResourceDoesNotExist
 from sentry.api.serializers import serialize
-from sentry.experiments import manager as expt_manager
 from sentry.models.organization import Organization
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.organizationmemberteam import OrganizationMemberTeam
@@ -29,6 +28,7 @@ from sentry.utils.snowflake import MaxSnowflakeRetryError
 
 CONFLICTING_TEAM_SLUG_ERROR = "A team with this slug already exists."
 MISSING_PERMISSION_ERROR_STRING = "You do not have permission to join a new team as a Team Admin."
+DISABLED_FEATURE_ERROR_STRING = "Your organization has disabled this feature for members."
 
 
 def _generate_suffix() -> str:
@@ -72,7 +72,7 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
         If this is taken, a random three letter suffix is added as needed
         (eg: ...-gnm, ...-zls). Then create a new project bound to this team
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team should be created for.
         :param string name: the name for the new project.
         :param string platform: the optional platform that this project is for.
@@ -87,16 +87,13 @@ class OrganizationProjectsExperimentEndpoint(OrganizationEndpoint):
             raise NotAuthenticated("User is not authenticated")
 
         result = serializer.validated_data
-        exposed = expt_manager.get(
-            "ProjectCreationForAllExperimentV2", org=organization, actor=request.user
-        )
 
-        if (
-            not features.has("organizations:team-roles", organization)
-            or not features.has("organizations:team-project-creation-all", organization)
-            or exposed != 1
-        ):
+        if not features.has("organizations:team-roles", organization):
             raise ResourceDoesNotExist(detail=MISSING_PERMISSION_ERROR_STRING)
+        if organization.flags.disable_member_project_creation and not request.access.has_scope(
+            "org:write"
+        ):
+            raise PermissionDenied(detail=DISABLED_FEATURE_ERROR_STRING)
 
         # parse the email to retrieve the username before the "@"
         parsed_email = fetch_slugifed_email_username(request.user.email)

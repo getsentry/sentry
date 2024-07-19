@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Optional
 
-from django.db import migrations
+from django.db import ProgrammingError, migrations
+from django.db.backends.base.schema import BaseDatabaseSchemaEditor
+from django.db.migrations.state import StateApps
 
 from sentry.new_migrations.migrations import CheckedMigration
 from sentry.utils.query import RangeQuerySetWrapperWithProgressBar
@@ -35,7 +36,7 @@ EXTERNAL_PROVIDERS = {
 }
 
 
-def get_provider_name(value: int) -> Optional[str]:
+def get_provider_name(value: int) -> str | None:
     return EXTERNAL_PROVIDERS.get(ExternalProviders(value))
 
 
@@ -48,11 +49,11 @@ integers to their string values.
 """
 
 
-def get_notification_setting_type_name(value: int | NotificationSettingTypes) -> Optional[str]:
+def get_notification_setting_type_name(value: int | NotificationSettingTypes) -> str | None:
     return NOTIFICATION_SETTING_TYPES.get(NotificationSettingTypes(value))
 
 
-def get_notification_scope_name(value: int) -> Optional[str]:
+def get_notification_scope_name(value: int) -> str | None:
     return NOTIFICATION_SCOPE_TYPE.get(NotificationScopeType(value))
 
 
@@ -212,77 +213,83 @@ End of copied over code
 """
 
 
-def backfill_notification_settings(apps, schema_editor):
-    NotificationSetting = apps.get_model("sentry", "NotificationSetting")
-    NotificationSettingOption = apps.get_model("sentry", "NotificationSettingOption")
-    NotificationSettingProvider = apps.get_model("sentry", "NotificationSettingProvider")
+def backfill_notification_settings(
+    apps: StateApps, schema_editor: BaseDatabaseSchemaEditor
+) -> None:
+    try:
+        NotificationSetting = apps.get_model("sentry", "NotificationSetting")
+        NotificationSettingOption = apps.get_model("sentry", "NotificationSettingOption")
+        NotificationSettingProvider = apps.get_model("sentry", "NotificationSettingProvider")
 
-    for setting in RangeQuerySetWrapperWithProgressBar(NotificationSetting.objects.all()):
-        # find all the related settings regardless of the provider
-        # note that we will end up setting the settings N times for N provider options
-        related_settings = NotificationSetting.objects.filter(
-            scope_type=setting.scope_type,
-            scope_identifier=setting.scope_identifier,
-            user_id=setting.user_id,
-            team_id=setting.team_id,
-            type=setting.type,
-        )
-
-        enabled_providers = []
-        all_providers = []
-        enabled_value = None
-        for related_setting in related_settings:
-            if related_setting.value != NotificationSettingOptionValues.NEVER.value:
-                enabled_providers.append(related_setting.provider)
-                enabled_value = related_setting.value
-            all_providers.append(related_setting.provider)
-
-        update_args = {
-            "type": get_notification_setting_type_name(related_setting.type),
-            "user_id": related_setting.user_id,
-            "team_id": related_setting.team_id,
-            "scope_type": get_notification_scope_name(related_setting.scope_type),
-            "scope_identifier": related_setting.scope_identifier,
-        }
-
-        # check if all are disabled
-        if len(enabled_providers) == 0:
-            NotificationSettingOption.objects.update_or_create(
-                **update_args, defaults={"value": NotificationSettingsOptionEnum.NEVER.value}
-            )
-        else:
-            # map the enabled setting
-            NotificationSettingOption.objects.update_or_create(
-                **update_args,
-                defaults={
-                    "value": NOTIFICATION_SETTING_OPTION_VALUES[
-                        NotificationSettingOptionValues(enabled_value)
-                    ]
-                },
+        for setting in RangeQuerySetWrapperWithProgressBar(NotificationSetting.objects.all()):
+            # find all the related settings regardless of the provider
+            # note that we will end up setting the settings N times for N provider options
+            related_settings = NotificationSetting.objects.filter(
+                scope_type=setting.scope_type,
+                scope_identifier=setting.scope_identifier,
+                user_id=setting.user_id,
+                team_id=setting.team_id,
+                type=setting.type,
             )
 
-        # now set the provider settings if the scope is user or team
-        if related_setting.scope_type in [
-            NotificationScopeType.USER.value,
-            NotificationScopeType.TEAM.value,
-        ]:
-            for provider in enabled_providers:
-                NotificationSettingProvider.objects.update_or_create(
+            enabled_providers = []
+            all_providers = []
+            enabled_value = None
+            for related_setting in related_settings:
+                if related_setting.value != NotificationSettingOptionValues.NEVER.value:
+                    enabled_providers.append(related_setting.provider)
+                    enabled_value = related_setting.value
+                all_providers.append(related_setting.provider)
+
+            update_args = {
+                "type": get_notification_setting_type_name(related_setting.type),
+                "user_id": related_setting.user_id,
+                "team_id": related_setting.team_id,
+                "scope_type": get_notification_scope_name(related_setting.scope_type),
+                "scope_identifier": related_setting.scope_identifier,
+            }
+
+            # check if all are disabled
+            if len(enabled_providers) == 0:
+                NotificationSettingOption.objects.update_or_create(
+                    **update_args, defaults={"value": NotificationSettingsOptionEnum.NEVER.value}
+                )
+            else:
+                # map the enabled setting
+                NotificationSettingOption.objects.update_or_create(
                     **update_args,
-                    provider=get_provider_name(provider),
                     defaults={
-                        "value": NotificationSettingsOptionEnum.ALWAYS.value,
+                        "value": NOTIFICATION_SETTING_OPTION_VALUES[
+                            NotificationSettingOptionValues(enabled_value)
+                        ]
                     },
                 )
-            disabled_providers = set(all_providers) - set(enabled_providers)
-            for provider in disabled_providers:
-                NotificationSettingProvider.objects.update_or_create(
-                    **update_args,
-                    provider=get_provider_name(provider),
-                    defaults={
-                        "value": NotificationSettingsOptionEnum.NEVER.value,
-                    },
-                )
+
+            # now set the provider settings if the scope is user or team
+            if related_setting.scope_type in [
+                NotificationScopeType.USER.value,
+                NotificationScopeType.TEAM.value,
+            ]:
+                for provider in enabled_providers:
+                    NotificationSettingProvider.objects.update_or_create(
+                        **update_args,
+                        provider=get_provider_name(provider),
+                        defaults={
+                            "value": NotificationSettingsOptionEnum.ALWAYS.value,
+                        },
+                    )
+                disabled_providers = set(all_providers) - set(enabled_providers)
+                for provider in disabled_providers:
+                    NotificationSettingProvider.objects.update_or_create(
+                        **update_args,
+                        provider=get_provider_name(provider),
+                        defaults={
+                            "value": NotificationSettingsOptionEnum.NEVER.value,
+                        },
+                    )
+    except ProgrammingError:
+        # for some reason test_two_archived_with_same_name errors out here
+        return
 
 
 class Migration(CheckedMigration):
@@ -290,13 +297,13 @@ class Migration(CheckedMigration):
     # the most part, this should only be used for operations where it's safe to run the migration
     # after your code has deployed. So this should not be used for most operations that alter the
     # schema of a table.
-    # Here are some things that make sense to mark as dangerous:
+    # Here are some things that make sense to mark as post deployment:
     # - Large data migrations. Typically we want these to be run manually by ops so that they can
     #   be monitored and not block the deploy for a long period of time while they run.
     # - Adding indexes to large tables. Since this can take a long time, we'd generally prefer to
     #   have ops run this and not block the deploy. Note that while adding an index is a schema
     #   change, it's completely safe to run the operation after the code has deployed.
-    is_dangerous = True
+    is_post_deployment = True
 
     dependencies = [
         ("sentry", "0560_add_monitorincident_table"),

@@ -1,24 +1,15 @@
+from __future__ import annotations
+
 import logging
 import uuid
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
 from datetime import datetime, timezone
-from typing import (
-    Any,
-    Callable,
-    Dict,
-    List,
-    Literal,
-    Mapping,
-    MutableMapping,
-    Optional,
-    Sequence,
-    TypedDict,
-    Union,
-)
+from typing import Any, Literal, NotRequired, TypedDict
 
 import sentry_sdk
-from sentry_sdk import Hub, capture_exception
+from sentry_sdk import capture_exception
 
-from sentry import features, killswitches, quotas, utils
+from sentry import features, killswitches, options, quotas, utils
 from sentry.constants import HEALTH_CHECK_GLOBS, ObjectStatus
 from sentry.datascrubbing import get_datascrubbing_settings, get_pii_config
 from sentry.dynamic_sampling import generate_rules
@@ -29,6 +20,7 @@ from sentry.ingest.inbound_filters import (
     _FilterSpec,
     get_all_filter_specs,
     get_filter_key,
+    get_generic_filters,
 )
 from sentry.ingest.transaction_clusterer import ClustererNamespace
 from sentry.ingest.transaction_clusterer.meta import get_clusterer_meta
@@ -37,33 +29,45 @@ from sentry.ingest.transaction_clusterer.rules import (
     get_sorted_rules,
 )
 from sentry.interfaces.security import DEFAULT_DISALLOWED_SOURCES
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.projectkey import ProjectKey
+from sentry.relay.config.experimental import TimeChecker, add_experimental_config
 from sentry.relay.config.metric_extraction import (
     get_metric_conditional_tagging_rules,
     get_metric_extraction_config,
 )
 from sentry.relay.utils import to_camel_case_name
+from sentry.sentry_metrics.use_case_id_registry import CARDINALITY_LIMIT_USE_CASES
+from sentry.sentry_metrics.visibility import get_metrics_blocking_state_for_relay_config
 from sentry.utils import metrics
 from sentry.utils.http import get_origins
 from sentry.utils.options import sample_modulo
 
 from .measurements import CUSTOM_MEASUREMENT_LIMIT
 
-#: These features will be listed in the project config
+# These features will be listed in the project config.
+#
+# NOTE: These features must be sorted or the tests will fail!
 EXPOSABLE_FEATURES = [
-    "projects:span-metrics-extraction",
-    "projects:span-metrics-extraction-ga-modules",
-    "projects:span-metrics-extraction-all-modules",
-    "projects:span-metrics-extraction-resource",
+    "organizations:continuous-profiling",
+    "organizations:custom-metrics",
+    "organizations:device-class-synthesis",
+    "organizations:profiling",
+    "organizations:session-replay-combined-envelope-items",
+    "organizations:session-replay-recording-scrubbing",
+    "organizations:session-replay-video-disabled",
+    "organizations:session-replay",
+    "organizations:standalone-span-ingestion",
     "organizations:transaction-name-mark-scrubbed-as-sanitized",
     "organizations:transaction-name-normalize",
-    "organizations:profiling",
-    "organizations:session-replay",
     "organizations:user-feedback-ingest",
-    "organizations:session-replay-recording-scrubbing",
-    "organizations:device-class-synthesis",
-    "organizations:custom-metrics",
+    "projects:discard-transaction",
+    "projects:profiling-ingest-unsampled-profiles",
+    "projects:span-metrics-extraction",
+    "projects:span-metrics-extraction-addons",
+    "organizations:indexed-spans-extraction",
+    "projects:relay-otel-endpoint",
 ]
 
 EXTRACT_METRICS_VERSION = 1
@@ -100,9 +104,9 @@ def get_exposed_features(project: Project) -> Sequence[str]:
 
 
 def get_public_key_configs(
-    project: Project, full_config: bool, project_keys: Optional[Sequence[ProjectKey]] = None
-) -> List[Mapping[str, Any]]:
-    public_keys: List[Mapping[str, Any]] = []
+    project_keys: Iterable[ProjectKey] | None = None,
+) -> list[Mapping[str, Any]]:
+    public_keys: list[Mapping[str, Any]] = []
     for project_key in project_keys or ():
         key = {
             "publicKey": project_key.public_key,
@@ -130,7 +134,7 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         if settings is not None and settings.get("isEnabled", True):
             filter_settings[filter_id] = settings
 
-    error_messages: List[str] = []
+    error_messages: list[str] = []
     if features.has("projects:custom-inbound-filters", project):
         invalid_releases = project.get_option(f"sentry:{FilterTypes.RELEASES}")
         if invalid_releases:
@@ -138,6 +142,9 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
 
         error_messages += project.get_option(f"sentry:{FilterTypes.ERROR_MESSAGES}") or []
 
+    # TODO: remove both error message filters when the generic filters implementation is proved to be on par when it
+    #   comes to filtering capabilities. When both generic and non-generic filters are applied, the generic ones take
+    #   precedence.
     # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
     # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
     # why the value true is determined by either "1" or True.
@@ -149,13 +156,17 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
         # 423 - There was an error while hydrating. Because the error happened outside of a Suspense boundary, the entire root will switch to client rendering.
         # 425 - Text content does not match server-rendered HTML.
         error_messages += [
-            "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*"
+            "*https://reactjs.org/docs/error-decoder.html?invariant={418,419,422,423,425}*",
+            "*https://react.dev/errors/{418,419,422,423,425}*",
         ]
 
     if project.get_option("filters:chunk-load-error") == "1":
         # ChunkLoadError: Loading chunk 3662 failed.\n(error:
-        # https://xxx.com/_next/static/chunks/29107295-0151559bd23117ba.js)
-        error_messages += ["ChunkLoadError: Loading chunk *"]
+        # https://DOMAIN.com/_next/static/chunks/29107295-0151559bd23117ba.js)
+        error_messages += [
+            "ChunkLoadError: Loading chunk *",
+            "*Uncaught *: ChunkLoadError: Loading chunk *",
+        ]
 
     if error_messages:
         filter_settings["errorMessages"] = {"patterns": error_messages}
@@ -164,17 +175,30 @@ def get_filter_settings(project: Project) -> Mapping[str, Any]:
     if blacklisted_ips:
         filter_settings["clientIps"] = {"blacklistedIps": blacklisted_ips}
 
-    csp_disallowed_sources: List[str] = []
+    csp_disallowed_sources: list[str] = []
     if bool(project.get_option("sentry:csp_ignored_sources_defaults", True)):
         csp_disallowed_sources += DEFAULT_DISALLOWED_SOURCES
     csp_disallowed_sources += project.get_option("sentry:csp_ignored_sources", [])
     if csp_disallowed_sources:
         filter_settings["csp"] = {"disallowedSources": csp_disallowed_sources}
 
+    if options.get("relay.emit-generic-inbound-filters"):
+        try:
+            # At the end we compute the generic inbound filters, which are inbound filters expressible with a
+            # conditional DSL that Relay understands.
+            generic_filters = get_generic_filters(project)
+            if generic_filters is not None:
+                filter_settings["generic"] = generic_filters
+        except Exception as e:
+            sentry_sdk.capture_exception(e)
+            logger.exception(
+                "Exception while building Relay project config: error building generic filters"
+            )
+
     return filter_settings
 
 
-def get_quotas(project: Project, keys: Optional[Sequence[ProjectKey]] = None) -> List[str]:
+def get_quotas(project: Project, keys: Iterable[ProjectKey] | None = None) -> list[str]:
     try:
         computed_quotas = [
             quota.to_json() for quota in quotas.backend.get_quotas(project, keys=keys)
@@ -187,33 +211,129 @@ def get_quotas(project: Project, keys: Optional[Sequence[ProjectKey]] = None) ->
         return computed_quotas
 
 
+class SlidingWindow(TypedDict):
+    windowSeconds: int
+    granularitySeconds: int
+
+
+class CardinalityLimit(TypedDict):
+    id: str
+    passive: NotRequired[bool]
+    window: SlidingWindow
+    limit: int
+    scope: Literal["organization", "project"]
+    namespace: str | None
+
+
+class CardinalityLimitOption(TypedDict):
+    rollout_rate: NotRequired[float]
+    limit: CardinalityLimit
+    projects: NotRequired[list[int]]
+
+
+def get_metrics_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
+    metrics_config = {}
+
+    passive_limits = options.get("relay.cardinality-limiter.passive-limits-by-org").get(
+        str(project.organization.id), []
+    )
+
+    existing_ids: set[str] = set()
+    cardinality_limits: list[CardinalityLimit] = []
+    for namespace in CARDINALITY_LIMIT_USE_CASES:
+        timeout.check()
+        option = options.get(f"sentry-metrics.cardinality-limiter.limits.{namespace.value}.per-org")
+        if not option or not len(option) == 1:
+            # Multiple quotas are not supported
+            continue
+
+        quota = option[0]
+        id = namespace.value
+
+        limit: CardinalityLimit = {
+            "id": id,
+            "window": {
+                "windowSeconds": quota["window_seconds"],
+                "granularitySeconds": quota["granularity_seconds"],
+            },
+            "limit": quota["limit"],
+            "scope": "organization",
+            "namespace": namespace.value,
+        }
+        if id in passive_limits:
+            limit["passive"] = True
+        cardinality_limits.append(limit)
+        existing_ids.add(id)
+
+    project_limit_options: list[CardinalityLimitOption] = project.get_option(
+        "relay.cardinality-limiter.limits", []
+    )
+    organization_limit_options: list[CardinalityLimitOption] = project.organization.get_option(
+        "relay.cardinality-limiter.limits", []
+    )
+    option_limit_options: list[CardinalityLimitOption] = options.get(
+        "relay.cardinality-limiter.limits", []
+    )
+
+    for clo in project_limit_options + organization_limit_options + option_limit_options:
+        rollout_rate = clo.get("rollout_rate", 1.0)
+        if (project.organization.id % 100000) / 100000 >= rollout_rate:
+            continue
+
+        projects = clo.get("projects")
+        if projects is not None and project.id not in projects:
+            # projects list is defined but the current project is not in the list
+            continue
+
+        try:
+            limit = clo["limit"]
+            if clo["limit"]["id"] in existing_ids:
+                # skip if a limit with the same id already exists
+                continue
+            cardinality_limits.append(limit)
+            existing_ids.add(clo["limit"]["id"])
+        except KeyError:
+            pass
+
+    metrics_config["cardinalityLimits"] = cardinality_limits
+
+    metrics_blocking_state = get_metrics_blocking_state_for_relay_config(project)
+    timeout.check()
+    if metrics_blocking_state is not None:
+        metrics_config.update(metrics_blocking_state)  # type: ignore[arg-type]
+
+    return metrics_config or None
+
+
 def get_project_config(
-    project: Project, full_config: bool = True, project_keys: Optional[Sequence[ProjectKey]] = None
-) -> "ProjectConfig":
+    project: Project, project_keys: Iterable[ProjectKey] | None = None
+) -> ProjectConfig:
     """Constructs the ProjectConfig information.
     :param project: The project to load configuration for. Ensure that
         organization is bound on this object; otherwise it will be loaded from
         the database.
-    :param full_config: True if only the full config is required, False
-        if only the restricted (for external relays) is required
-        (default True, i.e. full configuration)
     :param project_keys: Pre-fetched project keys for performance. However, if
         no project keys are provided it is assumed that the config does not
         need to contain auth information (this is the case when used in
         python's StoreView)
     :return: a ProjectConfig object for the given project
     """
-    with sentry_sdk.push_scope() as scope:
+    with sentry_sdk.isolation_scope() as scope:
         scope.set_tag("project", project.id)
-        with metrics.timer("relay.config.get_project_config.duration"):
-            return _get_project_config(project, full_config=full_config, project_keys=project_keys)
+        with (
+            sentry_sdk.start_transaction(name="get_project_config"),
+            metrics.timer("relay.config.get_project_config.duration"),
+        ):
+            return _get_project_config(project, project_keys=project_keys)
 
 
-def get_dynamic_sampling_config(project: Project) -> Optional[Mapping[str, Any]]:
+def get_dynamic_sampling_config(timeout: TimeChecker, project: Project) -> Mapping[str, Any] | None:
+    if options.get("dynamic-sampling.config.killswitch"):
+        # This killswitch will cause extra load, and should only be used for AM1->AM2 migration.
+        return None
+
     if features.has("organizations:dynamic-sampling", project.organization):
-        # For compatibility reasons we want to return an empty list of old rules. This has been done in order to make
-        # old Relays use empty configs which will result in them forwarding sampling decisions to upstream Relays.
-        return {"rules": [], "rulesV2": generate_rules(project)}
+        return {"version": 2, "rules": generate_rules(project)}
 
     return None
 
@@ -233,11 +353,14 @@ class TransactionNameRule(TypedDict):
     redaction: TransactionNameRuleRedaction
 
 
-def get_transaction_names_config(project: Project) -> Optional[Sequence[TransactionNameRule]]:
+def get_transaction_names_config(
+    timeout: TimeChecker, project: Project
+) -> Sequence[TransactionNameRule] | None:
     if not features.has("organizations:transaction-name-normalize", project.organization):
         return None
 
     cluster_rules = get_sorted_rules(ClustererNamespace.TRANSACTIONS, project)
+    timeout.check()
     if not cluster_rules:
         return None
 
@@ -274,66 +397,655 @@ class SpanDescriptionRule(TypedDict):
     redaction: SpanDescriptionRuleRedaction
 
 
-def get_span_descriptions_config(project: Project) -> Optional[Sequence[SpanDescriptionRule]]:
-    if not features.has("projects:span-metrics-extraction", project):
-        return None
-
-    rules = get_sorted_rules(ClustererNamespace.SPANS, project)
-    if not rules:
-        return None
-
-    return [_get_span_desc_rule(pattern, seen) for pattern, seen in rules]
-
-
-def _get_span_desc_rule(pattern: str, seen_last: int) -> SpanDescriptionRule:
-    rule_ttl = seen_last + TRANSACTION_NAME_RULE_TTL_SECS
-    expiry_at = datetime.fromtimestamp(rule_ttl, tz=timezone.utc).isoformat().replace("+00:00", "Z")
-    return SpanDescriptionRule(
-        pattern=pattern,
-        expiry=expiry_at,
-        scope={"op": "http"},
-        redaction={"method": "replace", "substitution": "*"},
-    )
-
-
-def add_experimental_config(
-    config: MutableMapping[str, Any],
-    key: str,
-    function: Callable[..., Any],
-    *args: Any,
-    **kwargs: Any,
-) -> None:
-    """Try to set `config[key] = function(*args, **kwargs)`.
-    If the result of the function call is None, the key is not set.
-    If the function call raises an exception, we log it to sentry and the key remains unset.
-    NOTE: Only use this function if you expect Relay to behave reasonably
-    if ``key`` is missing from the config.
-    """
-    try:
-        subconfig = function(*args, **kwargs)
-    except Exception:
-        logger.error("Exception while building Relay project config field", exc_info=True)
-    else:
-        if subconfig is not None:
-            config[key] = subconfig
-
-
 def _should_extract_abnormal_mechanism(project: Project) -> bool:
     return sample_modulo(
         "sentry-metrics.releasehealth.abnormal-mechanism-extraction-rate", project.organization_id
     )
 
 
+def _should_performance_profiles_web_vitals_be_optional(organization: Organization) -> bool:
+    return features.has(
+        "organizations:insights-browser-webvitals-optional-components", organization
+    )
+
+
+def _get_desktop_browser_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
+    optional = _should_performance_profiles_web_vitals_be_optional(organization)
+    return [
+        {
+            "name": "Chrome",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 900.0,
+                    "p50": 1600.0,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 1200.0,
+                    "p50": 2400.0,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.15,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 200.0,
+                    "p50": 400.0,
+                    "optional": optional,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Chrome",
+            },
+        },
+        {
+            "name": "Firefox",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 900.0,
+                    "p50": 1600.0,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 1200.0,
+                    "p50": 2400.0,
+                    "optional": True,  # Only available on Firefox 122 and beyond
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.0,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": False,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 200.0,
+                    "p50": 400.0,
+                    "optional": optional,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Firefox",
+            },
+        },
+        {
+            "name": "Safari",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 900.0,
+                    "p50": 1600.0,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.0,
+                    "p10": 1200.0,
+                    "p50": 2400.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.0,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": False,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 200.0,
+                    "p50": 400.0,
+                    "optional": optional,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Safari",
+            },
+        },
+        {
+            "name": "Edge",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 900.0,
+                    "p50": 1600.0,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 1200.0,
+                    "p50": 2400.0,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.15,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 200.0,
+                    "p50": 400.0,
+                    "optional": optional,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Edge",
+            },
+        },
+        {
+            "name": "Opera",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 900.0,
+                    "p50": 1600.0,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 1200.0,
+                    "p50": 2400.0,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.15,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 200.0,
+                    "p50": 400.0,
+                    "optional": optional,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Opera",
+            },
+        },
+        {
+            "name": "Chrome INP",
+            "scoreComponents": [
+                {
+                    "measurement": "inp",
+                    "weight": 1.0,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "or",
+                "inner": [
+                    {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Chrome",
+                    },
+                    {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Google Chrome",
+                    },
+                ],
+            },
+        },
+        {
+            "name": "Edge INP",
+            "scoreComponents": [
+                {
+                    "measurement": "inp",
+                    "weight": 1.0,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Edge",
+            },
+        },
+        {
+            "name": "Opera INP",
+            "scoreComponents": [
+                {
+                    "measurement": "inp",
+                    "weight": 1.0,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Opera",
+            },
+        },
+    ]
+
+
+def _get_mobile_browser_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
+    optional = _should_performance_profiles_web_vitals_be_optional(organization)
+    return [
+        {
+            "name": "Chrome Mobile",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 1800.0,
+                    "p50": 3000.0,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 2500.0,
+                    "p50": 4000.0,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.15,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 800.0,
+                    "p50": 1800.0,
+                    "optional": optional,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Chrome Mobile",
+            },
+        },
+        {
+            "name": "Firefox Mobile",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 1800.0,
+                    "p50": 3000.0,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 2500.0,
+                    "p50": 4000.0,
+                    "optional": True,  # Only available on Firefox 122 and beyond
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.0,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": False,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 800.0,
+                    "p50": 1800.0,
+                    "optional": optional,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Firefox Mobile",
+            },
+        },
+        {
+            "name": "Safari Mobile",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 1800.0,
+                    "p50": 3000.0,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.0,
+                    "p10": 2500.0,
+                    "p50": 4000.0,
+                    "optional": False,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.0,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": False,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 800.0,
+                    "p50": 1800.0,
+                    "optional": optional,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Mobile Safari",
+            },
+        },
+        {
+            "name": "Edge Mobile",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 1800.0,
+                    "p50": 3000.0,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 2500.0,
+                    "p50": 4000.0,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.15,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 800.0,
+                    "p50": 1800.0,
+                    "optional": optional,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Edge Mobile",
+            },
+        },
+        {
+            "name": "Opera Mobile",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 1800.0,
+                    "p50": 3000.0,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 2500.0,
+                    "p50": 4000.0,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.15,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 800.0,
+                    "p50": 1800.0,
+                    "optional": optional,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Opera Mobile",
+            },
+        },
+        {
+            "name": "Chrome Mobile INP",
+            "scoreComponents": [
+                {
+                    "measurement": "inp",
+                    "weight": 1.0,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "or",
+                "inner": [
+                    {
+                        "op": "eq",
+                        "name": "event.contexts.browser.name",
+                        "value": "Chrome Mobile",
+                    },
+                ],
+            },
+        },
+        {
+            "name": "Edge Mobile INP",
+            "scoreComponents": [
+                {
+                    "measurement": "inp",
+                    "weight": 1.0,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Edge Mobile",
+            },
+        },
+        {
+            "name": "Opera Mobile INP",
+            "scoreComponents": [
+                {
+                    "measurement": "inp",
+                    "weight": 1.0,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "eq",
+                "name": "event.contexts.browser.name",
+                "value": "Opera Mobile",
+            },
+        },
+    ]
+
+
+def _get_default_browser_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
+    if not features.has("organizations:insights-default-performance-score-profiles", organization):
+        return []
+    optional = _should_performance_profiles_web_vitals_be_optional(organization)
+    return [
+        {
+            "name": "Default",
+            "scoreComponents": [
+                {
+                    "measurement": "fcp",
+                    "weight": 0.15,
+                    "p10": 900.0,
+                    "p50": 1600.0,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "lcp",
+                    "weight": 0.30,
+                    "p10": 1200.0,
+                    "p50": 2400.0,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "cls",
+                    "weight": 0.15,
+                    "p10": 0.1,
+                    "p50": 0.25,
+                    "optional": optional,
+                },
+                {
+                    "measurement": "ttfb",
+                    "weight": 0.10,
+                    "p10": 200.0,
+                    "p50": 400.0,
+                    "optional": optional,
+                },
+            ],
+            "condition": {
+                "op": "and",
+                "inner": [],
+            },
+        },
+        {
+            "name": "Default INP",
+            "scoreComponents": [
+                {
+                    "measurement": "inp",
+                    "weight": 1.0,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": False,
+                },
+            ],
+            "condition": {
+                "op": "and",
+                "inner": [],
+            },
+        },
+    ]
+
+
+def _get_mobile_performance_profiles(organization: Organization) -> list[dict[str, Any]]:
+    if not features.has(
+        "organizations:performance-calculate-mobile-perf-score-relay", organization
+    ):
+        return []
+
+    return [
+        {
+            "name": "Mobile",
+            "version": "mobile.alpha",
+            "scoreComponents": [
+                {
+                    "measurement": "time_to_initial_display",
+                    "weight": 0.25,
+                    "p10": 1800.0,
+                    "p50": 3000.0,
+                    "optional": True,
+                },
+                {
+                    "measurement": "time_to_full_display",
+                    "weight": 0.25,
+                    "p10": 2500.0,
+                    "p50": 4000.0,
+                    "optional": True,
+                },
+                {
+                    "measurement": "app_start_warm",
+                    "weight": 0.25,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": True,
+                },
+                {
+                    "measurement": "app_start_cold",
+                    "weight": 0.25,
+                    "p10": 200.0,
+                    "p50": 500.0,
+                    "optional": True,
+                },
+            ],
+            "condition": {
+                "op": "and",
+                "inner": [
+                    {
+                        "op": "or",
+                        "inner": [
+                            {"op": "eq", "name": "event.sdk.name", "value": "sentry.cocoa"},
+                            {"op": "eq", "name": "event.sdk.name", "value": "sentry.java.android"},
+                        ],
+                    },
+                    {"op": "eq", "name": "event.contexts.trace.op", "value": "ui.load"},
+                ],
+            },
+        }
+    ]
+
+
 def _get_project_config(
-    project: Project, full_config: bool = True, project_keys: Optional[Sequence[ProjectKey]] = None
-) -> "ProjectConfig":
+    project: Project, project_keys: Iterable[ProjectKey] | None = None
+) -> ProjectConfig:
     if project.status != ObjectStatus.ACTIVE:
         return ProjectConfig(project, disabled=True)
 
-    public_keys = get_public_key_configs(project, full_config, project_keys=project_keys)
+    public_keys = get_public_key_configs(project_keys=project_keys)
 
-    with Hub.current.start_span(op="get_public_config"):
-        now = datetime.utcnow().replace(tzinfo=timezone.utc)
+    with sentry_sdk.start_span(op="get_public_config"):
+        now = datetime.now(timezone.utc)
         cfg = {
             "disabled": False,
             "slug": project.slug,
@@ -357,30 +1069,26 @@ def _get_project_config(
 
     config = cfg["config"]
 
-    if exposed_features := get_exposed_features(project):
-        config["features"] = exposed_features
+    with sentry_sdk.start_span(op="get_exposed_features"):
+        if exposed_features := get_exposed_features(project):
+            config["features"] = exposed_features
 
     # NOTE: Omitting dynamicSampling because of a failure increases the number
     # of events forwarded by Relay, because dynamic sampling will stop filtering
     # anything.
-    add_experimental_config(config, "dynamicSampling", get_dynamic_sampling_config, project)
+    add_experimental_config(config, "sampling", get_dynamic_sampling_config, project)
 
     # Rules to replace high cardinality transaction names
     add_experimental_config(config, "txNameRules", get_transaction_names_config, project)
-
-    # Rules to replace high cardinality span descriptions
-    add_experimental_config(config, "spanDescriptionRules", get_span_descriptions_config, project)
 
     # Mark the project as ready if it has seen >= 10 clusterer runs.
     # This prevents projects from prematurely marking all URL transactions as sanitized.
     if get_clusterer_meta(ClustererNamespace.TRANSACTIONS, project)["runs"] >= MIN_CLUSTERER_RUNS:
         config["txNameReady"] = True
 
-    if not full_config:
-        # This is all we need for external Relay processors
-        return ProjectConfig(project, **cfg)
-
     config["breakdownsV2"] = project.get_option("sentry:breakdowns")
+
+    add_experimental_config(config, "metrics", get_metrics_config, project)
 
     if _should_extract_transaction_metrics(project):
         add_experimental_config(
@@ -400,50 +1108,35 @@ def _get_project_config(
 
         add_experimental_config(config, "metricExtraction", get_metric_extraction_config, project)
 
-    if features.has("organizations:metrics-extraction", project.organization):
-        config["sessionMetrics"] = {
-            "version": EXTRACT_ABNORMAL_MECHANISM_VERSION
+    config["sessionMetrics"] = {
+        "version": (
+            EXTRACT_ABNORMAL_MECHANISM_VERSION
             if _should_extract_abnormal_mechanism(project)
-            else EXTRACT_METRICS_VERSION,
-            "drop": features.has(
-                "organizations:release-health-drop-sessions", project.organization
-            ),
-        }
+            else EXTRACT_METRICS_VERSION
+        ),
+    }
 
-    if features.has("organizations:performance-calculate-score-relay", project.organization):
-        config["performanceScore"] = {
-            "profiles": [
-                {
-                    "name": "Desktop",
-                    "scoreComponents": [
-                        {"measurement": "fcp", "weight": 0.15, "p10": 900.0, "p50": 1600.0},
-                        {"measurement": "lcp", "weight": 0.30, "p10": 1200.0, "p50": 2400.0},
-                        {"measurement": "fid", "weight": 0.30, "p10": 100.0, "p50": 300.0},
-                        {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25},
-                        {"measurement": "ttfb", "weight": 0.10, "p10": 200.0, "p50": 400.0},
-                    ],
-                    "condition": {
-                        "op": "eq",
-                        "name": "event.contexts.browser.name",
-                        "value": "Chrome",
-                    },
-                }
-            ]
-        }
+    performance_score_profiles = [
+        *_get_desktop_browser_performance_profiles(project.organization),
+        *_get_mobile_browser_performance_profiles(project.organization),
+        *_get_mobile_performance_profiles(project.organization),
+        *_get_default_browser_performance_profiles(project.organization),
+    ]
+    if performance_score_profiles:
+        config["performanceScore"] = {"profiles": performance_score_profiles}
 
-    config["spanAttributes"] = project.get_option("sentry:span_attributes")
-    with Hub.current.start_span(op="get_filter_settings"):
+    with sentry_sdk.start_span(op="get_filter_settings"):
         if filter_settings := get_filter_settings(project):
             config["filterSettings"] = filter_settings
-    with Hub.current.start_span(op="get_grouping_config_dict_for_project"):
+    with sentry_sdk.start_span(op="get_grouping_config_dict_for_project"):
         grouping_config = get_grouping_config_dict_for_project(project)
         if grouping_config is not None:
             config["groupingConfig"] = grouping_config
-    with Hub.current.start_span(op="get_event_retention"):
+    with sentry_sdk.start_span(op="get_event_retention"):
         event_retention = quotas.backend.get_event_retention(project.organization)
         if event_retention is not None:
             config["eventRetention"] = event_retention
-    with Hub.current.start_span(op="get_all_quotas"):
+    with sentry_sdk.start_span(op="get_all_quotas"):
         if quotas_config := get_quotas(project, keys=project_keys):
             config["quotas"] = quotas_config
 
@@ -475,7 +1168,7 @@ class _ConfigBase:
     def __setattr__(self, key: str, value: Any) -> None:
         raise Exception("Trying to change read only ProjectConfig object")
 
-    def __getattr__(self, name: str) -> Union[Any, Mapping[str, Any]]:
+    def __getattr__(self, name: str) -> Any | Mapping[str, Any]:
         data = self.__get_data()
         return data.get(to_camel_case_name(name))
 
@@ -539,7 +1232,7 @@ class _ConfigBase:
 
     def __str__(self) -> str:
         try:
-            return utils.json.dumps(self.to_dict(), sort_keys=True)  # type: ignore
+            return utils.json.dumps(self.to_dict(), sort_keys=True)  # type: ignore[arg-type]
         except Exception as e:
             return f"Content Error:{e}"
 
@@ -590,7 +1283,7 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
 
     is_enabled = setting != "0"
 
-    ret_val: Dict[str, Union[bool, Sequence[str]]] = {"isEnabled": is_enabled}
+    ret_val: dict[str, bool | Sequence[str]] = {"isEnabled": is_enabled}
 
     # special case for legacy browser.
     # If the number of special cases increases we'll have to factor this functionality somewhere
@@ -614,7 +1307,7 @@ def _filter_option_to_config_setting(flt: _FilterSpec, setting: str) -> Mapping[
 #: When you increment this version, outdated Relays will stop extracting
 #: transaction metrics.
 #: See https://github.com/getsentry/relay/blob/6181c6e80b9485ed394c40bc860586ae934704e2/relay-dynamic-config/src/metrics.rs#L85
-TRANSACTION_METRICS_EXTRACTION_VERSION = 3
+TRANSACTION_METRICS_EXTRACTION_VERSION = 6
 
 
 class CustomMeasurementSettings(TypedDict):
@@ -626,7 +1319,7 @@ TransactionNameStrategy = Literal["strict", "clientBased"]
 
 class TransactionMetricsSettings(TypedDict):
     version: int
-    extractCustomTags: List[str]
+    extractCustomTags: list[str]
     customMeasurements: CustomMeasurementSettings
     acceptTransactionNames: TransactionNameStrategy
 
@@ -640,12 +1333,12 @@ def _should_extract_transaction_metrics(project: Project) -> bool:
 
 
 def get_transaction_metrics_settings(
-    project: Project, breakdowns_config: Optional[Mapping[str, Any]]
+    timeout: TimeChecker, project: Project, breakdowns_config: Mapping[str, Any] | None
 ) -> TransactionMetricsSettings:
     """This function assumes that the corresponding feature flag has been checked.
     See _should_extract_transaction_metrics.
     """
-    custom_tags: List[str] = []
+    custom_tags: list[str] = []
 
     if breakdowns_config is not None:
         # we already have a breakdown configuration that tells relay which

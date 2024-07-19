@@ -1,7 +1,7 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import ActionButton from 'sentry/components/actions/button';
 import {Button} from 'sentry/components/button';
 import FieldGroup from 'sentry/components/forms/fieldGroup';
@@ -88,8 +88,8 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
         validData.password === undefined
           ? {'hidden-secret': true}
           : !validData.password
-          ? undefined
-          : validData.password,
+            ? undefined
+            : validData.password,
     });
   }
 
@@ -193,7 +193,7 @@ function Http({Header, Body, Footer, onSubmit, ...props}: Props) {
             (typeof data.password === 'string' && !!data.password)) && (
             <ClearPasswordButton
               onClick={handleClearPassword}
-              icon={<IconClose legacySize="14px" />}
+              icon={<IconClose size="sm" />}
               size="xs"
               title={t('Clear password')}
               aria-label={t('Clear password')}

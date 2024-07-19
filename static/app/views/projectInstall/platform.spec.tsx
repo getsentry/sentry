@@ -1,13 +1,19 @@
-import {ProjectKeys} from 'sentry-fixture/projectKeys';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
+import ConfigStore from 'sentry/stores/configStore';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import {ProjectInstallPlatform} from 'sentry/views/projectInstall/platform';
 
-function mockProjectApiResponses(projects: Project[]) {
+type ProjectWithBadPlatform = Omit<Project, 'platform'> & {
+  platform: string;
+};
+
+function mockProjectApiResponses(projects: Array<Project | ProjectWithBadPlatform>) {
   MockApiClient.addMockResponse({
     method: 'GET',
     url: '/organizations/org-slug/projects/',
@@ -35,11 +41,11 @@ function mockProjectApiResponses(projects: Project[]) {
   MockApiClient.addMockResponse({
     url: '/projects/org-slug/project-slug/keys/',
     method: 'GET',
-    body: [ProjectKeys()[0]],
+    body: [ProjectKeysFixture()[0]],
   });
 
   MockApiClient.addMockResponse({
-    url: `/projects/org-slug/project-slug/keys/${ProjectKeys()[0].public}/`,
+    url: `/projects/org-slug/project-slug/keys/${ProjectKeysFixture()[0].public}/`,
     method: 'PUT',
     body: {},
   });
@@ -48,13 +54,14 @@ function mockProjectApiResponses(projects: Project[]) {
 describe('ProjectInstallPlatform', function () {
   beforeEach(function () {
     MockApiClient.clearMockResponses();
+    ConfigStore.init();
   });
 
   it('should render NotFound if no matching integration/platform', async function () {
     const routeParams = {
-      projectId: TestStubs.Project().slug,
+      projectId: ProjectFixture().slug,
     };
-    const {organization, routerProps, project, routerContext} = initializeOrg({
+    const {organization, routerProps, project, router} = initializeOrg({
       router: {
         location: {
           query: {},
@@ -67,7 +74,7 @@ describe('ProjectInstallPlatform', function () {
 
     render(<ProjectInstallPlatform {...routerProps} />, {
       organization,
-      context: routerContext,
+      router,
     });
 
     expect(await screen.findByText('Page Not Found')).toBeInTheDocument();
@@ -75,7 +82,7 @@ describe('ProjectInstallPlatform', function () {
 
   it('should display info for a non-supported platform', async function () {
     const routeParams = {
-      projectId: TestStubs.Project().slug,
+      projectId: ProjectFixture().slug,
     };
 
     const {organization, routerProps, project} = initializeOrg({
@@ -102,14 +109,14 @@ describe('ProjectInstallPlatform', function () {
   });
 
   it('should render getting started docs for correct platform', async function () {
-    const project = TestStubs.Project({platform: 'javascript'});
+    const project = ProjectFixture({platform: 'javascript'});
 
     const routeParams = {
       projectId: project.slug,
       platform: 'python',
     };
 
-    const {routerProps, routerContext} = initializeOrg({
+    const {routerProps, router} = initializeOrg({
       router: {
         location: {
           query: {},
@@ -123,7 +130,7 @@ describe('ProjectInstallPlatform', function () {
     mockProjectApiResponses([project]);
 
     render(<ProjectInstallPlatform {...routerProps} />, {
-      context: routerContext,
+      router,
     });
 
     expect(
@@ -131,5 +138,46 @@ describe('ProjectInstallPlatform', function () {
         name: 'Configure Browser JavaScript SDK',
       })
     ).toBeInTheDocument();
+
+    expect(await screen.getByText('Take me to Issues')).toBeInTheDocument();
+    expect(await screen.getByText('Take me to Performance')).toBeInTheDocument();
+    expect(await screen.getByText('Take me to Session Replay')).toBeInTheDocument();
+  });
+
+  it('should not render performance/session replay buttons for errors only self-hosted', async function () {
+    const project = ProjectFixture({platform: 'javascript'});
+
+    const routeParams = {
+      projectId: project.slug,
+      platform: 'python',
+    };
+
+    const {routerProps, router} = initializeOrg({
+      router: {
+        location: {
+          query: {},
+        },
+        params: routeParams,
+      },
+    });
+
+    ProjectsStore.loadInitialData([project]);
+
+    mockProjectApiResponses([project]);
+    ConfigStore.set('isSelfHostedErrorsOnly', true);
+
+    render(<ProjectInstallPlatform {...routerProps} />, {
+      router,
+    });
+
+    expect(
+      await screen.findByRole('heading', {
+        name: 'Configure Browser JavaScript SDK',
+      })
+    ).toBeInTheDocument();
+
+    expect(screen.getByText('Take me to Issues')).toBeInTheDocument();
+    expect(() => screen.getByText('Take me to Performance')).toThrow();
+    expect(() => screen.getByText('Take me to Session Replay')).toThrow();
   });
 });

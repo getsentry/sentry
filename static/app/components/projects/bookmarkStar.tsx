@@ -7,7 +7,8 @@ import {Button} from 'sentry/components/button';
 import {IconStar} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import useApi from 'sentry/utils/useApi';
 
 type Props = {
@@ -44,7 +45,7 @@ function BookmarkStar({className, organization, project, onToggle}: Props) {
       borderless
       className={className}
       icon={
-        <IconStar color={isBookmarked ? 'yellow400' : 'subText'} isSolid={isBookmarked} />
+        <IconStar color={isBookmarked ? 'yellow300' : 'subText'} isSolid={isBookmarked} />
       }
     />
   );

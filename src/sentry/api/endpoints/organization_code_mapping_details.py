@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import (
@@ -11,8 +12,8 @@ from sentry.api.bases.organization import (
     OrganizationIntegrationsLoosePermission,
 )
 from sentry.api.serializers import serialize
+from sentry.integrations.services.integration import integration_service
 from sentry.models.integrations.repository_project_path_config import RepositoryProjectPathConfig
-from sentry.services.hybrid_cloud.integration import integration_service
 
 from .organization_code_mappings import (
     OrganizationIntegrationMixin,
@@ -22,14 +23,17 @@ from .organization_code_mappings import (
 
 @region_silo_endpoint
 class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationIntegrationMixin):
+    owner = ApiOwner.ISSUES
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,
     }
     permission_classes = (OrganizationIntegrationsLoosePermission,)
 
-    def convert_args(self, request: Request, organization_slug, config_id, *args, **kwargs):
-        args, kwargs = super().convert_args(request, organization_slug, config_id, *args, **kwargs)
+    def convert_args(self, request: Request, organization_id_or_slug, config_id, *args, **kwargs):
+        args, kwargs = super().convert_args(
+            request, organization_id_or_slug, config_id, *args, **kwargs
+        )
         ois = integration_service.get_organization_integrations(
             organization_id=kwargs["organization"].id
         )
@@ -48,7 +52,7 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
         Update a repository project path config
         ``````````````````
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team should be created for.
         :param int repository_id:
         :param int project_id:
@@ -57,6 +61,8 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
         :param string default_branch:
         :auth: required
         """
+        if not request.access.has_project_access(config.project):
+            return self.respond(status=status.HTTP_403_FORBIDDEN)
 
         try:
             # We expect there to exist an org_integration
@@ -90,6 +96,10 @@ class OrganizationCodeMappingDetailsEndpoint(OrganizationEndpoint, OrganizationI
 
         :auth: required
         """
+
+        if not request.access.has_project_access(config.project):
+            return self.respond(status=status.HTTP_403_FORBIDDEN)
+
         try:
             config.delete()
             return self.respond(status=status.HTTP_204_NO_CONTENT)

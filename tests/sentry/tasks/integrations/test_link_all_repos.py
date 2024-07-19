@@ -6,15 +6,15 @@ from django.db import IntegrityError
 
 from sentry.integrations.github.integration import GitHubIntegrationProvider
 from sentry.models.repository import Repository
-from sentry.shared_integrations.exceptions.base import ApiError
-from sentry.silo import SiloMode
+from sentry.shared_integrations.exceptions import ApiError
+from sentry.silo.base import SiloMode
 from sentry.tasks.integrations.link_all_repos import link_all_repos
 from sentry.testutils.cases import IntegrationTestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test(stable=True)
-@patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+@control_silo_test
+@patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
 class LinkAllReposTestCase(IntegrationTestCase):
     provider = GitHubIntegrationProvider
     base_url = "https://api.github.com"
@@ -174,7 +174,7 @@ class LinkAllReposTestCase(IntegrationTestCase):
 
         mock_metrics.incr.assert_called_with("sentry.integration_repo_provider.repo_exists")
 
-    @patch("sentry.services.hybrid_cloud.repository.repository_service.create_repository")
+    @patch("sentry.integrations.services.repository.repository_service.create_repository")
     @patch("sentry.plugins.providers.IntegrationRepositoryProvider.on_delete_repository")
     @responses.activate
     def test_link_all_repos_repo_creation_exception(

@@ -7,7 +7,7 @@ import {IconEllipsis} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {space} from 'sentry/styles/space';
-import {User} from 'sentry/types';
+import type {User} from 'sentry/types/user';
 
 type Props = {
   authorName: string;
@@ -31,7 +31,7 @@ function NoteHeader({authorName, user, onEdit, onDelete}: Props) {
             size: 'xs',
             showChevron: false,
             borderless: true,
-            icon: <IconEllipsis size="xs" />,
+            icon: <IconEllipsis />,
             'aria-label': t('Comment Actions'),
           }}
           items={[

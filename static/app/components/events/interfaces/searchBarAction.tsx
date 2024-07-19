@@ -1,10 +1,7 @@
 import styled from '@emotion/styled';
 
-import {
-  CompactSelect,
-  SelectOption,
-  SelectOptionOrSection,
-} from 'sentry/components/compactSelect';
+import type {SelectOption, SelectOptionOrSection} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import DropdownButton from 'sentry/components/dropdownButton';
 import SearchBar from 'sentry/components/searchBar';
 import {t, tn} from 'sentry/locale';

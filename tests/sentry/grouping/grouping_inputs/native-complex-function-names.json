@@ -2,9 +2,7 @@
   "event_id": "3db43a42ec244bc99f88602d36eeda82",
   "platform": "native",
   "logger": "log_demo",
-  "fingerprint": [
-    "{{ default }}"
-  ],
+  "fingerprint": ["{{ default }}"],
   "exception": {
     "values": [
       {

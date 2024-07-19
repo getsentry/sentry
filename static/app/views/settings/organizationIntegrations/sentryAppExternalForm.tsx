@@ -3,14 +3,14 @@ import {createFilter} from 'react-select';
 import debounce from 'lodash/debounce';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
-import {GeneralSelectValue} from 'sentry/components/forms/controls/selectControl';
+import type {Client} from 'sentry/api';
+import type {GeneralSelectValue} from 'sentry/components/forms/controls/selectControl';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
-import {Field, FieldValue} from 'sentry/components/forms/types';
+import type {Field, FieldValue} from 'sentry/components/forms/types';
 import {t} from 'sentry/locale';
-import {replaceAtArrayIndex} from 'sentry/utils/replaceAtArrayIndex';
+import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
 import withApi from 'sentry/utils/withApi';
 
 // 0 is a valid choice but empty string, undefined, and null are not
@@ -27,8 +27,8 @@ export type FieldFromSchema = Omit<Field, 'choices' | 'type'> & {
 };
 
 export type SchemaFormConfig = {
-  description: string | null;
   uri: string;
+  description?: string;
   optional_fields?: FieldFromSchema[];
   required_fields?: FieldFromSchema[];
 };
@@ -111,7 +111,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
     // For alert-rule-actions, the forms are entirely custom, extra fields are
     // passed in on submission, not as part of the form. See handleAlertRuleSubmit().
     if (element === 'alert-rule-action') {
-      const defaultResetValues = (this.props.resetValues || {}).settings || [];
+      const defaultResetValues = this.props.resetValues?.settings || [];
       const initialData = defaultResetValues.reduce((acc, curr) => {
         acc[curr.name] = curr.value;
         return acc;
@@ -150,7 +150,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
   };
 
   getDefaultOptions = (field: FieldFromSchema) => {
-    const savedOption = ((this.props.resetValues || {}).settings || []).find(
+    const savedOption = (this.props.resetValues?.settings || []).find(
       value => value.name === field.name
     );
     const currentOptions = (field.choices || []).map(([value, label]) => ({
@@ -181,9 +181,7 @@ export class SentryAppExternalForm extends Component<Props, State> {
       defaultValue = getFieldDefault(field);
     }
 
-    const reset = ((resetValues || {}).settings || []).find(
-      value => value.name === field.name
-    );
+    const reset = resetValues?.settings?.find(value => value.name === field.name);
 
     if (reset) {
       defaultValue = reset.value;

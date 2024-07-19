@@ -3,7 +3,7 @@ import {useCallback, useMemo} from 'react';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import useFiltersInLocationQuery from 'sentry/utils/replays/hooks/useFiltersInLocationQuery';
-import {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
+import type {HydratedA11yFrame} from 'sentry/utils/replays/hydrateA11yFrame';
 import {filterItems} from 'sentry/views/replays/detail/utils';
 
 export interface AccessibilitySelectOption extends SelectOption<string> {

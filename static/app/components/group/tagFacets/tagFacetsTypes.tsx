@@ -1,7 +1,7 @@
-import {ReactNode} from 'react';
+import type {ReactNode} from 'react';
 
-import {Environment, Project, TagWithTopValues} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Environment, Project, TagWithTopValues} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 
 export type TagFacetsProps = {
   environments: Environment[];

@@ -2,7 +2,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrganizationIntegrationsListTest(APITestCase):
     endpoint = "sentry-api-0-organization-integrations"
 

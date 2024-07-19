@@ -1,11 +1,18 @@
+from __future__ import annotations
+
+import types
+from collections.abc import Sequence
 from datetime import timedelta
-from typing import Dict, List, Optional, Sequence
+from typing import Any
 
 import sentry_sdk
 
 from sentry.discover.arithmetic import categorize_columns
 from sentry.exceptions import IncompatibleMetricsQuery, InvalidSearchQuery
-from sentry.snuba import discover
+from sentry.models.organization import Organization
+from sentry.search.events.types import EventsResponse, ParamsType
+from sentry.snuba import discover, transactions
+from sentry.snuba.metrics.extraction import MetricSpecType
 from sentry.snuba.metrics_performance import histogram_query as metrics_histogram_query
 from sentry.snuba.metrics_performance import query as metrics_query
 from sentry.snuba.metrics_performance import timeseries_query as metrics_timeseries_query
@@ -34,6 +41,7 @@ def query(
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
     on_demand_metrics_type=None,
+    fallback_to_transactions=False,
 ):
     metrics_compatible = not equations
     dataset_reason = discover.DEFAULT_DATASET_REASON
@@ -60,25 +68,29 @@ def query(
                 has_metrics,
                 use_metrics_layer,
                 on_demand_metrics_enabled,
+                on_demand_metrics_type=on_demand_metrics_type,
             )
             result["meta"]["datasetReason"] = dataset_reason
 
             return result
         # raise Invalid Queries since the same thing will happen with discover
-        except InvalidSearchQuery as error:
-            raise error
+        except InvalidSearchQuery:
+            raise
         # any remaining errors mean we should try again with discover
         except IncompatibleMetricsQuery as error:
             sentry_sdk.set_tag("performance.mep_incompatible", str(error))
             dataset_reason = str(error)
             metrics_compatible = False
-        except Exception as error:
-            raise error
 
     # Either metrics failed, or this isn't a query we can enhance with metrics
     if not metrics_compatible:
-        sentry_sdk.set_tag("performance.dataset", "discover")
-        results = discover.query(
+        dataset: types.ModuleType = discover
+        if fallback_to_transactions:
+            dataset = transactions
+            sentry_sdk.set_tag("performance.dataset", "transactions")
+        else:
+            sentry_sdk.set_tag("performance.dataset", "discover")
+        results = dataset.query(
             selected_columns,
             query,
             params,
@@ -96,6 +108,7 @@ def query(
             has_metrics=has_metrics,
         )
         results["meta"]["isMetricsData"] = False
+        results["meta"]["isMetricsExtractedData"] = False
         results["meta"]["datasetReason"] = dataset_reason
 
         return results
@@ -106,13 +119,13 @@ def query(
 def timeseries_query(
     selected_columns: Sequence[str],
     query: str,
-    params: Dict[str, str],
+    params: ParamsType,
     rollup: int,
     referrer: str,
     zerofill_results: bool = True,
     allow_metric_aggregates=True,
-    comparison_delta: Optional[timedelta] = None,
-    functions_acl: Optional[List[str]] = None,
+    comparison_delta: timedelta | None = None,
+    functions_acl: list[str] | None = None,
     has_metrics: bool = True,
     use_metrics_layer: bool = False,
     on_demand_metrics_enabled: bool = False,
@@ -139,16 +152,15 @@ def timeseries_query(
                 functions_acl,
                 use_metrics_layer=use_metrics_layer,
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
+                on_demand_metrics_type=on_demand_metrics_type,
             )
         # raise Invalid Queries since the same thing will happen with discover
-        except InvalidSearchQuery as error:
-            raise error
+        except InvalidSearchQuery:
+            raise
         # any remaining errors mean we should try again with discover
         except IncompatibleMetricsQuery as error:
             sentry_sdk.set_tag("performance.mep_incompatible", str(error))
             metrics_compatible = False
-        except Exception as error:
-            raise error
 
     # This isn't a query we can enhance with metrics
     if not metrics_compatible:
@@ -166,7 +178,7 @@ def timeseries_query(
         )
     return SnubaTSResult(
         {
-            "data": discover.zerofill([], params["start"], params["end"], rollup, "time")
+            "data": discover.zerofill([], params["start"], params["end"], rollup, ["time"])
             if zerofill_results
             else [],
         },
@@ -177,26 +189,26 @@ def timeseries_query(
 
 
 def top_events_timeseries(
-    timeseries_columns,
-    selected_columns,
-    user_query,
-    params,
-    orderby,
-    rollup,
-    limit,
-    organization,
-    equations=None,
-    referrer=None,
-    top_events=None,
-    allow_empty=True,
-    zerofill_results=True,
-    include_other=False,
-    functions_acl=None,
+    timeseries_columns: list[str],
+    selected_columns: list[str],
+    user_query: str,
+    params: ParamsType,
+    orderby: list[str],
+    rollup: int,
+    limit: int,
+    organization: Organization,
+    equations: list[str] | None = None,
+    referrer: str | None = None,
+    top_events: EventsResponse | None = None,
+    allow_empty: bool = True,
+    zerofill_results: bool = True,
+    include_other: bool = False,
+    functions_acl: list[str] | None = None,
     on_demand_metrics_enabled: bool = False,
-    on_demand_metrics_type=None,
-):
+    on_demand_metrics_type: MetricSpecType | None = None,
+) -> SnubaTSResult | dict[str, Any]:
     metrics_compatible = False
-    equations, columns = categorize_columns(selected_columns)
+    equations, _ = categorize_columns(selected_columns)
     if not equations:
         metrics_compatible = True
 
@@ -219,16 +231,15 @@ def top_events_timeseries(
                 include_other,
                 functions_acl,
                 on_demand_metrics_enabled=on_demand_metrics_enabled,
+                on_demand_metrics_type=on_demand_metrics_type,
             )
         # raise Invalid Queries since the same thing will happen with discover
-        except InvalidSearchQuery as error:
-            raise error
+        except InvalidSearchQuery:
+            raise
         # any remaining errors mean we should try again with discover
         except IncompatibleMetricsQuery as error:
             sentry_sdk.set_tag("performance.mep_incompatible", str(error))
             metrics_compatible = False
-        except Exception as error:
-            raise error
 
     # This isn't a query we can enhance with metrics
     if not metrics_compatible:
@@ -252,7 +263,7 @@ def top_events_timeseries(
         )
     return SnubaTSResult(
         {
-            "data": discover.zerofill([], params["start"], params["end"], rollup, "time")
+            "data": discover.zerofill([], params["start"], params["end"], rollup, ["time"])
             if zerofill_results
             else [],
         },
@@ -309,14 +320,12 @@ def histogram_query(
                 use_metrics_layer,
             )
         # raise Invalid Queries since the same thing will happen with discover
-        except InvalidSearchQuery as error:
-            raise error
+        except InvalidSearchQuery:
+            raise
         # any remaining errors mean we should try again with discover
         except IncompatibleMetricsQuery as error:
             sentry_sdk.set_tag("performance.mep_incompatible", str(error))
             metrics_compatible = False
-        except Exception as error:
-            raise error
 
     # This isn't a query we can enhance with metrics
     if not metrics_compatible:

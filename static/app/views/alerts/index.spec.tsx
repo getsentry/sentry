@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -11,14 +11,13 @@ describe('AlertsContainer', function () {
 
   describe('no access without feature flag', function () {
     it('display no access message', function () {
-      const organization = Organization();
+      const organization = OrganizationFixture();
 
       render(
         <AlertsContainer>
           <SubView />
         </AlertsContainer>,
         {
-          context: TestStubs.routerContext([{organization}]),
           organization,
         }
       );
@@ -26,7 +25,7 @@ describe('AlertsContainer', function () {
     });
 
     it('allows access', function () {
-      const organization = Organization({
+      const organization = OrganizationFixture({
         features: ['incidents'],
       });
 
@@ -35,7 +34,6 @@ describe('AlertsContainer', function () {
           <SubView />
         </AlertsContainer>,
         {
-          context: TestStubs.routerContext([{organization}]),
           organization,
         }
       );

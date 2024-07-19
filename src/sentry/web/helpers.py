@@ -1,14 +1,14 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
-import pytz
 from django.http import HttpRequest, HttpResponse
 from django.template import loader
 from django.utils import timezone
 
-from sentry.utils.auth import get_login_url  # NOQA: backwards compatibility
+from sentry.utils.dates import AVAILABLE_TIMEZONES
 
 logger = logging.getLogger("sentry")
 
@@ -23,7 +23,7 @@ def render_to_string(
     else:
         context = dict(context)
 
-    if "timezone" in context and context["timezone"] in pytz.all_timezones_set:
+    if "timezone" in context and context["timezone"] in AVAILABLE_TIMEZONES:
         timezone.activate(context["timezone"])
 
     rendered = loader.render_to_string(template, context=context, request=request)
@@ -33,7 +33,7 @@ def render_to_string(
 
 
 def render_to_response(
-    template: str,
+    template: Sequence[str] | str,
     context: Mapping[str, Any] | None = None,
     request: HttpRequest | None = None,
     status: int = 200,

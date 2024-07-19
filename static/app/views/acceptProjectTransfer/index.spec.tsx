@@ -1,4 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
@@ -19,8 +20,8 @@ describe('AcceptProjectTransfer', function () {
       url: '/accept-transfer/',
       method: 'GET',
       body: {
-        project: TestStubs.Project(),
-        organizations: [Organization({teams: [TestStubs.Team()]})],
+        project: ProjectFixture(),
+        organizations: [OrganizationFixture()],
       },
     });
 
@@ -50,8 +51,8 @@ describe('AcceptProjectTransfer', function () {
       url: '/accept-transfer/',
       method: 'GET',
       body: {
-        project: TestStubs.Project(),
-        organizations: [Organization({teams: [TestStubs.Team()]})],
+        project: ProjectFixture(),
+        organizations: [OrganizationFixture()],
       },
       match: [(_url, options) => options.host === 'http://us.sentry.io'],
     });
@@ -69,6 +70,7 @@ describe('AcceptProjectTransfer', function () {
       endpoint,
       expect.objectContaining({
         method: 'POST',
+        host: 'http://us.sentry.io',
       })
     );
   });

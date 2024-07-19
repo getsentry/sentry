@@ -1,14 +1,15 @@
-from typing import Dict
-
 from django.urls import reverse
 from rest_framework import status
 
+from sentry import options
 from sentry.models.orgauthtoken import OrgAuthToken
 from sentry.testutils.cases import APITestCase, PermissionTestCase
-from sentry.testutils.silo import control_silo_test
+from sentry.testutils.silo import control_silo_test, create_test_regions
+from sentry.types.region import get_region_by_name
+from sentry.utils.security.orgauthtoken_token import parse_token
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrgAuthTokensListTest(APITestCase):
     endpoint = "sentry-api-0-org-auth-tokens"
 
@@ -106,7 +107,7 @@ class OrgAuthTokensListTest(APITestCase):
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
-@control_silo_test(stable=True)
+@control_silo_test(regions=create_test_regions("us"))
 class OrgAuthTokenCreateTest(APITestCase):
     endpoint = "sentry-api-0-org-auth-tokens"
     method = "POST"
@@ -136,8 +137,14 @@ class OrgAuthTokenCreateTest(APITestCase):
         assert tokenDb.get_scopes() == token.get("scopes")
         assert tokenDb.created_by.id == self.user.id
 
+        # Assert that region and control URLs are both set correctly
+        token_payload = parse_token(token=token.get("token"))
+        assert token_payload.get("region_url", None)
+        assert token_payload.get("region_url") == get_region_by_name(name="us").address
+        assert token_payload.get("url") == options.get("system.url-prefix")
+
     def test_no_name(self):
-        payload: Dict[str, str] = {}
+        payload: dict[str, str] = {}
 
         self.login_as(self.user)
         response = self.get_error_response(
@@ -179,7 +186,7 @@ class OrgAuthTokenCreateTest(APITestCase):
         assert response.status_code == status.HTTP_403_FORBIDDEN
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class OrgAuthTokensPermissionTest(PermissionTestCase):
     postData = {"name": "token-1"}
 

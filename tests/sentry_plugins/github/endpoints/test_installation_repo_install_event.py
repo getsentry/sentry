@@ -1,14 +1,12 @@
 from uuid import uuid4
 
-from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry_plugins.github.testutils import INSTALLATION_REPO_EVENT
 
 
-@region_silo_test(stable=True)
 class InstallationRepoInstallEventWebhookTest(APITestCase):
     def test_simple(self):
         project = self.project  # force creation
@@ -16,7 +14,7 @@ class InstallationRepoInstallEventWebhookTest(APITestCase):
         url = "/plugins/github/installations/webhook/"
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
+            integration = self.create_provider_integration(
                 provider="github_apps", external_id="2", name="octocat"
             )
 
@@ -46,7 +44,7 @@ class InstallationRepoInstallEventWebhookTest(APITestCase):
         url = "/plugins/github/installations/webhook/"
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            integration = Integration.objects.create(
+            integration = self.create_provider_integration(
                 provider="github_apps", external_id="2", name="octocat"
             )
 

@@ -7,15 +7,15 @@ from django.urls import reverse
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import FlexibleForeignKey, Model, control_silo_only_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, Model, control_silo_model, sane_repr
 from sentry.utils.http import absolute_uri
 from sentry.utils.security import get_secure_token
 
 if TYPE_CHECKING:
-    from sentry.services.hybrid_cloud.lost_password_hash import RpcLostPasswordHash
+    from sentry.users.services.lost_password_hash import RpcLostPasswordHash
 
 
-@control_silo_only_model
+@control_silo_model
 class LostPasswordHash(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -41,7 +41,18 @@ class LostPasswordHash(Model):
         return self.date_added > timezone.now() - timedelta(hours=1)
 
     @classmethod
-    def send_email(cls, user, hash, request, mode="recover") -> None:
+    def send_recover_password_email(cls, user, hash, ip_address) -> None:
+        extra = {
+            "ip_address": ip_address,
+        }
+        cls._send_email("recover_password", user, hash, extra)
+
+    @classmethod
+    def send_relocate_account_email(cls, user, hash, orgs) -> None:
+        cls._send_email("relocate_account", user, hash, {"orgs": orgs})
+
+    @classmethod
+    def _send_email(cls, mode, user, hash, extra) -> None:
         from sentry import options
         from sentry.http import get_server_hostname
         from sentry.utils.email import MessageBuilder
@@ -51,7 +62,7 @@ class LostPasswordHash(Model):
             "domain": get_server_hostname(),
             "url": cls.get_lostpassword_url(user.id, hash, mode),
             "datetime": timezone.now(),
-            "ip_address": request.META["REMOTE_ADDR"],
+            **extra,
         }
 
         subject = "Password Recovery"
@@ -87,7 +98,7 @@ class LostPasswordHash(Model):
 
     @classmethod
     def for_user(cls, user) -> "RpcLostPasswordHash":
-        from sentry.services.hybrid_cloud.lost_password_hash import lost_password_hash_service
+        from sentry.users.services.lost_password_hash import lost_password_hash_service
 
         password_hash = lost_password_hash_service.get_or_create(user_id=user.id)
         return password_hash

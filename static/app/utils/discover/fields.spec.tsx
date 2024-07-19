@@ -1,9 +1,9 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
+import type {ColumnValueType} from 'sentry/utils/discover/fields';
 import {
   aggregateMultiPlotType,
   aggregateOutputType,
-  ColumnValueType,
   explodeField,
   fieldAlignment,
   generateAggregateFields,
@@ -299,7 +299,7 @@ describe('aggregateMultiPlotType', function () {
 });
 
 describe('generateAggregateFields', function () {
-  const organization = Organization();
+  const organization = OrganizationFixture();
   it('gets default aggregates', function () {
     expect(generateAggregateFields(organization, [])).toContainEqual({field: 'count()'});
   });

@@ -1,0 +1,9 @@
+# getsentry requirements overrides
+#
+# getsentry-specific dependencies now live in `sentry` in `requirements-getsentry.txt`
+#
+# this file is for listing in-development git archive overrides for sentry libraries
+#
+# the format is:
+# # comment explaining what you're doing
+# library-name @ https://github.com/getsentry/<repo>/archive/<40 char sha>.zip

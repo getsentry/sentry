@@ -4,11 +4,12 @@ import classNames from 'classnames';
 import sortBy from 'lodash/sortBy';
 
 import {space} from 'sentry/styles/space';
-import {KeyValueListData} from 'sentry/types';
+import type {KeyValueListData} from 'sentry/types';
 import {defined} from 'sentry/utils';
 import theme from 'sentry/utils/theme';
 
-import {Value, ValueProps} from './value';
+import type {ValueProps} from './value';
+import {Value} from './value';
 
 interface Props extends Pick<ValueProps, 'raw' | 'isContextData'> {
   className?: string;
@@ -32,7 +33,7 @@ function KeyValueList({
     return null;
   }
 
-  const keyValueData = shouldSort ? sortBy(data, [({key}) => key.toLowerCase()]) : data;
+  const keyValueData = shouldSort ? sortBy(data, [({key}) => key?.toLowerCase()]) : data;
 
   return (
     <Table
@@ -133,6 +134,7 @@ const ValueWithButtonContainer = styled('div')`
   background: ${p => p.theme.bodyBackground};
   padding: ${space(1)} 10px;
   margin: ${space(0.25)} 0;
+  border-radius: ${p => p.theme.borderRadius};
   pre {
     padding: 0 !important;
     margin: 0 !important;

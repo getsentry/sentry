@@ -32,19 +32,5 @@ __all__ = (
 )
 
 from .analytics import register_analytics
-from .base import (
-    FeatureDescription,
-    IntegrationFeatures,
-    IntegrationInstallation,
-    IntegrationMetadata,
-    IntegrationProvider,
-)
-from .manager import IntegrationManager
 
 register_analytics()
-default_manager = IntegrationManager()
-all = default_manager.all
-get = default_manager.get
-exists = default_manager.exists
-register = default_manager.register
-unregister = default_manager.unregister

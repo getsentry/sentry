@@ -1,8 +1,10 @@
-import {Commit} from 'sentry-fixture/commit';
+import {CommitFixture} from 'sentry-fixture/commit';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {UserFixture} from 'sentry-fixture/user';
 
 import {render} from 'sentry-test/reactTestingLibrary';
 
-import {GroupActivityType} from 'sentry/types';
+import {GroupActivityType} from 'sentry/types/group';
 
 import ResolutionBox from './resolutionBox';
 
@@ -44,7 +46,7 @@ describe('ResolutionBox', function () {
       <ResolutionBox
         statusDetails={{
           inNextRelease: true,
-          actor: TestStubs.User(),
+          actor: UserFixture(),
         }}
         projectId="1"
         activities={[
@@ -55,7 +57,7 @@ describe('ResolutionBox', function () {
               current_release_version: 'frontend@1.0.0',
             },
             dateCreated: new Date().toISOString(),
-            project: TestStubs.Project(),
+            project: ProjectFixture(),
           },
         ]}
       />
@@ -101,13 +103,34 @@ describe('ResolutionBox', function () {
     const {container} = render(
       <ResolutionBox
         statusDetails={{
-          inCommit: Commit(),
+          inCommit: CommitFixture(),
         }}
         projectId="1"
       />
     );
     expect(container).toHaveTextContent(
       'This issue has been marked as resolved by f7f395din'
+    );
+  });
+
+  it('handles inUpcomingRelease', function () {
+    const {container} = render(
+      <ResolutionBox
+        statusDetails={{
+          inUpcomingRelease: true,
+          actor: {
+            id: '111',
+            name: 'David Cramer',
+            username: 'dcramer',
+            ip_address: '127.0.0.1',
+            email: 'david@sentry.io',
+          },
+        }}
+        projectId="1"
+      />
+    );
+    expect(container).toHaveTextContent(
+      'David Cramer marked this issue as resolved in the upcoming release.'
     );
   });
 });

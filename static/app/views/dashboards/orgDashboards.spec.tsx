@@ -1,16 +1,18 @@
-import {browserHistory} from 'react-router';
-import {Organization} from 'sentry-fixture/organization';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import ProjectsStore from 'sentry/stores/projectsStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import DashboardDetail from 'sentry/views/dashboards/detail';
 import OrgDashboards from 'sentry/views/dashboards/orgDashboards';
 import {DashboardState} from 'sentry/views/dashboards/types';
 
 describe('OrgDashboards', () => {
   const api = new MockApiClient();
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features: ['dashboards-basic', 'dashboards-edit'],
   });
 
@@ -20,7 +22,7 @@ describe('OrgDashboards', () => {
       organization,
       projects: [],
       router: {
-        location: TestStubs.location(),
+        location: LocationFixture(),
         params: {orgId: 'org-slug'},
       },
     });
@@ -42,6 +44,7 @@ describe('OrgDashboards', () => {
       url: '/organizations/org-slug/dashboards/',
       body: [mockDashboard],
     });
+    ProjectsStore.loadInitialData(initialData.projects);
   });
 
   afterEach(() => {
@@ -72,7 +75,7 @@ describe('OrgDashboards', () => {
     render(
       <OrgDashboards
         api={api}
-        location={TestStubs.location()}
+        location={LocationFixture()}
         organization={initialData.organization}
         params={{orgId: 'org-slug', dashboardId: '1'}}
       >
@@ -81,7 +84,7 @@ describe('OrgDashboards', () => {
             <DashboardDetail
               api={api}
               initialState={DashboardState.VIEW}
-              location={initialData.routerContext.location}
+              location={initialData.router.location}
               router={initialData.router}
               dashboard={dashboard}
               dashboards={dashboards}
@@ -92,7 +95,7 @@ describe('OrgDashboards', () => {
           );
         }}
       </OrgDashboards>,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     await waitFor(() =>
@@ -132,7 +135,7 @@ describe('OrgDashboards', () => {
       <OrgDashboards
         api={api}
         location={{
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             // This query param is not a page filter, so it should not interfere
             // with the redirect logic
@@ -158,7 +161,7 @@ describe('OrgDashboards', () => {
           );
         }}
       </OrgDashboards>,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     await waitFor(() =>
@@ -180,7 +183,7 @@ describe('OrgDashboards', () => {
       projects: [],
       router: {
         location: {
-          ...TestStubs.location(),
+          ...LocationFixture(),
           query: {
             // project is supplied in the URL, so we should avoid redirecting
             project: ['1'],
@@ -231,7 +234,7 @@ describe('OrgDashboards', () => {
           );
         }}
       </OrgDashboards>,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     expect(browserHistory.replace).not.toHaveBeenCalled();
@@ -241,7 +244,7 @@ describe('OrgDashboards', () => {
     render(
       <OrgDashboards
         api={api}
-        location={TestStubs.location()}
+        location={LocationFixture()}
         organization={initialData.organization}
         params={{orgId: 'org-slug', dashboardId: '1'}}
       >
@@ -250,7 +253,7 @@ describe('OrgDashboards', () => {
             <DashboardDetail
               api={api}
               initialState={DashboardState.VIEW}
-              location={initialData.routerContext.location}
+              location={initialData.router.location}
               router={initialData.router}
               dashboard={dashboard}
               dashboards={dashboards}
@@ -261,7 +264,7 @@ describe('OrgDashboards', () => {
           );
         }}
       </OrgDashboards>,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     expect(browserHistory.replace).not.toHaveBeenCalled();
@@ -288,7 +291,7 @@ describe('OrgDashboards', () => {
     const {rerender} = render(
       <OrgDashboards
         api={api}
-        location={TestStubs.location()}
+        location={LocationFixture()}
         organization={initialData.organization}
         params={{orgId: 'org-slug', dashboardId: '1'}}
       >
@@ -297,7 +300,7 @@ describe('OrgDashboards', () => {
             <DashboardDetail
               api={api}
               initialState={DashboardState.VIEW}
-              location={initialData.routerContext.location}
+              location={initialData.router.location}
               router={initialData.router}
               dashboard={dashboard}
               dashboards={dashboards}
@@ -308,7 +311,7 @@ describe('OrgDashboards', () => {
           );
         }}
       </OrgDashboards>,
-      {context: initialData.routerContext}
+      {router: initialData.router}
     );
 
     await waitFor(() => expect(browserHistory.replace).toHaveBeenCalledTimes(1));
@@ -316,7 +319,7 @@ describe('OrgDashboards', () => {
     rerender(
       <OrgDashboards
         api={api}
-        location={{...initialData.routerContext.location, query: {}}}
+        location={{...initialData.router.location, query: {}}}
         organization={initialData.organization}
         params={{orgId: 'org-slug', dashboardId: '1'}}
       >
@@ -325,7 +328,7 @@ describe('OrgDashboards', () => {
             <DashboardDetail
               api={api}
               initialState={DashboardState.VIEW}
-              location={initialData.routerContext.location}
+              location={initialData.router.location}
               router={initialData.router}
               dashboard={dashboard}
               dashboards={dashboards}

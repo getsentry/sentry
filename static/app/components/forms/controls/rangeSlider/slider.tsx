@@ -150,19 +150,19 @@ const Slider = styled('input')<{hasLabel: boolean}>`
   }
 
   &:focus::-webkit-slider-thumb,
-  &.focus-visible::-webkit-slider-thumb {
+  &:focus-visible::-webkit-slider-thumb {
     box-shadow:
       ${p => p.theme.background} 0 0 0 3px,
       ${p => p.theme.focus} 0 0 0 6px;
   }
   &:focus::-moz-range-thumb,
-  &.focus-visible::-moz-range-thumb {
+  &:focus-visible::-moz-range-thumb {
     box-shadow:
       ${p => p.theme.background} 0 0 0 3px,
       ${p => p.theme.focus} 0 0 0 6px;
   }
   &:focus::-ms-thumb,
-  &.focus-visible::-ms-thumb {
+  &:focus-visible::-ms-thumb {
     box-shadow:
       ${p => p.theme.background} 0 0 0 3px,
       ${p => p.theme.focus} 0 0 0 6px;

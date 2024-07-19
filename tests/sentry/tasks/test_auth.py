@@ -2,17 +2,17 @@ from django.core import mail
 
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmember import OrganizationMember
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.auth import (
     email_missing_links,
     email_missing_links_control,
     email_unlink_notifications,
 )
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import assume_test_silo_mode, control_silo_test, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class EmailMissingLinksControlTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -43,8 +43,16 @@ class EmailMissingLinksControlTest(TestCase):
         assert "to enable signing on with your Dummy account" in message.body
         assert "SSO link request invoked by bar@example.com" in message.body
 
+    def test_email_missing_links_organization_deleted(self):
+        with assume_test_silo_mode(SiloMode.REGION):
+            self.organization.delete()
 
-@region_silo_test(stable=True)
+        with self.tasks():
+            email_missing_links_control(self.organization.id, self.user.id, self.provider.provider)
+
+        assert len(mail.outbox) == 0
+
+
 class EmailMissingLinksTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -76,8 +84,15 @@ class EmailMissingLinksTest(TestCase):
         assert "to enable signing on with your Dummy account" in message.body
         assert "SSO link request invoked by bar@example.com" in message.body
 
+    def test_email_missing_links_organization_deleted(self):
+        self.organization.delete()
 
-@region_silo_test(stable=True)
+        with self.tasks():
+            email_missing_links(self.organization.id, self.user.id, self.provider.provider)
+
+        assert len(mail.outbox) == 0
+
+
 class EmailUnlinkNotificationsTest(TestCase):
     def setUp(self):
         super().setUp()
@@ -87,13 +102,13 @@ class EmailUnlinkNotificationsTest(TestCase):
             self.provider = AuthProvider.objects.create(
                 organization_id=self.organization.id, provider="dummy"
             )
-        om = self.create_member(
+        self.om = self.create_member(
             user_id=self.user.id,
             organization=self.organization,
             flags=OrganizationMember.flags["sso:linked"],
         )
 
-        assert om.flags["sso:linked"]
+        assert self.om.flags["sso:linked"]
         self.user2 = self.create_user(email="baz@example.com")
 
         om2 = self.create_member(user_id=self.user2.id, organization=self.organization, flags=0)
@@ -104,12 +119,16 @@ class EmailUnlinkNotificationsTest(TestCase):
 
     def test_email_unlink_notifications_with_password(self):
         with self.tasks():
-            email_unlink_notifications(self.organization.id, self.user.id, self.provider.provider)
+            email_unlink_notifications(
+                self.organization.id, self.user.email, self.provider.provider
+            )
 
         emails = sorted(message.body for message in mail.outbox)
         assert len(emails) == 2
         assert f"can now login using your email {self.user.email}, and password" in emails[0]
         assert "you'll first have to set a password" not in emails[0]
+        self.om.refresh_from_db()
+        assert not self.om.flags["sso:linked"]
 
     def test_email_unlink_notifications_without_password(self):
         with assume_test_silo_mode(SiloMode.CONTROL):
@@ -117,10 +136,14 @@ class EmailUnlinkNotificationsTest(TestCase):
             self.user.save()
 
         with self.tasks():
-            email_unlink_notifications(self.organization.id, self.user.id, self.provider.provider)
+            email_unlink_notifications(
+                self.organization.id, self.user.email, self.provider.provider
+            )
 
         emails = sorted(message.body for message in mail.outbox)
         assert len(emails) == 2
         assert "you'll first have to set a password" in emails[0]
         assert f"can now login using your email {self.user.email}, and password" not in emails[0]
         assert f"can now login using your email {self.user2.email}, and password" in emails[1]
+        self.om.refresh_from_db()
+        assert not self.om.flags["sso:linked"]

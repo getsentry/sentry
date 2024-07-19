@@ -3,10 +3,13 @@ import {
   getDiffInMinutes,
   getInterval,
   getSeriesApiInterval,
+  GranularityLadder,
   lightenHexToRgb,
   processTableResults,
+  THIRTY_DAYS,
+  TWENTY_FOUR_HOURS,
 } from 'sentry/components/charts/utils';
-import {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
+import type {TableDataWithTitle} from 'sentry/utils/discover/discoverQuery';
 
 describe('Chart Utils', function () {
   describe('getInterval()', function () {
@@ -100,6 +103,30 @@ describe('Chart Utils', function () {
     });
   });
 
+  describe('findGranularityIntervalForMinutes()', function () {
+    const ladder = new GranularityLadder([
+      [THIRTY_DAYS, '1d'],
+      [TWENTY_FOUR_HOURS, '30m'],
+      [0, '15m'],
+    ]);
+
+    it('handles negative intervals', function () {
+      expect(ladder.getInterval(-1)).toEqual('15m');
+    });
+
+    it('finds granularity at lower bound', function () {
+      expect(ladder.getInterval(getDiffInMinutes({period: '2m'}))).toEqual('15m');
+    });
+
+    it('finds granularity between bounds', function () {
+      expect(ladder.getInterval(getDiffInMinutes({period: '3d'}))).toEqual('30m');
+    });
+
+    it('finds granularity at upper bound', function () {
+      expect(ladder.getInterval(getDiffInMinutes({period: '60d'}))).toEqual('1d');
+    });
+  });
+
   describe('getDiffInMinutes()', function () {
     describe('with period string', function () {
       it('can parse a period string in seconds', function () {
@@ -116,6 +143,9 @@ describe('Chart Utils', function () {
       });
       it('can parse a period string in weeks', function () {
         expect(getDiffInMinutes({period: '1w'})).toBe(10080);
+      });
+      it('can parse a period string with an upsell suffix', function () {
+        expect(getDiffInMinutes({period: '90d-trial'})).toBe(129600);
       });
     });
 

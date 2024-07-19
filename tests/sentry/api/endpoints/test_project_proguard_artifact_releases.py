@@ -1,14 +1,10 @@
-from typing import Dict
-
 from django.urls import reverse
 
 from sentry.models.debugfile import ProguardArtifactRelease, ProjectDebugFile
 from sentry.models.files.file import File
 from sentry.testutils.cases import APITestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
 class ProguardArtifactReleasesEndpointTest(APITestCase):
     def test_create_proguard_artifact_release_successfully(self):
         project = self.create_project(name="foo")
@@ -18,8 +14,8 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-proguard-artifact-releases",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
             },
         )
 
@@ -46,7 +42,7 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         assert response.status_code == 201, response.content
         assert ProguardArtifactRelease.objects.count() == 1
 
-        proguard_artifact_release = ProguardArtifactRelease.objects.first()
+        proguard_artifact_release = ProguardArtifactRelease.objects.get()
         assert proguard_artifact_release.organization_id == project.organization.id
         assert proguard_artifact_release.project_id == project.id
 
@@ -56,8 +52,8 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-proguard-artifact-releases",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
             },
         )
 
@@ -67,7 +63,7 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         data_missing_release_name = {
             "proguard_uuid": "660f839b-8bfd-580d-9a7c-ea339a6c9867",
         }
-        data_missing_all: Dict[str, str] = {}
+        data_missing_all: dict[str, str] = {}
 
         self.login_as(user=self.user)
 
@@ -89,8 +85,8 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-proguard-artifact-releases",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
             },
         )
 
@@ -154,8 +150,8 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-proguard-artifact-releases",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
             },
         )
 
@@ -172,8 +168,8 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-proguard-artifact-releases",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
             },
         )
 
@@ -206,8 +202,8 @@ class ProguardArtifactReleasesEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-proguard-artifact-releases",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
             },
         )
 

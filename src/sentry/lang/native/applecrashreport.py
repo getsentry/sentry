@@ -1,5 +1,5 @@
 import posixpath
-from typing import List, Mapping, Optional, Tuple
+from collections.abc import Mapping
 
 from symbolic.common import parse_addr
 
@@ -48,8 +48,8 @@ class AppleCrashReport:
         return register_map.get(register[1:] if register.startswith("$") else register, -1)
 
     def _get_sorted_registers(
-        self, registers: Mapping[str, Optional[str]], register_map: Mapping[str, int]
-    ) -> List[Tuple[str, Optional[str]]]:
+        self, registers: Mapping[str, str | None], register_map: Mapping[str, int]
+    ) -> list[tuple[str, str | None]]:
         return [
             (register_name, registers.get(register_name))
             for register_name in sorted(
@@ -57,7 +57,7 @@ class AppleCrashReport:
             )
         ]
 
-    def _get_register_map_for_arch(self) -> Tuple[str, bool, Mapping[str, int]]:
+    def _get_register_map_for_arch(self) -> tuple[str, bool, Mapping[str, int]]:
         arch = get_path(self.context, "device", "arch")
 
         if not isinstance(arch, str):

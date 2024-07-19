@@ -1,7 +1,9 @@
-import selectEvent from 'react-select-event';
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
 
 import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {openCreateTeamModal} from 'sentry/actionCreators/modal';
 import {addTeamToProject} from 'sentry/actionCreators/projects';
@@ -33,9 +35,9 @@ const teamData = [
     name: 'Team 3',
   },
 ];
-const teams = teamData.map(data => TestStubs.Team(data));
-const project = TestStubs.Project({teams: [teams[0]]});
-const organization = Organization({access: ['project:write']});
+const teams = teamData.map(data => TeamFixture(data));
+const project = ProjectFixture({teams: [teams[0]]});
+const organization = OrganizationFixture({access: ['project:write']});
 act(() => OrganizationStore.onUpdate(organization, {replace: true}));
 
 function createWrapper(props: Partial<React.ComponentProps<typeof TeamSelector>> = {}) {
@@ -149,7 +151,7 @@ describe('Team Selector', function () {
       url: `/organizations/${organization.slug}/teams/`,
     });
     const onChangeMock = jest.fn();
-    const orgWithAccess = Organization({access: ['project:admin']});
+    const orgWithAccess = OrganizationFixture({access: ['project:admin']});
 
     createWrapper({
       allowCreate: true,
@@ -168,7 +170,7 @@ describe('Team Selector', function () {
       url: `/organizations/${organization.slug}/teams/`,
     });
     const onChangeMock = jest.fn();
-    const orgWithAccess = Organization({access: ['project:admin']});
+    const orgWithAccess = OrganizationFixture({access: ['project:admin']});
 
     createWrapper({
       allowCreate: true,
@@ -190,7 +192,7 @@ describe('Team Selector', function () {
       url: `/organizations/${organization.slug}/teams/`,
     });
     const onChangeMock = jest.fn();
-    const orgWithoutAccess = Organization({access: ['project:write']});
+    const orgWithoutAccess = OrganizationFixture({access: ['project:write']});
 
     createWrapper({
       allowCreate: true,

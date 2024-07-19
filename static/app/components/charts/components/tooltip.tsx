@@ -1,16 +1,19 @@
 import 'echarts/lib/component/tooltip';
 
+import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import type {TooltipComponentFormatterCallback, TooltipComponentOption} from 'echarts';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
-import BaseChart from 'sentry/components/charts/baseChart';
+import type BaseChart from 'sentry/components/charts/baseChart';
 import {t} from 'sentry/locale';
-import {DataPoint} from 'sentry/types/echarts';
+import type {DataPoint} from 'sentry/types/echarts';
+import toArray from 'sentry/utils/array/toArray';
 import {getFormattedDate, getTimeFormat} from 'sentry/utils/dates';
-import toArray from 'sentry/utils/toArray';
 
 import {truncationFormatter} from '../utils';
+
+export const CHART_TOOLTIP_VIEWPORT_OFFSET = 20;
 
 type ChartProps = React.ComponentProps<typeof BaseChart>;
 
@@ -112,6 +115,14 @@ export type FormatterOptions = Pick<
      */
     addSecondsToTimeFormat?: boolean;
     /**
+     * Limit the number of series rendered in the tooltip and display "+X more".
+     */
+    limit?: number;
+    /**
+     * If true does not display sublabels with a value of 0.
+     */
+    skipZeroValuedSubLabels?: boolean;
+    /**
      * Array containing data that is used to display indented sublabels.
      */
     subLabels?: TooltipSubLabel[];
@@ -130,6 +141,8 @@ export function getFormatter({
   markerFormatter = defaultMarkerFormatter,
   subLabels = [],
   addSecondsToTimeFormat = false,
+  limit,
+  skipZeroValuedSubLabels,
 }: FormatterOptions): TooltipComponentFormatterCallback<any> {
   const getFilter = (seriesParam: any) => {
     // Series do not necessarily have `data` defined, e.g. releases don't have `data`, but rather
@@ -191,7 +204,7 @@ export function getFormatter({
       ].join('');
     }
 
-    const seriesParams = toArray(seriesParamsOrParam);
+    let seriesParams = toArray(seriesParamsOrParam);
 
     // If axis, timestamp comes from axis, otherwise for a single item it is defined in the data attribute.
     // The data attribute is usually a list of [name, value] but can also be an object of {name, value} when
@@ -212,10 +225,23 @@ export function getFormatter({
         seriesParamsOrParam
       );
 
+    if (limit) {
+      const originalLength = seriesParams.length;
+      seriesParams = seriesParams.sort((a, b) => b.value[1] - a.value[1]).slice(0, limit);
+      if (originalLength > limit) {
+        seriesParams.push({
+          seriesName: `+${originalLength - limit} more`,
+          value: '',
+          color: 'transparent',
+        });
+      }
+    }
+
     const {series, total} = seriesParams.filter(getFilter).reduce(
       (acc, serie) => {
         const formattedLabel = nameFormatter(
-          truncationFormatter(serie.seriesName ?? '', truncate)
+          truncationFormatter(serie.seriesName ?? '', truncate),
+          serie
         );
 
         const value = valueFormatter(getSeriesValue(serie, 1), serie.seriesName, serie);
@@ -232,7 +258,11 @@ export function getFormatter({
           ];
 
           for (const subLabel of filteredSubLabels) {
-            const serieValue = subLabel.data[serie.dataIndex].value;
+            const serieValue = subLabel.data[serie.dataIndex]?.value ?? 0;
+
+            if (skipZeroValuedSubLabels && serieValue === 0) {
+              continue;
+            }
 
             labelWithSubLabels.push(
               `<div><span class="tooltip-label tooltip-label-indent"><strong>${
@@ -240,7 +270,7 @@ export function getFormatter({
               }</strong></span> ${valueFormatter(serieValue)}</div>`
             );
 
-            acc.total = acc.total + subLabel.data[serie.dataIndex].value;
+            acc.total = acc.total + serieValue;
           }
 
           acc.series.push(labelWithSubLabels.join(''));
@@ -298,26 +328,28 @@ type Props = ChartProps['tooltip'] &
     chartId?: string;
   };
 
-export function ChartTooltip({
-  filter,
-  isGroupedByDate,
-  showTimeInTooltip,
-  addSecondsToTimeFormat,
-  formatter,
-  truncate,
-  utc,
-  bucketSize,
-  formatAxisLabel,
-  valueFormatter,
-  nameFormatter,
-  markerFormatter,
-  hideDelay,
-  subLabels,
-  chartId,
-  ...props
-}: Props = {}): TooltipComponentOption {
-  const theme = useTheme();
-
+export function computeChartTooltip(
+  {
+    filter,
+    isGroupedByDate,
+    showTimeInTooltip,
+    addSecondsToTimeFormat,
+    formatter,
+    truncate,
+    utc,
+    bucketSize,
+    formatAxisLabel,
+    valueFormatter,
+    nameFormatter,
+    markerFormatter,
+    hideDelay,
+    subLabels,
+    chartId,
+    skipZeroValuedSubLabels,
+    ...props
+  }: Props,
+  theme: Theme
+): TooltipComponentOption {
   formatter =
     formatter ||
     getFormatter({
@@ -333,6 +365,7 @@ export function ChartTooltip({
       nameFormatter,
       markerFormatter,
       subLabels,
+      skipZeroValuedSubLabels,
     });
 
   return {
@@ -373,7 +406,8 @@ export function ChartTooltip({
 
       // Get the left offset of the tip container (the chart)
       // so that we can estimate overflows
-      const chartLeft = chartElement.getBoundingClientRect().left ?? 0;
+      const chartBoundingRect = chartElement.getBoundingClientRect();
+      const chartLeft = chartBoundingRect.left ?? 0;
 
       // Determine the new left edge.
       let leftPos = Number(pos[0]) - tipWidth / 2;
@@ -381,13 +415,13 @@ export function ChartTooltip({
       const rightEdge = chartLeft + Number(pos[0]) + tipWidth / 2;
 
       let arrowPosition: string | undefined;
-      if (rightEdge >= window.innerWidth - 20) {
+      if (rightEdge >= window.innerWidth - CHART_TOOLTIP_VIEWPORT_OFFSET) {
         // If the tooltip would leave viewport on the right, pin it.
-        leftPos -= rightEdge - window.innerWidth + 20;
+        leftPos -= rightEdge - window.innerWidth + CHART_TOOLTIP_VIEWPORT_OFFSET;
         arrowPosition = `${Number(pos[0]) - leftPos}px`;
-      } else if (leftPos + chartLeft - 20 <= 0) {
+      } else if (leftPos + chartLeft - CHART_TOOLTIP_VIEWPORT_OFFSET <= 0) {
         // If the tooltip would leave viewport on the left, pin it.
-        leftPos = chartLeft * -1 + 20;
+        leftPos = chartLeft * -1 + CHART_TOOLTIP_VIEWPORT_OFFSET;
         arrowPosition = `${Number(pos[0]) - leftPos}px`;
       } else {
         // Tooltip not near the window edge, reset position
@@ -399,9 +433,21 @@ export function ChartTooltip({
         arrow.style.left = arrowPosition;
       }
 
-      return {left: leftPos, top: Number(pos[1]) - tipHeight - 20};
+      return {
+        left: leftPos,
+        top: Math.max(
+          Number(pos[1]) - tipHeight - 20,
+          // avoid tooltip from being cut off by the top edge of the window
+          CHART_TOOLTIP_VIEWPORT_OFFSET - chartBoundingRect.top
+        ),
+      };
     },
     formatter,
     ...props,
   };
+}
+
+export function ChartTooltip(props: Props = {}): TooltipComponentOption {
+  const theme = useTheme();
+  return computeChartTooltip(props, theme);
 }

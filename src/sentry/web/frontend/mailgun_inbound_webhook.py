@@ -15,10 +15,12 @@ from sentry import options
 from sentry.models.organizationmapping import OrganizationMapping
 from sentry.models.outbox import ControlOutbox, OutboxCategory, OutboxScope
 from sentry.utils.email import email_to_group_id
+from sentry.web.frontend.base import control_silo_view
 
 logger = logging.getLogger("sentry.mailgun")
 
 
+@control_silo_view
 class MailgunInboundWebhookView(View):
     def verify(self, api_key, token, timestamp, signature):
         return constant_time_compare(
@@ -61,7 +63,7 @@ class MailgunInboundWebhookView(View):
             logger.info("mailgun.invalid-email", extra={"email": to_email})
             return HttpResponse(status=200)
 
-        payload = EmailReplyParser.parse_reply(request.POST["body-plain"]).strip()
+        payload = EmailReplyParser.parse_reply(request.POST.get("body-plain", "").strip())
         if not payload:
             # If there's no body, we don't need to go any further
             return HttpResponse(status=200)

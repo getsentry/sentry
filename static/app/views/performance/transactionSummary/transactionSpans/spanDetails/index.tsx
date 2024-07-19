@@ -1,4 +1,4 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import Feature from 'sentry/components/acl/feature';
 import * as Layout from 'sentry/components/layouts/thirds';
@@ -45,7 +45,7 @@ export default function SpanDetails(props: Props) {
       projectSlug={project?.slug}
     >
       <Feature
-        features={['performance-view']}
+        features="performance-view"
         organization={organization}
         renderDisabled={NoAccess}
       >

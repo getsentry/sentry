@@ -1,20 +1,27 @@
 import styled from '@emotion/styled';
 
+import FeatureBadge from 'sentry/components/badge/featureBadge';
+import {DateTime} from 'sentry/components/dateTime';
 import EventMessage from 'sentry/components/events/eventMessage';
-import FeatureBadge from 'sentry/components/featureBadge';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
 import ShortId from 'sentry/components/shortId';
+import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Group, IssueCategory} from 'sentry/types';
-
-import UnhandledTag, {TagAndMessageWrapper} from '../issueDetails/unhandledTag';
+import type {Group} from 'sentry/types/group';
+import {IssueCategory} from 'sentry/types/group';
+import EventCreatedTooltip from 'sentry/views/issueDetails/eventCreatedTooltip';
 
 type Props = {
   group: Group;
 };
 
 function SharedGroupHeader({group}: Props) {
+  const date = new Date(
+    (group.latestEvent?.dateCreated ?? group.latestEvent?.dateReceived) as string
+  );
+  const event = group.latestEvent;
+
   return (
     <Wrapper>
       <Details>
@@ -34,12 +41,28 @@ function SharedGroupHeader({group}: Props) {
               />
             )}
           </ShortIdWrapper>
+          {event && (event.dateCreated ?? event.dateReceived) && (
+            <TimeStamp data-test-id="sgh-timestamp">
+              {t('Last seen ')}
+              <EventTimeLabel>
+                <Tooltip
+                  isHoverable
+                  showUnderline
+                  title={<EventCreatedTooltip event={event} />}
+                  overlayStyle={{maxWidth: 300}}
+                >
+                  <DateTime date={date} />
+                </Tooltip>
+              </EventTimeLabel>
+            </TimeStamp>
+          )}
         </TitleWrap>
-
-        <TagAndMessageWrapper>
-          {group.isUnhandled && <UnhandledTag />}
-          <EventMessage message={group.culprit} />
-        </TagAndMessageWrapper>
+        <EventMessage
+          showUnhandled={group.isUnhandled}
+          message={group.culprit}
+          level={group.level}
+          type={group.type}
+        />
       </Details>
     </Wrapper>
   );
@@ -80,4 +103,16 @@ const Title = styled('h3')`
   @media (min-width: ${props => props.theme.breakpoints.small}) {
     font-size: ${p => p.theme.headerFontSize};
   }
+`;
+
+const TimeStamp = styled('div')`
+  color: ${p => p.theme.headingColor};
+  font-size: ${p => p.theme.fontSizeMedium};
+  line-height: ${p => p.theme.text.lineHeightHeading};
+  margin-top: ${space(0.25)};
+`;
+
+const EventTimeLabel = styled('span')`
+  color: ${p => p.theme.subText};
+  margin-left: ${space(0.25)};
 `;

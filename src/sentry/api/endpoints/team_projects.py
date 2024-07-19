@@ -1,5 +1,3 @@
-from typing import List
-
 from django.db import IntegrityError, router, transaction
 from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import serializers, status
@@ -7,10 +5,12 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import EnvironmentMixin, region_silo_endpoint
 from sentry.api.bases.team import TeamEndpoint, TeamPermission
-from sentry.api.fields.sentry_slug import SentrySlugField
+from sentry.api.fields.sentry_slug import SentrySerializerSlugField
+from sentry.api.helpers.default_inbound_filters import set_default_inbound_filters
 from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import ProjectSummarySerializer, serialize
 from sentry.api.serializers.models.project import OrganizationProjectResponse, ProjectSerializer
@@ -19,7 +19,7 @@ from sentry.apidocs.examples.project_examples import ProjectExamples
 from sentry.apidocs.examples.team_examples import TeamExamples
 from sentry.apidocs.parameters import CursorQueryParam, GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.constants import ObjectStatus
+from sentry.constants import RESERVED_PROJECT_SLUGS, ObjectStatus
 from sentry.models.project import Project
 from sentry.signals import project_created
 from sentry.utils.snowflake import MaxSnowflakeRetryError
@@ -31,7 +31,7 @@ class ProjectPostSerializer(serializers.Serializer):
     name = serializers.CharField(
         help_text="The name for the project.", max_length=50, required=True
     )
-    slug = SentrySlugField(
+    slug = SentrySerializerSlugField(
         help_text="""Uniquely identifies a project and is used for the interface.
         If not provided, it is automatically generated from the name.""",
         max_length=50,
@@ -55,6 +55,11 @@ their own alerts to be notified of new issues.
         if Project.is_valid_platform(value):
             return value
         raise serializers.ValidationError("Invalid platform")
+
+    def validate_name(self, value: str) -> str:
+        if value in RESERVED_PROJECT_SLUGS:
+            raise serializers.ValidationError(f'The name "{value}" is reserved and not allowed.')
+        return value
 
 
 # While currently the UI suggests teams are a parent of a project, in reality
@@ -82,18 +87,19 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         "POST": ApiPublishStatus.PUBLIC,
     }
     permission_classes = (TeamProjectPermission,)
+    owner = ApiOwner.ENTERPRISE
 
     @extend_schema(
         operation_id="List a Team's Projects",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.TEAM_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.TEAM_ID_OR_SLUG,
             CursorQueryParam,
         ],
         request=None,
         responses={
             200: inline_sentry_response_serializer(
-                "ListTeamProjectResponse", List[OrganizationProjectResponse]
+                "ListTeamProjectResponse", list[OrganizationProjectResponse]
             ),
             403: RESPONSE_FORBIDDEN,
             404: OpenApiResponse(description="Team not found."),
@@ -141,8 +147,8 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         tags=["Projects"],
         operation_id="Create a New Project",
         parameters=[
-            GlobalParams.ORG_SLUG,
-            GlobalParams.TEAM_SLUG,
+            GlobalParams.ORG_ID_OR_SLUG,
+            GlobalParams.TEAM_ID_OR_SLUG,
         ],
         request=ProjectPostSerializer,
         responses={
@@ -158,10 +164,19 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
         """
         Create a new project bound to a team.
         """
+        from sentry.api.endpoints.organization_projects_experiment import (
+            DISABLED_FEATURE_ERROR_STRING,
+        )
+
         serializer = ProjectPostSerializer(data=request.data)
 
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        if (
+            team.organization.flags.disable_member_project_creation
+            and not request.access.has_scope("org:write")
+        ):
+            return Response({"detail": DISABLED_FEATURE_ERROR_STRING}, status=403)
 
         result = serializer.validated_data
         with transaction.atomic(router.db_for_write(Project)):
@@ -179,6 +194,10 @@ class TeamProjectsEndpoint(TeamEndpoint, EnvironmentMixin):
                 project.add_team(team)
 
             # XXX: create sample event?
+
+            # Turns on some inbound filters by default for new Javascript platform projects
+            if project.platform and project.platform.startswith("javascript"):
+                set_default_inbound_filters(project, team.organization)
 
             self.create_audit_entry(
                 request=request,

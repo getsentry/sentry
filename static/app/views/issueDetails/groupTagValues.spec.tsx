@@ -1,7 +1,6 @@
-import {browserHistory} from 'react-router';
-import {Group} from 'sentry-fixture/group';
-import {Tags} from 'sentry-fixture/tags';
-import {TagValues} from 'sentry-fixture/tagvalues';
+import {GroupFixture} from 'sentry-fixture/group';
+import {TagsFixture} from 'sentry-fixture/tags';
+import {TagValuesFixture} from 'sentry-fixture/tagvalues';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -13,10 +12,11 @@ import {
   within,
 } from 'sentry-test/reactTestingLibrary';
 
+import {browserHistory} from 'sentry/utils/browserHistory';
 import GroupTagValues from 'sentry/views/issueDetails/groupTagValues';
 
-const group = Group();
-const tags = Tags();
+const group = GroupFixture();
+const tags = TagsFixture();
 
 function init(tagKey: string) {
   return initializeOrg({
@@ -43,11 +43,11 @@ describe('GroupTagValues', () => {
   });
 
   it('renders a list of tag values', async () => {
-    const {routerProps, routerContext, project} = init('user');
+    const {router, routerProps, project} = init('user');
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
-      body: TagValues(),
+      body: TagValuesFixture(),
     });
     render(
       <GroupTagValues
@@ -57,7 +57,7 @@ describe('GroupTagValues', () => {
         baseUrl=""
         {...routerProps}
       />,
-      {context: routerContext}
+      {router}
     );
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
@@ -74,11 +74,11 @@ describe('GroupTagValues', () => {
   });
 
   it('can page through tag values', async () => {
-    const {routerProps, routerContext, project} = init('user');
+    const {router, routerProps, project} = init('user');
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
-      body: TagValues(),
+      body: TagValuesFixture(),
       headers: {
         Link:
           '<https://sentry.io/api/0/organizations/sentry/user-feedback/?statsPeriod=14d&cursor=0:0:1>; rel="previous"; results="false"; cursor="0:0:1", ' +
@@ -93,7 +93,7 @@ describe('GroupTagValues', () => {
         baseUrl=""
         {...routerProps}
       />,
-      {context: routerContext}
+      {router}
     );
 
     await waitForElementToBeRemoved(() => screen.getByTestId('loading-indicator'));
@@ -111,11 +111,11 @@ describe('GroupTagValues', () => {
   });
 
   it('navigates to issue details events tab with correct query params', async () => {
-    const {routerProps, routerContext, router, project} = init('user');
+    const {routerProps, router, project} = init('user');
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
-      body: TagValues(),
+      body: TagValuesFixture(),
     });
     render(
       <GroupTagValues
@@ -126,7 +126,7 @@ describe('GroupTagValues', () => {
         {...routerProps}
       />,
       {
-        context: routerContext,
+        router,
       }
     );
 
@@ -144,7 +144,7 @@ describe('GroupTagValues', () => {
   });
 
   it('renders an error message if tag values request fails', async () => {
-    const {routerProps, routerContext, project} = init('user');
+    const {router, routerProps, project} = init('user');
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
@@ -159,7 +159,7 @@ describe('GroupTagValues', () => {
         baseUrl=""
         {...routerProps}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(
@@ -168,7 +168,7 @@ describe('GroupTagValues', () => {
   });
 
   it('renders an error message if no tag values are returned because of environment selection', async () => {
-    const {routerProps, routerContext, project} = init('user');
+    const {router, routerProps, project} = init('user');
 
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/issues/1/tags/user/values/',
@@ -183,7 +183,7 @@ describe('GroupTagValues', () => {
         baseUrl=""
         {...routerProps}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(

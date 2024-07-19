@@ -1,7 +1,8 @@
-import {JsonFormObject} from 'sentry/components/forms/types';
+import type {JsonFormObject} from 'sentry/components/forms/types';
 import ExternalLink from 'sentry/components/links/externalLink';
 import {t, tct} from 'sentry/locale';
-import {MemberRole} from 'sentry/types';
+import ConfigStore from 'sentry/stores/configStore';
+import type {BaseRole} from 'sentry/types/organization';
 import slugify from 'sentry/utils/slugify';
 
 // Export route to make these forms searchable by label/help
@@ -41,6 +42,7 @@ const formGroups: JsonFormObject[] = [
             <ExternalLink href="https://docs.sentry.io/product/accounts/early-adopter/" />
           ),
         }),
+        visible: () => !ConfigStore.get('isSelfHostedErrorsOnly'),
       },
       {
         name: 'aiSuggestedSolution',
@@ -54,6 +56,14 @@ const formGroups: JsonFormObject[] = [
             ),
           }
         ),
+        visible: () => !ConfigStore.get('isSelfHostedErrorsOnly'),
+      },
+      {
+        name: 'uptimeAutodetection',
+        type: 'boolean',
+        label: t('Automatically Configure Uptime Alerts'),
+        help: t('Detect most-used URLs for uptime monitoring.'),
+        visible: ({features}) => features.has('uptime-settings'),
       },
     ],
   },
@@ -68,7 +78,7 @@ const formGroups: JsonFormObject[] = [
         label: t('Default Role'),
         // seems weird to have choices in initial form data
         choices: ({initialData} = {}) =>
-          initialData?.orgRoleList?.map((r: MemberRole) => [r.id, r.name]) ?? [],
+          initialData?.orgRoleList?.map((r: BaseRole) => [r.id, r.name]) ?? [],
         help: t('The default role new members will receive'),
         disabled: ({access}) => !access.has('org:admin'),
       },
@@ -99,7 +109,7 @@ const formGroups: JsonFormObject[] = [
         name: 'attachmentsRole',
         type: 'select',
         choices: ({initialData = {}}) =>
-          initialData?.orgRoleList?.map((r: MemberRole) => [r.id, r.name]) ?? [],
+          initialData?.orgRoleList?.map((r: BaseRole) => [r.id, r.name]) ?? [],
         label: t('Attachments Access'),
         help: t(
           'Role required to download event attachments, such as native crash reports or log files.'
@@ -110,7 +120,7 @@ const formGroups: JsonFormObject[] = [
         name: 'debugFilesRole',
         type: 'select',
         choices: ({initialData = {}}) =>
-          initialData?.orgRoleList?.map((r: MemberRole) => [r.id, r.name]) ?? [],
+          initialData?.orgRoleList?.map((r: BaseRole) => [r.id, r.name]) ?? [],
         label: t('Debug Files Access'),
         help: t(
           'Role required to download debug information files, proguard mappings and source maps.'

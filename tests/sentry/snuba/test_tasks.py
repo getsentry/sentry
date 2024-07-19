@@ -10,9 +10,10 @@ from uuid import uuid4
 import pytest
 import responses
 from django.utils import timezone
-from snuba_sdk import And, Column, Condition, Entity, Function, Op, Or, Query
+from snuba_sdk import And, Column, Condition, Entity, Function, Join, Op, Or, Query, Relationship
 
 from sentry.incidents.logic import query_datasets_to_type
+from sentry.models.group import GroupStatus
 from sentry.search.events.constants import METRICS_MAP
 from sentry.sentry_metrics import indexer
 from sentry.sentry_metrics.configuration import UseCaseKey
@@ -28,7 +29,6 @@ from sentry.snuba.metrics.naming_layer.mri import SessionMRI
 from sentry.snuba.models import QuerySubscription, SnubaQuery, SnubaQueryEventType
 from sentry.snuba.tasks import (
     SUBSCRIPTION_STATUS_MAX_AGE,
-    build_query_builder,
     create_subscription_in_snuba,
     delete_subscription_from_snuba,
     subscription_checker,
@@ -88,6 +88,7 @@ class BaseSnubaTaskTest(TestCase, metaclass=abc.ABCMeta):
         query=None,
         aggregate=None,
         time_window=None,
+        query_extra=None,
     ):
         if status is None:
             status = self.expected_status
@@ -115,6 +116,7 @@ class BaseSnubaTaskTest(TestCase, metaclass=abc.ABCMeta):
             subscription_id=subscription_id,
             project=self.project,
             type="something",
+            query_extra=query_extra,
         )
 
     def test_no_subscription(self):
@@ -153,6 +155,13 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
+    def test_status_join(self):
+        sub = self.create_subscription(QuerySubscription.Status.CREATING, query="status:unresolved")
+        create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+
     def test_group_id(self):
         group_id = 1234
         sub = self.create_subscription(
@@ -175,6 +184,22 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
         assert sub.status == QuerySubscription.Status.ACTIVE.value
         assert sub.subscription_id is not None
 
+    def test_subscription_with_query_extra(self):
+        sub = self.create_subscription(QuerySubscription.Status.CREATING, query_extra="foo:bar")
+        create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+
+    def test_subscription_with_query_extra_but_no_query(self):
+        sub = self.create_subscription(QuerySubscription.Status.CREATING, query_extra="foo:bar")
+        snuba_query = sub.snuba_query
+        snuba_query.update(query="")
+        create_subscription_in_snuba(sub.id)
+        sub = QuerySubscription.objects.get(id=sub.id)
+        assert sub.status == QuerySubscription.Status.ACTIVE.value
+        assert sub.subscription_id is not None
+
     @responses.activate
     def test_adds_type(self):
         sub = self.create_subscription(QuerySubscription.Status.CREATING)
@@ -192,7 +217,7 @@ class CreateSubscriptionInSnubaTest(BaseSnubaTaskTest):
     def test_granularity_on_metrics_crash_rate_alerts(self):
         for tag in [SessionMRI.RAW_SESSION.value, SessionMRI.RAW_USER.value, "session.status"]:
             rh_indexer_record(self.organization.id, tag)
-        for (time_window, expected_granularity) in [
+        for time_window, expected_granularity in [
             (30, 10),
             (90, 60),
             (5 * 60, 3600),
@@ -290,7 +315,12 @@ class BuildSnqlQueryTest(TestCase):
                 "count_unique(user)": lambda org_id: [
                     Function(
                         function="uniq",
-                        parameters=[Column(name="tags[sentry:user]")],
+                        parameters=[
+                            Column(
+                                name="tags[sentry:user]",
+                                entity=Entity(Dataset.Events.value, alias=Dataset.Events.value),
+                            )
+                        ],
                         alias="count_unique_user",
                     )
                 ]
@@ -557,6 +587,7 @@ class BuildSnqlQueryTest(TestCase):
         # This flag is used to expect None clauses instead of [], it has been done in order to account for how the
         # metrics layer generates snql.
         use_none_clauses=False,
+        expected_match=None,
     ):
         aggregate_kwargs = aggregate_kwargs if aggregate_kwargs else {}
         time_window = 3600
@@ -567,10 +598,9 @@ class BuildSnqlQueryTest(TestCase):
             time_window=time_window,
             extra_fields=entity_extra_fields,
         )
-        query_builder = build_query_builder(
-            entity_subscription,
-            query,
-            (self.project.id,),
+        query_builder = entity_subscription.build_query_builder(
+            query=query,
+            project_ids=[self.project.id],
             environment=environment,
             params={
                 "organization_id": self.organization.id,
@@ -589,8 +619,14 @@ class BuildSnqlQueryTest(TestCase):
             )
         # Select order seems to be unstable, so just arbitrarily sort by name, alias so that it's consistent
         snql_query.query.select.sort(key=lambda q: (q.function, q.alias))
+        if expected_match is None:
+            entity_name = get_entity_key_from_query_builder(query_builder).value
+            entity_args = {"name": entity_name}
+            if dataset == Dataset.Events:
+                entity_args["alias"] = entity_name
+            expected_match = Entity(**entity_args)
         expected_query = Query(
-            match=Entity(get_entity_key_from_query_builder(query_builder).value),
+            match=expected_match,
             select=select,
             where=expected_conditions,
             groupby=None if use_none_clauses else [],
@@ -611,15 +647,43 @@ class BuildSnqlQueryTest(TestCase):
         )
 
     def test_simple_events(self):
+        entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         self.run_test(
             SnubaQuery.Type.ERROR,
             Dataset.Events,
             "count_unique(user)",
             "",
             [
-                Condition(Column(name="type"), Op.EQ, "error"),
-                Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+                Condition(Column(name="type", entity=entity), Op.EQ, "error"),
+                Condition(Column(name="project_id", entity=entity), Op.IN, [self.project.id]),
             ],
+        )
+
+    def test_join_status(self):
+        entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
+        g_entity = Entity("group_attributes", alias="ga")
+        self.run_test(
+            SnubaQuery.Type.ERROR,
+            Dataset.Events,
+            "count_unique(user)",
+            "status:unresolved",
+            [
+                And(
+                    [
+                        Condition(Column("type", entity=entity), Op.EQ, "error"),
+                        Condition(
+                            Column("group_status", entity=g_entity), Op.IN, [GroupStatus.UNRESOLVED]
+                        ),
+                    ]
+                ),
+                Condition(Column(name="project_id", entity=entity), Op.IN, [self.project.id]),
+                Condition(
+                    Column(name="project_id", entity=g_entity),
+                    Op.IN,
+                    [self.project.id],
+                ),
+            ],
+            expected_match=Join([Relationship(entity, "attributes", g_entity)]),
         )
 
     def test_simple_performance_transactions(self):
@@ -634,7 +698,7 @@ class BuildSnqlQueryTest(TestCase):
         )
 
     def test_simple_performance_metrics(self):
-        with Feature("organizations:ddm-experimental"):
+        with Feature("organizations:custom-metrics"):
             metric_id = resolve(UseCaseID.TRANSACTIONS, self.organization.id, METRICS_MAP["user"])
             self.run_test(
                 SnubaQuery.Type.PERFORMANCE,
@@ -654,21 +718,22 @@ class BuildSnqlQueryTest(TestCase):
 
     def test_aliased_query_events(self):
         self.create_release(self.project, version="something")
+        entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         expected_conditions = [
             And(
                 conditions=[
-                    Condition(Column(name="type"), Op.EQ, "error"),
+                    Condition(Column(name="type", entity=entity), Op.EQ, "error"),
                     Condition(
                         Function(
                             function="ifNull",
-                            parameters=[Column(name="tags[sentry:release]"), ""],
+                            parameters=[Column(name="tags[sentry:release]", entity=entity), ""],
                         ),
                         Op.IN,
                         ["something"],
                     ),
                 ]
             ),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+            Condition(Column(name="project_id", entity=entity), Op.IN, [self.project.id]),
         ]
         self.run_test(
             SnubaQuery.Type.ERROR,
@@ -693,7 +758,7 @@ class BuildSnqlQueryTest(TestCase):
         )
 
     def test_aliased_query_performance_metrics(self):
-        with Feature("organizations:ddm-experimental"):
+        with Feature("organizations:custom-metrics"):
             version = "something"
             self.create_release(self.project, version=version)
             metric_id = resolve(
@@ -727,21 +792,22 @@ class BuildSnqlQueryTest(TestCase):
             )
 
     def test_user_query(self):
+        entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         expected_conditions = [
             And(
                 conditions=[
-                    Condition(Column(name="type"), Op.EQ, "error"),
+                    Condition(Column(name="type", entity=entity), Op.EQ, "error"),
                     Condition(
                         Function(
                             function="ifNull",
-                            parameters=[Column(name="tags[sentry:user]"), ""],
+                            parameters=[Column(name="tags[sentry:user]", entity=entity), ""],
                         ),
                         Op.EQ,
                         "anengineer@work.io",
                     ),
                 ]
             ),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+            Condition(Column(name="project_id", entity=entity), Op.IN, [self.project.id]),
         ]
         self.run_test(
             SnubaQuery.Type.ERROR,
@@ -765,7 +831,7 @@ class BuildSnqlQueryTest(TestCase):
         )
 
     def test_tag_query_performance_metrics(self):
-        with Feature("organizations:ddm-experimental"):
+        with Feature("organizations:custom-metrics"):
             # Note: We don't support user queries on the performance metrics dataset, so using a
             # different tag here.
             metric_id = resolve(
@@ -801,22 +867,31 @@ class BuildSnqlQueryTest(TestCase):
 
     def test_boolean_query(self):
         self.create_release(self.project, version="something")
+        entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         expected_conditions = [
             And(
                 [
-                    Condition(Column(name="type"), Op.EQ, "error"),
+                    Condition(Column(name="type", entity=entity), Op.EQ, "error"),
                     Or(
                         [
                             Condition(
                                 Function(
-                                    "ifNull", parameters=[Column(name="tags[sentry:release]"), ""]
+                                    "ifNull",
+                                    parameters=[
+                                        Column(name="tags[sentry:release]", entity=entity),
+                                        "",
+                                    ],
                                 ),
                                 Op.IN,
                                 ["something"],
                             ),
                             Condition(
                                 Function(
-                                    "ifNull", parameters=[Column(name="tags[sentry:release]"), ""]
+                                    "ifNull",
+                                    parameters=[
+                                        Column(name="tags[sentry:release]", entity=entity),
+                                        "",
+                                    ],
                                 ),
                                 Op.IN,
                                 ["123"],
@@ -825,7 +900,7 @@ class BuildSnqlQueryTest(TestCase):
                     ),
                 ]
             ),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+            Condition(Column(name="project_id", entity=entity), Op.IN, [self.project.id]),
         ]
         self.run_test(
             SnubaQuery.Type.ERROR,
@@ -837,27 +912,36 @@ class BuildSnqlQueryTest(TestCase):
 
     def test_event_types(self):
         self.create_release(self.project, version="something")
+        entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         expected_conditions = [
             And(
                 [
                     Or(
                         [
-                            Condition(Column(name="type"), Op.EQ, "error"),
-                            Condition(Column(name="type"), Op.EQ, "default"),
+                            Condition(Column(name="type", entity=entity), Op.EQ, "error"),
+                            Condition(Column(name="type", entity=entity), Op.EQ, "default"),
                         ]
                     ),
                     Or(
                         [
                             Condition(
                                 Function(
-                                    "ifNull", parameters=[Column(name="tags[sentry:release]"), ""]
+                                    "ifNull",
+                                    parameters=[
+                                        Column(name="tags[sentry:release]", entity=entity),
+                                        "",
+                                    ],
                                 ),
                                 Op.IN,
                                 ["something"],
                             ),
                             Condition(
                                 Function(
-                                    "ifNull", parameters=[Column(name="tags[sentry:release]"), ""]
+                                    "ifNull",
+                                    parameters=[
+                                        Column(name="tags[sentry:release]", entity=entity),
+                                        "",
+                                    ],
                                 ),
                                 Op.IN,
                                 ["123"],
@@ -866,7 +950,7 @@ class BuildSnqlQueryTest(TestCase):
                     ),
                 ]
             ),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+            Condition(Column(name="project_id", entity=entity), Op.IN, [self.project.id]),
         ]
         self.run_test(
             SnubaQuery.Type.ERROR,
@@ -883,18 +967,19 @@ class BuildSnqlQueryTest(TestCase):
         )
 
     def test_issue_id_snql(self):
+        entity = Entity(Dataset.Events.value, alias=Dataset.Events.value)
         expected_conditions = [
             And(
                 [
-                    Condition(Column(name="type"), Op.EQ, "error"),
+                    Condition(Column(name="type", entity=entity), Op.EQ, "error"),
                     Condition(
-                        Column(name="group_id"),
+                        Column(name="group_id", entity=entity),
                         Op.IN,
                         [self.group.id, 2],
                     ),
                 ]
             ),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
+            Condition(Column(name="project_id", entity=entity), Op.IN, [self.project.id]),
         ]
         self.run_test(
             SnubaQuery.Type.ERROR,
@@ -904,73 +989,8 @@ class BuildSnqlQueryTest(TestCase):
             expected_conditions,
         )
 
-    def test_simple_sessions(self):
-        expected_conditions = [
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
-            Condition(Column(name="org_id"), Op.EQ, self.organization.id),
-        ]
-
-        self.run_test(
-            SnubaQuery.Type.CRASH_RATE,
-            Dataset.Sessions,
-            "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
-            "",
-            expected_conditions,
-            entity_extra_fields={"org_id": self.organization.id},
-        )
-
-    def test_simple_users(self):
-        expected_conditions = [
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
-            Condition(Column(name="org_id"), Op.EQ, self.organization.id),
-        ]
-        self.run_test(
-            SnubaQuery.Type.CRASH_RATE,
-            Dataset.Sessions,
-            "percentage(users_crashed, users) as _crash_rate_alert_aggregate",
-            "",
-            expected_conditions,
-            entity_extra_fields={"org_id": self.organization.id},
-        )
-
-    def test_query_and_environment_sessions(self):
-        env = self.create_environment(self.project, name="development")
-        expected_conditions = [
-            Condition(Column(name="release"), Op.IN, ["ahmed@12.2"]),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
-            Condition(Column(name="environment"), Op.EQ, "development"),
-            Condition(Column(name="org_id"), Op.EQ, self.organization.id),
-        ]
-        self.run_test(
-            SnubaQuery.Type.CRASH_RATE,
-            Dataset.Sessions,
-            "percentage(sessions_crashed, sessions) as _crash_rate_alert_aggregate",
-            "release:ahmed@12.2",
-            expected_conditions,
-            entity_extra_fields={"org_id": self.organization.id},
-            environment=env,
-        )
-
-    def test_query_and_environment_users(self):
-        env = self.create_environment(self.project, name="development")
-        expected_conditions = [
-            Condition(Column(name="release"), Op.IN, ["ahmed@12.2"]),
-            Condition(Column(name="project_id"), Op.IN, [self.project.id]),
-            Condition(Column(name="environment"), Op.EQ, "development"),
-            Condition(Column(name="org_id"), Op.EQ, self.organization.id),
-        ]
-        self.run_test(
-            SnubaQuery.Type.CRASH_RATE,
-            Dataset.Sessions,
-            "percentage(users_crashed, users) as _crash_rate_alert_aggregate",
-            "release:ahmed@12.2",
-            expected_conditions,
-            entity_extra_fields={"org_id": self.organization.id},
-            environment=env,
-        )
-
     def test_simple_sessions_for_metrics(self):
-        with Feature("organizations:ddm-experimental"):
+        with Feature("organizations:custom-metrics"):
             org_id = self.organization.id
             for tag in [SessionMRI.RAW_SESSION.value, "session.status", "crashed", "init"]:
                 rh_indexer_record(org_id, tag)
@@ -1016,7 +1036,7 @@ class BuildSnqlQueryTest(TestCase):
             )
 
     def test_simple_users_for_metrics(self):
-        with Feature("organizations:ddm-experimental"):
+        with Feature("organizations:custom-metrics"):
             org_id = self.organization.id
             for tag in [SessionMRI.RAW_USER.value, "session.status", "crashed"]:
                 rh_indexer_record(org_id, tag)
@@ -1049,7 +1069,7 @@ class BuildSnqlQueryTest(TestCase):
             )
 
     def test_query_and_environment_sessions_metrics(self):
-        with Feature("organizations:ddm-experimental"):
+        with Feature("organizations:custom-metrics"):
             env = self.create_environment(self.project, name="development")
             org_id = self.organization.id
             for tag in [
@@ -1129,7 +1149,7 @@ class BuildSnqlQueryTest(TestCase):
             )
 
     def test_query_and_environment_users_metrics(self):
-        with Feature("organizations:ddm-experimental"):
+        with Feature("organizations:custom-metrics"):
             env = self.create_environment(self.project, name="development")
             org_id = self.organization.id
             for tag in [

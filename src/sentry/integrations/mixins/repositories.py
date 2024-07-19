@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from typing import Collection, Mapping, Sequence
+from collections.abc import Collection, Mapping, Sequence
+from typing import Any
 
-from sentry_sdk import configure_scope
+import sentry_sdk
 
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.models.identity import Identity
 from sentry.models.repository import Repository
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.repository import RpcRepository, repository_service
 from sentry.shared_integrations.exceptions import ApiError, IntegrationError
 
 
@@ -50,6 +51,7 @@ class RepositoryMixin:
         try:
             client = self.get_client()
         except (Identity.DoesNotExist, IntegrationError):
+            sentry_sdk.capture_exception()
             return None
         try:
             response = client.check_file(repo, filepath, branch)
@@ -59,13 +61,15 @@ class RepositoryMixin:
             return None
         except ApiError as e:
             if e.code != 404:
+                sentry_sdk.capture_exception()
                 raise
+
             return None
 
         return self.format_source_url(repo, filepath, branch)
 
     def get_stacktrace_link(
-        self, repo: Repository, filepath: str, default: str, version: str
+        self, repo: Repository, filepath: str, default: str, version: str | None
     ) -> str | None:
         """
         Handle formatting and returning back the stack trace link if the client
@@ -77,20 +81,20 @@ class RepositoryMixin:
         If no file was found return `None`, and re-raise for non-"Not Found"
         errors, like 403 "Account Suspended".
         """
-        with configure_scope() as scope:
-            scope.set_tag("stacktrace_link.tried_version", False)
-            if version:
-                scope.set_tag("stacktrace_link.tried_version", True)
-                source_url = self.check_file(repo, filepath, version)
-                if source_url:
-                    scope.set_tag("stacktrace_link.used_version", True)
-                    return source_url
-            scope.set_tag("stacktrace_link.used_version", False)
-            source_url = self.check_file(repo, filepath, default)
+        scope = sentry_sdk.Scope.get_isolation_scope()
+        scope.set_tag("stacktrace_link.tried_version", False)
+        if version:
+            scope.set_tag("stacktrace_link.tried_version", True)
+            source_url = self.check_file(repo, filepath, version)
+            if source_url:
+                scope.set_tag("stacktrace_link.used_version", True)
+                return source_url
+        scope.set_tag("stacktrace_link.used_version", False)
+        source_url = self.check_file(repo, filepath, default)
 
         return source_url
 
-    def get_repositories(self, query: str | None = None) -> Sequence[Repository]:
+    def get_repositories(self, query: str | None = None) -> Sequence[dict[str, Any]]:
         """
         Get a list of available repositories for an installation
 
@@ -117,9 +121,9 @@ class RepositoryMixin:
 
     def reinstall_repositories(self) -> None:
         """Reinstalls repositories associated with the integration."""
-        _, installs = integration_service.get_organization_contexts(integration_id=self.model.id)
+        result = integration_service.organization_contexts(integration_id=self.model.id)
 
-        for install in installs:
+        for install in result.organization_integrations:
             repository_service.reinstall_repositories_for_integration(
                 organization_id=install.organization_id,
                 integration_id=self.model.id,
@@ -151,7 +155,7 @@ class RepositoryMixin:
             html_url = self.check_file(repo, filepath, ref)
             if html_url:
                 try:
-                    contents = self.get_client().get_file(repo, filepath, ref)
+                    contents = self.get_client().get_file(repo, filepath, ref, codeowners=True)
                 except ApiError:
                     continue
                 return {"filepath": filepath, "html_url": html_url, "raw": contents}

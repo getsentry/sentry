@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import round from 'lodash/round';
 
 import {loadStatsForProject} from 'sentry/actionCreators/projects';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import IdBadge from 'sentry/components/idBadge';
 import Link from 'sentry/components/links/link';
@@ -18,14 +18,13 @@ import ScoreCard, {
   Title,
   Trend,
 } from 'sentry/components/scoreCard';
-import {releaseHealth} from 'sentry/data/platformCategories';
 import {IconArrow, IconSettings} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import ProjectsStatsStore from 'sentry/stores/projectsStatsStore';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {defined} from 'sentry/utils';
-import {callIfFunction} from 'sentry/utils/callIfFunction';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {formatAbbreviatedNumber} from 'sentry/utils/formatters';
 import withApi from 'sentry/utils/withApi';
@@ -81,26 +80,15 @@ class ProjectCard extends Component<Props> {
 
   renderMissingFeatureCard() {
     const {organization, project} = this.props;
-    if (project.platform && releaseHealth.includes(project.platform)) {
-      return (
-        <ScoreCard
-          title={t('Crash Free Sessions')}
-          score={<MissingReleasesButtons organization={organization} health />}
-        />
-      );
-    }
-
     return (
       <ScoreCard
         title={t('Crash Free Sessions')}
         score={
-          <NotAvailable>
-            {t('Not Available')}
-            <QuestionTooltip
-              title={t('Release Health is not yet supported on this platform.')}
-              size="xs"
-            />
-          </NotAvailable>
+          <MissingReleasesButtons
+            organization={organization}
+            health
+            platform={project.platform}
+          />
         }
       />
     );
@@ -266,7 +254,11 @@ class ProjectCardContainer extends Component<ContainerProps, ContainerState> {
   }
 
   componentWillUnmount() {
-    this.listeners.forEach(callIfFunction);
+    this.listeners.forEach(listener => {
+      if (typeof listener === 'function') {
+        listener();
+      }
+    });
   }
 
   listeners = [
@@ -405,7 +397,7 @@ const DeploysWrapper = styled('div')`
 
 const ReleaseTitle = styled('span')`
   color: ${p => p.theme.gray300};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const StyledIdBadge = styled(IdBadge)`
@@ -428,7 +420,7 @@ const SummaryLinks = styled('div')`
   position: relative;
   top: -${space(2)};
   align-items: center;
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
 
   color: ${p => p.theme.subText};
   font-size: ${p => p.theme.fontSizeSmall};
@@ -456,15 +448,6 @@ const TransactionsLink = styled(Link)`
   > span {
     margin-left: ${space(0.5)};
   }
-`;
-
-const NotAvailable = styled('div')`
-  font-size: ${p => p.theme.fontSizeMedium};
-  font-weight: normal;
-  display: grid;
-  grid-template-columns: auto auto;
-  gap: ${space(0.5)};
-  align-items: center;
 `;
 
 const SummaryLinkPlaceholder = styled(Placeholder)`

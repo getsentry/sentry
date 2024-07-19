@@ -6,10 +6,12 @@ from datetime import timedelta
 from django.db import IntegrityError, router
 from django.utils import timezone
 
-from sentry import analytics, eventstore, features
+from sentry import eventstore, features, options
 from sentry.eventstore.models import Event
-from sentry.feedback.usecases.create_feedback import shim_to_feedback
-from sentry.models.eventuser import EventUser as EventUser_model
+from sentry.feedback.usecases.create_feedback import (
+    UNREAL_FEEDBACK_UNATTENDED_MESSAGE,
+    shim_to_feedback,
+)
 from sentry.models.userreport import UserReport
 from sentry.signals import user_feedback_received
 from sentry.utils import metrics
@@ -30,6 +32,11 @@ def save_userreport(
     start_time=None,
 ):
     with metrics.timer("sentry.ingest.userreport.save_userreport"):
+        if is_org_in_denylist(project.organization):
+            return
+        if should_filter_user_report(report["comments"]):
+            return
+
         if start_time is None:
             start_time = timezone.now()
 
@@ -39,24 +46,10 @@ def save_userreport(
 
         event = eventstore.backend.get_event_by_id(project.id, report["event_id"])
 
-        euser, eventuser_record = find_event_user(event, report)
+        euser = find_event_user(event)
 
         if euser and not euser.name and report.get("name"):
             euser.name = report["name"]
-
-        # TODO(nisanthan): Continue updating the EventUser record's name
-        # And record metrics to see how often this logic hits.
-        if eventuser_record and not eventuser_record.name and report.get("name"):
-            eventuser_record.update(name=report["name"])
-            analytics.record(
-                "eventuser_endpoint.request",
-                project_id=project.id,
-                endpoint="sentry.ingest.userreport.eventuser_record_name.update",
-            )
-
-        if euser:
-            # TODO(nisanthan): Remove this eventually once UserReport model drops the event_user_id column
-            report["event_user_id"] = euser.id
 
         if event:
             # if the event is more than 30 minutes old, we don't allow updates
@@ -93,9 +86,10 @@ def save_userreport(
                 email=report["email"],
                 comments=report["comments"],
                 date_added=timezone.now(),
-                event_user_id=euser.id if euser else None,
             )
             report_instance = existing_report
+
+            metrics.incr("user_report.create_user_report.overwrite_duplicate")
 
         else:
             if report_instance.group_id:
@@ -103,40 +97,64 @@ def save_userreport(
 
         user_feedback_received.send(project=project, sender=save_userreport)
 
-        if features.has("organizations:user-feedback-ingest", project.organization, actor=None):
+        has_feedback_ingest = features.has(
+            "organizations:user-feedback-ingest", project.organization, actor=None
+        )
+        logger.info(
+            "ingest.user_report",
+            extra={
+                "project_id": project.id,
+                "event_id": report["event_id"],
+                "has_event": bool(event),
+                "has_feedback_ingest": has_feedback_ingest,
+            },
+        )
+        metrics.incr(
+            "user_report.create_user_report.saved",
+            tags={"has_event": bool(event), "has_feedback_ingest": has_feedback_ingest},
+        )
+
+        if has_feedback_ingest and event:
+            logger.info(
+                "ingest.user_report.shim_to_feedback",
+                extra={"project_id": project.id, "event_id": report["event_id"]},
+            )
             shim_to_feedback(report, event, project, source)
 
         return report_instance
 
 
-def find_eventuser_record(report_data, event):
+def find_event_user(event: Event):
     if not event:
-        if not report_data.get("email"):
-            return None
-        try:
-            return EventUser_model.objects.filter(
-                project_id=report_data["project_id"], email=report_data["email"]
-            )[0]
-        except IndexError:
-            return None
-
-    tag = event.get_tag("sentry:user")
-
-    if not tag:
         return None
-
-    try:
-        return EventUser_model.for_tags(project_id=report_data["project_id"], values=[tag])[tag]
-    except KeyError:
-        pass
-
-
-def find_event_user(event: Event, report_data):
-    if not event:
-        return None, None
-    eventuser_record = find_eventuser_record(report_data, event)
     eventuser = EventUser.from_event(event)
-    if eventuser_record:
-        eventuser.id = eventuser_record.id
+    return eventuser
 
-    return eventuser, eventuser_record
+
+def should_filter_user_report(comments: str):
+    """
+    We don't care about empty user reports, or ones that
+    the unreal SDKs send.
+    """
+
+    if not options.get("feedback.filter_garbage_messages"):
+        return False
+
+    if not comments:
+        metrics.incr("user_report.create_user_report.filtered", tags={"reason": "empty"})
+        return True
+
+    if comments == UNREAL_FEEDBACK_UNATTENDED_MESSAGE:
+        metrics.incr(
+            "user_report.create_user_report.filtered", tags={"reason": "unreal.unattended"}
+        )
+        return True
+
+    return False
+
+
+def is_org_in_denylist(organization):
+    if organization.slug in options.get("feedback.organizations.slug-denylist"):
+        metrics.incr("user_report.create_user_report.filtered", tags={"reason": "org.denylist"})
+        return True
+    return False

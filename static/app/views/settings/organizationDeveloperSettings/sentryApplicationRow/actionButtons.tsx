@@ -5,7 +5,7 @@ import ConfirmDelete from 'sentry/components/confirmDelete';
 import {IconDelete, IconStats, IconUpgrade} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, SentryApp} from 'sentry/types';
+import type {Organization, SentryApp} from 'sentry/types';
 
 type Props = {
   app: SentryApp;
@@ -63,7 +63,7 @@ function ActionButtons({
         title={disableDeleteReason}
         size="xs"
         icon={<IconDelete />}
-        aria-label="Delete"
+        aria-label={t('Delete')}
       />
     ) : (
       onDelete && (
@@ -73,7 +73,7 @@ function ActionButtons({
           priority="danger"
           onConfirm={() => onDelete(app)}
         >
-          <StyledButton size="xs" icon={<IconDelete />} aria-label="Delete" />
+          <StyledButton size="xs" icon={<IconDelete />} aria-label={t('Delete')} />
         </ConfirmDelete>
       )
     )

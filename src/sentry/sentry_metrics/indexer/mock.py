@@ -1,6 +1,7 @@
 import itertools
 from collections import defaultdict
-from typing import Collection, DefaultDict, Dict, Mapping, Optional, Set
+from collections.abc import Collection, Mapping
+from typing import DefaultDict
 
 from sentry.sentry_metrics.indexer.base import (
     FetchType,
@@ -23,12 +24,12 @@ class RawSimpleIndexer(StringIndexer):
     def __init__(self) -> None:
         self._counter = itertools.count(start=10000)
         self._strings: DefaultDict[
-            UseCaseID, DefaultDict[OrgId, DefaultDict[str, Optional[int]]]
+            UseCaseID, DefaultDict[OrgId, DefaultDict[str, int | None]]
         ] = defaultdict(lambda: defaultdict(lambda: defaultdict(self._counter.__next__)))
-        self._reverse: Dict[int, str] = {}
+        self._reverse: dict[int, str] = {}
 
     def bulk_record(
-        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, set[str]]]
     ) -> UseCaseKeyResults:
         db_read_keys = UseCaseKeyCollection(strings)
         db_read_key_results = UseCaseKeyResults()
@@ -61,16 +62,16 @@ class RawSimpleIndexer(StringIndexer):
 
         return db_read_key_results.merge(db_write_key_results)
 
-    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> int | None:
         return self._record(use_case_id, org_id, string)
 
     @metric_path_key_compatible_resolve
-    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> int | None:
         strs = self._strings[use_case_id][org_id]
         return strs.get(string)
 
     @metric_path_key_compatible_rev_resolve
-    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> Optional[str]:
+    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> str | None:
         return self._reverse.get(id)
 
     def bulk_reverse_resolve(
@@ -78,25 +79,25 @@ class RawSimpleIndexer(StringIndexer):
     ) -> Mapping[int, str]:
         # Performance is not an issue for this indexer, so we can fall back on reverse_resolve
 
-        ret_val: Dict[int, str] = {}
+        ret_val: dict[int, str] = {}
         for ident in ids:
             val = self.reverse_resolve(use_case_id, org_id, ident)
             if val is not None:
                 ret_val[ident] = val
         return ret_val
 
-    def _record(self, use_case_id: UseCaseID, org_id: OrgId, string: str) -> Optional[int]:
+    def _record(self, use_case_id: UseCaseID, org_id: OrgId, string: str) -> int | None:
         index = self._strings[use_case_id][org_id][string]
         if index is not None:
             self._reverse[index] = string
         return index
 
-    def resolve_shared_org(self, string: str) -> Optional[int]:
+    def resolve_shared_org(self, string: str) -> int | None:
         raise NotImplementedError(
             "This class should not be used directly, use the wrapping class SimpleIndexer"
         )
 
-    def reverse_shared_org_resolve(self, id: int) -> Optional[str]:
+    def reverse_shared_org_resolve(self, id: int) -> str | None:
         raise NotImplementedError(
             "This class should not be used directly, use the wrapping class SimpleIndexer"
         )

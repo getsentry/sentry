@@ -1,5 +1,6 @@
+from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from typing import Any, Mapping, Optional, Sequence, Type
+from typing import Any, Self
 
 from sentry.issues.grouptype import GroupType, get_group_type_by_type_id
 from sentry.issues.issue_occurrence import IssueEvidence
@@ -10,10 +11,10 @@ class PerformanceProblem:
     fingerprint: str
     op: str
     desc: str
-    type: Type[GroupType]
-    parent_span_ids: Optional[Sequence[str]]
+    type: type[GroupType]
+    parent_span_ids: Sequence[str] | None
     # For related spans that caused the bad spans
-    cause_span_ids: Optional[Sequence[str]]
+    cause_span_ids: Sequence[str] | None
     # The actual bad spans
     offender_span_ids: Sequence[str]
     # Evidence to be used for the group
@@ -21,7 +22,7 @@ class PerformanceProblem:
     # We can't make it required until we stop loading these from nodestore via EventPerformanceProblem,
     # since there's legacy data in there that won't have these fields.
     # So until we disable transaction based perf issues we'll need to keep this optional.
-    evidence_data: Optional[Mapping[str, Any]]
+    evidence_data: Mapping[str, Any] | None
     # User-friendly evidence to be displayed directly
     evidence_display: Sequence[IssueEvidence]
 
@@ -45,7 +46,7 @@ class PerformanceProblem:
         return self.type.description
 
     @classmethod
-    def from_dict(cls, data: dict):
+    def from_dict(cls, data: dict[str, Any]) -> Self:
         return cls(
             data["fingerprint"],
             data["op"],
@@ -61,7 +62,7 @@ class PerformanceProblem:
             ],
         )
 
-    def __eq__(self, other):
+    def __eq__(self, other: object) -> bool:
         if not isinstance(other, PerformanceProblem):
             return NotImplemented
         return (
@@ -70,7 +71,7 @@ class PerformanceProblem:
             and self.type == other.type
         )
 
-    def __hash__(self):
+    def __hash__(self) -> int:
         # This will de-duplicate on fingerprint and type and only for offending span ids.
         # Fingerprint should incorporate the 'uniqueness' enough that parent and span checks etc. are not required.
         return hash((self.fingerprint, frozenset(self.offender_span_ids), self.type))

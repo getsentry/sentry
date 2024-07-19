@@ -425,6 +425,18 @@
       ],
       "id": "mock",
       "name": "Mock"
+    },
+    {
+      "integrations": [
+        {
+          "link": "https://docs.getsentry.com/platforms/powershell/",
+          "type": "language",
+          "id": "powershell",
+          "name": "PowerShell"
+        }
+      ],
+      "id": "powershell",
+      "name": "PowerShell"
     }
   ]
 }

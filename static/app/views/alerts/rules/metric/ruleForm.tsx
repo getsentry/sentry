@@ -1,12 +1,13 @@
-import {Fragment, ReactNode} from 'react';
-import {PlainRoute, RouteComponentProps} from 'react-router';
+import type {ReactNode} from 'react';
+import type {PlainRoute, RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
+import * as Sentry from '@sentry/react';
 
+import type {Indicator} from 'sentry/actionCreators/indicator';
 import {
   addErrorMessage,
   addSuccessMessage,
   clearIndicators,
-  Indicator,
 } from 'sentry/actionCreators/indicator';
 import {fetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {hasEveryAccess} from 'sentry/components/acl/access';
@@ -16,27 +17,45 @@ import {HeaderTitleLegend} from 'sentry/components/charts/styles';
 import CircleIndicator from 'sentry/components/circleIndicator';
 import Confirm from 'sentry/components/confirm';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
-import Form, {FormProps} from 'sentry/components/forms/form';
+import type {FormProps} from 'sentry/components/forms/form';
+import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import * as Layout from 'sentry/components/layouts/thirds';
-import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
-import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
 import IndicatorStore from 'sentry/stores/indicatorStore';
 import {space} from 'sentry/styles/space';
-import {EventsStats, MultiSeriesEventsStats, Organization, Project} from 'sentry/types';
+import type {
+  EventsStats,
+  MetricsExtractionRule,
+  MultiSeriesEventsStats,
+  Organization,
+  Project,
+} from 'sentry/types';
+import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
 import {defined} from 'sentry/utils';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
-import {getForceMetricsLayerQueryExtras} from 'sentry/utils/ddm/features';
 import type EventView from 'sentry/utils/discover/eventView';
+import {AggregationKey} from 'sentry/utils/fields';
+import {findExtractionRuleCondition} from 'sentry/utils/metrics/extractionRules';
+import {
+  getForceMetricsLayerQueryExtras,
+  hasCustomMetrics,
+  hasCustomMetricsExtractionRules,
+} from 'sentry/utils/metrics/features';
+import {
+  DEFAULT_METRIC_ALERT_FIELD,
+  DEFAULT_SPAN_METRIC_ALERT_FIELD,
+  formatMRIField,
+  parseField,
+} from 'sentry/utils/metrics/mri';
 import {isOnDemandQueryString} from 'sentry/utils/onDemandMetrics';
 import {
   hasOnDemandMetricAlertFeature,
   shouldShowOnDemandMetricAlertUI,
 } from 'sentry/utils/onDemandMetrics/features';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withProjects from 'sentry/utils/withProjects';
 import {IncompatibleAlertQuery} from 'sentry/views/alerts/rules/metric/incompatibleAlertQuery';
 import RuleNameOwnerForm from 'sentry/views/alerts/rules/metric/ruleNameOwnerForm';
@@ -44,20 +63,15 @@ import ThresholdTypeForm from 'sentry/views/alerts/rules/metric/thresholdTypeFor
 import Triggers from 'sentry/views/alerts/rules/metric/triggers';
 import TriggersChart from 'sentry/views/alerts/rules/metric/triggers/chart';
 import {getEventTypeFilter} from 'sentry/views/alerts/rules/metric/utils/getEventTypeFilter';
+import {getFormattedSpanMetricField} from 'sentry/views/alerts/rules/metric/utils/getFormattedSpanMetric';
 import hasThresholdValue from 'sentry/views/alerts/rules/metric/utils/hasThresholdValue';
-import {
-  isOnDemandMetricAlert,
-  isValidOnDemandMetricAlert,
-} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
+import {isOnDemandMetricAlert} from 'sentry/views/alerts/rules/metric/utils/onDemandMetricAlert';
 import {AlertRuleType} from 'sentry/views/alerts/types';
-import {
-  hasMigrationFeatureFlag,
-  ruleNeedsMigration,
-} from 'sentry/views/alerts/utils/migrationUi';
+import {ruleNeedsErrorMigration} from 'sentry/views/alerts/utils/migrationUi';
+import type {MetricAlertType} from 'sentry/views/alerts/wizard/options';
 import {
   AlertWizardAlertNames,
   DatasetMEPAlertQueryTypes,
-  MetricAlertType,
 } from 'sentry/views/alerts/wizard/options';
 import {getAlertTypeFromAggregateDataset} from 'sentry/views/alerts/wizard/utils';
 import PermissionAlert from 'sentry/views/settings/project/permissionAlert';
@@ -71,16 +85,19 @@ import {
   DEFAULT_COUNT_TIME_WINDOW,
 } from './constants';
 import RuleConditionsForm from './ruleConditionsForm';
-import {
-  AlertRuleComparisonType,
-  AlertRuleThresholdType,
-  AlertRuleTriggerType,
-  Dataset,
+import type {
   EventTypes,
   MetricActionTemplate,
   MetricRule,
   Trigger,
   UnsavedMetricRule,
+} from './types';
+import {
+  AlertRuleComparisonType,
+  AlertRuleThresholdType,
+  AlertRuleTriggerType,
+  Dataset,
+  TimeWindow,
 } from './types';
 
 const POLLING_MAX_TIME_LIMIT = 3 * 60000;
@@ -120,6 +137,8 @@ type State = {
   environment: string | null;
   eventTypes: EventTypes[];
   isQueryValid: boolean;
+  // `null` means loading
+  metricExtractionRules: MetricsExtractionRule[] | null;
   project: Project;
   query: string;
   resolveThreshold: UnsavedMetricRule['resolveThreshold'];
@@ -128,11 +147,10 @@ type State = {
   timeWindow: number;
   triggerErrors: Map<number, {[fieldName: string]: string}>;
   triggers: Trigger[];
+  activationCondition?: ActivationConditionType;
   comparisonDelta?: number;
   isExtrapolatedChartData?: boolean;
-  // TODO(telemetry-experiment): remove this state once the migration is complete
-  triggersHaveChanged?: boolean;
-  uuid?: string;
+  monitorType?: MonitorType;
 } & DeprecatedAsyncComponent['state'];
 
 const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
@@ -140,16 +158,21 @@ const isEmpty = (str: unknown): boolean => str === '' || !defined(str);
 class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   form = new FormModel();
   pollingTimeout: number | undefined = undefined;
+  uuid: string | null = null;
 
   get isDuplicateRule(): boolean {
     return Boolean(this.props.isDuplicateRule);
   }
 
   get chartQuery(): string {
-    const {query, eventTypes, dataset} = this.state;
+    const {alertType, query, eventTypes, dataset} = this.state;
     const eventTypeFilter = getEventTypeFilter(this.state.dataset, eventTypes);
     const queryWithTypeFilter = (
-      query ? `(${query}) AND (${eventTypeFilter})` : eventTypeFilter
+      !['custom_metrics', 'span_metrics'].includes(alertType)
+        ? query
+          ? `(${query}) AND (${eventTypeFilter})`
+          : eventTypeFilter
+        : query
     ).trim();
     return isCrashFreeAlert(dataset) ? query : queryWithTypeFilter;
   }
@@ -167,7 +190,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   }
 
   getDefaultState(): State {
-    const {rule, location} = this.props;
+    const {rule, location, organization} = this.props;
     const triggersClone = [...rule.triggers];
     const {
       aggregate: _aggregate,
@@ -185,6 +208,15 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const aggregate = _aggregate ?? rule.aggregate;
     const dataset = _dataset ?? rule.dataset;
 
+    const isErrorMigration =
+      this.props.location?.query?.migration === '1' && ruleNeedsErrorMigration(rule);
+    // TODO(issues): Does this need to be smarter about where its inserting the new filter?
+    const query = isErrorMigration
+      ? `is:unresolved ${rule.query ?? ''}`
+      : rule.query ?? '';
+
+    const hasActivatedAlerts = organization.features.includes('activated-alert-rules');
+
     return {
       ...super.getDefaultState(),
 
@@ -192,12 +224,13 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       aggregate,
       dataset,
       eventTypes: eventTypes ?? rule.eventTypes ?? [],
-      query: rule.query ?? '',
+      query,
       isQueryValid: true, // Assume valid until input is changed
       timeWindow: rule.timeWindow,
       environment: rule.environment || null,
       triggerErrors: new Map(),
       availableActions: null,
+      metricExtractionRules: null,
       triggers: triggersClone,
       resolveThreshold: rule.resolveThreshold,
       thresholdType: rule.thresholdType,
@@ -209,11 +242,17 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       project: this.props.project,
       owner: rule.owner,
       alertType: getAlertTypeFromAggregateDataset({aggregate, dataset}),
+      monitorType: hasActivatedAlerts
+        ? rule.monitorType || MonitorType.CONTINUOUS
+        : undefined,
+      activationCondition:
+        rule.activationCondition || ActivationConditionType.RELEASE_CREATION,
     };
   }
 
   getEndpoints(): ReturnType<DeprecatedAsyncComponent['getEndpoints']> {
     const {organization} = this.props;
+    const project = this.state?.project ?? this.props.project;
     // TODO(incidents): This is temporary until new API endpoints
     // We should be able to just fetch the rule if rule.id exists
 
@@ -222,6 +261,14 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         'availableActions',
         `/organizations/${organization.slug}/alert-rules/available-actions/`,
       ],
+      ...(hasCustomMetricsExtractionRules(organization)
+        ? [
+            [
+              'metricExtractionRules',
+              `/projects/${organization.slug}/${project.slug}/metrics/extraction-rules/`,
+            ] as [string, string],
+          ]
+        : []),
     ];
   }
 
@@ -234,7 +281,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   resetPollingState = (loadingSlackIndicator: Indicator) => {
     IndicatorStore.remove(loadingSlackIndicator);
-    this.setState({loading: false, uuid: undefined});
+    this.uuid = null;
+    this.setState({loading: false});
   };
 
   fetchStatus(model: FormModel) {
@@ -268,11 +316,11 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       onSubmitSuccess,
       params: {ruleId},
     } = this.props;
-    const {uuid, project} = this.state;
+    const {project} = this.state;
 
     try {
       const response: RuleTaskResponse = await this.api.requestPromise(
-        `/projects/${organization.slug}/${project.slug}/alert-rule-task/${uuid}/`
+        `/projects/${organization.slug}/${project.slug}/alert-rule-task/${this.uuid}/`
       );
 
       const {status, alertRule, error} = response;
@@ -473,20 +521,42 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     return triggerErrors;
   }
 
+  validateMri = () => {
+    const {aggregate} = this.state;
+    return aggregate !== DEFAULT_METRIC_ALERT_FIELD;
+  };
+
   handleFieldChange = (name: string, value: unknown) => {
     const {projects} = this.props;
-
-    const dataset = this.checkOnDemandMetricsDataset(
-      this.state.dataset,
-      this.state.query
-    );
+    const {timeWindow} = this.state;
 
     if (name === 'alertType') {
-      this.setState({
+      this.setState(({dataset}) => ({
         alertType: value as MetricAlertType,
-        dataset,
-      });
+        dataset: this.checkOnDemandMetricsDataset(dataset, this.state.query),
+        timeWindow:
+          ['custom_metrics', 'span_metrics'].includes(value as string) &&
+          timeWindow === TimeWindow.ONE_MINUTE
+            ? TimeWindow.FIVE_MINUTES
+            : timeWindow,
+      }));
       return;
+    }
+
+    if (name === 'projectId') {
+      this.setState(
+        ({project, alertType, aggregate}) => {
+          return {
+            projectId: value,
+            project: projects.find(({id}) => id === value) ?? project,
+            aggregate:
+              alertType === 'span_metrics' ? DEFAULT_SPAN_METRIC_ALERT_FIELD : aggregate,
+          };
+        },
+        () => {
+          this.reloadData();
+        }
+      );
     }
 
     if (
@@ -497,11 +567,15 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         'timeWindow',
         'environment',
         'comparisonDelta',
-        'projectId',
         'alertType',
       ].includes(name)
     ) {
-      this.setState(({project: _project, aggregate, alertType}) => {
+      this.setState(({dataset: _dataset, aggregate, alertType}) => {
+        const dataset = this.checkOnDemandMetricsDataset(
+          name === 'dataset' ? (value as Dataset) : _dataset,
+          this.state.query
+        );
+
         const newAlertType = getAlertTypeFromAggregateDataset({
           aggregate,
           dataset,
@@ -509,9 +583,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
         return {
           [name]: value,
-          project:
-            name === 'projectId' ? projects.find(({id}) => id === value) : _project,
-          alertType: alertType !== newAlertType ? 'custom' : alertType,
+          alertType: alertType !== newAlertType ? 'custom_transactions' : alertType,
           dataset,
         };
       });
@@ -534,21 +606,51 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     this.setState({query, dataset, isQueryValid});
   };
 
+  handleMonitorTypeSelect = (activatedAlertFields: {
+    activationCondition?: ActivationConditionType | undefined;
+    monitorType?: MonitorType;
+    monitorWindowSuffix?: string | undefined;
+    monitorWindowValue?: number | undefined;
+  }) => {
+    const {monitorType} = activatedAlertFields;
+    let updatedFields = activatedAlertFields;
+    if (monitorType === MonitorType.CONTINUOUS) {
+      updatedFields = {
+        ...updatedFields,
+        activationCondition: undefined,
+        monitorWindowValue: undefined,
+      };
+    }
+    this.setState(updatedFields as State);
+  };
+
   validateOnDemandMetricAlert() {
-    return isValidOnDemandMetricAlert(
-      this.state.dataset,
-      this.state.aggregate,
-      this.state.query
+    if (
+      !isOnDemandMetricAlert(this.state.dataset, this.state.aggregate, this.state.query)
+    ) {
+      return true;
+    }
+
+    return !this.state.aggregate.includes(AggregationKey.PERCENTILE);
+  }
+
+  validateActivatedAlerts() {
+    const {organization} = this.props;
+    const {monitorType, activationCondition, timeWindow} = this.state;
+
+    const hasActivatedAlerts = organization.features.includes('activated-alert-rules');
+    return (
+      !hasActivatedAlerts ||
+      monitorType !== MonitorType.ACTIVATED ||
+      (activationCondition !== undefined && timeWindow)
     );
   }
 
-  handleSubmit = async (
-    _data: Partial<MetricRule>,
-    _onSubmitSuccess,
-    _onSubmitError,
-    _e,
-    model: FormModel
-  ) => {
+  validateSubmit = model => {
+    if (!this.validateMri()) {
+      addErrorMessage(t('You need to select a metric before you can save the alert'));
+      return false;
+    }
     // This validates all fields *except* for Triggers
     const validRule = model.validateForm();
 
@@ -556,6 +658,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const triggerErrors = this.validateTriggers();
     const validTriggers = Array.from(triggerErrors).length === 0;
     const validOnDemandAlert = this.validateOnDemandMetricAlert();
+    const validActivatedAlerts = this.validateActivatedAlerts();
 
     if (!validTriggers) {
       this.setState(state => ({
@@ -571,13 +674,34 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       ].filter(x => x);
 
       addErrorMessage(t('Alert not valid: missing %s', missingFields.join(' ')));
-      return;
+      return false;
     }
 
     if (!validOnDemandAlert) {
       addErrorMessage(
         t('%s is not supported for on-demand metric alerts', this.state.aggregate)
       );
+      return false;
+    }
+
+    if (!validActivatedAlerts) {
+      addErrorMessage(
+        t('Activation condition and monitor window must be set for activated alerts')
+      );
+      return false;
+    }
+
+    return true;
+  };
+
+  handleSubmit = async (
+    _data: Partial<MetricRule>,
+    _onSubmitSuccess,
+    _onSubmitError,
+    _e,
+    model: FormModel
+  ) => {
+    if (!this.validateSubmit(model)) {
       return;
     }
 
@@ -597,9 +721,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       thresholdType,
       thresholdPeriod,
       comparisonDelta,
-      uuid,
       timeWindow,
       eventTypes,
+      monitorType,
+      activationCondition,
     } = this.state;
     // Remove empty warning trigger
     const sanitizedTriggers = triggers.filter(
@@ -607,84 +732,97 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
         trigger.label !== AlertRuleTriggerType.WARNING || !isEmpty(trigger.alertThreshold)
     );
 
+    const hasActivatedAlerts = organization.features.includes('activated-alert-rules');
     // form model has all form state data, however we use local state to keep
     // track of the list of triggers (and actions within triggers)
     const loadingIndicator = IndicatorStore.addMessage(
       t('Saving your alert rule, hold on...'),
       'loading'
     );
-    try {
-      const transaction = metric.startTransaction({name: 'saveAlertRule'});
-      transaction.setTag('type', AlertRuleType.METRIC);
-      transaction.setTag('operation', !rule.id ? 'create' : 'edit');
-      for (const trigger of sanitizedTriggers) {
-        for (const action of trigger.actions) {
-          if (action.type === 'slack' || action.type === 'discord') {
-            transaction.setTag(action.type, true);
+    await Sentry.withScope(async scope => {
+      try {
+        scope.setTag('type', AlertRuleType.METRIC);
+        scope.setTag('operation', !rule.id ? 'create' : 'edit');
+        for (const trigger of sanitizedTriggers) {
+          for (const action of trigger.actions) {
+            if (action.type === 'slack' || action.type === 'discord') {
+              scope.setTag(action.type, true);
+            }
           }
         }
-      }
-      transaction.setData('actions', sanitizedTriggers);
+        scope.setExtra('actions', sanitizedTriggers);
 
-      const hasMetricDataset = organization.features.includes('mep-rollout-flag');
-      const dataset = this.determinePerformanceDataset();
-      this.setState({loading: true});
-      const [data, , resp] = await addOrUpdateRule(
-        this.api,
-        organization.slug,
-        {
-          ...rule,
-          ...model.getTransformedData(),
-          projects: [project.slug],
-          triggers: sanitizedTriggers,
-          resolveThreshold: isEmpty(resolveThreshold) ? null : resolveThreshold,
-          thresholdType,
-          thresholdPeriod,
-          comparisonDelta: comparisonDelta ?? null,
-          timeWindow,
-          aggregate,
-          ...(hasMetricDataset
-            ? {queryType: DatasetMEPAlertQueryTypes[rule.dataset]}
-            : {}),
-          // Remove eventTypes as it is no longer required for crash free
-          eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
-          dataset,
-        },
-        {
-          duplicateRule: this.isDuplicateRule ? 'true' : 'false',
-          wizardV3: 'true',
-          referrer: location?.query?.referrer,
-          sessionId,
-          ...getForceMetricsLayerQueryExtras(organization, dataset),
+        metric.startSpan({name: 'saveAlertRule'});
+
+        let activatedAlertFields = {};
+        if (hasActivatedAlerts) {
+          activatedAlertFields = {
+            monitorType,
+            activationCondition,
+          };
         }
-      );
-      // if we get a 202 back it means that we have an async task
-      // running to lookup and verify the channel id for Slack.
-      if (resp?.status === 202) {
-        // if we have a uuid in state, no need to start a new polling cycle
-        if (!uuid) {
-          this.setState({loading: true, uuid: data.uuid});
-          this.fetchStatus(model);
+
+        const dataset = this.determinePerformanceDataset();
+        this.setState({loading: true});
+        // Add or update is just the PUT/POST to the org alert-rules api
+        // we're splatting the full rule in, then overwriting all the data?
+        const [data, , resp] = await addOrUpdateRule(
+          this.api,
+          organization.slug,
+          {
+            ...rule, // existing rule
+            ...model.getTransformedData(), // form data
+            ...activatedAlertFields,
+            projects: [project.slug],
+            triggers: sanitizedTriggers,
+            resolveThreshold: isEmpty(resolveThreshold) ? null : resolveThreshold,
+            thresholdType,
+            thresholdPeriod,
+            comparisonDelta: comparisonDelta ?? null,
+            timeWindow,
+            aggregate,
+            // Remove eventTypes as it is no longer required for crash free
+            eventTypes: isCrashFreeAlert(rule.dataset) ? undefined : eventTypes,
+            dataset,
+            queryType: DatasetMEPAlertQueryTypes[dataset],
+          },
+          {
+            duplicateRule: this.isDuplicateRule ? 'true' : 'false',
+            wizardV3: 'true',
+            referrer: location?.query?.referrer,
+            sessionId,
+            ...getForceMetricsLayerQueryExtras(organization, dataset),
+          }
+        );
+        // if we get a 202 back it means that we have an async task
+        // running to lookup and verify the channel id for Slack.
+        if (resp?.status === 202) {
+          // if we have a uuid in state, no need to start a new polling cycle
+          if (!this.uuid) {
+            this.uuid = data.uuid;
+            this.setState({loading: true});
+            this.fetchStatus(model);
+          }
+        } else {
+          IndicatorStore.remove(loadingIndicator);
+          this.setState({loading: false});
+          addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
+          if (onSubmitSuccess) {
+            onSubmitSuccess(data, model);
+          }
         }
-      } else {
+      } catch (err) {
         IndicatorStore.remove(loadingIndicator);
         this.setState({loading: false});
-        addSuccessMessage(ruleId ? t('Updated alert rule') : t('Created alert rule'));
-        if (onSubmitSuccess) {
-          onSubmitSuccess(data, model);
-        }
+        const errors = err?.responseJSON
+          ? Array.isArray(err?.responseJSON)
+            ? err?.responseJSON
+            : Object.values(err?.responseJSON)
+          : [];
+        const apiErrors = errors.length > 0 ? `: ${errors.join(', ')}` : '';
+        this.handleRuleSaveFailure(t('Unable to save alert%s', apiErrors));
       }
-    } catch (err) {
-      IndicatorStore.remove(loadingIndicator);
-      this.setState({loading: false});
-      const errors = err?.responseJSON
-        ? Array.isArray(err?.responseJSON)
-          ? err?.responseJSON
-          : Object.values(err?.responseJSON)
-        : [];
-      const apiErrors = errors.length > 0 ? `: ${errors.join(', ')}` : '';
-      this.handleRuleSaveFailure(t('Unable to save alert%s', apiErrors));
-    }
+    });
   };
 
   /**
@@ -773,7 +911,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
 
   handleRuleSaveFailure = (msg: ReactNode) => {
     addErrorMessage(msg);
-    metric.endTransaction({name: 'saveAlertRule'});
+    metric.endSpan({name: 'saveAlertRule'});
   };
 
   handleCancel = () => {
@@ -847,7 +985,7 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
   }
 
   renderTriggerChart() {
-    const {organization, ruleId, rule} = this.props;
+    const {organization, ruleId, rule, location} = this.props;
 
     const {
       query,
@@ -864,11 +1002,19 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       dataset,
       alertType,
       isQueryValid,
-      location,
     } = this.state;
 
-    // TODO(telemetry-experience): Remove this and all connected logic once the migration is complete
-    const isMigration = this.props.location?.query?.migration === '1';
+    const isOnDemand = isOnDemandMetricAlert(dataset, aggregate, query);
+
+    let formattedAggregate = aggregate;
+    if (alertType === 'custom_metrics') {
+      formattedAggregate = formatMRIField(aggregate);
+    } else if (alertType === 'span_metrics') {
+      formattedAggregate = getFormattedSpanMetricField(
+        aggregate,
+        this.state.metricExtractionRules
+      );
+    }
 
     const chartProps = {
       organization,
@@ -877,8 +1023,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       location,
       query: this.chartQuery,
       aggregate,
-      // If the alert is being migrated, we want to use the generic metrics dataset to allow users to edit their thresholds
-      dataset: isMigration ? Dataset.GENERIC_METRICS : dataset,
+      formattedAggregate: formattedAggregate,
+      dataset,
       newAlertOrQuery: !ruleId || query !== rule.query,
       timeWindow,
       environment,
@@ -887,9 +1033,24 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       comparisonDelta,
       comparisonType,
       isQueryValid,
-      isOnDemandMetricAlert: isOnDemandMetricAlert(dataset, aggregate, query),
+      isOnDemandMetricAlert: isOnDemand,
+      showTotalCount:
+        !['custom_metrics', 'span_metrics'].includes(alertType) && !isOnDemand,
       onDataLoaded: this.handleTimeSeriesDataFetched,
     };
+
+    let formattedQuery = `event.type:${eventTypes?.join(',')}`;
+    if (alertType === 'custom_metrics') {
+      formattedQuery = '';
+    }
+    if (alertType === 'span_metrics') {
+      const mri = parseField(aggregate)!.mri;
+      const condition = findExtractionRuleCondition(
+        mri,
+        this.state.metricExtractionRules || []
+      );
+      formattedQuery = condition?.value || '';
+    }
 
     const wizardBuilderChart = (
       <TriggersChart
@@ -900,8 +1061,8 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
             {!isCrashFreeAlert(dataset) && (
               <AlertInfo>
                 <StyledCircleIndicator size={8} />
-                <Aggregate>{aggregate}</Aggregate>
-                event.type:{eventTypes?.join(',')}
+                <Aggregate>{formattedAggregate}</Aggregate>
+                {formattedQuery}
               </AlertInfo>
             )}
           </ChartHeader>
@@ -941,10 +1102,12 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
       alertType,
       isExtrapolatedChartData,
       triggersHaveChanged,
+      activationCondition,
+      monitorType,
     } = this.state;
 
     const wizardBuilderChart = this.renderTriggerChart();
-    // TODO(telemetry-experience): Remove this and all connected logic once the migration is complete
+    // TODO(issues): Remove this and all connected logic once the migration is complete
     const isMigration = location?.query?.migration === '1';
 
     const triggerForm = (disabled: boolean) => (
@@ -991,9 +1154,10 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
     const formDisabled = loading || !hasAlertWrite;
     const submitDisabled = formDisabled || !this.state.isQueryValid;
 
-    const showMigrationWarning =
-      !!ruleId && hasMigrationFeatureFlag(organization) && ruleNeedsMigration(rule);
+    const showErrorMigrationWarning =
+      !!ruleId && isMigration && ruleNeedsErrorMigration(rule);
 
+    // Rendering the main form body
     return (
       <Main fullWidth>
         <PermissionAlert access={['alerts:write']} project={project} />
@@ -1049,13 +1213,20 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
           <List symbol="colored-numeric">
             <RuleConditionsForm
               project={project}
+              aggregate={aggregate}
               organization={organization}
-              isMigration={isMigration}
+              isTransactionMigration={isMigration && !showErrorMigrationWarning}
+              isErrorMigration={showErrorMigrationWarning}
+              isForSpanMetric={aggregate.includes(':spans/')}
               router={router}
               disabled={formDisabled}
               thresholdChart={wizardBuilderChart}
               onFilterSearch={this.handleFilterUpdate}
-              allowChangeEventTypes={alertType === 'custom' || dataset === Dataset.ERRORS}
+              allowChangeEventTypes={
+                hasCustomMetrics(organization)
+                  ? dataset === Dataset.ERRORS
+                  : dataset === Dataset.ERRORS || alertType === 'custom_transactions'
+              }
               alertType={alertType}
               dataset={dataset}
               timeWindow={timeWindow}
@@ -1067,37 +1238,25 @@ class RuleFormContainer extends DeprecatedAsyncComponent<Props, State> {
               onTimeWindowChange={value => this.handleFieldChange('timeWindow', value)}
               disableProjectSelector={disableProjectSelector}
               isExtrapolatedChartData={isExtrapolatedChartData}
+              monitorType={monitorType}
+              activationCondition={activationCondition}
+              onMonitorTypeSelect={this.handleMonitorTypeSelect}
+              isEditing={Boolean(ruleId)}
             />
             <AlertListItem>{t('Set thresholds')}</AlertListItem>
             {thresholdTypeForm(formDisabled)}
-            {showMigrationWarning && (
+            {showErrorMigrationWarning && (
               <Alert type="warning" showIcon>
                 {tct(
-                  'Check the chart above and make sure the current thresholds are still valid, given that this alert is now based on [tooltip:total events].',
+                  "We've added [code:is:unresolved] to your events filter; please make sure the current thresholds are still valid as this alert is now filtering out resolved and archived errors.",
                   {
-                    tooltip: (
-                      <Tooltip
-                        showUnderline
-                        isHoverable
-                        title={
-                          <Fragment>
-                            {t(
-                              'Performance alerts are based on all the events you send to Sentry, not just the ones that are stored'
-                            )}
-                            <br />
-                            <ExternalLink href="https://docs.sentry.io/product/performance/retention-priorities/">
-                              {t('Learn more')}
-                            </ExternalLink>
-                          </Fragment>
-                        }
-                      />
-                    ),
+                    code: <code />,
                   }
                 )}
               </Alert>
             )}
             {triggerForm(formDisabled)}
-            {isMigration ? <Fragment /> : ruleNameOwnerForm(formDisabled)}
+            {ruleNameOwnerForm(formDisabled)}
           </List>
         </Form>
       </Main>
@@ -1130,7 +1289,7 @@ const AlertName = styled(HeaderTitleLegend)`
 const AlertInfo = styled('div')`
   font-size: ${p => p.theme.fontSizeSmall};
   font-family: ${p => p.theme.text.family};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.textColor};
 `;
 

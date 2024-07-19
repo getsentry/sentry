@@ -9,8 +9,8 @@ from sentry.api.helpers.environments import get_environments
 from sentry.api.serializers import serialize
 from sentry.api.serializers.models.grouprelease import GroupReleaseWithStatsSerializer
 from sentry.models.grouprelease import GroupRelease
-from sentry.models.release import ReleaseProject
 from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releases.release_project import ReleaseProject
 
 
 @region_silo_endpoint
@@ -24,13 +24,15 @@ class GroupCurrentReleaseEndpoint(GroupEndpoint, EnvironmentMixin):
             "release_id", flat=True
         )
 
-        release_envs = ReleaseEnvironment.objects.filter(
+        release_envs_qs = ReleaseEnvironment.objects.filter(
             release_id__in=release_projects,
             organization_id=group.project.organization_id,
         )
         if environments:
-            release_envs = release_envs.filter(environment_id__in=[env.id for env in environments])
-        release_envs = release_envs.order_by("-first_seen").values_list("release_id", flat=True)
+            release_envs_qs = release_envs_qs.filter(
+                environment_id__in=[env.id for env in environments]
+            )
+        release_envs = release_envs_qs.order_by("-first_seen").values_list("release_id", flat=True)
 
         group_releases = GroupRelease.objects.filter(
             group_id=group.id,

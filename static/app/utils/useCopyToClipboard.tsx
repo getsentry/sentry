@@ -84,8 +84,8 @@ export default function useCopyToClipboard({
     state === 'ready'
       ? t('Copy')
       : state === 'copied'
-      ? t('Copied')
-      : t('Unable to copy');
+        ? t('Copied')
+        : t('Unable to copy');
 
   return {
     onClick: handleOnClick,

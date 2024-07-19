@@ -6,19 +6,17 @@ from sentry.models.groupenvironment import GroupEnvironment
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.groupredirect import GroupRedirect
 from sentry.models.userreport import UserReport
-from sentry.similarity import _make_index_backend
+from sentry.similarity import _make_index_backend, features
 from sentry.tasks.merge import merge_groups
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from sentry.utils import redis
 
 # Use the default redis client as a cluster client in the similarity index
 index = _make_index_backend(redis.clusters.get("default").get_local_client(0))
 
 
-@patch("sentry.similarity.features.index", new=index)
-@region_silo_test
+@patch.object(features, "index", new=index)
 class MergeGroupTest(TestCase, SnubaTestCase):
     @patch("sentry.eventstream.backend")
     def test_merge_calls_eventstream(self, mock_eventstream):

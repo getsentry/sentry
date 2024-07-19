@@ -1,11 +1,11 @@
 import re
-from typing import MutableMapping, Sequence, Union
-from urllib.parse import parse_qs, parse_qsl, urlencode, urljoin, urlparse, urlunparse
+from collections.abc import Mapping, MutableMapping, Sequence
+from urllib.parse import parse_qs, parse_qsl, urlencode, urljoin, urlparse, urlsplit, urlunparse
 
 _scheme_re = re.compile(r"^([a-zA-Z0-9-+]+://)(.*)$")
 
 
-def non_standard_url_join(base, to_join):
+def non_standard_url_join(base: str, to_join: str | None) -> str:
     """A version of url join that can deal with unknown protocols."""
     # joins to an absolute url are willing by default
     if not to_join:
@@ -31,7 +31,7 @@ def non_standard_url_join(base, to_join):
     return rv
 
 
-def add_params_to_url(url, params):
+def add_params_to_url(url: str, params: Mapping[str, str]) -> str:
     url_parts = urlparse(url)
     query = dict(parse_qsl(url_parts.query))
     query.update(params)
@@ -43,7 +43,7 @@ def parse_link(url: str) -> str:
     """For data aggregation purposes, remove unique information from URL."""
 
     url_parts = list(urlparse(url))
-    query: MutableMapping[str, Union[Sequence[str], str]] = dict(parse_qs(url_parts[4]))
+    query: MutableMapping[str, Sequence[str] | str] = dict(parse_qs(url_parts[4]))
     for param in query:
         if param == "project":
             query.update({"project": "{project}"})
@@ -59,3 +59,17 @@ def parse_link(url: str) -> str:
         new_path.append(item)
 
     return "/".join(new_path) + "/" + str(url_parts[4])
+
+
+def urlsplit_best_effort(s: str) -> tuple[str, str, str, str]:
+    """first attempts urllib parsing, falls back to crude parsing for invalid urls"""
+    try:
+        parsed = urlsplit(s)
+    except ValueError:
+        rest, _, query = s.partition("?")
+        scheme, _, rest = rest.partition("://")
+        netloc, slash, path = rest.partition("/")
+        path = f"{slash}{path}"
+        return scheme, netloc, path, query
+    else:
+        return parsed.scheme, parsed.netloc, parsed.path, parsed.query

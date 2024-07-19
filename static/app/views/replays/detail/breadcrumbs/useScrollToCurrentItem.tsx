@@ -1,4 +1,5 @@
-import {RefObject, useEffect, useMemo} from 'react';
+import type {RefObject} from 'react';
+import {useEffect, useMemo} from 'react';
 import type {List as ReactVirtualizedList} from 'react-virtualized';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';

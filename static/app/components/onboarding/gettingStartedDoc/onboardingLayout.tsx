@@ -7,7 +7,11 @@ import List from 'sentry/components/list';
 import ListItem from 'sentry/components/list/listItem';
 import {AuthTokenGeneratorProvider} from 'sentry/components/onboarding/gettingStartedDoc/authTokenGenerator';
 import {Step} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {Docs, DocsParams} from 'sentry/components/onboarding/gettingStartedDoc/types';
+import type {
+  ConfigType,
+  Docs,
+  DocsParams,
+} from 'sentry/components/onboarding/gettingStartedDoc/types';
 import {useSourcePackageRegistries} from 'sentry/components/onboarding/gettingStartedDoc/useSourcePackageRegistries';
 import {
   PlatformOptionsControl,
@@ -34,12 +38,15 @@ export type OnboardingLayoutProps = {
   projectId: Project['id'];
   projectSlug: Project['slug'];
   activeProductSelection?: ProductSolution[];
+  cdn?: string;
+  configType?: ConfigType;
   newOrg?: boolean;
 };
 
 const EMPTY_ARRAY: never[] = [];
 
 export function OnboardingLayout({
+  cdn,
   docsConfig,
   dsn,
   platformKey,
@@ -47,23 +54,25 @@ export function OnboardingLayout({
   projectSlug,
   activeProductSelection = EMPTY_ARRAY,
   newOrg,
+  configType = 'onboarding',
 }: OnboardingLayoutProps) {
   const organization = useOrganization();
   const {isLoading: isLoadingRegistry, data: registryData} =
     useSourcePackageRegistries(organization);
   const selectedOptions = useUrlPlatformOptions(docsConfig.platformOptions);
-
   const {platformOptions} = docsConfig;
 
   const {introduction, steps, nextSteps} = useMemo(() => {
-    const {onboarding} = docsConfig;
+    const doc = docsConfig[configType] ?? docsConfig.onboarding;
 
     const docParams: DocsParams<any> = {
+      cdn,
       dsn,
       organization,
       platformKey,
       projectId,
       projectSlug,
+      isFeedbackSelected: false,
       isPerformanceSelected: activeProductSelection.includes(
         ProductSolution.PERFORMANCE_MONITORING
       ),
@@ -75,18 +84,20 @@ export function OnboardingLayout({
       },
       platformOptions: selectedOptions,
       newOrg,
+      replayOptions: {block: true, mask: true},
     };
 
     return {
-      introduction: onboarding.introduction?.(docParams),
+      introduction: doc.introduction?.(docParams),
       steps: [
-        ...onboarding.install(docParams),
-        ...onboarding.configure(docParams),
-        ...onboarding.verify(docParams),
+        ...doc.install(docParams),
+        ...doc.configure(docParams),
+        ...doc.verify(docParams),
       ],
-      nextSteps: onboarding.nextSteps?.(docParams) || [],
+      nextSteps: doc.nextSteps?.(docParams) || [],
     };
   }, [
+    cdn,
     activeProductSelection,
     docsConfig,
     dsn,
@@ -98,6 +109,7 @@ export function OnboardingLayout({
     projectSlug,
     registryData,
     selectedOptions,
+    configType,
   ]);
 
   return (
@@ -105,11 +117,13 @@ export function OnboardingLayout({
       <Wrapper>
         <Header>
           {introduction && <div>{introduction}</div>}
-          <ProductSelectionAvailabilityHook
-            organization={organization}
-            platform={platformKey}
-          />
-          {platformOptions ? (
+          {configType === 'onboarding' && (
+            <ProductSelectionAvailabilityHook
+              organization={organization}
+              platform={platformKey}
+            />
+          )}
+          {platformOptions && !['customMetricsOnboarding'].includes(configType) ? (
             <PlatformOptionsControl platformOptions={platformOptions} />
           ) : null}
         </Header>
@@ -124,13 +138,15 @@ export function OnboardingLayout({
             <Divider />
             <h4>{t('Next Steps')}</h4>
             <List symbol="bullet">
-              {nextSteps.map(step => (
-                <ListItem key={step.name}>
-                  <ExternalLink href={step.link}>{step.name}</ExternalLink>
-                  {': '}
-                  {step.description}
-                </ListItem>
-              ))}
+              {nextSteps
+                .filter((step): step is Exclude<typeof step, null> => step !== null)
+                .map(step => (
+                  <ListItem key={step.name}>
+                    <ExternalLink href={step.link}>{step.name}</ExternalLink>
+                    {': '}
+                    {step.description}
+                  </ListItem>
+                ))}
             </List>
           </Fragment>
         )}

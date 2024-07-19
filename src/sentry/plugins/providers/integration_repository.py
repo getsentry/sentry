@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import MutableMapping
 from datetime import timezone
-from typing import Any, ClassVar, MutableMapping
+from typing import Any, ClassVar
 
 from dateutil.parser import parse as parse_date
 from rest_framework import status
@@ -12,17 +13,17 @@ from rest_framework.response import Response
 from sentry import analytics
 from sentry.api.exceptions import SentryAPIException
 from sentry.constants import ObjectStatus
-from sentry.integrations import IntegrationInstallation
+from sentry.integrations.base import IntegrationInstallation
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.repository import repository_service
+from sentry.integrations.services.repository.model import RpcCreateRepository
 from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.organization.model import RpcOrganization
-from sentry.services.hybrid_cloud.repository import repository_service
-from sentry.services.hybrid_cloud.repository.model import RpcCreateRepository
-from sentry.services.hybrid_cloud.user.serial import serialize_rpc_user
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.shared_integrations.exceptions import IntegrationError
 from sentry.signals import repo_linked
+from sentry.users.services.user.serial import serialize_rpc_user
 from sentry.utils import metrics
 
 
@@ -128,15 +129,14 @@ class IntegrationRepositoryProvider:
         }
 
         if repo:
-            if self.logger:
-                self.logger.info(
-                    "repository.update",
-                    extra={
-                        "organization_id": organization.id,
-                        "repo_name": result["name"],
-                        "old_provider": repo.provider,
-                    },
-                )
+            self.logger.info(
+                "repository.update",
+                extra={
+                    "organization_id": organization.id,
+                    "repo_name": result["name"],
+                    "old_provider": repo.provider,
+                },
+            )
             # update from params
             for field_name, field_value in repo_update_params.items():
                 setattr(repo, field_name, field_value)
@@ -155,8 +155,9 @@ class IntegrationRepositoryProvider:
 
             # Try to delete webhook we just created
             try:
-                repo = Repository(organization_id=organization.id, **repo_update_params)
-                self.on_delete_repository(repo)
+                self.on_delete_repository(
+                    Repository(organization_id=organization.id, **repo_update_params)
+                )
             except IntegrationError:
                 pass
 
@@ -188,9 +189,9 @@ class IntegrationRepositoryProvider:
 
         try:
             result, repo = self.create_repository(repo_config=config, organization=organization)
-        except RepoExistsError as e:
+        except RepoExistsError:
             metrics.incr("sentry.integration_repo_provider.repo_exists")
-            raise (e)
+            raise
         except Exception as e:
             return self.handle_api_error(e)
 
@@ -213,25 +214,22 @@ class IntegrationRepositoryProvider:
             status=201,
         )
 
-    def handle_api_error(self, e):
-        context = {"error_type": "unknown"}
-
+    def handle_api_error(self, e: Exception) -> Response:
         if isinstance(e, IntegrationError):
             if "503" in str(e):
-                context.update({"error_type": "service unavailable", "errors": {"__all__": str(e)}})
-                status = 503
+                return Response(
+                    {"error_type": "service unavailable", "errors": {"__all__": str(e)}}, status=503
+                )
             else:
                 # TODO(dcramer): we should have a proper validation error
-                context.update({"error_type": "validation", "errors": {"__all__": str(e)}})
-                status = 400
+                return Response(
+                    {"error_type": "validation", "errors": {"__all__": str(e)}}, status=400
+                )
         elif isinstance(e, Integration.DoesNotExist):
-            context.update({"error_type": "not found", "errors": {"__all__": str(e)}})
-            status = 404
+            return Response({"error_type": "not found", "errors": {"__all__": str(e)}}, status=404)
         else:
-            if self.logger:
-                self.logger.exception(str(e))
-            status = 500
-        return Response(context, status=status)
+            self.logger.exception(str(e))
+            return Response({"error_type": "unknown"}, status=500)
 
     def get_config(self, organization):
         raise NotImplementedError

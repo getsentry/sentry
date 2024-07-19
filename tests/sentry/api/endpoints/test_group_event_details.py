@@ -1,13 +1,11 @@
 import uuid
 from uuid import uuid4
 
-from sentry.issues.occurrence_consumer import process_event_and_issue_occurrence
 from sentry.models.group import GroupStatus
 from sentry.models.release import Release
 from sentry.search.events.constants import SEMVER_ALIAS
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
@@ -56,7 +54,6 @@ class GroupEventDetailsEndpointTestBase(APITestCase, SnubaTestCase):
         )
 
 
-@region_silo_test(stable=True)
 class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCase, SnubaTestCase):
     def test_get_simple_latest(self):
         url = f"/api/0/issues/{self.event_a.group.id}/events/latest/"
@@ -138,7 +135,6 @@ class GroupEventDetailsEndpointTest(GroupEventDetailsEndpointTestBase, APITestCa
         )
 
 
-@region_silo_test(stable=True)
 class GroupEventDetailsHelpfulEndpointTest(
     GroupEventDetailsEndpointTestBase, APITestCase, SnubaTestCase, OccurrenceTestMixin
 ):
@@ -167,6 +163,42 @@ class GroupEventDetailsHelpfulEndpointTest(
         assert response.status_code == 200, response.content
         assert response.data["id"] == str(self.event_d.event_id)
         assert response.data["previousEventID"] == self.event_c.event_id
+        assert response.data["nextEventID"] is None
+
+    def test_get_helpful_event_id(self):
+        """
+        When everything else is equal, the event_id should be used to break ties.
+        """
+        timestamp = iso_format(before_now(minutes=1))
+
+        self.event_d = self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "environment": "staging",
+                "timestamp": timestamp,
+                "fingerprint": ["group-1"],
+                "contexts": {},
+                "errors": [],
+            },
+            project_id=self.project_1.id,
+        )
+        self.event_e = self.store_event(
+            data={
+                "event_id": "e" * 32,
+                "environment": "staging",
+                "timestamp": timestamp,
+                "fingerprint": ["group-1"],
+                "contexts": {},
+                "errors": [],
+            },
+            project_id=self.project_1.id,
+        )
+        url = f"/api/0/issues/{self.event_a.group.id}/events/helpful/"
+        response = self.client.get(url, format="json")
+
+        assert response.status_code == 200, response.content
+        assert response.data["id"] == str(self.event_e.event_id)
+        assert response.data["previousEventID"] == self.event_d.event_id
         assert response.data["nextEventID"] is None
 
     def test_get_helpful_replay_id_order(self):
@@ -343,14 +375,10 @@ class GroupEventDetailsHelpfulEndpointTest(
 
     def test_query_issue_platform_title(self):
         issue_title = "king of england"
-        occurrence_data = self.build_occurrence_data(project_id=self.project.id, title=issue_title)
-        occurrence, group_info = process_event_and_issue_occurrence(
-            occurrence_data,
-            event_data={
-                "event_id": occurrence_data["event_id"],
-                "project_id": occurrence_data["project_id"],
-                "level": "info",
-            },
+        occurrence, group_info = self.process_occurrence(
+            project_id=self.project.id,
+            title=issue_title,
+            event_data={"level": "info"},
         )
 
         assert group_info is not None

@@ -1,3 +1,5 @@
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -9,7 +11,7 @@ import {
 import IntegrationExternalMappings from './integrationExternalMappings';
 
 describe('IntegrationExternalMappings', function () {
-  const {organization, routerContext} = initializeOrg();
+  const {organization, router} = initializeOrg();
 
   const onCreateMock = jest.fn();
   const onDeleteMock = jest.fn();
@@ -73,7 +75,7 @@ describe('IntegrationExternalMappings', function () {
     const {container} = render(
       <IntegrationExternalMappings
         organization={organization}
-        integration={TestStubs.GitHubIntegration()}
+        integration={GitHubIntegrationFixture()}
         mappings={[]}
         type="user"
         onCreate={onCreateMock}
@@ -84,7 +86,7 @@ describe('IntegrationExternalMappings', function () {
         sentryNamesMapper={data => data}
       />,
       {
-        context: routerContext,
+        router,
       }
     );
     expect(container).toHaveTextContent('Set up External User Mappings.');
@@ -95,7 +97,7 @@ describe('IntegrationExternalMappings', function () {
     render(
       <IntegrationExternalMappings
         organization={organization}
-        integration={TestStubs.GitHubIntegration()}
+        integration={GitHubIntegrationFixture()}
         mappings={[]}
         type="user"
         onCreate={onCreateMock}
@@ -106,7 +108,7 @@ describe('IntegrationExternalMappings', function () {
         sentryNamesMapper={data => data}
       />,
       {
-        context: routerContext,
+        router,
       }
     );
 
@@ -122,7 +124,7 @@ describe('IntegrationExternalMappings', function () {
     render(
       <IntegrationExternalMappings
         organization={organization}
-        integration={TestStubs.GitHubIntegration()}
+        integration={GitHubIntegrationFixture()}
         mappings={MOCK_TEAM_MAPPINGS}
         type="team"
         onCreate={onCreateMock}
@@ -133,7 +135,7 @@ describe('IntegrationExternalMappings', function () {
         sentryNamesMapper={data => data}
       />,
       {
-        context: routerContext,
+        router,
       }
     );
 
@@ -155,7 +157,7 @@ describe('IntegrationExternalMappings', function () {
     render(
       <IntegrationExternalMappings
         organization={organization}
-        integration={TestStubs.GitHubIntegration()}
+        integration={GitHubIntegrationFixture()}
         mappings={MOCK_USER_MAPPINGS}
         type="user"
         onCreate={onCreateMock}
@@ -166,7 +168,7 @@ describe('IntegrationExternalMappings', function () {
         sentryNamesMapper={data => data}
       />,
       {
-        context: routerContext,
+        router,
       }
     );
     renderGlobalModal();

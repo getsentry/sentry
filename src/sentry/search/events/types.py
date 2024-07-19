@@ -1,7 +1,11 @@
+from __future__ import annotations
+
 from collections import namedtuple
+from collections.abc import Mapping, Sequence
+from copy import deepcopy
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
+from typing import Any, NotRequired, Optional, TypedDict, Union
 
 from snuba_sdk.aliased_expression import AliasedExpression
 from snuba_sdk.column import Column
@@ -9,17 +13,32 @@ from snuba_sdk.conditions import BooleanCondition, Condition
 from snuba_sdk.entity import Entity
 from snuba_sdk.function import CurriedFunction, Function
 from snuba_sdk.orderby import OrderBy
-from typing_extensions import TypedDict
 
 from sentry.models.environment import Environment
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.team import Team
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.users.services.user import RpcUser
+from sentry.utils.validators import INVALID_SPAN_ID, is_span_id
 
 WhereType = Union[Condition, BooleanCondition]
+
+
 # Replaced by SnubaParams
-ParamsType = Mapping[str, Union[Sequence[int], int, str, datetime]]
+class ParamsType(TypedDict, total=False):
+    project_id: list[int]
+    projects: list[Project]
+    project_objects: list[Project]
+    start: datetime
+    end: datetime
+    environment: NotRequired[str | list[str]]
+    organization_id: NotRequired[int]
+    use_case_id: NotRequired[str]
+    team_id: NotRequired[list[int]]
+    environment_objects: NotRequired[list[Environment]]
+    statsPeriod: NotRequired[str]
+
+
 SelectType = Union[AliasedExpression, Column, Function, CurriedFunction]
 
 NormalizedArg = Optional[Union[str, float]]
@@ -32,32 +51,37 @@ Alias = namedtuple("Alias", "converter aggregate resolved_function")
 
 @dataclass
 class QueryFramework:
-    orderby: List[OrderBy]
-    having: List[WhereType]
-    functions: List[CurriedFunction]
+    orderby: list[OrderBy]
+    having: list[WhereType]
+    functions: list[CurriedFunction]
     entity: Entity
 
 
+SnubaRow = dict[str, Any]
+SnubaData = list[SnubaRow]
+
+
 class EventsMeta(TypedDict):
-    fields: Dict[str, str]
-    tips: Dict[str, str]
+    fields: dict[str, str]
+    tips: NotRequired[dict[str, str | None]]
+    isMetricsData: NotRequired[bool]
 
 
 class EventsResponse(TypedDict):
-    data: List[Dict[str, Any]]
+    data: SnubaData
     meta: EventsMeta
 
 
 @dataclass
 class SnubaParams:
-    start: Optional[datetime]
-    end: Optional[datetime]
+    start: datetime | None
+    end: datetime | None
     # The None value in this sequence is because the filter params could include that
-    environments: Sequence[Union[Environment, None]]
+    environments: Sequence[Environment | None]
     projects: Sequence[Project]
-    user: Optional[RpcUser]
+    user: RpcUser | None
     teams: Sequence[Team]
-    organization: Optional[Organization]
+    organization: Organization | None
 
     def __post_init__(self) -> None:
         if self.start:
@@ -66,7 +90,7 @@ class SnubaParams:
             self.end = self.end.replace(tzinfo=timezone.utc)
 
         # Only used in the trend query builder
-        self.aliases: Optional[Dict[str, Alias]] = {}
+        self.aliases: dict[str, Alias] | None = {}
 
     @property
     def environment_names(self) -> Sequence[str]:
@@ -93,10 +117,13 @@ class SnubaParams:
         return [team.id for team in self.teams]
 
     @property
-    def interval(self) -> Optional[float]:
+    def interval(self) -> float | None:
         if self.start and self.end:
             return (self.end - self.start).total_seconds()
         return None
+
+    def copy(self) -> SnubaParams:
+        return deepcopy(self)
 
 
 @dataclass
@@ -104,12 +131,12 @@ class QueryBuilderConfig:
     auto_fields: bool = False
     auto_aggregations: bool = False
     use_aggregate_conditions: bool = False
-    functions_acl: Optional[List[str]] = None
-    equation_config: Optional[Dict[str, bool]] = None
+    functions_acl: list[str] | None = None
+    equation_config: dict[str, bool] | None = None
     # This allows queries to be resolved without adding time constraints. Currently this is just
     # used to allow metric alerts to be built and validated before creation in snuba.
     skip_time_conditions: bool = False
-    parser_config_overrides: Optional[Mapping[str, Any]] = None
+    parser_config_overrides: Mapping[str, Any] | None = None
     has_metrics: bool = False
     transform_alias_to_input_format: bool = False
     use_metrics_layer: bool = False
@@ -118,6 +145,23 @@ class QueryBuilderConfig:
     # of a top events request
     skip_tag_resolution: bool = False
     on_demand_metrics_enabled: bool = False
-    on_demand_metrics_type: Optional[Any] = None
+    on_demand_metrics_type: Any | None = None
     skip_field_validation_for_entity_subscription_deletion: bool = False
-    allow_metric_aggregates: Optional[bool] = False
+    allow_metric_aggregates: bool | None = False
+
+
+@dataclass(frozen=True)
+class Span:
+    op: str
+    group: str
+
+    @staticmethod
+    def from_str(s: str) -> Span:
+        parts = s.rsplit(":", 1)
+        if len(parts) != 2:
+            raise ValueError(
+                "span must consist of of a span op and a valid 16 character hex delimited by a colon (:)"
+            )
+        if not is_span_id(parts[1]):
+            raise ValueError(INVALID_SPAN_ID.format("spanGroup"))
+        return Span(op=parts[0], group=parts[1])

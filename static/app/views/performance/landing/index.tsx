@@ -1,10 +1,12 @@
-import {FC, Fragment, useEffect, useRef} from 'react';
-import {browserHistory, InjectedRouter} from 'react-router';
+import type {FC} from 'react';
+import {Fragment, useEffect, useRef} from 'react';
+import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {Button} from 'sentry/components/button';
 import ButtonBar from 'sentry/components/buttonBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
@@ -17,19 +19,17 @@ import * as TeamKeyTransactionManager from 'sentry/components/performance/teamKe
 import {TabList, TabPanels, Tabs} from 'sentry/components/tabs';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, PageFilters, Project} from 'sentry/types';
-import EventView from 'sentry/utils/discover/eventView';
+import type {Organization, PageFilters, Project} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import type EventView from 'sentry/utils/discover/eventView';
 import {GenericQueryBatcher} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 import {MetricsCardinalityProvider} from 'sentry/utils/performance/contexts/metricsCardinality';
+import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
   MEPConsumer,
   MEPSettingProvider,
-  MEPState,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
-import {
-  PageErrorAlert,
-  PageErrorProvider,
-} from 'sentry/utils/performance/contexts/pageError';
+import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useTeams} from 'sentry/utils/useTeams';
 
@@ -149,7 +149,7 @@ export function PerformanceLanding(props: Props) {
 
   return (
     <Layout.Page data-test-id="performance-landing-v3">
-      <PageErrorProvider>
+      <PageAlertProvider>
         <Tabs
           value={landingDisplay.field}
           onChange={field =>
@@ -170,7 +170,7 @@ export function PerformanceLanding(props: Props) {
             </Layout.HeaderContent>
             <Layout.HeaderActions>
               {!showOnboarding && (
-                <ButtonBar gap={3}>
+                <ButtonBar gap={1}>
                   <Button
                     size="sm"
                     priority="primary"
@@ -179,6 +179,7 @@ export function PerformanceLanding(props: Props) {
                   >
                     {t('View Trends')}
                   </Button>
+                  <FeedbackWidgetButton />
                 </ButtonBar>
               )}
             </Layout.HeaderActions>
@@ -218,7 +219,7 @@ export function PerformanceLanding(props: Props) {
                               router={props.router}
                               {...metricsDataSide}
                             />
-                            <PageErrorAlert />
+                            <PageAlert />
                             {showOnboarding ? (
                               <Fragment>
                                 {pageFilters}
@@ -276,7 +277,7 @@ export function PerformanceLanding(props: Props) {
             </Layout.Main>
           </Layout.Body>
         </Tabs>
-      </PageErrorProvider>
+      </PageAlertProvider>
     </Layout.Page>
   );
 }

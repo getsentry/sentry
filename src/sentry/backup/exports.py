@@ -1,30 +1,31 @@
 from __future__ import annotations
 
 import io
-from typing import BinaryIO
 
-import click
+# We have to use the default JSON interface to enable pretty-printing on export. When loading JSON,
+# we still use the one from `sentry.utils`, imported as `sentry_json` below.
+import json as builtin_json  # noqa: S003
+from typing import IO
 
+import orjson
+
+from sentry.backup.crypto import Encryptor, create_encrypted_export_tarball
 from sentry.backup.dependencies import (
     PrimaryKeyMap,
     dependencies,
     get_model_name,
     sorted_dependencies,
 )
-from sentry.backup.helpers import Encryptor, Filter, create_encrypted_export_tarball
+from sentry.backup.helpers import Filter, Printer
 from sentry.backup.scopes import ExportScope
-from sentry.services.hybrid_cloud.import_export.model import (
+from sentry.backup.services.import_export.model import (
     RpcExportError,
     RpcExportScope,
     RpcFilter,
     RpcPrimaryKeyMap,
 )
-from sentry.services.hybrid_cloud.import_export.service import (
-    ImportExportService,
-    import_export_service,
-)
+from sentry.backup.services.import_export.service import ImportExportService, import_export_service
 from sentry.silo.base import SiloMode
-from sentry.utils import json
 
 __all__ = (
     "ExportingError",
@@ -41,13 +42,13 @@ class ExportingError(Exception):
 
 
 def _export(
-    dest: BinaryIO,
+    dest: IO[bytes],
     scope: ExportScope,
     *,
     encryptor: Encryptor | None = None,
     indent: int = 2,
     filter_by: Filter | None = None,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Exports core data for the Sentry installation.
@@ -64,7 +65,7 @@ def _export(
 
     if SiloMode.get_current_mode() == SiloMode.CONTROL:
         errText = "Exports must be run in REGION or MONOLITH instances only"
-        printer(errText, err=True)
+        printer.echo(errText, err=True)
         raise RuntimeError(errText)
 
     json_export = []
@@ -74,7 +75,7 @@ def _export(
     if filter_by is not None:
         filters.append(filter_by)
         if filter_by.model == Organization:
-            if filter_by.field not in {"pk", "id", "slug"}:
+            if filter_by.field != "slug":
                 raise ValueError(
                     "Filter arguments must only apply to `Organization`'s `slug` field"
                 )
@@ -82,19 +83,24 @@ def _export(
             org_pks = set(
                 Organization.objects.filter(slug__in=filter_by.values).values_list("id", flat=True)
             )
+
+            # Note: `user_id` can be NULL (for invited members that have not yet responded), but
+            # this is okay, because `Filter[int]`s constructor explicitly filters out `None` members
+            # from the set.
             user_pks = set(
                 OrganizationMember.objects.filter(organization_id__in=org_pks).values_list(
                     "user_id", flat=True
                 )
             )
-            filters.append(Filter(User, "pk", set(user_pks)))
+            filters.append(Filter[int](User, "pk", set(user_pks)))
         elif filter_by.model == User:
             if filter_by.field not in {"pk", "id", "username"}:
                 raise ValueError("Filter arguments must only apply to `User`'s `username` field")
         else:
             raise ValueError("Filter arguments must only apply to `Organization` or `User` models")
 
-    # TODO(getsentry/team-ospo#190): Another optimization opportunity to use a generator with ijson # to print the JSON objects in a streaming manner.
+    # TODO(getsentry/team-ospo#190): Another optimization opportunity to use a generator with ijson
+    # # to print the JSON objects in a streaming manner.
     for model in sorted_dependencies():
         from sentry.db.models.base import BaseModel
 
@@ -123,7 +129,7 @@ def _export(
         )
 
         if isinstance(result, RpcExportError):
-            printer(result.pretty(), err=True)
+            printer.echo(result.pretty(), err=True)
             raise ExportingError(result)
 
         pk_map.extend(result.mapped_pks.from_rpc())
@@ -131,14 +137,14 @@ def _export(
         # TODO(getsentry/team-ospo#190): Since the structure of this data is very predictable (an
         # array of serialized model objects), we could probably avoid re-ingesting the JSON string
         # as a future optimization.
-        for json_model in json.loads(result.json_data):
+        for json_model in orjson.loads(result.json_data):
             json_export.append(json_model)
 
     # If no `encryptor` argument was passed in, this is an unencrypted export, so we can just dump
     # the JSON into the `dest` file and exit early.
     if encryptor is None:
         dest_wrapper = io.TextIOWrapper(dest, encoding="utf-8", newline="")
-        json.dump(json_export, dest_wrapper)
+        builtin_json.dump(json_export, dest_wrapper, indent=indent)
         dest_wrapper.detach()
         return
 
@@ -146,12 +152,12 @@ def _export(
 
 
 def export_in_user_scope(
-    dest: BinaryIO,
+    dest: IO[bytes],
     *,
     encryptor: Encryptor | None = None,
     user_filter: set[str] | None = None,
     indent: int = 2,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Perform an export in the `User` scope, meaning that only models with `RelocationScope.User` will
@@ -165,19 +171,19 @@ def export_in_user_scope(
         dest,
         ExportScope.User,
         encryptor=encryptor,
-        filter_by=Filter(User, "username", user_filter) if user_filter is not None else None,
+        filter_by=Filter[str](User, "username", user_filter) if user_filter is not None else None,
         indent=indent,
         printer=printer,
     )
 
 
 def export_in_organization_scope(
-    dest: BinaryIO,
+    dest: IO[bytes],
     *,
     encryptor: Encryptor | None = None,
     org_filter: set[str] | None = None,
     indent: int = 2,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Perform an export in the `Organization` scope, meaning that only models with
@@ -192,18 +198,18 @@ def export_in_organization_scope(
         dest,
         ExportScope.Organization,
         encryptor=encryptor,
-        filter_by=Filter(Organization, "slug", org_filter) if org_filter is not None else None,
+        filter_by=Filter[str](Organization, "slug", org_filter) if org_filter is not None else None,
         indent=indent,
         printer=printer,
     )
 
 
 def export_in_config_scope(
-    dest: BinaryIO,
+    dest: IO[bytes],
     *,
     encryptor: Encryptor | None = None,
     indent: int = 2,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Perform an export in the `Config` scope, meaning that only models directly related to the global
@@ -217,18 +223,20 @@ def export_in_config_scope(
         dest,
         ExportScope.Config,
         encryptor=encryptor,
-        filter_by=Filter(User, "pk", import_export_service.get_all_globally_privileged_users()),
+        filter_by=Filter[int](
+            User, "pk", import_export_service.get_all_globally_privileged_users()
+        ),
         indent=indent,
         printer=printer,
     )
 
 
 def export_in_global_scope(
-    dest: BinaryIO,
+    dest: IO[bytes],
     *,
     encryptor: Encryptor | None = None,
     indent: int = 2,
-    printer=click.echo,
+    printer: Printer,
 ):
     """
     Perform an export in the `Global` scope, meaning that all models will be exported from the

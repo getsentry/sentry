@@ -1,5 +1,6 @@
 import {t} from 'sentry/locale';
-import {NewQuery} from 'sentry/types';
+import type {NewQuery} from 'sentry/types/organization';
+import {SavedQueryDatasets} from 'sentry/utils/discover/types';
 
 export const DEFAULT_EVENT_VIEW: Readonly<NewQuery> = {
   id: undefined,
@@ -10,6 +11,37 @@ export const DEFAULT_EVENT_VIEW: Readonly<NewQuery> = {
   orderby: '-timestamp',
   version: 2,
   range: '24h',
+  queryDataset: SavedQueryDatasets.DISCOVER,
+};
+
+const DEFAULT_TRANSACTION_VIEW: Readonly<NewQuery> = {
+  id: undefined,
+  name: t('All Transactions'),
+  query: 'event.type:transaction',
+  projects: [],
+  fields: ['title', 'project', 'user.display', 'timestamp'],
+  orderby: '-timestamp',
+  version: 2,
+  range: '24h',
+  queryDataset: SavedQueryDatasets.TRANSACTIONS,
+};
+
+const DEFAULT_ERROR_VIEW: Readonly<NewQuery> = {
+  id: undefined,
+  name: t('All Errors'),
+  query: 'event.type:error', // what about csp events etc
+  projects: [],
+  fields: ['title', 'project', 'user.display', 'timestamp'],
+  orderby: '-timestamp',
+  version: 2,
+  range: '24h',
+  queryDataset: SavedQueryDatasets.ERRORS,
+};
+
+export const DEFAULT_EVENT_VIEW_MAP: Record<SavedQueryDatasets, Readonly<NewQuery>> = {
+  [SavedQueryDatasets.DISCOVER]: DEFAULT_EVENT_VIEW,
+  [SavedQueryDatasets.ERRORS]: DEFAULT_ERROR_VIEW,
+  [SavedQueryDatasets.TRANSACTIONS]: DEFAULT_TRANSACTION_VIEW,
 };
 
 export const TRANSACTION_VIEWS: Readonly<Array<NewQuery>> = [
@@ -29,6 +61,7 @@ export const TRANSACTION_VIEWS: Readonly<Array<NewQuery>> = [
     projects: [],
     version: 2,
     range: '24h',
+    queryDataset: SavedQueryDatasets.DISCOVER,
   },
 ];
 
@@ -51,6 +84,7 @@ export const WEB_VITALS_VIEWS: Readonly<Array<NewQuery>> = [
     version: 2,
     range: '24h',
     yAxis: ['epm()'],
+    queryDataset: SavedQueryDatasets.DISCOVER,
   },
 ];
 
@@ -66,6 +100,7 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     version: 2,
     range: '24h',
     display: 'top5',
+    queryDataset: SavedQueryDatasets.DISCOVER,
   },
   {
     id: undefined,
@@ -77,5 +112,6 @@ export const ALL_VIEWS: Readonly<Array<NewQuery>> = [
     version: 2,
     range: '24h',
     display: 'top5',
+    queryDataset: SavedQueryDatasets.DISCOVER,
   },
 ];

@@ -24,5 +24,5 @@ class TotpInterface(OtpMixin, AuthenticatorInterface):
         "replaced and will no longer work to access your account."
     )
 
-    def get_provision_url(self, user, issuer=None):
+    def get_provision_url(self, user: str, issuer: str | None = None) -> str:
         return self.make_otp().get_provision_url(user, issuer=issuer)

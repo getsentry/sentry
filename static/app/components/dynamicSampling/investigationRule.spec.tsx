@@ -36,9 +36,8 @@ describe('InvestigationRule', function () {
     };
   }
 
-  function initComponentEnvironment({hasFeature, hasRule}) {
-    const features = hasFeature ? ['investigation-bias'] : [];
-    initialize({organization: {features}});
+  function initComponentEnvironment({hasRule}) {
+    initialize();
 
     if (hasRule) {
       getRuleMock = MockApiClient.addMockResponse({
@@ -61,6 +60,7 @@ describe('InvestigationRule', function () {
       version: 2,
       fields: ['transaction', 'count()'],
       projects: [project.id],
+      query: 'event.type:transaction',
     });
   }
 
@@ -74,12 +74,6 @@ describe('InvestigationRule', function () {
     } catch (e) {
       // continue
     }
-    // wait for the label to appear (it shouldn't)
-    try {
-      await screen.findByText(labelText);
-    } catch (e) {
-      // continue
-    }
 
     // check we don't have either button or label ( even after waiting for them to appear)
     // we already waited for the button to not be there, so we can just check for the label
@@ -89,41 +83,14 @@ describe('InvestigationRule', function () {
     expect(buttons).toHaveLength(0);
   }
 
-  it('does not render when feature not enabled', async function () {
-    initComponentEnvironment({hasFeature: false, hasRule: false});
-
-    render(
-      <InvestigationRuleCreation buttonProps={{}} eventView={eventView} numSamples={1} />
-    );
-    await expectNotToRender();
-    // check we didn't call the endpoint to check if a rule exists for no reason
-    expect(getRuleMock).toHaveBeenCalledTimes(0);
-  });
-
-  it('does not render when enough samples are present', async function () {
-    initComponentEnvironment({hasFeature: true, hasRule: false});
-
-    render(
-      <InvestigationRuleCreation
-        buttonProps={{}}
-        eventView={eventView}
-        numSamples={10} // enough samples not to render the InvestigationRule component
-      />,
-      {organization}
-    );
-    await expectNotToRender();
-    // check we didn't call the endpoint to check if a rule exists for no reason
-    expect(getRuleMock).toHaveBeenCalledTimes(0);
-  });
-
-  it('shows a button when not enough samples are present and there is no rule', async function () {
-    initComponentEnvironment({hasFeature: true, hasRule: false});
+  it('shows a button when there is no rule', async function () {
+    initComponentEnvironment({hasRule: false});
     render(
       <InvestigationRuleCreation buttonProps={{}} eventView={eventView} numSamples={1} />,
       {organization}
     );
     // wait for the button to appear
-    const button = await screen.findByText(buttonText);
+    const button = await screen.findByRole('button', {name: buttonText});
     expect(button).toBeInTheDocument();
     // make sure we are not showing the label
     const labels = screen.queryAllByText(labelText);
@@ -133,8 +100,8 @@ describe('InvestigationRule', function () {
     expect(getRuleMock).toHaveBeenCalledTimes(1);
   });
 
-  it('shows a label when not enough samples are present and there is a rule', async function () {
-    initComponentEnvironment({hasFeature: true, hasRule: true});
+  it('shows a label when there is a rule', async function () {
+    initComponentEnvironment({hasRule: true});
     render(
       <InvestigationRuleCreation buttonProps={{}} eventView={eventView} numSamples={1} />,
       {organization}
@@ -150,8 +117,8 @@ describe('InvestigationRule', function () {
     expect(getRuleMock).toHaveBeenCalledTimes(1);
   });
 
-  it('does not render when the rule is not a transaction rule', async function () {
-    initComponentEnvironment({hasFeature: true, hasRule: false});
+  it("does render disabled when the query does not contain event.type='transaction'", async function () {
+    initComponentEnvironment({hasRule: false});
     const getRule = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
       method: 'GET',
@@ -159,18 +126,36 @@ describe('InvestigationRule', function () {
       body: {query: ['not_transaction_query']},
     });
     render(
-      <InvestigationRuleCreation buttonProps={{}} eventView={eventView} numSamples={1} />,
+      <InvestigationRuleCreation
+        buttonProps={{}}
+        eventView={EventView.fromSavedQuery({
+          id: 'query-id',
+          name: 'some query',
+          version: 2,
+          fields: ['transaction', 'count()'],
+          projects: [project.id],
+          query: '',
+        })}
+        numSamples={1}
+      />,
       {organization}
     );
-    await expectNotToRender();
+
+    // wait for the button to appear
+    const button = await screen.findByRole('button', {name: buttonText});
+    expect(button).toBeInTheDocument();
+    expect(button).toBeDisabled();
+    // we should  not be showing the label
+    const labels = screen.queryAllByText(labelText);
+    expect(labels).toHaveLength(0);
 
     expect(addErrorMessage).not.toHaveBeenCalled();
-    // check we did call the endpoint to check if a rule exists
-    expect(getRule).toHaveBeenCalledTimes(1);
+    // the endpoint shall not be called
+    expect(getRule).toHaveBeenCalledTimes(0);
   });
 
   it('does not render when there is an unknown error but shows an error', async function () {
-    initComponentEnvironment({hasFeature: true, hasRule: false});
+    initComponentEnvironment({hasRule: false});
     const getRule = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
       method: 'GET',
@@ -189,7 +174,7 @@ describe('InvestigationRule', function () {
   });
 
   it('should create a new rule when clicking on the button and update the UI', async function () {
-    initComponentEnvironment({hasFeature: true, hasRule: false});
+    initComponentEnvironment({hasRule: false});
     const createRule = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
       method: 'POST',
@@ -203,7 +188,7 @@ describe('InvestigationRule', function () {
     );
 
     // wait for the button to appear
-    const button = await screen.findByText(buttonText);
+    const button = await screen.findByRole('button', {name: buttonText});
     expect(button).toBeInTheDocument();
     // we should  not be showing the label
     const labels = screen.queryAllByText(labelText);
@@ -230,7 +215,7 @@ describe('InvestigationRule', function () {
   });
 
   it('should show an error when creating a new rule fails', async function () {
-    initComponentEnvironment({hasFeature: true, hasRule: false});
+    initComponentEnvironment({hasRule: false});
     const createRule = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
       method: 'POST',
@@ -244,7 +229,7 @@ describe('InvestigationRule', function () {
     );
 
     // wait for the button to appear
-    const button = await screen.findByText(buttonText);
+    const button = await screen.findByRole('button', {name: buttonText});
     expect(button).toBeInTheDocument();
     // we should  not be showing the label
     const labels = screen.queryAllByText(labelText);
@@ -258,7 +243,7 @@ describe('InvestigationRule', function () {
   });
 
   it('should show notify the user when too many rules have been created', async function () {
-    initComponentEnvironment({hasFeature: true, hasRule: false});
+    initComponentEnvironment({hasRule: false});
     const createRule = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/dynamic-sampling/custom-rules/',
       method: 'POST',
@@ -272,7 +257,7 @@ describe('InvestigationRule', function () {
     );
 
     // wait for the button to appear
-    const button = await screen.findByText(buttonText);
+    const button = await screen.findByRole('button', {name: buttonText});
     expect(button).toBeInTheDocument();
     // we should  not be showing the label
     const labels = screen.queryAllByText(labelText);

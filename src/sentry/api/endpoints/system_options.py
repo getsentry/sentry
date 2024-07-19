@@ -8,6 +8,7 @@ from rest_framework.response import Response
 
 import sentry
 from sentry import options
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, all_silo_endpoint
 from sentry.api.permissions import SuperuserPermission
@@ -24,9 +25,10 @@ SYSTEM_OPTIONS_ALLOWLIST = (
 @all_silo_endpoint
 class SystemOptionsEndpoint(Endpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
+    owner = ApiOwner.OPEN_SOURCE
     permission_classes = (SuperuserPermission,)
 
     def get(self, request: Request) -> Response:
@@ -74,12 +76,11 @@ class SystemOptionsEndpoint(Endpoint):
         )
 
     def has_permission(self, request: Request):
+        if settings.SENTRY_SELF_HOSTED and request.user.is_superuser:
+            return True
         if not request.access.has_permission("options.admin"):
             # We ignore options.admin permission is all keys in the update match the allowlist.
-            if all([k in SYSTEM_OPTIONS_ALLOWLIST for k in request.data.keys()]):
-                return True
-
-            return False
+            return all([k in SYSTEM_OPTIONS_ALLOWLIST for k in request.data.keys()])
 
         return True
 

@@ -1,6 +1,13 @@
+from __future__ import annotations
+
+from typing import TYPE_CHECKING
+
 from sentry.audit_log.manager import AuditLogEvent
-from sentry.models.auditlogentry import AuditLogEntry
 from sentry.utils.strings import truncatechars
+
+if TYPE_CHECKING:
+    from sentry.models.auditlogentry import AuditLogEntry
+
 
 # AuditLogEvents with custom render functions
 
@@ -12,7 +19,9 @@ class MemberAddAuditLogEvent(AuditLogEvent):
     def render(self, audit_log_entry: AuditLogEntry):
         if audit_log_entry.target_user == audit_log_entry.actor:
             return "joined the organization"
-        return f"add member {audit_log_entry.target_user.get_display_name()}"
+
+        member = audit_log_entry.data.get("email") or audit_log_entry.target_user.get_display_name()
+        return f"add member {member}"
 
 
 class MemberEditAuditLogEvent(AuditLogEvent):
@@ -95,12 +104,8 @@ class TeamEditAuditLogEvent(AuditLogEvent):
         super().__init__(event_id=21, name="TEAM_EDIT", api_name="team.edit")
 
     def render(self, audit_log_entry: AuditLogEntry):
-        old_org_role = audit_log_entry.data.get("old_org_role")
-        new_org_role = audit_log_entry.data.get("org_role")
         slug = audit_log_entry.data["slug"]
 
-        if old_org_role != new_org_role:
-            return f"edited team {slug}'s org role to {new_org_role}"
         return f"edited team {slug}"
 
 
@@ -117,6 +122,32 @@ class ProjectEditAuditLogEvent(AuditLogEvent):
             f"in {key} to {value}" for (key, value) in audit_log_entry.data.items()
         )
         return "edited project settings " + items_string
+
+
+class ProjectKeyEditAuditLogEvent(AuditLogEvent):
+    def __init__(self):
+        super().__init__(event_id=51, name="PROJECTKEY_EDIT", api_name="projectkey.edit")
+
+    def render(self, audit_log_entry: AuditLogEntry):
+        items_strings = []
+        if "prev_rate_limit_count" in audit_log_entry.data:
+            items_strings.append(
+                " rate limit count from {prev_rate_limit_count} to {rate_limit_count}".format(
+                    **audit_log_entry.data
+                )
+            )
+        if "prev_rate_limit_window" in audit_log_entry.data:
+            items_strings.append(
+                " rate limit window from {prev_rate_limit_window} to {rate_limit_window}".format(
+                    **audit_log_entry.data
+                )
+            )
+
+        item_string = ""
+        if items_strings:
+            item_string = ":" + ",".join(items_strings)
+
+        return "edited project key {public_key}".format(**audit_log_entry.data) + item_string
 
 
 class ProjectPerformanceDetectionSettingsAuditLogEvent(AuditLogEvent):
@@ -144,12 +175,17 @@ class ProjectPerformanceDetectionSettingsAuditLogEvent(AuditLogEvent):
 def render_project_action(audit_log_entry: AuditLogEntry, action: str):
     # Most logs will just be name of the filter, but legacy browser changes can be bool, str, list, or sets
     filter_name = audit_log_entry.data["state"]
+    slug = audit_log_entry.data.get("slug")
+
+    message = f"{action} project filter {filter_name}"
+
     if filter_name in ("0", "1") or isinstance(filter_name, (bool, list, set)):
         message = f"{action} project filter legacy-browsers"
         if isinstance(filter_name, (list, set)):
             message += ": {}".format(", ".join(sorted(filter_name)))
-        return message
-    return f"{action} project filter {filter_name}"
+    if slug:
+        message += f" for project {slug}"
+    return message
 
 
 class ProjectEnableAuditLogEvent(AuditLogEvent):

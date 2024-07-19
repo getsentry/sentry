@@ -19,7 +19,11 @@
       "program": "${workspaceRoot}/.venv/bin/sentry",
       "args": ["devserver"],
       "cwd": "${workspaceRoot}",
-      "debugOptions": ["WaitOnAbnormalExit", "WaitOnNormalExit", "RedirectOutput"]
+      "debugOptions": [
+        "WaitOnAbnormalExit",
+        "WaitOnNormalExit",
+        "RedirectOutput"
+      ]
     },
     {
       "name": "sentry backend debug",

@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import html
 import re
-from typing import Any, Mapping
+from collections.abc import Mapping
+from typing import Any
 from urllib.parse import urlparse
 
 import sentry_sdk
@@ -11,12 +12,13 @@ from django.http.request import HttpRequest, QueryDict
 
 from sentry import features
 from sentry.incidents.charts import build_metric_alert_chart
-from sentry.incidents.models import AlertRule, Incident
+from sentry.incidents.models.alert_rule import AlertRule
+from sentry.incidents.models.incident import Incident
+from sentry.integrations.services.integration import integration_service
 from sentry.integrations.slack.message_builder.metric_alerts import SlackMetricAlertMessageBuilder
 from sentry.models.integrations.integration import Integration
 from sentry.models.organization import Organization
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.integration import integration_service
 
 from . import Handler, UnfurlableUrl, UnfurledUrl, make_type_coercer
 
@@ -109,6 +111,7 @@ def unfurl_metric_alerts(
                     start=link.args["start"],
                     end=link.args["end"],
                     user=user,
+                    subscription=selected_incident.subscription if selected_incident else None,
                 )
             except Exception as e:
                 sentry_sdk.capture_exception(e)

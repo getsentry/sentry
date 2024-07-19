@@ -1,3 +1,4 @@
+import orjson
 from django.conf import settings
 from rest_framework import serializers, status
 from rest_framework.request import Request
@@ -12,7 +13,6 @@ from sentry.api.base import Endpoint, region_silo_endpoint
 from sentry.api.endpoints.relay.constants import RELAY_AUTH_RATE_LIMITS
 from sentry.api.serializers import serialize
 from sentry.relay.utils import get_header_relay_id, get_header_relay_signature
-from sentry.utils import json
 
 from . import RelayIdSerializer
 
@@ -24,7 +24,7 @@ class RelayRegisterChallengeSerializer(RelayIdSerializer):
 @region_silo_endpoint
 class RelayRegisterChallengeEndpoint(Endpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = ()
     permission_classes = ()
@@ -42,8 +42,8 @@ class RelayRegisterChallengeEndpoint(Endpoint):
         it will always attempt to invoke this endpoint.
         """
         try:
-            json_data = json.loads(request.body)
-        except ValueError:
+            json_data = orjson.loads(request.body)
+        except orjson.JSONDecodeError:
             return Response({"detail": "No valid json body"}, status=status.HTTP_400_BAD_REQUEST)
 
         serializer = RelayRegisterChallengeSerializer(data=json_data)

@@ -18,6 +18,7 @@ from sentry.tasks.relay import (
     schedule_build_project_config,
     schedule_invalidate_project_config,
 )
+from sentry.testutils.helpers.task_runner import BurstTaskRunner
 from sentry.testutils.hybrid_cloud import simulated_transaction_watermarks
 from sentry.testutils.pytest.fixtures import django_db_all
 
@@ -44,7 +45,7 @@ def disable_auto_on_commit():
 
 
 @pytest.fixture
-def emulate_transactions(burst_task_runner, django_capture_on_commit_callbacks):
+def emulate_transactions(django_capture_on_commit_callbacks):
     # This contraption helps in testing the usage of `transaction.on_commit` in
     # schedule_build_project_config. Normally tests involving transactions would
     # require us to use the transactional testcase (or
@@ -52,7 +53,7 @@ def emulate_transactions(burst_task_runner, django_capture_on_commit_callbacks):
     # in test speed and we're trying to keep our testcases fast.
     @contextlib.contextmanager
     def inner(assert_num_callbacks=1):
-        with burst_task_runner() as burst:
+        with BurstTaskRunner() as burst:
             with django_capture_on_commit_callbacks(execute=True) as callbacks:
                 yield
 
@@ -69,15 +70,15 @@ def emulate_transactions(burst_task_runner, django_capture_on_commit_callbacks):
             # exited, not while they are being registered
             assert len(callbacks) == assert_num_callbacks
 
-        # Callbacks have been executed, job(s) should've been scheduled now, so
-        # let's execute them.
-        #
-        # Note: We can't directly assert that the data race has not occured, as
-        # there are no real DB transactions available in this testcase. The
-        # entire test runs in one transaction because that's how pytest-django
-        # sets up things unless one uses
-        # pytest.mark.django_db(transaction=True).
-        burst(max_jobs=20)
+            # Callbacks have been executed, job(s) should've been scheduled now, so
+            # let's execute them.
+            #
+            # Note: We can't directly assert that the data race has not occured, as
+            # there are no real DB transactions available in this testcase. The
+            # entire test runs in one transaction because that's how pytest-django
+            # sets up things unless one uses
+            # pytest.mark.django_db(transaction=True).
+            burst(max_jobs=20)
 
     return inner
 
@@ -510,7 +511,6 @@ class TestInvalidationTask:
 @django_db_all(transaction=True)
 def test_invalidate_hierarchy(
     monkeypatch,
-    burst_task_runner,
     default_project,
     default_projectkey,
     redis_cache,
@@ -530,7 +530,7 @@ def test_invalidate_hierarchy(
 
     monkeypatch.setattr(invalidate_project_config, "apply_async", proxy)
 
-    with burst_task_runner() as run:
+    with BurstTaskRunner() as run:
         schedule_invalidate_project_config(
             organization_id=default_project.organization.id, trigger="test"
         )

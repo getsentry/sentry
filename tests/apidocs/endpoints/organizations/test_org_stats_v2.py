@@ -6,11 +6,9 @@ from django.urls import reverse
 from fixtures.apidocs_test_case import APIDocsTestCase
 from sentry.constants import DataCategory
 from sentry.testutils.cases import OutcomesSnubaTest
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.outcomes import Outcome
 
 
-@region_silo_test
 class OrganizationStatsDocs(APIDocsTestCase, OutcomesSnubaTest):
     def setUp(self):
         super().setUp()
@@ -31,7 +29,7 @@ class OrganizationStatsDocs(APIDocsTestCase, OutcomesSnubaTest):
 
         self.url = reverse(
             "sentry-api-0-organization-stats-v2",
-            kwargs={"organization_slug": self.organization.slug},
+            kwargs={"organization_id_or_slug": self.organization.slug},
         )
 
     def test_get(self):

@@ -6,7 +6,7 @@ import {defined} from 'sentry/utils';
 
 import KeyValueList from '../interfaces/keyValueList';
 
-import {ViewHierarchyWindow} from '.';
+import type {ViewHierarchyWindow} from '.';
 
 type DetailsPanelProps = {
   data: ViewHierarchyWindow;
@@ -32,7 +32,7 @@ export {DetailsPanel};
 
 const Title = styled('header')`
   margin-bottom: ${space(1)};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
 `;
 
 const Container = styled('div')`

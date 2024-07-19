@@ -18,16 +18,14 @@ export const VALUE_MAPPING = {
   committed_only: 40,
 };
 
+export const SUPPORTED_PROVIDERS = ['email', 'slack', 'msteams'] as const;
+export type SupportedProviders = (typeof SUPPORTED_PROVIDERS)[number];
+
 export const MIN_PROJECTS_FOR_CONFIRMATION = 3;
 export const MIN_PROJECTS_FOR_SEARCH = 3;
 export const MIN_PROJECTS_FOR_PAGINATION = 100;
-export type SupportedProviders = 'email' | 'slack' | 'msteams';
 export type ProviderValue = 'always' | 'never';
 
-export type NotificationSettingsByProviderObject = {[key: string]: string};
-export type NotificationSettingsObject = {
-  [key: string]: {[key: string]: {[key: string]: NotificationSettingsByProviderObject}};
-};
 interface NotificationBaseObject {
   id: string;
   scopeIdentifier: string;
@@ -92,8 +90,9 @@ export const CONFIRMATION_MESSAGE = (
   </div>
 );
 
-export const NOTIFICATION_FEATURE_MAP: Partial<Record<NotificationSettingsType, string>> =
-  {
-    quota: 'slack-overage-notifications',
-    spikeProtection: 'spike-projections',
-  };
+export const NOTIFICATION_FEATURE_MAP: Partial<
+  Record<NotificationSettingsType, string | Array<string>>
+> = {
+  quota: ['spend-visibility-notifications', 'user-spend-notifications-settings'],
+  spikeProtection: 'spike-projections',
+};

@@ -1,6 +1,6 @@
 import unittest
 from copy import deepcopy
-from typing import Any, Dict
+from typing import Any
 
 import responses
 from sentry_relay.processing import StoreNormalizer
@@ -26,7 +26,7 @@ class ErrorMappingTest(unittest.TestCase):
         )
 
         for x in range(3):
-            data: Dict[str, Any] = {
+            data: dict[str, Any] = {
                 "platform": "javascript",
                 "exception": {
                     "values": [
@@ -69,6 +69,42 @@ class ErrorMappingTest(unittest.TestCase):
             )
 
     @responses.activate
+    def test_react_error_mapping_resolving_no_query(self):
+        responses.add(
+            responses.GET,
+            REACT_MAPPING_URL,
+            body=r"""
+        {
+            "425": "Text content does not match server-rendered HTML."
+        }
+        """,
+            content_type="application/json",
+        )
+
+        data: dict[str, Any] = {
+            "platform": "javascript",
+            "exception": {
+                "values": [
+                    {
+                        "type": "Error",
+                        "value": (
+                            "Minified React error #425; visit https://react.dev/errors/425"
+                            "for the full message or use the non-minified dev environment"
+                            "for full errors and additional helpful warnings."
+                        ),
+                    }
+                ]
+            },
+        }
+
+        assert rewrite_exception(data)
+
+        assert (
+            data["exception"]["values"][0]["value"]
+            == "Text content does not match server-rendered HTML."
+        )
+
+    @responses.activate
     def test_react_error_mapping_empty_args(self):
         responses.add(
             responses.GET,
@@ -81,7 +117,7 @@ class ErrorMappingTest(unittest.TestCase):
             content_type="application/json",
         )
 
-        data: Dict[str, Any] = {
+        data: dict[str, Any] = {
             "platform": "javascript",
             "exception": {
                 "values": [
@@ -128,7 +164,7 @@ class ErrorMappingTest(unittest.TestCase):
             content_type="application/json",
         )
 
-        data: Dict[str, Any] = {
+        data: dict[str, Any] = {
             "platform": "javascript",
             "exception": {
                 "values": [
@@ -278,7 +314,7 @@ class ErrorMappingTest(unittest.TestCase):
 
     @responses.activate
     def test_skip_none_values(self):
-        expected: Dict[str, Any] = {"exception": {"values": [None, {}]}}
+        expected: dict[str, Any] = {"exception": {"values": [None, {}]}}
 
         actual = deepcopy(expected)
         assert not rewrite_exception(actual)

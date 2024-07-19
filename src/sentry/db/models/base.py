@@ -1,21 +1,28 @@
 from __future__ import annotations
 
-from typing import Any, Callable, ClassVar, Iterable, Mapping, TypeVar
+from collections.abc import Callable, Iterable, Mapping
+from typing import Any, ClassVar, Self, TypeVar
 
 from django.apps.config import AppConfig
 from django.db import models
 from django.db.models import signals
 from django.utils import timezone
-from typing_extensions import Self
 
-from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, dependencies, get_model_name
+from sentry.backup.dependencies import (
+    ImportKind,
+    NormalizedModelName,
+    PrimaryKeyMap,
+    dependencies,
+    get_model_name,
+)
 from sentry.backup.helpers import ImportFlags
+from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.silo import SiloLimit, SiloMode
+from sentry.db.models.fields.uuid import UUIDField
+from sentry.db.models.manager.base import BaseManager, create_silo_limited_copy
+from sentry.silo.base import SiloLimit, SiloMode
 
 from .fields.bounded import BoundedBigAutoField
-from .manager import BaseManager
-from .manager.base import create_silo_limited_copy
 from .query import update
 
 __all__ = (
@@ -24,8 +31,8 @@ __all__ = (
     "DefaultFieldsModel",
     "sane_repr",
     "get_model_if_available",
-    "control_silo_only_model",
-    "region_silo_only_model",
+    "control_silo_model",
+    "region_silo_model",
 )
 
 
@@ -49,6 +56,11 @@ class BaseModel(models.Model):
 
     __relocation_scope__: RelocationScope | set[RelocationScope]
     __relocation_dependencies__: set[str]
+
+    # Some models have a globally unique identifier, like a UUID. This should be a set of one or
+    # more fields, none of which are foreign keys, that are `unique=True` or `unique_together` for
+    # an entire Sentry instance.
+    __relocation_custom_ordinal__: list[str] | None = None
 
     objects: ClassVar[BaseManager[Self]] = BaseManager()
 
@@ -124,6 +136,21 @@ class BaseModel(models.Model):
         return self.__relocation_scope__
 
     @classmethod
+    def get_relocation_ordinal_fields(self, _json_model: Any) -> list[str] | None:
+        """
+        Retrieves the custom ordinal fields for models that may be re-used at import time (that is,
+        the `write_relocation_import()` method may return an `ImportKind` besides
+        `ImportKind.Inserted`). In such cases, we want an ordering of models by a globally unique
+        value that is not the `pk`, to ensure that merged and inserted models are still ordered
+        correctly with respect to one another.
+        """
+
+        if self.__relocation_custom_ordinal__ is None:
+            return None
+
+        return self.__relocation_custom_ordinal__
+
+    @classmethod
     def get_possible_relocation_scopes(cls) -> set[RelocationScope]:
         """
         Retrieves the `RelocationScope` for a `Model` subclass. It always returns a set, to account for models that support multiple scopes on a situational, per-instance basis.
@@ -155,9 +182,7 @@ class BaseModel(models.Model):
             foreign_field_model_name = get_model_name(foreign_field.model)
             matched_fks = set(pk_map.get_pks(foreign_field_model_name))
             matched_fks_query = dict()
-            if len(matched_fks) > 0:
-                matched_fks_query[field_name + "__in"] = matched_fks
-
+            matched_fks_query[field_name + "__in"] = matched_fks
             if foreign_field.nullable:
                 match_on_null_query = dict()
                 match_on_null_query[field_name + "__isnull"] = True
@@ -166,6 +191,69 @@ class BaseModel(models.Model):
                 q &= models.Q(**matched_fks_query)
 
         return q
+
+    @classmethod
+    def sanitize_relocation_json(
+        cls, json: Any, sanitizer: Sanitizer, model_name: NormalizedModelName | None = None
+    ) -> None:
+        """
+        Takes the export JSON representation of this model, and "sanitizes" any data that might be
+        PII or otherwise user-specific. The JSON is modified in-place to avoid extra copies.
+
+        This function operates on the JSON form, rather than the Django model instance, for two
+        reasons: 1. we want the ability to sanitize exported JSON without first deserializing it,
+        and 2. to avoid risky situations where a model is modified in-place and then saved to the
+        production database by some far flung code that touches it later.
+        """
+
+        model_name = get_model_name(cls) if model_name is None else model_name
+        fields = cls._meta.get_fields()
+        field_names = [f.name for f in fields]
+
+        str_field_types = [models.CharField, models.TextField]
+        sensitive_words = ["password", "token", "secret"]
+
+        # All `models.CharField` fields called "slug" and "name" can be auto-sanitized as strings.
+        if "name" in field_names and "slug" in field_names:
+            sanitizer.set_name_and_slug_pair(
+                json, SanitizableField(model_name, "name"), SanitizableField(model_name, "slug")
+            )
+        elif "name" in field_names:
+            sanitizer.set_name(json, SanitizableField(model_name, "name"))
+
+        for f in fields:
+            # Auto-sanitize all `models.DateTimeField` fields on this class.
+            if isinstance(f, models.DateTimeField):
+                sanitizer.set_datetime(json, SanitizableField(model_name, f.name))
+
+            # Auto-sanitize all `models.EmailField` fields on this class.
+            if isinstance(f, models.EmailField):
+                sanitizer.set_email(json, SanitizableField(model_name, f.name))
+
+            # Auto-sanitize all IP Address fields.
+            if isinstance(f, models.IPAddressField) or isinstance(f, models.GenericIPAddressField):
+                sanitizer.set_ip(json, SanitizableField(model_name, f.name))
+
+            # Auto-sanitize all URL fields.
+            if isinstance(f, models.URLField) or f.name.endswith("url") or f.name.endswith("uri"):
+                sanitizer.set_url(json, SanitizableField(model_name, f.name))
+
+            # Auto-sanitize all UUID fields.
+            if (
+                isinstance(f, models.UUIDField)
+                or isinstance(f, UUIDField)
+                or f.name.endswith("guid")
+                or f.name.endswith("uuid")
+            ):
+                sanitizer.set_uuid(json, SanitizableField(model_name, f.name))
+
+            # Auto-sanitize all string fields that contain any sensitive words in their name.
+            is_str_field_type = next(filter(lambda t: isinstance(f, t), str_field_types), None)
+            contains_sensitive_word = next(filter(lambda w: w in f.name, sensitive_words), None)
+            if is_str_field_type and contains_sensitive_word:
+                sanitizer.set_string(json, SanitizableField(model_name, f.name))
+
+        return None
 
     def normalize_before_relocation_import(
         self, pk_map: PrimaryKeyMap, _s: ImportScope, _f: ImportFlags
@@ -275,6 +363,15 @@ def __model_class_prepared(sender: Any, **kwargs: Any) -> None:
             f"`Excluded`, which does not make sense. `Excluded` must always be a standalone value."
         )
 
+    if (
+        getattr(sender._meta, "app_label", None) == "getsentry"
+        and sender.__relocation_scope__ != RelocationScope.Excluded
+    ):
+        raise ValueError(
+            f"{sender!r} model is in the `getsentry` app, and therefore cannot be exported. "
+            f"Please set `__relocation_scope__ = RelocationScope.Excluded` on the model definition."
+        )
+
     from .outboxes import ReplicatedControlModel, ReplicatedRegionModel
 
     if issubclass(sender, ReplicatedControlModel):
@@ -365,7 +462,7 @@ class ModelSiloLimit(SiloLimit):
             model_attr = getattr(model_class, model_attr_name)
             if callable(model_attr) and getattr(model_attr, "alters_data", False):
                 override = self.create_override(model_attr)
-                override.alters_data = True  # type: ignore
+                override.alters_data = True  # type: ignore[attr-defined]
 
                 # We have to resort to monkey-patching here. Dynamically extending
                 # and replacing the model class is not an option, because that would
@@ -377,13 +474,13 @@ class ModelSiloLimit(SiloLimit):
         return model_class
 
 
-control_silo_only_model = ModelSiloLimit(SiloMode.CONTROL)
+control_silo_model = ModelSiloLimit(SiloMode.CONTROL)
 """
 Apply to models that are shared by multiple organizations or
 require strong consistency with other Control silo resources.
 """
 
-region_silo_only_model = ModelSiloLimit(SiloMode.REGION)
+region_silo_model = ModelSiloLimit(SiloMode.REGION)
 """
 Apply to models that belong to a single organization or
 require strong consistency with other Region silo resources.

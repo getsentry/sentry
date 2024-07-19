@@ -1,4 +1,4 @@
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
@@ -8,17 +8,17 @@ import ExternalLink from 'sentry/components/links/externalLink';
 import Placeholder from 'sentry/components/placeholder';
 import QuickTrace from 'sentry/components/quickTrace';
 import {t} from 'sentry/locale';
-import {AvatarProject} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import {getConfigureTracingDocsLink} from 'sentry/utils/docs';
-import {
+import type {AvatarProject} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import {getConfigurePerformanceDocsLink} from 'sentry/utils/docs';
+import type {
   QuickTraceQueryChildrenProps,
   TraceMeta,
 } from 'sentry/utils/performance/quickTrace/types';
 import useOrganization from 'sentry/utils/useOrganization';
-import {TraceLink} from 'sentry/views/issueDetails/quickTrace/traceLink';
 
 import {MetaData} from './styles';
+import {TraceLink} from './traceLink';
 
 interface Props
   extends Pick<React.ComponentProps<typeof QuickTrace>, 'errorDest' | 'transactionDest'> {
@@ -45,7 +45,7 @@ export default function QuickTraceMeta({
 
   const noFeatureMessage = t('Requires performance monitoring.');
 
-  const docsLink = getConfigureTracingDocsLink(project);
+  const docsLink = getConfigurePerformanceDocsLink(project);
 
   const traceId = event.contexts?.trace?.trace_id ?? null;
   let body: React.ReactNode;

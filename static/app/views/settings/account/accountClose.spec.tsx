@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {
   render,
@@ -20,13 +20,13 @@ describe('AccountClose', function () {
       url: '/organizations/',
       body: [
         {
-          organization: Organization({
+          organization: OrganizationFixture({
             slug: soloOrgSlug,
           }),
           singleOwner: true,
         },
         {
-          organization: Organization({
+          organization: OrganizationFixture({
             id: '4',
             slug: nonSingleOwnerSlug,
           }),
@@ -64,7 +64,7 @@ describe('AccountClose', function () {
 
     expect(
       screen.getByText(
-        'This is permanent and cannot be undone, are you really sure you want to do this?'
+        'WARNING! This is permanent and cannot be undone, are you really sure you want to do this?'
       )
     ).toBeInTheDocument();
     await userEvent.click(screen.getByText('Confirm'));

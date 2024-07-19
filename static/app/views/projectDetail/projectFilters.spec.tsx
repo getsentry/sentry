@@ -27,8 +27,7 @@ describe('ProjectDetail > ProjectFilters', () => {
         onSearch={onSearch}
         tagValueLoader={tagValueLoader}
         relativeDateOptions={{}}
-      />,
-      {context: TestStubs.routerContext()}
+      />
     );
 
     await userEvent.click(

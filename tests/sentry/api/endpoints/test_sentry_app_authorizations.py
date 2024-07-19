@@ -6,7 +6,7 @@ from django.utils import timezone
 from sentry.mediators.token_exchange.util import GrantTypes
 from sentry.models.apiapplication import ApiApplication
 from sentry.models.apitoken import ApiToken
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.testutils.skips import requires_snuba
@@ -14,7 +14,7 @@ from sentry.testutils.skips import requires_snuba
 pytestmark = [requires_snuba]
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class TestSentryAppAuthorizations(APITestCase):
     endpoint = "sentry-api-0-sentry-app-installation-authorizations"
     method = "post"

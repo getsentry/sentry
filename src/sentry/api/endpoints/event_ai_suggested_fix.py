@@ -1,26 +1,27 @@
+from __future__ import annotations
+
 import logging
 import random
+from typing import Any
 
-import openai
+import orjson
 from django.conf import settings
 from django.dispatch import Signal
 from django.http import HttpResponse, StreamingHttpResponse
+from openai import OpenAI, RateLimitError
 
 from sentry import eventstore
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.types.ratelimit import RateLimit, RateLimitCategory
-from sentry.utils import json
 from sentry.utils.cache import cache
 
 logger = logging.getLogger(__name__)
 
 from rest_framework.request import Request
-from rest_framework.response import Response
-
-openai.api_key = settings.OPENAI_API_KEY
 
 openai_policy_check = Signal()
 
@@ -38,7 +39,6 @@ FUN_PROMPT_CHOICES = [
     "[hip hop rhyme about the error]",
     "[4 line rhyme about the error]",
     "[2 stanza rhyme about the error]",
-    "[anti joke about the error]",
 ]
 
 PROMPT = """\
@@ -110,11 +110,28 @@ BLOCKED_TAGS = frozenset(
     ]
 )
 
+openai_client: OpenAI | None = None
 
-def get_openai_policy(organization):
+
+def get_openai_client() -> OpenAI:
+    global openai_client
+
+    if openai_client:
+        return openai_client
+
+    # this will raise if OPENAI_API_KEY is not set
+    openai_client = OpenAI(api_key=settings.OPENAI_API_KEY)
+
+    return openai_client
+
+
+def get_openai_policy(organization, user, pii_certified):
     """Uses a signal to determine what the policy for OpenAI should be."""
     results = openai_policy_check.send(
-        sender=EventAiSuggestedFixEndpoint, organization=organization
+        sender=EventAiSuggestedFixEndpoint,
+        organization=organization,
+        user=user,
+        pii_certified=pii_certified,
     )
     result = "allowed"
 
@@ -174,7 +191,7 @@ def describe_event_for_ai(event, model):
     detailed = model.startswith("gpt-4")
     data = {}
 
-    msg = event.get("message")
+    msg = event.get("logentry")
     if msg:
         data["message"] = msg
 
@@ -186,7 +203,7 @@ def describe_event_for_ai(event, model):
     for idx, exc in enumerate(
         reversed((event.get("exception", {})).get("values", ())[:MAX_EXCEPTIONS])
     ):
-        exception = {}
+        exception: dict[str, Any] = {}
         if idx > 0:
             exception["raised_during_handling_of_previous_exception"] = True
         exception["num"] = idx + 1
@@ -206,7 +223,9 @@ def describe_event_for_ai(event, model):
         if frames:
             stacktrace = []
             for frame in reversed(frames):
-                stack_frame = {}
+                if frame is None:
+                    continue
+                stack_frame: dict[str, Any] = {}
                 set_if_value(stack_frame, "func", frame.get("function"))
                 set_if_value(stack_frame, "module", frame.get("module"))
                 set_if_value(stack_frame, "file", frame.get("filename"))
@@ -244,26 +263,25 @@ def describe_event_for_ai(event, model):
     return data
 
 
-def suggest_fix(event_data, model="gpt-3.5-turbo", stream=False):
+def suggest_fix(event_data, model=settings.SENTRY_AI_SUGGESTED_FIX_MODEL, stream=False):
     """Runs an OpenAI request to suggest a fix."""
     prompt = PROMPT.replace("___FUN_PROMPT___", random.choice(FUN_PROMPT_CHOICES))
     event_info = describe_event_for_ai(event_data, model=model)
 
-    response = openai.ChatCompletion.create(
+    client = get_openai_client()
+
+    response = client.chat.completions.create(
         model=model,
         temperature=0.7,
         messages=[
             {"role": "system", "content": prompt},
-            {
-                "role": "user",
-                "content": json.dumps(event_info),
-            },
+            {"role": "user", "content": orjson.dumps(event_info).decode()},
         ],
         stream=stream,
     )
     if stream:
         return reduce_stream(response)
-    return response["choices"][0]["message"]["content"]
+    return response.choices[0].message.content
 
 
 def reduce_stream(response):
@@ -275,6 +293,7 @@ def reduce_stream(response):
 
 @region_silo_endpoint
 class EventAiSuggestedFixEndpoint(ProjectEndpoint):
+    owner = ApiOwner.ML_AI
     publish_status = {
         "GET": ApiPublishStatus.PRIVATE,
     }
@@ -283,13 +302,13 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
     enforce_rate_limit = True
     rate_limits = {
         "GET": {
-            RateLimitCategory.IP: RateLimit(5, 1),
-            RateLimitCategory.USER: RateLimit(5, 1),
-            RateLimitCategory.ORGANIZATION: RateLimit(5, 1),
+            RateLimitCategory.IP: RateLimit(limit=5, window=1),
+            RateLimitCategory.USER: RateLimit(limit=5, window=1),
+            RateLimitCategory.ORGANIZATION: RateLimit(limit=5, window=1),
         },
     }
 
-    def get(self, request: Request, project, event_id) -> Response:
+    def get(self, request: Request, project, event_id) -> HttpResponse | StreamingHttpResponse:
         """
         Makes AI make suggestions about an event
         ````````````````````````````````````````
@@ -306,14 +325,21 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
             raise ResourceDoesNotExist
 
         # Check the OpenAI access policy
-        policy = get_openai_policy(request.organization)
+        policy = get_openai_policy(
+            request.organization,
+            request.user,
+            pii_certified=request.GET.get("pii_certified") == "yes",
+        )
         policy_failure = None
         stream = request.GET.get("stream") == "yes"
+
         if policy == "subprocessor":
             policy_failure = "subprocessor"
         elif policy == "individual_consent":
             if request.GET.get("consent") != "yes":
                 policy_failure = "individual_consent"
+        elif policy == "pii_certification_required":
+            policy_failure = "pii_certification_required"
         elif policy == "allowed":
             pass
         else:
@@ -321,7 +347,7 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
 
         if policy_failure is not None:
             return HttpResponse(
-                json.dumps({"restriction": policy_failure}),
+                orjson.dumps({"restriction": policy_failure}),
                 content_type="application/json",
                 status=403,
             )
@@ -333,9 +359,9 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
         if suggestion is None:
             try:
                 suggestion = suggest_fix(event.data, stream=stream)
-            except openai.error.RateLimitError as err:
+            except RateLimitError as err:
                 return HttpResponse(
-                    json.dumps({"error": err.json_body["error"]}),
+                    orjson.dumps({"error": err.response.json()["error"]}),
                     content_type="text/plain; charset=utf-8",
                     status=429,
                 )
@@ -365,6 +391,6 @@ class EventAiSuggestedFixEndpoint(ProjectEndpoint):
             )
 
         return HttpResponse(
-            json.dumps({"suggestion": suggestion}),
+            orjson.dumps({"suggestion": suggestion}),
             content_type="application/json",
         )

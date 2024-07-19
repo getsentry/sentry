@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, List
+from typing import Any
 
 from django.utils.datastructures import OrderedSet
 from django.utils.translation import gettext_lazy as _
@@ -8,7 +8,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.identity.pipeline import IdentityProviderPipeline
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
     IntegrationInstallation,
@@ -16,12 +16,12 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import RepositoryMixin
+from sentry.integrations.services.repository import RpcRepository, repository_service
 from sentry.integrations.utils import AtlassianConnectValidationError, get_integration_from_request
 from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import NestedPipelineView, PipelineView
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.services.hybrid_cloud.repository import RpcRepository, repository_service
 from sentry.shared_integrations.exceptions import ApiError
 from sentry.tasks.integrations import migrate_repo
 from sentry.utils.http import absolute_uri
@@ -87,11 +87,7 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
     repo_search = True
 
     def get_client(self):
-        org_integration_id = self.org_integration.id if self.org_integration else None
-        return BitbucketApiClient(
-            integration=self.model,
-            org_integration_id=org_integration_id,
-        )
+        return BitbucketApiClient(integration=self.model)
 
     @property
     def username(self):
@@ -132,7 +128,7 @@ class BitbucketIntegration(IntegrationInstallation, BitbucketIssueBasicMixin, Re
             return False
         return True
 
-    def get_unmigratable_repositories(self) -> List[RpcRepository]:
+    def get_unmigratable_repositories(self) -> list[RpcRepository]:
         repos = repository_service.get_repositories(
             organization_id=self.organization_id, providers=["bitbucket"]
         )

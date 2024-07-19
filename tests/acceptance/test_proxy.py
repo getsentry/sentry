@@ -10,7 +10,7 @@ from rest_framework.test import APIClient
 from sentry.models.apikey import ApiKey
 from sentry.models.organization import Organization
 from sentry.models.team import Team
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode, SingleProcessSiloModeState
 from sentry.testutils.asserts import assert_status_code
 from sentry.testutils.cases import TransactionTestCase
 from sentry.testutils.factories import Factories
@@ -28,7 +28,7 @@ def local_live_server(request, live_server):
     request.node.live_server = live_server
 
 
-@region_silo_test(stable=True, regions=[test_region])
+@region_silo_test(regions=[test_region])
 @pytest.mark.usefixtures("local_live_server")
 class EndToEndAPIProxyTest(TransactionTestCase):
     live_server: LiveServer
@@ -56,7 +56,7 @@ class EndToEndAPIProxyTest(TransactionTestCase):
                 organization=self.organization, scope_list=["org:write", "org:admin", "team:write"]
             )
 
-            with SiloMode.enter_single_process_silo_context(SiloMode.CONTROL):
+            with SingleProcessSiloModeState.enter(SiloMode.CONTROL):
                 resp = self.get_response(
                     self.organization.slug,
                     name="hello world",

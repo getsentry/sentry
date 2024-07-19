@@ -1,14 +1,18 @@
 import {Component} from 'react';
 
 import HookStore from 'sentry/stores/hookStore';
-import {Config, Organization, Project} from 'sentry/types';
-import {FeatureDisabledHooks} from 'sentry/types/hooks';
+import type {FeatureDisabledHooks} from 'sentry/types/hooks';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import type {Config} from 'sentry/types/system';
 import {isRenderFunc} from 'sentry/utils/isRenderFunc';
 import withConfig from 'sentry/utils/withConfig';
 import withOrganization from 'sentry/utils/withOrganization';
 import withProject from 'sentry/utils/withProject';
 
 import ComingSoon from './comingSoon';
+
+const renderComingSoon = () => <ComingSoon />;
 
 type Props = {
   /**
@@ -27,7 +31,7 @@ type Props = {
    *
    * Use `organizations:` or `projects:` prefix strings to specify a feature with context.
    */
-  features: string[];
+  features: string | string[];
   /**
    * The following properties will be set by the HoCs
    */
@@ -42,6 +46,7 @@ type Props = {
    * function.
    */
   hookName?: keyof FeatureDisabledHooks;
+  organizationAllowNull?: undefined | true;
   project?: Project;
   /**
    * Custom renderer function for when the feature is not enabled.
@@ -80,23 +85,24 @@ type FeatureRenderProps = {
  * call the original children function  but override the `renderDisabled`
  * with another function/component.
  */
-type RenderDisabledProps = FeatureRenderProps & {
+interface RenderDisabledProps extends FeatureRenderProps {
   children: React.ReactNode | ChildrenRenderFn;
   renderDisabled?: (props: FeatureRenderProps) => React.ReactNode;
-};
+}
 
 export type RenderDisabledFn = (props: RenderDisabledProps) => React.ReactNode;
 
-type ChildRenderProps = FeatureRenderProps & {
-  renderDisabled?: undefined | boolean | RenderDisabledFn;
-};
+interface ChildRenderProps extends FeatureRenderProps {
+  renderDisabled?: boolean | ((props: any) => React.ReactNode);
+  renderInstallButton?: (props: any) => React.ReactNode;
+}
 
 export type ChildrenRenderFn = (props: ChildRenderProps) => React.ReactNode;
 
 type AllFeatures = {
-  configFeatures: string[];
-  organization: string[];
-  project: string[];
+  configFeatures: ReadonlyArray<string>;
+  organization: ReadonlyArray<string>;
+  project: ReadonlyArray<string>;
 };
 
 /**
@@ -113,15 +119,12 @@ class Feature extends Component<Props> {
 
     return {
       configFeatures: config.features ? Array.from(config.features) : [],
-      organization: (organization && organization.features) || [],
-      project: (project && project.features) || [],
+      organization: organization?.features ?? [],
+      project: project?.features ?? [],
     };
   }
 
   hasFeature(feature: string, features: AllFeatures) {
-    const shouldMatchOnlyProject = feature.match(/^projects:(.+)/);
-    const shouldMatchOnlyOrg = feature.match(/^organizations:(.+)/);
-
     // Array of feature strings
     const {configFeatures, organization, project} = features;
 
@@ -131,10 +134,12 @@ class Feature extends Component<Props> {
       return true;
     }
 
+    const shouldMatchOnlyProject = feature.match(/^projects:(.+)/);
     if (shouldMatchOnlyProject) {
       return project.includes(shouldMatchOnlyProject[1]);
     }
 
+    const shouldMatchOnlyOrg = feature.match(/^organizations:(.+)/);
     if (shouldMatchOnlyOrg) {
       return organization.includes(shouldMatchOnlyOrg[1]);
     }
@@ -157,15 +162,18 @@ class Feature extends Component<Props> {
     const allFeatures = this.getAllFeatures();
     const method = requireAll ? 'every' : 'some';
     const hasFeature =
-      !features || features[method](feat => this.hasFeature(feat, allFeatures));
+      !features ||
+      (typeof features === 'string'
+        ? this.hasFeature(features, allFeatures)
+        : features[method](feat => this.hasFeature(feat, allFeatures)));
 
     // Default renderDisabled to the ComingSoon component
     let customDisabledRender =
       renderDisabled === false
         ? false
         : typeof renderDisabled === 'function'
-        ? renderDisabled
-        : () => <ComingSoon />;
+          ? renderDisabled
+          : renderComingSoon;
 
     // Override the renderDisabled function with a hook store function if there
     // is one registered for the feature.
@@ -179,7 +187,7 @@ class Feature extends Component<Props> {
     const renderProps = {
       organization,
       project,
-      features,
+      features: Array.isArray(features) ? features : [features],
       hasFeature,
     };
 

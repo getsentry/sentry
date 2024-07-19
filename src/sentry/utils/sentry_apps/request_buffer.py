@@ -1,11 +1,21 @@
+from __future__ import annotations
+
 import logging
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, overload
 
 from dateutil.parser import parse as parse_date
 from django.conf import settings
 from django.utils import timezone
+from redis.client import Pipeline
+from requests.models import Response
 
 from sentry.models.integrations.sentry_app import VALID_EVENTS
 from sentry.utils import json, redis
+
+if TYPE_CHECKING:
+    from sentry.models.integrations.sentry_app import SentryApp
+    from sentry.sentry_apps.services.app.model import RpcSentryApp
 
 BUFFER_SIZE = 100
 KEY_EXPIRY = 60 * 60 * 24 * 30  # 30 days
@@ -34,13 +44,13 @@ class SentryAppWebhookRequestsBuffer:
     This should store the last 100 requests and last 100 errors (in different keys) for each event type, for each Sentry App
     """
 
-    def __init__(self, sentry_app):
+    def __init__(self, sentry_app: SentryApp | RpcSentryApp) -> None:
         self.sentry_app = sentry_app
 
         cluster_id = settings.SENTRY_WEBHOOK_LOG_REDIS_CLUSTER
         self.client = redis.redis_clusters.get(cluster_id)
 
-    def _get_redis_key(self, event, error=False):
+    def _get_redis_key(self, event: str, error: bool = False) -> str:
         sentry_app_id = self.sentry_app.id
 
         if error:
@@ -48,7 +58,7 @@ class SentryAppWebhookRequestsBuffer:
         else:
             return f"sentry-app-webhook-request:{{{sentry_app_id}}}:{event}"
 
-    def _convert_redis_request(self, redis_request, event):
+    def _convert_redis_request(self, redis_request: str, event: str) -> dict[str, Any]:
         """
         Convert the request string stored in Redis to a python dict
         Add the event type to the dict so that the request can be identified correctly
@@ -58,7 +68,9 @@ class SentryAppWebhookRequestsBuffer:
 
         return request
 
-    def _add_to_buffer_pipeline(self, buffer_key, item, pipeline):
+    def _add_to_buffer_pipeline(
+        self, buffer_key: str, item: object, pipeline: Pipeline[str]
+    ) -> None:
         """
         Add the item to the buffer key specified, using the given pipeline.
         This does not execute the pipeline's commands.
@@ -68,7 +80,17 @@ class SentryAppWebhookRequestsBuffer:
         pipeline.ltrim(buffer_key, 0, BUFFER_SIZE - 1)
         pipeline.expire(buffer_key, KEY_EXPIRY)
 
-    def _get_all_from_buffer(self, buffer_key, pipeline=None):
+    @overload
+    def _get_all_from_buffer(self, buffer_key: str, pipeline: Pipeline[str]) -> None:
+        ...
+
+    @overload
+    def _get_all_from_buffer(self, buffer_key: str) -> list[str]:
+        ...
+
+    def _get_all_from_buffer(
+        self, buffer_key: str, pipeline: Pipeline[str] | None = None
+    ) -> list[str] | None:
         """
         Get the list at the buffer key, using the given pipeline if available.
         If a pipeline is provided, this does not return a value as the pipeline must still be executed.
@@ -76,10 +98,11 @@ class SentryAppWebhookRequestsBuffer:
 
         if pipeline is not None:
             pipeline.lrange(buffer_key, 0, BUFFER_SIZE - 1)
+            return None
         else:
             return self.client.lrange(buffer_key, 0, BUFFER_SIZE - 1)
 
-    def _get_requests(self, event=None, error=False):
+    def _get_requests(self, event: str | None = None, error: bool = False) -> list[dict[str, Any]]:
         # If no event is specified, return the latest requests/errors for all event types
         if event is None:
             pipe = self.client.pipeline()
@@ -105,24 +128,26 @@ class SentryAppWebhookRequestsBuffer:
                 for request in self._get_all_from_buffer(self._get_redis_key(event, error=error))
             ]
 
-    def get_requests(self, event=None, errors_only=False):
+    def get_requests(
+        self, event: str | None = None, errors_only: bool = False
+    ) -> list[dict[str, Any]]:
         return self._get_requests(event=event, error=errors_only)
 
     def add_request(
         self,
-        response_code,
-        org_id,
-        event,
-        url,
-        error_id=None,
-        project_id=None,
-        response=None,
-        headers=None,
-    ):
+        response_code: int,
+        org_id: int,
+        event: str,
+        url: str,
+        error_id: str | None = None,
+        project_id: int | None = None,
+        response: Response | None = None,
+        headers: Mapping[str, str] | None = None,
+    ) -> None:
         from sentry.utils.sentry_apps.webhooks import TIMEOUT_STATUS_CODE
 
         if event not in EXTENDED_VALID_EVENTS:
-            logger.warning(f"Event {event} is not a valid event that can be stored.")
+            logger.warning("Event %s is not a valid event that can be stored.", event)
             return
 
         request_key = self._get_redis_key(event)

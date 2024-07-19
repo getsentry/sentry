@@ -22,15 +22,17 @@ def _fix_label(label):
 @region_silo_endpoint
 class GroupSimilarIssuesEndpoint(GroupEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
     }
 
     def get(self, request: Request, group) -> Response:
         features = similarity.features
 
-        limit = request.GET.get("limit", None)
-        if limit is not None:
-            limit = int(limit) + 1  # the target group will always be included
+        limit_s = request.GET.get("limit", None)
+        if limit_s is not None:
+            limit: int | None = int(limit_s) + 1  # the target group will always be included
+        else:
+            limit = None
 
         group_ids = []
         group_scores = []

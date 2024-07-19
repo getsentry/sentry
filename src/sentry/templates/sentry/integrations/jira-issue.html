@@ -3,22 +3,29 @@
 {% load sentry_assets %}
 <html lang="en">
   <head>
+    <meta charset="utf-8"/>
     {% script src=ac_js_src %}{% endscript %}
-    {% asset_url 'sentry' 'vendor/jquery.2.2.4.min.js' as jquery_url %}
-    {% script src=jquery_url %}{% endscript %}
-    {% asset_url 'sentry' 'vendor/aui-prototyping.9.1.5.js' as aui_js_url %}
-    {% script src=aui_js_url %}{% endscript %}
-    <link
-      rel="stylesheet"
-      href="{% asset_url 'sentry' 'vendor/aui-prototyping.9.1.5.css' %}"
-      media="all"
-    />
     <style>
+      {% include 'sentry/integrations/jira/aui-prototyping.9.1.5.css' %}
       body {
         background: transparent;
       }
       .container {
         padding: 30px;
+      }
+      .aui-message::after {
+        font-family: arial, sans-serif;
+        content: 'i';
+        font-size: 13px;
+        line-height: 16px;
+        width: 16px;
+        height: 16px;
+        text-align: center;
+        border-radius: 50%;
+
+        color: #fff;
+        font-weight: bold;
+        background: var(--aui-message-info-icon-color);
       }
     </style>
   </head>
@@ -61,13 +68,13 @@
         <div class="aui-group">
           <div class="aui-item" >
             <span>{% trans "Last 24 hours:" %}</span>
-            <aui-badge>{{ group.stats_24hr }}</aui-badge>
+            <span class="aui-badge">{{ group.stats_24hr }}</span>
           </div>
         </div>
         <div class="aui-group">
           <div class="aui-item">
             <span>{% trans "Last 14 days:" %}</span>
-            <aui-badge>{{ group.stats_14d }}</aui-badge>
+            <span class="aui-badge">{{ group.stats_14d }}</span>
           </div>
         </div>
       </div>

@@ -12,7 +12,7 @@ from sentry.models.relay import Relay
 @region_silo_endpoint
 class RelayPublicKeysEndpoint(Endpoint):
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = (RelayAuthentication,)
     permission_classes = (RelayPermission,)

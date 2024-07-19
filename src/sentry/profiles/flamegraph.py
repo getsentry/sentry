@@ -1,28 +1,50 @@
+from collections import defaultdict
 from datetime import datetime
-from typing import Any, Dict, List, Optional
+from typing import Any, TypedDict
 
-from snuba_sdk import Column, Condition, Entity, Function, Limit, Op, Query, Request
+from snuba_sdk import (
+    And,
+    BooleanCondition,
+    Column,
+    Condition,
+    Entity,
+    Function,
+    Limit,
+    Op,
+    Or,
+    Query,
+    Request,
+    Storage,
+)
 
-from sentry.search.events.builder import QueryBuilder
+from sentry import options
+from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.types import ParamsType
-from sentry.snuba.dataset import Dataset, EntityKey
+from sentry.snuba import functions
+from sentry.snuba.dataset import Dataset, EntityKey, StorageKey
 from sentry.snuba.referrer import Referrer
 from sentry.utils.snuba import raw_snql_query
 
 
-def query_profiles_data(
+class StartEnd(TypedDict):
+    start: str
+    end: str
+
+
+class ProfileIds(TypedDict):
+    profile_ids: list[str]
+
+
+def get_profile_ids(
     params: ParamsType,
-    referrer: str,
-    selected_columns: List[str],
-    query: Optional[str] = None,
-    additional_conditions: Optional[List[Condition]] = None,
-) -> List[Dict[str, Any]]:
-    builder = QueryBuilder(
+    query: str | None = None,
+) -> ProfileIds:
+    builder = DiscoverQueryBuilder(
         dataset=Dataset.Discover,
         params=params,
         query=query,
-        selected_columns=selected_columns,
-        limit=100,
+        selected_columns=["profile.id"],
+        limit=options.get("profiling.flamegraph.profile-set.size"),
     )
 
     builder.add_conditions(
@@ -31,64 +53,103 @@ def query_profiles_data(
             Condition(Column("profile_id"), Op.IS_NOT_NULL),
         ]
     )
-    if additional_conditions is not None:
-        builder.add_conditions(additional_conditions)
 
-    snql_query = builder.get_snql_query()
-    return raw_snql_query(
-        snql_query,
-        referrer,
-    )["data"]
+    result = builder.run_query(Referrer.API_PROFILING_PROFILE_FLAMEGRAPH.value)
+
+    return {"profile_ids": [row["profile.id"] for row in result["data"]]}
 
 
-def get_profile_ids(
+def get_profiles_with_function(
+    organization_id: int,
+    project_id: int,
+    function_fingerprint: int,
     params: ParamsType,
-    query: Optional[str] = None,
-) -> Dict[str, List[str]]:
-    data = query_profiles_data(
-        params,
-        Referrer.API_PROFILING_PROFILE_FLAMEGRAPH.value,
-        selected_columns=["profile.id"],
-        query=query,
+    query: str,
+) -> ProfileIds:
+    conditions = [query, f"fingerprint:{function_fingerprint}"]
+
+    result = functions.query(
+        selected_columns=["timestamp", "unique_examples()"],
+        query=" ".join(cond for cond in conditions if cond),
+        params=params,
+        limit=100,
+        orderby=["-timestamp"],
+        referrer=Referrer.API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH.value,
+        auto_aggregations=True,
+        use_aggregate_conditions=True,
+        transform_alias_to_input_format=True,
     )
-    return {"profile_ids": [row["profile.id"] for row in data]}
+
+    def extract_profile_ids() -> list[str]:
+        max_profiles = options.get("profiling.flamegraph.profile-set.size")
+        profile_ids = []
+
+        for i in range(5):
+            for row in result["data"]:
+                examples = row["unique_examples()"]
+                if i < len(examples):
+                    profile_ids.append(examples[i])
+
+                    if len(profile_ids) >= max_profiles:
+                        return profile_ids
+
+        return profile_ids
+
+    return {"profile_ids": extract_profile_ids()}
 
 
-def get_profile_ids_with_spans(
+class IntervalMetadata(TypedDict):
+    start: str
+    end: str
+    active_thread_id: str
+
+
+def get_spans_from_group(
     organization_id: int,
     project_id: int,
     params: ParamsType,
     span_group: str,
-):
+) -> dict[str, list[IntervalMetadata]]:
     query = Query(
         match=Entity(EntityKey.Spans.value),
         select=[
-            Column("profile_id"),
+            Column("start_timestamp_precise"),
+            Column("end_timestamp_precise"),
             Function(
-                "groupArray(100)",
+                "arrayElement",
                 parameters=[
+                    Column("sentry_tags.value"),
                     Function(
-                        "tuple",
-                        [
-                            Column("start_timestamp"),
-                            Column("start_ms"),
-                            Column("end_timestamp"),
-                            Column("end_ms"),
+                        "indexOf",
+                        parameters=[
+                            Column("sentry_tags.key"),
+                            "profiler_id",
                         ],
-                    )
+                    ),
                 ],
-                alias="intervals",
+                alias="profiler_id",
             ),
-        ],
-        groupby=[
-            Column("profile_id"),
+            Function(
+                "arrayElement",
+                parameters=[
+                    Column("sentry_tags.value"),
+                    Function(
+                        "indexOf",
+                        parameters=[
+                            Column("sentry_tags.key"),
+                            "thread.id",
+                        ],
+                    ),
+                ],
+                alias="active_thread_id",
+            ),
         ],
         where=[
             Condition(Column("project_id"), Op.EQ, project_id),
             Condition(Column("timestamp"), Op.GTE, params["start"]),
             Condition(Column("timestamp"), Op.LT, params["end"]),
             Condition(Column("group"), Op.EQ, span_group),
-            Condition(Column("profile_id"), Op.IS_NOT_NULL),
+            Condition(Column("profiler_id"), Op.NEQ, ""),
         ],
         limit=Limit(100),
     )
@@ -97,62 +158,102 @@ def get_profile_ids_with_spans(
         app_id="default",
         query=query,
         tenant_ids={
-            "referrer": Referrer.API_STARFISH_PROFILE_FLAMEGRAPH.value,
+            "referrer": Referrer.API_PROFILING_FLAMEGRAPH_SPANS_WITH_GROUP.value,
             "organization_id": organization_id,
         },
     )
     data = raw_snql_query(
         request,
-        referrer=Referrer.API_STARFISH_PROFILE_FLAMEGRAPH.value,
+        referrer=Referrer.API_PROFILING_FLAMEGRAPH_SPANS_WITH_GROUP.value,
     )["data"]
-    profile_ids = []
-    spans = []
+    spans: dict[str, list[IntervalMetadata]] = defaultdict(list)
     for row in data:
-        transformed_intervals = []
-        profile_ids.append(row["profile_id"].replace("-", ""))
-        for interval in row["intervals"]:
-            start_timestamp, start_ms, end_timestamp, end_ms = interval
-            start_ns = (int(datetime.fromisoformat(start_timestamp).timestamp()) * 10**9) + (
-                start_ms * 10**6
-            )
-            end_ns = (int(datetime.fromisoformat(end_timestamp).timestamp()) * 10**9) + (
-                end_ms * 10**6
-            )
-            transformed_intervals.append({"start": str(start_ns), "end": str(end_ns)})
-        spans.append(transformed_intervals)
-    return {"profile_ids": profile_ids, "spans": spans}
+        spans[row["profiler_id"]].append(
+            {
+                "active_thread_id": row["active_thread_id"],
+                "start": row["start_timestamp_precise"],
+                "end": row["end_timestamp_precise"],
+            }
+        )
+
+    return spans
 
 
-def get_profiles_with_function(
+class SpanMetadata(TypedDict):
+    profiler_id: list[IntervalMetadata]
+
+
+def get_chunk_snuba_conditions_from_spans_metadata(
+    spans: dict[str, list[IntervalMetadata]],
+) -> list[BooleanCondition | Condition]:
+    cond = []
+    for profiler_id, intervals in spans.items():
+        chunk_range_cond = []
+        for interval in intervals:
+            start = interval.get("start")
+            end = interval.get("end")
+            chunk_range_cond.append(
+                And(
+                    [
+                        Condition(Column("end_timestamp"), Op.GTE, start),
+                        Condition(Column("start_timestamp"), Op.LT, end),
+                    ],
+                )
+            )
+        cond.append(
+            And(
+                [
+                    Condition(Column("profiler_id"), Op.EQ, profiler_id),
+                    Or(chunk_range_cond) if len(chunk_range_cond) >= 2 else chunk_range_cond[0],
+                ]
+            )
+        )
+    return [Or(cond)] if len(cond) >= 2 else cond
+
+
+def get_chunks_from_spans_metadata(
     organization_id: int,
     project_id: int,
-    function_fingerprint: int,
-    params: ParamsType,
-):
+    spans: dict[str, list[IntervalMetadata]],
+) -> list[dict[str, Any]]:
     query = Query(
-        match=Entity(EntityKey.Functions.value),
+        match=Storage(StorageKey.ProfileChunks.value),
         select=[
-            Function("groupUniqArrayMerge(100)", [Column("examples")], "profile_ids"),
+            Column("profiler_id"),
+            Column("chunk_id"),
         ],
-        where=[
-            Condition(Column("project_id"), Op.EQ, project_id),
-            Condition(Column("timestamp"), Op.GTE, params["start"]),
-            Condition(Column("timestamp"), Op.LT, params["end"]),
-            Condition(Column("fingerprint"), Op.EQ, function_fingerprint),
-        ],
+        where=[Condition(Column("project_id"), Op.EQ, project_id)]
+        + get_chunk_snuba_conditions_from_spans_metadata(spans),
+        limit=Limit(100),
     )
-
     request = Request(
-        dataset=Dataset.Functions.value,
+        dataset=Dataset.Profiles.value,
         app_id="default",
         query=query,
         tenant_ids={
-            "referrer": Referrer.API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH.value,
+            "referrer": Referrer.API_PROFILING_FLAMEGRAPH_CHUNKS_FROM_SPANS.value,
             "organization_id": organization_id,
         },
     )
     data = raw_snql_query(
         request,
-        referrer=Referrer.API_PROFILING_FUNCTION_SCOPED_FLAMEGRAPH.value,
+        referrer=Referrer.API_PROFILING_FLAMEGRAPH_CHUNKS_FROM_SPANS.value,
     )["data"]
-    return {"profile_ids": list(map(lambda x: x.replace("-", ""), data[0]["profile_ids"]))}
+    chunks = []
+    for row in data:
+        intervals = [
+            {
+                "start": str(int(datetime.fromisoformat(el["start"]).timestamp() * 10**9)),
+                "end": str(int(datetime.fromisoformat(el["end"]).timestamp() * 10**9)),
+                "active_thread_id": el["active_thread_id"],
+            }
+            for el in spans[row["profiler_id"]]
+        ]
+        chunks.append(
+            {
+                "profiler_id": row["profiler_id"],
+                "chunk_id": row["chunk_id"],
+                "span_intervals": intervals,
+            }
+        )
+    return chunks

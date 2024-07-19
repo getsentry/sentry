@@ -7,8 +7,8 @@ from sentry.runner.decorators import configuration
 @click.argument("management_args", nargs=-1, type=click.UNPROCESSED)
 @configuration
 @click.pass_context
-def django(ctx, management_args):
+def django(ctx: click.Context, management_args: tuple[str, ...]) -> None:
     "Execute Django subcommands."
     from django.core.management import execute_from_command_line
 
-    execute_from_command_line(argv=[ctx.command_path] + list(management_args))
+    execute_from_command_line(argv=[ctx.command_path, *management_args])

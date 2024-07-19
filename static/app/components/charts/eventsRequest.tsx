@@ -4,7 +4,7 @@ import omitBy from 'lodash/omitBy';
 
 import {doEventsRequest} from 'sentry/actionCreators/events';
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import LoadingPanel from 'sentry/components/charts/loadingPanel';
 import {
   canIncludePreviousPeriod,
@@ -12,23 +12,20 @@ import {
   isMultiSeriesStats,
 } from 'sentry/components/charts/utils';
 import {t} from 'sentry/locale';
-import {
+import type {
   DateString,
   EventsStats,
   EventsStatsData,
   MultiSeriesEventsStats,
   OrganizationSummary,
 } from 'sentry/types';
-import {Series, SeriesDataUnit} from 'sentry/types/echarts';
+import type {Series, SeriesDataUnit} from 'sentry/types/echarts';
 import {defined} from 'sentry/utils';
 import {DURATION_UNITS, SIZE_UNITS} from 'sentry/utils/discover/fieldRenderers';
-import {
-  AggregationOutputType,
-  getAggregateAlias,
-  stripEquationPrefix,
-} from 'sentry/utils/discover/fields';
-import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
+import type {AggregationOutputType} from 'sentry/utils/discover/fields';
+import {getAggregateAlias, stripEquationPrefix} from 'sentry/utils/discover/fields';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
+import type {QueryBatching} from 'sentry/utils/performance/contexts/genericQueryBatcher';
 
 export type TimeSeriesData = {
   allTimeseriesData?: EventsStatsData;
@@ -335,7 +332,7 @@ class EventsRequest extends PureComponent<EventsRequestProps, EventsRequestState
         api.clear();
         timeseriesData = await doEventsRequest(api, props);
       } catch (resp) {
-        if (resp && resp.responseJSON && resp.responseJSON.detail) {
+        if (resp?.responseJSON?.detail) {
           errorMessage = resp.responseJSON.detail;
         } else {
           errorMessage = t('Error loading chart data');

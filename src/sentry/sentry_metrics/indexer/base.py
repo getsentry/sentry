@@ -1,24 +1,10 @@
 from collections import defaultdict
+from collections.abc import Callable, Collection, Mapping, MutableMapping, MutableSequence, Sequence
 from dataclasses import dataclass
 from enum import Enum
 from functools import wraps
 from itertools import groupby
-from typing import (
-    Any,
-    Callable,
-    Collection,
-    Mapping,
-    MutableMapping,
-    MutableSequence,
-    NamedTuple,
-    Optional,
-    Sequence,
-    Set,
-    Tuple,
-    Type,
-    TypeVar,
-    Union,
-)
+from typing import Any, NamedTuple, TypeVar
 
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.use_case_id_registry import REVERSE_METRIC_PATH_MAPPING, UseCaseID
@@ -46,19 +32,19 @@ UR = TypeVar("UR", bound="UseCaseKeyResult")
 
 
 class Metadata(NamedTuple):
-    id: Optional[int]
+    id: int | None
     fetch_type: FetchType
-    fetch_type_ext: Optional[FetchTypeExt] = None
+    fetch_type_ext: FetchTypeExt | None = None
 
 
 @dataclass(frozen=True)
 class KeyResult:
     org_id: OrgId
     string: str
-    id: Optional[int]
+    id: int | None
 
     @classmethod
-    def from_string(cls: Type[KR], key: str, id: int) -> KR:
+    def from_string(cls: type[KR], key: str, id: int) -> KR:
         org_id, string = key.split(":", 1)
         return cls(int(org_id), string, id)
 
@@ -68,10 +54,10 @@ class UseCaseKeyResult:
     use_case_id: UseCaseID
     org_id: OrgId
     string: str
-    id: Optional[int]
+    id: int | None
 
     @classmethod
-    def from_string(cls: Type[UR], key: str, id: int) -> UR:
+    def from_string(cls: type[UR], key: str, id: int) -> UR:
         use_case_id, org_id, string = key.split(":", 2)
         return cls(UseCaseID(use_case_id), int(org_id), string, id)
 
@@ -88,7 +74,7 @@ class KeyCollection:
         { 1: {"a", "b", "c"}, 2: {"e", "f"} }
     """
 
-    def __init__(self, mapping: Mapping[OrgId, Set[str]]):
+    def __init__(self, mapping: Mapping[OrgId, set[str]]):
         self.mapping = mapping
         self.size = self._size()
 
@@ -105,11 +91,11 @@ class KeyCollection:
             total_size += len(self.mapping[org_id])
         return total_size
 
-    def as_tuples(self) -> Sequence[Tuple[int, str]]:
+    def as_tuples(self) -> Sequence[tuple[int, str]]:
         """
         Returns all the keys, each key represented as tuple -> (1, "a")
         """
-        key_pairs: MutableSequence[Tuple[int, str]] = []
+        key_pairs: MutableSequence[tuple[int, str]] = []
         for org_id in self.mapping:
             key_pairs.extend([(org_id, string) for string in self.mapping[org_id]])
 
@@ -138,7 +124,7 @@ class UseCaseKeyCollection:
         {UseCaseID.TRANSACTIONS: { 1: {"a", "b", "c"}, 2: {"e", "f"} }}
     """
 
-    def __init__(self, mapping: Mapping[UseCaseID, Union[Mapping[OrgId, Set[str]], KeyCollection]]):
+    def __init__(self, mapping: Mapping[UseCaseID, Mapping[OrgId, set[str]] | KeyCollection]):
         self.mapping = {
             use_case_id: keys if isinstance(keys, KeyCollection) else KeyCollection(keys)
             for use_case_id, keys in mapping.items()
@@ -155,7 +141,7 @@ class UseCaseKeyCollection:
     def _size(self) -> int:
         return sum(key_collection.size for key_collection in self.mapping.values())
 
-    def as_tuples(self) -> Sequence[Tuple[UseCaseID, OrgId, str]]:
+    def as_tuples(self) -> Sequence[tuple[UseCaseID, OrgId, str]]:
         return [
             (use_case_id, org_id, s)
             for use_case_id, key_collection in self.mapping.items()
@@ -172,7 +158,7 @@ class UseCaseKeyCollection:
 
 class KeyResults:
     def __init__(self) -> None:
-        self.results: MutableMapping[OrgId, MutableMapping[str, Optional[int]]] = defaultdict(dict)
+        self.results: MutableMapping[OrgId, MutableMapping[str, int | None]] = defaultdict(dict)
         self.meta: MutableMapping[OrgId, MutableMapping[str, Metadata]] = defaultdict(dict)
 
     def __eq__(self, __value: object) -> bool:
@@ -185,8 +171,8 @@ class KeyResults:
     def add_key_result(
         self,
         key_result: KeyResult,
-        fetch_type: Optional[FetchType] = None,
-        fetch_type_ext: Optional[FetchTypeExt] = None,
+        fetch_type: FetchType | None = None,
+        fetch_type_ext: FetchTypeExt | None = None,
     ) -> None:
         self.results[key_result.org_id].update({key_result.string: key_result.id})
         if fetch_type:
@@ -197,8 +183,8 @@ class KeyResults:
     def add_key_results(
         self,
         key_results: Sequence[KeyResult],
-        fetch_type: Optional[FetchType] = None,
-        fetch_type_ext: Optional[FetchTypeExt] = None,
+        fetch_type: FetchType | None = None,
+        fetch_type_ext: FetchTypeExt | None = None,
     ) -> None:
         for key_result in key_results:
             self.results[key_result.org_id].update({key_result.string: key_result.id})
@@ -207,7 +193,7 @@ class KeyResults:
                     id=key_result.id, fetch_type=fetch_type, fetch_type_ext=fetch_type_ext
                 )
 
-    def get_mapped_results(self) -> Mapping[OrgId, Mapping[str, Optional[int]]]:
+    def get_mapped_results(self) -> Mapping[OrgId, Mapping[str, int | None]]:
         """
         Only return results that have org_ids with string/int mappings.
         """
@@ -220,7 +206,7 @@ class KeyResults:
         a new KeyCollection for any keys that don't have corresponding
         ids in results.
         """
-        unmapped_org_strings: MutableMapping[OrgId, Set[str]] = defaultdict(set)
+        unmapped_org_strings: MutableMapping[OrgId, set[str]] = defaultdict(set)
         for org_id, strings in keys.mapping.items():
             for string in strings:
                 if not self.results[org_id].get(string):
@@ -268,7 +254,7 @@ class KeyResults:
         return new_results
 
     # For brevity, allow callers to address the mapping directly
-    def __getitem__(self, org_id: OrgId) -> Mapping[str, Optional[int]]:
+    def __getitem__(self, org_id: OrgId) -> Mapping[str, int | None]:
         return self.results[org_id]
 
 
@@ -290,8 +276,8 @@ class UseCaseKeyResults:
     def add_use_case_key_result(
         self,
         use_case_key_result: UseCaseKeyResult,
-        fetch_type: Optional[FetchType] = None,
-        fetch_type_ext: Optional[FetchTypeExt] = None,
+        fetch_type: FetchType | None = None,
+        fetch_type_ext: FetchTypeExt | None = None,
     ) -> None:
         self.results[use_case_key_result.use_case_id].add_key_result(
             KeyResult(
@@ -304,8 +290,8 @@ class UseCaseKeyResults:
     def add_use_case_key_results(
         self,
         use_case_key_results: Sequence[UseCaseKeyResult],
-        fetch_type: Optional[FetchType] = None,
-        fetch_type_ext: Optional[FetchTypeExt] = None,
+        fetch_type: FetchType | None = None,
+        fetch_type_ext: FetchTypeExt | None = None,
     ) -> None:
         for use_case, grouped_use_case_key_results in groupby(
             use_case_key_results, lambda use_case_key_result: use_case_key_result.use_case_id
@@ -323,7 +309,7 @@ class UseCaseKeyResults:
                 fetch_type_ext,
             )
 
-    def get_mapped_results(self) -> Mapping[UseCaseID, Mapping[OrgId, Mapping[str, Optional[int]]]]:
+    def get_mapped_results(self) -> Mapping[UseCaseID, Mapping[OrgId, Mapping[str, int | None]]]:
         """
         Only return results that string/int mappings, keyed by use case ID, then org ID.
         """
@@ -399,7 +385,7 @@ class UseCaseKeyResults:
         return self.results[use_case_id]
 
 
-def to_use_case_id(use_case: Union[UseCaseID, UseCaseKey]) -> UseCaseID:
+def to_use_case_id(use_case: UseCaseID | UseCaseKey) -> UseCaseID:
     if isinstance(use_case, UseCaseKey):
         use_case = REVERSE_METRIC_PATH_MAPPING[use_case]
         metrics.incr("sentry_metrics.indexer.unsafe_rev_resolve")
@@ -407,12 +393,12 @@ def to_use_case_id(use_case: Union[UseCaseID, UseCaseKey]) -> UseCaseID:
 
 
 def metric_path_key_compatible_resolve(
-    resolve_func: Callable[[Any, UseCaseID, int, str], Optional[int]]
-) -> Callable[[Any, Union[UseCaseID, UseCaseKey], int, str], Optional[int]]:
+    resolve_func: Callable[[Any, UseCaseID, int, str], int | None]
+) -> Callable[[Any, UseCaseID | UseCaseKey, int, str], int | None]:
     @wraps(resolve_func)
     def wrapper(
-        self: Any, use_case_id: Union[UseCaseID, UseCaseKey], org_id: int, string: str
-    ) -> Optional[int]:
+        self: Any, use_case_id: UseCaseID | UseCaseKey, org_id: int, string: str
+    ) -> int | None:
         use_case_id = to_use_case_id(use_case_id)
         return resolve_func(self, use_case_id, org_id, string)
 
@@ -420,12 +406,10 @@ def metric_path_key_compatible_resolve(
 
 
 def metric_path_key_compatible_rev_resolve(
-    rev_resolve_func: Callable[[Any, UseCaseID, int, int], Optional[str]]
-) -> Callable[[Any, Union[UseCaseID, UseCaseKey], int, int], Optional[str]]:
+    rev_resolve_func: Callable[[Any, UseCaseID, int, int], str | None]
+) -> Callable[[Any, UseCaseID | UseCaseKey, int, int], str | None]:
     @wraps(rev_resolve_func)
-    def wrapper(
-        self: Any, use_case_id: Union[UseCaseID, UseCaseKey], org_id: int, id: int
-    ) -> Optional[str]:
+    def wrapper(self: Any, use_case_id: UseCaseID | UseCaseKey, org_id: int, id: int) -> str | None:
         use_case_id = to_use_case_id(use_case_id)
         return rev_resolve_func(self, use_case_id, org_id, id)
 
@@ -451,7 +435,7 @@ class StringIndexer(Service):
     )
 
     def bulk_record(
-        self, strings: Mapping[UseCaseID, Mapping[OrgId, Set[str]]]
+        self, strings: Mapping[UseCaseID, Mapping[OrgId, set[str]]]
     ) -> UseCaseKeyResults:
         """
         Takes in a mapping with use case IDs mapped to Org IDs mapped to set of strings.
@@ -480,7 +464,7 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+    def record(self, use_case_id: UseCaseID, org_id: int, string: str) -> int | None:
         """Store a string and return the integer ID generated for it
         With every call to this method, the lifetime of the entry will be
         prolonged.
@@ -488,7 +472,7 @@ class StringIndexer(Service):
         raise NotImplementedError()
 
     @metric_path_key_compatible_resolve
-    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> Optional[int]:
+    def resolve(self, use_case_id: UseCaseID, org_id: int, string: str) -> int | None:
         """Lookup the integer ID for a string.
 
         Does not affect the lifetime of the entry.
@@ -501,7 +485,7 @@ class StringIndexer(Service):
         raise NotImplementedError()
 
     @metric_path_key_compatible_rev_resolve
-    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> Optional[str]:
+    def reverse_resolve(self, use_case_id: UseCaseID, org_id: int, id: int) -> str | None:
         """Lookup the stored string for a given integer ID.
 
         This function is backwards compatible with UseCaseKey while call sites that still uses
@@ -521,7 +505,7 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    def resolve_shared_org(self, string: str) -> Optional[int]:
+    def resolve_shared_org(self, string: str) -> int | None:
         """
         Look up the index for a shared (cross organisation) string.
 
@@ -530,7 +514,7 @@ class StringIndexer(Service):
         """
         raise NotImplementedError()
 
-    def reverse_shared_org_resolve(self, id: int) -> Optional[str]:
+    def reverse_shared_org_resolve(self, id: int) -> str | None:
         """Lookup the stored string given integer for a shared (cross organisation) ID.
 
         Returns None if the entry cannot be found.

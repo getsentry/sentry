@@ -2,21 +2,23 @@ import {Fragment} from 'react';
 import debounce from 'lodash/debounce';
 import * as qs from 'query-string';
 
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Client} from 'sentry/api';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import FieldFromConfig from 'sentry/components/forms/fieldFromConfig';
-import Form, {FormProps} from 'sentry/components/forms/form';
-import FormModel, {FieldValue} from 'sentry/components/forms/model';
+import type {FormProps} from 'sentry/components/forms/form';
+import Form from 'sentry/components/forms/form';
+import type {FieldValue} from 'sentry/components/forms/model';
+import FormModel from 'sentry/components/forms/model';
 import QuestionTooltip from 'sentry/components/questionTooltip';
 import {tct} from 'sentry/locale';
-import {
+import type {
   Choices,
   IntegrationIssueConfig,
   IssueConfigField,
   SelectValue,
 } from 'sentry/types';
-import {FormField} from 'sentry/views/alerts/rules/issue/ruleNode';
+import type {FormField} from 'sentry/views/alerts/rules/issue/ruleNode';
 
 export type ExternalIssueAction = 'create' | 'link';
 
@@ -108,7 +110,7 @@ export default class AbstractExternalIssueForm<
   ): {[key: string]: FieldValue | null} => {
     const {integrationDetails: integrationDetailsFromState} = this.state;
     const integrationDetails = integrationDetailsParam || integrationDetailsFromState;
-    const config = (integrationDetails || {})[this.getConfigName()];
+    const config = integrationDetails?.[this.getConfigName()];
     return Object.fromEntries(
       (config || [])
         .filter((field: IssueConfigField) => field.updatesForm)
@@ -166,7 +168,7 @@ export default class AbstractExternalIssueForm<
    * searching in an async select field without selecting one of the returned choices will
    * result in a value saved to the form, and no associated label; appearing empty.
    * @param field The field being examined
-   * @param result The result from it's asynchronous query
+   * @param result The result from its asynchronous query
    * @returns The result with a tooltip attached to the current option
    */
   ensureCurrentOption = (
@@ -185,7 +187,7 @@ export default class AbstractExternalIssueForm<
         <Fragment>
           <QuestionTooltip
             title={tct('This is your current [label].', {
-              label: field.label,
+              label: field.label as React.ReactNode,
             })}
             size="xs"
           />{' '}
@@ -319,7 +321,7 @@ export default class AbstractExternalIssueForm<
   loadAsyncThenFetchAllFields = (): IssueConfigField[] => {
     const {fetchedFieldOptionsCache, integrationDetails} = this.state;
 
-    const configsFromAPI = (integrationDetails || {})[this.getConfigName()];
+    const configsFromAPI = integrationDetails?.[this.getConfigName()];
     return (configsFromAPI || []).map(field => {
       const fieldCopy = {...field};
       // Overwrite choices from cache.

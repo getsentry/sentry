@@ -1,4 +1,4 @@
-import {Search} from 'sentry-fixture/search';
+import {SearchFixture} from 'sentry-fixture/search';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -10,7 +10,7 @@ describe('IssueSearchWithSavedSearches', () => {
     onSearch: jest.fn(),
   };
 
-  const savedSearch = Search({
+  const savedSearch = SearchFixture({
     id: '789',
     query: 'is:unresolved TypeError',
     sort: 'date',
@@ -22,6 +22,10 @@ describe('IssueSearchWithSavedSearches', () => {
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/searches/',
       body: [savedSearch],
+    });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
     });
   });
 

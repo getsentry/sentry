@@ -1,7 +1,7 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
-import moment from 'moment';
+import type {Location} from 'history';
+import moment from 'moment-timezone';
 
 import {Button} from 'sentry/components/button';
 import {getArbitraryRelativePeriod} from 'sentry/components/timeRangeSelector/utils';
@@ -9,10 +9,12 @@ import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {IconFire, IconOpen} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import theme from 'sentry/utils/theme';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {
   DisplayModes,
   transactionSummaryRouteWithQuery,
@@ -21,15 +23,14 @@ import {FunctionsList} from 'sentry/views/performance/trends/changeExplorerUtils
 import {MetricsTable} from 'sentry/views/performance/trends/changeExplorerUtils/metricsTable';
 import {SpansList} from 'sentry/views/performance/trends/changeExplorerUtils/spansList';
 import {Chart} from 'sentry/views/performance/trends/chart';
-import {
+import type {
   NormalizedTrendsTransaction,
-  TrendChangeType,
   TrendParameter,
   TrendsStats,
   TrendView,
 } from 'sentry/views/performance/trends/types';
+import {TrendChangeType} from 'sentry/views/performance/trends/types';
 import {getTrendProjectId} from 'sentry/views/performance/trends/utils';
-import DetailPanel from 'sentry/views/starfish/components/detailPanel';
 
 type PerformanceChangeExplorerProps = {
   collapsed: boolean;
@@ -331,7 +332,7 @@ const InfoLabel = styled('strong')`
   color: ${p => p.theme.gray300};
 `;
 const InfoText = styled('h3')`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 const GraphPanel = styled('div')`
   border: 1px solid ${p => p.theme.border};

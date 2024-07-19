@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Callable, Iterable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 
 from sentry.db.models import Model
 from sentry.utils.strings import is_valid_dot_atom

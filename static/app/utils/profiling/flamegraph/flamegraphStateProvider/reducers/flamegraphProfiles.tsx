@@ -1,4 +1,4 @@
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 
 type SetProfilesThreadId = {
   payload: number;

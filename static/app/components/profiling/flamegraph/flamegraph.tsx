@@ -1,6 +1,6 @@
+import type {ReactElement} from 'react';
 import {
   Fragment,
-  ReactElement,
   useCallback,
   useEffect,
   useLayoutEffect,
@@ -10,23 +10,21 @@ import {
 import * as Sentry from '@sentry/react';
 import {mat3, vec2} from 'gl-matrix';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import {ProfileDragDropImport} from 'sentry/components/profiling/flamegraph/flamegraphOverlays/profileDragDropImport';
 import {FlamegraphOptionsMenu} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphOptionsMenu';
 import {FlamegraphSearch} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphSearch';
-import {
-  FlamegraphThreadSelector,
-  FlamegraphThreadSelectorProps,
-} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphThreadSelector';
+import type {FlamegraphThreadSelectorProps} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphThreadSelector';
+import {FlamegraphThreadSelector} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphThreadSelector';
 import {FlamegraphToolbar} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphToolbar';
-import {
-  FlamegraphViewSelectMenu,
-  FlamegraphViewSelectMenuProps,
-} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphViewSelectMenu';
+import type {FlamegraphViewSelectMenuProps} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphViewSelectMenu';
+import {FlamegraphViewSelectMenu} from 'sentry/components/profiling/flamegraph/flamegraphToolbar/flamegraphViewSelectMenu';
 import {FlamegraphZoomView} from 'sentry/components/profiling/flamegraph/flamegraphZoomView';
 import {FlamegraphZoomViewMinimap} from 'sentry/components/profiling/flamegraph/flamegraphZoomViewMinimap';
 import {t} from 'sentry/locale';
-import {EntryType, EventTransaction, RequestState} from 'sentry/types';
-import {EntrySpans} from 'sentry/types/event';
+import type {RequestState} from 'sentry/types/core';
+import type {EntrySpans, EventTransaction} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 import {defined} from 'sentry/utils';
 import {
   CanvasPoolManager,
@@ -34,7 +32,7 @@ import {
 } from 'sentry/utils/profiling/canvasScheduler';
 import {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {Flamegraph as FlamegraphModel} from 'sentry/utils/profiling/flamegraph';
-import {FlamegraphSearch as FlamegraphSearchType} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
+import type {FlamegraphSearch as FlamegraphSearchType} from 'sentry/utils/profiling/flamegraph/flamegraphStateProvider/reducers/flamegraphSearch';
 import {useFlamegraphPreferences} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphPreferences';
 import {useFlamegraphProfiles} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphProfiles';
 import {useFlamegraphSearch} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphSearch';
@@ -42,33 +40,32 @@ import {useDispatchFlamegraphState} from 'sentry/utils/profiling/flamegraph/hook
 import {useFlamegraphZoomPosition} from 'sentry/utils/profiling/flamegraph/hooks/useFlamegraphZoomPosition';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
 import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {
-  FlamegraphChart as FlamegraphChartModel,
-  ProfileSeriesMeasurement,
-} from 'sentry/utils/profiling/flamegraphChart';
-import {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
+import type {ProfileSeriesMeasurement} from 'sentry/utils/profiling/flamegraphChart';
+import {FlamegraphChart as FlamegraphChartModel} from 'sentry/utils/profiling/flamegraphChart';
+import type {FlamegraphFrame} from 'sentry/utils/profiling/flamegraphFrame';
 import {
   computeConfigViewWithStrategy,
   computeMinZoomConfigViewForFrames,
   formatColorForFrame,
+  initializeFlamegraphRenderer,
   useResizeCanvasObserver,
 } from 'sentry/utils/profiling/gl/utils';
-import {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import type {ProfileGroup} from 'sentry/utils/profiling/profile/importProfile';
+import {FlamegraphRenderer2D} from 'sentry/utils/profiling/renderers/flamegraphRenderer2D';
 import {FlamegraphRendererWebGL} from 'sentry/utils/profiling/renderers/flamegraphRendererWebGL';
-import {SpanChart, SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import type {SpanChartNode} from 'sentry/utils/profiling/spanChart';
+import {SpanChart} from 'sentry/utils/profiling/spanChart';
 import {SpanTree} from 'sentry/utils/profiling/spanTree';
 import {Rect} from 'sentry/utils/profiling/speedscope';
+import type {UIFrameMeasurements} from 'sentry/utils/profiling/uiFrames';
 import {UIFrames} from 'sentry/utils/profiling/uiFrames';
-import {
-  formatTo,
-  fromNanoJoulesToWatts,
-  ProfilingFormatterUnit,
-} from 'sentry/utils/profiling/units/units';
+import type {ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
+import {formatTo, fromNanoJoulesToWatts} from 'sentry/utils/profiling/units/units';
 import {useDevicePixelRatio} from 'sentry/utils/useDevicePixelRatio';
 import {useMemoWithPrevious} from 'sentry/utils/useMemoWithPrevious';
-import useOrganization from 'sentry/utils/useOrganization';
 import {useProfileGroup} from 'sentry/views/profiling/profileGroupProvider';
 import {
+  useProfiles,
   useProfileTransaction,
   useSetProfiles,
 } from 'sentry/views/profiling/profilesProvider';
@@ -81,7 +78,7 @@ import {FlamegraphLayout} from './flamegraphLayout';
 import {FlamegraphSpans} from './flamegraphSpans';
 import {FlamegraphUIFrames} from './flamegraphUIFrames';
 
-function getTransactionConfigSpace(
+function getMaxConfigSpace(
   profileGroup: ProfileGroup,
   transaction: EventTransaction | null,
   unit: ProfilingFormatterUnit | string
@@ -129,6 +126,30 @@ function collectAllSpanEntriesFromTransaction(
   return allSpans;
 }
 
+function convertProfileMeasurementsToUIFrames(
+  measurement: ProfileGroup['measurements']['slow_frame_renders']
+): UIFrameMeasurements | undefined {
+  if (!measurement) {
+    return undefined;
+  }
+
+  const measurements: UIFrameMeasurements = {
+    unit: measurement.unit,
+    values: [],
+  };
+
+  for (let i = 0; i < measurement.values.length; i++) {
+    const value = measurement.values[i];
+
+    measurements.values.push({
+      elapsed: value.elapsed_since_start_ns,
+      value: value.value,
+    });
+  }
+
+  return measurements;
+}
+
 type FlamegraphCandidate = {
   frame: FlamegraphFrame;
   threadId: number;
@@ -167,6 +188,7 @@ function findLongestMatchingFrame(
 }
 
 function computeProfileOffset(
+  profileStart: string | undefined,
   flamegraph: FlamegraphModel,
   transaction: RequestState<EventTransaction | null>
 ): number {
@@ -175,14 +197,15 @@ function computeProfileOffset(
   const transactionStart =
     transaction.type === 'resolved' ? transaction.data?.startTimestamp ?? null : null;
 
-  const profileStart = flamegraph.profile.timestamp;
-
-  if (defined(transactionStart) && defined(profileStart)) {
-    offset += formatTo(
-      profileStart - transactionStart,
-      'second',
-      flamegraph.profile.unit
-    );
+  if (
+    defined(transactionStart) &&
+    defined(profileStart) &&
+    // Android sometimes doesnt report timestamps, which end up being wrongly initialized when the data is ingested.
+    profileStart !== '0001-01-01T00:00:00Z'
+  ) {
+    const profileStartTimestamp = new Date(profileStart).getTime() / 1e3;
+    const profileOffset = profileStartTimestamp - transactionStart;
+    offset += formatTo(profileOffset, 'second', flamegraph.profile.unit);
   }
 
   return offset;
@@ -198,20 +221,19 @@ const LOADING_OR_FALLBACK_MEMORY_CHART = FlamegraphChartModel.Empty;
 const noopFormatDuration = () => '';
 
 function Flamegraph(): ReactElement {
-  const organization = useOrganization();
   const devicePixelRatio = useDevicePixelRatio();
   const profiledTransaction = useProfileTransaction();
   const dispatch = useDispatchFlamegraphState();
 
+  const profiles = useProfiles();
   const setProfiles = useSetProfiles();
   const profileGroup = useProfileGroup();
 
   const flamegraphTheme = useFlamegraphTheme();
   const position = useFlamegraphZoomPosition();
-  const profiles = useFlamegraphProfiles();
   const {colorCoding, sorting, view} = useFlamegraphPreferences();
   const {highlightFrames} = useFlamegraphSearch();
-  const {threadId, selectedRoot} = useFlamegraphProfiles();
+  const flamegraphProfiles = useFlamegraphProfiles();
 
   const [flamegraphCanvasRef, setFlamegraphCanvasRef] =
     useState<HTMLCanvasElement | null>(null);
@@ -241,39 +263,37 @@ function Flamegraph(): ReactElement {
 
   const hasUIFrames = useMemo(() => {
     const platform = profileGroup.metadata.platform;
-    return (
-      (platform === 'cocoa' || platform === 'android') &&
-      organization.features.includes('profiling-ui-frames')
-    );
-  }, [organization.features, profileGroup.metadata.platform]);
+    return platform === 'cocoa' || platform === 'android';
+  }, [profileGroup.metadata.platform]);
 
   const hasBatteryChart = useMemo(() => {
     const platform = profileGroup.metadata.platform;
-    return (
-      platform === 'cocoa' &&
-      organization.features.includes('profiling-battery-usage-chart')
-    );
-  }, [profileGroup.metadata.platform, organization.features]);
+    return platform === 'cocoa' || profileGroup.measurements?.cpu_energy_usage;
+  }, [profileGroup.metadata.platform, profileGroup.measurements]);
 
   const hasCPUChart = useMemo(() => {
     const platform = profileGroup.metadata.platform;
     return (
-      (platform === 'cocoa' || platform === 'android' || platform === 'node') &&
-      organization.features.includes('profiling-cpu-chart')
+      platform === 'cocoa' ||
+      platform === 'android' ||
+      platform === 'node' ||
+      profileGroup.measurements?.cpu_usage
     );
-  }, [profileGroup.metadata.platform, organization.features]);
+  }, [profileGroup.metadata.platform, profileGroup.measurements]);
 
   const hasMemoryChart = useMemo(() => {
     const platform = profileGroup.metadata.platform;
     return (
-      (platform === 'cocoa' || platform === 'android' || platform === 'node') &&
-      organization.features.includes('profiling-memory-chart')
+      platform === 'cocoa' ||
+      platform === 'android' ||
+      platform === 'node' ||
+      profileGroup.measurements?.memory_footprint
     );
-  }, [profileGroup.metadata.platform, organization.features]);
+  }, [profileGroup.metadata.platform, profileGroup.measurements]);
 
   const profile = useMemo(() => {
-    return profileGroup.profiles.find(p => p.threadId === threadId);
-  }, [profileGroup, threadId]);
+    return profileGroup.profiles.find(p => p.threadId === flamegraphProfiles.threadId);
+  }, [profileGroup, flamegraphProfiles.threadId]);
 
   const spanTree: SpanTree = useMemo(() => {
     if (profiledTransaction.type === 'resolved' && profiledTransaction.data) {
@@ -291,11 +311,18 @@ function Flamegraph(): ReactElement {
       return null;
     }
 
-    return new SpanChart(spanTree, {unit: profile.unit});
-  }, [spanTree, profile]);
+    return new SpanChart(spanTree, {
+      unit: profile.unit,
+      configSpace: getMaxConfigSpace(
+        profileGroup,
+        profiledTransaction.type === 'resolved' ? profiledTransaction.data : null,
+        profile.unit
+      ),
+    });
+  }, [spanTree, profile, profileGroup, profiledTransaction]);
 
   const flamegraph = useMemo(() => {
-    if (typeof threadId !== 'number') {
+    if (typeof flamegraphProfiles.threadId !== 'number') {
       return LOADING_OR_FALLBACK_FLAMEGRAPH;
     }
 
@@ -314,31 +341,47 @@ function Flamegraph(): ReactElement {
       return LOADING_OR_FALLBACK_FLAMEGRAPH;
     }
 
-    const transaction = Sentry.startTransaction({
-      op: 'import',
-      name: 'flamegraph.constructor',
+    const span = Sentry.withScope(scope => {
+      scope.setTag('sorting', sorting.split(' ').join('_'));
+      scope.setTag('view', view.split(' ').join('_'));
+
+      return Sentry.startInactiveSpan({
+        op: 'import',
+        name: 'flamegraph.constructor',
+        forceTransaction: true,
+      });
     });
 
-    transaction.setTag('sorting', sorting.split(' ').join('_'));
-    transaction.setTag('view', view.split(' ').join('_'));
-
-    const newFlamegraph = new FlamegraphModel(profile, threadId, {
+    const newFlamegraph = new FlamegraphModel(profile, {
       inverted: view === 'bottom up',
       sort: sorting,
-      configSpace: getTransactionConfigSpace(
+      configSpace: getMaxConfigSpace(
         profileGroup,
         profiledTransaction.type === 'resolved' ? profiledTransaction.data : null,
         profile.unit
       ),
     });
-    transaction.finish();
+
+    span?.end();
 
     return newFlamegraph;
-  }, [profile, profileGroup, profiledTransaction, sorting, threadId, view]);
+  }, [
+    profile,
+    profileGroup,
+    profiledTransaction,
+    sorting,
+    flamegraphProfiles.threadId,
+    view,
+  ]);
 
   const profileOffsetFromTransaction = useMemo(
-    () => computeProfileOffset(flamegraph, profiledTransaction),
-    [flamegraph, profiledTransaction]
+    () =>
+      computeProfileOffset(
+        profileGroup.metadata.timestamp,
+        flamegraph,
+        profiledTransaction
+      ),
+    [flamegraph, profiledTransaction, profileGroup.metadata.timestamp]
   );
 
   const uiFrames = useMemo(() => {
@@ -347,8 +390,12 @@ function Flamegraph(): ReactElement {
     }
     return new UIFrames(
       {
-        slow: profileGroup.measurements?.slow_frame_renders,
-        frozen: profileGroup.measurements?.frozen_frame_renders,
+        slow: convertProfileMeasurementsToUIFrames(
+          profileGroup.measurements?.slow_frame_renders
+        ),
+        frozen: convertProfileMeasurementsToUIFrames(
+          profileGroup.measurements?.frozen_frame_renders
+        ),
       },
       {unit: flamegraph.profile.unit},
       flamegraph.configSpace.withHeight(1)
@@ -373,7 +420,7 @@ function Flamegraph(): ReactElement {
           ...profileGroup.measurements[key]!,
           values: profileGroup.measurements[key]!.values.map(v => {
             return {
-              elapsed_since_start_ns: v.elapsed_since_start_ns,
+              elapsed: v.elapsed_since_start_ns,
               value: fromNanoJoulesToWatts(v.value, 0.1),
             };
           }),
@@ -396,7 +443,7 @@ function Flamegraph(): ReactElement {
       return LOADING_OR_FALLBACK_CPU_CHART;
     }
 
-    const measures: ProfileSeriesMeasurement[] = [];
+    const cpuMeasurements: ProfileSeriesMeasurement[] = [];
 
     for (const key in profileGroup.measurements) {
       if (key.startsWith('cpu_usage')) {
@@ -404,13 +451,24 @@ function Flamegraph(): ReactElement {
           key === 'cpu_usage'
             ? 'Average CPU usage'
             : `CPU Core ${key.replace('cpu_usage_', '')}`;
-        measures.push({...profileGroup.measurements[key]!, name});
+
+        const measurements = profileGroup.measurements[key]!;
+        const values: ProfileSeriesMeasurement['values'] = [];
+
+        for (let i = 0; i < measurements.values.length; i++) {
+          const value = measurements.values[i];
+          values.push({
+            value: value.value,
+            elapsed: value.elapsed_since_start_ns,
+          });
+        }
+        cpuMeasurements.push({name, unit: measurements?.unit, values});
       }
     }
 
     return new FlamegraphChartModel(
       Rect.From(flamegraph.configSpace),
-      measures.length > 0 ? measures : [],
+      cpuMeasurements.length > 0 ? cpuMeasurements : [],
       flamegraphTheme.COLORS.CPU_CHART_COLORS
     );
   }, [profileGroup.measurements, flamegraph.configSpace, flamegraphTheme, hasCPUChart]);
@@ -424,17 +482,39 @@ function Flamegraph(): ReactElement {
 
     const memory_footprint = profileGroup.measurements?.memory_footprint;
     if (memory_footprint) {
+      const values: ProfileSeriesMeasurement['values'] = [];
+
+      for (let i = 0; i < memory_footprint.values.length; i++) {
+        const value = memory_footprint.values[i];
+        values.push({
+          value: value.value,
+          elapsed: value.elapsed_since_start_ns,
+        });
+      }
+
       measures.push({
-        ...memory_footprint!,
+        unit: memory_footprint.unit,
         name: 'Heap Usage',
+        values,
       });
     }
 
     const native_memory_footprint = profileGroup.measurements?.memory_native_footprint;
     if (native_memory_footprint) {
+      const values: ProfileSeriesMeasurement['values'] = [];
+
+      for (let i = 0; i < native_memory_footprint.values.length; i++) {
+        const value = native_memory_footprint.values[i];
+        values.push({
+          value: value.value,
+          elapsed: value.elapsed_since_start_ns,
+        });
+      }
+
       measures.push({
-        ...native_memory_footprint!,
+        unit: native_memory_footprint.unit,
         name: 'Native Heap Usage',
+        values,
       });
     }
 
@@ -768,7 +848,7 @@ function Flamegraph(): ReactElement {
         canvas: spansCanvas,
         model: spanChart,
         options: {
-          inverted: flamegraph.inverted,
+          inverted: false,
           minWidth: spanChart.minSpanDuration,
           barHeight: flamegraphTheme.SIZES.SPANS_BAR_HEIGHT,
           depthOffset: flamegraphTheme.SIZES.SPANS_DEPTH_OFFSET,
@@ -783,7 +863,7 @@ function Flamegraph(): ReactElement {
 
       return newView;
     },
-    [spanChart, spansCanvas, flamegraph.inverted, flamegraphView, flamegraphTheme.SIZES]
+    [spanChart, spansCanvas, flamegraphView, flamegraphTheme.SIZES]
   );
 
   // We want to make sure that the views have the same min zoom levels so that
@@ -1059,10 +1139,10 @@ function Flamegraph(): ReactElement {
       scheduler.off('zoom at span', onZoomIntoSpan);
     };
   }, [
+    scheduler,
     canvasPoolManager,
     flamegraphCanvas,
     flamegraphView,
-    scheduler,
     spansCanvas,
     spansView,
     uiFramesCanvas,
@@ -1156,10 +1236,26 @@ function Flamegraph(): ReactElement {
       return null;
     }
 
-    return new FlamegraphRendererWebGL(flamegraphCanvasRef, flamegraph, flamegraphTheme, {
-      colorCoding,
-      draw_border: true,
-    });
+    const renderer = initializeFlamegraphRenderer(
+      [FlamegraphRendererWebGL, FlamegraphRenderer2D],
+      [
+        flamegraphCanvasRef,
+        flamegraph,
+        flamegraphTheme,
+        {
+          colorCoding,
+          draw_border: true,
+        },
+      ]
+    );
+
+    if (renderer === null) {
+      Sentry.captureException('Failed to initialize a flamegraph renderer');
+      addErrorMessage('Failed to initialize renderer');
+      return null;
+    }
+
+    return renderer;
   }, [colorCoding, flamegraph, flamegraphCanvasRef, flamegraphTheme]);
 
   const getFrameColor = useCallback(
@@ -1190,16 +1286,19 @@ function Flamegraph(): ReactElement {
   // of the frame weights and timing are relative to the entire profile. If there is a user selected
   // root however, all weights are relative to that sub tree.
   const referenceNode = useMemo(
-    () => (selectedRoot ? selectedRoot : flamegraph.root),
-    [selectedRoot, flamegraph.root]
+    () =>
+      flamegraphProfiles.selectedRoot ? flamegraphProfiles.selectedRoot : flamegraph.root,
+    [flamegraphProfiles.selectedRoot, flamegraph.root]
   );
 
-  // In case a user selected root is present, we will display that root + it's entire sub tree.
+  // In case a user selected root is present, we will display that root + its entire sub tree.
   // If no root is selected, we will display the entire sub tree down from the root. We start at
   // root.children because flamegraph.root is a virtual node that we do not want to show in the table.
   const rootNodes = useMemo(() => {
-    return selectedRoot ? [selectedRoot] : flamegraph.root.children;
-  }, [selectedRoot, flamegraph.root]);
+    return flamegraphProfiles.selectedRoot
+      ? [flamegraphProfiles.selectedRoot]
+      : flamegraph.root.children;
+  }, [flamegraphProfiles.selectedRoot, flamegraph.root]);
 
   const onSortingChange: FlamegraphViewSelectMenuProps['onSortingChange'] = useCallback(
     newSorting => {
@@ -1230,7 +1329,7 @@ function Flamegraph(): ReactElement {
   );
 
   useEffect(() => {
-    if (defined(profiles.threadId)) {
+    if (defined(flamegraphProfiles.threadId)) {
       return;
     }
     const threadID =
@@ -1249,7 +1348,7 @@ function Flamegraph(): ReactElement {
             return prevCandidate;
           }
 
-          const graph = new FlamegraphModel(currentProfile, currentProfile.threadId, {
+          const graph = new FlamegraphModel(currentProfile, {
             inverted: false,
             sort: sorting,
             configSpace: undefined,
@@ -1300,7 +1399,7 @@ function Flamegraph(): ReactElement {
         payload: threadID,
       });
     }
-  }, [profileGroup, highlightFrames, profiles.threadId, dispatch, sorting]);
+  }, [profileGroup, highlightFrames, flamegraphProfiles.threadId, dispatch, sorting]);
 
   // A bit unfortunate for now, but the search component accepts a list
   // of model to search through. This will become useful as we  build
@@ -1313,7 +1412,7 @@ function Flamegraph(): ReactElement {
       <FlamegraphToolbar>
         <FlamegraphThreadSelector
           profileGroup={profileGroup}
-          threadId={threadId}
+          threadId={flamegraphProfiles.threadId}
           onThreadIdChange={onThreadIdChange}
         />
         <FlamegraphViewSelectMenu
@@ -1334,6 +1433,7 @@ function Flamegraph(): ReactElement {
         uiFrames={
           hasUIFrames ? (
             <FlamegraphUIFrames
+              status={profiles.type}
               canvasBounds={uiFramesCanvasBounds}
               canvasPoolManager={canvasPoolManager}
               setUIFramesCanvasRef={setUIFramesCanvasRef}
@@ -1347,6 +1447,8 @@ function Flamegraph(): ReactElement {
         batteryChart={
           hasBatteryChart ? (
             <FlamegraphChart
+              configViewUnit={flamegraph.profile.unit}
+              status={profiles.type}
               chartCanvasRef={batteryChartCanvasRef}
               chartCanvas={batteryChartCanvas}
               setChartCanvasRef={setBatteryChartCanvasRef}
@@ -1367,6 +1469,8 @@ function Flamegraph(): ReactElement {
         memoryChart={
           hasMemoryChart ? (
             <FlamegraphChart
+              configViewUnit={flamegraph.profile.unit}
+              status={profiles.type}
               chartCanvasRef={memoryChartCanvasRef}
               chartCanvas={memoryChartCanvas}
               setChartCanvasRef={setMemoryChartCanvasRef}
@@ -1380,10 +1484,10 @@ function Flamegraph(): ReactElement {
                       'Upgrade to version 8.9.6 of sentry-cocoa SDK to enable memory usage collection'
                     )
                   : profileGroup.metadata.platform === 'node'
-                  ? t(
-                      'Upgrade to version 1.2.0 of @sentry/profiling-node to enable memory usage collection'
-                    )
-                  : ''
+                    ? t(
+                        'Upgrade to version 1.2.0 of @sentry/profiling-node to enable memory usage collection'
+                      )
+                    : ''
               }
             />
           ) : null
@@ -1391,6 +1495,8 @@ function Flamegraph(): ReactElement {
         cpuChart={
           hasCPUChart ? (
             <FlamegraphChart
+              configViewUnit={flamegraph.profile.unit}
+              status={profiles.type}
               chartCanvasRef={cpuChartCanvasRef}
               chartCanvas={cpuChartCanvas}
               setChartCanvasRef={setCpuChartCanvasRef}
@@ -1404,15 +1510,15 @@ function Flamegraph(): ReactElement {
                       'Upgrade to version 8.9.6 of sentry-cocoa SDK to enable CPU usage collection'
                     )
                   : profileGroup.metadata.platform === 'node'
-                  ? t(
-                      'Upgrade to version 1.2.0 of @sentry/profiling-node to enable CPU usage collection'
-                    )
-                  : ''
+                    ? t(
+                        'Upgrade to version 1.2.0 of @sentry/profiling-node to enable CPU usage collection'
+                      )
+                    : ''
               }
             />
           ) : null
         }
-        spansTreeDepth={spanChart?.depth}
+        spansTreeDepth={spanChart?.depth ?? null}
         spans={
           spanChart ? (
             <FlamegraphSpans
@@ -1423,6 +1529,7 @@ function Flamegraph(): ReactElement {
               setSpansCanvasRef={setSpansCanvasRef}
               canvasPoolManager={canvasPoolManager}
               spansView={spansView}
+              spansRequestState={profiledTransaction}
             />
           ) : null
         }
@@ -1440,8 +1547,9 @@ function Flamegraph(): ReactElement {
         }
         flamegraph={
           <ProfileDragDropImport onImport={onImport}>
-            <FlamegraphWarnings flamegraph={flamegraph} />
+            <FlamegraphWarnings flamegraph={flamegraph} requestState={profiles} />
             <FlamegraphZoomView
+              profileGroup={profileGroup}
               canvasBounds={flamegraphCanvasBounds}
               canvasPoolManager={canvasPoolManager}
               flamegraph={flamegraph}
@@ -1457,6 +1565,7 @@ function Flamegraph(): ReactElement {
         }
         flamegraphDrawer={
           <FlamegraphDrawer
+            profileTransaction={profiledTransaction}
             profileGroup={profileGroup}
             getFrameColor={getFrameColor}
             referenceNode={referenceNode}

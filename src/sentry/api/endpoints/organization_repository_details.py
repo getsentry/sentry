@@ -1,8 +1,13 @@
+from __future__ import annotations
+
+from typing import Any
+
 from django.db import router, transaction
 from rest_framework import serializers
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import OrganizationEndpoint, OrganizationIntegrationsPermission
@@ -10,11 +15,11 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.fields.empty_integer import EmptyIntegerField
 from sentry.api.serializers import serialize
 from sentry.constants import ObjectStatus
+from sentry.hybridcloud.rpc import coerce_id_from
+from sentry.integrations.services.integration import integration_service
 from sentry.models.commit import Commit
 from sentry.models.repository import Repository
 from sentry.models.scheduledeletion import RegionScheduledDeletion
-from sentry.services.hybrid_cloud import coerce_id_from
-from sentry.services.hybrid_cloud.integration import integration_service
 from sentry.tasks.repository import repository_cascade_delete_on_hide
 
 
@@ -34,6 +39,7 @@ class RepositorySerializer(serializers.Serializer):
 
 @region_silo_endpoint
 class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,
@@ -58,7 +64,7 @@ class OrganizationRepositoryDetailsEndpoint(OrganizationEndpoint):
             return Response(serializer.errors, status=400)
 
         result = serializer.validated_data
-        update_kwargs = {}
+        update_kwargs: dict[str, Any] = {}
         if result.get("status"):
             if result["status"] in ("visible", "active"):
                 update_kwargs["status"] = ObjectStatus.ACTIVE

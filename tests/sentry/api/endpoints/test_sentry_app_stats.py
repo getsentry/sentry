@@ -2,10 +2,9 @@ from django.urls import reverse
 
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.utils.dates import to_timestamp
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GetSentryAppStatsTest(APITestCase):
     def setUp(self):
         self.superuser = self.create_user(email="superuser@example.com", is_superuser=True)
@@ -43,11 +42,9 @@ class GetSentryAppStatsTest(APITestCase):
         assert response.data["totalInstalls"] == 1
         assert response.data["totalUninstalls"] == 0
         install_epoch = int(
-            to_timestamp(
-                self.unowned_published_app_install.date_added.replace(
-                    microsecond=0, second=0, minute=0
-                )
-            )
+            self.unowned_published_app_install.date_added.replace(
+                microsecond=0, second=0, minute=0
+            ).timestamp()
         )
         assert (install_epoch, 1) in response.data["installStats"]
 
@@ -69,9 +66,9 @@ class GetSentryAppStatsTest(APITestCase):
         assert response.data["totalInstalls"] == 1
         assert response.data["totalUninstalls"] == 0
         install_epoch = int(
-            to_timestamp(
-                self.published_app_install.date_added.replace(microsecond=0, second=0, minute=0)
-            )
+            self.published_app_install.date_added.replace(
+                microsecond=0, second=0, minute=0
+            ).timestamp()
         )
         assert (install_epoch, 1) in response.data["installStats"]
 

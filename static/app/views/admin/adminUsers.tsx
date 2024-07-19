@@ -1,5 +1,5 @@
-import {RouteComponentProps} from 'react-router';
-import moment from 'moment';
+import type {RouteComponentProps} from 'react-router';
+import moment from 'moment-timezone';
 
 import Link from 'sentry/components/links/link';
 import ResultGrid from 'sentry/components/resultGrid';

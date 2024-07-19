@@ -76,9 +76,9 @@ class RequestTimingMiddleware(MiddlewareMixin):
                 "method": request.method,
                 "status_code": status_code,
                 "ui_request": is_frontend_request(request),
-                "rate_limit_type": getattr(rate_limit_type, "value", None)
-                if rate_limit_type
-                else None,
+                "rate_limit_type": (
+                    getattr(rate_limit_type, "value", None) if rate_limit_type else None
+                ),
             }
         )
         metrics.incr("view.response", instance=view_path, tags=tags, skip_internal=False)

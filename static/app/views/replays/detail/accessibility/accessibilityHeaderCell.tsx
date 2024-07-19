@@ -1,9 +1,10 @@
-import {ComponentProps, CSSProperties, forwardRef, ReactNode} from 'react';
+import type {ComponentProps, CSSProperties, ReactNode} from 'react';
+import {forwardRef} from 'react';
 
 import HeaderCell from 'sentry/components/replays/virtualizedGrid/headerCell';
-import {Tooltip} from 'sentry/components/tooltip';
+import type {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
-import useSortAccessibility from 'sentry/views/replays/detail/accessibility/useSortAccessibility';
+import type useSortAccessibility from 'sentry/views/replays/detail/accessibility/useSortAccessibility';
 
 type SortConfig = ReturnType<typeof useSortAccessibility>['sortConfig'];
 type Props = {
@@ -27,8 +28,6 @@ const COLUMNS: {
     label: t('Type'),
   },
   {field: 'element', label: t('Element')},
-
-  {field: 'timestampMs', label: t('Timestamp')},
 ];
 
 export const COLUMN_COUNT = COLUMNS.length;

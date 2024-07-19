@@ -1,9 +1,10 @@
 import re
+from collections.abc import Callable, Sequence
 from dataclasses import dataclass
-from typing import Any, Callable, Dict, Optional, Sequence, TypedDict, Union
-from urllib.parse import urlparse
+from typing import Any, NotRequired, Optional, TypedDict
 
 from sentry.spans.grouping.utils import Hash, parse_fingerprint_var
+from sentry.utils import urls
 
 
 class Span(TypedDict):
@@ -14,10 +15,11 @@ class Span(TypedDict):
     timestamp: float
     same_process_as_parent: bool
     op: str
-    description: Optional[str]
-    fingerprint: Optional[Sequence[str]]
-    tags: Optional[Any]
-    data: Optional[Any]
+    description: str | None
+    fingerprint: Sequence[str] | None
+    tags: Any | None
+    data: Any | None
+    hash: NotRequired[str]
 
 
 # A callable strategy is a callable that when given a span, it tries to
@@ -34,7 +36,7 @@ class SpanGroupingStrategy:
     # The strategies to use with the default fingerprint
     strategies: Sequence[CallableStrategy]
 
-    def execute(self, event_data: Any) -> Dict[str, str]:
+    def execute(self, event_data: Any) -> dict[str, str]:
         spans = event_data.get("spans", [])
         span_groups = {span["span_id"]: self.get_span_group(span) for span in spans}
 
@@ -84,7 +86,7 @@ class SpanGroupingStrategy:
         return span_group
 
 
-def span_op(op_name: Union[str, Sequence[str]]) -> Callable[[CallableStrategy], CallableStrategy]:
+def span_op(op_name: str | Sequence[str]) -> Callable[[CallableStrategy], CallableStrategy]:
     permitted_ops = [op_name] if isinstance(op_name, str) else op_name
 
     def wrapped(fn: CallableStrategy) -> CallableStrategy:
@@ -114,7 +116,7 @@ IN_CONDITION_PATTERN = re.compile(r" IN \(%s(\s*,\s*%s)*\)")
         "db.sql.transaction",
     ]
 )
-def normalized_db_span_in_condition_strategy(span: Span) -> Optional[Sequence[str]]:
+def normalized_db_span_in_condition_strategy(span: Span) -> Sequence[str] | None:
     """For a `db` query span, the `IN` condition contains the same number of
     elements on the right hand side as the raw query. This results in identical
     queries that have different number of elements on the right hand side to be
@@ -142,7 +144,7 @@ LOOSE_IN_CONDITION_PATTERN = re.compile(r" IN \(((%s|\$?\d+|\?)(\s*,\s*(%s|\$?\d
         "db.sql.transaction",
     ]
 )
-def loose_normalized_db_span_in_condition_strategy(span: Span) -> Optional[Sequence[str]]:
+def loose_normalized_db_span_in_condition_strategy(span: Span) -> Sequence[str] | None:
     """This is identical to the above
     `normalized_db_span_in_condition_strategy` but it uses a looser regular
     expression that catches database spans that come from Laravel and Rails"""
@@ -180,7 +182,7 @@ DB_SAVEPOINT_PATTERN = re.compile(r'SAVEPOINT (?:(?:"[^"]+")|(?:`[^`]+`)|(?:[a-z
         "db.sql.transaction",
     ]
 )
-def parametrize_db_span_strategy(span: Span) -> Optional[Sequence[str]]:
+def parametrize_db_span_strategy(span: Span) -> Sequence[str] | None:
     """First, apply the same IN-condition normalization as
     loose_normalized_db_span_condition_strategy. Then, replace all numeric,
     string, and boolean parameters with placeholders so that queries that only
@@ -213,7 +215,7 @@ HTTP_METHODS = {
 
 
 @span_op("http.client")
-def remove_http_client_query_string_strategy(span: Span) -> Optional[Sequence[str]]:
+def remove_http_client_query_string_strategy(span: Span) -> Sequence[str] | None:
     """For a `http.client` span, the fingerprint to use is
 
     - The http method
@@ -247,12 +249,12 @@ def remove_http_client_query_string_strategy(span: Span) -> Optional[Sequence[st
     if method not in HTTP_METHODS:
         return None
 
-    url = urlparse(url_str)
-    return [method, url.scheme, url.netloc, url.path]
+    scheme, netloc, path, _ = urls.urlsplit_best_effort(url_str)
+    return [method, scheme, netloc, path]
 
 
 @span_op(["redis", "db.redis"])
-def remove_redis_command_arguments_strategy(span: Span) -> Optional[Sequence[str]]:
+def remove_redis_command_arguments_strategy(span: Span) -> Sequence[str] | None:
     """For a `redis` span, the fingerprint to use is simply the redis command name.
     The arguments to the redis command is highly variable and therefore not used as
     a part of the fingerprint.

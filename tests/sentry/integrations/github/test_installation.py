@@ -12,7 +12,7 @@ from sentry.testutils.helpers.datetime import before_now, freeze_time
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class InstallationEndpointTest(APITestCase):
     base_url = "https://api.github.com"
 
@@ -23,7 +23,7 @@ class InstallationEndpointTest(APITestCase):
         options.set("github-app.webhook-secret", self.secret)
 
     @responses.activate
-    @patch("sentry.integrations.github.client.get_jwt", return_value=b"jwt_token_1")
+    @patch("sentry.integrations.github.client.get_jwt", return_value="jwt_token_1")
     def test_installation_endpoint(self, get_jwt):
         # add installation via GitHub webhook
         responses.add(

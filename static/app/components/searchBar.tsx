@@ -2,7 +2,8 @@ import {useCallback, useEffect, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import {InputGroup, InputProps} from 'sentry/components/inputGroup';
+import type {InputProps} from 'sentry/components/inputGroup';
+import {InputGroup} from 'sentry/components/inputGroup';
 import {IconSearch} from 'sentry/icons';
 import {IconClose} from 'sentry/icons/iconClose';
 import {t} from 'sentry/locale';

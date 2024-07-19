@@ -2,22 +2,24 @@ from __future__ import annotations
 
 import re
 from base64 import b64encode
-from datetime import datetime, timedelta, timezone
+from datetime import timedelta
 from typing import Any
 from unittest.mock import patch
 
+import orjson
 import pytest
 import responses
 from dateutil.parser import parse as parse_date
 from django.core import mail
 from django.db import router
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 from rest_framework import status
 
 from sentry import audit_log
 from sentry import options as sentry_options
 from sentry.api.endpoints.organization_details import ERR_NO_2FA, ERR_SSO_ENABLED
 from sentry.api.serializers.models.organization import TrustedRelaySerializer
+from sentry.api.utils import generate_region_url
 from sentry.auth.authenticators.totp import TotpInterface
 from sentry.constants import RESERVED_ORGANIZATION_SLUGS, ObjectStatus
 from sentry.models.auditlogentry import AuditLogEntry
@@ -25,6 +27,7 @@ from sentry.models.authenticator import Authenticator
 from sentry.models.authprovider import AuthProvider
 from sentry.models.avatars.organization_avatar import OrganizationAvatar
 from sentry.models.deletedorganization import DeletedOrganization
+from sentry.models.options import ControlOption
 from sentry.models.options.organization_option import OrganizationOption
 from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmapping import OrganizationMapping
@@ -32,12 +35,12 @@ from sentry.models.organizationslugreservation import OrganizationSlugReservatio
 from sentry.models.scheduledeletion import RegionScheduledDeletion
 from sentry.models.user import User
 from sentry.signals import project_created
-from sentry.silo import SiloMode, unguarded_write
+from sentry.silo.safety import unguarded_write
 from sentry.testutils.cases import APITestCase, TwoFactorAPITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode_of, create_test_regions, region_silo_test
 from sentry.testutils.skips import requires_snuba
-from sentry.utils import json
 
 pytestmark = [requires_snuba]
 
@@ -77,47 +80,59 @@ class MockAccess:
         return False
 
 
-@region_silo_test(stable=True)
+@region_silo_test(regions=create_test_regions("us"), include_monolith_run=True)
 class OrganizationDetailsTest(OrganizationDetailsTestBase):
     def test_simple(self):
-        response = self.get_success_response(self.organization.slug)
-
-        assert response.data["slug"] == self.organization.slug
-        assert response.data["links"] == {
-            "organizationUrl": f"http://{self.organization.slug}.testserver",
-            "regionUrl": "http://us.testserver",
-        }
-        assert response.data["id"] == str(self.organization.id)
-        assert response.data["role"] == "owner"
-        assert response.data["orgRole"] == "owner"
-        assert len(response.data["teams"]) == 0
-        assert len(response.data["projects"]) == 0
-        assert "customer-domains" not in response.data["features"]
-
-    def test_simple_customer_domain(self):
-        HTTP_HOST = f"{self.organization.slug}.testserver"
         response = self.get_success_response(
-            self.organization.slug, extra_headers={"HTTP_HOST": HTTP_HOST}
+            self.organization.slug, qs_params={"include_feature_flags": 1}
         )
 
         assert response.data["slug"] == self.organization.slug
         assert response.data["links"] == {
             "organizationUrl": f"http://{self.organization.slug}.testserver",
-            "regionUrl": "http://us.testserver",
+            "regionUrl": generate_region_url(),
         }
         assert response.data["id"] == str(self.organization.id)
         assert response.data["role"] == "owner"
         assert response.data["orgRole"] == "owner"
         assert len(response.data["teams"]) == 0
         assert len(response.data["projects"]) == 0
-        assert "customer-domains" in response.data["features"]
 
-        with self.feature({"organizations:customer-domains": False}):
+    def test_include_feature_flag_query_param(self):
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"include_feature_flags": 1}
+        )
+        assert "features" in response.data
+
+        response = self.get_success_response(self.organization.slug)
+        assert "features" not in response.data
+
+    def test_simple_customer_domain(self):
+        HTTP_HOST = f"{self.organization.slug}.testserver"
+        response = self.get_success_response(
+            self.organization.slug,
+            extra_headers={"HTTP_HOST": HTTP_HOST},
+            qs_params={"include_feature_flags": 1},
+        )
+
+        assert response.data["slug"] == self.organization.slug
+        assert response.data["links"] == {
+            "organizationUrl": f"http://{self.organization.slug}.testserver",
+            "regionUrl": generate_region_url(),
+        }
+        assert response.data["id"] == str(self.organization.id)
+        assert response.data["role"] == "owner"
+        assert response.data["orgRole"] == "owner"
+        assert len(response.data["teams"]) == 0
+        assert len(response.data["projects"]) == 0
+
+        with self.feature({"system:multi-region": False}):
             HTTP_HOST = f"{self.organization.slug}.testserver"
             response = self.get_success_response(
-                self.organization.slug, extra_headers={"HTTP_HOST": HTTP_HOST}
+                self.organization.slug,
+                extra_headers={"HTTP_HOST": HTTP_HOST},
+                qs_params={"include_feature_flags": 1},
             )
-            assert "customer-domains" in response.data["features"]
 
     def test_org_mismatch_customer_domain(self):
         HTTP_HOST = f"{self.organization.slug}-apples.testserver"
@@ -152,7 +167,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         )
 
         # make sure options are not cached the first time to get predictable number of database queries
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(ControlOption):
             sentry_options.delete("system.rate-limit")
             sentry_options.delete("store.symbolicate-event-lpq-always")
             sentry_options.delete("store.symbolicate-event-lpq-never")
@@ -194,15 +209,14 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
             assert "orgRoleList" not in response.data
 
     def test_as_superuser(self):
-        self.user = self.create_user("super@example.org", is_superuser=True)
-        org = self.create_organization(owner=self.user)
-        team = self.create_team(name="appy", organization=org)
+        self.superuser = self.create_user(is_superuser=True)
+        team = self.create_team(name="appy", organization=self.organization)
 
-        self.login_as(user=self.user)
+        self.login_as(user=self.superuser, superuser=True)
         for i in range(5):
-            self.create_project(organization=org, teams=[team])
+            self.create_project(organization=self.organization, teams=[team])
 
-        response = self.get_success_response(org.slug)
+        response = self.get_success_response(self.organization.slug)
         assert len(response.data["projects"]) == 5
         assert len(response.data["teams"]) == 1
 
@@ -221,7 +235,7 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert self.get_onboard_tasks(response.data["onboardingTasks"], "create_project")
 
     def test_trusted_relays_info(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         trusted_relays = [
@@ -240,9 +254,9 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         data = {"trustedRelays": trusted_relays}
 
         with self.feature("organizations:relay"):
-            start_time = datetime.utcnow().replace(tzinfo=timezone.utc)
+            start_time = timezone.now()
             self.get_success_response(self.organization.slug, method="put", **data)
-            end_time = datetime.utcnow().replace(tzinfo=timezone.utc)
+            end_time = timezone.now()
             response = self.get_success_response(self.organization.slug)
 
         response_data = response.data.get("trustedRelays")
@@ -265,48 +279,48 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         response = self.get_success_response(self.organization.slug)
         assert response.data["hasAuthProvider"] is False
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuthProvider):
             AuthProvider.objects.create(organization_id=self.organization.id, provider="dummy")
 
         response = self.get_success_response(self.organization.slug)
         assert response.data["hasAuthProvider"] is True
 
     def test_is_dynamically_sampled(self):
-        self.user = self.create_user("super@example.org", is_superuser=True)
-        org = self.create_organization(owner=self.user)
-        self.login_as(user=self.user)
-
         with self.feature({"organizations:dynamic-sampling": True}):
             with patch(
-                "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
                 return_value=0.5,
             ):
-                response = self.get_success_response(org.slug)
+                response = self.get_success_response(self.organization.slug)
                 assert response.data["isDynamicallySampled"]
+                assert response.data["planSampleRate"] == 0.5
 
         with self.feature({"organizations:dynamic-sampling": True}):
             with patch(
-                "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
                 return_value=1.0,
             ):
-                response = self.get_success_response(org.slug)
+                response = self.get_success_response(self.organization.slug)
                 assert not response.data["isDynamicallySampled"]
+                assert response.data["planSampleRate"] == 1.0
 
         with self.feature({"organizations:dynamic-sampling": True}):
             with patch(
-                "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
                 return_value=None,
             ):
-                response = self.get_success_response(org.slug)
+                response = self.get_success_response(self.organization.slug)
                 assert not response.data["isDynamicallySampled"]
+                assert "planSampleRate" not in response.data
 
         with self.feature({"organizations:dynamic-sampling": False}):
             with patch(
-                "sentry.dynamic_sampling.rules.base.quotas.get_blended_sample_rate",
+                "sentry.dynamic_sampling.rules.base.quotas.backend.get_blended_sample_rate",
                 return_value=None,
             ):
-                response = self.get_success_response(org.slug)
+                response = self.get_success_response(self.organization.slug)
                 assert not response.data["isDynamicallySampled"]
+                assert "planSampleRate" not in response.data
 
     def test_sensitive_fields_too_long(self):
         value = 1000 * ["0123456789"] + ["1"]
@@ -326,18 +340,12 @@ class OrganizationDetailsTest(OrganizationDetailsTestBase):
         assert "avatar" in resp.data
         assert resp.data["avatar"]["avatarType"] == "upload"
         assert resp.data["avatar"]["avatarUuid"] == "abc123"
-        if SiloMode.get_current_mode() == SiloMode.REGION:
-            assert (
-                resp.data["avatar"]["avatarUrl"]
-                == "http://us.testserver/organization-avatar/abc123/"
-            )
-        else:
-            assert (
-                resp.data["avatar"]["avatarUrl"] == "http://testserver/organization-avatar/abc123/"
-            )
+        assert (
+            resp.data["avatar"]["avatarUrl"]
+            == generate_region_url() + "/organization-avatar/abc123/"
+        )
 
 
-@region_silo_test(stable=True)
 class OrganizationUpdateTest(OrganizationDetailsTestBase):
     method = "put"
 
@@ -347,6 +355,15 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         org = Organization.objects.get(id=self.organization.id)
         assert org.name == "hello world"
         assert org.slug == "foobar"
+
+    def test_include_feature_flag_query_param(self):
+        response = self.get_success_response(
+            self.organization.slug, qs_params={"include_feature_flags": 1}
+        )
+        assert "features" in response.data
+
+        response = self.get_success_response(self.organization.slug)
+        assert "features" not in response.data
 
     def test_dupe_slug(self):
         org = self.create_organization(owner=self.user, slug="duplicate")
@@ -392,9 +409,11 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         "sentry.integrations.github.GitHubAppsClient.get_repositories",
         return_value=[{"name": "cool-repo", "full_name": "testgit/cool-repo"}],
     )
+    @with_feature("organizations:metrics-extrapolation")
+    @with_feature("organizations:codecov-integration")
     def test_various_options(self, mock_get_repositories):
         initial = self.organization.get_audit_log_data()
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
         self.create_integration(
             organization=self.organization, provider="github", external_id="extid"
@@ -427,11 +446,19 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             "defaultRole": "owner",
             "require2FA": True,
             "allowJoinRequests": False,
+            "aggregatedDataConsent": True,
+            "genAIConsent": True,
+            "issueAlertsThreadFlag": False,
+            "metricAlertsThreadFlag": False,
+            "metricsActivatePercentiles": False,
+            "metricsActivateLastForGauges": True,
+            "extrapolateMetrics": True,
+            "uptimeAutodetection": False,
         }
 
         # needed to set require2FA
         interface = TotpInterface()
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Authenticator):
             interface.enroll(self.user)
             assert self.user.has_2fa()
 
@@ -460,9 +487,13 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert options.get("sentry:scrape_javascript") is False
         assert options.get("sentry:join_requests") is False
         assert options.get("sentry:events_member_admin") is False
+        assert options.get("sentry:metrics_activate_percentiles") is False
+        assert options.get("sentry:metrics_activate_last_for_gauges") is True
+        assert options.get("sentry:extrapolate_metrics") is True
+        assert options.get("sentry:uptime_autodetection") is False
 
         # log created
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuditLogEntry):
             log = AuditLogEntry.objects.get(organization_id=org.id)
         assert audit_log.get(log.event).api_name == "org.edit"
         # org fields & flags
@@ -488,12 +519,27 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert "to {}".format(data["githubPRBot"]) in log.data["githubPRBot"]
         assert "to {}".format(data["githubOpenPRBot"]) in log.data["githubOpenPRBot"]
         assert "to {}".format(data["githubNudgeInvite"]) in log.data["githubNudgeInvite"]
+        assert "to {}".format(data["aggregatedDataConsent"]) in log.data["aggregatedDataConsent"]
+        assert "to {}".format(data["genAIConsent"]) in log.data["genAIConsent"]
+        assert "to {}".format(data["issueAlertsThreadFlag"]) in log.data["issueAlertsThreadFlag"]
+        assert "to {}".format(data["metricAlertsThreadFlag"]) in log.data["metricAlertsThreadFlag"]
+        assert (
+            "to {}".format(data["metricsActivatePercentiles"])
+            in log.data["metricsActivatePercentiles"]
+        )
+        assert (
+            "to {}".format(data["metricsActivateLastForGauges"])
+            in log.data["metricsActivateLastForGauges"]
+        )
+        assert "to {}".format(data["extrapolateMetrics"]) in log.data["extrapolateMetrics"]
+        assert "to {}".format(data["uptimeAutodetection"]) in log.data["uptimeAutodetection"]
 
     @responses.activate
     @patch(
         "sentry.integrations.github.GitHubAppsClient.get_repositories",
         return_value=[{"name": "abc", "full_name": "testgit/abc"}],
     )
+    @with_feature("organizations:codecov-integration")
     def test_setting_codecov_without_integration_forbidden(self, mock_get_repositories):
         responses.add(
             responses.GET,
@@ -502,6 +548,10 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         )
         data = {"codecovAccess": True}
         self.get_error_response(self.organization.slug, status_code=400, **data)
+
+    def test_setting_codecov_without_paid_plan_forbidden(self):
+        data = {"codecovAccess": True}
+        self.get_error_response(self.organization.slug, status_code=403, **data)
 
     def test_setting_trusted_relays_forbidden(self):
         data = {
@@ -522,7 +572,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         Try to put the same key twice and check we get an error
         """
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         trusted_relays = [
@@ -550,12 +600,12 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
 
         response_data = response.data.get("trustedRelays")
         assert response_data is not None
-        resp_str = json.dumps(response_data)
+        resp_str = orjson.dumps(response_data).decode()
         # check that we have the duplicate key specified somewhere in the error message
         assert resp_str.find(_VALID_RELAY_KEYS[0]) >= 0
 
     def test_creating_trusted_relays(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         trusted_relays = [
@@ -574,9 +624,9 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         data = {"trustedRelays": trusted_relays}
 
         with self.feature("organizations:relay"), outbox_runner():
-            start_time = datetime.utcnow().replace(tzinfo=timezone.utc)
+            start_time = timezone.now()
             response = self.get_success_response(self.organization.slug, **data)
-            end_time = datetime.utcnow().replace(tzinfo=timezone.utc)
+            end_time = timezone.now()
             response_data = response.data.get("trustedRelays")
 
         actual = get_trusted_relay_value(self.organization)
@@ -599,7 +649,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             assert start_time < created < end_time
             assert response_data[i]["created"] == actual[i]["created"]
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuditLogEntry):
             log = AuditLogEntry.objects.get(organization_id=self.organization.id)
         trusted_relay_log = log.data["trustedRelays"]
 
@@ -611,7 +661,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         assert trusted_relays[1]["publicKey"] in trusted_relay_log
 
     def test_modifying_trusted_relays(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         initial_trusted_relays = [
@@ -658,11 +708,11 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         changed_settings = {"trustedRelays": modified_trusted_relays}
 
         with self.feature("organizations:relay"), outbox_runner():
-            start_time = datetime.utcnow().replace(tzinfo=timezone.utc)
+            start_time = timezone.now()
             self.get_success_response(self.organization.slug, **initial_settings)
-            after_initial = datetime.utcnow().replace(tzinfo=timezone.utc)
+            after_initial = timezone.now()
             self.get_success_response(self.organization.slug, **changed_settings)
-            after_final = datetime.utcnow().replace(tzinfo=timezone.utc)
+            after_final = timezone.now()
 
         actual = get_trusted_relay_value(self.organization)
         assert len(actual) == len(modified_trusted_relays)
@@ -690,7 +740,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
                 assert after_initial < last_modified < after_final
 
         # we should have 2 log messages from the two calls
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuditLogEntry):
             (first_log, second_log) = AuditLogEntry.objects.filter(
                 organization_id=self.organization.id
             )
@@ -711,7 +761,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
             assert modified_trusted_relays[i]["publicKey"] in modif_log
 
     def test_deleting_trusted_relays(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuditLogEntry):
             AuditLogEntry.objects.filter(organization_id=self.organization.id).delete()
 
         initial_trusted_relays = [
@@ -852,7 +902,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         org = Organization.objects.get(id=organization_id)
         assert org.name == "SaNtRy"
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(OrganizationMapping):
             assert OrganizationMapping.objects.filter(
                 organization_id=organization_id, name="SaNtRy"
             ).exists()
@@ -861,7 +911,7 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         with outbox_runner():
             pass
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(OrganizationMapping, OrganizationSlugReservation):
             organization_mapping = OrganizationMapping.objects.get(
                 organization_id=self.organization.id,
             )
@@ -885,8 +935,23 @@ class OrganizationUpdateTest(OrganizationDetailsTestBase):
         self.create_organization(slug="taken")
         self.get_error_response(self.organization.slug, slug="taken", status_code=400)
 
+    @with_feature("organizations:metrics-extrapolation")
+    def test_extrapolate_metrics_with_permission(self):
+        # test when the value is set to False
+        resp = self.get_success_response(self.organization.slug, **{"extrapolateMetrics": False})
+        assert self.organization.get_option("sentry:extrapolate_metrics") is False
+        assert b"extrapolateMetrics" in resp.content
 
-@region_silo_test(stable=True)
+        # test when the value is set to True
+        resp = self.get_success_response(self.organization.slug, **{"extrapolateMetrics": True})
+        assert self.organization.get_option("sentry:extrapolate_metrics") is True
+        assert b"extrapolateMetrics" in resp.content
+
+    def test_extrapolate_metrics_without_permission(self):
+        resp = self.get_response(self.organization.slug, **{"extrapolateMetrics": False})
+        assert resp.status_code == 400
+
+
 class OrganizationDeleteTest(OrganizationDetailsTestBase):
     method = "delete"
 
@@ -906,7 +971,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
 
         schedule = RegionScheduledDeletion.objects.get(object_id=org.id, model_name="Organization")
         # Delay is 24 hours but to avoid wobbling microseconds we compare with 23 hours.
-        assert schedule.date_scheduled >= django_timezone.now() + timedelta(hours=23)
+        assert schedule.date_scheduled >= timezone.now() + timedelta(hours=23)
 
         # Make sure we've emailed all owners
         assert len(mail.outbox) == len(owners)
@@ -924,7 +989,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         with outbox_runner():
             pass
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuditLogEntry):
             assert AuditLogEntry.objects.filter(
                 organization_id=self.organization.id, actor=self.user.id
             ).exists()
@@ -963,7 +1028,7 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         assert scheduled_deletions.count() == 1
 
     def test_update_org_mapping_on_deletion(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(OrganizationMapping):
             org_mapping = OrganizationMapping.objects.get(organization_id=self.organization.id)
         assert org_mapping.status == OrganizationStatus.ACTIVE
         with self.tasks(), outbox_runner():
@@ -996,7 +1061,6 @@ class OrganizationDeleteTest(OrganizationDetailsTestBase):
         self.get_error_response(org.slug, status_code=400)
 
 
-@region_silo_test(stable=True)
 class OrganizationSettings2FATest(TwoFactorAPITestCase):
     endpoint = "sentry-api-0-organization-details"
 
@@ -1017,11 +1081,11 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
         # 2FA enrolled user
         self.has_2fa = self.create_user()
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Authenticator):
             TotpInterface().enroll(self.has_2fa)
         self.create_member(organization=self.organization, user=self.has_2fa, role="manager")
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Authenticator):
             assert self.has_2fa.has_2fa()
 
     def assert_2fa_email_equal(self, outbox, expected):
@@ -1039,7 +1103,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         with outbox_runner():
             pass
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuditLogEntry):
             audit_log_entry_query = AuditLogEntry.objects.filter(
                 actor_id=acting_user.id,
                 organization_id=organization.id,
@@ -1061,37 +1125,37 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         assert audit_log_entry.ip_address == "127.0.0.1"
 
     def test_cannot_enforce_2fa_without_2fa_enabled(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Authenticator):
             assert not self.owner.has_2fa()
         self.assert_cannot_enable_org_2fa(self.organization, self.owner, 400, ERR_NO_2FA)
 
     def test_cannot_enforce_2fa_with_sso_enabled(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuthProvider):
             auth_provider = AuthProvider.objects.create(
                 provider="github", organization_id=self.organization.id
             )
         # bypass SSO login
         auth_provider.flags.allow_unlinked = True
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuthProvider):
             auth_provider.save()
 
         self.assert_cannot_enable_org_2fa(self.organization, self.has_2fa, 400, ERR_SSO_ENABLED)
 
     def test_cannot_enforce_2fa_with_saml_enabled(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuthProvider):
             auth_provider = AuthProvider.objects.create(
                 provider="saml2", organization_id=self.organization.id
             )
         # bypass SSO login
         auth_provider.flags.allow_unlinked = True
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(AuthProvider):
             auth_provider.save()
 
         self.assert_cannot_enable_org_2fa(self.organization, self.has_2fa, 400, ERR_SSO_ENABLED)
 
     def test_owner_can_set_2fa_single_member(self):
         org = self.create_organization(owner=self.owner)
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Authenticator):
             TotpInterface().enroll(self.owner)
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.assert_can_enable_org_2fa(org, self.owner)
@@ -1102,7 +1166,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         self.create_member(organization=org, user=self.manager, role="manager")
 
         self.assert_cannot_enable_org_2fa(org, self.manager, 400)
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Authenticator):
             TotpInterface().enroll(self.manager)
         with self.options({"system.url-prefix": "http://example.com"}), self.tasks():
             self.assert_can_enable_org_2fa(org, self.manager)
@@ -1114,13 +1178,13 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
 
     def test_members_cannot_set_2fa(self):
         self.assert_cannot_enable_org_2fa(self.organization, self.org_user, 403)
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Authenticator):
             TotpInterface().enroll(self.org_user)
         self.assert_cannot_enable_org_2fa(self.organization, self.org_user, 403)
 
     def test_owner_can_set_org_2fa(self):
         org = self.create_organization(owner=self.owner)
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Authenticator):
             TotpInterface().enroll(self.owner)
             user_emails_without_2fa = self.add_2fa_users_to_org(org)
 
@@ -1129,7 +1193,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         self.assert_2fa_email_equal(mail.outbox, user_emails_without_2fa)
 
         for user_email in user_emails_without_2fa:
-            with assume_test_silo_mode(SiloMode.CONTROL):
+            with assume_test_silo_mode_of(User):
                 user = User.objects.get(username=user_email)
 
             self.assert_has_correct_audit_log(
@@ -1148,7 +1212,7 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         self.login_as(self.no_2fa_user)
         self.get_error_response(self.org_2fa.slug, status_code=401)
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Authenticator):
             TotpInterface().enroll(self.no_2fa_user)
         self.get_success_response(self.org_2fa.slug)
 
@@ -1158,24 +1222,24 @@ class OrganizationSettings2FATest(TwoFactorAPITestCase):
         self.login_as(new_user)
         self.get_error_response(self.org_2fa.slug, status_code=401)
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Authenticator):
             TotpInterface().enroll(new_user)
         self.get_success_response(self.org_2fa.slug)
 
     def test_member_disable_all_2fa_blocked(self):
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Authenticator):
             TotpInterface().enroll(self.no_2fa_user)
         self.login_as(self.no_2fa_user)
 
         self.get_success_response(self.org_2fa.slug)
 
-        with assume_test_silo_mode(SiloMode.CONTROL):
+        with assume_test_silo_mode_of(Authenticator):
             Authenticator.objects.get(user=self.no_2fa_user).delete()
         self.get_error_response(self.org_2fa.slug, status_code=401)
 
     def test_superuser_can_access_org_details(self):
-        user = self.create_user(is_superuser=True)
-        self.login_as(user, superuser=True)
+        superuser = self.create_user(is_superuser=True)
+        self.login_as(superuser, superuser=True)
         self.get_success_response(self.org_2fa.slug)
 
 

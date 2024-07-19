@@ -1,9 +1,9 @@
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
 import Feature from 'sentry/components/acl/feature';
 import FeatureDisabled from 'sentry/components/acl/featureDisabled';
 import {t} from 'sentry/locale';
-import {Group, Organization} from 'sentry/types';
+import type {Group, Organization} from 'sentry/types';
 import withOrganization from 'sentry/utils/withOrganization';
 
 import GroupEventAttachments from './groupEventAttachments';
@@ -16,7 +16,7 @@ type Props = RouteComponentProps<{groupId: string}, {}> & {
 function GroupEventAttachmentsContainer({organization, group}: Props) {
   return (
     <Feature
-      features={['event-attachments']}
+      features="event-attachments"
       organization={organization}
       renderDisabled={props => (
         <FeatureDisabled {...props} featureName={t('Event Attachments')} />

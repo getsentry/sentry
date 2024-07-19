@@ -24,8 +24,8 @@ describe('UnsubscribeIssue', function () {
     });
   });
 
-  it('loads data from the the API based on URL parameters', async function () {
-    const {router, routerProps, routerContext} = initializeOrg({
+  it('loads data from the API based on URL parameters', async function () {
+    const {router, routerProps} = initializeOrg({
       router: {
         location: {query: {_: 'signature-value'}},
         params,
@@ -33,7 +33,7 @@ describe('UnsubscribeIssue', function () {
     });
     render(
       <UnsubscribeIssue {...routerProps} location={router.location} params={params} />,
-      {context: routerContext}
+      {router}
     );
 
     expect(await screen.findByText('selected issue')).toBeInTheDocument();
@@ -43,7 +43,7 @@ describe('UnsubscribeIssue', function () {
   });
 
   it('makes an API request when the form is submitted', async function () {
-    const {router, routerProps, routerContext} = initializeOrg({
+    const {router, routerProps} = initializeOrg({
       router: {
         location: {query: {_: 'signature-value'}},
         params,
@@ -51,7 +51,7 @@ describe('UnsubscribeIssue', function () {
     });
     render(
       <UnsubscribeIssue {...routerProps} location={router.location} params={params} />,
-      {context: routerContext}
+      {router}
     );
 
     expect(await screen.findByText('selected issue')).toBeInTheDocument();

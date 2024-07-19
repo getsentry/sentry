@@ -56,7 +56,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "project_id", "quoted": false},
         "operator": "",
-        "value": {"type": "valueNumber", "value": "-500", "rawValue": -500, "unit": null}
+        "value": {
+          "type": "valueNumber",
+          "value": "-500",
+          "unit": null,
+          "parsed": {"value": -500}
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -71,7 +76,12 @@
         "negated": true,
         "key": {"type": "keySimple", "value": "issue.id", "quoted": false},
         "operator": "",
-        "value": {"type": "valueNumber", "value": "500", "rawValue": 500, "unit": null}
+        "value": {
+          "type": "valueNumber",
+          "value": "500",
+          "unit": null,
+          "parsed": {"value": 500}
+        }
       },
       {"type": "spaces", "value": ""}
     ]
@@ -86,7 +96,12 @@
         "negated": false,
         "key": {"type": "keySimple", "value": "issue.id", "quoted": false},
         "operator": "<",
-        "value": {"type": "valueNumber", "value": "500", "rawValue": 500, "unit": null}
+        "value": {
+          "type": "valueNumber",
+          "value": "500",
+          "unit": null,
+          "parsed": {"value": 500}
+        }
       },
       {"type": "spaces", "value": ""}
     ]

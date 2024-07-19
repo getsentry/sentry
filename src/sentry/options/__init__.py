@@ -14,6 +14,7 @@ from .manager import (
     FLAG_PRIORITIZE_DISK,
     FLAG_RATE,
     FLAG_REQUIRED,
+    FLAG_SCALAR,
     FLAG_STOREONLY,
     NotWritableReason,
     OptionsManager,
@@ -33,6 +34,7 @@ __all__ = (
     "FLAG_PRIORITIZE_DISK",
     "FLAG_RATE",
     "FLAG_REQUIRED",
+    "FLAG_SCALAR",
     "FLAG_STOREONLY",
     "FLAG_AUTOMATOR_MODIFIABLE",
     "FLAG_CREDENTIAL",
@@ -49,6 +51,7 @@ __all__ = (
     "register",
     "unregister",
     "set",
+    "OptionsManager",
 )
 
 # See notes in ``runner.initializer`` regarding lazy cache configuration.
@@ -67,6 +70,7 @@ unregister = default_manager.unregister
 all = default_manager.all
 filter = default_manager.filter
 isset = default_manager.isset
+is_set_on_disk = default_manager.is_set_on_disk
 lookup_key = default_manager.lookup_key
 get_last_update_channel = default_manager.get_last_update_channel
 can_update = default_manager.can_update

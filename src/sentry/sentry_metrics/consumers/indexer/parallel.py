@@ -3,27 +3,23 @@ from __future__ import annotations
 import functools
 import logging
 from collections import deque
-from typing import Any, Deque, Mapping, Optional, Union, cast
+from collections.abc import Mapping
+from typing import Any, Deque, Union, cast
 
-from arroyo.backends.kafka import KafkaConsumer, KafkaPayload
-from arroyo.commit import ONCE_PER_SECOND
+from arroyo.backends.kafka import KafkaPayload
 from arroyo.dlq import InvalidMessage
-from arroyo.processing import StreamProcessor
 from arroyo.processing.strategies import MessageRejected
 from arroyo.processing.strategies import ProcessingStrategy
 from arroyo.processing.strategies import ProcessingStrategy as ProcessingStep
 from arroyo.processing.strategies import ProcessingStrategyFactory
-from arroyo.types import Commit, FilteredPayload, Message, Partition, Topic
+from arroyo.types import Commit, FilteredPayload, Message, Partition
 
+from sentry import options
 from sentry.sentry_metrics.configuration import (
     MetricsIngestConfiguration,
     initialize_subprocess_state,
 )
-from sentry.sentry_metrics.consumers.indexer.common import (
-    BatchMessages,
-    IndexerOutputMessageBatch,
-    get_config,
-)
+from sentry.sentry_metrics.consumers.indexer.common import BatchMessages, IndexerOutputMessageBatch
 from sentry.sentry_metrics.consumers.indexer.multiprocess import SimpleProduceStep
 from sentry.sentry_metrics.consumers.indexer.processing import MessageProcessor
 from sentry.sentry_metrics.consumers.indexer.routing_producer import (
@@ -31,10 +27,8 @@ from sentry.sentry_metrics.consumers.indexer.routing_producer import (
     RoutingProducerStep,
 )
 from sentry.sentry_metrics.consumers.indexer.slicing_router import SlicingRouter
-from sentry.utils.arroyo import RunTaskWithMultiprocessing
-
-# from usageaccountant import UsageAccumulator, UsageUnit
-
+from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
+from sentry.utils.kafka import delay_kafka_rebalance
 
 logger = logging.getLogger(__name__)
 
@@ -42,15 +36,11 @@ logger = logging.getLogger(__name__)
 class Unbatcher(ProcessingStep[Union[FilteredPayload, IndexerOutputMessageBatch]]):
     def __init__(
         self,
-        next_step: ProcessingStep[
-            Union[KafkaPayload, RoutingPayload, InvalidMessage, FilteredPayload]
-        ],
+        next_step: ProcessingStep[KafkaPayload | RoutingPayload | InvalidMessage | FilteredPayload],
     ) -> None:
         self.__next_step = next_step
         self.__closed = False
-        self.__messages: Deque[
-            Message[Union[KafkaPayload, RoutingPayload, InvalidMessage]]
-        ] = deque()
+        self.__messages: Deque[Message[KafkaPayload | RoutingPayload | InvalidMessage]] = deque()
 
     def poll(self) -> None:
         self.__next_step.poll()
@@ -61,7 +51,7 @@ class Unbatcher(ProcessingStep[Union[FilteredPayload, IndexerOutputMessageBatch]
                 raise msg.payload
             self.__next_step.submit(msg)
 
-    def submit(self, message: Message[Union[FilteredPayload, IndexerOutputMessageBatch]]) -> None:
+    def submit(self, message: Message[FilteredPayload | IndexerOutputMessageBatch]) -> None:
         assert not self.__closed
 
         if self.__messages:
@@ -84,7 +74,7 @@ class Unbatcher(ProcessingStep[Union[FilteredPayload, IndexerOutputMessageBatch]
         logger.debug("Terminating %r...", self.__next_step)
         self.__next_step.terminate()
 
-    def join(self, timeout: Optional[float] = None) -> None:
+    def join(self, timeout: float | None = None) -> None:
         self.__next_step.close()
         self.__next_step.join(timeout)
 
@@ -116,8 +106,8 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         max_parallel_batch_size: int,
         max_parallel_batch_time: float,
         processes: int,
-        input_block_size: int,
-        output_block_size: int,
+        input_block_size: int | None,
+        output_block_size: int | None,
         ingest_profile: str,
         indexer_db: str,
     ):
@@ -146,11 +136,28 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
         self.__max_parallel_batch_size = max_parallel_batch_size
         self.__max_parallel_batch_time = max_parallel_batch_time
 
-        self.__processes = processes
-
         self.__input_block_size = input_block_size
         self.__output_block_size = output_block_size
         self.__slicing_router = slicing_router
+        self.__pool = MultiprocessingPool(
+            num_processes=processes,
+            # It is absolutely crucial that we pass a function reference here
+            # where the function lives in a module that does not depend on
+            # Django settings. `sentry.sentry_metrics.configuration` fulfills
+            # that requirement, but if you were to create a wrapper function in
+            # this module, and pass that function here, it would attempt to
+            # pull in a bunch of modules that try to read django settings at
+            # import time
+            initializer=functools.partial(initialize_subprocess_state, self.config),
+        )
+
+        if use_case is UseCaseKey.PERFORMANCE and options.get(
+            "sentry-metrics.synchronize-kafka-rebalances"
+        ):
+            configured_delay = options.get("sentry-metrics.synchronized-rebalance-delay")
+            logger.info("Started delay in topic subscription step")
+            delay_kafka_rebalance(configured_delay)
+            logger.info("Finished delay in topic subscription step")
 
     def create_with_partitions(
         self,
@@ -162,23 +169,16 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
             commit=commit,
             slicing_router=self.__slicing_router,
         )
-        parallel_strategy = RunTaskWithMultiprocessing(
+
+        parallel_strategy = run_task_with_multiprocessing(
             function=MessageProcessor(self.config).process_messages,
             next_step=Unbatcher(next_step=producer),
-            num_processes=self.__processes,
+            pool=self.__pool,
             max_batch_size=self.__max_parallel_batch_size,
             # This is in seconds
             max_batch_time=self.__max_parallel_batch_time / 1000,
             input_block_size=self.__input_block_size,
             output_block_size=self.__output_block_size,
-            # It is absolutely crucial that we pass a function reference here
-            # where the function lives in a module that does not depend on
-            # Django settings. `sentry.sentry_metrics.configuration` fulfills
-            # that requirement, but if you were to create a wrapper function in
-            # this module, and pass that function here, it would attempt to
-            # pull in a bunch of modules that try to read django settings at
-            # import time
-            initializer=functools.partial(initialize_subprocess_state, self.config),
         )
 
         strategy = BatchMessages(
@@ -187,11 +187,14 @@ class MetricsConsumerStrategyFactory(ProcessingStrategyFactory[KafkaPayload]):
 
         return strategy
 
+    def shutdown(self) -> None:
+        self.__pool.close()
+
 
 def get_metrics_producer_strategy(
     config: MetricsIngestConfiguration,
     commit: Commit,
-    slicing_router: Optional[SlicingRouter],
+    slicing_router: SlicingRouter | None,
 ) -> Any:
     if config.is_output_sliced:
         if slicing_router is None:
@@ -205,49 +208,3 @@ def get_metrics_producer_strategy(
             commit_function=commit,
             output_topic=config.output_topic,
         )
-
-
-def get_parallel_metrics_consumer(
-    max_msg_batch_size: int,
-    max_msg_batch_time: float,
-    max_parallel_batch_size: int,
-    max_parallel_batch_time: float,
-    processes: int,
-    input_block_size: int,
-    output_block_size: int,
-    group_id: str,
-    auto_offset_reset: str,
-    strict_offset_reset: bool,
-    ingest_profile: str,
-    indexer_db: str,
-    group_instance_id: Optional[str],
-) -> StreamProcessor[KafkaPayload]:
-    processing_factory = MetricsConsumerStrategyFactory(
-        max_msg_batch_size=max_msg_batch_size,
-        max_msg_batch_time=max_msg_batch_time,
-        max_parallel_batch_size=max_parallel_batch_size,
-        max_parallel_batch_time=max_parallel_batch_time,
-        processes=processes,
-        input_block_size=input_block_size,
-        output_block_size=output_block_size,
-        ingest_profile=ingest_profile,
-        indexer_db=indexer_db,
-    )
-
-    return StreamProcessor(
-        KafkaConsumer(
-            get_config(
-                processing_factory.config.input_topic,
-                group_id,
-                auto_offset_reset=auto_offset_reset,
-                strict_offset_reset=strict_offset_reset,
-                group_instance_id=group_instance_id,
-            )
-        ),
-        Topic(processing_factory.config.input_topic),
-        processing_factory,
-        ONCE_PER_SECOND,
-        # We drop any in flight messages in processing step prior to produce.
-        # The SimpleProduceStep has a hardcoded join timeout of 5 seconds.
-        join_timeout=0.0,
-    )

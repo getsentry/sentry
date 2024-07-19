@@ -1,44 +1,43 @@
 import {Component, Fragment} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptorObject} from 'history';
+import type {Location, LocationDescriptorObject} from 'history';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import GridEditable, {
-  COL_WIDTH_UNDEFINED,
-  GridColumn,
-  GridColumnOrder,
-} from 'sentry/components/gridEditable';
+import type {GridColumn, GridColumnOrder} from 'sentry/components/gridEditable';
+import GridEditable, {COL_WIDTH_UNDEFINED} from 'sentry/components/gridEditable';
 import SortLink from 'sentry/components/gridEditable/sortLink';
 import Link from 'sentry/components/links/link';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import PerformanceDuration from 'sentry/components/performanceDuration';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView, {fromSorts, isFieldSortable} from 'sentry/utils/discover/eventView';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import type EventView from 'sentry/utils/discover/eventView';
+import {isFieldSortable} from 'sentry/utils/discover/eventView';
 import {fieldAlignment} from 'sentry/utils/discover/fields';
-import {formatPercentage} from 'sentry/utils/formatters';
-import SegmentExplorerQuery, {
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
+import type {
   TableData,
   TableDataRow,
 } from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
-import {decodeScalar} from 'sentry/utils/queryString';
+import SegmentExplorerQuery from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
+import {decodeScalar, decodeSorts} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import CellAction, {Actions, updateQuery} from 'sentry/views/discover/table/cellAction';
-import {TableColumn} from 'sentry/views/discover/table/types';
+import type {TableColumn} from 'sentry/views/discover/table/types';
 
 import {
   platformAndConditionsToPerformanceType,
   ProjectPerformanceType,
 } from '../../utils';
-import {
-  SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD,
-  SpanOperationBreakdownFilter,
-} from '../filter';
+import type {SpanOperationBreakdownFilter} from '../filter';
+import {SPAN_OPERATION_BREAKDOWN_FILTER_TO_FIELD} from '../filter';
 import {tagsRouteWithQuery} from '../transactionTags/utils';
 import {normalizeSearchConditions} from '../utils';
 
@@ -267,11 +266,6 @@ export class TagExplorer extends Component<Props> {
   };
 
   handleTagValueClick = (location: Location, tagKey: string, tagValue: string) => {
-    const {organization} = this.props;
-    trackAnalytics('performance_views.summary.tag_explorer.tag_value', {
-      organization,
-    });
-
     const queryString = decodeScalar(location.query.query);
     const conditions = new MutableSearch(queryString ?? '');
 
@@ -405,7 +399,7 @@ export class TagExplorer extends Component<Props> {
     const tagEventView = eventView.clone();
     tagEventView.fields = TAG_EXPLORER_COLUMN_ORDER;
 
-    const tagSorts = fromSorts(tagSort);
+    const tagSorts = decodeSorts(tagSort);
 
     const sortedEventView = tagEventView.withSorts(
       tagSorts.length
@@ -451,7 +445,7 @@ export class TagExplorer extends Component<Props> {
               </GuideAnchor>
               <GridEditable
                 isLoading={isLoading}
-                data={tableData && tableData.data ? tableData.data : []}
+                data={tableData?.data ? tableData.data : []}
                 columnOrder={columns}
                 columnSortBy={columnSortBy}
                 grid={{
@@ -463,7 +457,6 @@ export class TagExplorer extends Component<Props> {
                   renderBodyCell: this.renderBodyCellWithData(this.props) as any,
                   onResizeColumn: this.handleResizeColumn as any,
                 }}
-                location={location}
               />
             </Fragment>
           );

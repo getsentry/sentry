@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
-import {WithRouterProps} from 'react-router';
+import type {WithRouterProps} from 'react-router';
 import uniqBy from 'lodash/uniqBy';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {openModal} from 'sentry/actionCreators/modal';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import {t} from 'sentry/locale';
-import {
+import type {
   ExternalActorMapping,
   ExternalActorMappingOrSuggestion,
   Integration,
@@ -136,7 +136,7 @@ class IntegrationExternalTeamMappings extends DeprecatedAsyncComponent<Props, St
 
   /**
    * This method combines the results from searches made on a form dropping repeated entries
-   * that have identical 'id's. This is because we need the result of the the search query when
+   * that have identical 'id's. This is because we need the result of the search query when
    * the user submits to get the team slug, but it won't always be the last query they've made.
    *
    * If they search (but not select) after making a selection, and we didn't keep a running collection of results,

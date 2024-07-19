@@ -3,9 +3,9 @@ import cloneDeep from 'lodash/cloneDeep';
 
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
+import type {FlamegraphTheme} from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 import {
   DarkFlamegraphTheme,
-  FlamegraphTheme,
   LightFlamegraphTheme,
 } from 'sentry/utils/profiling/flamegraph/flamegraphTheme';
 

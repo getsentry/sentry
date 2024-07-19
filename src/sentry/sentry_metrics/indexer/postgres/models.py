@@ -1,23 +1,22 @@
 import logging
-from typing import Any, ClassVar
+from typing import Any, ClassVar, Self
 
 from django.conf import settings
 from django.db import connections, models, router
 from django.utils import timezone
-from typing_extensions import Self
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, region_silo_only_model
+from sentry.db.models import Model, region_silo_model
 from sentry.db.models.fields.bounded import BoundedBigIntegerField
 from sentry.db.models.manager.base import BaseManager
 from sentry.sentry_metrics.configuration import MAX_INDEXED_COLUMN_LENGTH, UseCaseKey
 
 logger = logging.getLogger(__name__)
 
-from typing import Mapping, Type
+from collections.abc import Mapping
 
 
-@region_silo_only_model
+@region_silo_model
 class MetricsKeyIndexer(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -61,7 +60,7 @@ class BaseIndexer(Model):
         abstract = True
 
 
-@region_silo_only_model
+@region_silo_model
 class StringIndexer(BaseIndexer):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -73,7 +72,7 @@ class StringIndexer(BaseIndexer):
         ]
 
 
-@region_silo_only_model
+@region_silo_model
 class PerfStringIndexer(BaseIndexer):
     __relocation_scope__ = RelocationScope.Excluded
     use_case_id = models.CharField(max_length=120)
@@ -89,7 +88,7 @@ class PerfStringIndexer(BaseIndexer):
         ]
 
 
-IndexerTable = Type[BaseIndexer]
+IndexerTable = type[BaseIndexer]
 
 TABLE_MAPPING: Mapping[UseCaseKey, IndexerTable] = {
     UseCaseKey.RELEASE_HEALTH: StringIndexer,

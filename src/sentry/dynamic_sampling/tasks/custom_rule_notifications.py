@@ -1,8 +1,8 @@
 """
 Task for sending notifications when custom rules have gathered enough samples.
 """
+
 from datetime import datetime, timezone
-from typing import Any, Dict, List
 
 from django.http import QueryDict
 
@@ -10,12 +10,16 @@ from sentry.constants import ObjectStatus
 from sentry.dynamic_sampling.tasks.common import TimedIterator, to_context_iterator
 from sentry.dynamic_sampling.tasks.constants import MAX_TASK_SECONDS
 from sentry.dynamic_sampling.tasks.task_context import DynamicSamplingLogState, TaskContext
-from sentry.dynamic_sampling.tasks.utils import dynamic_sampling_task_with_context
+from sentry.dynamic_sampling.tasks.utils import (
+    dynamic_sampling_task,
+    dynamic_sampling_task_with_context,
+)
 from sentry.models.dynamicsampling import CustomDynamicSamplingRule
-from sentry.models.user import User
-from sentry.silo import SiloMode
+from sentry.search.events.types import ParamsType
+from sentry.silo.base import SiloMode
 from sentry.snuba import discover
 from sentry.tasks.base import instrumented_task
+from sentry.users.services.user.service import user_service
 from sentry.utils.email import MessageBuilder
 
 MIN_SAMPLES_FOR_NOTIFICATION = 10
@@ -78,18 +82,24 @@ def get_num_samples(rule: CustomDynamicSamplingRule) -> int:
         # org rule get all projects for org
         projects = rule.organization.project_set.filter(status=ObjectStatus.ACTIVE)
 
-    params: Dict[str, Any] = {
+    project_id = []
+    project_objects = []
+    for project in projects:
+        project_id.append(project.id)
+        project_objects.append(project)
+
+    params: ParamsType = {
         "start": rule.start_date,
         "end": rule.end_date,
-        "project_id": [p.id for p in projects],
-        "project_objects": projects,
+        "project_id": project_id,
+        "project_objects": project_objects,
         "organization_id": rule.organization.id,
     }
 
     result = discover.query(
         selected_columns=["count()"],
         params=params,
-        query=rule.query,
+        query=rule.query if rule.query is not None else "",
         referrer="dynamic_sampling.tasks.custom_rule_notifications",
     )
 
@@ -106,10 +116,13 @@ def send_notification(rule: CustomDynamicSamplingRule, num_samples: int) -> None
     if not user_id:
         return
 
+    creator = user_service.get_user(user_id=user_id)
+    if not creator:
+        return
+
     projects = rule.projects.all()
     project_ids = [p.id for p in projects]
 
-    creator = User.objects.get_from_cache(id=user_id)
     params = {
         "query": rule.query,
         "num_samples": num_samples,
@@ -134,7 +147,7 @@ def send_notification(rule: CustomDynamicSamplingRule, num_samples: int) -> None
     msg.send_async([creator.email])
 
 
-def create_discover_link(rule: CustomDynamicSamplingRule, projects: List[int]) -> str:
+def create_discover_link(rule: CustomDynamicSamplingRule, projects: list[int]) -> str:
     """
     Creates a discover link for the given rule.
     It will point to a discover query using the same query as the rule
@@ -161,3 +174,17 @@ def create_discover_link(rule: CustomDynamicSamplingRule, projects: List[int]) -
         f"/organizations/{rule.organization.slug}/discover/results/", query=query_string
     )
     return discover_url
+
+
+@instrumented_task(
+    name="sentry.dynamic_sampling.tasks.clean_custom_rule_notifications",
+    queue="dynamicsampling",
+    default_retry_delay=5,
+    max_retries=5,
+    soft_time_limit=2 * 60 * 60,  # 2hours
+    time_limit=2 * 60 * 60 + 5,
+    silo_mode=SiloMode.REGION,
+)
+@dynamic_sampling_task
+def clean_custom_rule_notifications() -> None:
+    CustomDynamicSamplingRule.deactivate_old_rules()

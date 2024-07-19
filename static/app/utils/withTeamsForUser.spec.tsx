@@ -1,4 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -8,7 +9,7 @@ import withTeamsForUser from 'sentry/utils/withTeamsForUser';
 
 describe('withUserTeams HoC', function () {
   const api = new MockApiClient();
-  const organization = Organization();
+  const organization = OrganizationFixture();
 
   function Output({error, teams}) {
     if (error) {
@@ -40,8 +41,8 @@ describe('withUserTeams HoC', function () {
   });
 
   it('fetches teams and loads stores', async function () {
-    const mockProjectA = TestStubs.Project({slug: 'a', id: '1'});
-    const mockProjectB = TestStubs.Project({slug: 'b', id: '2'});
+    const mockProjectA = ProjectFixture({slug: 'a', id: '1'});
+    const mockProjectB = ProjectFixture({slug: 'b', id: '2'});
     const mockTeams = [
       {
         slug: 'sentry',

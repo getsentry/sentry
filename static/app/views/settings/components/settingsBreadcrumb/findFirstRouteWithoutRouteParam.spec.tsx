@@ -1,6 +1,5 @@
-import findFirstRouteWithoutRouteParam from 'sentry/views/settings/components/settingsBreadcrumb/findFirstRouteWithoutRouteParam';
-
-import {RouteWithName} from './types';
+import findFirstRouteWithoutRouteParam from './findFirstRouteWithoutRouteParam';
+import type {RouteWithName} from './types';
 
 describe('findFirstRouteWithoutRouteParam', function () {
   const routes: RouteWithName[] = [

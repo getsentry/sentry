@@ -1,8 +1,8 @@
 from __future__ import annotations
 
 import hmac
+from collections.abc import Iterable, Mapping
 from hashlib import sha256
-from typing import Iterable, Mapping
 from wsgiref.util import is_hop_by_hop
 
 from django.conf import settings
@@ -11,6 +11,8 @@ PROXY_BASE_PATH = "/api/0/internal/integration-proxy"
 PROXY_OI_HEADER = "X-Sentry-Subnet-Organization-Integration"
 PROXY_BASE_URL_HEADER = "X-Sentry-Subnet-Base-URL"
 PROXY_SIGNATURE_HEADER = "X-Sentry-Subnet-Signature"
+PROXY_PATH = "X-Sentry-Subnet-Path"
+PROXY_KEYID_HEADER = "X-Sentry-Subnet-Keyid"
 PROXY_DIRECT_LOCATION_HEADER = "X-Sentry-Proxy-URL"
 
 INVALID_PROXY_HEADERS = {"Host", "X-Forwarded-Proto", "Content-Length", "Content-Encoding"}
@@ -18,6 +20,7 @@ INVALID_OUTBOUND_HEADERS = INVALID_PROXY_HEADERS | {
     PROXY_OI_HEADER,
     PROXY_SIGNATURE_HEADER,
     PROXY_BASE_URL_HEADER,
+    PROXY_PATH,
 }
 
 DEFAULT_REQUEST_BODY = b""

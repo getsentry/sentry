@@ -28,6 +28,7 @@ export type OnboardingEventParameters = {
     platform: string;
     project_id: string;
   };
+  'onboarding.nextjs-dsn-copied': {};
   'onboarding.select_framework_modal_close_button_clicked': {
     platform: string;
   };
@@ -78,4 +79,5 @@ export const onboardingEventMap: Record<keyof OnboardingEventParameters, string>
     'Onboarding: Source Maps Wizard Copy Button Clicked',
   'onboarding.source_maps_wizard_selected_and_copied':
     'Onboarding: Source Maps Wizard Selected and Copied',
+  'onboarding.nextjs-dsn-copied': 'Onboarding: NextJS DSN Copied',
 };

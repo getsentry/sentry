@@ -9,7 +9,8 @@ import SelectField from 'sentry/components/forms/fields/selectField';
 import SentryMemberTeamSelectorField from 'sentry/components/forms/fields/sentryMemberTeamSelectorField';
 import SentryProjectSelectorField from 'sentry/components/forms/fields/sentryProjectSelectorField';
 import TextField from 'sentry/components/forms/fields/textField';
-import Form, {FormProps} from 'sentry/components/forms/form';
+import type {FormProps} from 'sentry/components/forms/form';
+import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';
 import ExternalLink from 'sentry/components/links/externalLink';
 import List from 'sentry/components/list';
@@ -20,23 +21,20 @@ import Text from 'sentry/components/text';
 import {timezoneOptions} from 'sentry/data/timezones';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
 import {isActiveSuperuser} from 'sentry/utils/isActiveSuperuser';
 import slugify from 'sentry/utils/slugify';
 import commonTheme from 'sentry/utils/theme';
-import useOrganization from 'sentry/utils/useOrganization';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {crontabAsText, getScheduleIntervals} from 'sentry/views/monitors/utils';
+import {getScheduleIntervals} from 'sentry/views/monitors/utils';
+import {crontabAsText} from 'sentry/views/monitors/utils/crontabAsText';
 
-import {
-  IntervalConfig,
-  Monitor,
-  MonitorConfig,
-  MonitorType,
-  ScheduleType,
-} from '../types';
+import type {IntervalConfig, Monitor, MonitorConfig, MonitorType} from '../types';
+import {ScheduleType} from '../types';
+
+import {platformsWithGuides} from './monitorQuickStartGuide';
 
 const SCHEDULE_OPTIONS: SelectValue<string>[] = [
   {value: ScheduleType.CRONTAB, label: t('Crontab')},
@@ -51,8 +49,8 @@ export const DEFAULT_CRONTAB = '0 0 * * *';
 //
 // XXX(epurkhiser): For whatever reason the rules API wants the team and member
 // to be capitalized.
-const RULE_TARGET_MAP = {team: 'Team', member: 'Member'} as const;
-const RULES_SELECTOR_MAP = {Team: 'team', Member: 'member'} as const;
+const RULE_TARGET_MAP = {team: 'Team', user: 'Member'} as const;
+const RULES_SELECTOR_MAP = {Team: 'team', Member: 'user'} as const;
 
 // In minutes
 export const DEFAULT_MAX_RUNTIME = 30;
@@ -77,7 +75,7 @@ interface TransformedData extends Partial<Omit<Monitor, 'config' | 'alertRule'>>
  * Transform sub-fields for what the API expects
  */
 export function transformMonitorFormData(_data: Record<string, any>, model: FormModel) {
-  const schedType = model.getValue('config.schedule_type');
+  const schedType = model.getValue('config.scheduleType');
   // Remove interval fields if the monitor schedule is crontab
   const filteredFields = model.fields
     .toJSON()
@@ -176,7 +174,6 @@ function MonitorForm({
       mapFormErrors: mapMonitorFormErrors,
     })
   );
-  const organization = useOrganization();
   const {projects} = useProjects();
   const {selection} = usePageFilters();
 
@@ -184,11 +181,11 @@ function MonitorForm({
     const rv = {};
     switch (type) {
       case 'cron_job':
-        rv['config.schedule_type'] = config.schedule_type;
-        rv['config.checkin_margin'] = config.checkin_margin;
-        rv['config.max_runtime'] = config.max_runtime;
-        rv['config.failure_issue_threshold'] = config.failure_issue_threshold;
-        rv['config.recovery_threshold'] = config.recovery_threshold;
+        rv['config.scheduleType'] = config.schedule_type;
+        rv['config.checkinMargin'] = config.checkin_margin;
+        rv['config.maxRuntime'] = config.max_runtime;
+        rv['config.failureIssueThreshold'] = config.failure_issue_threshold;
+        rv['config.recoveryThreshold'] = config.recovery_threshold;
 
         switch (config.schedule_type) {
           case 'interval':
@@ -206,9 +203,9 @@ function MonitorForm({
     return rv;
   }
 
-  const selectedProjectId = selection.projects[0];
+  const selectedProjectId = monitor?.project.id ?? selection.projects[0];
   const selectedProject = selectedProjectId
-    ? projects.find(p => p.id === selectedProjectId + '')
+    ? projects.find(p => p.id === selectedProjectId.toString())
     : null;
 
   const isSuperuser = isActiveSuperuser();
@@ -218,6 +215,8 @@ function MonitorForm({
     target => `${RULES_SELECTOR_MAP[target.targetType]}:${target.targetIdentifier}`
   );
 
+  const owner = monitor?.owner ? `${monitor.owner.type}:${monitor.owner.id}` : null;
+
   const envOptions = selectedProject?.environments.map(e => ({value: e, label: e})) ?? [];
   const alertRuleEnvs = [
     {
@@ -226,8 +225,6 @@ function MonitorForm({
     },
     ...envOptions,
   ];
-
-  const hasIssuePlatform = organization.features.includes('issue-platform');
 
   return (
     <Form
@@ -241,6 +238,7 @@ function MonitorForm({
           ? {
               name: monitor.name,
               slug: monitor.slug,
+              owner: owner,
               type: monitor.type ?? DEFAULT_MONITOR_TYPE,
               project: monitor.project.slug,
               'alertRule.targets': alertRuleTarget,
@@ -261,6 +259,7 @@ function MonitorForm({
         <InputGroup>
           <StyledTextField
             name="name"
+            aria-label={t('Name')}
             placeholder={t('My Cron Job')}
             required
             stacked
@@ -269,6 +268,7 @@ function MonitorForm({
           {monitor && (
             <StyledTextField
               name="slug"
+              aria-label={t('Slug')}
               help={tct(
                 'The [strong:monitor-slug] is used to uniquely identify your monitor within your organization. Changing this slug will require updates to any instrumented check-in calls.',
                 {strong: <strong />}
@@ -282,6 +282,14 @@ function MonitorForm({
           )}
           <StyledSentryProjectSelectorField
             name="project"
+            aria-label={t('Project')}
+            groupProjects={project =>
+              platformsWithGuides.includes(project.platform) ? 'suggested' : 'other'
+            }
+            groups={[
+              {key: 'suggested', label: t('Suggested Projects')},
+              {key: 'other', label: t('Other Projects')},
+            ]}
             projects={filteredProjects}
             placeholder={t('Choose Project')}
             disabled={!!monitor}
@@ -307,7 +315,8 @@ function MonitorForm({
             </StyledAlert>
           )}
           <StyledSelectField
-            name="config.schedule_type"
+            name="config.scheduleType"
+            aria-label={t('Schedule Type')}
             options={SCHEDULE_OPTIONS}
             defaultValue={ScheduleType.CRONTAB}
             orientInline
@@ -317,7 +326,7 @@ function MonitorForm({
           />
           <Observer>
             {() => {
-              const scheduleType = form.current.getValue('config.schedule_type');
+              const scheduleType = form.current.getValue('config.scheduleType');
 
               const parsedSchedule =
                 scheduleType === 'crontab'
@@ -331,6 +340,7 @@ function MonitorForm({
                   <MultiColumnInput columns="1fr 2fr">
                     <StyledTextField
                       name="config.schedule"
+                      aria-label={t('Crontab Schedule')}
                       placeholder="* * * * *"
                       defaultValue={DEFAULT_CRONTAB}
                       css={{input: {fontFamily: commonTheme.text.familyMono}}}
@@ -340,6 +350,7 @@ function MonitorForm({
                     />
                     <StyledSelectField
                       name="config.timezone"
+                      aria-label={t('Timezone')}
                       defaultValue="UTC"
                       options={timezoneOptions}
                       required
@@ -356,14 +367,17 @@ function MonitorForm({
                     <LabelText>{t('Every')}</LabelText>
                     <StyledNumberField
                       name="config.schedule.frequency"
+                      aria-label={t('Interval Frequency')}
                       placeholder="e.g. 1"
                       defaultValue="1"
+                      min={1}
                       required
                       stacked
                       inline={false}
                     />
                     <StyledSelectField
                       name="config.schedule.interval"
+                      aria-label={t('Interval Type')}
                       options={getScheduleIntervals(
                         Number(form.current.getValue('config.schedule.frequency') ?? 1)
                       )}
@@ -379,7 +393,7 @@ function MonitorForm({
             }}
           </Observer>
         </InputGroup>
-        <StyledListItem>{t('Set thresholds')}</StyledListItem>
+        <StyledListItem>{t('Set margins')}</StyledListItem>
         <ListItemSubText>
           {t('Configure when we mark your monitor as failed or missed.')}
         </ListItemSubText>
@@ -387,7 +401,7 @@ function MonitorForm({
           <Panel>
             <PanelBody>
               <NumberField
-                name="config.checkin_margin"
+                name="config.checkinMargin"
                 min={CHECKIN_MARGIN_MINIMUM}
                 placeholder={tn(
                   'Defaults to %s minute',
@@ -398,7 +412,7 @@ function MonitorForm({
                 label={t('Grace Period')}
               />
               <NumberField
-                name="config.max_runtime"
+                name="config.maxRuntime"
                 min={TIMEOUT_MINIMUM}
                 placeholder={tn(
                   'Defaults to %s minute',
@@ -413,8 +427,58 @@ function MonitorForm({
             </PanelBody>
           </Panel>
         </InputGroup>
+        <Fragment>
+          <StyledListItem>{t('Set thresholds')}</StyledListItem>
+          <ListItemSubText>
+            {t('Configure when an issue is created or resolved.')}
+          </ListItemSubText>
+          <InputGroup>
+            <Panel>
+              <PanelBody>
+                <NumberField
+                  name="config.failureIssueThreshold"
+                  min={1}
+                  placeholder="1"
+                  help={t(
+                    'Create a new issue when this many consecutive missed or error check-ins are processed.'
+                  )}
+                  label={t('Failure Tolerance')}
+                />
+                <NumberField
+                  name="config.recoveryThreshold"
+                  min={1}
+                  placeholder="1"
+                  help={t(
+                    'Resolve the issue when this many consecutive healthy check-ins are processed.'
+                  )}
+                  label={t('Recovery Tolerance')}
+                />
+              </PanelBody>
+            </Panel>
+          </InputGroup>
+        </Fragment>
+        <StyledListItem>{t('Set Owner')}</StyledListItem>
+        <ListItemSubText>
+          {t(
+            'Choose a team or member as the monitor owner. Issues created will be automatically assigned to the owner.'
+          )}
+        </ListItemSubText>
+        <InputGroup>
+          <Panel>
+            <PanelBody>
+              <SentryMemberTeamSelectorField
+                name="owner"
+                label={t('Owner')}
+                help={t('Automatically assign issues to a team or user.')}
+                menuPlacement="auto"
+              />
+            </PanelBody>
+          </Panel>
+        </InputGroup>
         <StyledListItem>{t('Notifications')}</StyledListItem>
-        <ListItemSubText>{t('Configure who to notify and when.')}</ListItemSubText>
+        <ListItemSubText>
+          {t('Configure who to notify upon issue creation and when.')}
+        </ListItemSubText>
         <InputGroup>
           <Panel>
             <PanelBody>
@@ -429,39 +493,43 @@ function MonitorForm({
                   {t('Customize this monitors notification configuration in Alerts')}
                 </AlertLink>
               )}
-              <SentryMemberTeamSelectorField
-                label={t('Notify')}
-                help={t('Send notifications to a member or team.')}
-                name="alertRule.targets"
-                multiple
-                menuPlacement="auto"
-              />
-              {hasIssuePlatform && (
-                <Fragment>
-                  <NumberField
-                    name="config.failure_issue_threshold"
-                    min={1}
-                    placeholder="1"
-                    help={t('Create an issue after this many missed or error check-ins')}
-                    label={t('Tolerate Failures')}
-                  />
-                  <NumberField
-                    name="config.recovery_threshold"
-                    min={1}
-                    placeholder="1"
-                    help={t('Recover monitor status after this many healthy check-ins')}
-                    label={t('Recovery Threshold')}
-                  />
-                </Fragment>
-              )}
-              <SelectField
-                label={t('Environment')}
-                help={t('Only receive notifications from a specific environment.')}
-                name="alertRule.environment"
-                options={alertRuleEnvs}
-                menuPlacement="auto"
-                defaultValue=""
-              />
+              <Observer>
+                {() => {
+                  const projectSlug = form.current.getValue('project')?.toString();
+                  return (
+                    <SentryMemberTeamSelectorField
+                      label={t('Notify')}
+                      help={t('Send notifications to a member or team.')}
+                      name="alertRule.targets"
+                      memberOfProjectSlugs={projectSlug ? [projectSlug] : undefined}
+                      multiple
+                      menuPlacement="auto"
+                    />
+                  );
+                }}
+              </Observer>
+              <Observer>
+                {() => {
+                  const selectedAssignee = form.current.getValue('alertRule.targets');
+                  // Check for falsey value or empty array value
+                  const disabled = !selectedAssignee || !selectedAssignee.toString();
+
+                  return (
+                    <SelectField
+                      label={t('Environment')}
+                      help={t('Only receive notifications from a specific environment.')}
+                      name="alertRule.environment"
+                      options={alertRuleEnvs}
+                      disabled={disabled}
+                      menuPlacement="auto"
+                      defaultValue=""
+                      disabledReason={t(
+                        'Please select which teams or members to notify first.'
+                      )}
+                    />
+                  );
+                }}
+              </Observer>
             </PanelBody>
           </Panel>
         </InputGroup>
@@ -498,12 +566,12 @@ const StyledSentryProjectSelectorField = styled(SentryProjectSelectorField)`
 
 const StyledListItem = styled(ListItem)`
   font-size: ${p => p.theme.fontSizeExtraLarge};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   line-height: 1.3;
 `;
 
 const LabelText = styled(Text)`
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   color: ${p => p.theme.subText};
 `;
 
@@ -529,7 +597,7 @@ const MultiColumnInput = styled('div')<{columns?: string}>`
 `;
 
 const CronstrueText = styled(LabelText)`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   font-family: ${p => p.theme.text.familyMono};
   grid-column: auto / span 2;

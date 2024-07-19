@@ -1,4 +1,4 @@
-import {FlamegraphFrame} from '../flamegraphFrame';
+import type {FlamegraphFrame} from '../flamegraphFrame';
 
 export type DirectionX = 'left' | 'right';
 export type DirectionY = 'up' | 'down';

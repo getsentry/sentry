@@ -1,4 +1,4 @@
-import {ReleaseComparisonChartType} from 'sentry/types';
+import type {ReleaseComparisonChartType} from 'sentry/types';
 
 export type ReleasesEventParameters = {
   'releases.change_chart_type': {chartType: ReleaseComparisonChartType};

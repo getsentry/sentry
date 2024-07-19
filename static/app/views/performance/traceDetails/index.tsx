@@ -1,29 +1,31 @@
 import {Component} from 'react';
-import {RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import EventView from 'sentry/utils/discover/eventView';
 import {QueryError} from 'sentry/utils/discover/genericDiscoverQuery';
 import {TraceFullDetailedQuery} from 'sentry/utils/performance/quickTrace/traceFullQuery';
 import TraceMetaQuery from 'sentry/utils/performance/quickTrace/traceMetaQuery';
-import {
-  TraceFullDetailed,
+import type {
   TraceMeta,
   TraceSplitResults,
 } from 'sentry/utils/performance/quickTrace/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
+import type {TraceTree} from 'sentry/views/performance/newTraceDetails/traceModels/traceTree';
 
+import {TraceView as TraceViewV1} from './../newTraceDetails';
 import TraceDetailsContent from './content';
 import {DEFAULT_TRACE_ROWS_LIMIT} from './limitExceededMessage';
+import NewTraceDetailsContent from './newTraceDetailsContent';
 import {getTraceSplitResults} from './utils';
 
 type Props = RouteComponentProps<{traceSlug: string}, {}> & {
@@ -95,6 +97,7 @@ class TraceSummary extends Component<Props> {
     const traceSlug = this.getTraceSlug();
     const {start, end, statsPeriod} = this.getDateSelection();
     const dateSelected = Boolean(statsPeriod || (start && end));
+    const backend = decodeScalar(location.query.backend);
 
     const content = ({
       isLoading,
@@ -105,28 +108,32 @@ class TraceSummary extends Component<Props> {
       error: QueryError | null;
       isLoading: boolean;
       meta: TraceMeta | null;
-      traces: (TraceFullDetailed[] | TraceSplitResults<TraceFullDetailed>) | null;
+      traces: (TraceTree.Transaction[] | TraceSplitResults<TraceTree.Transaction>) | null;
     }) => {
-      const {transactions, orphanErrors} = getTraceSplitResults<TraceFullDetailed>(
+      const {transactions, orphanErrors} = getTraceSplitResults<TraceTree.Transaction>(
         traces ?? [],
         organization
       );
 
-      return (
-        <TraceDetailsContent
-          location={location}
-          organization={organization}
-          params={params}
-          traceSlug={traceSlug}
-          traceEventView={this.getTraceEventView()}
-          dateSelected={dateSelected}
-          isLoading={isLoading}
-          error={error}
-          orphanErrors={orphanErrors}
-          traces={transactions ?? (traces as TraceFullDetailed[])}
-          meta={meta}
-          handleLimitChange={this.handleLimitChange}
-        />
+      const commonProps = {
+        location,
+        organization,
+        params,
+        traceSlug,
+        traceEventView: this.getTraceEventView(),
+        dateSelected,
+        isLoading,
+        error,
+        orphanErrors,
+        traces: transactions ?? (traces as TraceTree.Transaction[]),
+        meta,
+        handleLimitChange: this.handleLimitChange,
+      };
+
+      return organization.features.includes('performance-trace-details') ? (
+        <NewTraceDetailsContent {...commonProps} />
+      ) : (
+        <TraceDetailsContent {...commonProps} />
       );
     };
 
@@ -141,6 +148,7 @@ class TraceSummary extends Component<Props> {
 
     return (
       <TraceFullDetailedQuery
+        type={backend === 'indexedSpans' ? 'spans' : 'detailed'}
         location={location}
         orgSlug={organization.slug}
         traceId={traceSlug}
@@ -162,7 +170,7 @@ class TraceSummary extends Component<Props> {
               content({
                 isLoading: traceResults.isLoading || metaResults.isLoading,
                 error: traceResults.error || metaResults.error,
-                traces: traceResults.traces,
+                traces: traceResults.traces as unknown as TraceTree.Transaction[],
                 meta: metaResults.meta,
               })
             }
@@ -174,6 +182,10 @@ class TraceSummary extends Component<Props> {
 
   render() {
     const {organization} = this.props;
+
+    if (organization.features.includes('trace-view-v1')) {
+      return <TraceViewV1 />;
+    }
 
     return (
       <SentryDocumentTitle title={this.getDocumentTitle()} orgSlug={organization.slug}>

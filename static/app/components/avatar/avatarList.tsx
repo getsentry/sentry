@@ -4,7 +4,8 @@ import styled from '@emotion/styled';
 import TeamAvatar from 'sentry/components/avatar/teamAvatar';
 import UserAvatar from 'sentry/components/avatar/userAvatar';
 import {Tooltip} from 'sentry/components/tooltip';
-import {AvatarUser, Team} from 'sentry/types';
+import type {Team} from 'sentry/types/organization';
+import type {AvatarUser} from 'sentry/types/user';
 
 type UserAvatarProps = React.ComponentProps<typeof UserAvatar>;
 
@@ -36,7 +37,8 @@ function AvatarList({
   // Reverse the order since css flex-reverse is used to display the avatars
   const visibleTeamAvatars = teams.slice(0, numVisibleTeams).reverse();
   const visibleUserAvatars = users.slice(0, maxVisibleUsers).reverse();
-  const numCollapsedAvatars = users.length - visibleUserAvatars.length;
+  const numCollapsedAvatars =
+    users.length + teams.length - (visibleUserAvatars.length + visibleTeamAvatars.length);
 
   if (!tooltipOptions.position) {
     tooltipOptions.position = 'top';
@@ -45,7 +47,7 @@ function AvatarList({
   return (
     <AvatarListWrapper className={className}>
       {!!numCollapsedAvatars && (
-        <Tooltip title={`${numCollapsedAvatars} other ${typeAvatars}`}>
+        <Tooltip title={`${numCollapsedAvatars} other ${typeAvatars}`} skipWrapper>
           <CollapsedAvatars size={avatarSize} data-test-id="avatarList-collapsedavatars">
             {numCollapsedAvatars < 99 && <Plus>+</Plus>}
             {numCollapsedAvatars}
@@ -80,6 +82,7 @@ export default AvatarList;
 // used in releases list page to do some alignment
 export const AvatarListWrapper = styled('div')`
   display: flex;
+  align-items: center;
   flex-direction: row-reverse;
 `;
 
@@ -110,7 +113,7 @@ const CollapsedAvatars = styled('div')<{size: number}>`
   justify-content: center;
   position: relative;
   text-align: center;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   background-color: ${p => p.theme.gray200};
   color: ${p => p.theme.gray300};
   font-size: ${p => Math.floor(p.size / 2.3)}px;

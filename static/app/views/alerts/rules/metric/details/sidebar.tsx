@@ -1,12 +1,11 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import capitalize from 'lodash/capitalize';
 
-import AlertBadge from 'sentry/components/alertBadge';
 import {OnDemandWarningIcon} from 'sentry/components/alerts/onDemandMetricAlert';
 import ActorAvatar from 'sentry/components/avatar/actorAvatar';
+import AlertBadge from 'sentry/components/badge/alertBadge';
 import {SectionHeading} from 'sentry/components/charts/styles';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
 import {KeyValueTable, KeyValueTableRow} from 'sentry/components/keyValueTable';
 import TimeSince from 'sentry/components/timeSince';
@@ -14,14 +13,15 @@ import {IconDiamond} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Actor} from 'sentry/types';
+import {ActivationConditionType, MonitorType} from 'sentry/types/alerts';
 import getDynamicText from 'sentry/utils/getDynamicText';
 import {getSearchFilters, isOnDemandSearchKey} from 'sentry/utils/onDemandMetrics/index';
+import {capitalize} from 'sentry/utils/string/capitalize';
 import {COMPARISON_DELTA_OPTIONS} from 'sentry/views/alerts/rules/metric/constants';
+import type {Action, MetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
-  Action,
   AlertRuleThresholdType,
   AlertRuleTriggerType,
-  MetricRule,
 } from 'sentry/views/alerts/rules/metric/types';
 import {IncidentStatus} from 'sentry/views/alerts/types';
 import {AlertWizardAlertNames} from 'sentry/views/alerts/wizard/options';
@@ -47,15 +47,15 @@ function TriggerDescription({
     label === AlertRuleTriggerType.CRITICAL
       ? t('Critical')
       : label === AlertRuleTriggerType.WARNING
-      ? t('Warning')
-      : t('Resolved');
+        ? t('Warning')
+        : t('Resolved');
 
   const statusIconColor =
     label === AlertRuleTriggerType.CRITICAL
       ? 'errorText'
       : label === AlertRuleTriggerType.WARNING
-      ? 'warningText'
-      : 'successText';
+        ? 'warningText'
+        : 'successText';
 
   const defaultAction = t('Change alert status to %s', status);
 
@@ -69,8 +69,8 @@ function TriggerDescription({
       ? t('higher')
       : t('above')
     : rule.comparisonDelta
-    ? t('lower')
-    : t('below');
+      ? t('lower')
+      : t('below');
   const timeWindow = <Duration seconds={rule.timeWindow * 60} />;
   const metricName = capitalize(
     AlertWizardAlertNames[getAlertTypeFromAggregateDataset(rule)]
@@ -141,6 +141,21 @@ export function MetricDetailsSidebar({
 
   const ownerId = rule.owner?.split(':')[1];
   const teamActor = ownerId && {type: 'team' as Actor['type'], id: ownerId, name: ''};
+  let conditionType;
+  const activationCondition =
+    rule.monitorType === MonitorType.ACTIVATED &&
+    typeof rule.activationCondition !== 'undefined' &&
+    rule.activationCondition;
+  switch (activationCondition) {
+    case ActivationConditionType.DEPLOY_CREATION:
+      conditionType = t('New Deploy');
+      break;
+    case ActivationConditionType.RELEASE_CREATION:
+      conditionType = t('New Release');
+      break;
+    default:
+      break;
+  }
 
   return (
     <Fragment>
@@ -206,6 +221,13 @@ export function MetricDetailsSidebar({
             keyName={t('Environment')}
             value={<OverflowTableValue>{rule.environment ?? '-'}</OverflowTableValue>}
           />
+          {rule.monitorType === MonitorType.ACTIVATED &&
+            rule.activationCondition !== undefined && (
+              <KeyValueTableRow
+                keyName={t('Activated by')}
+                value={<OverflowTableValue>{conditionType}</OverflowTableValue>}
+              />
+            )}
           <KeyValueTableRow
             keyName={t('Date created')}
             value={
@@ -220,7 +242,7 @@ export function MetricDetailsSidebar({
           />
           {rule.createdBy && (
             <KeyValueTableRow
-              keyName={t('Created By')}
+              keyName={t('Created by')}
               value={
                 <OverflowTableValue>{rule.createdBy.name ?? '-'}</OverflowTableValue>
               }
@@ -228,7 +250,7 @@ export function MetricDetailsSidebar({
           )}
           {rule.dateModified && (
             <KeyValueTableRow
-              keyName={t('Last Modified')}
+              keyName={t('Last modified')}
               value={<TimeSince date={rule.dateModified} suffix={t('ago')} />}
             />
           )}
@@ -370,5 +392,5 @@ const TriggerText = styled('span')`
   color: ${p => p.theme.textColor};
   font-size: ${p => p.theme.fontSizeSmall};
   width: 100%;
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;

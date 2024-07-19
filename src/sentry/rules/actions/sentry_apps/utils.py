@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from rest_framework import serializers
 
 from sentry.constants import SENTRY_APP_ACTIONS
-from sentry.services.hybrid_cloud.app import app_service
+from sentry.sentry_apps.services.app import app_service
 
 
 def trigger_sentry_app_action_creators_for_issues(

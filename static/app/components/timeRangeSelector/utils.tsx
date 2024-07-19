@@ -1,12 +1,12 @@
 import {Fragment} from 'react';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import Datetime from 'sentry/components/dateTime';
 import autoCompleteFilter from 'sentry/components/dropdownAutoComplete/autoCompleteFilter';
-import {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
+import type {ItemsBeforeFilter} from 'sentry/components/dropdownAutoComplete/types';
 import {DEFAULT_RELATIVE_PERIODS} from 'sentry/constants';
 import {t, tn} from 'sentry/locale';
-import {DateString} from 'sentry/types';
+import type {DateString} from 'sentry/types/core';
 import {
   DEFAULT_DAY_END_TIME,
   DEFAULT_DAY_START_TIME,
@@ -29,7 +29,7 @@ export type RelativeUnitsMapping = {
 
 const DATE_TIME_FORMAT = 'YYYY-MM-DDTHH:mm:ss';
 
-const STATS_PERIOD_REGEX = /^(\d+)([smhdw]{1})$/;
+const STATS_PERIOD_REGEX = /^(\d+)([mhdw]{1})$/;
 
 const SUPPORTED_RELATIVE_PERIOD_UNITS: RelativeUnitsMapping = {
   m: {

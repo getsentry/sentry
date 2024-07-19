@@ -1,5 +1,5 @@
-import {AuthProviders} from 'sentry-fixture/authProviders';
-import {Organization} from 'sentry-fixture/organization';
+import {AuthProvidersFixture} from 'sentry-fixture/authProviders';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
@@ -7,15 +7,14 @@ import {descopeFeatureName} from 'sentry/utils';
 import ProviderItem from 'sentry/views/settings/organizationAuth/providerItem';
 
 describe('ProviderItem', function () {
-  const provider = AuthProviders()[0];
-  const org = Organization({
+  const provider = AuthProvidersFixture()[0];
+  const org = OrganizationFixture({
     features: [descopeFeatureName(provider.requiredFeature)],
   });
-  const routerContext = TestStubs.routerContext([{organization: org}]);
 
   it('renders', function () {
     render(<ProviderItem active={false} provider={provider} onConfigure={() => {}} />, {
-      context: routerContext,
+      organization: org,
     });
 
     expect(
@@ -26,7 +25,7 @@ describe('ProviderItem', function () {
   it('calls configure callback', async function () {
     const mock = jest.fn();
     render(<ProviderItem active={false} provider={provider} onConfigure={mock} />, {
-      context: routerContext,
+      organization: org,
     });
 
     await userEvent.click(screen.getByRole('button', {name: 'Configure'}));
@@ -34,9 +33,8 @@ describe('ProviderItem', function () {
   });
 
   it('renders a disabled Tag when disabled', function () {
-    const noFeatureRouterContext = TestStubs.routerContext();
     render(<ProviderItem active={false} provider={provider} onConfigure={() => {}} />, {
-      context: noFeatureRouterContext,
+      organization: OrganizationFixture(),
     });
 
     expect(screen.getByRole('status')).toHaveTextContent('disabled');

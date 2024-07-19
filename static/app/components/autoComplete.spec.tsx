@@ -1,8 +1,9 @@
 import {useEffect} from 'react';
 
-import {fireEvent, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
+import {act, fireEvent, render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
-import AutoComplete, {AutoCompleteProps} from 'sentry/components/autoComplete';
+import type {AutoCompleteProps} from 'sentry/components/autoComplete';
+import AutoComplete from 'sentry/components/autoComplete';
 
 const items = [
   {
@@ -133,7 +134,7 @@ describe('AutoComplete', function () {
       fireEvent.focus(input);
       fireEvent.blur(input);
       expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
-      jest.runAllTimers();
+      act(() => jest.runAllTimers());
 
       expect(screen.queryByTestId('test-autocomplete')).not.toBeInTheDocument();
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
@@ -151,11 +152,11 @@ describe('AutoComplete', function () {
     it('can open and close dropdown menu using injected actions', function () {
       createWrapper();
       const [injectedProps] = autoCompleteState;
-      injectedProps.actions.open();
+      act(() => injectedProps.actions.open());
       expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
       expect(mocks.onOpen).toHaveBeenCalledTimes(1);
 
-      injectedProps.actions.close();
+      act(() => injectedProps.actions.close());
       expect(screen.queryByTestId('test-autocomplete')).not.toBeInTheDocument();
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
     });
@@ -310,7 +311,7 @@ describe('AutoComplete', function () {
       expect(input).toHaveValue('a');
 
       fireEvent.blur(input);
-      jest.runAllTimers();
+      act(() => jest.runAllTimers());
       expect(screen.queryByTestId('test-autocomplete')).not.toBeInTheDocument();
       expect(input).toHaveValue('');
     });
@@ -351,7 +352,7 @@ describe('AutoComplete', function () {
       jest.useFakeTimers();
       fireEvent.focus(input);
       fireEvent.blur(input);
-      jest.runAllTimers();
+      act(() => jest.runAllTimers());
       expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
 
       // This still gets called even though menu is open
@@ -371,12 +372,12 @@ describe('AutoComplete', function () {
     it('does not open and close dropdown menu using injected actions', function () {
       createWrapper({isOpen: true});
       const [injectedProps] = autoCompleteState;
-      injectedProps.actions.open();
+      act(() => injectedProps.actions.open());
       expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
 
       expect(mocks.onOpen).toHaveBeenCalledTimes(1);
 
-      injectedProps.actions.close();
+      act(() => injectedProps.actions.close());
       expect(screen.getByTestId('test-autocomplete')).toBeInTheDocument();
 
       expect(mocks.onClose).toHaveBeenCalledTimes(1);
@@ -527,7 +528,7 @@ describe('AutoComplete', function () {
       expect(input).toHaveValue('a');
 
       fireEvent.blur(input);
-      jest.runAllTimers();
+      act(() => jest.runAllTimers());
       expect(input).toHaveValue('');
     });
   });

@@ -1,6 +1,5 @@
-import selectEvent from 'react-select-event';
-
 import {render, screen} from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import Form from 'sentry/components/forms/form';
 import FormModel from 'sentry/components/forms/model';

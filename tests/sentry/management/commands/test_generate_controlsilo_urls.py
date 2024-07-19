@@ -27,7 +27,7 @@ class TestGenerateControlsiloUrls(TestCase):
     def test_render_code(self):
         result = self.call_command(format="js")
         assert "new RegExp('^api/0/users/$')," in result
-        assert "new RegExp('^api/0/internal/integration-proxy/\\\\S*$')," in result
+        assert "new RegExp('^api/0/internal/integration-proxy/$')," in result
         assert "const patterns" in result
         assert "export default patterns;" in result
 
@@ -58,7 +58,8 @@ class TestGenerateControlsiloUrls(TestCase):
             Does not exist in the current pattern inventory. You should regenerate
             the pattern inventory with:
 
-            getsentry django generate_controlsilo_urls --format=js --output={pattern_file}
+            cd ../getsentry
+            getsentry django generate_controlsilo_urls --format=js --output=../sentry/{pattern_file}
 
             This command needs to be run in a getsentry environment
             in order to not lose patterns that are important for sentry.io

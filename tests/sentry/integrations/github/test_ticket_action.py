@@ -11,6 +11,7 @@ from sentry.integrations.github.integration import GitHubIntegration
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.rule import Rule
 from sentry.testutils.cases import RuleTestCase
+from sentry.testutils.helpers.integrations import get_installation_of_type
 from sentry.testutils.skips import requires_snuba
 from sentry.types.rules import RuleFuture
 
@@ -36,9 +37,9 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             },
         )
 
-        self.installation: GitHubIntegration = self.integration.get_installation(
-            self.organization.id
-        )  # type: ignore[assignment]
+        self.installation = get_installation_of_type(
+            GitHubIntegration, self.integration, self.organization.id
+        )
 
         self.login_as(user=self.user)
         responses.add(
@@ -57,7 +58,7 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
     def trigger(self, event, rule_object):
         action = rule_object.data.get("actions", ())[0]
         action_inst = self.get_rule(data=action, rule=rule_object)
-        results = list(action_inst.after(event=event, state=self.get_state()))
+        results = list(action_inst.after(event=event))
         assert len(results) == 1
 
         rule_future = RuleFuture(rule=rule_object, kwargs=results[0].kwargs)
@@ -102,8 +103,8 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             reverse(
                 "sentry-api-0-project-rules",
                 kwargs={
-                    "organization_slug": self.organization.slug,
-                    "project_slug": self.project.slug,
+                    "organization_id_or_slug": self.organization.slug,
+                    "project_id_or_slug": self.project.slug,
                 },
             ),
             format="json",
@@ -137,6 +138,7 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
 
         # assert ticket created in DB
         key = self.get_key(event)
+        assert key == f"{self.repo}#{self.issue_num}"
         external_issue_count = len(ExternalIssue.objects.filter(key=key))
         assert external_issue_count == 1
 
@@ -162,8 +164,8 @@ class GitHubTicketRulesTestCase(RuleTestCase, BaseAPITestCase):
             reverse(
                 "sentry-api-0-project-rules",
                 kwargs={
-                    "organization_slug": self.organization.slug,
-                    "project_slug": self.project.slug,
+                    "organization_id_or_slug": self.organization.slug,
+                    "project_id_or_slug": self.project.slug,
                 },
             ),
             format="json",

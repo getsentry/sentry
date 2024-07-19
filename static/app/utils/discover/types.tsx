@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
 
 export const TOP_N = 5;
 
@@ -14,11 +14,19 @@ export enum DisplayModes {
 
 export enum DiscoverDatasets {
   DISCOVER = 'discover',
+  ERRORS = 'errors',
   METRICS = 'metrics',
   METRICS_ENHANCED = 'metricsEnhanced',
   ISSUE_PLATFORM = 'issuePlatform',
   SPANS_INDEXED = 'spansIndexed',
   SPANS_METRICS = 'spansMetrics',
+  TRANSACTIONS = 'transactions',
+}
+
+export enum SavedQueryDatasets {
+  DISCOVER = 'discover',
+  ERRORS = 'error-events',
+  TRANSACTIONS = 'transaction-like',
 }
 
 export const TOP_EVENT_MODES: string[] = [DisplayModes.TOP5, DisplayModes.DAILYTOP5];

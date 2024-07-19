@@ -6,6 +6,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEndpoint
@@ -13,7 +14,7 @@ from sentry.api.paginator import GenericOffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
-from sentry.discover.models import DiscoverSavedQuery
+from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery
 from sentry.search.utils import tokenize_query
 
 
@@ -23,6 +24,7 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,
     }
+    owner = ApiOwner.PERFORMANCE
     permission_classes = (DiscoverSavedQueryPermission,)
 
     def has_feature(self, organization, request):
@@ -139,6 +141,8 @@ class DiscoverSavedQueriesEndpoint(OrganizationEndpoint):
             name=data["name"],
             query=data["query"],
             version=data["version"],
+            dataset=data["query_dataset"],
+            dataset_source=DatasetSourcesTypes.UNKNOWN.value,
             created_by_id=request.user.id if request.user.is_authenticated else None,
         )
 

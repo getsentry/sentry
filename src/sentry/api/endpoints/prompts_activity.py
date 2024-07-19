@@ -1,4 +1,5 @@
 import calendar
+from typing import Any
 
 from django.db import IntegrityError, router, transaction
 from django.db.models import Q
@@ -16,7 +17,7 @@ from sentry.models.project import Project
 from sentry.models.promptsactivity import PromptsActivity
 from sentry.utils.prompts import prompt_config
 
-VALID_STATUSES = frozenset(("snoozed", "dismissed"))
+VALID_STATUSES = frozenset(("snoozed", "dismissed", "visible"))
 
 
 # Endpoint to retrieve multiple PromptsActivity at once
@@ -42,14 +43,14 @@ class PromptsActivityEndpoint(Endpoint):
     }
     permission_classes = (IsAuthenticated,)
 
-    def get(self, request: Request) -> Response:
+    def get(self, request: Request, **kwargs) -> Response:
         """Return feature prompt status if dismissed or in snoozed period"""
 
         features = request.GET.getlist("feature")
         if len(features) == 0:
             return Response({"details": "No feature specified"}, status=400)
 
-        conditions = None
+        conditions: Q | None = None
         for feature in features:
             if not prompt_config.has(feature):
                 return Response({"detail": "Invalid feature name " + feature}, status=400)
@@ -62,16 +63,16 @@ class PromptsActivityEndpoint(Endpoint):
             condition = Q(feature=feature, **filters)
             conditions = condition if conditions is None else (conditions | condition)
 
-        result = PromptsActivity.objects.filter(conditions, user_id=request.user.id)
-        featuredata = {k.feature: k.data for k in result}
+        result_qs = PromptsActivity.objects.filter(conditions, user_id=request.user.id)
+        featuredata = {k.feature: k.data for k in result_qs}
         if len(features) == 1:
-            result = result.first()
+            result = result_qs.first()
             data = None if result is None else result.data
             return Response({"data": data, "features": featuredata})
         else:
             return Response({"features": featuredata})
 
-    def put(self, request: Request):
+    def put(self, request: Request, **kwargs):
         serializer = PromptsActivitySerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=400)
@@ -100,12 +101,15 @@ class PromptsActivityEndpoint(Endpoint):
         else:
             fields["organization_id"] = 0
 
-        data = {}
+        data: dict[str, Any] = {}
         now = calendar.timegm(timezone.now().utctimetuple())
         if status == "snoozed":
             data["snoozed_ts"] = now
         elif status == "dismissed":
             data["dismissed_ts"] = now
+        elif status == "visible":
+            data["snoozed_ts"] = None
+            data["dismissed_ts"] = None
 
         try:
             with transaction.atomic(router.db_for_write(PromptsActivity)):

@@ -1,4 +1,5 @@
 import re
+from typing import ClassVar, Self
 from urllib.parse import unquote
 
 from django.db import IntegrityError, models, router, transaction
@@ -10,9 +11,10 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
+from sentry.db.models.manager.base import BaseManager
 from sentry.utils import metrics
 from sentry.utils.cache import cache
 from sentry.utils.hashlib import md5_text
@@ -20,7 +22,7 @@ from sentry.utils.hashlib import md5_text
 OK_NAME_PATTERN = re.compile(ENVIRONMENT_NAME_PATTERN)
 
 
-@region_silo_only_model
+@region_silo_model
 class EnvironmentProject(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -34,7 +36,7 @@ class EnvironmentProject(Model):
         unique_together = (("project", "environment"),)
 
 
-@region_silo_only_model
+@region_silo_model
 class Environment(Model):
     __relocation_scope__ = RelocationScope.Organization
 
@@ -42,6 +44,8 @@ class Environment(Model):
     projects = models.ManyToManyField("sentry.Project", through=EnvironmentProject)
     name = models.CharField(max_length=64)
     date_added = models.DateTimeField(default=timezone.now)
+
+    objects: ClassVar[BaseManager[Self]] = BaseManager(cache_fields=["pk"])
 
     class Meta:
         app_label = "sentry"

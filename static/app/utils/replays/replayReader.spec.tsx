@@ -1,4 +1,3 @@
-import {EventType} from '@sentry-internal/rrweb';
 import {
   ReplayClickEventFixture,
   ReplayConsoleEventFixture,
@@ -14,14 +13,20 @@ import {
   ReplaySpanFrameEventFixture,
 } from 'sentry-fixture/replay/replayFrameEvents';
 import {ReplayRequestFrameFixture} from 'sentry-fixture/replay/replaySpanFrameData';
-import {RRWebFullSnapshotFrameEvent} from 'sentry-fixture/replay/rrweb';
+import {
+  RRWebDOMFrameFixture,
+  RRWebFullSnapshotFrameEventFixture,
+  RRWebIncrementalSnapshotFrameEventFixture,
+} from 'sentry-fixture/replay/rrweb';
+import {ReplayErrorFixture} from 'sentry-fixture/replayError';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
 import {BreadcrumbType} from 'sentry/types/breadcrumbs';
 import ReplayReader from 'sentry/utils/replays/replayReader';
+import {EventType, IncrementalSource} from 'sentry/utils/replays/types';
 
 describe('ReplayReader', () => {
-  const replayRecord = ReplayRecordFixture({});
+  const replayRecord = ReplayRecordFixture();
 
   it('Should return null if there are missing arguments', () => {
     const missingAttachments = ReplayReader.factory({
@@ -85,13 +90,13 @@ describe('ReplayReader', () => {
     const secondTimestamp = new Date('2023-12-25T00:04:00');
     const thirdTimestamp = new Date('2023-12-25T00:05:00');
 
-    const optionsFrame = ReplayOptionFrameFixture({});
+    const optionsFrame = ReplayOptionFrameFixture();
     const optionsEvent = ReplayOptionFrameEventFixture({
       timestamp,
       data: {payload: optionsFrame},
     });
-    const firstDiv = RRWebFullSnapshotFrameEvent({timestamp});
-    const secondDiv = RRWebFullSnapshotFrameEvent({timestamp});
+    const firstDiv = RRWebFullSnapshotFrameEventFixture({timestamp});
+    const secondDiv = RRWebFullSnapshotFrameEventFixture({timestamp});
     const clickEvent = ReplayClickEventFixture({timestamp});
     const secondClickEvent = ReplayClickEventFixture({timestamp: secondTimestamp});
     const thirdClickEvent = ReplayClickEventFixture({timestamp: thirdTimestamp});
@@ -151,11 +156,6 @@ describe('ReplayReader', () => {
       {
         method: 'getRRWebFrames',
         expected: [
-          {
-            type: EventType.Custom,
-            timestamp: expect.any(Number),
-            data: {tag: 'replay.start', payload: {}},
-          },
           firstDiv,
           secondDiv,
           {
@@ -196,8 +196,7 @@ describe('ReplayReader', () => {
         expected: [
           expect.objectContaining({category: 'replay.init'}),
           expect.objectContaining({category: 'ui.slowClickDetected'}),
-          expect.objectContaining({category: 'navigation'}),
-          expect.objectContaining({op: 'navigation.navigate'}),
+          expect.objectContaining({op: 'navigation.navigate'}), // prefer the nav span over the breadcrumb
           expect.objectContaining({category: 'ui.click'}),
           expect.objectContaining({category: 'ui.click'}),
         ],
@@ -220,7 +219,7 @@ describe('ReplayReader', () => {
 
   it('shoud return the SDK config if there is a RecordingOptions event found', () => {
     const timestamp = new Date();
-    const optionsFrame = ReplayOptionFrameFixture({});
+    const optionsFrame = ReplayOptionFrameFixture();
 
     const replay = ReplayReader.factory({
       attachments: [
@@ -295,6 +294,190 @@ describe('ReplayReader', () => {
       });
 
       expect(replay?.isNetworkDetailsSetup()).toBe(expected);
+    });
+  });
+
+  it('detects canvas element from full snapshot', () => {
+    const timestamp = new Date('2023-12-25T00:02:00');
+
+    const firstDiv = RRWebFullSnapshotFrameEventFixture({
+      timestamp,
+      childNodes: [
+        RRWebDOMFrameFixture({
+          tagName: 'div',
+          childNodes: [
+            RRWebDOMFrameFixture({
+              tagName: 'canvas',
+            }),
+          ],
+        }),
+      ],
+    });
+    const attachments = [firstDiv];
+
+    const replay = ReplayReader.factory({
+      attachments,
+      errors: [],
+      replayRecord,
+    });
+
+    expect(replay?.hasCanvasElementInReplay()).toBe(true);
+  });
+
+  it('detects canvas element from dom mutations', () => {
+    const timestamp = new Date('2023-12-25T00:02:00');
+
+    const snapshot = RRWebFullSnapshotFrameEventFixture({timestamp});
+    const increment = RRWebIncrementalSnapshotFrameEventFixture({
+      timestamp,
+      data: {
+        source: IncrementalSource.Mutation,
+        adds: [
+          {
+            node: RRWebDOMFrameFixture({
+              tagName: 'canvas',
+            }),
+            parentId: 0,
+            nextId: null,
+          },
+        ],
+        removes: [],
+        texts: [],
+        attributes: [],
+      },
+    });
+
+    const replay = ReplayReader.factory({
+      attachments: [snapshot, increment],
+      errors: [],
+      replayRecord,
+    });
+
+    expect(replay?.hasCanvasElementInReplay()).toBe(true);
+  });
+
+  describe('clip window', () => {
+    const replayStartedAt = new Date('2024-01-01T00:02:00');
+    const replayFinishedAt = new Date('2024-01-01T00:04:00');
+
+    const clipStartTimestamp = new Date('2024-01-01T00:03:00');
+    const clipEndTimestamp = new Date('2024-01-01T00:03:10');
+
+    const rrwebFrame1 = RRWebFullSnapshotFrameEventFixture({
+      timestamp: new Date('2024-01-01T00:02:30'),
+    });
+    const rrwebFrame2 = RRWebFullSnapshotFrameEventFixture({
+      timestamp: new Date('2024-01-01T00:03:09'),
+    });
+    const rrwebFrame3 = RRWebFullSnapshotFrameEventFixture({
+      timestamp: new Date('2024-01-01T00:03:30'),
+    });
+
+    const breadcrumbAttachment1 = ReplayBreadcrumbFrameEventFixture({
+      timestamp: new Date('2024-01-01T00:02:30'),
+      data: {
+        payload: ReplayNavFrameFixture({
+          timestamp: new Date('2024-01-01T00:02:30'),
+        }),
+      },
+    });
+    const breadcrumbAttachment2 = ReplayBreadcrumbFrameEventFixture({
+      timestamp: new Date('2024-01-01T00:03:05'),
+      data: {
+        payload: ReplayNavFrameFixture({
+          timestamp: new Date('2024-01-01T00:03:05'),
+        }),
+      },
+    });
+    const breadcrumbAttachment3 = ReplayBreadcrumbFrameEventFixture({
+      timestamp: new Date('2024-01-01T00:03:30'),
+      data: {
+        payload: ReplayNavFrameFixture({
+          timestamp: new Date('2024-01-01T00:03:30'),
+        }),
+      },
+    });
+
+    const error1 = ReplayErrorFixture({
+      id: '1',
+      issue: '100',
+      timestamp: '2024-01-01T00:02:30',
+    });
+    const error2 = ReplayErrorFixture({
+      id: '2',
+      issue: '200',
+      timestamp: '2024-01-01T00:03:06',
+    });
+    const error3 = ReplayErrorFixture({
+      id: '1',
+      issue: '100',
+      timestamp: '2024-01-01T00:03:30',
+    });
+
+    const replay = ReplayReader.factory({
+      attachments: [
+        rrwebFrame1,
+        rrwebFrame2,
+        rrwebFrame3,
+        breadcrumbAttachment1,
+        breadcrumbAttachment2,
+        breadcrumbAttachment3,
+      ],
+      errors: [error1, error2, error3],
+      replayRecord: ReplayRecordFixture({
+        started_at: replayStartedAt,
+        finished_at: replayFinishedAt,
+      }),
+      clipWindow: {
+        startTimestampMs: clipStartTimestamp.getTime(),
+        endTimestampMs: clipEndTimestamp.getTime(),
+      },
+    });
+
+    it('should adjust the end time and duration for the clip window', () => {
+      // Duration should be between the clip start time and end time
+      expect(replay?.getDurationMs()).toEqual(10_000);
+      // Start offset should be set
+      expect(replay?.getStartOffsetMs()).toEqual(
+        clipStartTimestamp.getTime() - replayStartedAt.getTime()
+      );
+      expect(replay?.getStartTimestampMs()).toEqual(clipStartTimestamp.getTime());
+    });
+
+    it('should trim rrweb frames from the end but not the beginning', () => {
+      expect(replay?.getRRWebFrames()).toEqual([
+        expect.objectContaining({
+          type: EventType.FullSnapshot,
+          timestamp: rrwebFrame1.timestamp,
+        }),
+        expect.objectContaining({
+          type: EventType.FullSnapshot,
+          timestamp: rrwebFrame2.timestamp,
+        }),
+        expect.objectContaining({
+          type: EventType.Custom,
+          data: {tag: 'replay.clip_end', payload: {}},
+          timestamp: clipEndTimestamp.getTime(),
+        }),
+        // rrwebFrame3 should not be returned
+      ]);
+    });
+
+    it('should only return chapter frames within window and shift their clipOffsets', () => {
+      expect(replay?.getChapterFrames()).toEqual([
+        // Only breadcrumb2 and error2 should be included
+        expect.objectContaining({
+          category: 'navigation',
+          timestampMs: breadcrumbAttachment2.timestamp,
+          // offset is relative to the start of the clip window
+          offsetMs: 5_000,
+        }),
+        expect.objectContaining({
+          category: 'issue',
+          timestampMs: new Date(error2.timestamp).getTime(),
+          offsetMs: 6_000,
+        }),
+      ]);
     });
   });
 });

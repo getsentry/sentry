@@ -1,5 +1,5 @@
+from collections.abc import Sequence
 from contextlib import ExitStack
-from typing import Sequence, Union
 
 import sentry_sdk
 from django.db import DEFAULT_DB_ALIAS, connections, transaction
@@ -7,8 +7,8 @@ from sentry_sdk.integrations import Integration
 
 
 def atomic_transaction(
-    using: Union[str, Sequence[str]], savepoint: bool = True
-) -> Union[transaction.Atomic, ExitStack]:
+    using: str | Sequence[str], savepoint: bool = True
+) -> transaction.Atomic | ExitStack:
     """
     Open transaction to one or multiple databases.
 

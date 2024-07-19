@@ -3,7 +3,7 @@ import logging
 from sentry import audit_log, features
 from sentry.integrations.utils.codecov import has_codecov_integration
 from sentry.models.organization import Organization, OrganizationStatus
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils.audit import create_system_audit_entry
 from sentry.utils.query import RangeQuerySetWrapper

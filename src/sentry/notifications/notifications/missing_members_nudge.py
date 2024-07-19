@@ -1,16 +1,17 @@
 from __future__ import annotations
 
-from typing import Any, Dict, Iterable, Mapping, MutableMapping, Optional, Sequence
+from collections.abc import Iterable, Mapping, MutableMapping, Sequence
+from typing import Any
 
 from sentry.db.models.base import Model
+from sentry.integrations.types import ExternalProviders
 from sentry.models.organization import Organization
 from sentry.notifications.notifications.base import BaseNotification
 from sentry.notifications.notifications.strategies.member_write_role_recipient_strategy import (
     MemberWriteRoleRecipientStrategy,
 )
-from sentry.notifications.types import NotificationSettingTypes
-from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.types.integrations import ExternalProviders
+from sentry.notifications.types import NotificationSettingEnum
+from sentry.types.actor import Actor
 
 PROVIDER_TO_URL = {"github": "https://github.com/"}
 
@@ -21,12 +22,12 @@ class MissingMembersNudgeNotification(BaseNotification):
     template_path = "sentry/emails/missing-members-nudge"
 
     RoleBasedRecipientStrategyClass = MemberWriteRoleRecipientStrategy
-    notification_setting_type = NotificationSettingTypes.APPROVAL
+    notification_setting_type_enum = NotificationSettingEnum.APPROVAL
 
     def __init__(
         self,
         organization: Organization,
-        commit_authors: Sequence[Dict[str, Any]],
+        commit_authors: Sequence[dict[str, Any]],
         provider: str,
     ) -> None:
         super().__init__(organization)
@@ -48,7 +49,7 @@ class MissingMembersNudgeNotification(BaseNotification):
         return [ExternalProviders.EMAIL]
 
     def get_members_list_url(
-        self, provider: ExternalProviders, recipient: Optional[RpcActor] = None
+        self, provider: ExternalProviders, recipient: Actor | None = None
     ) -> str:
         url = self.organization.absolute_url(
             f"/settings/{self.organization.slug}/members/",
@@ -65,6 +66,6 @@ class MissingMembersNudgeNotification(BaseNotification):
             "provider": self.provider.capitalize(),
         }
 
-    def determine_recipients(self) -> list[RpcActor]:
+    def determine_recipients(self) -> list[Actor]:
         # owners and managers have org:write
-        return RpcActor.many_from_object(self.role_based_recipient_strategy.determine_recipients())
+        return Actor.many_from_object(self.role_based_recipient_strategy.determine_recipients())

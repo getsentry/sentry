@@ -5,11 +5,11 @@ from sentry.testutils.cases import AcceptanceTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.testutils.silo import no_silo_test
 
-event_time = before_now(days=3).replace(tzinfo=timezone.utc)
-current_time = datetime.utcnow().replace(tzinfo=timezone.utc)
+event_time = before_now(days=3)
+current_time = datetime.now(timezone.utc)
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class ProjectTagsSettingsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()

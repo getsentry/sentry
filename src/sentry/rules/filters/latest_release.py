@@ -7,8 +7,9 @@ from django.db.models.signals import post_delete, post_save, pre_delete
 from sentry import tagstore
 from sentry.eventstore.models import GroupEvent
 from sentry.models.environment import Environment
-from sentry.models.release import Release, ReleaseProject
+from sentry.models.release import Release
 from sentry.models.releaseenvironment import ReleaseEnvironment
+from sentry.models.releases.release_project import ReleaseProject
 from sentry.rules import EventState
 from sentry.rules.filters.base import EventFilter
 from sentry.search.utils import get_latest_release
@@ -89,7 +90,7 @@ class LatestReleaseFilter(EventFilter):
         releases = (
             v.lower()
             for k, v in event.tags
-            if k.lower() == "release" or tagstore.get_standardized_key(k) == "release"
+            if k.lower() == "release" or tagstore.backend.get_standardized_key(k) == "release"
         )
 
         for release in releases:

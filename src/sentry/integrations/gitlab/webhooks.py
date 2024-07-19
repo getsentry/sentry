@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from datetime import timezone
-from typing import Any, Mapping, Tuple
+from typing import Any
 
+import orjson
 from dateutil.parser import parse as parse_date
 from django.db import IntegrityError, router, transaction
 from django.http import Http404, HttpResponse
@@ -12,23 +14,24 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from rest_framework.request import Request
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import Endpoint, region_silo_endpoint
+from sentry.integrations.services.integration import integration_service
+from sentry.integrations.services.integration.model import RpcIntegration
 from sentry.integrations.utils.scope import clear_tags_and_context
 from sentry.models.commit import Commit
 from sentry.models.commitauthor import CommitAuthor
 from sentry.models.organization import Organization
 from sentry.models.pullrequest import PullRequest
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization import organization_service
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.services.hybrid_cloud.integration import integration_service
-from sentry.services.hybrid_cloud.integration.model import RpcIntegration
-from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.utils import json
 
 logger = logging.getLogger("sentry.webhooks")
 
 PROVIDER_NAME = "integrations:gitlab"
+GITHUB_WEBHOOK_SECRET_INVALID_ERROR = """Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/organization/integrations/integration-platform/public-integration/#refreshing-tokens."""
 
 
 class Webhook:
@@ -207,7 +210,7 @@ handlers = {"Push Hook": PushEventWebhook, "Merge Request Hook": MergeEventWebho
 
 
 class GitlabWebhookMixin:
-    def _get_external_id(self, request, extra) -> Tuple[str, str] | HttpResponse:
+    def _get_external_id(self, request, extra) -> tuple[str, str] | HttpResponse:
         token = "<unknown>"
         try:
             # Munge the token to extract the integration external_id.
@@ -237,8 +240,9 @@ class GitlabWebhookMixin:
 
 @region_silo_endpoint
 class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
-        "POST": ApiPublishStatus.UNKNOWN,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     authentication_classes = ()
     permission_classes = ()
@@ -267,14 +271,16 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
             return result
         (external_id, secret) = result
 
-        integration, installs = integration_service.get_organization_contexts(
+        result = integration_service.organization_contexts(
             provider=self.provider, external_id=external_id
         )
+        integration = result.integration
+        installs = result.organization_integrations
         if integration is None:
             logger.info("gitlab.webhook.invalid-organization", extra=extra)
             extra["reason"] = "There is no integration that matches your organization."
-            logger.exception(extra["reason"])
-            return HttpResponse(status=400, reason=extra["reason"])
+            logger.error(extra["reason"])
+            return HttpResponse(status=409, reason=extra["reason"])
 
         extra = {
             **extra,
@@ -291,23 +297,16 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
             },
         }
 
-        try:
-            if not constant_time_compare(secret, integration.metadata["webhook_secret"]):
-                # Summary and potential workaround mentioned here:
-                # https://github.com/getsentry/sentry/issues/34903#issuecomment-1262754478
-                # This forces a stack trace to be produced
-                raise Exception("The webhook secrets do not match.")
-        except Exception:
+        if not constant_time_compare(secret, integration.metadata["webhook_secret"]):
+            # Summary and potential workaround mentioned here:
+            # https://github.com/getsentry/sentry/issues/34903#issuecomment-1262754478
+            extra["reason"] = GITHUB_WEBHOOK_SECRET_INVALID_ERROR
             logger.info("gitlab.webhook.invalid-token-secret", extra=extra)
-            extra[
-                "reason"
-            ] = "Gitlab's webhook secret does not match. Refresh token (or re-install the integration) by following this https://docs.sentry.io/product/integrations/integration-platform/public-integration/#refreshing-tokens."
-            logger.exception(extra["reason"])
-            return HttpResponse(status=400, reason=extra["reason"])
+            return HttpResponse(status=409, reason=GITHUB_WEBHOOK_SECRET_INVALID_ERROR)
 
         try:
-            event = json.loads(request.body.decode("utf-8"))
-        except json.JSONDecodeError:
+            event = orjson.loads(request.body)
+        except orjson.JSONDecodeError:
             logger.info("gitlab.webhook.invalid-json", extra=extra)
             extra["reason"] = "Data received is not JSON."
             logger.exception(extra["reason"])
@@ -318,7 +317,7 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
         except KeyError:
             logger.info("gitlab.webhook.wrong-event-type", extra=extra)
             supported_events = ", ".join(sorted(self._handlers.keys()))
-            logger.info(f"We only support these kinds of events: {supported_events}")
+            logger.info("We only support these kinds of events: %s", supported_events)
             extra[
                 "reason"
             ] = "The customer has edited the webhook in Gitlab to include other types of events."
@@ -326,7 +325,9 @@ class GitlabWebhookEndpoint(Endpoint, GitlabWebhookMixin):
             return HttpResponse(status=400, reason=extra["reason"])
 
         for install in installs:
-            org_context = organization_service.get_organization_by_id(id=install.organization_id)
+            org_context = organization_service.get_organization_by_id(
+                id=install.organization_id, include_teams=False, include_projects=False
+            )
             if org_context:
                 organization = org_context.organization
                 handler()(integration, organization, event)

@@ -1,5 +1,5 @@
 import {t} from 'sentry/locale';
-import {TagCollection} from 'sentry/types';
+import type {TagCollection} from 'sentry/types/group';
 
 // Don't forget to update https://docs.sentry.io/product/sentry-basics/search/searchable-properties/ for any changes made here
 
@@ -8,6 +8,8 @@ export enum FieldKind {
   MEASUREMENT = 'measurement',
   BREAKDOWN = 'breakdown',
   FIELD = 'field',
+  ISSUE_FIELD = 'issue_field',
+  EVENT_FIELD = 'event_field',
   FUNCTION = 'function',
   EQUATION = 'equation',
   METRICS = 'metric',
@@ -67,6 +69,7 @@ export enum FieldKey {
   IS = 'is',
   ISSUE = 'issue',
   ISSUE_CATEGORY = 'issue.category',
+  ISSUE_PRIORITY = 'issue.priority',
   ISSUE_TYPE = 'issue.type',
   LAST_SEEN = 'lastSeen',
   LEVEL = 'level',
@@ -144,6 +147,7 @@ export enum WebVital {
   FID = 'measurements.fid',
   CLS = 'measurements.cls',
   TTFB = 'measurements.ttfb',
+  INP = 'measurements.inp',
   REQUEST_TIME = 'measurements.ttfb.requesttime',
 }
 
@@ -209,6 +213,7 @@ export enum AggregationKey {
   ANY = 'any',
   P50 = 'p50',
   P75 = 'p75',
+  P90 = 'p90',
   P95 = 'p95',
   P99 = 'p99',
   P100 = 'p100',
@@ -220,9 +225,30 @@ export enum AggregationKey {
   LAST_SEEN = 'last_seen',
 }
 
+export enum IsFieldValues {
+  RESOLVED = 'resolved',
+  UNRESOLVED = 'unresolved',
+  ARCHIVED = 'archived',
+  ESCALATING = 'escalating',
+  NEW = 'new',
+  ONGOING = 'ongoing',
+  REGRESSED = 'regressed',
+  ASSIGNED = 'assigned',
+  UNASSIGNED = 'unassigned',
+  FOR_REVIEW = 'for_review',
+  LINKED = 'linked',
+  UNLINKED = 'unlinked',
+}
+
 export interface FieldDefinition {
   kind: FieldKind;
   valueType: FieldValueType | null;
+  /**
+   * Allow all comparison operators to be used with this field.
+   * Useful for fields like `release.version` which accepts text, but
+   * can also be used with operators like `>=` or `<`.
+   */
+  allowComparisonOperators?: boolean;
   /**
    * Is this field being deprecated
    */
@@ -314,6 +340,11 @@ export const AGGREGATION_FIELDS: Record<AggregationKey, FieldDefinition> = {
   },
   [AggregationKey.P75]: {
     desc: t('Returns the 75th percentile of the selected field'),
+    kind: FieldKind.FUNCTION,
+    valueType: null,
+  },
+  [AggregationKey.P90]: {
+    desc: t('Returns the 90th percentile of the selected field'),
     kind: FieldKind.FUNCTION,
     valueType: null,
   },
@@ -464,6 +495,11 @@ export const MEASUREMENT_FIELDS: Record<WebVital | MobileVital, FieldDefinition>
     kind: FieldKind.METRICS,
     valueType: FieldValueType.DURATION,
   },
+  [WebVital.INP]: {
+    desc: t('Web Vital Interaction to Next Paint'),
+    kind: FieldKind.METRICS,
+    valueType: FieldValueType.DURATION,
+  },
 };
 
 export const SPAN_OP_FIELDS: Record<SpanOpBreakdown, FieldDefinition> = {
@@ -507,7 +543,7 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   [FieldKey.AGE]: {
     desc: t('The age of the issue in relative time'),
     kind: FieldKind.FIELD,
-    valueType: FieldValueType.DURATION,
+    valueType: FieldValueType.DATE,
   },
   [FieldKey.ASSIGNED]: {
     desc: t('Assignee of the issue as a user ID'),
@@ -738,6 +774,12 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     valueType: FieldValueType.STRING,
     keywords: ['error', 'performance'],
   },
+  [FieldKey.ISSUE_PRIORITY]: {
+    desc: t('The priority of the issue'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+    keywords: ['high', 'medium', 'low'],
+  },
   [FieldKey.ISSUE_TYPE]: {
     desc: t('Type of problem the issue represents (i.e. N+1 Query)'),
     kind: FieldKind.FIELD,
@@ -826,21 +868,25 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
     desc: t('The full version number that identifies the iteration'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowComparisonOperators: true,
   },
   [FieldKey.RELEASE_PACKAGE]: {
     desc: t('The identifier unique to the project or application'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowComparisonOperators: true,
   },
   [FieldKey.RELEASE_STAGE]: {
     desc: t('Stage of usage (i.e., adopted, replaced, low)'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowComparisonOperators: true,
   },
   [FieldKey.RELEASE_VERSION]: {
     desc: t('An abbreviated version number of the build'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+    allowComparisonOperators: true,
   },
   [FieldKey.REPLAY_ID]: {
     desc: t('The ID of an associated Session Replay'),
@@ -1025,11 +1071,27 @@ const EVENT_FIELD_DEFINITIONS: Record<AllEventFieldKeys, FieldDefinition> = {
   },
 };
 
-export const ISSUE_FIELDS = [
+export const ISSUE_PROPERTY_FIELDS: FieldKey[] = [
   FieldKey.AGE,
-  FieldKey.ASSIGNED,
   FieldKey.ASSIGNED_OR_SUGGESTED,
+  FieldKey.ASSIGNED,
   FieldKey.BOOKMARKS,
+  FieldKey.FIRST_RELEASE,
+  FieldKey.FIRST_SEEN,
+  FieldKey.HAS,
+  FieldKey.IS,
+  FieldKey.ISSUE_CATEGORY,
+  FieldKey.ISSUE_PRIORITY,
+  FieldKey.ISSUE_TYPE,
+  FieldKey.ISSUE,
+  FieldKey.LAST_SEEN,
+  FieldKey.RELEASE_STAGE,
+  FieldKey.TIMES_SEEN,
+];
+
+// Should match Snuba columns defined in sentry/snuba/events.py
+export const ISSUE_EVENT_PROPERTY_FIELDS: FieldKey[] = [
+  FieldKey.APP_IN_FOREGROUND,
   FieldKey.DEVICE_ARCH,
   FieldKey.DEVICE_BRAND,
   FieldKey.DEVICE_CLASS,
@@ -1041,40 +1103,31 @@ export const ISSUE_FIELDS = [
   FieldKey.DEVICE_UUID,
   FieldKey.DIST,
   FieldKey.ERROR_HANDLED,
+  FieldKey.ERROR_MAIN_THREAD,
   FieldKey.ERROR_MECHANISM,
   FieldKey.ERROR_TYPE,
   FieldKey.ERROR_UNHANDLED,
   FieldKey.ERROR_VALUE,
-  FieldKey.ERROR_MAIN_THREAD,
   FieldKey.EVENT_TIMESTAMP,
   FieldKey.EVENT_TYPE,
-  FieldKey.FIRST_RELEASE,
-  FieldKey.FIRST_SEEN,
   FieldKey.GEO_CITY,
   FieldKey.GEO_COUNTRY_CODE,
   FieldKey.GEO_REGION,
   FieldKey.GEO_SUBDIVISION,
-  FieldKey.HAS,
   FieldKey.HTTP_METHOD,
   FieldKey.HTTP_REFERER,
   FieldKey.HTTP_STATUS_CODE,
   FieldKey.HTTP_URL,
   FieldKey.ID,
-  FieldKey.IS,
-  FieldKey.ISSUE,
-  FieldKey.ISSUE_CATEGORY,
-  FieldKey.ISSUE_TYPE,
-  FieldKey.LAST_SEEN,
   FieldKey.LOCATION,
   FieldKey.MESSAGE,
   FieldKey.OS_BUILD,
   FieldKey.OS_KERNEL_VERSION,
   FieldKey.PLATFORM,
-  FieldKey.RELEASE,
   FieldKey.RELEASE_BUILD,
   FieldKey.RELEASE_PACKAGE,
-  FieldKey.RELEASE_STAGE,
   FieldKey.RELEASE_VERSION,
+  FieldKey.RELEASE,
   FieldKey.SDK_NAME,
   FieldKey.SDK_VERSION,
   FieldKey.STACK_ABS_PATH,
@@ -1084,7 +1137,6 @@ export const ISSUE_FIELDS = [
   FieldKey.STACK_PACKAGE,
   FieldKey.STACK_STACK_LEVEL,
   FieldKey.TIMESTAMP,
-  FieldKey.TIMES_SEEN,
   FieldKey.TITLE,
   FieldKey.TRACE,
   FieldKey.TRANSACTION,
@@ -1093,7 +1145,11 @@ export const ISSUE_FIELDS = [
   FieldKey.USER_ID,
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
-  FieldKey.APP_IN_FOREGROUND,
+];
+
+export const ISSUE_FIELDS: FieldKey[] = [
+  ...ISSUE_PROPERTY_FIELDS,
+  ...ISSUE_EVENT_PROPERTY_FIELDS,
 ];
 
 /**
@@ -1217,7 +1273,9 @@ export enum ReplayFieldKey {
   ERROR_IDS = 'error_ids',
   OS_NAME = 'os.name',
   OS_VERSION = 'os.version',
+  SEEN_BY_ME = 'seen_by_me',
   URLS = 'urls',
+  VIEWED_BY_ME = 'viewed_by_me',
 }
 
 export enum ReplayClickFieldKey {
@@ -1233,6 +1291,7 @@ export enum ReplayClickFieldKey {
   CLICK_TESTID = 'click.testid',
   CLICK_TEXT_CONTENT = 'click.textContent',
   CLICK_TITLE = 'click.title',
+  CLICK_COMPONENT_NAME = 'click.component_name',
 }
 
 /**
@@ -1257,7 +1316,6 @@ export const REPLAY_FIELDS = [
   FieldKey.DEVICE_MODEL_ID,
   FieldKey.DEVICE_NAME,
   FieldKey.DIST,
-
   ReplayFieldKey.DURATION,
   ReplayFieldKey.ERROR_IDS,
   FieldKey.ID,
@@ -1267,12 +1325,14 @@ export const REPLAY_FIELDS = [
   FieldKey.RELEASE,
   FieldKey.SDK_NAME,
   FieldKey.SDK_VERSION,
+  ReplayFieldKey.SEEN_BY_ME,
   FieldKey.TRACE,
   ReplayFieldKey.URLS,
   FieldKey.USER_EMAIL,
   FieldKey.USER_ID,
   FieldKey.USER_IP,
   FieldKey.USER_USERNAME,
+  ReplayFieldKey.VIEWED_BY_ME,
 ];
 
 const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
@@ -1336,10 +1396,20 @@ const REPLAY_FIELD_DEFINITIONS: Record<ReplayFieldKey, FieldDefinition> = {
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },
+  [ReplayFieldKey.SEEN_BY_ME]: {
+    desc: t('Whether you have seen this replay before (true/false)'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
+  },
   [ReplayFieldKey.URLS]: {
-    desc: t('List of urls that were visited within the Replay'),
+    desc: t('List of urls that were visited within the replay'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
+  },
+  [ReplayFieldKey.VIEWED_BY_ME]: {
+    desc: t('Whether you have seen this replay before (true/false)'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.BOOLEAN,
   },
 };
 
@@ -1356,6 +1426,7 @@ export const REPLAY_CLICK_FIELDS = [
   ReplayClickFieldKey.CLICK_TEXT_CONTENT,
   ReplayClickFieldKey.CLICK_TITLE,
   ReplayClickFieldKey.CLICK_TESTID,
+  ReplayClickFieldKey.CLICK_COMPONENT_NAME,
 ];
 
 // This is separated out from REPLAY_FIELD_DEFINITIONS so that it is feature-flaggable
@@ -1423,6 +1494,11 @@ const REPLAY_CLICK_FIELD_DEFINITIONS: Record<ReplayClickFieldKey, FieldDefinitio
   },
   [ReplayClickFieldKey.CLICK_TITLE]: {
     desc: t('`title` of an element that was clicked'),
+    kind: FieldKind.FIELD,
+    valueType: FieldValueType.STRING,
+  },
+  [ReplayClickFieldKey.CLICK_COMPONENT_NAME]: {
+    desc: t('the name of the frontend component that was clicked'),
     kind: FieldKind.FIELD,
     valueType: FieldValueType.STRING,
   },

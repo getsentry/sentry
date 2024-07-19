@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 from typing import Any
 
 from sentry.interfaces.base import Interface
@@ -9,9 +8,6 @@ from sentry.utils.json import prune_empty_keys
 from sentry.utils.safe import get_path
 
 __all__ = ("Exception", "Mechanism", "upgrade_legacy_mechanism")
-
-
-_type_value_re = re.compile(r"^(\w+):(.*)$")
 
 
 def upgrade_legacy_mechanism(data):
@@ -172,6 +168,9 @@ class Mechanism(Interface):
         if self.handled is not None:
             yield ("handled", self.handled and "yes" or "no")
 
+    def __repr__(self) -> str:
+        return f"{type(self).__name__} -> id:{self.exception_id}, parent_id:{self.parent_id}, source:{self.source}, type:{self.type}"
+
 
 def uncontribute_non_stacktrace_variants(variants):
     """If we have multiple variants and at least one has a stacktrace, we
@@ -187,7 +186,7 @@ def uncontribute_non_stacktrace_variants(variants):
 
     # In case any of the variants has a contributing stacktrace, we want
     # to make all other variants non contributing.  Thr e
-    for (key, component) in variants.items():
+    for key, component in variants.items():
         if any(
             s.contributes for s in component.iter_subcomponents(id="stacktrace", recursive=True)
         ):
@@ -336,7 +335,7 @@ class SingleException(Interface):
         )
 
         stacktrace_meta = (
-            self.stacktrace.get_api_meta(meta, is_public=is_public, platform=platform)
+            self.stacktrace.get_api_meta(meta["stacktrace"], is_public=is_public, platform=platform)
             if self.stacktrace and meta.get("stacktrace")
             else None
         )
@@ -350,6 +349,12 @@ class SingleException(Interface):
             "module": meta.get("module"),
             "stacktrace": stacktrace_meta,
         }
+
+    def __str__(self) -> str:
+        return f"{type(self).__name__}: {self.type}: {self.value}"
+
+    def __repr__(self) -> str:
+        return f"{type(self).__name__} -> {self.type}: {self.value}"
 
 
 class Exception(Interface):

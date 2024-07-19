@@ -30,6 +30,8 @@ export type Series = {
   markLine?: LineSeriesOption['markLine'];
   stack?: string;
   // https://echarts.apache.org/en/option.html#series-line.stack
+  symbol?: LineSeriesOption['symbol'];
+  symbolSize?: LineSeriesOption['symbolSize'];
   z?: number;
 };
 
@@ -116,3 +118,25 @@ export type EChartRestoreHandler = EChartEventHandler<{type: 'restore'}>;
 export type EChartFinishedHandler = EChartEventHandler<{}>;
 
 export type EChartRenderedHandler = EChartEventHandler<{}>;
+
+type EchartBrushAreas = {
+  coordRange: number[][];
+  range: number[][];
+}[];
+
+export type EChartBrushStartHandler = EChartEventHandler<{
+  areas: EchartBrushAreas;
+  brushId: string;
+  type: 'brush';
+}>;
+
+export type EChartBrushEndHandler = EChartEventHandler<{
+  areas: EchartBrushAreas;
+  brushId: string;
+  type: 'brushend';
+}>;
+
+export type EChartBrushSelectedHandler = EChartEventHandler<{
+  brushId: string;
+  type: 'brushselected';
+}>;

@@ -3,14 +3,14 @@ from unittest.mock import patch
 from django.core.signing import SignatureExpired
 
 from sentry.models.organizationmember import OrganizationMember
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 from sentry.utils.signing import sign
 from sentry.web.frontend.msteams_extension_configuration import MsTeamsExtensionConfigurationView
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class MsTeamsExtensionConfigurationTest(TestCase):
     def hit_configure(self, params):
         self.login_as(self.user)

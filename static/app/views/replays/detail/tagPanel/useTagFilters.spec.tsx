@@ -1,13 +1,12 @@
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
 
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {useLocation} from 'sentry/utils/useLocation';
-import useTagFilters, {
-  FilterFields,
-} from 'sentry/views/replays/detail/tagPanel/useTagFilters';
+import type {FilterFields} from 'sentry/views/replays/detail/tagPanel/useTagFilters';
+import useTagFilters from 'sentry/views/replays/detail/tagPanel/useTagFilters';
 
 jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');
@@ -27,7 +26,7 @@ describe('useTagsFilters', () => {
       query: {},
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(useTagFilters, {
+    const {result} = renderHook(useTagFilters, {
       initialProps: {tags},
     });
     expect(Object.keys(result.current.items).length).toEqual(9);
@@ -41,7 +40,7 @@ describe('useTagsFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(useTagFilters, {
+    const {result} = renderHook(useTagFilters, {
       initialProps: {tags},
     });
     expect(result.current.items).toEqual({

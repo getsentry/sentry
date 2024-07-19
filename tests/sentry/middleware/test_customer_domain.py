@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from typing import Any
 from unittest import mock
 
 from django.conf import settings
@@ -14,9 +13,8 @@ from rest_framework.response import Response
 from sentry.api.base import Endpoint
 from sentry.middleware.customer_domain import CustomerDomainMiddleware
 from sentry.testutils.cases import APITestCase, TestCase
-from sentry.testutils.region import override_region_config
-from sentry.testutils.silo import no_silo_test
-from sentry.types.region import RegionCategory, clear_global_regions
+from sentry.testutils.helpers import with_feature
+from sentry.testutils.silo import all_silo_test, create_test_regions, no_silo_test
 from sentry.web.frontend.auth_logout import AuthLogoutView
 
 
@@ -26,10 +24,9 @@ def _session(d: dict[str, str]) -> SessionBase:
     return ret
 
 
-@override_settings(
-    SENTRY_USE_CUSTOMER_DOMAINS=True,
-)
+@all_silo_test(regions=create_test_regions("us", "eu"))
 class CustomerDomainMiddlewareTest(TestCase):
+    @with_feature("system:multi-region")
     def test_sets_active_organization_if_exists(self):
         self.create_organization(name="test")
 
@@ -42,8 +39,7 @@ class CustomerDomainMiddlewareTest(TestCase):
         assert response == mock.sentinel.response
 
     def test_noop_if_customer_domain_is_off(self):
-
-        with self.settings(SENTRY_USE_CUSTOMER_DOMAINS=False):
+        with self.feature({"system:multi-region": False}):
             self.create_organization(name="test")
 
             request = RequestFactory().get("/")
@@ -54,6 +50,7 @@ class CustomerDomainMiddlewareTest(TestCase):
             assert dict(request.session) == {"activeorg": "albertos-apples"}
             assert response == mock.sentinel.response
 
+    @with_feature("system:multi-region")
     def test_recycles_last_active_org(self):
         self.create_organization(name="test")
 
@@ -66,6 +63,7 @@ class CustomerDomainMiddlewareTest(TestCase):
         assert response.status_code == 302
         assert response["Location"] == "http://test.testserver/organizations/test/issues/"
 
+    @with_feature("system:multi-region")
     def test_recycles_last_active_org_path_mismatch(self):
         self.create_organization(name="test")
 
@@ -78,6 +76,7 @@ class CustomerDomainMiddlewareTest(TestCase):
         assert response.status_code == 302
         assert response["Location"] == "http://test.testserver/organizations/test/issues/"
 
+    @with_feature("system:multi-region")
     def test_removes_active_organization(self):
         request = RequestFactory().get("/")
         request.subdomain = "does-not-exist"
@@ -87,6 +86,7 @@ class CustomerDomainMiddlewareTest(TestCase):
         assert dict(request.session) == {}
         assert response == mock.sentinel.response
 
+    @with_feature("system:multi-region")
     def test_no_session_dict(self):
         request = RequestFactory().get("/")
         request.subdomain = "test"
@@ -102,6 +102,7 @@ class CustomerDomainMiddlewareTest(TestCase):
         assert not hasattr(request, "session")
         assert response == mock.sentinel.response
 
+    @with_feature("system:multi-region")
     def test_no_subdomain(self):
         request = RequestFactory().get("/")
         request.session = _session({"activeorg": "test"})
@@ -110,6 +111,7 @@ class CustomerDomainMiddlewareTest(TestCase):
         assert dict(request.session) == {"activeorg": "test"}
         assert response == mock.sentinel.response
 
+    @with_feature("system:multi-region")
     def test_no_activeorg(self):
         request = RequestFactory().get("/")
         request.session = _session({})
@@ -118,6 +120,7 @@ class CustomerDomainMiddlewareTest(TestCase):
         assert dict(request.session) == {}
         assert response == mock.sentinel.response
 
+    @with_feature("system:multi-region")
     def test_no_op(self):
         request = RequestFactory().get("/")
         response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
@@ -126,32 +129,18 @@ class CustomerDomainMiddlewareTest(TestCase):
         assert not hasattr(request, "subdomain")
         assert response == mock.sentinel.response
 
+    @with_feature("system:multi-region")
     def test_ignores_region_subdomains(self):
-        clear_global_regions()
-        region_configs: list[dict[str, Any]] = [
-            {
-                "name": "us",
-                "snowflake_id": 1,
-                "address": "http://us.testserver",
-                "category": RegionCategory.MULTI_TENANT.name,
-            },
-            {
-                "name": "eu",
-                "snowflake_id": 1,
-                "address": "http://eu.testserver",
-                "category": RegionCategory.MULTI_TENANT.name,
-            },
-        ]
-        with override_region_config(region_configs):
-            for region in region_configs:
-                request = RequestFactory().get("/")
-                request.subdomain = region["name"]
-                request.session = _session({"activeorg": "test"})
-                response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
+        for region_name in ("us", "eu"):
+            request = RequestFactory().get("/")
+            request.subdomain = region_name
+            request.session = _session({"activeorg": "test"})
+            response = CustomerDomainMiddleware(lambda request: mock.sentinel.response)(request)
 
-                assert dict(request.session) == {"activeorg": "test"}
-                assert response == mock.sentinel.response
+            assert dict(request.session) == {"activeorg": "test"}
+            assert response == mock.sentinel.response
 
+    @with_feature("system:multi-region")
     def test_handles_redirects(self):
         self.create_organization(name="sentry")
         request = RequestFactory().get("/organizations/albertos-apples/issues/")
@@ -167,24 +156,53 @@ class CustomerDomainMiddlewareTest(TestCase):
         assert response.status_code == 302
         assert response["Location"] == "/organizations/sentry/issues/"
 
+    @with_feature("system:multi-region")
+    def test_billing_route(self):
+        non_staff_user = self.create_user(is_staff=False)
+        self.login_as(user=non_staff_user)
+        self.create_organization(name="albertos-apples", owner=non_staff_user)
+
+        response = self.client.get(
+            "/settings/billing/checkout/",
+            data={"querystring": "value"},
+            follow=True,
+        )
+        assert response.status_code == 200
+        assert response.redirect_chain == [
+            ("http://albertos-apples.testserver/settings/billing/checkout/?querystring=value", 302)
+        ]
+
 
 class OrganizationTestEndpoint(Endpoint):
     permission_classes = (AllowAny,)
 
-    def get(self, request, organization_slug):
+    def get(self, request, organization_id_or_slug):
         return Response(
             {
-                "organization_slug": organization_slug,
+                "organization_id_or_slug": organization_id_or_slug,
                 "subdomain": request.subdomain,
                 "activeorg": request.session.get("activeorg", None),
             }
         )
 
-    def post(self, request, organization_slug):
-        request.session["activeorg"] = organization_slug
+    def post(self, request, organization_id_or_slug):
+        request.session["activeorg"] = organization_id_or_slug
         return Response(
             {
-                "organization_slug": organization_slug,
+                "organization_id_or_slug": organization_id_or_slug,
+                "subdomain": request.subdomain,
+                "activeorg": request.session.get("activeorg", None),
+            }
+        )
+
+
+class OrganizationIdOrSlugTestEndpoint(Endpoint):
+    permission_classes = (AllowAny,)
+
+    def get(self, request, organization_id_or_slug):
+        return Response(
+            {
+                "organization_id_or_slug": organization_id_or_slug,
                 "subdomain": request.subdomain,
                 "activeorg": request.session.get("activeorg", None),
             }
@@ -193,13 +211,18 @@ class OrganizationTestEndpoint(Endpoint):
 
 urlpatterns = [
     re_path(
-        r"^api/0/(?P<organization_slug>[^\/]+)/$",
+        r"^api/0/(?P<organization_id_or_slug>[^\/]+)/$",
         OrganizationTestEndpoint.as_view(),
         name="org-events-endpoint",
     ),
     re_path(
-        r"^api/0/(?P<organization_slug>[^\/]+)/nameless/$",
+        r"^api/0/(?P<organization_id_or_slug>[^\/]+)/nameless/$",
         OrganizationTestEndpoint.as_view(),
+    ),
+    re_path(
+        r"^api/0/(?P<organization_id_or_slug>[^\/]+)/idorslug/$",
+        OrganizationIdOrSlugTestEndpoint.as_view(),
+        name="org-events-endpoint-id-or-slug",
     ),
     re_path(r"^logout/$", AuthLogoutView.as_view(), name="sentry-logout"),
 ]
@@ -213,17 +236,17 @@ def provision_middleware():
     return middleware
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 @override_settings(
     ROOT_URLCONF=__name__,
     SENTRY_SELF_HOSTED=False,
-    SENTRY_USE_CUSTOMER_DOMAINS=True,
 )
 class End2EndTest(APITestCase):
     def setUp(self):
         super().setUp()
         self.middleware = provision_middleware()
 
+    @with_feature("system:multi-region")
     def test_with_middleware_no_customer_domain(self):
         self.create_organization(name="albertos-apples")
 
@@ -231,10 +254,10 @@ class End2EndTest(APITestCase):
             # Induce activeorg session value of a non-existent org
             assert "activeorg" not in self.client.session
             response = self.client.post(
-                reverse("org-events-endpoint", kwargs={"organization_slug": "test"})
+                reverse("org-events-endpoint", kwargs={"organization_id_or_slug": "test"})
             )
             assert response.data == {
-                "organization_slug": "test",
+                "organization_id_or_slug": "test",
                 "subdomain": None,
                 "activeorg": "test",
             }
@@ -243,10 +266,12 @@ class End2EndTest(APITestCase):
 
             # 'activeorg' session key is not replaced
             response = self.client.get(
-                reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"})
+                reverse(
+                    "org-events-endpoint", kwargs={"organization_id_or_slug": "albertos-apples"}
+                )
             )
             assert response.data == {
-                "organization_slug": "albertos-apples",
+                "organization_id_or_slug": "albertos-apples",
                 "subdomain": None,
                 "activeorg": "test",
             }
@@ -255,19 +280,50 @@ class End2EndTest(APITestCase):
 
             # No redirect response
             response = self.client.get(
-                reverse("org-events-endpoint", kwargs={"organization_slug": "some-org"}),
+                reverse("org-events-endpoint", kwargs={"organization_id_or_slug": "some-org"}),
                 follow=True,
             )
             assert response.status_code == 200
             assert response.redirect_chain == []
             assert response.data == {
-                "organization_slug": "some-org",
+                "organization_id_or_slug": "some-org",
                 "subdomain": None,
                 "activeorg": "test",
             }
             assert "activeorg" in self.client.session
             assert self.client.session["activeorg"] == "test"
 
+            response = self.client.get(
+                reverse("org-events-endpoint-id-or-slug", kwargs={"organization_id_or_slug": 1234}),
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == []
+            assert response.data == {
+                "organization_id_or_slug": "1234",
+                "subdomain": None,
+                "activeorg": "test",
+            }
+            assert "activeorg" in self.client.session
+            assert self.client.session["activeorg"] == "test"
+
+            response = self.client.get(
+                reverse(
+                    "org-events-endpoint-id-or-slug", kwargs={"organization_id_or_slug": "some-org"}
+                ),
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == []
+            assert response.data == {
+                "organization_id_or_slug": "some-org",
+                "subdomain": None,
+                "activeorg": "test",
+            }
+            assert "activeorg" in self.client.session
+            assert self.client.session["activeorg"] == "test"
+
+    @with_feature("system:multi-region")
     def test_with_middleware_and_customer_domain(self):
         self.create_organization(name="albertos-apples")
 
@@ -275,10 +331,10 @@ class End2EndTest(APITestCase):
             # Induce activeorg session value of a non-existent org
             assert "activeorg" not in self.client.session
             response = self.client.post(
-                reverse("org-events-endpoint", kwargs={"organization_slug": "test"})
+                reverse("org-events-endpoint", kwargs={"organization_id_or_slug": "test"})
             )
             assert response.data == {
-                "organization_slug": "test",
+                "organization_id_or_slug": "test",
                 "subdomain": None,
                 "activeorg": "test",
             }
@@ -287,11 +343,13 @@ class End2EndTest(APITestCase):
 
             # 'activeorg' session key is replaced
             response = self.client.get(
-                reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
+                reverse(
+                    "org-events-endpoint", kwargs={"organization_id_or_slug": "albertos-apples"}
+                ),
                 HTTP_HOST="albertos-apples.testserver",
             )
             assert response.data == {
-                "organization_slug": "albertos-apples",
+                "organization_id_or_slug": "albertos-apples",
                 "subdomain": "albertos-apples",
                 "activeorg": "albertos-apples",
             }
@@ -300,7 +358,7 @@ class End2EndTest(APITestCase):
 
             # Redirect response for org slug path mismatch
             response = self.client.get(
-                reverse("org-events-endpoint", kwargs={"organization_slug": "some-org"}),
+                reverse("org-events-endpoint", kwargs={"organization_id_or_slug": "some-org"}),
                 data={"querystring": "value"},
                 HTTP_HOST="albertos-apples.testserver",
                 follow=True,
@@ -308,7 +366,7 @@ class End2EndTest(APITestCase):
             assert response.status_code == 200
             assert response.redirect_chain == [("/api/0/albertos-apples/?querystring=value", 302)]
             assert response.data == {
-                "organization_slug": "albertos-apples",
+                "organization_id_or_slug": "albertos-apples",
                 "subdomain": "albertos-apples",
                 "activeorg": "albertos-apples",
             }
@@ -317,7 +375,7 @@ class End2EndTest(APITestCase):
 
             # Redirect response for subdomain and path mismatch
             response = self.client.get(
-                reverse("org-events-endpoint", kwargs={"organization_slug": "some-org"}),
+                reverse("org-events-endpoint", kwargs={"organization_id_or_slug": "some-org"}),
                 data={"querystring": "value"},
                 # This should preferably be HTTP_HOST.
                 # Using SERVER_NAME until https://code.djangoproject.com/ticket/32106 is fixed.
@@ -329,7 +387,7 @@ class End2EndTest(APITestCase):
                 ("http://albertos-apples.testserver/api/0/albertos-apples/?querystring=value", 302)
             ]
             assert response.data == {
-                "organization_slug": "albertos-apples",
+                "organization_id_or_slug": "albertos-apples",
                 "subdomain": "albertos-apples",
                 "activeorg": "albertos-apples",
             }
@@ -338,7 +396,7 @@ class End2EndTest(APITestCase):
 
             # No redirect for http methods that is not GET
             response = self.client.post(
-                reverse("org-events-endpoint", kwargs={"organization_slug": "some-org"}),
+                reverse("org-events-endpoint", kwargs={"organization_id_or_slug": "some-org"}),
                 data={"querystring": "value"},
                 HTTP_HOST="albertos-apples.testserver",
                 follow=True,
@@ -346,6 +404,38 @@ class End2EndTest(APITestCase):
             assert response.status_code == 200
             assert response.redirect_chain == []
 
+            # Redirect response for org id or slug path mismatch
+            response = self.client.get(
+                reverse(
+                    "org-events-endpoint-id-or-slug", kwargs={"organization_id_or_slug": "some-org"}
+                ),
+                data={"querystring": "value"},
+                HTTP_HOST="albertos-apples.testserver",
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == [
+                ("/api/0/albertos-apples/idorslug/?querystring=value", 302)
+            ]
+            assert response.data == {
+                "organization_id_or_slug": "albertos-apples",
+                "subdomain": "albertos-apples",
+                "activeorg": "albertos-apples",
+            }
+            assert "activeorg" in self.client.session
+            assert self.client.session["activeorg"] == "albertos-apples"
+
+            # No redirect for id
+            response = self.client.get(
+                reverse("org-events-endpoint-id-or-slug", kwargs={"organization_id_or_slug": 1234}),
+                data={"querystring": "value"},
+                HTTP_HOST="albertos-apples.testserver",
+                follow=True,
+            )
+            assert response.status_code == 200
+            assert response.redirect_chain == []
+
+    @with_feature("system:multi-region")
     def test_with_middleware_and_non_staff(self):
         self.create_organization(name="albertos-apples")
         non_staff_user = self.create_user(is_staff=False)
@@ -354,7 +444,9 @@ class End2EndTest(APITestCase):
         with override_settings(MIDDLEWARE=tuple(self.middleware)):
             # GET request
             response = self.client.get(
-                reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
+                reverse(
+                    "org-events-endpoint", kwargs={"organization_id_or_slug": "albertos-apples"}
+                ),
                 data={"querystring": "value"},
                 # This should preferably be HTTP_HOST.
                 # Using SERVER_NAME until https://code.djangoproject.com/ticket/32106 is fixed.
@@ -364,7 +456,7 @@ class End2EndTest(APITestCase):
             assert response.status_code == 200
             assert response.redirect_chain == []
             assert response.data == {
-                "organization_slug": "albertos-apples",
+                "organization_id_or_slug": "albertos-apples",
                 "subdomain": "albertos-apples",
                 "activeorg": "albertos-apples",
             }
@@ -373,7 +465,9 @@ class End2EndTest(APITestCase):
 
             # POST request
             response = self.client.post(
-                reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
+                reverse(
+                    "org-events-endpoint", kwargs={"organization_id_or_slug": "albertos-apples"}
+                ),
                 data={"querystring": "value"},
                 SERVER_NAME="albertos-apples.testserver",
             )
@@ -381,12 +475,15 @@ class End2EndTest(APITestCase):
 
             # # PUT request (not-supported)
             response = self.client.put(
-                reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
+                reverse(
+                    "org-events-endpoint", kwargs={"organization_id_or_slug": "albertos-apples"}
+                ),
                 data={"querystring": "value"},
                 SERVER_NAME="albertos-apples.testserver",
             )
             assert response.status_code == 405
 
+    @with_feature("system:multi-region")
     def test_with_middleware_and_is_staff(self):
         self.create_organization(name="albertos-apples")
         is_staff_user = self.create_user(is_staff=True)
@@ -394,18 +491,21 @@ class End2EndTest(APITestCase):
 
         with override_settings(MIDDLEWARE=tuple(self.middleware)):
             response = self.client.get(
-                reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
+                reverse(
+                    "org-events-endpoint", kwargs={"organization_id_or_slug": "albertos-apples"}
+                ),
                 HTTP_HOST="albertos-apples.testserver",
             )
             assert response.status_code == 200
             assert response.data == {
-                "organization_slug": "albertos-apples",
+                "organization_id_or_slug": "albertos-apples",
                 "subdomain": "albertos-apples",
                 "activeorg": "albertos-apples",
             }
             assert "activeorg" in self.client.session
             assert self.client.session["activeorg"] == "albertos-apples"
 
+    @with_feature("system:multi-region")
     def test_without_middleware(self):
         self.create_organization(name="albertos-apples")
 
@@ -416,10 +516,10 @@ class End2EndTest(APITestCase):
             # Induce activeorg session value of a non-existent org
             assert "activeorg" not in self.client.session
             response = self.client.post(
-                reverse("org-events-endpoint", kwargs={"organization_slug": "test"})
+                reverse("org-events-endpoint", kwargs={"organization_id_or_slug": "test"})
             )
             assert response.data == {
-                "organization_slug": "test",
+                "organization_id_or_slug": "test",
                 "subdomain": None,
                 "activeorg": "test",
             }
@@ -428,11 +528,13 @@ class End2EndTest(APITestCase):
 
             # 'activeorg' session key is not replaced
             response = self.client.get(
-                reverse("org-events-endpoint", kwargs={"organization_slug": "albertos-apples"}),
+                reverse(
+                    "org-events-endpoint", kwargs={"organization_id_or_slug": "albertos-apples"}
+                ),
                 HTTP_HOST="albertos-apples.testserver",
             )
             assert response.data == {
-                "organization_slug": "albertos-apples",
+                "organization_id_or_slug": "albertos-apples",
                 "subdomain": "albertos-apples",
                 "activeorg": "test",
             }
@@ -441,20 +543,21 @@ class End2EndTest(APITestCase):
 
             # No redirect response
             response = self.client.get(
-                reverse("org-events-endpoint", kwargs={"organization_slug": "some-org"}),
+                reverse("org-events-endpoint", kwargs={"organization_id_or_slug": "some-org"}),
                 HTTP_HOST="albertos-apples.testserver",
                 follow=True,
             )
             assert response.status_code == 200
             assert response.redirect_chain == []
             assert response.data == {
-                "organization_slug": "some-org",
+                "organization_id_or_slug": "some-org",
                 "subdomain": "albertos-apples",
                 "activeorg": "test",
             }
             assert "activeorg" in self.client.session
             assert self.client.session["activeorg"] == "test"
 
+    @with_feature("system:multi-region")
     def test_with_middleware_and_nameless_view(self):
         self.create_organization(name="albertos-apples")
 
@@ -467,13 +570,14 @@ class End2EndTest(APITestCase):
             assert response.status_code == 200
             assert response.redirect_chain == [("/api/0/albertos-apples/nameless/", 302)]
             assert response.data == {
-                "organization_slug": "albertos-apples",
+                "organization_id_or_slug": "albertos-apples",
                 "subdomain": "albertos-apples",
                 "activeorg": "albertos-apples",
             }
             assert "activeorg" in self.client.session
             assert self.client.session["activeorg"] == "albertos-apples"
 
+    @with_feature("system:multi-region")
     def test_disallowed_customer_domain(self):
         with override_settings(
             MIDDLEWARE=tuple(self.middleware), DISALLOWED_CUSTOMER_DOMAINS=["banned"]

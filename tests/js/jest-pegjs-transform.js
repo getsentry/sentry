@@ -1,7 +1,6 @@
 /* eslint-env node */
 
-// eslint-disable-next-line import/no-nodejs-modules
-const crypto = require('crypto');
+const crypto = require('node:crypto');
 const peg = require('pegjs');
 
 function getCacheKey(fileData, _filePath, config, _options) {

@@ -1,3 +1,5 @@
+import {TeamFixture} from 'sentry-fixture/team';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
   render,
@@ -23,8 +25,8 @@ const EXAMPLE_INTEGRATION = {
 };
 
 describe('TeamNotificationSettings', () => {
-  const {organization, routerContext, routerProps} = initializeOrg();
-  const team = TestStubs.Team();
+  const {organization, router, routerProps} = initializeOrg();
+  const team = TeamFixture();
 
   beforeEach(() => {
     MockApiClient.clearMockResponses();
@@ -50,7 +52,7 @@ describe('TeamNotificationSettings', () => {
         params={{teamId: team.id}}
         organization={organization}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(
@@ -79,7 +81,7 @@ describe('TeamNotificationSettings', () => {
         organization={organization}
       />,
       {
-        context: routerContext,
+        router,
       }
     );
 
@@ -107,7 +109,7 @@ describe('TeamNotificationSettings', () => {
         organization={organization}
       />,
       {
-        context: routerContext,
+        router,
       }
     );
 
@@ -147,7 +149,7 @@ describe('TeamNotificationSettings', () => {
         organization={organization}
       />,
       {
-        context: routerContext,
+        router,
       }
     );
 

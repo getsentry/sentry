@@ -96,7 +96,7 @@ describe('FeatureTourModal', function () {
 
     await clickModal();
 
-    // Advance to the the last step.
+    // Advance to the last step.
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
     // Click the done
@@ -113,7 +113,7 @@ describe('FeatureTourModal', function () {
 
     await clickModal();
 
-    // Advance to the the last step.
+    // Advance to the last step.
     await userEvent.click(screen.getByRole('button', {name: 'Next'}));
 
     // Ensure button looks right

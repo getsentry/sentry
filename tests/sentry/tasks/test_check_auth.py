@@ -8,7 +8,7 @@ from sentry.auth.providers.dummy import DummyProvider
 from sentry.models.authidentity import AuthIdentity
 from sentry.models.authprovider import AuthProvider
 from sentry.models.organizationmember import OrganizationMember
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.check_auth import (
     AUTH_CHECK_INTERVAL,
     AUTH_CHECK_SKEW,
@@ -19,7 +19,7 @@ from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class CheckAuthTest(TestCase):
     @patch("sentry.tasks.check_auth.check_auth_identities")
     def test_simple(self, mock_check_auth_identities):
@@ -79,7 +79,7 @@ class CheckAuthTest(TestCase):
             assert ai.last_verified > orig_timing
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class CheckAuthIdentityTest(TestCase):
     @patch("sentry.tasks.check_auth.check_auth_identity")
     def test_simple(self, mock_check_auth_identity):

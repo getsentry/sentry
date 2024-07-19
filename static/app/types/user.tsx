@@ -1,4 +1,4 @@
-import type {Authenticator, EnrolledAuthenticator} from './auth';
+import type {UserEnrolledAuthenticator} from './auth';
 import type {Avatar, Scope} from './core';
 import type {UserExperiments} from './experiments';
 
@@ -20,17 +20,6 @@ export type AvatarUser = {
   options?: {
     avatarType: Avatar['avatarType'];
   };
-};
-
-/**
- * This is an authenticator that a user is enrolled in
- */
-type UserEnrolledAuthenticator = {
-  dateCreated: EnrolledAuthenticator['createdAt'];
-  dateUsed: EnrolledAuthenticator['lastUsedAt'];
-  id: EnrolledAuthenticator['authId'];
-  name: EnrolledAuthenticator['name'];
-  type: Authenticator['id'];
 };
 
 export interface User extends Omit<AvatarUser, 'options'> {
@@ -57,6 +46,7 @@ export interface User extends Omit<AvatarUser, 'options'> {
     avatarType: Avatar['avatarType'];
     clock24Hours: boolean;
     defaultIssueEvent: 'recommended' | 'latest' | 'oldest';
+    issueDetailsNewExperienceQ42023: boolean;
     language: string;
     stacktraceOrder: number;
     theme: 'system' | 'light' | 'dark';
@@ -82,14 +72,20 @@ interface BaseApiToken {
   dateCreated: string;
   expiresAt: string;
   id: string;
+  name: string;
   scopes: Scope[];
   state: string;
 }
 
-// We include the token for API tokens used for internal apps
+// API Tokens should not be using and storing the token values in the application, as the tokens are secrets.
 export interface InternalAppApiToken extends BaseApiToken {
   application: null;
   refreshToken: string;
+  tokenLastCharacters: string;
+}
+
+// We include the token for new API tokens
+export interface NewInternalAppApiToken extends InternalAppApiToken {
   token: string;
 }
 

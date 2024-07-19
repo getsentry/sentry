@@ -1,5 +1,3 @@
-import atexit
-from typing import Optional
 from unittest import mock
 
 from arroyo.backends.kafka.consumer import KafkaPayload
@@ -15,7 +13,7 @@ from sentry.utils.json import loads
 
 
 def assert_msg(
-    message: Optional[BrokerValue[KafkaPayload]],
+    message: BrokerValue[KafkaPayload] | None,
     timestamp: int,
     resource_id: str,
     app_feature: str,
@@ -52,7 +50,7 @@ def test_accountant(mock_time: mock.Mock) -> None:
     record("resource_1", "feature_1", 100, UsageUnit.BYTES)
     record("resource_1", "feature_2", 100, UsageUnit.BYTES)
 
-    atexit._run_exitfuncs()
+    accountant._shutdown()
 
     msg1 = broker.consume(Partition(topic, 0), 0)
     assert_msg(

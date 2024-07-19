@@ -34,18 +34,6 @@ require() {
     command -v "$1" >/dev/null 2>&1
 }
 
-configure-sentry-cli() {
-    if [ -z "${SENTRY_DEVENV_NO_REPORT+x}" ]; then
-        if ! require sentry-cli; then
-            if [ -f "${venv_name}/bin/pip" ]; then
-                pip-install sentry-cli
-            else
-                curl -sL https://sentry.io/get-cli/ | SENTRY_CLI_VERSION=2.14.4 bash
-            fi
-        fi
-    fi
-}
-
 query-valid-python-version() {
     python_version=$(python3 -V 2>&1 | awk '{print $2}')
     if [[ -n "${SENTRY_PYTHON_VERSION:-}" ]]; then
@@ -69,11 +57,11 @@ EOF
     else
         minor=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\1/')
         patch=$(echo "${python_version}" | sed 's/[0-9]*\.\([0-9]*\)\.\([0-9]*\)/\2/')
-        if [ "$minor" -ne 8 ] || [ "$patch" -lt 10 ]; then
+        if [ "$minor" -ne 11 ] || [ "$patch" -lt 6 ]; then
             cat <<EOF
     ${red}${bold}
     ERROR: You're running a virtualenv with Python ${python_version}.
-    We only support >= 3.8.10, < 3.9.
+    We only support >= 3.11.6, < 3.12.
     Either run "rm -rf ${venv_name} && direnv allow" to
     OR set SENTRY_PYTHON_VERSION=${python_version} to an .env file to bypass this check."
 EOF
@@ -91,11 +79,11 @@ sudo-askpass() {
 }
 
 pip-install() {
-    pip install --constraint requirements-dev-frozen.txt "$@"
+    pip install --constraint "${HERE}/../requirements-dev-frozen.txt" "$@"
 }
 
 upgrade-pip() {
-    pip-install pip setuptools wheel
+    pip-install pip
 }
 
 install-py-dev() {
@@ -111,40 +99,7 @@ install-py-dev() {
 
     pip-install -r requirements-dev-frozen.txt
 
-    # SENTRY_LIGHT_BUILD=1 disables webpacking during setup.py.
-    # Webpacked assets are only necessary for devserver (which does it lazily anyways)
-    # and acceptance tests, which webpack automatically if run.
-    SENTRY_LIGHT_BUILD=1 pip-install -e . --no-deps
-}
-
-setup-git-config() {
-    git config --local branch.autosetuprebase always
-    git config --local core.ignorecase false
-    git config --local blame.ignoreRevsFile .git-blame-ignore-revs
-}
-
-setup-git() {
-    setup-git-config
-
-    # if hooks are explicitly turned off do nothing
-    if [[ "$(git config core.hooksPath)" == '/dev/null' ]]; then
-        echo "--> core.hooksPath set to /dev/null. Skipping git hook setup"
-        echo ""
-        return
-    fi
-
-    echo "--> Installing git hooks"
-    mkdir -p .git/hooks && cd .git/hooks && ln -sf ../../config/hooks/* ./ && cd - || exit
-    # shellcheck disable=SC2016
-    python3 -c '' || (
-        echo 'Please run `make setup-pyenv` to install the required Python 3 version.'
-        exit 1
-    )
-    if ! require pre-commit; then
-        pip-install -r requirements-dev.txt
-    fi
-    pre-commit install --install-hooks
-    echo ""
+    python3 -m tools.fast_editable --path .
 }
 
 node-version-check() {
@@ -170,14 +125,8 @@ install-js-dev() {
     yarn check --verify-tree || yarn install --check-files
 }
 
-develop() {
-    install-js-dev
-    install-py-dev
-    setup-git
-}
-
 init-config() {
-    sentry init --dev
+    sentry init --dev --no-clobber
 }
 
 run-dependent-services() {
@@ -188,12 +137,14 @@ create-db() {
     container_name=${POSTGRES_CONTAINER:-sentry_postgres}
     echo "--> Creating 'sentry' database"
     docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 sentry || true
-    echo "--> Creating 'control' and 'region' database"
+    echo "--> Creating 'control', 'region' and 'secondary' database"
     docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 control || true
     docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 region || true
+    docker exec "${container_name}" createdb -h 127.0.0.1 -U postgres -E utf-8 secondary || true
 }
 
 apply-migrations() {
+    create-db
     echo "--> Applying migrations"
     sentry upgrade --noinput
 }
@@ -210,22 +161,9 @@ create-superuser() {
 
 build-platform-assets() {
     echo "--> Building platform assets"
-    echo "from sentry.utils.integrationdocs import sync_docs; sync_docs(quiet=True)" | sentry exec
+    python3 -m sentry.build._integration_docs
     # make sure this didn't silently do nothing
     test -f src/sentry/integration-docs/android.json
-}
-
-bootstrap() {
-    develop
-    init-config
-    run-dependent-services
-    create-db
-    apply-migrations
-    create-superuser
-    # Load mocks requires a superuser
-    bin/load-mocks
-    build-platform-assets
-    echo "--> Finished bootstrapping. Have a nice day."
 }
 
 clean() {
@@ -247,22 +185,14 @@ drop-db() {
     echo "--> Dropping 'control' and 'region' database"
     docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres control
     docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres region
+    docker exec "${container_name}" dropdb --if-exists -h 127.0.0.1 -U postgres secondary
 }
 
 reset-db() {
     drop-db
-    create-db
     apply-migrations
     create-superuser
     echo 'Finished resetting database. To load mock data, run `./bin/load-mocks`'
-}
-
-prerequisites() {
-    if [ -z "${CI+x}" ]; then
-        brew update -q && brew bundle -q
-    else
-        HOMEBREW_NO_AUTO_UPDATE=on brew install pyenv
-    fi
 }
 
 direnv-help() {

@@ -1,15 +1,21 @@
 from __future__ import annotations
 
 import pickle
+from collections.abc import Callable, Mapping
 from functools import partial
-from typing import Any, Callable, Mapping, Optional, Union
+from typing import Any
 
+from arroyo.processing.strategies.run_task import RunTask
+from arroyo.processing.strategies.run_task_with_multiprocessing import (
+    MultiprocessingPool as ArroyoMultiprocessingPool,
+)
 from arroyo.processing.strategies.run_task_with_multiprocessing import (
     RunTaskWithMultiprocessing as ArroyoRunTaskWithMultiprocessing,
 )
 from arroyo.processing.strategies.run_task_with_multiprocessing import TResult
-from arroyo.types import TStrategyPayload
+from arroyo.types import Message, TStrategyPayload
 from arroyo.utils.metrics import Metrics
+from django.conf import settings
 
 from sentry.metrics.base import MetricsBackend
 
@@ -26,8 +32,8 @@ class MetricsWrapper(Metrics):
     def __init__(
         self,
         backend: MetricsBackend,
-        name: Optional[str] = None,
-        tags: Optional[Tags] = None,
+        name: str | None = None,
+        tags: Tags | None = None,
     ) -> None:
         self.__backend = backend
         self.__name = name
@@ -39,7 +45,7 @@ class MetricsWrapper(Metrics):
         else:
             return f"{self.__name}.{name}"
 
-    def __merge_tags(self, tags: Optional[Tags]) -> Optional[Tags]:
+    def __merge_tags(self, tags: Tags | None) -> Tags | None:
         if self.__tags is None:
             return tags
         elif tags is None:
@@ -48,22 +54,54 @@ class MetricsWrapper(Metrics):
             return {**self.__tags, **tags}
 
     def increment(
-        self, name: str, value: Union[int, float] = 1, tags: Optional[Tags] = None
+        self,
+        name: str,
+        value: int | float = 1,
+        tags: Tags | None = None,
+        stacklevel: int = 0,
     ) -> None:
         # sentry metrics backend uses `incr` instead of `increment`
-        self.__backend.incr(key=self.__merge_name(name), amount=value, tags=self.__merge_tags(tags))
+        self.__backend.incr(
+            key=self.__merge_name(name),
+            amount=value,
+            tags=self.__merge_tags(tags),
+            stacklevel=stacklevel + 1,
+            sample_rate=1,
+        )
 
-    def gauge(self, name: str, value: Union[int, float], tags: Optional[Tags] = None) -> None:
-        self.__backend.gauge(key=self.__merge_name(name), value=value, tags=self.__merge_tags(tags))
+    def gauge(
+        self,
+        name: str,
+        value: int | float,
+        tags: Tags | None = None,
+        stacklevel: int = 0,
+    ) -> None:
+        self.__backend.gauge(
+            key=self.__merge_name(name),
+            value=value,
+            tags=self.__merge_tags(tags),
+            stacklevel=stacklevel + 1,
+            sample_rate=1,
+        )
 
-    def timing(self, name: str, value: Union[int, float], tags: Optional[Tags] = None) -> None:
+    def timing(
+        self,
+        name: str,
+        value: int | float,
+        tags: Tags | None = None,
+        stacklevel: int = 0,
+    ) -> None:
         self.__backend.timing(
-            key=self.__merge_name(name), value=value, tags=self.__merge_tags(tags)
+            key=self.__merge_name(name),
+            value=value,
+            tags=self.__merge_tags(tags),
+            stacklevel=stacklevel + 1,
+            sample_rate=1,
         )
 
 
 def _get_arroyo_subprocess_initializer(
-    initializer: Optional[Callable[[], None]]
+    initializer: Callable[[], None] | None
 ) -> Callable[[], None]:
     from sentry.metrics.middleware import get_current_global_tags
 
@@ -74,7 +112,7 @@ def _get_arroyo_subprocess_initializer(
     return partial(_initialize_arroyo_subprocess, initializer=initializer, tags=tags)
 
 
-def _initialize_arroyo_subprocess(initializer: Optional[Callable[[], None]], tags: Tags) -> None:
+def _initialize_arroyo_subprocess(initializer: Callable[[], None] | None, tags: Tags) -> None:
     from sentry.runner import configure
 
     configure()
@@ -97,44 +135,59 @@ def initialize_arroyo_main() -> None:
     configure_metrics(metrics_wrapper)
 
 
-class RunTaskWithMultiprocessing(ArroyoRunTaskWithMultiprocessing[TStrategyPayload, TResult]):
-    """
-    A variant of arroyo's RunTaskWithMultiprocessing that initializes Sentry
-    for you, and ensures global metric tags in the subprocess are inherited
-    from the main process.
-    """
-
-    def __new__(
-        cls,
-        *,
-        initializer: Optional[Callable[[], None]] = None,
-        **kwargs: Any,
-    ) -> RunTaskWithMultiprocessing:
-
-        from django.conf import settings
-
+class MultiprocessingPool:
+    def __init__(self, num_processes: int, initializer: Callable[[], None] | None = None) -> None:
+        self.__initializer = initializer
         if settings.KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING:
-            from arroyo.processing.strategies.run_task import RunTask
-
-            kwargs.pop("num_processes", None)
-            kwargs.pop("input_block_size", None)
-            kwargs.pop("output_block_size", None)
-            kwargs.pop("max_batch_size", None)
-            kwargs.pop("max_batch_time", None)
-
-            if initializer is not None:
-                initializer()
-
-            # Assert that initializer can be pickled and loaded again from subprocesses.
-            pickle.loads(pickle.dumps(initializer))
-            pickle.loads(pickle.dumps(kwargs["function"]))
-
-            return RunTask(**kwargs)  # type: ignore[return-value]
+            self.__pool = None
         else:
-            from arroyo.processing.strategies.run_task_with_multiprocessing import (
-                RunTaskWithMultiprocessing as ArroyoRunTaskWithMultiprocessing,
+            self.__pool = ArroyoMultiprocessingPool(
+                num_processes, _get_arroyo_subprocess_initializer(initializer)
             )
 
-            return ArroyoRunTaskWithMultiprocessing(  # type: ignore[return-value]
-                initializer=_get_arroyo_subprocess_initializer(initializer), **kwargs
-            )
+    @property
+    def initializer(self) -> Callable[[], None] | None:
+        return self.__initializer
+
+    @property
+    def pool(self) -> ArroyoMultiprocessingPool | None:
+        return self.__pool
+
+    def close(self) -> None:
+        if self.__pool is not None:
+            self.__pool.close()
+
+
+def run_task_with_multiprocessing(
+    *,
+    pool: MultiprocessingPool,
+    function: Callable[[Message[TStrategyPayload]], TResult],
+    **kwargs: Any,
+) -> RunTask[TStrategyPayload, TResult] | ArroyoRunTaskWithMultiprocessing[
+    TStrategyPayload, TResult
+]:
+    """
+    A variant of arroyo's RunTaskWithMultiprocessing that can switch between
+    multiprocessing and non-multiprocessing mode based on the
+    `KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING` setting.
+    """
+
+    if settings.KAFKA_CONSUMER_FORCE_DISABLE_MULTIPROCESSING:
+        kwargs.pop("num_processes", None)
+        kwargs.pop("input_block_size", None)
+        kwargs.pop("output_block_size", None)
+        kwargs.pop("max_batch_size", None)
+        kwargs.pop("max_batch_time", None)
+
+        if pool.initializer is not None:
+            pool.initializer()
+
+        # Assert that initializer can be pickled and loaded again from subprocesses.
+        pickle.loads(pickle.dumps(pool.initializer))
+        pickle.loads(pickle.dumps(function))
+
+        return RunTask(function=function, **kwargs)
+    else:
+        assert pool.pool is not None
+
+        return ArroyoRunTaskWithMultiprocessing(pool=pool.pool, function=function, **kwargs)

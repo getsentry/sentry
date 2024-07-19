@@ -47,7 +47,7 @@ export const ListWrap = styled('ul')`
 
 export const ListLabel = styled('p')`
   display: inline-block;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   color: ${p => p.theme.subText};
   text-transform: uppercase;
@@ -93,7 +93,7 @@ export const SectionHeader = styled('div')`
 
 export const SectionTitle = styled('p')`
   display: inline-block;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeExtraSmall};
   color: ${p => p.theme.subText};
   text-transform: uppercase;
@@ -106,12 +106,12 @@ export const SectionTitle = styled('p')`
 export const SectionToggleButton = styled(Button)<{visible: boolean}>`
   padding: 0 ${space(0.5)};
   margin: 0 -${space(0.5)} 0 ${space(2)};
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   font-size: ${p => p.theme.fontSizeSmall};
   color: ${p => p.theme.subText};
   transition: opacity 0.1s;
 
-  &.focus-visible {
+  &:focus-visible {
     opacity: 1;
     pointer-events: all;
   }
@@ -153,7 +153,7 @@ export const CheckWrap = styled('div')<{isSelected: boolean; multiple: boolean}>
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 1em;
+  min-width: 1em;
   height: 1.4em;
   padding-bottom: 1px;
   pointer-events: none;

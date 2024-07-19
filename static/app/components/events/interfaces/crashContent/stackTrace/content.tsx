@@ -2,16 +2,17 @@ import {cloneElement, Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
+import type {FrameSourceMapDebuggerData} from 'sentry/components/events/interfaces/sourceMapsDebuggerModal';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
-import {Frame, Organization, PlatformKey} from 'sentry/types';
-import {Event} from 'sentry/types/event';
-import {StackTraceMechanism, StacktraceType} from 'sentry/types/stacktrace';
+import type {Frame, Organization, PlatformKey} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
+import type {StackTraceMechanism, StacktraceType} from 'sentry/types/stacktrace';
 import {defined} from 'sentry/utils';
 import withOrganization from 'sentry/utils/withOrganization';
 
-import DeprecatedLine, {DeprecatedLineProps} from '../../frame/deprecatedLine';
+import type {DeprecatedLineProps} from '../../frame/deprecatedLine';
+import DeprecatedLine from '../../frame/deprecatedLine';
 import {
   findImageForAddress,
   getHiddenFrameIndices,
@@ -74,7 +75,7 @@ function Content({
     return (
       includeSystemFrames ||
       frame.inApp ||
-      (nextFrame && nextFrame.inApp) ||
+      nextFrame?.inApp ||
       // the last non-app frame
       (!frame.inApp && !nextFrame)
     );
@@ -213,7 +214,7 @@ function Content({
         (frameIsVisible(frame, nextFrame) && !repeatedFrame) ||
         hiddenFrameIndices.includes(frameIndex)
       ) {
-        const frameProps: DeprecatedLineProps = {
+        const frameProps: Omit<DeprecatedLineProps, 'config'> = {
           event,
           data: frame,
           isExpanded: expandFirstFrame && lastFrameIndex === frameIndex,
@@ -297,20 +298,30 @@ function Content({
   const platformIcon = stackTracePlatformIcon(platform, data.frames ?? []);
 
   return (
-    <Wrapper className={wrapperClassName} data-test-id="stack-trace-content">
+    <Wrapper>
       {!hideIcon && <StacktracePlatformIcon platform={platformIcon} />}
-      <GuideAnchor target="stack_trace">
-        <StyledList data-test-id="frames">
-          {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
-        </StyledList>
-      </GuideAnchor>
+      <StackTraceContentPanel
+        className={wrapperClassName}
+        data-test-id="stack-trace-content"
+      >
+        <GuideAnchor target="stack_trace">
+          <StyledList data-test-id="frames">
+            {!newestFirst ? convertedFrames : [...convertedFrames].reverse()}
+          </StyledList>
+        </GuideAnchor>
+      </StackTraceContentPanel>
     </Wrapper>
   );
 }
 
-const Wrapper = styled(Panel)`
+const Wrapper = styled('div')`
+  position: relative;
+`;
+
+export const StackTraceContentPanel = styled(Panel)`
   position: relative;
   border-top-left-radius: 0;
+  overflow: hidden;
 `;
 
 const StyledList = styled('ul')`

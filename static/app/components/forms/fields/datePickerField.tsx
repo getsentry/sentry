@@ -2,7 +2,7 @@ import isPropValid from '@emotion/is-prop-valid';
 import {useTheme} from '@emotion/react';
 import styled from '@emotion/styled';
 import {FocusScope} from '@react-aria/focus';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {DatePicker} from 'sentry/components/calendar';
 import FormField from 'sentry/components/forms/formField';
@@ -12,7 +12,7 @@ import {IconCalendar} from 'sentry/icons';
 import useOverlay from 'sentry/utils/useOverlay';
 
 // XXX(epurkhiser): This is wrong, it should not be inheriting these props
-import {InputFieldProps, OnEvent} from './inputField';
+import type {InputFieldProps, OnEvent} from './inputField';
 
 interface DatePickerFieldProps extends Omit<InputFieldProps, 'field'> {}
 
@@ -90,7 +90,7 @@ const StyledInput = styled(Input)`
   ${p.theme.iconSizes.sm}
 )`};
 
-  &:focus:not(.focus-visible) {
+  &:focus:not(:focus-visible) {
     border-color: ${p => p.theme.border};
     box-shadow: inset ${p => p.theme.dropShadowMedium};
   }

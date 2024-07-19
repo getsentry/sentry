@@ -1,5 +1,6 @@
 from rest_framework import status
 
+from sentry.integrations.types import ExternalProviderEnum
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.notifications.types import (
     NotificationScopeEnum,
@@ -8,14 +9,13 @@ from sentry.notifications.types import (
 )
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.types.integrations import ExternalProviderEnum
 
 
 class UserNotificationSettingsProvidersBaseTest(APITestCase):
     endpoint = "sentry-api-0-user-notification-providers"
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserNotificationSettingsProvidersGetTest(UserNotificationSettingsProvidersBaseTest):
     def setUp(self):
         super().setUp()
@@ -99,7 +99,7 @@ class UserNotificationSettingsProvidersGetTest(UserNotificationSettingsProviders
         assert response.data["type"] == ["Invalid type"]
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserNotificationSettingsProvidersPutTest(UserNotificationSettingsProvidersBaseTest):
     method = "PUT"
 

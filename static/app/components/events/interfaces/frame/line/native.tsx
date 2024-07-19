@@ -6,9 +6,9 @@ import {TraceEventDataSectionContext} from 'sentry/components/events/traceEventD
 import {t} from 'sentry/locale';
 import DebugMetaStore from 'sentry/stores/debugMetaStore';
 import {space} from 'sentry/styles/space';
-import {Frame} from 'sentry/types';
+import type {Frame} from 'sentry/types';
 
-import DebugImage from '../../debugMeta/debugImage';
+import type DebugImage from '../../debugMeta/debugImage';
 import {combineStatus} from '../../debugMeta/utils';
 import {SymbolicatorStatus} from '../../types';
 import PackageLink from '../packageLink';

@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases import NoProjects, OrganizationEndpoint
@@ -12,7 +13,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
-from sentry.discover.models import DiscoverSavedQuery
+from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery
 
 
 def get_homepage_query(organization, user):
@@ -28,6 +29,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
         "PUT": ApiPublishStatus.UNKNOWN,
     }
+    owner = ApiOwner.PERFORMANCE
 
     permission_classes = (
         IsAuthenticated,
@@ -81,6 +83,8 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
                 name="",
                 query=data["query"],
                 version=data["version"],
+                dataset=data["query_dataset"],
+                dataset_source=DatasetSourcesTypes.UNKNOWN.value,
             )
             previous_homepage.set_projects(data["project_ids"])
             return Response(serialize(previous_homepage), status=status.HTTP_200_OK)
@@ -90,6 +94,8 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
             name="",
             query=data["query"],
             version=data["version"],
+            dataset=data["query_dataset"],
+            dataset_source=DatasetSourcesTypes.UNKNOWN.value,
             created_by_id=request.user.id,
             is_homepage=True,
         )

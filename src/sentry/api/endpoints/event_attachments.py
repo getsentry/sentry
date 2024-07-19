@@ -2,6 +2,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import eventstore, features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
@@ -13,6 +14,7 @@ from sentry.search.utils import tokenize_query
 
 @region_silo_endpoint
 class EventAttachmentsEndpoint(ProjectEndpoint):
+    owner = ApiOwner.PROCESSING
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }
@@ -22,9 +24,9 @@ class EventAttachmentsEndpoint(ProjectEndpoint):
         Retrieve attachments for an event
         `````````````````````````````````
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           issues belong to.
-        :pparam string project_slug: the slug of the project the event
+        :pparam string project_id_or_slug: the id or slug of the project the event
                                      belongs to.
         :pparam string event_id: the id of the event.
         :auth: required

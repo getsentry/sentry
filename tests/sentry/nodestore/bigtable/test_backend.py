@@ -1,9 +1,10 @@
 import os
+from collections.abc import Generator
 from contextlib import contextmanager
-from typing import Generator
 from unittest import mock
 
 import pytest
+from google.cloud.bigtable import table
 from google.rpc.status_pb2 import Status
 
 from sentry.nodestore.bigtable.backend import BigtableNodeStorage
@@ -38,7 +39,7 @@ class MockedBigtableKVStorage(BigtableKVStorage):
         def cells(self):
             return {"x": dict(self.table._rows.get(self.row_key) or ())}
 
-    class Table:
+    class Table(table.Table):
         def __init__(self):
             self._rows = {}
 
@@ -76,7 +77,7 @@ class MockedBigtableNodeStorage(BigtableNodeStorage):
 def get_temporary_bigtable_nodestorage() -> Generator[BigtableNodeStorage, None, None]:
     if "BIGTABLE_EMULATOR_HOST" not in os.environ:
         pytest.skip(
-            "Bigtable is not available, set BIGTABLE_EMULATOR_HOST enironment variable to enable"
+            "Bigtable is not available, set BIGTABLE_EMULATOR_HOST environment variable to enable"
         )
 
     ns = BigtableNodeStorage(project="test")
@@ -154,3 +155,12 @@ def test_cache(ns):
         ns.get("node_4")
         ns.get("node_4")
         assert mock_read_row.call_count == 2
+
+
+def test_compression() -> None:
+    ns = BigtableNodeStorage(compression="zstd")
+    assert ns.store.compression == "zstd"
+    ns = BigtableNodeStorage(compression=True)
+    assert ns.store.compression == "zlib"
+    ns = BigtableNodeStorage(compression=False)
+    assert ns.store.compression is None

@@ -1,18 +1,19 @@
-import {browserHistory} from 'react-router';
-import {Organization} from 'sentry-fixture/organization';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import ProjectsStore from 'sentry/stores/projectsStore';
 import TagStore from 'sentry/stores/tagStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import TableView from 'sentry/views/discover/table/tableView';
 
 describe('TableView > CellActions', function () {
   let initialData, rows, onChangeShowTags;
 
-  const location = TestStubs.location({
+  const location = LocationFixture({
     pathname: '/organizations/org-slug/discover/results/',
     query: {
       id: '42',
@@ -50,7 +51,7 @@ describe('TableView > CellActions', function () {
         showTags={false}
         title=""
       />,
-      {context: context.routerContext}
+      {router: context.router}
     );
   }
 
@@ -65,9 +66,8 @@ describe('TableView > CellActions', function () {
     jest.mocked(browserHistory.push).mockReset();
     jest.mocked(browserHistory.replace).mockReset();
 
-    const organization = Organization({
+    const organization = OrganizationFixture({
       features: ['discover-basic'],
-      projects: [TestStubs.Project()],
     });
 
     initialData = initializeOrg({
@@ -75,7 +75,7 @@ describe('TableView > CellActions', function () {
       router: {location},
     });
     act(() => {
-      ProjectsStore.loadInitialData(initialData.organization.projects);
+      ProjectsStore.loadInitialData(initialData.projects);
       TagStore.reset();
       TagStore.loadTagsSuccess([
         {name: 'size', key: 'size'},
@@ -350,9 +350,7 @@ describe('TableView > CellActions', function () {
   });
 
   it('renders size columns correctly', function () {
-    const orgWithFeature = Organization({
-      projects: [TestStubs.Project()],
-    });
+    const orgWithFeature = OrganizationFixture();
 
     render(
       <TableView
@@ -402,9 +400,7 @@ describe('TableView > CellActions', function () {
   });
 
   it('shows events with value less than selected custom performance metric', async function () {
-    const orgWithFeature = Organization({
-      projects: [TestStubs.Project()],
-    });
+    const orgWithFeature = OrganizationFixture();
 
     render(
       <TableView

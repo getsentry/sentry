@@ -4,10 +4,11 @@ from sentry.models.auditlogentry import AuditLogEntry
 from sentry.models.options.project_option import ProjectOption
 from sentry.plugins.base import plugins
 from sentry.plugins.bases.notify import NotificationPlugin
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import APITestCase
+from sentry.testutils.helpers.features import with_feature
 from sentry.testutils.outbox import outbox_runner
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class ProjectPluginDetailsTestBase(APITestCase):
@@ -21,7 +22,6 @@ class ProjectPluginDetailsTestBase(APITestCase):
             assert not AuditLogEntry.objects.filter(target_object=self.project.id).exists()
 
 
-@region_silo_test(stable=True)
 class ProjectPluginDetailsTest(ProjectPluginDetailsTestBase):
     def test_simple(self):
         response = self.get_success_response(
@@ -54,7 +54,6 @@ class ProjectPluginDetailsTest(ProjectPluginDetailsTestBase):
         assert "social/associate/asana" in response.data["auth_url"]
 
 
-@region_silo_test(stable=True)
 class UpdateProjectPluginTest(ProjectPluginDetailsTestBase):
     method = "put"
 
@@ -76,7 +75,6 @@ class UpdateProjectPluginTest(ProjectPluginDetailsTestBase):
         )
 
 
-@region_silo_test(stable=True)
 class EnableProjectPluginTest(ProjectPluginDetailsTestBase):
     method = "post"
 
@@ -115,8 +113,17 @@ class EnableProjectPluginTest(ProjectPluginDetailsTestBase):
         for config in configs:
             assert config.get("value") is None
 
+    @with_feature("organizations:data-forwarding")
+    def test_allow_plugin_with_feature_enabled(self):
+        self.get_success_response(self.organization.slug, self.project.slug, "amazon-sqs")
 
-@region_silo_test(stable=True)
+    @with_feature({"organizations:data-forwarding": False})
+    def test_disallow_plugin_with_feature_disabled(self):
+        self.get_error_response(
+            self.organization.slug, self.project.slug, "amazon-sqs", status_code=403
+        )
+
+
 class DisableProjectPluginTest(ProjectPluginDetailsTestBase):
     method = "delete"
 

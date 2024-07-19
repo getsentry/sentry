@@ -3,6 +3,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases.organization import (
@@ -22,10 +23,11 @@ class ApiKeySerializer(serializers.ModelSerializer):
 
 @control_silo_endpoint
 class OrganizationApiKeyDetailsEndpoint(ControlSiloOrganizationEndpoint):
+    owner = ApiOwner.ECOSYSTEM
     publish_status = {
-        "DELETE": ApiPublishStatus.UNKNOWN,
-        "GET": ApiPublishStatus.UNKNOWN,
-        "PUT": ApiPublishStatus.UNKNOWN,
+        "DELETE": ApiPublishStatus.PRIVATE,
+        "GET": ApiPublishStatus.PRIVATE,
+        "PUT": ApiPublishStatus.PRIVATE,
     }
     permission_classes = (OrganizationAdminPermission,)
 
@@ -34,7 +36,7 @@ class OrganizationApiKeyDetailsEndpoint(ControlSiloOrganizationEndpoint):
         Retrieves API Key details
         `````````````````````````
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team belongs to.
         :pparam string api_key_id: the ID of the api key to delete
         :auth: required
@@ -51,7 +53,7 @@ class OrganizationApiKeyDetailsEndpoint(ControlSiloOrganizationEndpoint):
         Update an API Key
         `````````````````
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team belongs to.
         :pparam string api_key_id: the ID of the api key to delete
         :param string label: the new label for the api key
@@ -87,7 +89,7 @@ class OrganizationApiKeyDetailsEndpoint(ControlSiloOrganizationEndpoint):
         Deletes an API Key
         ``````````````````
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           team belongs to.
         :pparam string api_key_id: the ID of the api key to delete
         :auth: required

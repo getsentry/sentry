@@ -1,8 +1,7 @@
 import styled from '@emotion/styled';
 
-import SelectControl, {
-  ControlProps,
-} from 'sentry/components/forms/controls/selectControl';
+import type {ControlProps} from 'sentry/components/forms/controls/selectControl';
+import SelectControl from 'sentry/components/forms/controls/selectControl';
 import {defined} from 'sentry/utils';
 
 import {StyledForm} from './form';
@@ -46,7 +45,7 @@ export default class SelectField extends FormField<Props> {
 
   // Overriding this so that we can support `multi` fields through property
   getValue(props, context) {
-    const form = (context || this.context || {}).form;
+    const form = (context || this.context)?.form;
     props = props || this.props;
 
     // Don't use `isMultiple` here because we're taking props from args as well
@@ -55,7 +54,7 @@ export default class SelectField extends FormField<Props> {
     if (defined(props.value)) {
       return props.value;
     }
-    if (form && form.data.hasOwnProperty(props.name)) {
+    if (form?.data.hasOwnProperty(props.name)) {
       return defined(form.data[props.name]) ? form.data[props.name] : defaultValue;
     }
     return defined(props.defaultValue) ? props.defaultValue : defaultValue;

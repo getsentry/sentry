@@ -4,7 +4,7 @@ from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class InternalBeaconTest(APITestCase):
     @patch("sentry.tasks.beacon.send_beacon_metric.delay")
     def test_simple(self, mock_send_beacon_metric):

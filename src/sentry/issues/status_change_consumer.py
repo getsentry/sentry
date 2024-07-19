@@ -1,14 +1,17 @@
 from __future__ import annotations
 
 import logging
-from typing import Any, Mapping
+from collections import defaultdict
+from collections.abc import Iterable, Mapping, Sequence
+from typing import Any
 
-from sentry_sdk.tracing import NoOpSpan, Transaction
+from sentry_sdk.tracing import NoOpSpan, Span, Transaction
 
-from sentry import features
+from sentry.issues.escalating import manage_issue_states
 from sentry.issues.status_change_message import StatusChangeMessageData
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphash import GroupHash
+from sentry.models.groupinbox import GroupInboxReason
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.types.activity import ActivityType
@@ -72,14 +75,18 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             substatus=new_substatus,
             activity_type=ActivityType.SET_IGNORED,
         )
+    elif new_status == GroupStatus.UNRESOLVED and new_substatus == GroupSubStatus.ESCALATING:
+        manage_issue_states(group=group, group_inbox_reason=GroupInboxReason.ESCALATING)
     elif new_status == GroupStatus.UNRESOLVED:
         activity_type = None
-        if new_substatus == GroupSubStatus.ESCALATING:
-            activity_type = ActivityType.SET_ESCALATING
-        elif new_substatus == GroupSubStatus.REGRESSED:
+        if new_substatus == GroupSubStatus.REGRESSED:
             activity_type = ActivityType.SET_REGRESSION
         elif new_substatus == GroupSubStatus.ONGOING:
-            activity_type = ActivityType.SET_UNRESOLVED
+            if group.substatus == GroupSubStatus.ESCALATING:
+                # If the group was previously escalating, update the priority via AUTO_SET_ONGOING
+                activity_type = ActivityType.AUTO_SET_ONGOING
+            else:
+                activity_type = ActivityType.SET_UNRESOLVED
 
         # We don't support setting the UNRESOLVED status with substatus NEW as it
         # is automatically set on creation. All other issues should be set to ONGOING.
@@ -95,6 +102,7 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
             status=new_status,
             substatus=new_substatus,
             activity_type=activity_type,
+            from_substatus=group.substatus,
         )
     else:
         logger.error(
@@ -106,27 +114,40 @@ def update_status(group: Group, status_change: StatusChangeMessageData) -> None:
         )
 
 
-def get_group_from_fingerprint(status_change: StatusChangeMessageData) -> Group | None:
-    grouphash = (
-        GroupHash.objects.filter(
-            project=status_change["project_id"],
-            hash=status_change["fingerprint"][0],
-        )
-        .select_related("group")
-        .first()
-    )
+def bulk_get_groups_from_fingerprints(
+    project_fingerprint_pairs: Iterable[tuple[int, Sequence[str]]]
+) -> dict[tuple[int, str], Group]:
+    """
+    Returns a map of (project, fingerprint) to the group.
 
-    if not grouphash:
-        logger.error(
-            "grouphash.not_found",
-            extra={
-                "project_id": status_change["project_id"],
-                "fingerprint": status_change["fingerprint"],
-            },
-        )
-        return None
+    Note that fingerprints for issue platform are expected to be
+    processed via `process_occurrence_data` prior to calling this function.
+    """
+    fingerprints_by_project: dict[int, list[str]] = defaultdict(list)
+    for project_id, fingerprints in project_fingerprint_pairs:
+        fingerprints_by_project[project_id].append(fingerprints[0])
 
-    return grouphash.group
+    query = GroupHash.objects.none()
+    for project_id, fingerprints in fingerprints_by_project.items():
+        query = query.union(
+            GroupHash.objects.filter(
+                project=project_id,
+                hash__in=fingerprints,
+            ).select_related("group")
+        )
+
+    result: dict[tuple[int, str], Group] = {
+        (grouphash.project_id, grouphash.hash): grouphash.group for grouphash in query
+    }
+
+    found_fingerprints = set(result.keys())
+    fingerprints_set = {
+        (project_id, fingerprint[0]) for project_id, fingerprint in project_fingerprint_pairs
+    }
+    for project_id, fingerprint in fingerprints_set - found_fingerprints:
+        metrics.incr("occurrence_ingest.grouphash.not_found")
+
+    return result
 
 
 def _get_status_change_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
@@ -147,7 +168,7 @@ def _get_status_change_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
 
 
 def process_status_change_message(
-    message: Mapping[str, Any], txn: Transaction | NoOpSpan
+    message: Mapping[str, Any], txn: Transaction | NoOpSpan | Span
 ) -> Group | None:
     with metrics.timer("occurrence_consumer._process_message.status_change._get_kwargs"):
         kwargs = _get_status_change_kwargs(message)
@@ -168,17 +189,19 @@ def process_status_change_message(
     txn.set_tag("project_id", project.id)
     txn.set_tag("project_slug", project.slug)
 
-    if not features.has("organizations:issue-platform-api-crons-sd", organization):
-        metrics.incr(
-            "occurrence_ingest.status_change.dropped_feature_disabled",
-            sample_rate=1.0,
-        )
-        txn.set_tag("result", "dropped_feature_disabled")
-        return None
-
     with metrics.timer("occurrence_consumer._process_message.status_change.get_group"):
-        group = get_group_from_fingerprint(status_change_data)
+        fingerprint = status_change_data["fingerprint"]
+        groups_by_fingerprints = bulk_get_groups_from_fingerprints([(project.id, fingerprint)])
+        group = groups_by_fingerprints.get((project.id, fingerprint[0]), None)
         if not group:
+            logger.info(
+                "status_change.dropped_group_not_found",
+                extra={
+                    "fingerprint": fingerprint,
+                    "new_status": status_change_data["new_status"],
+                    "project_id": status_change_data["project_id"],
+                },
+            )
             metrics.incr(
                 "occurrence_ingest.status_change.dropped_group_not_found",
                 sample_rate=1.0,
@@ -189,4 +212,4 @@ def process_status_change_message(
     with metrics.timer("occurrence_consumer._process_message.status_change.update_group_status"):
         update_status(group, status_change_data)
 
-    return group  # group, is_regression
+    return group

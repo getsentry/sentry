@@ -1,32 +1,24 @@
-import {
-  CSSProperties,
-  Fragment,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react';
+import type {CSSProperties} from 'react';
+import {Fragment, useCallback, useEffect, useMemo, useRef, useState} from 'react';
 import styled from '@emotion/styled';
 import {mat3, vec2} from 'gl-matrix';
 
 import {t} from 'sentry/locale';
-import {
-  CanvasPoolManager,
-  useCanvasScheduler,
-} from 'sentry/utils/profiling/canvasScheduler';
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import type {RequestState} from 'sentry/types/core';
+import type {CanvasPoolManager} from 'sentry/utils/profiling/canvasScheduler';
+import {useCanvasScheduler} from 'sentry/utils/profiling/canvasScheduler';
+import type {CanvasView} from 'sentry/utils/profiling/canvasView';
 import {useFlamegraphTheme} from 'sentry/utils/profiling/flamegraph/useFlamegraphTheme';
-import {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
-import {FlamegraphChart as FlamegraphChartModel} from 'sentry/utils/profiling/flamegraphChart';
+import type {FlamegraphCanvas} from 'sentry/utils/profiling/flamegraphCanvas';
+import type {FlamegraphChart as FlamegraphChartModel} from 'sentry/utils/profiling/flamegraphChart';
 import {
   getConfigViewTranslationBetweenVectors,
   getPhysicalSpacePositionFromOffset,
   transformMatrixBetweenRect,
 } from 'sentry/utils/profiling/gl/utils';
 import {FlamegraphChartRenderer} from 'sentry/utils/profiling/renderers/chartRenderer';
-import {Rect} from 'sentry/utils/profiling/speedscope';
-import {useProfiles} from 'sentry/views/profiling/profilesProvider';
+import type {Rect} from 'sentry/utils/profiling/speedscope';
+import {formatTo, type ProfilingFormatterUnit} from 'sentry/utils/profiling/units/units';
 
 import {useCanvasScroll} from './interactions/useCanvasScroll';
 import {useCanvasZoomOrScroll} from './interactions/useCanvasZoomOrScroll';
@@ -45,11 +37,14 @@ interface FlamegraphChartProps {
   chartCanvas: FlamegraphCanvas | null;
   chartCanvasRef: HTMLCanvasElement | null;
   chartView: CanvasView<FlamegraphChartModel> | null;
+  configViewUnit: ProfilingFormatterUnit;
   noMeasurementMessage: string | undefined;
   setChartCanvasRef: (ref: HTMLCanvasElement | null) => void;
+  status: RequestState<any>['type'];
 }
 
 export function FlamegraphChart({
+  status,
   chart,
   canvasPoolManager,
   chartView,
@@ -58,10 +53,10 @@ export function FlamegraphChart({
   setChartCanvasRef,
   canvasBounds,
   noMeasurementMessage,
+  configViewUnit,
 }: FlamegraphChartProps) {
-  const profiles = useProfiles();
-  const scheduler = useCanvasScheduler(canvasPoolManager);
   const theme = useFlamegraphTheme();
+  const scheduler = useCanvasScheduler(canvasPoolManager);
 
   const [configSpaceCursor, setConfigSpaceCursor] = useState<vec2 | null>(null);
   const [startInteractionVector, setStartInteractionVector] = useState<vec2 | null>(null);
@@ -270,6 +265,32 @@ export function FlamegraphChart({
     [configSpaceCursor, chartView]
   );
 
+  const isInsufficientDuration = useMemo(() => {
+    if (!chart) return false;
+    return formatTo(chart?.configSpace.width, configViewUnit, 'millisecond') < 200;
+  }, [chart, configViewUnit]);
+
+  let message: string | undefined;
+
+  if (chart) {
+    if (
+      isInsufficientDuration &&
+      (chart.status === 'insufficient data' || chart.status === 'empty metrics')
+    ) {
+      message = t('Profile duration was too short to collect enough metrics');
+    } else if (!isInsufficientDuration && chart.status === 'insufficient data') {
+      message =
+        noMeasurementMessage ||
+        t(
+          'Profile failed to collect a sufficient amount of measurements to render a chart'
+        );
+    } else if (chart.status === 'no metrics') {
+      message = noMeasurementMessage || t('Profile has no measurements');
+    } else if (chart.status === 'empty metrics') {
+      message = t('Profile has empty measurements');
+    }
+  }
+
   return (
     <Fragment>
       <Canvas
@@ -288,22 +309,14 @@ export function FlamegraphChart({
           chartView={chartView}
           chartRenderer={chartRenderer}
           canvasBounds={canvasBounds}
+          configViewUnit={configViewUnit}
         />
       ) : null}
       {/* transaction loads after profile, so we want to show loading even if it's in initial state */}
-      {profiles.type === 'loading' || profiles.type === 'initial' ? (
+      {status === 'loading' || status === 'initial' ? (
         <CollapsibleTimelineLoadingIndicator />
-      ) : profiles.type === 'resolved' && !chart?.series.length ? (
-        <CollapsibleTimelineMessage>
-          {noMeasurementMessage || t('Profile has no measurements')}
-        </CollapsibleTimelineMessage>
-      ) : (chart?.series?.length ?? 0) > 0 &&
-        chart?.series.every(
-          s => s.points.length < FlamegraphChartModel.MIN_RENDERABLE_POINTS
-        ) ? (
-        <CollapsibleTimelineMessage>
-          {noMeasurementMessage || t('Profile has no measurements')}
-        </CollapsibleTimelineMessage>
+      ) : status === 'resolved' && chart?.status !== 'ok' ? (
+        <CollapsibleTimelineMessage>{message}</CollapsibleTimelineMessage>
       ) : null}
     </Fragment>
   );

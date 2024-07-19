@@ -1,9 +1,9 @@
 import {Fragment, useCallback, useEffect, useRef} from 'react';
 import {createPortal} from 'react-dom';
-import {browserHistory} from 'react-router';
 import {css} from '@emotion/react';
 import styled from '@emotion/styled';
-import {createFocusTrap, FocusTrap} from 'focus-trap';
+import type {FocusTrap} from 'focus-trap';
+import {createFocusTrap} from 'focus-trap';
 import {AnimatePresence, motion} from 'framer-motion';
 
 import {closeModal as actionCloseModal} from 'sentry/actionCreators/modal';
@@ -13,6 +13,8 @@ import {useLegacyStore} from 'sentry/stores/useLegacyStore';
 import {space} from 'sentry/styles/space';
 import getModalPortal from 'sentry/utils/getModalPortal';
 import testableTransition from 'sentry/utils/testableTransition';
+import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
+import {useLocation} from 'sentry/utils/useLocation';
 
 import {makeClosableHeader, makeCloseButton, ModalBody, ModalFooter} from './components';
 
@@ -75,6 +77,10 @@ type ModalRenderProps = {
    * Closes the modal
    */
   closeModal: () => void;
+  /**
+   * Reference to the modal's container.
+   */
+  modalContainerRef?: React.RefObject<HTMLDivElement>;
 };
 
 /**
@@ -100,6 +106,7 @@ type Props = {
 
 function GlobalModal({onClose}: Props) {
   const {renderer, options} = useLegacyStore(ModalStore);
+  const location = useLocation();
 
   const closeEvents = options.closeEvents ?? 'all';
 
@@ -172,16 +179,12 @@ function GlobalModal({onClose}: Props) {
     return reset;
   }, [portal, handleEscapeClose, visible]);
 
-  // Close the modal when the browser history changes
-  useEffect(() => browserHistory.listen(() => actionCloseModal()), []);
-
-  const renderedChild = renderer?.({
-    CloseButton: makeCloseButton(closeModal),
-    Header: makeClosableHeader(closeModal),
-    Body: ModalBody,
-    Footer: ModalFooter,
-    closeModal,
-  });
+  // Close the modal when the browser history changes.
+  //
+  // XXX: We're using useEffectAfterFirstRender primarily to support tests
+  // which render the GlobalModal after a modal has already been registered in
+  // the modal store, meaning it would be closed immediately.
+  useEffectAfterFirstRender(() => actionCloseModal(), [location.pathname]);
 
   // Default to enabled backdrop
   const backdrop = options.backdrop ?? true;
@@ -193,6 +196,15 @@ function GlobalModal({onClose}: Props) {
   const containerRef = useRef<HTMLDivElement>(null);
   const clickClose = (e: React.MouseEvent) =>
     containerRef.current === e.target && allowBackdropClickClose && closeModal();
+
+  const renderedChild = renderer?.({
+    CloseButton: makeCloseButton(closeModal),
+    Header: makeClosableHeader(closeModal),
+    Body: ModalBody,
+    Footer: ModalFooter,
+    modalContainerRef: containerRef,
+    closeModal,
+  });
 
   return createPortal(
     <Fragment>

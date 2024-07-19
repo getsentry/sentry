@@ -1,15 +1,15 @@
+from __future__ import annotations
+
+from collections.abc import Mapping
 from datetime import datetime, timedelta, timezone
 
 import pytest
 
 from sentry.statistical_detectors.algorithm import (
-    MovingAverageCrossOverDetector,
-    MovingAverageDetectorConfig,
     MovingAverageDetectorState,
     MovingAverageRelativeChangeDetector,
-    MovingAverageRelativeChangeDetectorConfig,
 )
-from sentry.statistical_detectors.detector import DetectorPayload, TrendType
+from sentry.statistical_detectors.base import DetectorPayload, TrendType
 from sentry.utils.math import ExponentialMovingAverage
 
 
@@ -189,138 +189,54 @@ def test_moving_average_detector_state_from_redis_dict_error(data, error):
 
 
 @pytest.mark.parametrize(
-    ["min_data_points", "short_moving_avg_factory", "long_moving_avg_factory"],
+    ["baseline", "avg", "rel_threshold", "auto_resolve"],
     [
-        pytest.param(
-            6,
-            lambda: ExponentialMovingAverage(2 / 21),
-            lambda: ExponentialMovingAverage(2 / 41),
-        ),
+        pytest.param(100, 100, 0.1, True, id="equal"),
+        pytest.param(100, 105, 0.1, True, id="within threshold above"),
+        pytest.param(100, 95, 0.1, True, id="within threshold below"),
+        pytest.param(100, 115, 0.1, False, id="exceed threshold above"),
+        pytest.param(100, 85, 0.1, True, id="exceed threshold below"),
     ],
 )
-@pytest.mark.parametrize(
-    ["values", "regressed_indices", "improved_indices"],
-    [
-        pytest.param(
-            [1 for _ in range(10)] + [2 for _ in range(10)],
-            [10],
-            [],
-            id="stepwise increase",
-        ),
-        pytest.param(
-            [2 for _ in range(10)] + [1 for _ in range(10)],
-            [],
-            [10],
-            id="stepwise decrease",
-        ),
-        pytest.param(
-            [(i / 10) ** 2 for i in range(-10, 20)],
-            [23],
-            [],
-            id="quadratic increase",
-        ),
-        pytest.param(
-            [-((i / 10) ** 2) for i in range(-10, 20)],
-            [],
-            [23],
-            id="quadratic decrease",
-        ),
-    ],
-)
-def test_moving_average_cross_over_detector(
-    min_data_points,
-    short_moving_avg_factory,
-    long_moving_avg_factory,
-    values,
-    regressed_indices,
-    improved_indices,
+def test_moving_average_detector_state_should_auto_resolve(
+    baseline, avg, rel_threshold, auto_resolve
 ):
-    all_regressed = []
-    all_improved = []
-
-    now = datetime.now()
-
-    payloads = [
-        DetectorPayload(
-            project_id=1,
-            group=0,
-            count=i + 1,
-            value=value,
-            timestamp=now + timedelta(hours=i + 1),
-        )
-        for i, value in enumerate(values)
-    ]
-
-    detector = MovingAverageCrossOverDetector(
-        MovingAverageDetectorState.empty(),
-        MovingAverageDetectorConfig(
-            min_data_points=min_data_points,
-            short_moving_avg_factory=short_moving_avg_factory,
-            long_moving_avg_factory=long_moving_avg_factory,
-        ),
+    state = MovingAverageDetectorState(
+        timestamp=datetime(2023, 8, 31, 11, 28, 52),
+        count=10,
+        moving_avg_short=avg,
+        moving_avg_long=avg,
     )
-
-    for payload in payloads:
-        trend_type, score = detector.update(payload)
-        assert score >= 0
-        if trend_type == TrendType.Regressed:
-            all_regressed.append(payload)
-        elif trend_type == TrendType.Improved:
-            all_improved.append(payload)
-
-    assert all_regressed == [payloads[i] for i in regressed_indices]
-    assert all_improved == [payloads[i] for i in improved_indices]
+    assert state.should_auto_resolve(baseline, rel_threshold) == auto_resolve
 
 
 @pytest.mark.parametrize(
-    ["min_data_points", "short_moving_avg_factory", "long_moving_avg_factory"],
+    ["baseline", "regressed", "avg", "min_change", "rel_threshold", "escalate"],
     [
+        pytest.param(50, 100, 100, 10, 0.1, False, id="equal"),
+        pytest.param(50, 100, 105, 10, 0.1, False, id="within threshold above"),
+        pytest.param(50, 100, 95, 10, 0.1, False, id="within threshold below"),
+        pytest.param(50, 100, 115, 10, 0.1, True, id="exceed threshold above"),
+        pytest.param(50, 100, 85, 10, 0.1, False, id="exceed threshold below"),
         pytest.param(
-            6,
-            lambda: ExponentialMovingAverage(2 / 21),
-            lambda: ExponentialMovingAverage(2 / 41),
+            50, 100, 115, 20, 0.1, False, id="exceed threshold above but below min_change"
         ),
     ],
 )
-def test_moving_average_cross_over_detector_bad_order(
-    min_data_points,
-    short_moving_avg_factory,
-    long_moving_avg_factory,
+def test_moving_average_detector_state_should_escalate(
+    baseline, regressed, avg, min_change, rel_threshold, escalate
 ):
-    now = datetime.now()
-
-    detector = MovingAverageCrossOverDetector(
-        MovingAverageDetectorState.empty(),
-        MovingAverageDetectorConfig(
-            min_data_points=min_data_points,
-            short_moving_avg_factory=short_moving_avg_factory,
-            long_moving_avg_factory=long_moving_avg_factory,
-        ),
+    state = MovingAverageDetectorState(
+        timestamp=datetime(2023, 8, 31, 11, 28, 52),
+        count=10,
+        moving_avg_short=avg,
+        moving_avg_long=avg,
     )
-
-    payload = DetectorPayload(
-        project_id=1,
-        group=0,
-        count=2,
-        value=100,
-        timestamp=now,
-    )
-    trend_type, _ = detector.update(payload)
-    assert trend_type is not None
-
-    payload = DetectorPayload(
-        project_id=1,
-        group=0,
-        count=1,
-        value=100,
-        timestamp=now - timedelta(hours=1),
-    )
-    trend_type, _ = detector.update(payload)
-    assert trend_type is None
+    assert state.should_escalate(baseline, regressed, min_change, rel_threshold) == escalate
 
 
 @pytest.mark.parametrize(
-    ["min_data_points", "short_moving_avg_factory", "long_moving_avg_factory", "threshold"],
+    ["min_data_points", "moving_avg_short_factory", "moving_avg_long_factory", "threshold"],
     [
         pytest.param(
             6,
@@ -361,8 +277,8 @@ def test_moving_average_cross_over_detector_bad_order(
 )
 def test_moving_average_relative_change_detector(
     min_data_points,
-    short_moving_avg_factory,
-    long_moving_avg_factory,
+    moving_avg_long_factory,
+    moving_avg_short_factory,
     threshold,
     values,
     regressed_indices,
@@ -371,12 +287,13 @@ def test_moving_average_relative_change_detector(
     all_regressed = []
     all_improved = []
 
-    now = datetime.now()
+    now = datetime(2023, 8, 31, 11, 28, 52, tzinfo=timezone.utc)
 
     payloads = [
         DetectorPayload(
             project_id=1,
             group=0,
+            fingerprint="0",
             count=i + 1,
             value=value,
             timestamp=now + timedelta(hours=i + 1),
@@ -385,18 +302,21 @@ def test_moving_average_relative_change_detector(
     ]
 
     detector = MovingAverageRelativeChangeDetector(
-        MovingAverageDetectorState.empty(),
-        MovingAverageRelativeChangeDetectorConfig(
-            min_data_points=min_data_points,
-            short_moving_avg_factory=short_moving_avg_factory,
-            long_moving_avg_factory=long_moving_avg_factory,
-            threshold=threshold,
-        ),
+        "transaction",
+        "endpoint",
+        min_data_points=min_data_points,
+        moving_avg_short_factory=moving_avg_short_factory,
+        moving_avg_long_factory=moving_avg_long_factory,
+        threshold=threshold,
     )
 
+    raw_state: Mapping[str | bytes, bytes | float | int | str] = {}
+
     for payload in payloads:
-        trend_type, score = detector.update(payload)
+        trend_type, score, state = detector.update(raw_state, payload)
         assert score >= 0
+        if state is not None:
+            raw_state = state.to_redis_dict()
         if trend_type == TrendType.Regressed:
             all_regressed.append(payload)
         elif trend_type == TrendType.Improved:

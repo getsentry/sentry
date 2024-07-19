@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Callable
+from collections.abc import Callable
 
 from django.core.exceptions import DisallowedHost
 from django.http import HttpResponseRedirect
@@ -41,7 +41,11 @@ class SubdomainMiddleware:
             url_prefix = options.get("system.url-prefix")
             logger.info(
                 "subdomain.disallowed_host",
-                extra={"location": url_prefix, "uri": request.get_raw_uri()},
+                extra={
+                    "location": url_prefix,
+                    "host": request.META.get("HTTP_HOST", "<unknown>"),
+                    "path": request.path,
+                },
             )
             return HttpResponseRedirect(url_prefix)
 
@@ -50,8 +54,7 @@ class SubdomainMiddleware:
 
         subdomain = host[: -len(self.base_hostname)].rstrip(".")
 
-        if len(subdomain) == 0:
-            subdomain = None
+        if len(subdomain) > 0:
+            request.subdomain = subdomain
 
-        request.subdomain = subdomain
         return self.get_response(request)

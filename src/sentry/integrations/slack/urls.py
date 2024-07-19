@@ -7,6 +7,7 @@ from .views.unlink_team import SlackUnlinkTeamView
 from .webhooks.action import SlackActionEndpoint
 from .webhooks.command import SlackCommandsEndpoint
 from .webhooks.event import SlackEventEndpoint
+from .webhooks.options_load import SlackOptionsLoadEndpoint
 
 urlpatterns = [
     re_path(
@@ -23,6 +24,11 @@ urlpatterns = [
         r"^event/$",
         SlackEventEndpoint.as_view(),
         name="sentry-integration-slack-event",
+    ),
+    re_path(
+        r"^options-load/$",
+        SlackOptionsLoadEndpoint.as_view(),
+        name="sentry-integration-slack-options-load",
     ),
     re_path(
         r"^link-identity/(?P<signed_params>[^\/]+)/$",

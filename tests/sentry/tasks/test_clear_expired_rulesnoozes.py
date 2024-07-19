@@ -9,7 +9,7 @@ from sentry.testutils.cases import APITestCase
 class ClearExpiredRuleSnoozesTest(APITestCase):
     def setUp(self):
         self.issue_alert_rule = Rule.objects.create(
-            label="test rule", project=self.project, owner=self.team.actor
+            label="test rule", project=self.project, owner_team=self.team
         )
         self.metric_alert_rule = self.create_alert_rule(
             organization=self.project.organization, projects=[self.project]

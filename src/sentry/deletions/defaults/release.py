@@ -8,12 +8,12 @@ class ReleaseDeletionTask(ModelDeletionTask):
         from sentry.models.group import Group
         from sentry.models.grouprelease import GroupRelease
         from sentry.models.groupresolution import GroupResolution
-        from sentry.models.release import ReleaseProject
         from sentry.models.releasecommit import ReleaseCommit
         from sentry.models.releaseenvironment import ReleaseEnvironment
         from sentry.models.releasefile import ReleaseFile
         from sentry.models.releaseheadcommit import ReleaseHeadCommit
         from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
+        from sentry.models.releases.release_project import ReleaseProject
 
         return [
             ModelRelation(Deploy, {"release_id": instance.id}),

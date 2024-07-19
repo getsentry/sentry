@@ -2,7 +2,8 @@ from __future__ import annotations
 
 import abc
 import logging
-from typing import Any, Mapping
+from collections.abc import MutableMapping
+from typing import Any
 
 from django.views.decorators.csrf import csrf_exempt
 from psycopg2 import OperationalError
@@ -40,14 +41,14 @@ class JiraWebhookBase(Endpoint, abc.ABC):
         self,
         request: Request,
         exc: Exception,
-        handler_context: Mapping[str, Any] | None = None,
+        handler_context: MutableMapping[str, Any] | None = None,
         scope: Scope | None = None,
     ) -> Response:
         handler_context = handler_context or {}
         scope = scope or Scope()
 
         if isinstance(exc, (AtlassianConnectValidationError, JiraTokenError)):
-            return self.respond(status=status.HTTP_400_BAD_REQUEST)
+            return self.respond(status=status.HTTP_409_CONFLICT)
 
         # Atlassian has an automated tool which tests to make sure integrations with Jira
         # (like ours) pass certain security requirements, which leads them to probe certain
@@ -78,7 +79,7 @@ class JiraWebhookBase(Endpoint, abc.ABC):
 
             # If the error message is a big mess of html or xml, move it to `handler_context`
             # so we can see it if we need it, but also can replace the error message
-            # with a much more hepful one
+            # with a much more helpful one
             if "doctype html" in exc.text.lower() or "<html" in exc.text.lower():
                 handler_context["html_response"] = exc.text
             elif "<?xml" in exc.text.lower():
@@ -97,13 +98,13 @@ class JiraWebhookBase(Endpoint, abc.ABC):
                     exc.text = f"Gateway timeout when connecting to {jira_api_endpoint}"
                 else:  # generic ApiError
                     exc.text = f"Unknown error when requesting {jira_api_endpoint}"
-                    logger.exception("Unclear JIRA exception")
+                    logger.error("Unclear JIRA exception")
 
         # OperationalErrors are errors talking to our postgres DB
         elif isinstance(exc, OperationalError):
             pass  # No processing needed and these are known errors
         else:
-            logger.exception("Unclear JIRA exception")
+            logger.error("Unclear JIRA exception")
 
         # This will log the error locally, capture the exception and send it to Sentry, and create a
         # generic 500/Internal Error response

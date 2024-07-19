@@ -1,18 +1,21 @@
+import {ProjectFixture} from 'sentry-fixture/project';
+import {TeamFixture} from 'sentry-fixture/team';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import ProjectTeamAccess from 'sentry/views/projectDetail/projectTeamAccess';
 
 describe('ProjectDetail > ProjectTeamAccess', function () {
-  const {organization, routerContext} = initializeOrg();
+  const {organization, router} = initializeOrg();
 
   it('renders a list', function () {
     render(
       <ProjectTeamAccess
         organization={organization}
-        project={TestStubs.Project({teams: [TestStubs.Team()]})}
+        project={ProjectFixture({teams: [TeamFixture()]})}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(screen.getByText('Team Access')).toBeInTheDocument();
@@ -23,9 +26,9 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     render(
       <ProjectTeamAccess
         organization={organization}
-        project={TestStubs.Project({teams: [TestStubs.Team()]})}
+        project={ProjectFixture({teams: [TeamFixture()]})}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(screen.getByRole('link', {name: '#team-slug'})).toHaveAttribute(
@@ -35,10 +38,9 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
   });
 
   it('display the right empty state with access', function () {
-    render(
-      <ProjectTeamAccess organization={organization} project={TestStubs.Project()} />,
-      {context: routerContext}
-    );
+    render(<ProjectTeamAccess organization={organization} project={ProjectFixture()} />, {
+      router,
+    });
 
     expect(screen.getByRole('button', {name: 'Assign Team'})).toHaveAttribute(
       'href',
@@ -50,9 +52,9 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     render(
       <ProjectTeamAccess
         organization={{...organization, access: []}}
-        project={TestStubs.Project({teams: []})}
+        project={ProjectFixture({teams: []})}
       />,
-      {context: routerContext}
+      {router}
     );
     expect(screen.getByRole('button', {name: 'Assign Team'})).toBeDisabled();
   });
@@ -61,19 +63,19 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     render(
       <ProjectTeamAccess
         organization={organization}
-        project={TestStubs.Project({
+        project={ProjectFixture({
           teams: [
-            TestStubs.Team({slug: 'team1'}),
-            TestStubs.Team({slug: 'team2'}),
-            TestStubs.Team({slug: 'team3'}),
-            TestStubs.Team({slug: 'team4'}),
-            TestStubs.Team({slug: 'team5'}),
-            TestStubs.Team({slug: 'team6'}),
-            TestStubs.Team({slug: 'team7'}),
+            TeamFixture({slug: 'team1'}),
+            TeamFixture({slug: 'team2'}),
+            TeamFixture({slug: 'team3'}),
+            TeamFixture({slug: 'team4'}),
+            TeamFixture({slug: 'team5'}),
+            TeamFixture({slug: 'team6'}),
+            TeamFixture({slug: 'team7'}),
           ],
         })}
       />,
-      {context: routerContext}
+      {router}
     );
 
     expect(screen.getAllByTestId('badge-display-name')).toHaveLength(5);
@@ -89,15 +91,15 @@ describe('ProjectDetail > ProjectTeamAccess', function () {
     render(
       <ProjectTeamAccess
         organization={organization}
-        project={TestStubs.Project({
+        project={ProjectFixture({
           teams: [
-            TestStubs.Team({slug: 'c'}),
-            TestStubs.Team({slug: 'z'}),
-            TestStubs.Team({slug: 'a'}),
+            TeamFixture({slug: 'c'}),
+            TeamFixture({slug: 'z'}),
+            TeamFixture({slug: 'a'}),
           ],
         })}
       />,
-      {context: routerContext}
+      {router}
     );
 
     const badges = screen.getAllByTestId('badge-display-name');

@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 
 import {space} from 'sentry/styles/space';
 
-import {FieldGroupProps} from './types';
+import type {FieldGroupProps} from './types';
 
 type FieldDescriptionProps = Pick<FieldGroupProps, 'inline'>;
 
@@ -19,7 +19,7 @@ const inlineStyle = (p: FieldDescriptionProps) =>
       `;
 
 const FieldDescription = styled('label')<FieldDescriptionProps>`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   margin-bottom: 0;
 
   ${inlineStyle};

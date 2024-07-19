@@ -1,4 +1,4 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -18,9 +18,8 @@ type Data = {
 
 function initializeData({features: additionalFeatures = [], query = {}}: Data = {}) {
   const features = ['discover-basic', 'performance-view', ...additionalFeatures];
-  const organization = Organization({
+  const organization = OrganizationFixture({
     features,
-    projects: [TestStubs.Project()],
   });
   return initializeOrg({
     organization,
@@ -46,7 +45,7 @@ describe('Performance > TransactionSummary', function () {
     });
 
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: '/organizations/org-slug/prompts-activity/',
       body: {},
     });
 
@@ -143,6 +142,10 @@ describe('Performance > TransactionSummary', function () {
       url: '/organizations/org-slug/events-has-measurements/',
       body: {measurements: false},
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/replay-count/',
+      body: {},
+    });
   });
 
   afterEach(function () {
@@ -151,12 +154,12 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('renders basic UI elements', async function () {
-    const {organization, router, routerContext} = initializeData();
+    const {organization, projects, router} = initializeData();
 
-    ProjectsStore.loadInitialData(organization.projects);
+    ProjectsStore.loadInitialData(projects);
 
     render(<TransactionEvents organization={organization} location={router.location} />, {
-      context: routerContext,
+      router,
     });
 
     // Breadcrumb
@@ -185,12 +188,12 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('renders relative span breakdown header when no filter selected', async function () {
-    const {organization, router, routerContext} = initializeData();
+    const {organization, projects, router} = initializeData();
 
-    ProjectsStore.loadInitialData(organization.projects);
+    ProjectsStore.loadInitialData(projects);
 
     render(<TransactionEvents organization={organization} location={router.location} />, {
-      context: routerContext,
+      router,
     });
 
     expect(await screen.findByText('operation duration')).toBeInTheDocument();
@@ -200,12 +203,12 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('renders event column results correctly', async function () {
-    const {organization, router, routerContext} = initializeData();
+    const {organization, projects, router} = initializeData();
 
-    ProjectsStore.loadInitialData(organization.projects);
+    ProjectsStore.loadInitialData(projects);
 
     render(<TransactionEvents organization={organization} location={router.location} />, {
-      context: routerContext,
+      router,
     });
 
     const tableHeader = await screen.findAllByRole('columnheader');
@@ -229,14 +232,14 @@ describe('Performance > TransactionSummary', function () {
   });
 
   it('renders additional Web Vital column', async function () {
-    const {organization, router, routerContext} = initializeData({
+    const {organization, projects, router} = initializeData({
       query: {webVital: WebVital.LCP},
     });
 
-    ProjectsStore.loadInitialData(organization.projects);
+    ProjectsStore.loadInitialData(projects);
 
     render(<TransactionEvents organization={organization} location={router.location} />, {
-      context: routerContext,
+      router,
     });
 
     const tableHeader = await screen.findAllByRole('columnheader');

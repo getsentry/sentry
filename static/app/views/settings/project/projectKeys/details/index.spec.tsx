@@ -1,6 +1,6 @@
-import * as PropTypes from 'prop-types';
-import {Organization} from 'sentry-fixture/organization';
-import {ProjectKeys} from 'sentry-fixture/projectKeys';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {ProjectKeysFixture} from 'sentry-fixture/projectKeys';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {
@@ -10,7 +10,7 @@ import {
   userEvent,
 } from 'sentry-test/reactTestingLibrary';
 
-import {Organization as TOrganization, Project, ProjectKey} from 'sentry/types';
+import type {Organization as TOrganization, Project, ProjectKey} from 'sentry/types';
 import ProjectKeyDetails from 'sentry/views/settings/project/projectKeys/details';
 
 describe('ProjectKeyDetails', function () {
@@ -24,9 +24,9 @@ describe('ProjectKeyDetails', function () {
   let projectKeys: ProjectKey[];
 
   beforeEach(function () {
-    org = Organization();
-    project = TestStubs.Project();
-    projectKeys = ProjectKeys();
+    org = OrganizationFixture();
+    project = ProjectFixture();
+    projectKeys = ProjectKeysFixture();
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
@@ -80,15 +80,6 @@ describe('ProjectKeyDetails', function () {
       method: 'DELETE',
     });
 
-    const context = {
-      context: {
-        project: TestStubs.Project(),
-      },
-      childContextTypes: {
-        project: PropTypes.object,
-      },
-    };
-
     render(
       <ProjectKeyDetails
         {...routerProps}
@@ -98,10 +89,7 @@ describe('ProjectKeyDetails', function () {
           keyId: projectKeys[0].id,
           projectId: project.slug,
         }}
-      />,
-      {
-        context,
-      }
+      />
     );
   });
 

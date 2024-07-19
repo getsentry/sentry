@@ -9,7 +9,8 @@ class SecurityHeadersMiddleware(MiddlewareMixin):
     """
 
     def process_response(self, request: Request, response: Response) -> Response:
-        response.setdefault("X-Frame-Options", "deny")
+        if not request.path.startswith("/extensions/jira/issue/"):
+            response.setdefault("X-Frame-Options", "deny")
         response.setdefault("X-Content-Type-Options", "nosniff")
         response.setdefault("X-XSS-Protection", "1; mode=block")
         return response

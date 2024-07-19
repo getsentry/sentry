@@ -1,5 +1,4 @@
 import {useMemo} from 'react';
-import isEmpty from 'lodash/isEmpty';
 import orderBy from 'lodash/orderBy';
 
 import {bulkUpdate, useFetchIssueTags} from 'sentry/actionCreators/group';
@@ -7,9 +6,10 @@ import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import {Group, GroupActivity} from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import type {Group, GroupActivity} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export function markEventSeen(
   api: Client,
@@ -84,7 +84,7 @@ const SUBSCRIPTION_REASONS = {
  * @returns Reason for subscription
  */
 export function getSubscriptionReason(group: Group) {
-  if (group.subscriptionDetails && group.subscriptionDetails.disabled) {
+  if (group.subscriptionDetails?.disabled) {
     return t('You have disabled workflow notifications for this project.');
   }
 
@@ -110,9 +110,13 @@ export function getSubscriptionReason(group: Group) {
   );
 }
 
-export function getGroupMostRecentActivity(activities: GroupActivity[]) {
+export function getGroupMostRecentActivity(
+  activities: GroupActivity[] | undefined
+): GroupActivity | undefined {
   // Most recent activity
-  return orderBy([...activities], ({dateCreated}) => new Date(dateCreated), ['desc'])[0];
+  return activities
+    ? orderBy([...activities], ({dateCreated}) => new Date(dateCreated), ['desc'])[0]
+    : undefined;
 }
 
 export enum ReprocessingStatus {
@@ -202,7 +206,7 @@ export function getGroupDetailsQueryData({
 } = {}): Record<string, string | string[]> {
   // Note, we do not want to include the environment key at all if there are no environments
   const query: Record<string, string | string[]> = {
-    ...(!isEmpty(environments) ? {environment: environments} : {}),
+    ...(environments && environments.length > 0 ? {environment: environments} : {}),
     expand: ['inbox', 'owners'],
     collapse: ['release', 'tags'],
   };
@@ -224,9 +228,18 @@ export function getGroupEventDetailsQueryData({
     ...(query ? {query} : {}),
   };
 
-  if (!environments || isEmpty(environments)) {
+  if (!environments || environments.length === 0) {
     return defaultParams;
   }
 
   return {...defaultParams, environment: environments};
+}
+
+export function useHasStreamlinedUI() {
+  const location = useLocation();
+  const organization = useOrganization();
+  return (
+    location.query.streamline === '1' ||
+    organization.features.includes('issue-details-streamline')
+  );
 }

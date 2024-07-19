@@ -1,8 +1,9 @@
 import {forwardRef, useRef} from 'react';
 import styled from '@emotion/styled';
-import {AriaSliderThumbOptions, useSliderThumb} from '@react-aria/slider';
+import type {AriaSliderThumbOptions} from '@react-aria/slider';
+import {useSliderThumb} from '@react-aria/slider';
 import {VisuallyHidden} from '@react-aria/visually-hidden';
-import {SliderState} from '@react-stately/slider';
+import type {SliderState} from '@react-stately/slider';
 
 import {space} from 'sentry/styles/space';
 import mergeRefs from 'sentry/utils/mergeRefs';
@@ -133,6 +134,6 @@ const SliderThumbLabel = styled('span')`
   bottom: calc(100% + ${space(0.25)});
 
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-variant-numeric: tabular-nums;
 `;

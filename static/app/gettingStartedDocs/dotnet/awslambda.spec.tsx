@@ -2,10 +2,12 @@ import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboa
 import {screen} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
+import {ProductSolution} from 'sentry/components/onboarding/productSelection';
+
 import docs from './awslambda';
 
 describe('awslambda onboarding docs', function () {
-  it('renders docs correctly', async function () {
+  it('renders errors onboarding docs correctly', async function () {
     renderWithOnboardingLayout(docs, {
       releaseRegistry: {
         'sentry.dotnet.aspnetcore': {
@@ -24,6 +26,16 @@ describe('awslambda onboarding docs', function () {
       await screen.findByText(
         textWithMarkupMatcher(/Install-Package Sentry.AspNetCore -Version 1\.99\.9/)
       )
+    ).toBeInTheDocument();
+  });
+
+  it('renders performance onboarding docs correctly', async function () {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [ProductSolution.PERFORMANCE_MONITORING],
+    });
+
+    expect(
+      await screen.findByText(textWithMarkupMatcher(/o.TracesSampleRate/))
     ).toBeInTheDocument();
   });
 });

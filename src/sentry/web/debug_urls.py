@@ -12,18 +12,22 @@ from sentry.web.frontend.debug.debug_chart_renderer import DebugChartRendererVie
 from sentry.web.frontend.debug.debug_codeowners_auto_sync_failure_email import (
     DebugCodeOwnersAutoSyncFailureView,
 )
+from sentry.web.frontend.debug.debug_cron_broken_monitor_email import (
+    DebugCronBrokenMonitorEmailView,
+)
+from sentry.web.frontend.debug.debug_cron_muted_monitor_email import DebugCronMutedMonitorEmailView
 from sentry.web.frontend.debug.debug_error_embed import DebugErrorPageEmbedView
+from sentry.web.frontend.debug.debug_feedback_issue import DebugFeedbackIssueEmailView
 from sentry.web.frontend.debug.debug_generic_issue import DebugGenericIssueEmailView
 from sentry.web.frontend.debug.debug_incident_activity_email import DebugIncidentActivityEmailView
 from sentry.web.frontend.debug.debug_incident_trigger_email import DebugIncidentTriggerEmailView
+from sentry.web.frontend.debug.debug_incident_trigger_email_activated_alert import (
+    DebugIncidentActivatedAlertTriggerEmailView,
+)
 from sentry.web.frontend.debug.debug_invalid_identity_email import DebugInvalidIdentityEmailView
 from sentry.web.frontend.debug.debug_mfa_added_email import DebugMfaAddedEmailView
 from sentry.web.frontend.debug.debug_mfa_removed_email import DebugMfaRemovedEmailView
 from sentry.web.frontend.debug.debug_missing_member_nudge_email import DebugMissingMembersNudgeView
-from sentry.web.frontend.debug.debug_new_processing_issues_email import (
-    DebugNewProcessingIssuesEmailView,
-    DebugNewProcessingIssuesNoReprocessingEmailView,
-)
 from sentry.web.frontend.debug.debug_new_release_email import DebugNewReleaseEmailView
 from sentry.web.frontend.debug.debug_new_user_feedback_email import DebugNewUserFeedbackEmailView
 from sentry.web.frontend.debug.debug_note_email import DebugNoteEmailView
@@ -79,6 +83,7 @@ from sentry.web.frontend.debug.debug_weekly_report import DebugWeeklyReportView
 
 urlpatterns = [
     re_path(r"^debug/mail/error-alert/$", sentry.web.frontend.debug.mail.alert),
+    re_path(r"^debug/mail/feedback-alert/$", DebugFeedbackIssueEmailView.as_view()),
     re_path(
         r"^debug/mail/performance-alert/(?P<sample_name>[^\/]+)?/$",
         DebugPerformanceIssueEmailView.as_view(),
@@ -123,6 +128,11 @@ urlpatterns = [
     re_path(r"^debug/mail/confirm-email/$", sentry.web.frontend.debug.mail.confirm_email),
     re_path(r"^debug/mail/recover-account/$", sentry.web.frontend.debug.mail.recover_account),
     re_path(r"^debug/mail/relocate-account/$", sentry.web.frontend.debug.mail.relocate_account),
+    re_path(r"^debug/mail/relocation-failed/$", sentry.web.frontend.debug.mail.relocation_failed),
+    re_path(r"^debug/mail/relocation-started/$", sentry.web.frontend.debug.mail.relocation_started),
+    re_path(
+        r"^debug/mail/relocation-succeeded/$", sentry.web.frontend.debug.mail.relocation_succeeded
+    ),
     re_path(r"^debug/mail/unable-to-delete-repo/$", DebugUnableToDeleteRepository.as_view()),
     re_path(r"^debug/mail/unable-to-fetch-commits/$", DebugUnableToFetchCommitsEmailView.as_view()),
     re_path(r"^debug/mail/unassigned/$", DebugUnassignedEmailView.as_view()),
@@ -135,11 +145,6 @@ urlpatterns = [
         DebugRecoveryCodesRegeneratedEmailView.as_view(),
     ),
     re_path(r"^debug/mail/password-changed/$", DebugPasswordChangedEmailView.as_view()),
-    re_path(r"^debug/mail/new-processing-issues/$", DebugNewProcessingIssuesEmailView.as_view()),
-    re_path(
-        r"^debug/mail/new-processing-issues-no-reprocessing/$",
-        DebugNewProcessingIssuesNoReprocessingEmailView.as_view(),
-    ),
     re_path(r"^debug/mail/sso-linked/$", DebugSsoLinkedEmailView.as_view()),
     re_path(r"^debug/mail/sso-unlinked/$", DebugSsoUnlinkedEmailView.as_view()),
     re_path(
@@ -147,6 +152,10 @@ urlpatterns = [
     ),
     re_path(r"^debug/mail/incident-activity$", DebugIncidentActivityEmailView.as_view()),
     re_path(r"^debug/mail/incident-trigger$", DebugIncidentTriggerEmailView.as_view()),
+    re_path(
+        r"^debug/mail/activated-incident-trigger$",
+        DebugIncidentActivatedAlertTriggerEmailView.as_view(),
+    ),
     re_path(r"^debug/mail/setup-2fa/$", DebugSetup2faEmailView.as_view()),
     re_path(r"^debug/embed/error-page/$", DebugErrorPageEmbedView.as_view()),
     re_path(r"^debug/trigger-error/$", DebugTriggerErrorView.as_view()),
@@ -158,4 +167,6 @@ urlpatterns = [
     re_path(r"^debug/chart-renderer/$", DebugChartRendererView.as_view()),
     re_path(r"^debug/mail/notify-disable/$", DebugNotifyDisableView.as_view()),
     re_path(r"^debug/mail/sentry-app-notify-disable/$", DebugSentryAppNotifyDisableView.as_view()),
+    re_path(r"^debug/mail/cron-broken-monitor-email/$", DebugCronBrokenMonitorEmailView.as_view()),
+    re_path(r"^debug/mail/cron-muted-monitor-email/$", DebugCronMutedMonitorEmailView.as_view()),
 ]

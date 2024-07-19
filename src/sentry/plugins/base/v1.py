@@ -3,8 +3,9 @@ from __future__ import annotations
 __all__ = ("Plugin",)
 
 import logging
+from collections.abc import Sequence
 from threading import local
-from typing import TYPE_CHECKING, Any, Sequence
+from typing import TYPE_CHECKING, Any
 
 from django.http import HttpResponseRedirect
 from django.urls import reverse
@@ -17,7 +18,7 @@ from sentry.plugins.base.response import Response
 from sentry.plugins.base.view import PluggableViewMixin
 from sentry.plugins.config import PluginConfigMixin
 from sentry.plugins.status import PluginStatusMixin
-from sentry.services.hybrid_cloud.project import RpcProject
+from sentry.projects.services.project import RpcProject
 from sentry.utils.hashlib import md5_text
 
 if TYPE_CHECKING:
@@ -33,9 +34,7 @@ class PluginMount(type):
             new_cls.title = new_cls.__name__
         if not hasattr(new_cls, "slug"):
             new_cls.slug = new_cls.title.replace(" ", "-").lower()
-        if not hasattr(new_cls, "logger") or new_cls.logger in [
-            getattr(b, "logger", None) for b in bases
-        ]:
+        if "logger" not in attrs:
             new_cls.logger = logging.getLogger(f"sentry.plugins.{new_cls.slug}")
         return new_cls
 
@@ -118,10 +117,10 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
 
         return True
 
-    def reset_options(self, project=None, user=None):
+    def reset_options(self, project=None):
         from sentry.plugins.helpers import reset_options
 
-        return reset_options(self.get_conf_key(), project, user)
+        return reset_options(self.get_conf_key(), project)
 
     def get_option(self, key, project=None, user=None):
         """
@@ -136,7 +135,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
 
         return get_option(self._get_option_key(key), project, user)
 
-    def set_option(self, key, value, project=None, user=None):
+    def set_option(self, key, value, project=None, user=None) -> None:
         """
         Updates the value of an option in your plugins keyspace.
 
@@ -146,9 +145,9 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         """
         from sentry.plugins.helpers import set_option
 
-        return set_option(self._get_option_key(key), value, project, user)
+        set_option(self._get_option_key(key), value, project, user)
 
-    def unset_option(self, key, project=None, user=None):
+    def unset_option(self, key, project=None, user=None) -> None:
         """
         Removes an option in your plugins keyspace.
 
@@ -158,7 +157,7 @@ class IPlugin(local, PluggableViewMixin, PluginConfigMixin, PluginStatusMixin):
         """
         from sentry.plugins.helpers import unset_option
 
-        return unset_option(self._get_option_key(key), project, user)
+        unset_option(self._get_option_key(key), project, user)
 
     def enable(self, project=None, user=None):
         """Enable the plugin."""

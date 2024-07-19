@@ -1,7 +1,7 @@
 import omit from 'lodash/omit';
 
-import {MetricsApiResponse, SessionApiResponse} from 'sentry/types';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
+import type {MetricsApiResponse, SessionApiResponse} from 'sentry/types';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
 import {aggregateOutputType} from 'sentry/utils/discover/fields';
 import {
   DERIVED_STATUS_METRICS_PATTERN,

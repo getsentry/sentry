@@ -6,11 +6,9 @@ from django.urls import reverse
 from sentry.constants import DataCategory
 from sentry.testutils.cases import APITestCase, OutcomesSnubaTest
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 from sentry.utils.outcomes import Outcome
 
 
-@region_silo_test
 class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
     def setUp(self):
         super().setUp()
@@ -92,7 +90,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         self.login_as(user=user or self.user)
         url = reverse(
             "sentry-api-0-organization-stats-summary",
-            kwargs={"organization_slug": (org or self.organization).slug},
+            kwargs={"organization_id_or_slug": (org or self.organization).slug},
         )
         return self.client.get(url, query, format="json")
 
@@ -161,7 +159,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         assert response.status_code == 200, response.content
         assert response.data == {
             "start": "2021-03-14T12:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "end": "2021-03-14T17:00:00Z",
             "projects": [],
         }
 
@@ -255,8 +253,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200
         assert response.data == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
             "projects": [],
         }
 
@@ -298,8 +296,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200
         assert response.data == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
             "projects": [
                 {
                     "id": self.project.id,
@@ -310,6 +308,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                             "outcomes": {
                                 "abuse": 0,
                                 "accepted": 6,
+                                "cardinality_limited": 0,
                                 "client_discard": 0,
                                 "filtered": 0,
                                 "invalid": 0,
@@ -328,6 +327,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                             "outcomes": {
                                 "abuse": 0,
                                 "accepted": 0,
+                                "cardinality_limited": 0,
                                 "client_discard": 0,
                                 "filtered": 0,
                                 "invalid": 0,
@@ -356,8 +356,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200, response.content
         assert response.data == {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-12T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
             "projects": [
                 {
                     "id": self.project.id,
@@ -372,6 +372,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                                 "invalid": 0,
                                 "abuse": 0,
                                 "client_discard": 0,
+                                "cardinality_limited": 0,
                             },
                             "totals": {"dropped": 1024, "sum(quantity)": 1024},
                         },
@@ -384,6 +385,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                                 "invalid": 0,
                                 "abuse": 0,
                                 "client_discard": 0,
+                                "cardinality_limited": 0,
                             },
                             "totals": {"dropped": 0, "sum(quantity)": 6},
                         },
@@ -402,6 +404,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                                 "invalid": 0,
                                 "abuse": 0,
                                 "client_discard": 0,
+                                "cardinality_limited": 0,
                             },
                             "totals": {"dropped": 1, "sum(quantity)": 1},
                         }
@@ -426,8 +429,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200, response.content
         assert response.data == {
-            "start": "2021-03-13T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-12T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
             "projects": [
                 {
                     "id": self.project.id,
@@ -442,6 +445,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                                 "invalid": 0,
                                 "abuse": 0,
                                 "client_discard": 0,
+                                "cardinality_limited": 0,
                             },
                             "totals": {
                                 "dropped": 1025,
@@ -458,6 +462,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                                 "invalid": 0,
                                 "abuse": 0,
                                 "client_discard": 0,
+                                "cardinality_limited": 0,
                             },
                             "totals": {"dropped": 0, "sum(quantity)": 6, "sum(times_seen)": 6},
                         },
@@ -476,6 +481,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                                 "invalid": 0,
                                 "abuse": 0,
                                 "client_discard": 0,
+                                "cardinality_limited": 0,
                             },
                             "totals": {"dropped": 2, "sum(quantity)": 1, "sum(times_seen)": 1},
                         }
@@ -501,8 +507,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response_per_group.status_code == 200, response_per_group.content
         assert response_per_group.data == {
-            "start": "2021-03-13T13:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-13T12:00:00Z",
+            "end": "2021-03-14T13:00:00Z",
             "projects": [
                 {
                     "id": self.project.id,
@@ -513,6 +519,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                             "outcomes": {
                                 "abuse": 0,
                                 "accepted": 6,
+                                "cardinality_limited": 0,
                                 "client_discard": 0,
                                 "filtered": 0,
                                 "invalid": 0,
@@ -531,6 +538,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                             "outcomes": {
                                 "abuse": 0,
                                 "accepted": 0,
+                                "cardinality_limited": 0,
                                 "client_discard": 0,
                                 "filtered": 0,
                                 "invalid": 0,
@@ -561,8 +569,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200, response.content
         assert response.data == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
             "projects": [
                 {
                     "id": self.project.id,
@@ -573,6 +581,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                             "outcomes": {
                                 "abuse": 0,
                                 "accepted": 6,
+                                "cardinality_limited": 0,
                                 "client_discard": 0,
                                 "filtered": 0,
                                 "invalid": 0,
@@ -603,8 +612,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
 
         assert response.status_code == 200, response.content
         assert response.data == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
             "projects": [
                 {
                     "id": self.project.id,
@@ -620,6 +629,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                                 "invalid": 0,
                                 "abuse": 0,
                                 "client_discard": 0,
+                                "cardinality_limited": 0,
                             },
                             "totals": {"dropped": 1, "sum(times_seen)": 1},
                         }
@@ -639,6 +649,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                                 "invalid": 0,
                                 "abuse": 0,
                                 "client_discard": 0,
+                                "cardinality_limited": 0,
                             },
                             "totals": {"dropped": 1, "sum(times_seen)": 1},
                         }
@@ -664,8 +675,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         )
         assert response.status_code == 200, response.content
         assert response.data == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
             "projects": [
                 {
                     "id": self.project.id,
@@ -699,8 +710,8 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
         )
         assert response.status_code == 200, response.content
         assert response.data == {
-            "start": "2021-03-14T00:00:00Z",
-            "end": "2021-03-14T12:28:00Z",
+            "start": "2021-03-13T00:00:00Z",
+            "end": "2021-03-15T00:00:00Z",
             "projects": [
                 {
                     "id": self.project.id,
@@ -715,6 +726,7 @@ class OrganizationStatsSummaryTest(APITestCase, OutcomesSnubaTest):
                                 "invalid": 0,
                                 "abuse": 0,
                                 "client_discard": 0,
+                                "cardinality_limited": 0,
                             },
                             "totals": {"dropped": 0, "sum(quantity)": 6},
                         }

@@ -1,31 +1,35 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
+import {Observer} from 'mobx-react';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import Form from 'sentry/components/forms/form';
 import JsonForm from 'sentry/components/forms/jsonForm';
-import {Field} from 'sentry/components/forms/types';
+import FormModel from 'sentry/components/forms/model';
+import type {Field} from 'sentry/components/forms/types';
 import Panel from 'sentry/components/panels/panel';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
-import {Organization, OrganizationSummary} from 'sentry/types';
-import {OrganizationIntegration} from 'sentry/types/integrations';
+import type {OrganizationIntegration} from 'sentry/types/integrations';
+import type {Organization, OrganizationSummary} from 'sentry/types/organization';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import withOrganizations from 'sentry/utils/withOrganizations';
 import SettingsPageHeader from 'sentry/views/settings/components/settingsPageHeader';
 import TextBlock from 'sentry/views/settings/components/text/textBlock';
 
-import {
+import type {
   DefaultSettings,
   NotificationOptionsObject,
   NotificationProvidersObject,
+  SupportedProviders,
 } from './constants';
+import {SUPPORTED_PROVIDERS} from './constants';
 import {ACCOUNT_NOTIFICATION_FIELDS} from './fields';
-import {NOTIFICATION_SETTING_FIELDS_V2, QUOTA_FIELDS} from './fields2';
+import {NOTIFICATION_SETTING_FIELDS, QUOTA_FIELDS, SPEND_FIELDS} from './fields2';
 import NotificationSettingsByEntity from './notificationSettingsByEntity';
-import {Identity} from './types';
+import type {Identity} from './types';
 import UnlinkedAlert from './unlinkedAlert';
 import {isGroupedByProject} from './utils';
 
@@ -48,8 +52,10 @@ const typeMappedChildren = {
     'quotaTransactions',
     'quotaAttachments',
     'quotaReplays',
+    'quotaMonitorSeats',
     'quotaWarnings',
     'quotaSpendAllocations',
+    'quotaSpans',
   ],
 };
 
@@ -63,7 +69,7 @@ const getQueryParams = (notificationType: string) => {
 };
 
 class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State> {
-  // topLevelOptionFormModel = new TopLevelOptionFormModel(this.props.notificationType);
+  providerModel = new FormModel();
 
   getDefaultState(): State {
     return {
@@ -150,52 +156,114 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     };
   }
 
-  getProviderInitialData(): {[key: string]: string[]} {
+  isProviderSupported = (provider: SupportedProviders) => {
+    // email is always possible
+    if (provider === 'email') {
+      return true;
+    }
+    return this.getLinkedOrgs(provider).length > 0;
+  };
+
+  getProviders(): SupportedProviders[] {
     const {notificationType} = this.props;
     const {notificationProviders, defaultSettings} = this.state;
 
     const relevantProviderSettings = notificationProviders.filter(
       option => option.scopeType === 'user' && option.type === notificationType
     );
-    // user has no settings saved so use default
-    if (relevantProviderSettings.length === 0 && defaultSettings) {
-      return {provider: defaultSettings.providerDefaults};
-    }
-    const providers = relevantProviderSettings
-      .filter(option => option.value === 'always')
-      .map(option => option.provider);
-    return {provider: providers};
+
+    return SUPPORTED_PROVIDERS.filter(this.isProviderSupported).filter(provider => {
+      const providerSetting = relevantProviderSettings.find(
+        option => option.provider === provider
+      );
+      // if there is a matched setting use that, otherwise check provider defaults
+      return providerSetting
+        ? providerSetting.value === 'always'
+        : defaultSettings?.providerDefaults.includes(provider);
+    });
   }
 
   getFields(): Field[] {
-    const {notificationType} = this.props;
+    const {notificationType, organizations} = this.props;
 
     const help = isGroupedByProject(notificationType)
       ? t('This is the default for all projects.')
       : t('This is the default for all organizations.');
 
     const fields: Field[] = [];
+
+    // at least one org exists with am3 tiered plan
+    const hasOrgWithAm3 = organizations.some(organization =>
+      organization.features?.includes('am3-tier')
+    );
+
+    // at least one org exists without am3 tier plan
+    const hasOrgWithoutAm3 = organizations.some(
+      organization => !organization.features?.includes('am3-tier')
+    );
+
+    const excludeTransactions = hasOrgWithAm3 && !hasOrgWithoutAm3;
+    const includeSpans = hasOrgWithAm3;
+
     // if a quota notification is not disabled, add in our dependent fields
     // but do not show the top level controller
     if (notificationType === 'quota') {
-      fields.push(
-        ...QUOTA_FIELDS.map(field => ({
-          ...field,
-          type: 'select' as const,
-          getData: data => {
-            return {
-              type: field.name,
-              scopeType: 'user',
-              scopeIdentifier: ConfigStore.get('user').id,
-              value: data[field.name],
-            };
-          },
-        }))
-      );
+      if (
+        organizations.some(organization =>
+          organization.features?.includes('spend-visibility-notifications')
+        )
+      ) {
+        fields.push(
+          ...SPEND_FIELDS.filter(field => {
+            if (field.name === 'quotaSpans' && !includeSpans) {
+              return false;
+            }
+            if (field.name === 'quotaTransactions' && excludeTransactions) {
+              return false;
+            }
+            return true;
+          }).map(field => ({
+            ...field,
+            type: 'select' as const,
+            getData: data => {
+              return {
+                type: field.name,
+                scopeType: 'user',
+                scopeIdentifier: ConfigStore.get('user').id,
+                value: data[field.name],
+              };
+            },
+          }))
+        );
+      } else {
+        // TODO(isabella): Once GA, remove this case
+        fields.push(
+          ...QUOTA_FIELDS.filter(field => {
+            if (field.name === 'quotaSpans' && !includeSpans) {
+              return false;
+            }
+            if (field.name === 'quotaTransactions' && excludeTransactions) {
+              return false;
+            }
+            return true;
+          }).map(field => ({
+            ...field,
+            type: 'select' as const,
+            getData: data => {
+              return {
+                type: field.name,
+                scopeType: 'user',
+                scopeIdentifier: ConfigStore.get('user').id,
+                value: data[field.name],
+              };
+            },
+          }))
+        );
+      }
     } else {
       const defaultField: Field = Object.assign(
         {},
-        NOTIFICATION_SETTING_FIELDS_V2[notificationType],
+        NOTIFICATION_SETTING_FIELDS[notificationType],
         {
           help,
           defaultValue: 'always',
@@ -217,20 +285,12 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
 
   getProviderFields(): Field[] {
     const {notificationType} = this.props;
-    const {organizationIntegrations} = this.state;
     // get the choices but only the ones that are available to the user
     const choices = (
-      NOTIFICATION_SETTING_FIELDS_V2.provider.choices as [string, string][]
-    ).filter(([providerSlug]) => {
-      if (providerSlug === 'email') {
-        return true;
-      }
-      return organizationIntegrations.some(
-        organizationIntegration => organizationIntegration.provider.slug === providerSlug
-      );
-    });
+      NOTIFICATION_SETTING_FIELDS.provider.choices as [SupportedProviders, string][]
+    ).filter(([providerSlug]) => this.isProviderSupported(providerSlug));
 
-    const defaultField = Object.assign({}, NOTIFICATION_SETTING_FIELDS_V2.provider, {
+    const defaultField = Object.assign({}, NOTIFICATION_SETTING_FIELDS.provider, {
       choices,
       getData: data => {
         return {
@@ -246,14 +306,18 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     return fields;
   }
 
-  getUnlinkedOrgs = (): OrganizationSummary[] => {
+  getLinkedOrgs = (provider: SupportedProviders): OrganizationSummary[] => {
     const {organizations} = this.props;
     const {identities, organizationIntegrations} = this.state;
     const integrationExternalIDsByOrganizationID = Object.fromEntries(
-      organizationIntegrations.map(organizationIntegration => [
-        organizationIntegration.organizationId,
-        organizationIntegration.externalId,
-      ])
+      organizationIntegrations
+        .filter(
+          organizationIntegration => organizationIntegration.provider.key === provider
+        )
+        .map(organizationIntegration => [
+          organizationIntegration.organizationId,
+          organizationIntegration.externalId,
+        ])
     );
 
     const identitiesByExternalId = Object.fromEntries(
@@ -263,8 +327,14 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
     return organizations.filter(organization => {
       const externalID = integrationExternalIDsByOrganizationID[organization.id];
       const identity = identitiesByExternalId[externalID];
-      return identity === undefined || identity === null;
+      return !!identity;
     });
+  };
+
+  getUnlinkedOrgs = (provider: SupportedProviders): OrganizationSummary[] => {
+    const linkedOrgs = this.getLinkedOrgs(provider);
+    const {organizations} = this.props;
+    return organizations.filter(organization => !linkedOrgs.includes(organization));
   };
 
   handleRemoveNotificationOption = async (id: string) => {
@@ -325,20 +395,39 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
   };
 
   renderBody() {
-    const {notificationType} = this.props;
+    const {notificationType, organizations} = this.props;
     const {notificationOptions} = this.state;
-    const hasSlack = true;
-    const unlinkedOrgs = this.getUnlinkedOrgs();
-    const {title, description} = ACCOUNT_NOTIFICATION_FIELDS[notificationType];
+    const unlinkedSlackOrgs = this.getUnlinkedOrgs('slack');
+    let notificationDetails = ACCOUNT_NOTIFICATION_FIELDS[notificationType];
+    // TODO(isabella): Once GA, remove this
+    if (
+      notificationType === 'quota' &&
+      organizations.some(org => org.features?.includes('spend-visibility-notifications'))
+    ) {
+      notificationDetails = {
+        ...notificationDetails,
+        title: t('Spend Notifications'),
+        description: t('Control the notifications you receive for organization spend.'),
+      };
+    }
+    const {title, description} = notificationDetails;
+
     const entityType = isGroupedByProject(notificationType) ? 'project' : 'organization';
     return (
       <Fragment>
         <SentryDocumentTitle title={title} />
         <SettingsPageHeader title={title} />
         {description && <TextBlock>{description}</TextBlock>}
-        {hasSlack && unlinkedOrgs.length > 0 && (
-          <UnlinkedAlert organizations={unlinkedOrgs} />
-        )}
+        <Observer>
+          {() => {
+            return this.providerModel
+              .getValue('provider')
+              ?.toString()
+              .includes('slack') && unlinkedSlackOrgs.length > 0 ? (
+              <UnlinkedAlert organizations={unlinkedSlackOrgs} />
+            ) : null;
+          }}
+        </Observer>
         <Form
           saveOnBlur
           apiMethod="PUT"
@@ -360,7 +449,8 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
             saveOnBlur
             apiMethod="PUT"
             apiEndpoint="/users/me/notification-providers/"
-            initialData={this.getProviderInitialData()}
+            initialData={{provider: this.getProviders()}}
+            model={this.providerModel}
           >
             <BottomJsonForm fields={this.getProviderFields()} />
           </Form>

@@ -1,4 +1,8 @@
+from collections.abc import Sequence
+
 from django import forms
+from django.forms import ChoiceField
+from django.forms.widgets import ChoiceWidget
 
 
 def field_to_config(name, field):
@@ -37,3 +41,17 @@ def form_to_config(form):
         row["default"] = field.initial
         config.append(row)
     return config
+
+
+def set_field_choices(field: forms.Field, choices: Sequence[tuple[object, object]]) -> None:
+    """workaround for typeddjango/django-stubs#1514"""
+    if not isinstance(field, ChoiceField):
+        raise TypeError(f"expected ChoiceField, got {field!r}")
+    field.choices = choices
+
+
+def set_widget_choices(widget: forms.Widget, choices: Sequence[tuple[object, object]]) -> None:
+    """workaround for typeddjango/django-stubs#1514"""
+    if not isinstance(widget, ChoiceWidget):
+        raise TypeError(f"expected ChoiceWidget, got {widget!r}")
+    widget.choices = choices

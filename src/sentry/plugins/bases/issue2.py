@@ -17,10 +17,10 @@ from sentry.models.groupmeta import GroupMeta
 from sentry.plugins.base.configuration import react_plugin_config
 from sentry.plugins.base.v1 import Plugin
 from sentry.plugins.endpoints import PluginGroupEndpoint
-from sentry.services.hybrid_cloud.usersocialauth.model import RpcUserSocialAuth
-from sentry.services.hybrid_cloud.usersocialauth.service import usersocialauth_service
 from sentry.signals import issue_tracker_used
 from sentry.types.activity import ActivityType
+from sentry.users.services.usersocialauth.model import RpcUserSocialAuth
+from sentry.users.services.usersocialauth.service import usersocialauth_service
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
@@ -30,8 +30,8 @@ from sentry.utils.safe import safe_execute
 @region_silo_endpoint
 class IssueGroupActionEndpoint(PluginGroupEndpoint):
     publish_status = {
-        "GET": ApiPublishStatus.UNKNOWN,
-        "POST": ApiPublishStatus.UNKNOWN,
+        "GET": ApiPublishStatus.PRIVATE,
+        "POST": ApiPublishStatus.PRIVATE,
     }
     view_method_name = None
     plugin = None
@@ -64,7 +64,7 @@ class IssueTrackingPlugin2(Plugin):
     def get_group_body(self, request: Request, group, event, **kwargs):
         result = []
         for interface in event.interfaces.values():
-            output = safe_execute(interface.to_string, event, _with_transaction=False)
+            output = safe_execute(interface.to_string, event)
             if output:
                 result.append(output)
         return "\n\n".join(result)
@@ -371,9 +371,9 @@ class IssueTrackingPlugin2(Plugin):
             return Response({"message": "Successfully unlinked issue."})
         return Response({"message": "No issues to unlink."}, status=400)
 
-    def plugin_issues(self, request: Request, group, plugin_issues, **kwargs):
+    def plugin_issues(self, request: Request, group, plugin_issues, **kwargs) -> None:
         if not self.is_configured(request=request, project=group.project):
-            return plugin_issues
+            return
 
         item = {
             "slug": self.slug,
@@ -390,7 +390,6 @@ class IssueTrackingPlugin2(Plugin):
 
         item.update(PluginSerializer(group.project).serialize(self, None, request.user))
         plugin_issues.append(item)
-        return plugin_issues
 
     def get_config(self, *args, **kwargs):
         # TODO(dcramer): update existing plugins to just use get_config

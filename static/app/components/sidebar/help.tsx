@@ -7,11 +7,11 @@ import SidebarItem from 'sentry/components/sidebar/sidebarItem';
 import {IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 
 import SidebarDropdownMenu from './sidebarDropdownMenu.styled';
 import SidebarMenuItem from './sidebarMenuItem';
-import {CommonSidebarProps} from './types';
+import type {CommonSidebarProps} from './types';
 
 type Props = Pick<CommonSidebarProps, 'collapsed' | 'hidePanel' | 'orientation'> & {
   organization: Organization;
@@ -42,8 +42,11 @@ function SidebarHelp({orientation, collapsed, hidePanel, organization}: Props) {
               >
                 {t('Search Support, Docs and More')}
               </SidebarMenuItem>
-              <SidebarMenuItem href="https://help.sentry.io/">
+              <SidebarMenuItem href="https://sentry.zendesk.com/hc/en-us">
                 {t('Visit Help Center')}
+              </SidebarMenuItem>
+              <SidebarMenuItem href="https://discord.com/invite/sentry">
+                {t('Join our Discord')}
               </SidebarMenuItem>
               <Hook name="sidebar:help-menu" organization={organization} />
             </HelpMenu>

@@ -1,20 +1,18 @@
 import {Component} from 'react';
-import {WithRouterProps} from 'react-router';
-import {
-  Result as SearchResult,
-  SentryGlobalSearch,
-  standardSDKSlug,
-} from '@sentry-internal/global-search';
+import type {WithRouterProps} from 'react-router';
+import type {Result as SearchResult} from '@sentry-internal/global-search';
+import {SentryGlobalSearch, standardSDKSlug} from '@sentry-internal/global-search';
 import dompurify from 'dompurify';
 import debounce from 'lodash/debounce';
 
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import parseHtmlMarks from 'sentry/utils/parseHtmlMarks';
 import withLatestContext from 'sentry/utils/withLatestContext';
 // eslint-disable-next-line no-restricted-imports
 import withSentryRouter from 'sentry/utils/withSentryRouter';
 
-import {ChildProps, Result, ResultItem} from './types';
+import type {ChildProps, Result, ResultItem} from './types';
 
 type Props = WithRouterProps & {
   /**
@@ -55,13 +53,13 @@ class HelpSource extends Component<Props, State> {
     }
   }
 
-  componentDidUpdate(nextProps: Props) {
-    if (nextProps.query !== this.props.query) {
-      this.doSearch(nextProps.query);
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.query !== this.props.query) {
+      this.doSearch(this.props.query);
     }
   }
 
-  search = new SentryGlobalSearch(['docs', 'help-center', 'develop', 'blog']);
+  search = new SentryGlobalSearch(['docs', 'zendesk_sentry_articles', 'develop', 'blog']);
 
   async unbouncedSearch(query: string) {
     this.setState({loading: true});
@@ -70,6 +68,7 @@ class HelpSource extends Component<Props, State> {
     const searchResults = await this.search.query(
       query,
       {
+        searchAllIndexes: true,
         platforms: platforms.map(platform => standardSDKSlug(platform)?.slug!),
       },
       {

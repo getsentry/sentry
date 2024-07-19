@@ -15,14 +15,14 @@ from sentry.models.integrations.integration_external_project import IntegrationE
 from sentry.models.integrations.organization_integration import OrganizationIntegration
 from sentry.models.repository import Repository
 from sentry.shared_integrations.exceptions import IntegrationError, IntegrationProviderError
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.silo import assume_test_silo_mode, control_silo_test
 
 FULL_SCOPES = ["vso.code", "vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
 LIMITED_SCOPES = ["vso.graph", "vso.serviceendpoint_manage", "vso.work_write"]
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class VstsIntegrationProviderTest(VstsIntegrationTestCase):
     # Test data setup in ``VstsIntegrationTestCase``
 
@@ -124,7 +124,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
     def test_fix_subscription(self, mock_get_scopes):
         external_id = self.vsts_account_id
-        Integration.objects.create(metadata={}, provider="vsts", external_id=external_id)
+        self.create_provider_integration(metadata={}, provider="vsts", external_id=external_id)
         data = VstsIntegrationProvider().build_integration(
             {
                 "account": {"accountName": self.vsts_account_name, "accountId": external_id},
@@ -146,10 +146,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
     @responses.activate
     def test_source_url_matches(self):
         self.assert_installation()
-        integration = Integration.objects.get(provider="vsts")
-        installation = integration.get_installation(
-            integration.organizationintegration_set.first().organization_id
-        )
+        integration, installation = self._get_integration_and_install()
 
         test_cases = [
             (
@@ -180,10 +177,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
     @responses.activate
     def test_extract_branch_from_source_url(self):
         self.assert_installation()
-        integration = Integration.objects.get(provider="vsts")
-        installation = integration.get_installation(
-            integration.organizationintegration_set.first().organization_id
-        )
+        integration, installation = self._get_integration_and_install()
 
         with assume_test_silo_mode(SiloMode.REGION):
             repo = Repository.objects.create(
@@ -206,10 +200,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
     @responses.activate
     def test_extract_source_path_from_source_url(self):
         self.assert_installation()
-        integration = Integration.objects.get(provider="vsts")
-        installation = integration.get_installation(
-            integration.organizationintegration_set.first().organization_id
-        )
+        integration, installation = self._get_integration_and_install()
 
         with assume_test_silo_mode(SiloMode.REGION):
             repo = Repository.objects.create(
@@ -233,7 +224,7 @@ class VstsIntegrationProviderTest(VstsIntegrationTestCase):
             )
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
     @patch("sentry.integrations.vsts.VstsIntegrationProvider.get_scopes", return_value=FULL_SCOPES)
     def test_success(self, mock_get_scopes):
@@ -332,15 +323,13 @@ class VstsIntegrationProviderBuildIntegrationTest(VstsIntegrationTestCase):
         assert "ensure third-party app access via OAuth is enabled" in str(err)
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class VstsIntegrationTest(VstsIntegrationTestCase):
     def test_get_organization_config(self):
         self.assert_installation()
-        integration = Integration.objects.get(provider="vsts")
+        integration, installation = self._get_integration_and_install()
 
-        fields = integration.get_installation(
-            integration.organizationintegration_set.first().organization_id
-        ).get_organization_config()
+        fields = installation.get_organization_config()
 
         assert [field["name"] for field in fields] == [
             "sync_status_forward",
@@ -352,14 +341,12 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
 
     def test_get_organization_config_failure(self):
         self.assert_installation()
-        integration = Integration.objects.get(provider="vsts")
-        installation = integration.get_installation(
-            integration.organizationintegration_set.first().organization_id
-        )
+        integration, installation = self._get_integration_and_install()
 
         # Set the `default_identity` property and force token expiration
         installation.get_client()
-        identity = Identity.objects.filter(id=installation.default_identity.id).first()
+        assert installation.default_identity is not None
+        identity = Identity.objects.get(id=installation.default_identity.id)
         identity.data["expires"] = 1566851050
         identity.save()
 
@@ -497,31 +484,9 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         assert domain_name == account_uri
         assert Integration.objects.get(provider="vsts").metadata["domain_name"] == account_uri
 
-    @patch("sentry.integrations.vsts.client.VstsApiClient.update_work_item")
-    def test_create_comment(self, mock_update_work_item):
-        self.assert_installation()
-        integration = Integration.objects.get(provider="vsts")
-        installation = integration.get_installation(self.organization.id)
-
-        self.user.name = "Sentry Admin"
-        self.user.save()
-
-        comment_text = "hello world\nThis is a comment.\n\n\n    Glad it's quoted"
-        comment = Mock()
-        comment.data = {"text": comment_text}
-
-        work_item = installation.create_comment(1, self.user.id, comment)
-
-        assert work_item and work_item["id"]
-        assert (
-            mock_update_work_item.call_args[1]["comment"]
-            == "Sentry Admin wrote:\n\n<blockquote>%s</blockquote>" % comment_text
-        )
-
     def test_get_repositories(self):
         self.assert_installation()
-        integration = Integration.objects.get(provider="vsts")
-        installation = integration.get_installation(self.organization.id)
+        integration, installation = self._get_integration_and_install()
 
         result = installation.get_repositories()
         assert len(result) == 1
@@ -529,12 +494,12 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
 
     def test_get_repositories_identity_error(self):
         self.assert_installation()
-        integration = Integration.objects.get(provider="vsts")
-        installation = integration.get_installation(self.organization.id)
+        integration, installation = self._get_integration_and_install()
 
         # Set the `default_identity` property and force token expiration
         installation.get_client()
-        identity = Identity.objects.filter(id=installation.default_identity.id).first()
+        assert installation.default_identity is not None
+        identity = Identity.objects.get(id=installation.default_identity.id)
         identity.data["expires"] = 1566851050
         identity.save()
 
@@ -547,14 +512,34 @@ class VstsIntegrationTest(VstsIntegrationTestCase):
         with pytest.raises(IntegrationError):
             installation.get_repositories()
 
-    def test_update_comment(self):
-        self.assert_installation()
-        integration = Integration.objects.get(provider="vsts")
-        installation = integration.get_installation(self.organization.id)
 
+class RegionVstsIntegrationTest(VstsIntegrationTestCase):
+    def setUp(self):
+        super().setUp()
+        with assume_test_silo_mode(SiloMode.CONTROL):
+            self.assert_installation()
+            _, self.installation = self._get_integration_and_install()
+            self.user.name = "Sentry Admin"
+            self.user.save()
+
+    @patch("sentry.integrations.vsts.client.VstsApiClient.update_work_item")
+    def test_create_comment(self, mock_update_work_item):
+        comment_text = "hello world\nThis is a comment.\n\n\n    Glad it's quoted"
+        comment = Mock()
+        comment.data = {"text": comment_text}
+
+        work_item = self.installation.create_comment(1, self.user.id, comment)
+
+        assert work_item and work_item["id"]
+        assert (
+            mock_update_work_item.call_args[1]["comment"]
+            == "Sentry Admin wrote:\n\n<blockquote>%s</blockquote>" % comment_text
+        )
+
+    def test_update_comment(self):
         group_note = Mock()
         comment = "hello world\nThis is a comment.\n\n\n    I've changed it"
         group_note.data = {"text": comment, "external_id": "123"}
 
         # Does nothing.
-        installation.update_comment(1, self.user.id, group_note)
+        self.installation.update_comment(1, self.user.id, group_note)

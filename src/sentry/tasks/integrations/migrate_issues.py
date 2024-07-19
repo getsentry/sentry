@@ -1,12 +1,12 @@
 from django.db import IntegrityError, router, transaction
 
+from sentry.integrations.services.integration.service import integration_service
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupmeta import GroupMeta
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration import Integration
 from sentry.models.project import Project
 from sentry.plugins.base import plugins
-from sentry.services.hybrid_cloud.integration.service import integration_service
 from sentry.tasks.base import instrumented_task, retry
 from sentry.tasks.integrations import logger
 
@@ -21,9 +21,11 @@ from sentry.tasks.integrations import logger
 def migrate_issues(integration_id: int, organization_id: int) -> None:
     from sentry_plugins.jira.plugin import JiraPlugin
 
-    integration, organization_integration = integration_service.get_organization_context(
+    result = integration_service.organization_context(
         organization_id=organization_id, integration_id=integration_id
     )
+    integration = result.integration
+    organization_integration = result.organization_integration
     if not integration:
         raise Integration.DoesNotExist
 

@@ -4,6 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import audit_log
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
@@ -16,6 +17,7 @@ from sentry.models.servicehook import ServiceHook
 
 @region_silo_endpoint
 class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "DELETE": ApiPublishStatus.UNKNOWN,
         "GET": ApiPublishStatus.UNKNOWN,
@@ -29,9 +31,9 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
 
         Return a service hook bound to a project.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           client keys belong to.
-        :pparam string project_slug: the slug of the project the client keys
+        :pparam string project_id_or_slug: the id or slug of the project the client keys
                                      belong to.
         :pparam string hook_id: the guid of the service hook.
         :auth: required
@@ -47,9 +49,9 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
         Update a Service Hook
         `````````````````````
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           client keys belong to.
-        :pparam string project_slug: the slug of the project the client keys
+        :pparam string project_id_or_slug: the id or slug of the project the client keys
                                      belong to.
         :pparam string hook_id: the guid of the service hook.
         :param string url: the url for the webhook
@@ -100,9 +102,9 @@ class ProjectServiceHookDetailsEndpoint(ProjectEndpoint):
         Remove a Service Hook
         `````````````````````
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           client keys belong to.
-        :pparam string project_slug: the slug of the project the client keys
+        :pparam string project_id_or_slug: the id or slug of the project the client keys
                                      belong to.
         :pparam string hook_id: the guid of the service hook.
         :auth: required

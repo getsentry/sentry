@@ -1,11 +1,11 @@
-from datetime import timedelta, timezone
+from datetime import timedelta
 from functools import cached_property
 from unittest import mock
 from unittest.mock import Mock, call, patch
 
 import pytest
 from django.urls import reverse
-from django.utils import timezone as django_timezone
+from django.utils import timezone
 
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
@@ -14,34 +14,33 @@ from sentry.incidents.logic import (
     create_incident_activity,
     subscribe_to_incident,
 )
-from sentry.incidents.models import (
+from sentry.incidents.models.alert_rule import AlertRuleTriggerAction
+from sentry.incidents.models.incident import (
     INCIDENT_STATUS,
-    AlertRuleTriggerAction,
     IncidentActivityType,
     IncidentStatus,
     IncidentSubscription,
 )
 from sentry.incidents.tasks import (
-    SUBSCRIPTION_METRICS_LOGGER,
     build_activity_context,
     generate_incident_activity_email,
     handle_subscription_metrics_logger,
     handle_trigger_action,
     send_subscriber_notifications,
 )
+from sentry.incidents.utils.constants import SUBSCRIPTION_METRICS_LOGGER
 from sentry.sentry_metrics.configuration import UseCaseKey
 from sentry.sentry_metrics.utils import resolve_tag_key, resolve_tag_value
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.models import SnubaQuery
 from sentry.snuba.subscriptions import create_snuba_query, create_snuba_subscription
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
-from sentry.testutils.skips import requires_snuba
+from sentry.testutils.skips import requires_kafka, requires_snuba
+from sentry.users.services.user.service import user_service
 from sentry.utils.http import absolute_uri
 
-pytestmark = [pytest.mark.sentry_metrics, requires_snuba]
+pytestmark = [pytest.mark.sentry_metrics, requires_snuba, requires_kafka]
 
 
 class BaseIncidentActivityTest(TestCase):
@@ -88,7 +87,6 @@ class TestSendSubscriberNotifications(BaseIncidentActivityTest):
         self.send_async.reset_mock()
 
 
-@region_silo_test(stable=True)
 class TestGenerateIncidentActivityEmail(BaseIncidentActivityTest):
     @freeze_time()
     def test_simple(self):
@@ -103,7 +101,6 @@ class TestGenerateIncidentActivityEmail(BaseIncidentActivityTest):
         assert message.context == build_activity_context(activity, recipient)
 
 
-@region_silo_test(stable=True)
 class TestBuildActivityContext(BaseIncidentActivityTest):
     def run_test(
         self, activity, expected_username, expected_action, expected_comment, expected_recipient
@@ -136,6 +133,7 @@ class TestBuildActivityContext(BaseIncidentActivityTest):
             self.incident, IncidentActivityType.COMMENT, user=self.user, comment="hello"
         )
         recipient = self.create_user()
+        assert activity.user_id is not None
         user = user_service.get_user(user_id=activity.user_id)
         assert user is not None
         self.run_test(
@@ -148,6 +146,7 @@ class TestBuildActivityContext(BaseIncidentActivityTest):
         activity.type = IncidentActivityType.STATUS_CHANGE
         activity.value = str(IncidentStatus.CLOSED.value)
         activity.previous_value = str(IncidentStatus.WARNING.value)
+        assert activity.user_id is not None
         user = user_service.get_user(user_id=activity.user_id)
         assert user is not None
         self.run_test(
@@ -160,7 +159,6 @@ class TestBuildActivityContext(BaseIncidentActivityTest):
         )
 
 
-@region_silo_test(stable=True)
 class HandleTriggerActionTest(TestCase):
     @pytest.fixture(autouse=True)
     def _setup_metric_patch(self):
@@ -252,7 +250,7 @@ class TestHandleSubscriptionMetricsLogger(TestCase):
         return create_snuba_subscription(self.project, SUBSCRIPTION_METRICS_LOGGER, snuba_query)
 
     def build_subscription_update(self):
-        timestamp = django_timezone.now().replace(tzinfo=timezone.utc, microsecond=0)
+        timestamp = timezone.now().replace(microsecond=0)
         data = {
             "count": 100,
             "crashed": 2.0,
@@ -285,7 +283,6 @@ class TestHandleSubscriptionMetricsLogger(TestCase):
             ]
 
 
-@region_silo_test(stable=True)
 class TestHandleSubscriptionMetricsLoggerV1(TestHandleSubscriptionMetricsLogger):
     """Repeat TestHandleSubscriptionMetricsLogger with old (v1) subscription updates.
 
@@ -293,7 +290,7 @@ class TestHandleSubscriptionMetricsLoggerV1(TestHandleSubscriptionMetricsLogger)
     """
 
     def build_subscription_update(self):
-        timestamp = django_timezone.now().replace(tzinfo=timezone.utc, microsecond=0)
+        timestamp = timezone.now().replace(microsecond=0)
         values = {
             "data": [
                 {

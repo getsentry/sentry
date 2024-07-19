@@ -1,11 +1,8 @@
 import {useMemo} from 'react';
 import {type Theme, useTheme} from '@emotion/react';
 
-import {
-  LineChart,
-  LineChartProps,
-  LineChartSeries,
-} from 'sentry/components/charts/lineChart';
+import type {LineChartProps, LineChartSeries} from 'sentry/components/charts/lineChart';
+import {LineChart} from 'sentry/components/charts/lineChart';
 import {t} from 'sentry/locale';
 import {tooltipFormatter} from 'sentry/utils/discover/charts';
 import {makeFormatter} from 'sentry/utils/profiling/units/units';

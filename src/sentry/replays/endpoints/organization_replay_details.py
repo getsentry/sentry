@@ -9,7 +9,7 @@ from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import NoProjects, OrganizationEndpoint
-from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN
+from sentry.apidocs.constants import RESPONSE_BAD_REQUEST, RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND
 from sentry.apidocs.examples.replay_examples import ReplayExamples
 from sentry.apidocs.parameters import GlobalParams, ReplayParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
@@ -36,11 +36,12 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
 
     @extend_schema(
         operation_id="Retrieve a Replay Instance",
-        parameters=[GlobalParams.ORG_SLUG, ReplayParams.REPLAY_ID, ReplayValidator],
+        parameters=[GlobalParams.ORG_ID_OR_SLUG, ReplayParams.REPLAY_ID, ReplayValidator],
         responses={
-            200: inline_sentry_response_serializer("data", ReplayDetailsResponse),
+            200: inline_sentry_response_serializer("GetReplay", ReplayDetailsResponse),
             400: RESPONSE_BAD_REQUEST,
             403: RESPONSE_FORBIDDEN,
+            404: RESPONSE_NOT_FOUND,
         },
         examples=ReplayExamples.GET_REPLAY_DETAILS,
     )
@@ -58,17 +59,24 @@ class OrganizationReplayDetailsEndpoint(OrganizationEndpoint):
         except NoProjects:
             return Response(status=404)
 
+        if not filter_params["start"] or not filter_params["end"]:
+            return Response(status=404)
+
         try:
             replay_id = str(uuid.UUID(replay_id))
         except ValueError:
             return Response(status=404)
 
+        projects = self.get_projects(request, organization, include_all_accessible=True)
+        project_ids = [project.id for project in projects]
+
         snuba_response = query_replay_instance(
-            project_id=filter_params["project_id"],
+            project_id=project_ids,
             replay_id=replay_id,
             start=filter_params["start"],
             end=filter_params["end"],
             organization=organization,
+            request_user_id=request.user.id,
         )
 
         response = process_raw_response(

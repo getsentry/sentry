@@ -1,12 +1,10 @@
 /* global process */
 /* eslint-env node */
-/* eslint import/no-nodejs-modules:0 */
 /* eslint import/no-unresolved:0 */
-import fs from 'fs';
-import path from 'path';
-
 import yaml from 'js-yaml';
 import JsonRefs from 'json-refs';
+import fs from 'node:fs';
+import path from 'node:path';
 
 function dictToString(dict) {
   const res = [];

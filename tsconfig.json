@@ -3,5 +3,5 @@
   "compilerOptions": {
     "allowJs": true
   },
-  "include": ["static/app", "tests/js", "fixtures/js-stubs", "config", "scripts"]
+  "include": [".eslintrc.js", "static/app", "tests/js", "config", "scripts"]
 }

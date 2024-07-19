@@ -3,14 +3,15 @@ import {useCallback} from 'react';
 import type {ApiResult} from 'sentry/api';
 import useFeedbackQueryKeys from 'sentry/components/feedback/useFeedbackQueryKeys';
 import {defined} from 'sentry/utils';
-import type {FeedbackIssue, FeedbackIssueList} from 'sentry/utils/feedback/types';
-import {ApiQueryKey, setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
+import type {FeedbackIssue, FeedbackIssueListItem} from 'sentry/utils/feedback/types';
+import type {ApiQueryKey} from 'sentry/utils/queryClient';
+import {setApiQueryData, useQueryClient} from 'sentry/utils/queryClient';
 
 type TFeedbackIds = 'all' | string[];
 
 export type ListCache = {
   pageParams: unknown[];
-  pages: ApiResult<FeedbackIssueList>[];
+  pages: ApiResult<FeedbackIssueListItem[]>[];
 };
 
 const issueApiEndpointRegexp = /^\/organizations\/\w+\/issues\/\d+\/$/;
@@ -21,7 +22,7 @@ function isIssueEndpointUrl(query) {
 
 export default function useFeedbackCache() {
   const queryClient = useQueryClient();
-  const {getItemQueryKeys, getListQueryKey} = useFeedbackQueryKeys();
+  const {getItemQueryKeys, listQueryKey} = useFeedbackQueryKeys();
 
   const updateCachedQueryKey = useCallback(
     (queryKey: ApiQueryKey, payload: Partial<FeedbackIssue>) => {
@@ -52,8 +53,7 @@ export default function useFeedbackCache() {
 
   const updateCachedListPage = useCallback(
     (ids: TFeedbackIds, payload: Partial<FeedbackIssue>) => {
-      const queryKey = getListQueryKey();
-      const listData = queryClient.getQueryData<ListCache>(queryKey);
+      const listData = queryClient.getQueryData<ListCache>(listQueryKey);
       if (listData) {
         const pages = listData.pages.map(([data, statusText, resp]) => [
           data.map(item =>
@@ -62,10 +62,10 @@ export default function useFeedbackCache() {
           statusText,
           resp,
         ]);
-        queryClient.setQueryData(queryKey, {...listData, pages});
+        queryClient.setQueryData(listQueryKey, {...listData, pages});
       }
     },
-    [getListQueryKey, queryClient]
+    [listQueryKey, queryClient]
   );
 
   const updateCached = useCallback(
@@ -93,15 +93,14 @@ export default function useFeedbackCache() {
 
   const invalidateCachedListPage = useCallback(
     (ids: TFeedbackIds) => {
-      const queryKey = getListQueryKey();
       queryClient.invalidateQueries({
-        queryKey,
-        refetchPage: ([results]: ApiResult<FeedbackIssueList>) => {
+        queryKey: listQueryKey,
+        refetchPage: ([results]: ApiResult<FeedbackIssueListItem[]>) => {
           return ids === 'all' || results.some(item => ids.includes(item.id));
         },
       });
     },
-    [getListQueryKey, queryClient]
+    [listQueryKey, queryClient]
   );
 
   const invalidateCached = useCallback(
@@ -112,8 +111,13 @@ export default function useFeedbackCache() {
     [invalidateCachedIssue, invalidateCachedListPage]
   );
 
+  const invalidateListCache = useCallback(() => {
+    invalidateCachedListPage('all');
+  }, [invalidateCachedListPage]);
+
   return {
     updateCached,
     invalidateCached,
+    invalidateListCache,
   };
 }

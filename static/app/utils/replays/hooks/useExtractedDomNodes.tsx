@@ -1,6 +1,6 @@
 import {useQuery} from 'sentry/utils/queryClient';
 import extractDomNodes from 'sentry/utils/replays/extractDomNodes';
-import ReplayReader from 'sentry/utils/replays/replayReader';
+import type ReplayReader from 'sentry/utils/replays/replayReader';
 
 export default function useExtractedDomNodes({replay}: {replay: null | ReplayReader}) {
   return useQuery(

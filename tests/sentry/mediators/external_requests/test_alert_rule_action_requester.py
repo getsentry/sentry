@@ -6,10 +6,12 @@ from sentry.mediators.external_requests.alert_rule_action_requester import (
     AlertRuleActionRequester,
 )
 from sentry.testutils.cases import TestCase
+from sentry.testutils.silo import control_silo_test
 from sentry.utils import json
 from sentry.utils.sentry_apps import SentryAppWebhookRequestsBuffer
 
 
+@control_silo_test
 class TestAlertRuleActionRequester(TestCase):
     def setUp(self):
         super().setUp()
@@ -106,7 +108,7 @@ class TestAlertRuleActionRequester(TestCase):
             method=responses.POST,
             url="https://example.com/sentry/alert-rule",
             status=200,
-            body=bytes(self.success_message, encoding="utf-8"),
+            body=self.success_message.encode(),
         )
         result = AlertRuleActionRequester.run(
             install=self.install,
@@ -182,7 +184,7 @@ class TestAlertRuleActionRequester(TestCase):
             method=responses.POST,
             url="https://example.com/sentry/alert-rule",
             status=401,
-            body=bytes(self.error_message, encoding="utf-8"),
+            body=self.error_message.encode(),
         )
         result = AlertRuleActionRequester.run(
             install=self.install,

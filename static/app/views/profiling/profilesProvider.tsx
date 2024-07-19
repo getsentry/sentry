@@ -1,11 +1,13 @@
-import {createContext, useContext, useEffect, useState} from 'react';
+import {createContext, useContext, useLayoutEffect, useState} from 'react';
 import * as Sentry from '@sentry/react';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {ProfileHeader} from 'sentry/components/profiling/profileHeader';
 import {t} from 'sentry/locale';
-import type {EventTransaction, Organization, Project} from 'sentry/types';
-import {RequestState} from 'sentry/types/core';
+import type {RequestState} from 'sentry/types/core';
+import type {EventTransaction} from 'sentry/types/event';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {isSchema, isSentrySampledProfile} from 'sentry/utils/profiling/guards/profile';
 import {useSentryEvent} from 'sentry/utils/profiling/hooks/useSentryEvent';
 import useApi from 'sentry/utils/useApi';
@@ -137,7 +139,7 @@ export function ProfilesProvider({
     type: 'initial',
   });
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     if (!profileId || !projectSlug || !orgSlug) {
       return undefined;
     }

@@ -6,7 +6,7 @@ from django.db import router, transaction
 
 from sentry.models.organization import Organization
 from sentry.relay import projectconfig_cache, projectconfig_debounce_cache
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
 from sentry.utils import metrics
 from sentry.utils.sdk import set_current_event_project
@@ -14,15 +14,14 @@ from sentry.utils.sdk import set_current_event_project
 logger = logging.getLogger(__name__)
 
 
-# TODO(hybrid-cloud): Add silo_mode for region once testing is adjusted
 # The time_limit here should match the `debounce_ttl` of the projectconfig_debounce_cache
 # service.
 @instrumented_task(
     name="sentry.tasks.relay.build_project_config",
     queue="relay_config",
-    soft_time_limit=5,
-    time_limit=10,  # Extra 5 seconds to remove the debounce key.
-    expires=30,  # Relay stops waiting for this anyway.
+    soft_time_limit=25,
+    time_limit=30,  # Extra 5 seconds to remove the debounce key.
+    expires=30,  # Relay query timeout (https://github.com/getsentry/relay/blob/eba85e3130adb43208ce4547807c0aeb92e1cde2/relay-config/src/config.rs#L599)
 )
 def build_project_config(public_key=None, **kwargs):
     """Build a project config and put it in the Redis cache.
@@ -190,7 +189,7 @@ def compute_projectkey_config(key):
     if key.status != ProjectKeyStatus.ACTIVE:
         return {"disabled": True}
     else:
-        return get_project_config(key.project, project_keys=[key], full_config=True).to_dict()
+        return get_project_config(key.project, project_keys=[key]).to_dict()
 
 
 @instrumented_task(
@@ -245,6 +244,7 @@ def invalidate_project_config(
     projectconfig_cache.backend.set_many(updated_configs)
 
 
+@sentry_sdk.tracing.trace
 def schedule_invalidate_project_config(
     *,
     trigger,

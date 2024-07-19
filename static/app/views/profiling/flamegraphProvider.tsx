@@ -39,21 +39,23 @@ export function FlamegraphProvider(props: FlamegraphProviderProps) {
       return LOADING_OR_FALLBACK_FLAMEGRAPH;
     }
 
-    const transaction = Sentry.startTransaction({
-      op: 'import',
-      name: 'flamegraph.constructor',
+    const span = Sentry.withScope(scope => {
+      scope.setTag('sorting', sorting.split(' ').join('_'));
+      scope.setTag('view', view.split(' ').join('_'));
+
+      return Sentry.startInactiveSpan({
+        op: 'import',
+        name: 'flamegraph.constructor',
+      });
     });
 
-    transaction.setTag('sorting', sorting.split(' ').join('_'));
-    transaction.setTag('view', view.split(' ').join('_'));
-
-    const newFlamegraph = new Flamegraph(activeProfile, threadId, {
+    const newFlamegraph = new Flamegraph(activeProfile, {
       inverted: view === 'bottom up',
       sort: sorting,
       configSpace: undefined,
     });
 
-    transaction.finish();
+    span?.end();
 
     return newFlamegraph;
   }, [sorting, threadId, view, profileGroup]);

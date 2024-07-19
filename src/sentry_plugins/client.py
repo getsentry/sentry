@@ -1,6 +1,6 @@
-from sentry.services.hybrid_cloud.usersocialauth.service import usersocialauth_service
 from sentry.shared_integrations.client import BaseApiClient, BaseInternalApiClient
 from sentry.shared_integrations.exceptions import ApiUnauthorized
+from sentry.users.services.usersocialauth.service import usersocialauth_service
 
 
 class ApiClient(BaseApiClient):
@@ -14,8 +14,6 @@ class ApiClient(BaseApiClient):
 
 
 class AuthApiClient(ApiClient):
-    auth = None
-
     def __init__(self, auth=None, *args, **kwargs):
         self.auth = auth
         super().__init__(*args, **kwargs)
@@ -33,6 +31,7 @@ class AuthApiClient(ApiClient):
         return kwargs
 
     def bind_auth(self, **kwargs):
+        assert self.auth is not None
         token = self.auth.tokens["access_token"]
         kwargs["headers"]["Authorization"] = f"Bearer {token}"
         return kwargs

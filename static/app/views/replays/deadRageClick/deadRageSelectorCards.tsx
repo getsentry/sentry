@@ -1,21 +1,22 @@
-import {ComponentProps, ReactNode, useState} from 'react';
+import type {ComponentProps, ReactNode} from 'react';
+import {useState} from 'react';
 import styled from '@emotion/styled';
 
-import Accordion from 'sentry/components/accordion/accordion';
 import {LinkButton} from 'sentry/components/button';
+import {Flex} from 'sentry/components/container/flex';
 import EmptyStateWarning from 'sentry/components/emptyStateWarning';
-import FeatureBadge from 'sentry/components/featureBadge';
 import Placeholder from 'sentry/components/placeholder';
 import QuestionTooltip from 'sentry/components/questionTooltip';
+import Accordion from 'sentry/components/replays/accordion';
 import TextOverflow from 'sentry/components/textOverflow';
-import {IconCursorArrow} from 'sentry/icons';
+import {IconCursorArrow, IconSearch} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import useDeadRageSelectors from 'sentry/utils/replays/hooks/useDeadRageSelectors';
-import {ColorOrAlias} from 'sentry/utils/theme';
+import type {ColorOrAlias} from 'sentry/utils/theme';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
 import {
   ContentContainer,
   HeaderContainer,
@@ -49,7 +50,6 @@ function DeadRageSelectorCards() {
                   isHoverable
                 />
               </TitleTooltipContainer>
-              <FeatureBadge type="new" />
             </StyledWidgetHeader>
             <Subtitle>{t('Suggested replays to watch')}</Subtitle>
           </div>
@@ -72,7 +72,6 @@ function DeadRageSelectorCards() {
                   isHoverable
                 />
               </TitleTooltipContainer>
-              <FeatureBadge type="new" />
             </StyledWidgetHeader>
             <Subtitle>{t('Suggested replays to watch')}</Subtitle>
           </div>
@@ -118,8 +117,11 @@ function AccordionWidget({
         </LoadingContainer>
       ) : isError || (!isLoading && filteredData.length === 0) ? (
         <CenteredContentContainer>
-          <EmptyStateWarning>
-            <div>{t('No results found')}</div>
+          <EmptyStateWarning withIcon={false}>
+            <EmptyHeader>
+              <IconSearch size="sm" />
+              {t('No results found')}
+            </EmptyHeader>
             <EmptySubtitle>
               {tct(
                 'There were no [type] clicks within this timeframe. Expand your timeframe, or increase your replay sample rate to see more data.',
@@ -131,7 +133,6 @@ function AccordionWidget({
       ) : (
         <LeftAlignedContentContainer>
           <Accordion
-            buttonOnLeft
             collapsible
             expandedIndex={selectedListIndex}
             setExpandedIndex={setSelectListIndex}
@@ -140,7 +141,7 @@ function AccordionWidget({
                 d.dom_element.fullSelector
               )}"`;
               return {
-                header: () => (
+                header: (
                   <AccordionItemHeader
                     count={d[clickType] ?? 0}
                     selector={d.dom_element.selector}
@@ -149,7 +150,7 @@ function AccordionWidget({
                     id={d.project_id}
                   />
                 ),
-                content: () => (
+                content: (
                   <ExampleReplaysList
                     location={location}
                     clickType={clickType}
@@ -277,6 +278,7 @@ const StyledButton = styled(LinkButton)`
   border-left: none;
   border-right: none;
   font-size: ${p => p.theme.fontSizeMedium};
+  background-color: transparent;
 `;
 
 const StyledAccordionHeader = styled('div')`
@@ -325,6 +327,13 @@ const LoadingContainer = styled(ContentContainer)`
 
 const StyledPlaceholder = styled(Placeholder)`
   height: 34px;
+`;
+
+const EmptyHeader = styled(Flex)`
+  justify-content: center;
+  align-items: center;
+  gap: ${space(1.5)};
+  color: ${p => p.theme.gray300};
 `;
 
 export default DeadRageSelectorCards;

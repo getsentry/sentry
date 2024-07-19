@@ -3,13 +3,13 @@ from __future__ import annotations
 import hashlib
 import os
 from collections import defaultdict
+from collections.abc import Mapping, Sequence
 from datetime import timedelta
-from typing import List, Mapping, Optional, Sequence
+from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from django.utils.encoding import force_bytes
 
-from sentry import features
 from sentry.issues.grouptype import PerformanceNPlusOneAPICallsGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
@@ -48,11 +48,13 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
     HOST_DENYLIST: list[str] = []
 
-    def init(self):
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         # TODO: Only store the span IDs and timestamps instead of entire span objects
         self.stored_problems: PerformanceProblemsMap = {}
         self.spans: list[Span] = []
-        self.span_hashes = {}
+        self.span_hashes: dict[str, str | None] = {}
 
     def visit_span(self, span: Span) -> None:
         if not NPlusOneAPICallsDetector.is_span_eligible(span):
@@ -77,15 +79,13 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             self.spans = [span]
 
     def is_creation_allowed_for_organization(self, organization: Organization) -> bool:
-        return features.has(
-            "organizations:performance-n-plus-one-api-calls-detector", organization, actor=None
-        )
+        return True
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]
 
     @classmethod
-    def is_event_eligible(cls, event, project=None):
+    def is_event_eligible(cls, event: dict[str, Any], project: Project | None = None) -> bool:
         trace_op = event.get("contexts", {}).get("trace", {}).get("op")
         if trace_op and trace_op not in ["navigation", "pageload", "ui.load", "ui.action"]:
             return False
@@ -147,11 +147,11 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
 
         return True
 
-    def on_complete(self):
+    def on_complete(self) -> None:
         self._maybe_store_problem()
         self.spans = []
 
-    def _maybe_store_problem(self):
+    def _maybe_store_problem(self) -> None:
         if len(self.spans) < 1:
             return
 
@@ -204,13 +204,13 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             ],
         )
 
-    def _get_parameters(self) -> List[str]:
+    def _get_parameters(self) -> list[str]:
         if not self.spans or len(self.spans) == 0:
             return []
 
         urls = [get_url_from_span(span) for span in self.spans]
 
-        all_parameters: Mapping[str, List[str]] = defaultdict(list)
+        all_parameters: Mapping[str, list[str]] = defaultdict(list)
 
         for url in urls:
             parsed_url = urlparse(url)
@@ -223,7 +223,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
             "{{{}: {}}}".format(key, ",".join(values)) for key, values in all_parameters.items()
         ]
 
-    def _get_path_prefix(self, repeating_span) -> str:
+    def _get_path_prefix(self, repeating_span: Span) -> str:
         if not repeating_span:
             return ""
 
@@ -231,7 +231,7 @@ class NPlusOneAPICallsDetector(PerformanceDetector):
         parsed_url = urlparse(url)
         return parsed_url.path or ""
 
-    def _fingerprint(self) -> Optional[str]:
+    def _fingerprint(self) -> str | None:
         first_url = get_url_from_span(self.spans[0])
         parameterized_first_url = parameterize_url(first_url)
 
@@ -274,7 +274,7 @@ HTTP_METHODS = {
 }
 
 
-def get_span_hash(span: Span) -> Optional[str]:
+def get_span_hash(span: Span) -> str | None:
     if span.get("op") != "http.client":
         return span.get("hash")
 
@@ -289,7 +289,7 @@ def get_span_hash(span: Span) -> Optional[str]:
     return hash.hexdigest()[:16]
 
 
-def remove_http_client_query_string_strategy(span: Span) -> Optional[Sequence[str]]:
+def remove_http_client_query_string_strategy(span: Span) -> Sequence[str] | None:
     """
     This is an inline version of the `http.client` parameterization code in
     `"default:2022-10-27"`, the default span grouping strategy at time of

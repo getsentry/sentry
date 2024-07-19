@@ -15,10 +15,10 @@ logger = logging.getLogger(__name__)
 class RedisProjectConfigCache(ProjectConfigCache):
     def __init__(self, **options):
         cluster_key = options.get("cluster", "default")
-        self.cluster = redis.redis_clusters.get(cluster_key)
+        self.cluster = redis.redis_clusters.get_binary(cluster_key)
 
         read_cluster_key = options.get("read_cluster", cluster_key)
-        self.cluster_read = redis.redis_clusters.get(read_cluster_key)
+        self.cluster_read = redis.redis_clusters.get_binary(read_cluster_key)
 
         super().__init__(**options)
 
@@ -36,8 +36,10 @@ class RedisProjectConfigCache(ProjectConfigCache):
         for public_key, config in configs.items():
             serialized = json.dumps(config).encode()
             compressed = zstandard.compress(serialized, level=COMPRESSION_LEVEL)
-            metrics.timing("relay.projectconfig_cache.uncompressed_size", len(serialized))
-            metrics.timing("relay.projectconfig_cache.size", len(compressed))
+            metrics.distribution(
+                "relay.projectconfig_cache.uncompressed_size", len(serialized), unit="byte"
+            )
+            metrics.distribution("relay.projectconfig_cache.size", len(compressed), unit="byte")
 
             p.setex(self.__get_redis_key(public_key), REDIS_CACHE_TIMEOUT, compressed)
 
@@ -55,10 +57,10 @@ class RedisProjectConfigCache(ProjectConfigCache):
         )
 
     def get(self, public_key):
-        rv = self.cluster_read.get(self.__get_redis_key(public_key))
-        if rv is not None:
+        rv_b = self.cluster_read.get(self.__get_redis_key(public_key))
+        if rv_b is not None:
             try:
-                rv = zstandard.decompress(rv).decode()
+                rv = zstandard.decompress(rv_b).decode()
             except (TypeError, zstandard.ZstdError):
                 # assume raw json
                 pass

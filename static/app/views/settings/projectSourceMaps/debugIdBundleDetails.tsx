@@ -2,12 +2,12 @@ import {Fragment, useMemo, useState} from 'react';
 import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
 import KeyValueList from 'sentry/components/events/interfaces/keyValueList';
 import Link from 'sentry/components/links/link';
 import {t} from 'sentry/locale';
-import {KeyValueListData} from 'sentry/types';
-import {DebugIdBundle, DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
+import type {KeyValueListData} from 'sentry/types';
+import type {DebugIdBundle, DebugIdBundleArtifact} from 'sentry/types/sourceMaps';
 import useOrganization from 'sentry/utils/useOrganization';
 
 const formatDist = (dist: string | string[] | null) => {

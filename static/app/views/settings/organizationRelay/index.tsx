@@ -5,14 +5,14 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {t} from 'sentry/locale';
 import useOrganization from 'sentry/utils/useOrganization';
 
-import RelayWrapper from './relayWrapper';
+import {RelayWrapper} from './relayWrapper';
 
-function OrganizationRelay(props: Omit<RelayWrapper['props'], 'organization'>) {
+function OrganizationRelay() {
   const organization = useOrganization();
   return (
     <Feature
       organization={organization}
-      features={['relay']}
+      features="relay"
       hookName="feature-disabled:relay"
       renderDisabled={p => (
         <Panel>
@@ -26,7 +26,7 @@ function OrganizationRelay(props: Omit<RelayWrapper['props'], 'organization'>) {
         </Panel>
       )}
     >
-      <RelayWrapper organization={organization} {...props} />
+      <RelayWrapper />
     </Feature>
   );
 }

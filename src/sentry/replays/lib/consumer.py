@@ -1,5 +1,5 @@
 import logging
-from typing import Optional, TypeVar
+from typing import TypeVar
 
 from arroyo.processing.strategies.abstract import MessageRejected, ProcessingStrategy
 from arroyo.types import Message
@@ -44,6 +44,6 @@ class LogExceptionStep(ProcessingStrategy[TPayload]):
         self.__logger.debug("Terminating %r...", self.__next_step)
         self.__next_step.terminate()
 
-    def join(self, timeout: Optional[float] = None) -> None:
+    def join(self, timeout: float | None = None) -> None:
         self.__next_step.close()
         self.__next_step.join(timeout)

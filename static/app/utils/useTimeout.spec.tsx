@@ -1,7 +1,8 @@
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook} from 'sentry-test/reactTestingLibrary';
 
 import useTimeout from './useTimeout';
 
+// biome-ignore lint/correctness/useHookAtTopLevel: not a hook
 jest.useFakeTimers();
 
 describe('useTimeout', () => {
@@ -13,7 +14,7 @@ describe('useTimeout', () => {
   });
 
   it('should timeout after a specified delay', () => {
-    const {result} = reactHooks.renderHook(useTimeout, {
+    const {result} = renderHook(useTimeout, {
       initialProps: {timeMs, onTimeout},
     });
 
@@ -26,7 +27,7 @@ describe('useTimeout', () => {
   });
 
   it('should call the callback if a timeout is ended early', () => {
-    const {result} = reactHooks.renderHook(useTimeout, {
+    const {result} = renderHook(useTimeout, {
       initialProps: {timeMs, onTimeout},
     });
 
@@ -38,7 +39,7 @@ describe('useTimeout', () => {
   });
 
   it('should not exec the callback if a timeout is cancelled', () => {
-    const {result} = reactHooks.renderHook(useTimeout, {
+    const {result} = renderHook(useTimeout, {
       initialProps: {timeMs, onTimeout},
     });
 
@@ -50,13 +51,13 @@ describe('useTimeout', () => {
   });
 
   it('should return stable start/cancel/end callbacks', () => {
-    const {result, rerender} = reactHooks.renderHook(useTimeout, {
+    const {result, rerender} = renderHook(useTimeout, {
       initialProps: {timeMs, onTimeout},
     });
 
     const firstRender = {...result.current};
 
-    rerender();
+    rerender({timeMs, onTimeout});
 
     expect(result.current.start).toBe(firstRender.start);
     expect(result.current.cancel).toBe(firstRender.cancel);
@@ -64,7 +65,7 @@ describe('useTimeout', () => {
   });
 
   it('should return a new start() method when timeMs changes', () => {
-    const {result, rerender} = reactHooks.renderHook(useTimeout, {
+    const {result, rerender} = renderHook(useTimeout, {
       initialProps: {timeMs, onTimeout},
     });
 
@@ -78,7 +79,7 @@ describe('useTimeout', () => {
   });
 
   it('should return a new start() and end() method when onTimeout changes', () => {
-    const {result, rerender} = reactHooks.renderHook(useTimeout, {
+    const {result, rerender} = renderHook(useTimeout, {
       initialProps: {timeMs, onTimeout},
     });
 
@@ -93,7 +94,7 @@ describe('useTimeout', () => {
   });
 
   it('should not exec the callback after unmount', () => {
-    const {result, unmount} = reactHooks.renderHook(useTimeout, {
+    const {result, unmount} = renderHook(useTimeout, {
       initialProps: {timeMs, onTimeout},
     });
 

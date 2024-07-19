@@ -1,7 +1,9 @@
-import {EventsStats} from 'sentry-fixture/events';
+import {EventsStatsFixture} from 'sentry-fixture/events';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {RouteComponentPropsFixture} from 'sentry-fixture/routeComponentPropsFixture';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render} from 'sentry-test/reactTestingLibrary';
+import {render, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import EventView from 'sentry/utils/discover/eventView';
 import MetricRulesCreate from 'sentry/views/alerts/rules/metric/create';
@@ -25,7 +27,7 @@ describe('Incident Rules Create', function () {
     });
     eventStatsMock = MockApiClient.addMockResponse({
       url: '/organizations/org-slug/events-stats/',
-      body: EventsStats(),
+      body: EventsStatsFixture(),
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/alert-rules/available-actions/',
@@ -40,7 +42,7 @@ describe('Incident Rules Create', function () {
     });
   });
 
-  it('renders', function () {
+  it('renders', async function () {
     const {organization, project} = initializeOrg();
     MockApiClient.addMockResponse({
       url: `/organizations/${organization.slug}/events-meta/`,
@@ -49,8 +51,8 @@ describe('Incident Rules Create', function () {
 
     render(
       <MetricRulesCreate
-        {...TestStubs.routeComponentProps()}
-        eventView={EventView.fromLocation(TestStubs.location())}
+        {...RouteComponentPropsFixture()}
+        eventView={EventView.fromLocation(LocationFixture())}
         params={{projectId: project.slug}}
         organization={organization}
         project={project}
@@ -58,18 +60,20 @@ describe('Incident Rules Create', function () {
       />
     );
 
-    expect(eventStatsMock).toHaveBeenCalledWith(
-      expect.anything(),
-      expect.objectContaining({
-        query: {
-          interval: '60m',
-          project: [2],
-          query: 'event.type:error',
-          statsPeriod: '10000m',
-          yAxis: 'count()',
-          referrer: 'api.organization-event-stats',
-        },
-      })
+    await waitFor(() =>
+      expect(eventStatsMock).toHaveBeenCalledWith(
+        expect.anything(),
+        expect.objectContaining({
+          query: {
+            interval: '60m',
+            project: [2],
+            query: 'event.type:error',
+            statsPeriod: '9998m',
+            yAxis: 'count()',
+            referrer: 'api.organization-event-stats',
+          },
+        })
+      )
     );
   });
 });

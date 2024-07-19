@@ -1,10 +1,9 @@
-from typing import Dict, List
-
 from rest_framework import status
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry import features
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.organization import (
@@ -26,6 +25,7 @@ from sentry.tasks.derive_code_mappings import get_installation
 
 @region_silo_endpoint
 class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
+    owner = ApiOwner.ISSUES
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,
@@ -53,9 +53,9 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
             )
 
         # This method is specific to the GithubIntegration
-        trees = installation.get_trees_for_org()  # type: ignore
+        trees = installation.get_trees_for_org()  # type: ignore[attr-defined]
         trees_helper = CodeMappingTreesHelper(trees)
-        possible_code_mappings: List[Dict[str, str]] = []
+        possible_code_mappings: list[dict[str, str]] = []
         resp_status: int = status.HTTP_204_NO_CONTENT
         if stacktrace_filename:
             frame_filename = FrameFilename(stacktrace_filename)
@@ -93,6 +93,9 @@ class OrganizationDeriveCodeMappingsEndpoint(OrganizationEndpoint):
             return self.respond(
                 {"text": "Could not find project"}, status=status.HTTP_404_NOT_FOUND
             )
+
+        if not request.access.has_project_access(project):
+            return self.respond(status=status.HTTP_403_FORBIDDEN)
 
         repo_name = request.data.get("repoName")
         stack_root = request.data.get("stackRoot")

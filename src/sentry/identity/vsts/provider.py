@@ -1,3 +1,4 @@
+import orjson
 from django.core.exceptions import PermissionDenied
 from rest_framework.request import Request
 
@@ -70,7 +71,7 @@ class VSTSIdentityProvider(OAuth2Provider):
         return {"Content-Type": "application/x-www-form-urlencoded", "Content-Length": "1654"}
 
     def get_refresh_token_params(self, refresh_token, *args, **kwargs):
-        identity = kwargs.get("identity")
+        identity = kwargs["identity"]
         client_secret = options.get("vsts.client-secret")
 
         # The token refresh flow does not operate within a pipeline in the same way
@@ -117,7 +118,6 @@ class VSTSOAuth2CallbackView(OAuth2CallbackView):
         from urllib.parse import parse_qsl
 
         from sentry.http import safe_urlopen, safe_urlread
-        from sentry.utils import json
         from sentry.utils.http import absolute_uri
 
         req = safe_urlopen(
@@ -134,4 +134,4 @@ class VSTSOAuth2CallbackView(OAuth2CallbackView):
         body = safe_urlread(req)
         if req.headers["Content-Type"].startswith("application/x-www-form-urlencoded"):
             return dict(parse_qsl(body))
-        return json.loads(body)
+        return orjson.loads(body)

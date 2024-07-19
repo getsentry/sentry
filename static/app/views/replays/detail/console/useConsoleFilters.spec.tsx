@@ -1,16 +1,15 @@
-import {browserHistory} from 'react-router';
 import type {Location} from 'history';
 import {ReplayConsoleFrameFixture} from 'sentry-fixture/replay/replayBreadcrumbFrameData';
 import {ReplayRecordFixture} from 'sentry-fixture/replayRecord';
 
-import {reactHooks} from 'sentry-test/reactTestingLibrary';
+import {renderHook, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {BreadcrumbLevelType, BreadcrumbType} from 'sentry/types/breadcrumbs';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import hydrateBreadcrumbs from 'sentry/utils/replays/hydrateBreadcrumbs';
 import {useLocation} from 'sentry/utils/useLocation';
-import useConsoleFilters, {
-  FilterFields,
-} from 'sentry/views/replays/detail/console/useConsoleFilters';
+import type {FilterFields} from 'sentry/views/replays/detail/console/useConsoleFilters';
+import useConsoleFilters from 'sentry/views/replays/detail/console/useConsoleFilters';
 
 jest.mock('react-router');
 jest.mock('sentry/utils/useLocation');
@@ -113,7 +112,7 @@ describe('useConsoleFilters', () => {
         query: {f_c_logLevel: LOG_FILTER},
       } as Location<FilterFields>);
 
-    const {result, rerender} = reactHooks.renderHook(useConsoleFilters, {
+    const {result, rerender} = renderHook(useConsoleFilters, {
       initialProps: {frames},
     });
 
@@ -125,7 +124,7 @@ describe('useConsoleFilters', () => {
       },
     });
 
-    rerender();
+    rerender({frames});
 
     result.current.setSearchTerm(SEARCH_FILTER);
     expect(browserHistory.replace).toHaveBeenLastCalledWith({
@@ -137,16 +136,16 @@ describe('useConsoleFilters', () => {
     });
   });
 
-  it('should not filter anything when no values are set', () => {
+  it('should not filter anything when no values are set', async () => {
     mockUseLocation.mockReturnValue({
       pathname: '/',
       query: {},
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(useConsoleFilters, {
+    const {result} = renderHook(useConsoleFilters, {
       initialProps: {frames},
     });
-    expect(result.current.items.length).toEqual(5);
+    await waitFor(() => expect(result.current.items.length).toEqual(5));
   });
 
   it('should filter by logLevel', () => {
@@ -157,7 +156,7 @@ describe('useConsoleFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(useConsoleFilters, {
+    const {result} = renderHook(useConsoleFilters, {
       initialProps: {frames},
     });
     expect(result.current.items.length).toEqual(2);
@@ -171,7 +170,7 @@ describe('useConsoleFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(useConsoleFilters, {
+    const {result} = renderHook(useConsoleFilters, {
       initialProps: {frames},
     });
     expect(result.current.items.length).toEqual(2);
@@ -186,7 +185,7 @@ describe('useConsoleFilters', () => {
       },
     } as Location<FilterFields>);
 
-    const {result} = reactHooks.renderHook(useConsoleFilters, {
+    const {result} = renderHook(useConsoleFilters, {
       initialProps: {frames},
     });
     expect(result.current.items.length).toEqual(1);
@@ -235,7 +234,7 @@ describe('useConsoleFilters', () => {
     it('should return a sorted list of BreadcrumbLevelType', () => {
       const simpleCrumbs = [CRUMB_LOG_1, CRUMB_WARN, CRUMB_ERROR];
 
-      const {result} = reactHooks.renderHook(useConsoleFilters, {
+      const {result} = renderHook(useConsoleFilters, {
         initialProps: {frames: simpleCrumbs},
       });
       expect(result.current.getLogLevels()).toStrictEqual([
@@ -248,7 +247,7 @@ describe('useConsoleFilters', () => {
     it('should deduplicate BreadcrumbLevelType', () => {
       const simpleCrumbs = [CRUMB_LOG_1, CRUMB_LOG_2];
 
-      const {result} = reactHooks.renderHook(useConsoleFilters, {
+      const {result} = renderHook(useConsoleFilters, {
         initialProps: {frames: simpleCrumbs},
       });
       expect(result.current.getLogLevels()).toStrictEqual([{label: 'log', value: 'log'}]);
@@ -262,7 +261,7 @@ describe('useConsoleFilters', () => {
         query: {f_c_logLevel: ['log']},
       } as Location<FilterFields>);
 
-      const {result} = reactHooks.renderHook(useConsoleFilters, {
+      const {result} = renderHook(useConsoleFilters, {
         initialProps: {frames: simpleCrumbs},
       });
 
@@ -276,7 +275,7 @@ describe('useConsoleFilters', () => {
     // it('should include issue if a crumb has that for a category', () => {
     //   const simpleCrumbs = [CRUMB_ISSUE];
 
-    //   const {result} = reactHooks.renderHook(useConsoleFilters, {
+    //   const {result} = renderHook(useConsoleFilters, {
     //     initialProps: {breadcrumbs: simpleCrumbs},
     //   });
     //   expect(result.current.getLogLevels()).toStrictEqual([
@@ -291,7 +290,7 @@ describe('useConsoleFilters', () => {
     //     query: {f_c_logLevel: ['issue']},
     //   } as Location<FilterFields>);
 
-    //   const {result} = reactHooks.renderHook(useConsoleFilters, {
+    //   const {result} = renderHook(useConsoleFilters, {
     //     initialProps: {frames: simpleCrumbs},
     //   });
 

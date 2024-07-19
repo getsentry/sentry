@@ -1,4 +1,4 @@
-from django.http import HttpResponse
+from django.http.response import HttpResponseBase
 from django.urls import reverse
 from rest_framework.request import Request
 
@@ -9,9 +9,9 @@ from sentry.auth.providers.saml2.forms import (
     XMLMetadataForm,
     process_metadata,
 )
+from sentry.auth.services.auth import RpcAuthProvider, auth_service
 from sentry.auth.view import AuthView, ConfigureView
-from sentry.services.hybrid_cloud.auth import RpcAuthProvider, auth_service
-from sentry.services.hybrid_cloud.organization.model import RpcOrganization
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.utils.http import absolute_uri
 
 
@@ -46,7 +46,7 @@ class SAML2ConfigureView(ConfigureView):
 
 
 class SelectIdP(AuthView):
-    def handle(self, request: Request, helper) -> HttpResponse:
+    def handle(self, request: Request, helper) -> HttpResponseBase:
         op = "url"
 
         forms = {"url": URLMetadataForm(), "xml": XMLMetadataForm(), "idp": SAMLForm()}
@@ -65,7 +65,7 @@ class SelectIdP(AuthView):
 
 
 class MapAttributes(AuthView):
-    def handle(self, request: Request, helper) -> HttpResponse:
+    def handle(self, request: Request, helper) -> HttpResponseBase:
         if "save_mappings" not in request.POST:
             form = AttributeMappingForm()
         else:

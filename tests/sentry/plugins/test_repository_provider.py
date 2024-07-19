@@ -1,11 +1,10 @@
-from sentry.models.integrations.integration import Integration
 from sentry.plugins.providers.dummy.repository import DummyRepositoryProvider
 from sentry.testutils.cases import TestCase
 from sentry.testutils.silo import control_silo_test
 from social_auth.models import UserSocialAuth
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class RepositoryProviderTest(TestCase):
     def test_needs_auth_for_user(self):
         user = self.create_user()
@@ -23,7 +22,7 @@ class RepositoryProviderTest(TestCase):
         provider = DummyRepositoryProvider(id="dummy")
 
         org = self.create_organization()
-        integration = Integration.objects.create(provider="dummy", external_id="123456")
+        integration = self.create_provider_integration(provider="dummy", external_id="123456")
         integration.add_organization(org, user)
 
         assert provider.needs_auth(user, organization=org) is False
@@ -48,7 +47,7 @@ class RepositoryProviderTest(TestCase):
         usa = UserSocialAuth.objects.create(provider="dummy", user=user2)
 
         org = self.create_organization()
-        integration = Integration.objects.create(provider="dummy", external_id="123456")
+        integration = self.create_provider_integration(provider="dummy", external_id="123456")
         integration.add_organization(org, user, default_auth_id=usa.id)
 
         auth = provider.get_auth(user, organization=org)

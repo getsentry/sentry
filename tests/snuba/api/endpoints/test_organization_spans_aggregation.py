@@ -9,11 +9,14 @@ from snuba_sdk import Column, Condition, Function, Op
 from sentry.api.endpoints.organization_spans_aggregation import NULL_GROUP
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now
+from sentry.testutils.helpers.options import override_options
+from sentry.testutils.pytest.fixtures import django_db_all
 from sentry.utils.samples import load_data
 
 MOCK_SNUBA_RESPONSE = {
     "data": [
         {
+            "trace_id": "a" * 32,
             "transaction_id": "80fe542aea4945ffbe612646987ee449",
             "count": 71,
             "spans": [
@@ -21,7 +24,6 @@ MOCK_SNUBA_RESPONSE = {
                     "root_1",
                     1,
                     "parent_1",
-                    "e238e6c2e2466b07",
                     "e238e6c2e2466b07",
                     "api/0/foo",
                     "other",
@@ -35,7 +37,6 @@ MOCK_SNUBA_RESPONSE = {
                     0,
                     "root_1",
                     "B",
-                    "B",
                     "connect",
                     "db",
                     "2023-09-13 17:12:19",
@@ -47,7 +48,6 @@ MOCK_SNUBA_RESPONSE = {
                     "C1",
                     0,
                     "root_1",
-                    "C",
                     "C",
                     "resolve_conditions",
                     "discover.endpoint",
@@ -61,7 +61,6 @@ MOCK_SNUBA_RESPONSE = {
                     0,
                     "C1",
                     "D",
-                    "D",
                     "resolve_orderby",
                     "discover.snql",
                     "2023-09-13 17:12:19",
@@ -74,7 +73,6 @@ MOCK_SNUBA_RESPONSE = {
                     0,
                     "C1",
                     NULL_GROUP,
-                    "E",
                     "resolve_columns",
                     "discover.snql",
                     "2023-09-13 17:12:19",
@@ -85,6 +83,7 @@ MOCK_SNUBA_RESPONSE = {
             ],
         },
         {
+            "trace_id": "b" * 32,
             "transaction_id": "86b21833d1854d9b811000b91e7fccfa",
             "count": 71,
             "spans": [
@@ -92,7 +91,6 @@ MOCK_SNUBA_RESPONSE = {
                     "root_2",
                     1,
                     "parent_2",
-                    "e238e6c2e2466b07",
                     "e238e6c2e2466b07",
                     "bind_organization_context",
                     "other",
@@ -106,7 +104,6 @@ MOCK_SNUBA_RESPONSE = {
                     0,
                     "root_2",
                     "B",
-                    "B",
                     "connect",
                     "db",
                     "2023-09-13 17:12:39",
@@ -118,7 +115,6 @@ MOCK_SNUBA_RESPONSE = {
                     "C2",
                     0,
                     "root_2",
-                    "C",
                     "C",
                     "resolve_conditions",
                     "discover.endpoint",
@@ -132,7 +128,6 @@ MOCK_SNUBA_RESPONSE = {
                     0,
                     "C2",
                     "D",
-                    "D",
                     "resolve_orderby",
                     "discover.snql",
                     "2023-09-13 17:12:39",
@@ -144,7 +139,6 @@ MOCK_SNUBA_RESPONSE = {
                     "D2-duplicate",
                     0,
                     "C2",
-                    "D",
                     "D",
                     "resolve_orderby",
                     "discover.snql",
@@ -158,7 +152,6 @@ MOCK_SNUBA_RESPONSE = {
                     0,
                     "C2",
                     NULL_GROUP,
-                    "E",
                     "resolve_columns",
                     "discover.snql",
                     "2023-09-13 17:12:39",
@@ -172,10 +165,167 @@ MOCK_SNUBA_RESPONSE = {
 }
 
 
-class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
+class OrganizationIndexedSpansAggregationTest(APITestCase, SnubaTestCase):
     url_name = "sentry-api-0-organization-spans-aggregation"
     FEATURES = [
-        "organizations:starfish-aggregate-span-waterfall",
+        "organizations:insights-initial-modules",
+        "organizations:performance-view",
+    ]
+
+    def setUp(self):
+        super().setUp()
+        self.login_as(user=self.user)
+
+        self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
+
+        self.url = reverse(
+            self.url_name,
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
+        )
+
+    @override_options({"indexed-spans.agg-span-waterfall.enable": True})
+    @mock.patch("sentry.api.endpoints.organization_spans_aggregation.raw_snql_query")
+    def test_without_flag(self, _mock_query):
+
+        response = self.client.get(
+            self.url,
+            data={"transaction": "api/0/foo", "statsPeriod": "1d"},
+            format="json",
+        )
+        assert response.status_code == 404
+
+    @override_options({"indexed-spans.agg-span-waterfall.enable": True})
+    @mock.patch("sentry.api.endpoints.organization_spans_aggregation.raw_snql_query")
+    def test_simple(self, mock_query):
+        mock_query.side_effect = [MOCK_SNUBA_RESPONSE]
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"transaction": "api/0/foo", "statsPeriod": "1d"},
+                format="json",
+            )
+
+        assert response.data
+        data = response.data
+        root_fingerprint = hashlib.md5(b"e238e6c2e2466b07").hexdigest()[:16]
+        assert root_fingerprint in data
+        assert data[root_fingerprint]["count()"] == 2
+        assert data[root_fingerprint]["description"] == "api/0/foo"
+        assert round(data[root_fingerprint]["avg(duration)"]) == 850
+
+        assert data[root_fingerprint]["samples"] == {
+            ("80fe542aea4945ffbe612646987ee449", "root_1"),
+            ("86b21833d1854d9b811000b91e7fccfa", "root_2"),
+        }
+        assert data[root_fingerprint]["sample_spans"] == [
+            {
+                "transaction": "80fe542aea4945ffbe612646987ee449",
+                "timestamp": 1694625139.1,
+                "span": "root_1",
+                "trace": "a" * 32,
+            },
+            {
+                "transaction": "86b21833d1854d9b811000b91e7fccfa",
+                "timestamp": 1694625159.1,
+                "span": "root_2",
+                "trace": "b" * 32,
+            },
+        ]
+
+        fingerprint = hashlib.md5(b"e238e6c2e2466b07-B").hexdigest()[:16]
+        assert data[fingerprint]["description"] == "connect"
+        assert round(data[fingerprint]["avg(duration)"]) == 30
+
+        fingerprint = hashlib.md5(b"e238e6c2e2466b07-C-D").hexdigest()[:16]
+        assert data[fingerprint]["description"] == "resolve_orderby"
+        assert data[fingerprint]["avg(exclusive_time)"] == 15.0
+        assert data[fingerprint]["count()"] == 2
+
+        fingerprint = hashlib.md5(b"e238e6c2e2466b07-C-D2").hexdigest()[:16]
+        assert data[fingerprint]["description"] == "resolve_orderby"
+        assert data[fingerprint]["avg(exclusive_time)"] == 20.0
+        assert data[fingerprint]["count()"] == 1
+
+    @override_options({"indexed-spans.agg-span-waterfall.enable": True})
+    @mock.patch("sentry.api.endpoints.organization_spans_aggregation.raw_snql_query")
+    def test_offset_logic(self, mock_query):
+        mock_query.side_effect = [MOCK_SNUBA_RESPONSE]
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"transaction": "api/0/foo", "statsPeriod": "1d"},
+                format="json",
+            )
+
+        assert response.data
+        data = response.data
+        root_fingerprint = hashlib.md5(b"e238e6c2e2466b07").hexdigest()[:16]
+        assert root_fingerprint in data
+        assert data[root_fingerprint]["avg(absolute_offset)"] == 0.0
+
+        fingerprint = hashlib.md5(b"e238e6c2e2466b07-B").hexdigest()[:16]
+        assert data[fingerprint]["avg(absolute_offset)"] == 30.0
+
+        fingerprint = hashlib.md5(b"e238e6c2e2466b07-C").hexdigest()[:16]
+        assert data[fingerprint]["avg(absolute_offset)"] == 35.0
+
+        fingerprint = hashlib.md5(b"e238e6c2e2466b07-C-D").hexdigest()[:16]
+        assert data[fingerprint]["avg(absolute_offset)"] == 53.5
+
+        fingerprint = hashlib.md5(b"e238e6c2e2466b07-C-D2").hexdigest()[:16]
+        assert data[fingerprint]["avg(absolute_offset)"] == 1075.0
+
+    @override_options({"indexed-spans.agg-span-waterfall.enable": True})
+    @mock.patch("sentry.api.endpoints.organization_spans_aggregation.raw_snql_query")
+    def test_null_group_fallback(self, mock_query):
+        mock_query.side_effect = [MOCK_SNUBA_RESPONSE]
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"transaction": "api/0/foo", "statsPeriod": "1d"},
+                format="json",
+            )
+
+        assert response.data
+        data = response.data
+        root_fingerprint = hashlib.md5(b"e238e6c2e2466b07-C-discover.snql").hexdigest()[:16]
+        assert root_fingerprint in data
+        assert data[root_fingerprint]["description"] == ""
+        assert data[root_fingerprint]["count()"] == 2
+
+    @override_options({"indexed-spans.agg-span-waterfall.enable": True})
+    @mock.patch("sentry.api.endpoints.organization_spans_aggregation.raw_snql_query")
+    def test_http_method_filter(self, mock_query):
+        with self.feature(self.FEATURES):
+            self.client.get(
+                self.url,
+                data={"transaction": "api/0/foo", "http.method": "GET", "statsPeriod": "1d"},
+                format="json",
+            )
+
+            assert (
+                Condition(
+                    lhs=Function(
+                        function="ifNull",
+                        parameters=[
+                            Column(
+                                name="sentry_tags[transaction.method]",
+                            ),
+                            "",
+                        ],
+                        alias=None,
+                    ),
+                    op=Op.EQ,
+                    rhs="GET",
+                )
+                in mock_query.mock_calls[0].args[0].query.where
+            )
+
+
+class OrganizationNodestoreSpansAggregationTest(APITestCase, SnubaTestCase):
+    url_name = "sentry-api-0-organization-spans-aggregation"
+    FEATURES = [
+        "organizations:insights-initial-modules",
         "organizations:performance-view",
     ]
 
@@ -194,6 +344,7 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
         span_id=None,
         measurements=None,
         trace_context=None,
+        environment=None,
         **kwargs,
     ):
         start, end = self.get_start_end(duration)
@@ -214,9 +365,11 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
                 data["measurements"][key]["value"] = value
         if tags is not None:
             data["tags"] = tags
+        if environment is not None:
+            data["environment"] = environment
 
         with self.feature(self.FEATURES):
-            return self.store_event(data, project_id=project_id, **kwargs)
+            return self.store_event(data, project_id=project_id, assert_no_errors=False, **kwargs)
 
     def setUp(self):
         super().setUp()
@@ -309,6 +462,7 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
             parent_span_id=None,
             project_id=self.project.id,
             duration=1000,
+            environment="production",
         )
 
         self.span_ids_event_2 = dict(
@@ -415,110 +569,128 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
             parent_span_id=None,
             project_id=self.project.id,
             duration=700,
+            environment="development",
         )
 
         self.url = reverse(
             self.url_name,
-            kwargs={"organization_slug": self.project.organization.slug},
+            kwargs={"organization_id_or_slug": self.project.organization.slug},
         )
 
-    @mock.patch("sentry.api.endpoints.organization_spans_aggregation.raw_snql_query")
-    def test_simple(self, mock_query):
-        mock_query.side_effect = [MOCK_SNUBA_RESPONSE]
-        for backend in ["indexedSpans", "nodestore"]:
-            with self.feature(self.FEATURES):
-                response = self.client.get(
-                    self.url,
-                    data={"transaction": "api/0/foo", "backend": backend},
-                    format="json",
-                )
+    @django_db_all
+    def test_without_flag(self):
+        response = self.client.get(
+            self.url,
+            data={"transaction": "api/0/foo"},
+            format="json",
+        )
+        assert response.status_code == 404
 
-            assert response.data
-            data = response.data
-            root_fingerprint = hashlib.md5(b"e238e6c2e2466b07").hexdigest()[:16]
-            assert root_fingerprint in data
-            assert data[root_fingerprint]["count()"] == 2
-            assert data[root_fingerprint]["description"] == "api/0/foo"
-            assert round(data[root_fingerprint]["avg(duration)"]) == 850
-
-            if backend == "indexedSpans":
-                assert data[root_fingerprint]["samples"] == {
-                    ("80fe542aea4945ffbe612646987ee449", "root_1"),
-                    ("86b21833d1854d9b811000b91e7fccfa", "root_2"),
-                }
-            else:
-                assert data[root_fingerprint]["samples"] == {
-                    (self.root_event_1.event_id, self.span_ids_event_1["A"]),
-                    (self.root_event_2.event_id, self.span_ids_event_2["A"]),
-                }
-
-            fingerprint = hashlib.md5(b"e238e6c2e2466b07-B").hexdigest()[:16]
-            assert data[fingerprint]["description"] == "connect"
-            assert round(data[fingerprint]["avg(duration)"]) == 30
-
-            fingerprint = hashlib.md5(b"e238e6c2e2466b07-C-D").hexdigest()[:16]
-            assert data[fingerprint]["description"] == "resolve_orderby"
-            assert data[fingerprint]["avg(exclusive_time)"] == 15.0
-            assert data[fingerprint]["count()"] == 2
-
-            fingerprint = hashlib.md5(b"e238e6c2e2466b07-C-D2").hexdigest()[:16]
-            assert data[fingerprint]["description"] == "resolve_orderby"
-            assert data[fingerprint]["avg(exclusive_time)"] == 20.0
-            assert data[fingerprint]["count()"] == 1
-
-    @mock.patch("sentry.api.endpoints.organization_spans_aggregation.raw_snql_query")
-    def test_offset_logic(self, mock_query):
-        mock_query.side_effect = [MOCK_SNUBA_RESPONSE]
-        for backend in ["indexedSpans", "nodestore"]:
-            with self.feature(self.FEATURES):
-                response = self.client.get(
-                    self.url,
-                    data={"transaction": "api/0/foo", "backend": backend},
-                    format="json",
-                )
-
-            assert response.data
-            data = response.data
-            root_fingerprint = hashlib.md5(b"e238e6c2e2466b07").hexdigest()[:16]
-            assert root_fingerprint in data
-            assert data[root_fingerprint]["avg(absolute_offset)"] == 0.0
-
-            fingerprint = hashlib.md5(b"e238e6c2e2466b07-B").hexdigest()[:16]
-            assert data[fingerprint]["avg(absolute_offset)"] == 30.0
-
-            fingerprint = hashlib.md5(b"e238e6c2e2466b07-C").hexdigest()[:16]
-            assert data[fingerprint]["avg(absolute_offset)"] == 35.0
-
-            fingerprint = hashlib.md5(b"e238e6c2e2466b07-C-D").hexdigest()[:16]
-            assert data[fingerprint]["avg(absolute_offset)"] == 53.5
-
-            fingerprint = hashlib.md5(b"e238e6c2e2466b07-C-D2").hexdigest()[:16]
-            assert data[fingerprint]["avg(absolute_offset)"] == 1075.0
-
-    @mock.patch("sentry.api.endpoints.organization_spans_aggregation.raw_snql_query")
-    def test_null_group_fallback(self, mock_query):
-        mock_query.side_effect = [MOCK_SNUBA_RESPONSE]
-        for backend in ["indexedSpans", "nodestore"]:
-            with self.feature(self.FEATURES):
-                response = self.client.get(
-                    self.url,
-                    data={"transaction": "api/0/foo", "backend": backend},
-                    format="json",
-                )
-
-            assert response.data
-            data = response.data
-            root_fingerprint = hashlib.md5(b"e238e6c2e2466b07-C-discover.snql").hexdigest()[:16]
-            assert root_fingerprint in data
-            assert data[root_fingerprint]["description"] == ""
-            assert data[root_fingerprint]["count()"] == 2
-
-    @mock.patch("sentry.api.endpoints.organization_spans_aggregation.raw_snql_query")
-    def test_http_method_filter(self, mock_query):
+    @django_db_all
+    def test_simple(self):
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
-                data={"transaction": "api/0/foo", "backend": "nodestore", "http.method": "GET"},
+                data={"transaction": "api/0/foo"},
+                format="json",
+            )
+
+        assert response.data
+        data = response.data
+        root_fingerprint = hashlib.md5(b"e238e6c2e2466b07").hexdigest()[:16]
+        assert root_fingerprint in data
+        assert data[root_fingerprint]["count()"] == 2
+        assert data[root_fingerprint]["description"] == "api/0/foo"
+        assert round(data[root_fingerprint]["avg(duration)"]) == 850
+
+        assert data[root_fingerprint]["samples"] == {
+            (
+                self.root_event_1.event_id,
+                self.span_ids_event_1["A"],
+            ),
+            (
+                self.root_event_2.event_id,
+                self.span_ids_event_2["A"],
+            ),
+        }
+        assert data[root_fingerprint]["sample_spans"] == [
+            {
+                "transaction": self.root_event_1.event_id,
+                "timestamp": self.root_event_1.data["start_timestamp"],
+                "span": self.span_ids_event_1["A"],
+                "trace": self.root_event_1.data["contexts"]["trace"]["trace_id"],
+            },
+            {
+                "transaction": self.root_event_2.event_id,
+                "timestamp": self.root_event_2.data["start_timestamp"],
+                "span": self.span_ids_event_2["A"],
+                "trace": self.root_event_2.data["contexts"]["trace"]["trace_id"],
+            },
+        ]
+
+        fingerprint = hashlib.md5(b"e238e6c2e2466b07-B").hexdigest()[:16]
+        assert data[fingerprint]["description"] == "connect"
+        assert round(data[fingerprint]["avg(duration)"]) == 30
+
+        fingerprint = hashlib.md5(b"e238e6c2e2466b07-C-D").hexdigest()[:16]
+        assert data[fingerprint]["description"] == "resolve_orderby"
+        assert data[fingerprint]["avg(exclusive_time)"] == 15.0
+        assert data[fingerprint]["count()"] == 2
+
+        fingerprint = hashlib.md5(b"e238e6c2e2466b07-C-D2").hexdigest()[:16]
+        assert data[fingerprint]["description"] == "resolve_orderby"
+        assert data[fingerprint]["avg(exclusive_time)"] == 20.0
+        assert data[fingerprint]["count()"] == 1
+
+    @django_db_all
+    def test_offset_logic(self):
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"transaction": "api/0/foo"},
+                format="json",
+            )
+
+        assert response.data
+        data = response.data
+        root_fingerprint = hashlib.md5(b"e238e6c2e2466b07").hexdigest()[:16]
+        assert root_fingerprint in data
+        assert data[root_fingerprint]["avg(absolute_offset)"] == 0.0
+
+        fingerprint = hashlib.md5(b"e238e6c2e2466b07-B").hexdigest()[:16]
+        assert data[fingerprint]["avg(absolute_offset)"] == 30.0
+
+        fingerprint = hashlib.md5(b"e238e6c2e2466b07-C").hexdigest()[:16]
+        assert data[fingerprint]["avg(absolute_offset)"] == 35.0
+
+        fingerprint = hashlib.md5(b"e238e6c2e2466b07-C-D").hexdigest()[:16]
+        assert data[fingerprint]["avg(absolute_offset)"] == 53.5
+
+        fingerprint = hashlib.md5(b"e238e6c2e2466b07-C-D2").hexdigest()[:16]
+        assert data[fingerprint]["avg(absolute_offset)"] == 1075.0
+
+    @django_db_all
+    def test_null_group_fallback(self):
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"transaction": "api/0/foo"},
+                format="json",
+            )
+
+        assert response.data
+        data = response.data
+        root_fingerprint = hashlib.md5(b"e238e6c2e2466b07-C-discover.snql").hexdigest()[:16]
+        assert root_fingerprint in data
+        assert data[root_fingerprint]["description"] == ""
+        assert data[root_fingerprint]["count()"] == 2
+
+    @django_db_all
+    def test_http_method_filter(self):
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={"transaction": "api/0/foo", "http.method": "GET"},
                 format="json",
             )
 
@@ -531,33 +703,43 @@ class OrganizationSpansAggregationTest(APITestCase, SnubaTestCase):
         with self.feature(self.FEATURES):
             response = self.client.get(
                 self.url,
-                data={"transaction": "api/0/foo", "backend": "nodestore", "http.method": "POST"},
+                data={"transaction": "api/0/foo", "http.method": "POST"},
                 format="json",
             )
 
         assert response.data == {}
 
+    @django_db_all
+    def test_environment_filter(self):
         with self.feature(self.FEATURES):
-            self.client.get(
+            response = self.client.get(
                 self.url,
-                data={"transaction": "api/0/foo", "backend": "indexedSpans", "http.method": "GET"},
+                data={
+                    "transaction": "api/0/foo",
+                    "environment": "production",
+                },
                 format="json",
             )
 
-            assert (
-                Condition(
-                    lhs=Function(
-                        function="ifNull",
-                        parameters=[
-                            Column(
-                                name="tags[transaction.method]",
-                            ),
-                            "",
-                        ],
-                        alias=None,
-                    ),
-                    op=Op.EQ,
-                    rhs="GET",
-                )
-                in mock_query.mock_calls[0].args[0].query.where
+        assert response.data
+        data = response.data
+        root_fingerprint = hashlib.md5(b"e238e6c2e2466b07").hexdigest()[:16]
+        assert root_fingerprint in data
+        assert data[root_fingerprint]["count()"] == 1
+
+        with self.feature(self.FEATURES):
+            response = self.client.get(
+                self.url,
+                data={
+                    "transaction": "api/0/foo",
+                    "environment": ["production", "development"],
+                    "forceNodestore": "true",
+                },
+                format="json",
             )
+
+        assert response.data
+        data = response.data
+        root_fingerprint = hashlib.md5(b"e238e6c2e2466b07").hexdigest()[:16]
+        assert root_fingerprint in data
+        assert data[root_fingerprint]["count()"] == 2

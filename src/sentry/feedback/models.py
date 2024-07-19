@@ -2,12 +2,12 @@ from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import BoundedBigIntegerField, Model, region_silo_only_model, sane_repr
+from sentry.db.models import BoundedBigIntegerField, Model, region_silo_model, sane_repr
 from sentry.db.models.fields import UUIDField
 from sentry.db.models.fields.foreignkey import FlexibleForeignKey
 
 
-@region_silo_only_model
+@region_silo_model
 class Feedback(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -27,6 +27,6 @@ class Feedback(Model):
     class Meta:
         app_label = "feedback"
         db_table = "feedback_feedback"
-        index_together = [("project_id", "date_added")]
+        indexes = [models.Index(fields=("project_id", "date_added"))]
 
     __repr__ = sane_repr("project_id", "feedback_id")

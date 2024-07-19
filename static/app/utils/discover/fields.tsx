@@ -1,14 +1,17 @@
 import isEqual from 'lodash/isEqual';
 
 import {RELEASE_ADOPTION_STAGES} from 'sentry/constants';
-import {MetricsType, Organization, SelectValue} from 'sentry/types';
+import type {SelectValue} from 'sentry/types/core';
+import type {MetricType} from 'sentry/types/metrics';
+import type {Organization} from 'sentry/types/organization';
 import {assert} from 'sentry/types/utils';
+import {isMRIField} from 'sentry/utils/metrics/mri';
 import {
   SESSIONS_FIELDS,
   SESSIONS_OPERATIONS,
 } from 'sentry/views/dashboards/widgetBuilder/releaseWidget/fields';
-import {STARFISH_FIELDS} from 'sentry/views/starfish/components/chart';
-import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/starfish/types';
+import {STARFISH_FIELDS} from 'sentry/views/insights/common/utils/constants';
+import {STARFISH_AGGREGATION_FIELDS} from 'sentry/views/insights/types';
 
 import {
   AGGREGATION_FIELDS,
@@ -53,7 +56,7 @@ type ValidateColumnValueFunction = (data: {
 
 export type ValidateColumnTypes =
   | ColumnType[]
-  | MetricsType[]
+  | MetricType[]
   | ValidateColumnValueFunction;
 
 export type AggregateParameter =
@@ -118,7 +121,47 @@ export type Column = QueryFieldValue;
 
 export type Alignments = 'left' | 'right';
 
-export enum RateUnits {
+export type CountUnit = 'count';
+
+export type PercentageUnit = 'percentage';
+
+export type PercentChangeUnit = 'percent_change';
+
+export enum CurrencyUnit {
+  USD = 'usd',
+}
+
+export enum DurationUnit {
+  NANOSECOND = 'nanosecond',
+  MICROSECOND = 'microsecond',
+  MILLISECOND = 'millisecond',
+  SECOND = 'second',
+  MINUTE = 'minute',
+  HOUR = 'hour',
+  DAY = 'day',
+  WEEK = 'week',
+  MONTH = 'month',
+  YEAR = 'year',
+}
+
+export enum SizeUnit {
+  BIT = 'bit',
+  BYTE = 'byte',
+  KIBIBYTE = 'kibibyte',
+  KILOBYTE = 'kilobyte',
+  MEBIBYTE = 'mebibyte',
+  MEGABYTE = 'megabyte',
+  GIBIBYTE = 'gibibyte',
+  GIGABYTE = 'gigabyte',
+  TEBIBYTE = 'tebibyte',
+  TERABYTE = 'terabyte',
+  PEBIBYTE = 'pebibyte',
+  PETABYTE = 'petabyte',
+  EXBIBYTE = 'exbibyte',
+  EXABYTE = 'exabyte',
+}
+
+export enum RateUnit {
   PER_SECOND = '1/second',
   PER_MINUTE = '1/minute',
   PER_HOUR = '1/hour',
@@ -126,21 +169,21 @@ export enum RateUnits {
 
 // Rates normalized to /second unit
 export const RATE_UNIT_MULTIPLIERS = {
-  [RateUnits.PER_SECOND]: 1,
-  [RateUnits.PER_MINUTE]: 1 / 60,
-  [RateUnits.PER_HOUR]: 1 / (60 * 60),
+  [RateUnit.PER_SECOND]: 1,
+  [RateUnit.PER_MINUTE]: 1 / 60,
+  [RateUnit.PER_HOUR]: 1 / (60 * 60),
 };
 
 export const RATE_UNIT_LABELS = {
-  [RateUnits.PER_SECOND]: '/s',
-  [RateUnits.PER_MINUTE]: '/min',
-  [RateUnits.PER_HOUR]: '/hr',
+  [RateUnit.PER_SECOND]: '/s',
+  [RateUnit.PER_MINUTE]: '/min',
+  [RateUnit.PER_HOUR]: '/hr',
 };
 
 export const RATE_UNIT_TITLE = {
-  [RateUnits.PER_SECOND]: 'Per Second',
-  [RateUnits.PER_MINUTE]: 'Per Minute',
-  [RateUnits.PER_HOUR]: 'Per Hour',
+  [RateUnit.PER_SECOND]: 'Per Second',
+  [RateUnit.PER_MINUTE]: 'Per Minute',
+  [RateUnit.PER_HOUR]: 'Per Hour',
 };
 
 const CONDITIONS_ARGUMENTS: SelectValue<string>[] = [
@@ -407,6 +450,19 @@ export const AGGREGATIONS = {
     isSortable: true,
     multiPlotType: 'line',
   },
+  [AggregationKey.P90]: {
+    ...getDocsAndOutputType(AggregationKey.P90),
+    parameters: [
+      {
+        kind: 'column',
+        columnTypes: validateForNumericAggregate(['duration', 'number', 'percentage']),
+        defaultValue: 'transaction.duration',
+        required: false,
+      },
+    ],
+    isSortable: true,
+    multiPlotType: 'line',
+  },
   [AggregationKey.P95]: {
     ...getDocsAndOutputType(AggregationKey.P95),
     parameters: [
@@ -655,6 +711,57 @@ export const TRACING_FIELDS = [
   ...Object.keys(MEASUREMENT_FIELDS),
   ...SPAN_OP_BREAKDOWN_FIELDS,
   SPAN_OP_RELATIVE_BREAKDOWN_FIELD,
+];
+
+export const TRANSACTION_ONLY_FIELDS: (FieldKey | SpanOpBreakdown)[] = [
+  FieldKey.TRANSACTION_DURATION,
+  FieldKey.TRANSACTION_OP,
+  FieldKey.TRANSACTION_STATUS,
+  FieldKey.PROFILE_ID,
+  SpanOpBreakdown.SPANS_BROWSER,
+  SpanOpBreakdown.SPANS_DB,
+  SpanOpBreakdown.SPANS_HTTP,
+  SpanOpBreakdown.SPANS_RESOURCE,
+  SpanOpBreakdown.SPANS_UI,
+];
+
+export const ERROR_FIELDS = DISCOVER_FIELDS.filter(
+  f => !TRANSACTION_ONLY_FIELDS.includes(f)
+);
+
+export const ERROR_ONLY_FIELDS: (FieldKey | SpanOpBreakdown)[] = [
+  FieldKey.LOCATION,
+  FieldKey.EVENT_TYPE,
+  FieldKey.ERROR_TYPE,
+  FieldKey.ERROR_VALUE,
+  FieldKey.ERROR_MECHANISM,
+  FieldKey.ERROR_HANDLED,
+  FieldKey.ERROR_UNHANDLED,
+  FieldKey.ERROR_RECEIVED,
+  FieldKey.ERROR_MAIN_THREAD,
+  FieldKey.LEVEL,
+  FieldKey.STACK_ABS_PATH,
+  FieldKey.STACK_FILENAME,
+  FieldKey.STACK_PACKAGE,
+  FieldKey.STACK_MODULE,
+  FieldKey.STACK_FUNCTION,
+  FieldKey.STACK_IN_APP,
+  FieldKey.STACK_COLNO,
+  FieldKey.STACK_LINENO,
+  FieldKey.STACK_STACK_LEVEL,
+];
+
+export const TRANSACTION_FIELDS = DISCOVER_FIELDS.filter(
+  f => !ERROR_ONLY_FIELDS.includes(f)
+);
+
+export const ERRORS_AGGREGATION_FUNCTIONS = [
+  AggregationKey.COUNT,
+  AggregationKey.COUNT_IF,
+  AggregationKey.COUNT_UNIQUE,
+  AggregationKey.EPS,
+  AggregationKey.EPM,
+  AggregationKey.LAST_SEEN,
 ];
 
 // This list contains fields/functions that are available with profiling feature.
@@ -1057,7 +1164,7 @@ export function aggregateFunctionOutputType(
     return STARFISH_FIELDS[firstArg].outputType;
   }
 
-  if (!firstArg && STARFISH_AGGREGATION_FIELDS[funcName]) {
+  if (STARFISH_AGGREGATION_FIELDS[funcName]) {
     return STARFISH_AGGREGATION_FIELDS[funcName].defaultOutputType;
   }
 
@@ -1204,6 +1311,7 @@ const alignedTypes: ColumnValueType[] = [
   'percentage',
   'percent_change',
   'rate',
+  'size',
 ];
 
 export function fieldAlignment(
@@ -1212,6 +1320,9 @@ export function fieldAlignment(
   metadata?: Record<string, ColumnValueType>
 ): Alignments {
   let align: Alignments = 'left';
+  if (isMRIField(columnName)) {
+    return 'right';
+  }
   if (columnType) {
     align = alignedTypes.includes(columnType) ? 'right' : 'left';
   }
@@ -1229,7 +1340,7 @@ export function fieldAlignment(
 /**
  * Match on types that are legal to show on a timeseries chart.
  */
-export function isLegalYAxisType(match: ColumnType | MetricsType) {
+export function isLegalYAxisType(match: ColumnType | MetricType) {
   return ['number', 'integer', 'duration', 'percentage'].includes(match);
 }
 

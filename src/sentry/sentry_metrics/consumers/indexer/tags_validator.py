@@ -1,4 +1,4 @@
-from typing import Mapping, Optional
+from collections.abc import Mapping
 
 from sentry.sentry_metrics.configuration import MAX_INDEXED_COLUMN_LENGTH
 
@@ -11,7 +11,7 @@ class TagsValidator:
     MAX_TAG_KEY_LENGTH = MAX_INDEXED_COLUMN_LENGTH
     MAX_TAG_VALUE_LENGTH = MAX_INDEXED_COLUMN_LENGTH
 
-    def is_allowed(self, tags: Optional[Mapping[str, str]]) -> bool:
+    def is_allowed(self, tags: Mapping[str, str] | None) -> bool:
         """
         Returns True if the tags key value pairs are within limits.
         """
@@ -31,8 +31,6 @@ class ReleaseHealthTagsValidator(TagsValidator):
     """
     The release health pipeline has the same limits as the default tags limit enforcer.
     """
-
-    pass
 
 
 class GenericMetricsTagsValidator(TagsValidator):

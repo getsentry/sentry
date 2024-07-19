@@ -1,13 +1,17 @@
+from __future__ import annotations
+
+from typing import Any
+
 from django.db import models
 from django.utils import timezone
 
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import Model, region_silo_only_model, sane_repr
+from sentry.db.models import Model, region_silo_model, sane_repr
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.fields.jsonfield import JSONField
 
 
-@region_silo_only_model
+@region_silo_model
 class AuthIdentityReplica(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -17,7 +21,7 @@ class AuthIdentityReplica(Model):
     user_id = HybridCloudForeignKey("sentry.User", on_delete="CASCADE")
     auth_provider_id = HybridCloudForeignKey("sentry.AuthProvider", on_delete="CASCADE")
     ident = models.CharField(max_length=128)
-    data = JSONField()
+    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
     last_verified = models.DateTimeField(default=timezone.now)
 
     # This represents the time at which this model was created, NOT the date_added of the original auth identity

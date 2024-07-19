@@ -1,11 +1,12 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, Sequence
+from collections.abc import Mapping, Sequence
+from typing import Any
 
 from django.http import HttpResponse
 from rest_framework.request import Request
 
-from sentry.integrations import (
+from sentry.integrations.base import (
     FeatureDescription,
     IntegrationFeatures,
     IntegrationInstallation,
@@ -13,16 +14,16 @@ from sentry.integrations import (
     IntegrationProvider,
 )
 from sentry.integrations.mixins import IssueSyncMixin, RepositoryMixin, ResolveSyncAction
+from sentry.integrations.services.integration.serial import serialize_integration
 from sentry.mediators.plugins.migrator import Migrator
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.integrations.integration import Integration
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization import RpcOrganizationSummary
 from sentry.pipeline import PipelineView
-from sentry.services.hybrid_cloud.integration.serial import serialize_integration
-from sentry.services.hybrid_cloud.organization import RpcOrganizationSummary
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.shared_integrations.exceptions import IntegrationError
+from sentry.users.services.user import RpcUser
+from sentry.users.services.user.service import user_service
 
 
 class ExampleSetupView(PipelineView):

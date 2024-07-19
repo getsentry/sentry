@@ -1,12 +1,11 @@
-import {ComponentProps} from 'react';
+import type {ComponentProps} from 'react';
 import styled from '@emotion/styled';
 
 import Link from 'sentry/components/links/link';
+import {IconFile} from 'sentry/icons';
 import {space} from 'sentry/styles/space';
 import {useLocation} from 'sentry/utils/useLocation';
 import type {StoriesQuery} from 'sentry/views/stories/types';
-
-type DirContent = Record<string, unknown>;
 
 interface Props extends ComponentProps<'div'> {
   files: string[];
@@ -22,22 +21,29 @@ export default function StoryTree({files, style}: Props) {
   );
 }
 
-function FolderContent({path, content}: {content: DirContent; path: string}) {
+function FolderContent({path, content}: {content: TreeMapping; path: string}) {
   const location = useLocation<StoriesQuery>();
   const currentFile = location.query.name;
 
+  // sort folders to the top
+  const entries = Object.entries(content).sort(
+    (a, b) => Number(!!Object.keys(b[1]).length) - Number(!!Object.keys(a[1]).length)
+  );
+
   return (
     <UnorderedList>
-      {Object.entries(content).map(([name, children]) => {
-        const childContent = children as DirContent;
+      {entries.map(([name, children]) => {
         const childPath = toPath(path, name);
 
-        if (Object.keys(childContent).length === 0) {
+        if (Object.keys(children).length === 0) {
           const isCurrent = childPath === currentFile ? true : undefined;
           const to = `/stories/?name=${childPath}`;
           return (
             <ListItem key={name} aria-current={isCurrent}>
-              <FolderLink to={to}>{name}</FolderLink>
+              <FolderLink to={to}>
+                <IconFile size="xs" />
+                {name}
+              </FolderLink>
             </ListItem>
           );
         }
@@ -46,7 +52,7 @@ function FolderContent({path, content}: {content: DirContent; path: string}) {
           <ListItem key={name}>
             <Folder open>
               <FolderName>{name}</FolderName>
-              <FolderContent path={childPath} content={childContent} />
+              <FolderContent path={childPath} content={children} />
             </Folder>
           </ListItem>
         );
@@ -55,7 +61,9 @@ function FolderContent({path, content}: {content: DirContent; path: string}) {
   );
 }
 
-function toTree(files: string[]) {
+interface TreeMapping extends Record<string, TreeMapping> {}
+
+function toTree(files: string[]): TreeMapping {
   const root = {};
   for (const file of files) {
     const parts = file.split('/');
@@ -85,7 +93,7 @@ const ListItem = styled('li')`
   &[aria-current] {
     background: ${p => p.theme.blue300};
     color: ${p => p.theme.white};
-    font-weight: bold;
+    font-weight: ${p => p.theme.fontWeightBold};
   }
   &[aria-current] a:before {
     background: ${p => p.theme.blue300};
@@ -101,13 +109,13 @@ const ListItem = styled('li')`
 
 const Folder = styled('details')`
   cursor: pointer;
-  padding-left: ${space(1.5)};
+  padding-left: ${space(2)};
   position: relative;
 
   &:before {
     content: '⏵';
     position: absolute;
-    left: ${space(0.25)};
+    left: ${space(0.5)};
     top: ${space(0.25)};
   }
   &[open]:before {
@@ -135,9 +143,12 @@ const FolderName = styled('summary')`
 `;
 
 const FolderLink = styled(Link)`
-  display: block;
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  align-items: baseline;
+  gap: ${space(0.5)};
   padding: ${space(0.25)};
-  padding-left: 14px;
+  white-space: nowrap;
 
   color: inherit;
   &:hover {

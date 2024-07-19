@@ -1,12 +1,13 @@
 import {createContext, useContext, useEffect, useState} from 'react';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {Client} from 'sentry/api';
-import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
+import type {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
-import {Organization, PageFilters, Release} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {Organization} from 'sentry/types/organization';
+import type {Release} from 'sentry/types/release';
 import {handleXhrErrorResponse} from 'sentry/utils/handleXhrErrorResponse';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type RequestError from 'sentry/utils/requestError/requestError';
 
 import useApi from '../useApi';
 
@@ -16,7 +17,7 @@ function fetchReleases(
   selection: PageFilters,
   search: string
 ) {
-  const {environments, projects, datetime} = selection;
+  const {environments, projects} = selection;
 
   return api.requestPromise(`/organizations/${orgSlug}/releases/`, {
     method: 'GET',
@@ -26,7 +27,6 @@ function fetchReleases(
       per_page: 50,
       environment: environments,
       query: search,
-      ...normalizeDateTimeParams(datetime),
     },
   });
 }

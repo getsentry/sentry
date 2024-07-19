@@ -1,4 +1,3 @@
-from datetime import timezone
 from unittest.mock import patch
 from urllib.parse import urlencode
 
@@ -14,7 +13,7 @@ from sentry.utils.samples import load_data
 FEATURE_NAMES = ("organizations:performance-view",)
 
 
-@no_silo_test(stable=True)
+@no_silo_test
 class PerformanceVitalDetailsTest(AcceptanceTestCase, SnubaTestCase):
     def setUp(self):
         super().setUp()
@@ -35,7 +34,7 @@ class PerformanceVitalDetailsTest(AcceptanceTestCase, SnubaTestCase):
     @patch("django.utils.timezone.now")
     def test_with_data(self, mock_now):
 
-        mock_now.return_value = before_now().replace(tzinfo=timezone.utc)
+        mock_now.return_value = before_now()
 
         event = load_data("transaction", timestamp=before_now(minutes=10))
         self.store_event(data=event, project_id=self.project.id)

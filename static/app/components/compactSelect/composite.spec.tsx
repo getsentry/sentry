@@ -64,7 +64,7 @@ describe('CompactSelect', function () {
     );
   });
 
-  it('renders disabled trigger button', function () {
+  it('renders disabled trigger button', async function () {
     render(
       <CompositeSelect disabled>
         <CompositeSelect.Region
@@ -77,7 +77,7 @@ describe('CompactSelect', function () {
         />
       </CompositeSelect>
     );
-    expect(screen.getByRole('button')).toBeDisabled();
+    expect(await screen.findByRole('button')).toBeDisabled();
   });
 
   // CompositeSelect renders a series of separate list boxes, each of which has its own
@@ -123,12 +123,16 @@ describe('CompactSelect', function () {
 
     // press arrow up and second option in the first region gets focus
     await userEvent.keyboard('{ArrowUp}');
-    expect(screen.getByRole('option', {name: 'Choice Two'})).toHaveFocus();
+    await waitFor(() => {
+      expect(screen.getByRole('option', {name: 'Choice Two'})).toHaveFocus();
+    });
 
     // press arrow down 3 times and focus moves to the third and fourth option, before
     // wrapping back to the first option
     await userEvent.keyboard('{ArrowDown>3}');
-    expect(screen.getByRole('option', {name: 'Choice One'})).toHaveFocus();
+    await waitFor(() => {
+      expect(screen.getByRole('option', {name: 'Choice One'})).toHaveFocus();
+    });
   });
 
   it('has separate, async self-contained select regions', async function () {

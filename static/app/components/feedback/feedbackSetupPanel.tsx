@@ -1,45 +1,61 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect} from 'react';
 import styled from '@emotion/styled';
 
-import newFeatureImg from 'sentry-images/spot/new-feature.svg';
+import feedbackOnboardingImg from 'sentry-images/spot/feedback-onboarding.svg';
 
-import {LinkButton} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
+import {useFeedbackOnboardingSidebarPanel} from 'sentry/components/feedback/useFeedbackOnboarding';
 import Panel from 'sentry/components/panels/panel';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {trackAnalytics} from 'sentry/utils/analytics';
+import useOrganization from 'sentry/utils/useOrganization';
 
 export default function FeedbackSetupPanel() {
-  const docsButton = (
-    <LinkButton
-      external
-      href="https://github.com/getsentry/sentry-javascript/blob/develop/packages/feedback/README.md"
-      priority="primary"
-    >
-      {t('Set Up Now')}
-    </LinkButton>
-  );
+  const organization = useOrganization();
+  const {activateSidebar} = useFeedbackOnboardingSidebarPanel();
+
+  useEffect(() => {
+    trackAnalytics('feedback.index-setup-viewed', {
+      organization,
+    });
+  }, [organization]);
 
   return (
-    <Panel>
+    <NoMarginPanel>
       <Container>
         <IlloBox>
-          <img src={newFeatureImg} />
+          <img src={feedbackOnboardingImg} />
         </IlloBox>
         <StyledBox>
           <Fragment>
             <h3>{t('Introducing the New User Feedback')}</h3>
             <p>
               {t(
-                "Users can submit feedback anytime on issues they're experiencing on your app via our feedback widget."
+                'Allow your users to create bug reports so they can let you know about these sneaky issues right away. Every report will automatically include related replays, tags, and errors, making fixing the issue dead simple.'
               )}
             </p>
-            {docsButton}
+            <Button
+              external
+              onClick={activateSidebar}
+              priority="primary"
+              analyticsEventName="Clicked Feedback Onboarding Setup - Feedback Index"
+              analyticsEventKey="feedback.index-click-onboarding-setup"
+            >
+              {t('Set Up Now')}
+            </Button>
           </Fragment>
         </StyledBox>
       </Container>
-    </Panel>
+    </NoMarginPanel>
   );
 }
+
+const NoMarginPanel = styled(Panel)`
+  max-height: 100%;
+  overflow: hidden;
+  margin: 0;
+`;
 
 const Container = styled('div')`
   padding: ${space(3)};

@@ -2,7 +2,7 @@ import {Fragment} from 'react';
 import styled from '@emotion/styled';
 
 import {addErrorMessage} from 'sentry/actionCreators/indicator';
-import {ModalRenderProps} from 'sentry/actionCreators/modal';
+import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
@@ -15,7 +15,7 @@ import PanelBody from 'sentry/components/panels/panelBody';
 import {IconCheckmark, IconNot} from 'sentry/icons';
 import {t, tct} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   CodeOwner,
   CodeownersFile,
   Integration,
@@ -131,7 +131,7 @@ class AddCodeOwnerModal extends DeprecatedAsyncComponent<Props, State> {
   };
 
   handleAddedFile(data: CodeOwner) {
-    this.props.onSave && this.props.onSave(data);
+    this.props.onSave?.(data);
     this.props.closeModal();
   }
 

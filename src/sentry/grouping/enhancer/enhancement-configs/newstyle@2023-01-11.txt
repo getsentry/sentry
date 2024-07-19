@@ -62,6 +62,7 @@ family:native function:kscrash_*                                  -app -group
 family:native function:*sentrycrash_*                             -app -group
 family:native function:"?[[]KSCrash*"                             -app -group
 family:native function:"?[[]RNSentry*"                            -app -group
+family:native function:"__*[[]Sentry*"                            -app -group
 
 # Projects shipping their own class called "SentryFoo" can then easily override this in their
 # own grouping enhancers.
@@ -82,6 +83,17 @@ error.mechanism:NSError invert-stacktrace=1
 # Dart/Flutter stacktraces that are not in-app
 family:javascript stack.abs_path:org-dartlang-sdk:///** -app -group
 family:javascript module:**/packages/flutter/** -app
+# sentry-dart SDK frames are not in app
+stack.abs_path:package:sentry/** -app -group
+stack.abs_path:package:sentry_flutter/** -app -group
+# other sentry-dart packages that are non in app
+stack.abs_path:package:sentry_logging/** -app -group
+stack.abs_path:package:sentry_dio/** -app -group
+stack.abs_path:package:sentry_file/** -app -group
+stack.abs_path:package:sentry_hive/** -app -group
+stack.abs_path:package:sentry_isar/** -app -group
+stack.abs_path:package:sentry_sqflite/** -app -group
+stack.abs_path:package:sentry_drift/** -app -group
 
 # Categorization of frames
 family:native package:"/System/Library/Frameworks/**" category=system
@@ -151,7 +163,7 @@ family:native package:libAudioToolboxUtility.dylib category=av
 family:native function:std::_* category=internals
 family:native function:__swift_* category=internals
 family:native function:block_destroy_helper* category=internals
-family:native function:*_block_invoke* category=internals
+family:native function:*_block_invoke* app:no category=internals
 
 family:native package:/usr/lib/system/** function:start category=threadbase
 family:native package:libdyld.dylib function:start category=threadbase
@@ -165,7 +177,6 @@ family:native function:_pthread_start category=threadbase
 family:native function:__pthread_start category=threadbase
 family:native function:_pthread_body category=threadbase
 family:native function:_dispatch_worker_thread2 category=threadbase
-family:native function:_dispatch_client_callout category=threadbase
 family:native function:start_wqthread category=threadbase
 family:native function:_pthread_wqthread category=threadbase
 family:native function:boost::*::thread_proxy category=threadbase
@@ -279,38 +290,6 @@ module:java.lang.Runtime function:loadLibrary* category=load
 
 family:native function:pthread_mutex_lock category=lock
 
-# not interesting at all, if for some reason this gets picked as grouping
-# frame, add the next one too
-category:free +prefix
-category:malloc +prefix
-
-# lock: fails to get acquired/released
-category:lock +sentinel +prefix
-
-# load: dylib/module fails to get loaded
-category:load +sentinel +prefix
-
-# driver crash, similar reasoning as for GL
-category:driver +sentinel +prefix
-
-# UI: This is mostly interesting for ANR, where we need to pick interesting UI
-# frames to group by. Sometimes it can also happen that some UI framework
-# crashes without the (calling) app being at fault, that's where this also gets
-# useful.
-category:ui +sentinel +prefix
-
-# GL: We've observed that the same sequence of app
-# ("submit data buffer") frames triggers very different crashes in there.
-category:gl +sentinel
-
-# runtime: frames from a garbage collector, JIT or something else in the language
-# runtime. Only add frames to this category if you think their presence makes it
-# unlikely that app frames are relevant, e.g. because app frames can't call the
-# JIT/GC directly, or at least not this way and it's really the runtime being
-# buggy, not the app (or at least unlikely that it's the app code currently running).
-category:runtime +sentinel
-
-
 # Ignore driver frame if it is directly calling another driver frame. This
 # removes a lot of noise from the stack especially if most of the called frames
 # failed symbolication, stack scanning was done or to paper over differences in
@@ -327,7 +306,7 @@ category:driver | [ category:driver ] category=internals
 
 # abort() and exception raising is technically the culprit for crashes, but not
 # the thing we want to show.
-category:throw +prefix ^-group
+category:throw ^-group
 
 # On Windows, _purecall internally aborts when the function pointer is invalid.
 # We want to treat this the same as a segfault happening before calling
@@ -449,6 +428,7 @@ module:org.glassfish.* -app
 module:org.jboss.* -app
 module:feign.* -app
 module:io.opentelemetry.* -app
+module:io.sentry.* -app -group
 
 ## kotlin
 module:kotlin.* -app

@@ -1,10 +1,10 @@
-import {browserHistory} from 'react-router';
-import selectEvent from 'react-select-event';
-import {GroupingConfigs} from 'sentry-fixture/groupingConfigs';
-import {Organization} from 'sentry-fixture/organization';
+import {GroupingConfigsFixture} from 'sentry-fixture/groupingConfigs';
+import {LocationFixture} from 'sentry-fixture/locationFixture';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RouterFixture} from 'sentry-fixture/routerFixture';
 
 import {
-  act,
   fireEvent,
   render,
   renderGlobalModal,
@@ -12,11 +12,13 @@ import {
   userEvent,
   waitFor,
 } from 'sentry-test/reactTestingLibrary';
+import selectEvent from 'sentry-test/selectEvent';
 
 import {addErrorMessage, addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {removePageFiltersStorage} from 'sentry/components/organizations/pageFilters/persistence';
 import ProjectsStore from 'sentry/stores/projectsStore';
-import ProjectContext from 'sentry/views/projects/projectContext';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import ProjectContextProvider from 'sentry/views/projects/projectContext';
 import ProjectGeneralSettings from 'sentry/views/settings/projectGeneralSettings';
 
 jest.mock('sentry/actionCreators/indicator');
@@ -27,8 +29,8 @@ function getField(role, name) {
 }
 
 describe('projectGeneralSettings', function () {
-  const org = Organization();
-  const project = TestStubs.Project({
+  const organization = OrganizationFixture();
+  const project = ProjectFixture({
     subjectPrefix: '[my-org]',
     resolveAge: 48,
     allowedDomains: ['example.com', 'https://example.com'],
@@ -37,13 +39,12 @@ describe('projectGeneralSettings', function () {
     securityTokenHeader: 'x-security-header',
     verifySSL: true,
   });
-  const groupingConfigs = GroupingConfigs();
-  let routerContext;
+  const groupingConfigs = GroupingConfigsFixture();
   let putMock;
 
-  const router = TestStubs.router();
+  const router = RouterFixture();
   const routerProps = {
-    location: TestStubs.location(),
+    location: LocationFixture(),
     routes: router.routes,
     route: router.routes[0],
     router,
@@ -52,34 +53,25 @@ describe('projectGeneralSettings', function () {
 
   beforeEach(function () {
     jest.spyOn(window.location, 'assign');
-    routerContext = TestStubs.routerContext([
-      {
-        router: TestStubs.router({
-          params: {
-            projectId: project.slug,
-          },
-        }),
-      },
-    ]);
 
     MockApiClient.clearMockResponses();
     MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/grouping-configs/`,
+      url: `/organizations/${organization.slug}/grouping-configs/`,
       method: 'GET',
       body: groupingConfigs,
     });
     MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/`,
+      url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'GET',
       body: project,
     });
     MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/environments/`,
+      url: `/projects/${organization.slug}/${project.slug}/environments/`,
       method: 'GET',
       body: [],
     });
     MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/users/`,
+      url: `/organizations/${organization.slug}/users/`,
       method: 'GET',
       body: [],
     });
@@ -93,7 +85,9 @@ describe('projectGeneralSettings', function () {
 
   it('renders form fields', function () {
     render(
-      <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />
+      <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
+
+      {organization}
     );
 
     expect(getField('textbox', 'Name')).toHaveValue('Project Name');
@@ -113,11 +107,14 @@ describe('projectGeneralSettings', function () {
   });
 
   it('disables scrapeJavaScript when equivalent org setting is false', function () {
-    routerContext.context.organization.scrapeJavaScript = false;
+    const orgWithoutScrapeJavaScript = OrganizationFixture({
+      scrapeJavaScript: false,
+    });
+
     render(
       <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
       {
-        context: routerContext,
+        organization: orgWithoutScrapeJavaScript,
       }
     );
 
@@ -127,12 +124,13 @@ describe('projectGeneralSettings', function () {
 
   it('project admins can remove project', async function () {
     const deleteMock = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/`,
+      url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'DELETE',
     });
 
     render(
-      <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />
+      <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
+      {organization}
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Remove Project'}));
@@ -147,12 +145,13 @@ describe('projectGeneralSettings', function () {
 
   it('project admins can transfer project', async function () {
     const deleteMock = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/transfer/`,
+      url: `/projects/${organization.slug}/${project.slug}/transfer/`,
       method: 'POST',
     });
 
     render(
-      <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />
+      <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
+      {organization}
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Transfer Project'}));
@@ -164,7 +163,7 @@ describe('projectGeneralSettings', function () {
 
     await waitFor(() =>
       expect(deleteMock).toHaveBeenCalledWith(
-        `/projects/${org.slug}/${project.slug}/transfer/`,
+        `/projects/${organization.slug}/${project.slug}/transfer/`,
         expect.objectContaining({
           method: 'POST',
           data: {
@@ -179,14 +178,15 @@ describe('projectGeneralSettings', function () {
 
   it('handles errors on transfer project', async function () {
     const deleteMock = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/transfer/`,
+      url: `/projects/${organization.slug}/${project.slug}/transfer/`,
       method: 'POST',
       statusCode: 400,
       body: {detail: 'An organization owner could not be found'},
     });
 
     render(
-      <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />
+      <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
+      {organization}
     );
 
     await userEvent.click(screen.getByRole('button', {name: 'Transfer Project'}));
@@ -209,11 +209,13 @@ describe('projectGeneralSettings', function () {
   });
 
   it('displays transfer/remove message for non-admins', function () {
-    routerContext.context.organization.access = ['org:read'];
+    const nonAdminOrg = OrganizationFixture({
+      access: ['org:read'],
+    });
 
     const {container} = render(
       <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
-      {context: routerContext}
+      {organization: nonAdminOrg}
     );
 
     expect(container).toHaveTextContent(
@@ -225,13 +227,11 @@ describe('projectGeneralSettings', function () {
   });
 
   it('disables the form for users without write permissions', function () {
-    const readOnlyOrg = Organization({access: ['org:read']});
-    routerContext.context.organization = readOnlyOrg;
+    const readOnlyOrg = OrganizationFixture({access: ['org:read']});
 
     render(
       <ProjectGeneralSettings {...routerProps} params={{projectId: project.slug}} />,
       {
-        context: routerContext,
         organization: readOnlyOrg,
       }
     );
@@ -247,7 +247,7 @@ describe('projectGeneralSettings', function () {
     ProjectsStore.loadInitialData([project]);
 
     putMock = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/`,
+      url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'PUT',
       body: {
         ...project,
@@ -256,15 +256,15 @@ describe('projectGeneralSettings', function () {
     });
 
     render(
-      <ProjectContext projectSlug={project.slug}>
+      <ProjectContextProvider projectSlug={project.slug}>
         <ProjectGeneralSettings
           {...routerProps}
           routes={[]}
-          location={routerContext.context.location}
+          location={LocationFixture()}
           params={params}
         />
-      </ProjectContext>,
-      {context: routerContext}
+      </ProjectContextProvider>,
+      {organization}
     );
 
     const platformSelect = await screen.findByRole('textbox', {name: 'Platform'});
@@ -281,7 +281,7 @@ describe('projectGeneralSettings', function () {
     ProjectsStore.loadInitialData([project]);
 
     putMock = MockApiClient.addMockResponse({
-      url: `/projects/${org.slug}/${project.slug}/`,
+      url: `/projects/${organization.slug}/${project.slug}/`,
       method: 'PUT',
       body: {
         ...project,
@@ -290,15 +290,15 @@ describe('projectGeneralSettings', function () {
     });
 
     render(
-      <ProjectContext projectSlug={project.slug}>
+      <ProjectContextProvider projectSlug={project.slug}>
         <ProjectGeneralSettings
           {...routerProps}
           routes={[]}
-          location={routerContext.context.location}
+          location={LocationFixture()}
           params={params}
         />
-      </ProjectContext>,
-      {context: routerContext}
+      </ProjectContextProvider>,
+      {organization}
     );
 
     await userEvent.type(
@@ -319,35 +319,38 @@ describe('projectGeneralSettings', function () {
 
   describe('Non-"save on blur" Field', function () {
     beforeEach(function () {
-      const params = {projectId: project.slug};
       ProjectsStore.loadInitialData([project]);
 
       putMock = MockApiClient.addMockResponse({
-        url: `/projects/${org.slug}/${project.slug}/`,
+        url: `/projects/${organization.slug}/${project.slug}/`,
         method: 'PUT',
         body: {
           ...project,
           slug: 'new-project',
         },
       });
+    });
 
+    function renderProjectGeneralSettings() {
+      const params = {projectId: project.slug};
       render(
-        <ProjectContext projectSlug={project.slug}>
+        <ProjectContextProvider projectSlug={project.slug}>
           <ProjectGeneralSettings
             {...routerProps}
             routes={[]}
-            location={routerContext.context.location}
+            location={LocationFixture()}
             params={params}
           />
-        </ProjectContext>,
-        {context: routerContext}
+        </ProjectContextProvider>,
+        {organization}
       );
-    });
+    }
 
     it('can cancel unsaved changes for a field', async function () {
+      renderProjectGeneralSettings();
       expect(screen.queryByRole('button', {name: 'Cancel'})).not.toBeInTheDocument();
 
-      const autoResolveSlider = getField('slider', 'Auto Resolve');
+      const autoResolveSlider = await screen.findByRole('slider', {name: 'Auto Resolve'});
       expect(autoResolveSlider).toHaveValue('19');
 
       // Change value
@@ -368,9 +371,10 @@ describe('projectGeneralSettings', function () {
     });
 
     it('saves when value is changed and "Save" clicked', async function () {
+      renderProjectGeneralSettings();
       expect(screen.queryByRole('button', {name: 'Save'})).not.toBeInTheDocument();
 
-      const autoResolveSlider = getField('slider', 'Auto Resolve');
+      const autoResolveSlider = await screen.findByRole('slider', {name: 'Auto Resolve'});
       expect(autoResolveSlider).toHaveValue('19');
 
       // Change value
@@ -382,17 +386,18 @@ describe('projectGeneralSettings', function () {
 
       // Click "Save"
       await userEvent.click(screen.getByRole('button', {name: 'Save'}));
-      await act(tick);
 
       // API endpoint should have been called
-      expect(putMock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          data: {
-            resolveAge: 12,
-          },
-        })
-      );
+      await waitFor(() => {
+        expect(putMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: {
+              resolveAge: 12,
+            },
+          })
+        );
+      });
 
       expect(screen.queryByRole('button', {name: 'Save'})).not.toBeInTheDocument();
     });

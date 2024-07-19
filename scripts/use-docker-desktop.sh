@@ -2,7 +2,7 @@
 
 set -e
 
-colima stop
+~/.local/share/sentry-devenv/bin/colima stop
 
 echo "Using docker cli from cask. You may be prompted for your password."
 # brew --prefix doesn't seem to apply here - it's just /usr/local
@@ -22,9 +22,6 @@ with open(os.path.expanduser("~/.docker/config.json"), "rb") as f:
 with open(os.path.expanduser("~/.docker/config.json"), "w") as f:
     f.write(json.dumps(config))
 EOF
-
-echo "Unlinking colima."
-brew unlink colima
 
 echo "Starting Docker."
 open -a /Applications/Docker.app --args --unattended

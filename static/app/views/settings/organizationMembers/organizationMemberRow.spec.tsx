@@ -1,11 +1,13 @@
-import {Organization} from 'sentry-fixture/organization';
+import {MemberFixture} from 'sentry-fixture/member';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {UserFixture} from 'sentry-fixture/user';
 
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import OrganizationMemberRow from 'sentry/views/settings/organizationMembers/organizationMemberRow';
 
 describe('OrganizationMemberRow', function () {
-  const member = TestStubs.Member({
+  const member = MemberFixture({
     id: '1',
     email: '',
     name: '',
@@ -14,38 +16,26 @@ describe('OrganizationMemberRow', function () {
     pending: false,
     flags: {
       'sso:linked': false,
+      'idp:provisioned': false,
+      'idp:role-restricted': false,
+      'member-limit:restricted': false,
+      'partnership:restricted': false,
+      'sso:invalid': false,
     },
-    user: {
+    user: UserFixture({
       id: '',
       has2fa: false,
       name: 'sentry@test.com',
-    },
-    groupOrgRoles: [],
+    }),
   });
 
-  const managerTeam = TestStubs.Team({
-    orgRole: 'manager',
-  });
-
-  const memberOnManagerTeam = TestStubs.Member({
-    id: '2',
-    orgRole: 'member',
-    teams: [managerTeam.slug],
-    groupOrgRoles: [
-      {
-        teamSlug: managerTeam.slug,
-        role: {name: 'Manager'},
-      },
-    ],
-  });
-
-  const currentUser = TestStubs.User({
+  const currentUser = UserFixture({
     id: '2',
     email: 'currentUser@email.com',
   });
 
   const defaultProps: React.ComponentProps<typeof OrganizationMemberRow> = {
-    organization: Organization(),
+    organization: OrganizationFixture(),
     status: '',
     requireLink: false,
     memberCanLeave: false,
@@ -79,9 +69,9 @@ describe('OrganizationMemberRow', function () {
       render(
         <OrganizationMemberRow
           {...defaultProps}
-          member={TestStubs.Member({
+          member={MemberFixture({
             ...member,
-            user: TestStubs.User({...member.user, has2fa: true}),
+            user: UserFixture({...member.user, has2fa: true}),
           })}
         />
       );
@@ -96,7 +86,7 @@ describe('OrganizationMemberRow', function () {
           {...defaultProps}
           member={{
             ...member,
-            user: {...member.user, has2fa: false},
+            user: UserFixture({...member.user, has2fa: false}),
           }}
         />
       );
@@ -208,8 +198,15 @@ describe('OrganizationMemberRow', function () {
           {...defaultProps}
           member={{
             ...member,
-            flags: {'sso:linked': true},
-            user: {...member.user, has2fa: false},
+            flags: {
+              'sso:linked': true,
+              'idp:provisioned': false,
+              'idp:role-restricted': false,
+              'member-limit:restricted': false,
+              'partnership:restricted': false,
+              'sso:invalid': false,
+            },
+            user: UserFixture({...member.user, has2fa: false}),
           }}
         />
       );
@@ -290,40 +287,6 @@ describe('OrganizationMemberRow', function () {
       render(<OrganizationMemberRow {...props} canRemoveMembers />);
 
       expect(removeButton()).toBeEnabled();
-    });
-  });
-
-  describe('render org role', function () {
-    it('renders org role without tooltip if no org roles from team membership', function () {
-      render(
-        <OrganizationMemberRow
-          {...defaultProps}
-          member={{...member, user: {...member.user}}}
-        />
-      );
-
-      expect(screen.getByText('Member')).toBeInTheDocument();
-
-      const questionTooltip = screen.queryByTestId('more-information');
-      expect(questionTooltip).not.toBeInTheDocument();
-    });
-  });
-
-  it('renders org role info tooltip if member has org roles from team membership', async function () {
-    render(
-      <OrganizationMemberRow
-        {...defaultProps}
-        member={{...memberOnManagerTeam, user: {...memberOnManagerTeam.user}}}
-      />
-    );
-
-    const questionTooltip = screen.getByTestId('more-information');
-    expect(questionTooltip).toBeInTheDocument();
-
-    await userEvent.hover(questionTooltip);
-    await waitFor(() => {
-      expect(screen.getByText(`#${managerTeam.slug}`)).toBeInTheDocument();
-      expect(screen.getByText(': Manager')).toBeInTheDocument();
     });
   });
 });

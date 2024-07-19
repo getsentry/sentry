@@ -1,6 +1,7 @@
 import {useCallback, useRef} from 'react';
 
 import {useReplayContext} from 'sentry/components/replays/replayContext';
+import useCurrentHoverTime from 'sentry/utils/replays/playback/providers/useCurrentHoverTime';
 
 type RecordType = {
   offsetMs: number;
@@ -9,25 +10,41 @@ type RecordType = {
     | {
         nodeId: number;
         label?: string;
+      }
+    | {
+        element: {
+          element: string;
+          target: string[];
+        };
+        label: string;
       };
 };
 
 function getNodeIdAndLabel(record: RecordType) {
-  if (record.data && typeof record.data === 'object' && 'nodeId' in record.data) {
-    return {nodeId: record.data.nodeId, annotation: record.data.label};
+  if (!record.data || typeof record.data !== 'object') {
+    return undefined;
+  }
+  const data = record.data;
+  if (
+    'element' in data &&
+    'target' in data.element &&
+    Array.isArray(data.element.target)
+  ) {
+    return {
+      selector: data.element.target.join(' '),
+      annotation: data.label,
+    };
+  }
+  if ('nodeId' in data) {
+    return {nodeId: data.nodeId, annotation: record.data.label};
   }
   return undefined;
 }
 
 function useCrumbHandlers() {
-  const {
-    replay,
-    clearAllHighlights,
-    addHighlight,
-    removeHighlight,
-    setCurrentTime,
-    setCurrentHoverTime,
-  } = useReplayContext();
+  const {replay, clearAllHighlights, addHighlight, removeHighlight, setCurrentTime} =
+    useReplayContext();
+  const [, setCurrentHoverTime] = useCurrentHoverTime();
   const startTimestampMs = replay?.getReplay()?.started_at?.getTime() || 0;
 
   const mouseEnterCallback = useRef<{

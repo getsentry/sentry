@@ -5,7 +5,8 @@ import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender'
 
 import {VirtualizedTreeReducer} from './useVirtualizedTreeReducer';
 import {VirtualizedTree} from './VirtualizedTree';
-import {VirtualizedTreeNode} from './VirtualizedTreeNode';
+import type {VirtualizedTreeNode} from './VirtualizedTreeNode';
+import type {VirtualizedTreeRenderedRow} from './virtualizedTreeUtils';
 import {
   cancelAnimationTimeout,
   computeVirtualizedTreeNodeScrollTop,
@@ -14,7 +15,6 @@ import {
   markRowAsClicked,
   markRowAsHovered,
   requestAnimationTimeout,
-  VirtualizedTreeRenderedRow,
 } from './virtualizedTreeUtils';
 
 type MaybeContainers = HTMLElement | HTMLElement[] | null;
@@ -131,9 +131,9 @@ export function useVirtualizedTree<T extends TreeLike>(
   const hoveredGhostRowRef = useRef<HTMLDivElement | null>(null);
 
   const [state, dispatch] = useReducer(VirtualizedTreeReducer, {
+    scrollTop: 0,
     roots: props.tree,
     selectedNodeIndex: props.initialSelectedNodeIndex ?? null,
-    scrollTop: 0,
     overscroll: props.overscroll ?? DEFAULT_OVERSCROLL_ITEMS,
     scrollHeight: getMaxScrollHeight(props.scrollContainer),
   });

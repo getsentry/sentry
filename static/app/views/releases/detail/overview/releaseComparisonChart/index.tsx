@@ -1,10 +1,9 @@
 import {Fragment, useCallback, useEffect, useMemo, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
 import * as Sentry from '@sentry/react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import {Button} from 'sentry/components/button';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
 import {ChartContainer} from 'sentry/components/charts/styles';
@@ -13,29 +12,32 @@ import ErrorBoundary from 'sentry/components/errorBoundary';
 import GlobalSelectionLink from 'sentry/components/globalSelectionLink';
 import NotAvailable from 'sentry/components/notAvailable';
 import Panel from 'sentry/components/panels/panel';
-import PanelTable from 'sentry/components/panels/panelTable';
+import {PanelTable} from 'sentry/components/panels/panelTable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconArrow, IconChevron, IconList, IconWarning} from 'sentry/icons';
 import {t, tct, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {PlatformKey} from 'sentry/types';
-import {
+import type {
   Organization,
-  ReleaseComparisonChartType,
+  PlatformKey,
   ReleaseProject,
   ReleaseWithHealth,
   SessionApiResponse,
+} from 'sentry/types';
+import {
+  ReleaseComparisonChartType,
   SessionFieldWithOperation,
   SessionStatus,
 } from 'sentry/types';
 import {defined} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
-import {formatPercentage} from 'sentry/utils/formatters';
 import getDynamicText from 'sentry/utils/getDynamicText';
+import {formatPercentage} from 'sentry/utils/number/formatPercentage';
 import {decodeList, decodeScalar} from 'sentry/utils/queryString';
 import {getCount, getCrashFreeRate, getSessionStatusRate} from 'sentry/utils/sessions';
-import {Color} from 'sentry/utils/theme';
+import type {Color} from 'sentry/utils/theme';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {
   displaySessionStatusPercent,
@@ -881,8 +883,8 @@ function ReleaseComparisonChart({
     hasHealthData
       ? ReleaseComparisonChartType.CRASH_FREE_SESSIONS
       : hasPerformance
-      ? ReleaseComparisonChartType.FAILURE_RATE
-      : ReleaseComparisonChartType.ERROR_COUNT
+        ? ReleaseComparisonChartType.FAILURE_RATE
+        : ReleaseComparisonChartType.ERROR_COUNT
   ) as ReleaseComparisonChartType;
 
   let chart = [...charts, ...additionalCharts].find(ch => ch.type === activeChart);

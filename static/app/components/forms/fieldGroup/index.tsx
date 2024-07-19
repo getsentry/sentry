@@ -8,7 +8,7 @@ import FieldLabel from './fieldLabel';
 import FieldQuestion from './fieldQuestion';
 import FieldRequiredBadge from './fieldRequiredBadge';
 import FieldWrapper from './fieldWrapper';
-import {FieldGroupProps} from './types';
+import type {FieldGroupProps} from './types';
 
 /**
  * A component to render a Field (i.e. label + help + form "control"),

@@ -45,6 +45,13 @@ const durationMappings: Record<ProfilingFormatterUnit, number> = {
   watts: 1,
 };
 
+export function assertValidProfilingUnit(
+  unit: string
+): asserts unit is ProfilingFormatterUnit {
+  if (unit in durationMappings) return;
+  throw new Error(`Invalid profiling unit: ${unit}`);
+}
+
 export function fromNanoJoulesToWatts(nanojoules: number, seconds: number) {
   const joules = nanojoules * durationMappings.nanojoules;
   return joules / seconds;
@@ -155,7 +162,7 @@ export function makeFormatter(
     };
   }
 
-  return (value: number) => {
+  return function formatToDuration(value: number): string {
     const duration = value * multiplier;
 
     if (duration >= 1) {
@@ -189,4 +196,12 @@ export function makeTimelineFormatter(from: ProfilingFormatterUnit | string) {
 
     return `${value < 0 ? '-' : ''}${pad(m, 2)}:${pad(s % 60, 2)}.${pad(ms % 1e3, 3)}`;
   };
+}
+
+export function relativeWeight(base: number, value: number) {
+  // Make sure we dont divide by zero
+  if (!base || !value) {
+    return 0;
+  }
+  return (value / base) * 100;
 }

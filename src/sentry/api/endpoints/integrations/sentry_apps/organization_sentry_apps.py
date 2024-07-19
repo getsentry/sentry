@@ -1,6 +1,7 @@
 from rest_framework.request import Request
 from rest_framework.response import Response
 
+from sentry.api.api_owners import ApiOwner
 from sentry.api.api_publish_status import ApiPublishStatus
 from sentry.api.base import control_silo_endpoint
 from sentry.api.bases import add_integration_platform_metric_tag
@@ -9,12 +10,13 @@ from sentry.api.paginator import OffsetPaginator
 from sentry.api.serializers import serialize
 from sentry.constants import SentryAppStatus
 from sentry.models.integrations.sentry_app import SentryApp
-from sentry.services.hybrid_cloud.organization import RpcOrganization
-from sentry.services.hybrid_cloud.organization.model import RpcUserOrganizationContext
+from sentry.organizations.services.organization import RpcOrganization
+from sentry.organizations.services.organization.model import RpcUserOrganizationContext
 
 
 @control_silo_endpoint
 class OrganizationSentryAppsEndpoint(ControlSiloOrganizationEndpoint):
+    owner = ApiOwner.INTEGRATIONS
     publish_status = {
         "GET": ApiPublishStatus.UNKNOWN,
     }

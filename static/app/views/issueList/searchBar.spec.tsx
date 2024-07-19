@@ -1,20 +1,21 @@
-import {Tags} from 'sentry-fixture/tags';
+import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 
 import TagStore from 'sentry/stores/tagStore';
+import {IsFieldValues} from 'sentry/utils/fields';
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 
 describe('IssueListSearchBar', function () {
   let recentSearchMock;
   let defaultProps;
 
-  const {routerContext, organization} = initializeOrg();
+  const {router, organization} = initializeOrg();
 
   beforeEach(function () {
     TagStore.reset();
-    TagStore.loadTagsSuccess(Tags());
+    TagStore.loadTagsSuccess(TagsFixture());
 
     defaultProps = {
       organization,
@@ -42,7 +43,7 @@ describe('IssueListSearchBar', function () {
       });
 
       render(<IssueListSearchBar {...defaultProps} />, {
-        context: routerContext,
+        router,
       });
 
       await userEvent.click(screen.getByRole('textbox'));
@@ -68,7 +69,7 @@ describe('IssueListSearchBar', function () {
       });
 
       render(<IssueListSearchBar {...defaultProps} />, {
-        context: routerContext,
+        router,
       });
 
       await userEvent.click(screen.getByRole('textbox'));
@@ -85,7 +86,7 @@ describe('IssueListSearchBar', function () {
       });
 
       render(<IssueListSearchBar {...defaultProps} />, {
-        context: routerContext,
+        router,
       });
 
       await userEvent.click(screen.getByRole('textbox'));
@@ -110,7 +111,7 @@ describe('IssueListSearchBar', function () {
       const onSearch = jest.fn();
 
       render(<IssueListSearchBar {...defaultProps} onSearch={onSearch} />, {
-        context: routerContext,
+        router,
       });
 
       await userEvent.click(screen.getByRole('textbox'));
@@ -148,7 +149,7 @@ describe('IssueListSearchBar', function () {
         body: [],
       });
 
-      render(<IssueListSearchBar {...defaultProps} />, {context: routerContext});
+      render(<IssueListSearchBar {...defaultProps} />, {router});
 
       await userEvent.click(screen.getByRole('textbox'));
       await userEvent.paste('is:', {delay: null});
@@ -164,44 +165,77 @@ describe('IssueListSearchBar', function () {
         })
       );
     });
+  });
 
-    // Flaky due to timeouts, see https://github.com/getsentry/sentry/issues/42898
-    // eslint-disable-next-line jest/no-disabled-tests
-    it.skip('cycles through keyboard navigation for selection', async function () {
+  describe('Tags and Fields', function () {
+    const {router: routerWithFlag, organization: orgWithFlag} = initializeOrg();
+    orgWithFlag.features = ['issue-stream-search-query-builder'];
+
+    const newDefaultProps = {
+      organization: orgWithFlag,
+      query: '',
+      statsPeriod: '7d',
+      onSearch: jest.fn(),
+    };
+
+    it('displays the correct options for the is tag', async function () {
       MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/tags/device.orientation/values/',
-        method: 'GET',
+        url: '/organizations/org-slug/tags/',
         body: [],
       });
 
-      render(<IssueListSearchBar {...defaultProps} />, {context: routerContext});
+      render(<IssueListSearchBar {...newDefaultProps} />, {
+        router: routerWithFlag,
+      });
 
-      const textarea = screen.getByRole('textbox');
-
-      // Keyboard navigate to first item and select
-      await userEvent.type(textarea, 't');
-      await waitFor(() =>
-        expect(screen.getAllByTestId('search-autocomplete-item')[0]).toBeInTheDocument()
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.paste('is:', {delay: null});
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Edit value for filter: is'})
       );
-      await userEvent.keyboard('{ArrowDown}{Tab}');
-      expect(textarea).not.toHaveValue('t');
-      const firstItemValue = textarea.textContent;
 
-      // Keyboard navigate to second item and select
-      await userEvent.keyboard('{selectall}{backspace}t');
-      await waitFor(() =>
-        expect(screen.getAllByTestId('search-autocomplete-item')[0]).toBeInTheDocument()
-      );
-      await userEvent.keyboard('{ArrowDown}{ArrowDown}{Tab}');
-      expect(textarea).not.toHaveValue(firstItemValue);
+      Object.values(IsFieldValues).forEach(value => {
+        expect(screen.getByRole('option', {name: value})).toBeInTheDocument();
+      });
+    });
 
-      // Keyboard navigate to second item, then back to first item and select
-      await userEvent.keyboard('{selectall}{backspace}t');
-      await waitFor(() =>
-        expect(screen.getAllByTestId('search-autocomplete-item')[0]).toBeInTheDocument()
+    it('displays the correct options under Event Tags', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/',
+        body: [{key: 'someTag', name: 'Some Tag'}],
+      });
+
+      defaultProps.organization.features = ['issue-stream-search-query-builder'];
+
+      render(<IssueListSearchBar {...newDefaultProps} />, {
+        router: routerWithFlag,
+      });
+
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.click(screen.getByRole('button', {name: 'Event Tags'}));
+
+      expect(await screen.findByRole('option', {name: 'someTag'})).toBeInTheDocument();
+    });
+
+    it('displays tags in the has filter', async function () {
+      MockApiClient.addMockResponse({
+        url: '/organizations/org-slug/tags/',
+        body: [{key: 'someTag', name: 'Some Tag'}],
+      });
+
+      defaultProps.organization.features = ['issue-stream-search-query-builder'];
+
+      render(<IssueListSearchBar {...newDefaultProps} />, {
+        router: routerWithFlag,
+      });
+
+      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+      await userEvent.paste('has:', {delay: null});
+      await userEvent.click(
+        await screen.findByRole('button', {name: 'Edit value for filter: has'})
       );
-      await userEvent.keyboard('{ArrowDown}{ArrowDown}{ArrowUp}{Tab}');
-      expect(textarea).toHaveValue(firstItemValue);
+
+      expect(await screen.findByRole('option', {name: 'someTag'})).toBeInTheDocument();
     });
   });
 });

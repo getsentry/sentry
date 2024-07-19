@@ -9,8 +9,9 @@ import {SLOW_TOOLTIP_DELAY} from 'sentry/constants';
 import {IconOpen, IconQuestion} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Frame, Meta, PlatformKey} from 'sentry/types';
-import {defined, isUrl} from 'sentry/utils';
+import type {Frame, Meta, PlatformKey} from 'sentry/types';
+import {defined} from 'sentry/utils';
+import {isUrl} from 'sentry/utils/string/isUrl';
 
 import {FunctionName} from '../functionName';
 import GroupingIndicator from '../groupingIndicator';

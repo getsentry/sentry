@@ -1,0 +1,15 @@
+This is a notice that your Sentry account ({{ email }}) has failed multiple login attempts at the 2FA step from the following location:
+
+IP address: {{ ip_address }}
+{% if geo %}
+Geolocation: {{ geo.city }}, {{ geo.country_code }}
+{% endif %}
+Date: {{ datetime|date:"N j, Y, P e" }}
+
+If you have lost your 2FA credentials, you can follow our account recovery steps here:
+https://sentry.zenesk.com/hc/en-us/articles/23703310917659-How-do-I-recover-my-account-if-I-lost-my-2FA-credentials
+
+If these logins are not from you, we recommend you log in to your Sentry account and reset your password under your account security settings:
+{{ url }}
+
+On the same account security page, we also recommend you click the “Sign out of all devices” button to remove all currently logged-in sessions of your account.

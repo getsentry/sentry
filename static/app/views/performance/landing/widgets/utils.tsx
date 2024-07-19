@@ -1,13 +1,13 @@
-import {Organization} from 'sentry/types';
-import {objectIsEmpty} from 'sentry/utils';
+import type {Organization} from 'sentry/types/organization';
 import localStorage from 'sentry/utils/localStorage';
+import {isEmptyObject} from 'sentry/utils/object/isEmptyObject';
+import type {MetricsEnhancedSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {
   canUseMetricsData,
   MEPState,
-  MetricsEnhancedSettingContext,
 } from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 
-import {ProjectPerformanceType} from '../../utils';
+import type {ProjectPerformanceType} from '../../utils';
 
 import {PerformanceWidgetSetting} from './widgetDefinitions';
 
@@ -57,7 +57,7 @@ export function getMEPQueryParams(
   }
 
   // Disallow any performance request from using aggregates since they aren't currently possible in all visualizations and we don't want to mix modes.
-  return objectIsEmpty(queryParams) ? undefined : queryParams;
+  return isEmptyObject(queryParams) ? undefined : queryParams;
 }
 
 export function getMetricOnlyQueryParams() {

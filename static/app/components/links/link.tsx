@@ -1,10 +1,10 @@
-import {forwardRef, useContext} from 'react';
+import {forwardRef} from 'react';
 import {Link as RouterLink} from 'react-router';
 import styled from '@emotion/styled';
-import {Location, LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
-import {RouteContext} from 'sentry/views/routeContext';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
+import {useLocation} from 'sentry/utils/useLocation';
 
 import {linkStyles} from './styles';
 
@@ -22,7 +22,7 @@ export interface LinkProps
    * work in environments that do have customer-domains (saas) and those without
    * customer-domains (single-tenant).
    */
-  to: ((location: Location) => LocationDescriptor) | LocationDescriptor;
+  to: LocationDescriptor;
   /**
    * Style applied to the component's root
    */
@@ -42,8 +42,7 @@ export interface LinkProps
  * back to <a> if there is no router present
  */
 function BaseLink({disabled, to, forwardedRef, ...props}: LinkProps): React.ReactElement {
-  const route = useContext(RouteContext);
-  const location = route?.location;
+  const location = useLocation();
   to = normalizeUrl(to, location);
 
   if (!disabled && location) {

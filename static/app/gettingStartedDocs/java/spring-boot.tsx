@@ -3,12 +3,15 @@ import {Fragment} from 'react';
 import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {StepType} from 'sentry/components/onboarding/gettingStartedDoc/step';
-import {
+import type {
   BasePlatformOptions,
   Docs,
   DocsParams,
   OnboardingConfig,
 } from 'sentry/components/onboarding/gettingStartedDoc/types';
+import {getJavaMetricsOnboarding} from 'sentry/components/onboarding/gettingStartedDoc/utils/metricsOnboarding';
+import {feedbackOnboardingCrashApiJava} from 'sentry/gettingStartedDocs/java/java';
+import replayOnboardingJsLoader from 'sentry/gettingStartedDocs/javascript/jsLoader/jsLoader';
 import {t, tct} from 'sentry/locale';
 import {getPackageVersion} from 'sentry/utils/gettingStartedDocs/getPackageVersion';
 
@@ -68,12 +71,7 @@ const getMavenInstallSnippet = (params: Params) => `
     <plugin>
       <groupId>io.sentry</groupId>
       <artifactId>sentry-maven-plugin</artifactId>
-      <version>${
-        params.sourcePackageRegistries?.isLoading
-          ? t('\u2026loading')
-          : params.sourcePackageRegistries?.data?.['sentry.java.maven-plugin']?.version ??
-            '0.0.4'
-      }</version>
+      <version>${getPackageVersion(params, 'sentry.java.maven-plugin', '0.0.4')}</version>
       <extensions>true</extensions>
       <configuration>
         <!-- for showing output of sentry-cli -->
@@ -123,7 +121,7 @@ sentry:
       ? `
   # Set traces-sample-rate to 1.0 to capture 100% of transactions for performance monitoring.
   # We recommend adjusting this value in production.
-  sentry.traces-sample-rate: 1.0`
+  traces-sample-rate: 1.0`
       : ''
   }`;
 
@@ -297,7 +295,7 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
       description: t(
         'Stay ahead of latency issues and trace every slow transaction to a poor-performing API call or database query.'
       ),
-      link: 'https://docs.sentry.io/platforms/java/guides/spring-boot/performance/',
+      link: 'https://docs.sentry.io/platforms/java/guides/spring-boot/tracing/',
     },
   ],
 };
@@ -305,6 +303,9 @@ const onboarding: OnboardingConfig<PlatformOptions> = {
 const docs: Docs<PlatformOptions> = {
   onboarding,
   platformOptions,
+  replayOnboardingJsLoader,
+  crashReportOnboarding: feedbackOnboardingCrashApiJava,
+  customMetricsOnboarding: getJavaMetricsOnboarding(),
 };
 
 export default docs;

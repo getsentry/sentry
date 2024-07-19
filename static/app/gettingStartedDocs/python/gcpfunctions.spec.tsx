@@ -1,18 +1,37 @@
-import {render, screen} from 'sentry-test/reactTestingLibrary';
+import {renderWithOnboardingLayout} from 'sentry-test/onboarding/renderWithOnboardingLayout';
+import {screen} from 'sentry-test/reactTestingLibrary';
+import {textWithMarkupMatcher} from 'sentry-test/utils';
 
-import {StepTitle} from 'sentry/components/onboarding/gettingStartedDoc/step';
+import docs from './gcpfunctions';
 
-import {GettingStartedWithGCPFunctions, steps} from './gcpfunctions';
-
-describe('GettingStartedWithGCPFunctions', function () {
+describe('gcpfunctions onboarding docs', function () {
   it('renders doc correctly', function () {
-    render(<GettingStartedWithGCPFunctions dsn="test-dsn" projectSlug="test-project" />);
+    renderWithOnboardingLayout(docs);
 
-    // Steps
-    for (const step of steps({sentryInitContent: 'test-init-content', dsn: 'test-dsn'})) {
-      expect(
-        screen.getByRole('heading', {name: step.title ?? StepTitle[step.type]})
-      ).toBeInTheDocument();
-    }
+    // Renders main headings
+    expect(screen.getByRole('heading', {name: 'Install'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Configure SDK'})).toBeInTheDocument();
+    expect(screen.getByRole('heading', {name: 'Timeout Warning'})).toBeInTheDocument();
+
+    // Renders install instructions
+    expect(
+      screen.getByText(textWithMarkupMatcher(/pip install --upgrade sentry-sdk/))
+    ).toBeInTheDocument();
+  });
+
+  it('renders without performance monitoring', function () {
+    renderWithOnboardingLayout(docs, {
+      selectedProducts: [],
+    });
+
+    // Does not render config option
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/traces_sample_rate: 1\.0,/))
+    ).not.toBeInTheDocument();
+
+    // Does not render config option
+    expect(
+      screen.queryByText(textWithMarkupMatcher(/profiles_sample_rate: 1\.0,/))
+    ).not.toBeInTheDocument();
   });
 });

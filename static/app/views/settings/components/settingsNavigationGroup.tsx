@@ -3,9 +3,9 @@ import styled from '@emotion/styled';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import replaceRouterParams from 'sentry/utils/replaceRouterParams';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import SettingsNavItem from 'sentry/views/settings/components/settingsNavItem';
-import {NavigationGroupProps} from 'sentry/views/settings/types';
+import type {NavigationGroupProps} from 'sentry/views/settings/types';
 
 function SettingsNavigationGroup(props: NavigationGroupProps) {
   const {organization, project, name, items} = props;
@@ -28,7 +28,7 @@ function SettingsNavigationGroup(props: NavigationGroupProps) {
       if (recordAnalytics && to !== window.location.pathname && organization) {
         trackAnalytics('sidebar.item_clicked', {
           organization,
-          project_id: project && project.id,
+          project_id: project?.id,
           sidebar_item_id: id,
           dest: path,
         });
@@ -67,7 +67,7 @@ const NavSection = styled('div')`
 const SettingsHeading = styled('div')`
   color: ${p => p.theme.text};
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   text-transform: uppercase;
   margin-bottom: ${space(0.5)};
 `;

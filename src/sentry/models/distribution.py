@@ -6,12 +6,12 @@ from sentry.db.models import (
     BoundedBigIntegerField,
     FlexibleForeignKey,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
 
 
-@region_silo_only_model
+@region_silo_model
 class Distribution(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

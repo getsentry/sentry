@@ -1,11 +1,13 @@
-import {ReactElement, useEffect} from 'react';
+import type {ReactElement} from 'react';
+import {useEffect} from 'react';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import {FunctionsTable} from 'sentry/components/profiling/suspectFunctions/functionsTable';
 import ProjectsStore from 'sentry/stores/projectsStore';
 
-const project = TestStubs.Project();
+const project = ProjectFixture();
 
 function TestContext({children}: {children: ReactElement}) {
   useEffect(() => {

@@ -1,10 +1,11 @@
 import {t} from 'sentry/locale';
 import {IssueType} from 'sentry/types';
-import {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
+import type {IssueCategoryConfigMapping} from 'sentry/utils/issueTypeConfig/types';
 
 const performanceConfig: IssueCategoryConfigMapping = {
   _categoryDefaults: {
     actions: {
+      archiveUntilOccurrence: {enabled: true},
       delete: {
         enabled: false,
         disabledReason: t('Not yet supported for performance issues'),
@@ -18,9 +19,11 @@ const performanceConfig: IssueCategoryConfigMapping = {
         disabledReason: t('Not yet supported for performance issues'),
       },
       ignore: {enabled: true},
+      resolveInRelease: {enabled: true},
       share: {enabled: true},
     },
     attachments: {enabled: false},
+    autofix: false,
     mergedIssues: {enabled: false},
     replays: {enabled: true},
     similarIssues: {enabled: false},
@@ -195,6 +198,30 @@ const performanceConfig: IssueCategoryConfigMapping = {
     tags: {enabled: false},
   },
   [IssueType.PERFORMANCE_ENDPOINT_REGRESSION]: {
+    actions: {
+      archiveUntilOccurrence: {
+        enabled: false,
+        disabledReason: t('Not yet supported for regression issues'),
+      },
+      delete: {
+        enabled: false,
+        disabledReason: t('Not yet supported for performance issues'),
+      },
+      deleteAndDiscard: {
+        enabled: false,
+        disabledReason: t('Not yet supported for performance issues'),
+      },
+      merge: {
+        enabled: false,
+        disabledReason: t('Not yet supported for performance issues'),
+      },
+      ignore: {enabled: true},
+      resolveInRelease: {
+        enabled: false,
+        disabledReason: t('Not yet supported for regression issues'),
+      },
+      share: {enabled: true},
+    },
     discover: {enabled: false},
     regression: {enabled: true},
     replays: {enabled: false},
@@ -294,6 +321,30 @@ const performanceConfig: IssueCategoryConfigMapping = {
     tags: {enabled: false},
   },
   [IssueType.PROFILE_FUNCTION_REGRESSION]: {
+    actions: {
+      archiveUntilOccurrence: {
+        enabled: false,
+        disabledReason: t('Not yet supported for regression issues'),
+      },
+      delete: {
+        enabled: false,
+        disabledReason: t('Not yet supported for performance issues'),
+      },
+      deleteAndDiscard: {
+        enabled: false,
+        disabledReason: t('Not yet supported for performance issues'),
+      },
+      merge: {
+        enabled: false,
+        disabledReason: t('Not yet supported for performance issues'),
+      },
+      ignore: {enabled: true},
+      resolveInRelease: {
+        enabled: false,
+        disabledReason: t('Not yet supported for regression issues'),
+      },
+      share: {enabled: true},
+    },
     discover: {enabled: false},
     events: {enabled: false},
     regression: {enabled: true},

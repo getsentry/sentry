@@ -6,15 +6,17 @@ import {Item} from '@react-stately/collections';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 
-import {Control, ControlProps} from './control';
-import {List, MultipleListProps, SingleListProps} from './list';
+import type {ControlProps} from './control';
+import {Control} from './control';
+import type {MultipleListProps, SingleListProps} from './list';
+import {List} from './list';
 import {EmptyMessage} from './styles';
-import {SelectOption} from './types';
+import type {SelectKey, SelectOption} from './types';
 import {getItemsWithKeys} from './utils';
 
-interface BaseCompositeSelectRegion<Value extends React.Key> {
+interface BaseCompositeSelectRegion<Value extends SelectKey> {
   options: SelectOption<Value>[];
-  key?: React.Key;
+  key?: SelectKey;
   label?: React.ReactNode;
 }
 
@@ -24,7 +26,7 @@ interface BaseCompositeSelectRegion<Value extends React.Key> {
  * renders as a `ul` with its own list state) whose selection values don't interfere
  * with one another.
  */
-export interface SingleCompositeSelectRegion<Value extends React.Key>
+export interface SingleCompositeSelectRegion<Value extends SelectKey>
   extends BaseCompositeSelectRegion<Value>,
     Omit<
       SingleListProps<Value>,
@@ -37,7 +39,7 @@ export interface SingleCompositeSelectRegion<Value extends React.Key>
  * list (each renders as a `ul` with its own list state) whose selection values don't
  * interfere with one another.
  */
-export interface MultipleCompositeSelectRegion<Value extends React.Key>
+export interface MultipleCompositeSelectRegion<Value extends SelectKey>
   extends BaseCompositeSelectRegion<Value>,
     Omit<
       MultipleListProps<Value>,
@@ -49,7 +51,7 @@ export interface MultipleCompositeSelectRegion<Value extends React.Key>
  * selectable list (each renders as a `ul` with its own list state) whose selection
  * values don't interfere with one another.
  */
-export type CompositeSelectRegion<Value extends React.Key> =
+export type CompositeSelectRegion<Value extends SelectKey> =
   | SingleCompositeSelectRegion<Value>
   | MultipleCompositeSelectRegion<Value>;
 
@@ -58,7 +60,7 @@ export type CompositeSelectRegion<Value extends React.Key> =
  * allowed inside CompositeSelect is CompositeSelect.Region
  */
 type CompositeSelectChild =
-  | React.ReactElement<CompositeSelectRegion<React.Key>>
+  | React.ReactElement<CompositeSelectRegion<SelectKey>>
   | false
   | null
   | undefined;
@@ -111,7 +113,7 @@ function CompositeSelect({
  * selectable list (each renders as a `ul` with its own list state) whose selection
  * values don't interfere with one another.
  */
-CompositeSelect.Region = function <Value extends React.Key>(
+CompositeSelect.Region = function <Value extends SelectKey>(
   _props: CompositeSelectRegion<Value>
 ) {
   // This pseudo-component not meant to be rendered. It only functions as a props vessel
@@ -122,13 +124,13 @@ CompositeSelect.Region = function <Value extends React.Key>(
 
 export {CompositeSelect};
 
-type RegionProps<Value extends React.Key> = CompositeSelectRegion<Value> & {
+type RegionProps<Value extends SelectKey> = CompositeSelectRegion<Value> & {
   compositeIndex: SingleListProps<Value>['compositeIndex'];
   grid: SingleListProps<Value>['grid'];
   size: SingleListProps<Value>['size'];
 };
 
-function Region<Value extends React.Key>({
+function Region<Value extends SelectKey>({
   options,
   value,
   defaultValue,

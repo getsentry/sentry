@@ -7,11 +7,25 @@ import pytest
 import responses
 
 from sentry.integrations.vsts import VstsIntegrationProvider
+from sentry.integrations.vsts.integration import VstsIntegration
+from sentry.models.integrations.integration import Integration
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import IntegrationTestCase
+from sentry.testutils.helpers.integrations import get_installation_of_type
+from sentry.testutils.silo import assume_test_silo_mode
 
 
 class VstsIntegrationTestCase(IntegrationTestCase):
     provider = VstsIntegrationProvider()
+
+    def _get_integration_and_install(self) -> tuple[Integration, VstsIntegration]:
+        integration = Integration.objects.get(provider="vsts")
+        installation = get_installation_of_type(
+            VstsIntegration,
+            integration,
+            integration.organizationintegration_set.get().organization_id,
+        )
+        return integration, installation
 
     @pytest.fixture(autouse=True)
     def setup_data(self):
@@ -186,6 +200,7 @@ class VstsIntegrationTestCase(IntegrationTestCase):
         assert response.status_code == 200
         assert f'<option value="{account_id}"'.encode() in response.content
 
+    @assume_test_silo_mode(SiloMode.CONTROL)
     def assert_installation(self):
         # Initial request to the installation URL for VSTS
         resp = self.make_init_request()

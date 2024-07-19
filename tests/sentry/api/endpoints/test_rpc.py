@@ -1,22 +1,15 @@
 from __future__ import annotations
 
-from typing import Any, Dict
+from typing import Any
 
+import orjson
 from django.test import override_settings
 from django.urls import reverse
 from rest_framework.exceptions import ErrorDetail
 
-from sentry.models.notificationsetting import NotificationSetting
-from sentry.notifications.types import (
-    NotificationScopeType,
-    NotificationSettingOptionValues,
-    NotificationSettingTypes,
-)
-from sentry.services.hybrid_cloud.organization import RpcUserOrganizationContext
-from sentry.services.hybrid_cloud.rpc import generate_request_signature
+from sentry.hybridcloud.rpc.service import generate_request_signature
+from sentry.organizations.services.organization import RpcUserOrganizationContext
 from sentry.testutils.cases import APITestCase
-from sentry.types.integrations import ExternalProviders
-from sentry.utils import json
 
 
 @override_settings(RPC_SHARED_SECRET=["a-long-value-that-is-hard-to-guess"])
@@ -34,12 +27,12 @@ class RpcServiceEndpointTest(APITestCase):
 
     def auth_header(self, path: str, data: dict | str) -> str:
         if isinstance(data, dict):
-            data = json.dumps(data)
-        signature = generate_request_signature(path, data.encode("utf8"))
+            data = orjson.dumps(data).decode()
+        signature = generate_request_signature(path, data.encode())
 
         return f"rpcsignature {signature}"
 
-    def test_auth(self):
+    def test_invalid_endpoint(self):
         path = self._get_path("not_a_service", "not_a_method")
         response = self.client.post(path)
         assert response.status_code == 403
@@ -50,21 +43,33 @@ class RpcServiceEndpointTest(APITestCase):
         )
         return response
 
+    def test_missing_authentication(self):
+        path = self._get_path("organization", "get_organization_by_id")
+        data: dict[str, Any] = {"args": {}, "meta": {"organization_id": self.organization.id}}
+        response = self.client.post(path, data=data)
+        assert response.status_code == 403
+
+    def test_invalid_authentication(self):
+        path = self._get_path("organization", "get_organization_by_id")
+        data: dict[str, Any] = {"args": {}, "meta": {"organization_id": self.organization.id}}
+        response = self.client.post(path, data=data, HTTP_AUTHORIZATION="rpcsignature trash")
+        assert response.status_code == 401
+
     def test_bad_service_name(self):
         path = self._get_path("not_a_service", "not_a_method")
-        data: Dict[str, Any] = {"args": {}, "meta": {}}
+        data: dict[str, Any] = {"args": {}, "meta": {}}
         response = self._send_post_request(path, data)
         assert response.status_code == 404
 
     def test_bad_method_name(self):
         path = self._get_path("user", "not_a_method")
-        data: Dict[str, Any] = {"args": {}, "meta": {}}
+        data: dict[str, Any] = {"args": {}, "meta": {}}
         response = self._send_post_request(path, data)
         assert response.status_code == 404
 
     def test_no_body(self):
         path = self._get_path("organization", "get_organization_by_id")
-        data: Dict[str, Any] = {"args": {}, "meta": {}}
+        data: dict[str, Any] = {"args": {}, "meta": {}}
         response = self._send_post_request(path, data)
         assert response.status_code == 400
         assert response.data == {
@@ -73,7 +78,7 @@ class RpcServiceEndpointTest(APITestCase):
 
     def test_invalid_args_syntax(self):
         path = self._get_path("organization", "get_organization_by_id")
-        data: Dict[str, Any] = {"args": [], "meta": {}}
+        data: dict[str, Any] = {"args": [], "meta": {}}
         response = self._send_post_request(path, data)
         assert response.status_code == 400
         assert response.data == {
@@ -82,7 +87,7 @@ class RpcServiceEndpointTest(APITestCase):
 
     def test_missing_argument_key(self):
         path = self._get_path("organization", "get_organization_by_id")
-        data: Dict[str, Any] = {}
+        data: dict[str, Any] = {}
         response = self._send_post_request(path, data)
         assert response.status_code == 400
         assert response.data == {
@@ -91,7 +96,7 @@ class RpcServiceEndpointTest(APITestCase):
 
     def test_missing_argument_values(self):
         path = self._get_path("organization", "get_organization_by_id")
-        data: Dict[str, Any] = {"args": {}}
+        data: dict[str, Any] = {"args": {}}
         response = self._send_post_request(path, data)
         assert response.status_code == 400
         assert response.data == {
@@ -137,36 +142,3 @@ class RpcServiceEndpointTest(APITestCase):
         assert response.data == {
             "detail": ErrorDetail(string="Malformed request.", code="parse_error")
         }
-
-    def test_with_enum_serialization(self):
-        path = self._get_path("notifications", "get_settings_for_user_by_projects")
-        NotificationSetting.objects.update_settings(
-            ExternalProviders.EMAIL,
-            NotificationSettingTypes.ISSUE_ALERTS,
-            NotificationSettingOptionValues.ALWAYS,
-            user_id=self.user.id,
-        )
-        data = {
-            "args": {
-                "type": 20,
-                "user_id": self.user.id,
-                "parent_ids": [self.project.id],
-            }
-        }
-        response = self._send_post_request(path, data)
-        assert response.status_code == 200
-        response_body = response.json()
-        setting = NotificationSetting.objects.filter(user_id=self.user.id).get()
-        assert response_body["value"] == [
-            {
-                "id": setting.id,
-                "scope_type": NotificationScopeType.USER.value,
-                "scope_identifier": self.user.id,
-                "target_id": response_body["value"][0]["target_id"],
-                "team_id": None,
-                "user_id": self.user.id,
-                "provider": ExternalProviders.EMAIL.value,
-                "type": NotificationSettingTypes.ISSUE_ALERTS.value,
-                "value": 20,
-            }
-        ]

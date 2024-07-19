@@ -1,3 +1,6 @@
+import {TeamFixture} from 'sentry-fixture/team';
+import {UserFixture} from 'sentry-fixture/user';
+
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
 import AvatarList from 'sentry/components/avatar/avatarList';
@@ -13,8 +16,8 @@ function renderComponent({
 }
 
 describe('AvatarList', () => {
-  const user = TestStubs.User();
-  const team = TestStubs.Team();
+  const user = UserFixture();
+  const team = TeamFixture();
 
   it('renders with user letter avatars', () => {
     const users = [
@@ -63,6 +66,18 @@ describe('AvatarList', () => {
     expect(screen.getByText('B')).toBeInTheDocument();
     expect(screen.getByText('C')).toBeInTheDocument();
     expect(screen.getByText('D')).toBeInTheDocument();
+    expect(screen.queryByTestId('avatarList-collapsedavatars')).not.toBeInTheDocument();
+  });
+
+  it('renders with collapsed avatar count if > 5 teams', () => {
+    const teams = [
+      {...team, id: '1', name: 'A', slug: 'A', type: 'team'},
+      {...team, id: '2', name: 'B', slug: 'B', type: 'team'},
+    ];
+
+    renderComponent({users: [], teams});
+    expect(screen.getByText('A')).toBeInTheDocument();
+    expect(screen.getByText('B')).toBeInTheDocument();
     expect(screen.queryByTestId('avatarList-collapsedavatars')).not.toBeInTheDocument();
   });
 });

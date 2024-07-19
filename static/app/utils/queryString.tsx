@@ -1,7 +1,8 @@
-import isString from 'lodash/isString';
 import * as qs from 'query-string';
 
 import {escapeDoubleQuotes} from 'sentry/utils';
+import type {Sort} from 'sentry/utils/discover/fields';
+import {safeURL} from 'sentry/utils/url/safeURL';
 
 // remove leading and trailing whitespace and remove double spaces
 export function formatQueryString(query: string): string {
@@ -12,11 +13,9 @@ export function addQueryParamsToExistingUrl(
   origUrl: string,
   queryParams: object
 ): string {
-  let url;
+  const url = safeURL(origUrl);
 
-  try {
-    url = new URL(origUrl);
-  } catch {
+  if (!url) {
     return '';
   }
 
@@ -41,7 +40,11 @@ export function appendTagCondition(
   key: string,
   value: null | string
 ): string {
-  let currentQuery = Array.isArray(query) ? query.pop() : isString(query) ? query : '';
+  let currentQuery = Array.isArray(query)
+    ? query.pop()
+    : typeof query === 'string'
+      ? query
+      : '';
 
   if (typeof value === 'string' && /[:\s\(\)\\"]/g.test(value)) {
     value = `"${escapeDoubleQuotes(value)}"`;
@@ -60,7 +63,11 @@ export function appendExcludeTagValuesCondition(
   key: string,
   values: string[]
 ): string {
-  let currentQuery = Array.isArray(query) ? query.pop() : isString(query) ? query : '';
+  let currentQuery = Array.isArray(query)
+    ? query.pop()
+    : typeof query === 'string'
+      ? query
+      : '';
   const filteredValuesCondition = `[${values
     .map(value => {
       if (typeof value === 'string' && /[\s"]/g.test(value)) {
@@ -89,17 +96,17 @@ export function decodeScalar(value: QueryValue, fallback?: string): string | und
   const unwrapped =
     Array.isArray(value) && value.length > 0
       ? value[0]
-      : isString(value)
-      ? value
-      : fallback;
-  return isString(unwrapped) ? unwrapped : fallback;
+      : typeof value === 'string'
+        ? value
+        : fallback;
+  return typeof unwrapped === 'string' ? unwrapped : fallback;
 }
 
 export function decodeList(value: string[] | string | undefined | null): string[] {
   if (!value) {
     return [];
   }
-  return Array.isArray(value) ? value : isString(value) ? [value] : [];
+  return Array.isArray(value) ? value : typeof value === 'string' ? [value] : [];
 }
 
 // This function has multiple signatures to help with typing in callers.
@@ -119,10 +126,25 @@ export function decodeInteger(value: QueryValue, fallback?: number): number | un
   return fallback;
 }
 
+export function decodeSorts(value: QueryValue): Sort[];
+export function decodeSorts(value: QueryValue, fallback: string): Sort[];
+export function decodeSorts(value: QueryValue, fallback?: string): Sort[] {
+  const sorts = decodeList(value).filter(Boolean);
+  if (!sorts.length) {
+    return fallback ? decodeSorts(fallback) : [];
+  }
+  return sorts.map(sort =>
+    sort.startsWith('-')
+      ? {kind: 'desc', field: sort.substring(1)}
+      : {kind: 'asc', field: sort}
+  );
+}
+
 const queryString = {
   decodeInteger,
   decodeList,
   decodeScalar,
+  decodeSorts,
   formatQueryString,
   addQueryParamsToExistingUrl,
   appendTagCondition,

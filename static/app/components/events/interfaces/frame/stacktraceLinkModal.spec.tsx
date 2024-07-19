@@ -1,6 +1,8 @@
-import {Organization} from 'sentry-fixture/organization';
-import {Repository} from 'sentry-fixture/repository';
-import {RepositoryProjectPathConfig} from 'sentry-fixture/repositoryProjectPathConfig';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RepositoryFixture} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
 
 import {
   act,
@@ -17,12 +19,12 @@ import * as analytics from 'sentry/utils/analytics';
 jest.mock('sentry/utils/analytics');
 
 describe('StacktraceLinkModal', () => {
-  const org = Organization();
-  const project = TestStubs.Project();
-  const integration = TestStubs.GitHubIntegration();
+  const org = OrganizationFixture();
+  const project = ProjectFixture();
+  const integration = GitHubIntegrationFixture();
   const filename = '/sentry/app.py';
-  const repo = Repository({integrationId: integration.id});
-  const config = RepositoryProjectPathConfig({project, repo, integration});
+  const repo = RepositoryFixture({integrationId: integration.id});
+  const config = RepositoryProjectPathConfigFixture({project, repo, integration});
   const sourceUrl = 'https://github.com/getsentry/sentry/blob/master/src/sentry/app.py';
   const configData = {
     stackRoot: '',
@@ -70,7 +72,7 @@ describe('StacktraceLinkModal', () => {
       ))
     );
 
-    expect(screen.getByText('Tell us where your source code is')).toBeInTheDocument();
+    expect(screen.getByText('Set up Code Mapping')).toBeInTheDocument();
 
     // Links to GitHub with one integration
     expect(screen.getByText('GitHub')).toBeInTheDocument();
@@ -121,7 +123,7 @@ describe('StacktraceLinkModal', () => {
       statusCode: 400,
     });
 
-    renderGlobalModal({context: TestStubs.routerContext()});
+    renderGlobalModal();
     act(() =>
       openModal(modalProps => (
         <StacktraceLinkModal

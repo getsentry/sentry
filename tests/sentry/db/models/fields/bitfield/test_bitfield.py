@@ -71,7 +71,7 @@ class BitHandlerTest(unittest.TestCase):
         self.assertEqual(bool(bithandler.FLAG_2), False)
         self.assertEqual(bool(bithandler.FLAG_3), False)
 
-    def test_nonzero_default(self):
+    def test_bool_default(self):
         bithandler = BitHandler(1, ("FLAG_0", "FLAG_1", "FLAG_2", "FLAG_3"))
         self.assertEqual(bool(bithandler.FLAG_0), True)
         self.assertEqual(bool(bithandler.FLAG_1), False)

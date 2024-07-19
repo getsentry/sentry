@@ -1,3 +1,4 @@
+from enum import Enum
 from typing import ClassVar
 
 from django.db import models, router, transaction
@@ -6,16 +7,12 @@ from django.utils import timezone
 
 from sentry import features
 from sentry.backup.scopes import RelocationScope
-from sentry.db.models import (
-    BaseManager,
-    FlexibleForeignKey,
-    Model,
-    region_silo_only_model,
-    sane_repr,
-)
+from sentry.db.models import FlexibleForeignKey, Model, region_silo_model, sane_repr
 from sentry.db.models.fields import JSONField
-from sentry.db.models.fields.bounded import BoundedBigIntegerField
+from sentry.db.models.fields.bounded import BoundedBigIntegerField, BoundedPositiveIntegerField
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
+from sentry.db.models.manager.base import BaseManager
+from sentry.models.dashboard_widget import TypesClass
 from sentry.models.projectteam import ProjectTeam
 from sentry.tasks.relay import schedule_invalidate_project_config
 
@@ -23,7 +20,51 @@ MAX_KEY_TRANSACTIONS = 10
 MAX_TEAM_KEY_TRANSACTIONS = 100
 
 
-@region_silo_only_model
+class DiscoverSavedQueryTypes(TypesClass):
+    DISCOVER = 0
+    ERROR_EVENTS = 1
+    """
+     Error side of the split from Discover.
+    """
+    TRANSACTION_LIKE = 2
+    """
+    This targets transaction-like data from the split from discover.
+    """
+
+    TYPES = [
+        (DISCOVER, "discover"),
+        (ERROR_EVENTS, "error-events"),
+        (TRANSACTION_LIKE, "transaction-like"),
+    ]
+    TYPE_NAMES = [t[1] for t in TYPES]
+
+
+class DatasetSourcesTypes(Enum):
+    """
+    Ambiguous queries that haven't been or couldn't be categorized into a
+    specific dataset.
+    """
+
+    UNKNOWN = 0
+    """
+     Dataset inferred by either running the query or using heuristics.
+    """
+    INFERRED = 1
+    """
+     Canonical dataset, user explicitly selected it.
+    """
+    USER = 2
+    """
+     Was an ambiguous dataset forced to split (i.e. we picked a default)
+    """
+    FORCED = 3
+
+    @classmethod
+    def as_choices(cls):
+        return tuple((source.value, source.name.lower()) for source in cls)
+
+
+@region_silo_model
 class DiscoverSavedQueryProject(Model):
     __relocation_scope__ = RelocationScope.Excluded
 
@@ -36,7 +77,7 @@ class DiscoverSavedQueryProject(Model):
         unique_together = (("project", "discover_saved_query"),)
 
 
-@region_silo_only_model
+@region_silo_model
 class DiscoverSavedQuery(Model):
     """
     A saved Discover query
@@ -55,6 +96,12 @@ class DiscoverSavedQuery(Model):
     visits = BoundedBigIntegerField(null=True, default=1)
     last_visited = models.DateTimeField(null=True, default=timezone.now)
     is_homepage = models.BooleanField(null=True, blank=True)
+    dataset = BoundedPositiveIntegerField(
+        choices=DiscoverSavedQueryTypes.as_choices(), default=DiscoverSavedQueryTypes.DISCOVER
+    )
+    dataset_source = BoundedPositiveIntegerField(
+        choices=DatasetSourcesTypes.as_choices(), default=DatasetSourcesTypes.UNKNOWN.value
+    )
 
     class Meta:
         app_label = "sentry"
@@ -79,7 +126,7 @@ class DiscoverSavedQuery(Model):
                 discover_saved_query=self
             ).values_list("project", flat=True)
 
-            new_project_ids = list(set(project_ids) - set(existing_project_ids))
+            new_project_ids = sorted(set(project_ids) - set(existing_project_ids))
 
             DiscoverSavedQueryProject.objects.bulk_create(
                 [
@@ -136,7 +183,7 @@ class TeamKeyTransactionModelManager(BaseManager["TeamKeyTransaction"]):
         )
 
 
-@region_silo_only_model
+@region_silo_model
 class TeamKeyTransaction(Model):
     __relocation_scope__ = RelocationScope.Excluded
 

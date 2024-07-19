@@ -1,5 +1,7 @@
-import {Button, ButtonProps} from 'sentry/components/button';
-import {Organization, SandboxData} from 'sentry/types';
+import type {ButtonProps} from 'sentry/components/button';
+import {Button} from 'sentry/components/button';
+import type {Organization} from 'sentry/types/organization';
+import type {SandboxData} from 'sentry/types/sandbox';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
 

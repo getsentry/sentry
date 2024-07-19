@@ -4,10 +4,11 @@ import {IconGraphArea} from './iconGraphArea';
 import {IconGraphBar} from './iconGraphBar';
 import {IconGraphCircle} from './iconGraphCircle';
 import {IconGraphLine} from './iconGraphLine';
-import {SVGIconProps} from './svgIcon';
+import {IconGraphScatter} from './iconGraphScatter';
+import type {SVGIconProps} from './svgIcon';
 
 interface Props extends SVGIconProps {
-  type?: 'line' | 'circle' | 'bar' | 'area';
+  type?: 'line' | 'circle' | 'bar' | 'area' | 'scatter';
 }
 
 const IconGraph = forwardRef<SVGSVGElement, Props>(({type = 'line', ...props}, ref) => {
@@ -18,6 +19,8 @@ const IconGraph = forwardRef<SVGSVGElement, Props>(({type = 'line', ...props}, r
       return <IconGraphBar {...props} ref={ref} />;
     case 'area':
       return <IconGraphArea {...props} ref={ref} />;
+    case 'scatter':
+      return <IconGraphScatter {...props} ref={ref} />;
     default:
       return <IconGraphLine {...props} ref={ref} />;
   }

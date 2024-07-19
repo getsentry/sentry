@@ -1,12 +1,13 @@
 from __future__ import annotations
 
-from typing import Any, Mapping, MutableMapping, Sequence
+from collections.abc import Mapping, MutableMapping, Sequence
+from typing import Any
 
 from sentry.models.commit import Commit
 from sentry.models.organization import Organization
 from sentry.models.repository import Repository
+from sentry.organizations.services.organization.model import RpcOrganization
 from sentry.plugins.providers import IntegrationRepositoryProvider
-from sentry.services.hybrid_cloud.organization.model import RpcOrganization
 
 MAX_COMMIT_DATA_REQUESTS = 90
 

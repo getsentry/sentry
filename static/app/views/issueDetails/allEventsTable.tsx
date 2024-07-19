@@ -1,5 +1,5 @@
 import {useEffect, useMemo, useState} from 'react';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {getSampleEventQuery} from 'sentry/components/events/eventStatisticalDetector/eventComparison/eventDisplay';
 import LoadingError from 'sentry/components/loadingError';
@@ -8,19 +8,14 @@ import {
   profiling as PROFILING_PLATFORMS,
 } from 'sentry/data/platformCategories';
 import {t} from 'sentry/locale';
-import {
-  EventTransaction,
-  Group,
-  IssueCategory,
-  IssueType,
-  Organization,
-  PlatformKey,
-} from 'sentry/types';
-import EventView, {decodeSorts} from 'sentry/utils/discover/eventView';
+import type {EventTransaction, Group, Organization, PlatformKey} from 'sentry/types';
+import {IssueCategory, IssueType} from 'sentry/types';
+import EventView from 'sentry/utils/discover/eventView';
 import {DiscoverDatasets} from 'sentry/utils/discover/types';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import {platformToCategory} from 'sentry/utils/platform';
 import {useApiQuery} from 'sentry/utils/queryClient';
+import {decodeSorts} from 'sentry/utils/queryString';
 import {projectCanLinkToReplay} from 'sentry/utils/replays/projectSupportsReplay';
 import {useRoutes} from 'sentry/utils/useRoutes';
 import EventsTable from 'sentry/views/performance/transactionSummary/transactionEvents/eventsTable';
@@ -39,7 +34,7 @@ const makeGroupPreviewRequestUrl = ({groupId}: {groupId: string}) => {
 
 function AllEventsTable(props: Props) {
   const {location, organization, issueId, excludedTags, group} = props;
-  const config = getConfigForIssueType(props.group);
+  const config = getConfigForIssueType(props.group, group.project);
   const [error, setError] = useState<string>('');
   const routes = useRoutes();
   const {fields, columnTitles} = getColumns(group, organization);
@@ -69,7 +64,9 @@ function AllEventsTable(props: Props) {
   }
   eventView.fields = fields.map(fieldName => ({field: fieldName}));
 
-  eventView.sorts = decodeSorts(location).filter(sort => fields.includes(sort.field));
+  eventView.sorts = decodeSorts(location.query.sort).filter(sort =>
+    fields.includes(sort.field)
+  );
 
   useEffect(() => {
     setError('');
@@ -81,14 +78,14 @@ function AllEventsTable(props: Props) {
 
   eventView.statsPeriod = '90d';
 
+  const isRegressionIssue =
+    group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
+    group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION;
+
   let idQuery = `issue.id:${issueId}`;
   if (group.issueCategory === IssueCategory.PERFORMANCE && !groupIsOccurrenceBacked) {
     idQuery = `performance.issue_ids:${issueId} event.type:transaction`;
-  } else if (
-    (group.issueType === IssueType.PERFORMANCE_DURATION_REGRESSION ||
-      group.issueType === IssueType.PERFORMANCE_ENDPOINT_REGRESSION) &&
-    groupIsOccurrenceBacked
-  ) {
+  } else if (isRegressionIssue && groupIsOccurrenceBacked) {
     const {transaction, aggregateRange2, breakpoint} =
       data?.occurrence?.evidenceData ?? {};
 
@@ -118,6 +115,7 @@ function AllEventsTable(props: Props) {
       eventView={eventView}
       location={location}
       issueId={issueId}
+      isRegressionIssue={isRegressionIssue}
       organization={organization}
       routes={routes}
       excludedTags={excludedTags}
@@ -138,7 +136,7 @@ const getColumns = (group: Group, organization: Organization): ColumnInfo => {
   const isPerfIssue = group.issueCategory === IssueCategory.PERFORMANCE;
   const isReplayEnabled =
     organization.features.includes('session-replay') &&
-    projectCanLinkToReplay(group.project);
+    projectCanLinkToReplay(organization, group.project);
 
   // profiles only exist on transactions, so this only works with
   // performance issues, and not errors
@@ -154,6 +152,8 @@ const getColumns = (group: Group, organization: Organization): ColumnInfo => {
     'id',
     'transaction',
     'title',
+    'trace',
+    'timestamp',
     'release',
     'environment',
     'user.display',
@@ -161,13 +161,14 @@ const getColumns = (group: Group, organization: Organization): ColumnInfo => {
     'os',
     ...platformSpecificFields,
     ...(isPerfIssue ? ['transaction.duration'] : []),
-    'timestamp',
   ];
 
   const columnTitles: string[] = [
     t('event id'),
     t('transaction'),
     t('title'),
+    t('trace'),
+    t('timestamp'),
     t('release'),
     t('environment'),
     t('user'),
@@ -175,7 +176,6 @@ const getColumns = (group: Group, organization: Organization): ColumnInfo => {
     t('os'),
     ...platformSpecificColumnTitles,
     ...(isPerfIssue ? [t('total duration')] : []),
-    t('timestamp'),
     t('minidump'),
   ];
 

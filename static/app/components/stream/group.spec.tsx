@@ -1,25 +1,30 @@
+import {GroupFixture} from 'sentry-fixture/group';
+import {ProjectFixture} from 'sentry-fixture/project';
+
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {act, render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {act, render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import StreamGroup from 'sentry/components/stream/group';
 import GroupStore from 'sentry/stores/groupStore';
 import GuideStore from 'sentry/stores/guideStore';
-import {GroupStatus, GroupStatusResolution, MarkReviewed} from 'sentry/types';
+import {EventOrGroupType} from 'sentry/types/event';
+import type {Group, GroupStatusResolution, MarkReviewed} from 'sentry/types/group';
+import {GroupStatus, PriorityLevel} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 
 jest.mock('sentry/utils/analytics');
 
 describe('StreamGroup', function () {
-  let group1;
+  let group1!: Group;
 
   beforeEach(function () {
-    group1 = TestStubs.Group({
+    group1 = GroupFixture({
       id: '1337',
-      project: {
+      project: ProjectFixture({
         id: '13',
         slug: 'foo-project',
-      },
-      type: 'error',
+      }),
+      type: EventOrGroupType.ERROR,
       inbox: {
         date_added: '2020-11-24T13:17:42.248751Z',
         reason: 0,
@@ -28,38 +33,41 @@ describe('StreamGroup', function () {
     });
     MockApiClient.addMockResponse({
       url: '/organizations/org-slug/projects/',
-      body: [TestStubs.Project({slug: 'foo-project'})],
+      body: [ProjectFixture({slug: 'foo-project'})],
     });
     GroupStore.loadInitialData([group1]);
   });
 
   afterEach(function () {
-    (trackAnalytics as jest.Mock).mockClear();
+    jest.mocked(trackAnalytics).mockClear();
     GroupStore.reset();
   });
 
-  it('renders with anchors', function () {
-    const {routerContext, organization} = initializeOrg();
-    render(<StreamGroup id="1337" hasGuideAnchor {...routerContext} />, {
-      context: routerContext,
+  it('renders with anchors', async function () {
+    const {router, organization} = initializeOrg();
+    render(<StreamGroup id="1337" hasGuideAnchor />, {
+      router,
       organization,
     });
 
+    expect(await screen.findByTestId('group')).toBeInTheDocument();
     expect(GuideStore.state.anchors).toEqual(new Set(['dynamic_counts', 'issue_stream']));
   });
 
-  it('marks as reviewed', function () {
-    const {routerContext, organization} = initializeOrg();
+  it('marks as reviewed', async function () {
+    const {router, organization} = initializeOrg();
     render(
       <StreamGroup
         id="1337"
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
-        {...routerContext}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
-    expect(screen.getByTestId('group')).toHaveAttribute('data-test-reviewed', 'false');
+    expect(await screen.findByTestId('group')).toHaveAttribute(
+      'data-test-reviewed',
+      'false'
+    );
     const data: MarkReviewed = {inbox: false};
     act(() => GroupStore.onUpdate('1337', undefined, data));
     act(() => GroupStore.onUpdateSuccess('1337', undefined, data));
@@ -68,13 +76,14 @@ describe('StreamGroup', function () {
     expect(screen.getByTestId('group')).toHaveAttribute('data-test-reviewed', 'true');
   });
 
-  it('marks as resolved', function () {
-    const {routerContext, organization} = initializeOrg();
+  it('marks as resolved', async function () {
+    const {router, organization} = initializeOrg();
     render(<StreamGroup id="1337" query="is:unresolved" />, {
-      context: routerContext,
+      router,
       organization,
     });
 
+    expect(await screen.findByTestId('group')).toBeInTheDocument();
     expect(screen.queryByTestId('resolved-issue')).not.toBeInTheDocument();
     const data: GroupStatusResolution = {
       status: GroupStatus.RESOLVED,
@@ -85,18 +94,72 @@ describe('StreamGroup', function () {
     expect(screen.getByTestId('resolved-issue')).toBeInTheDocument();
   });
 
+  it('can change priority', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/prompts-activity/',
+      body: {data: {dismissed_ts: null}},
+    });
+    const mockModifyGroup = MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/issues/',
+      method: 'PUT',
+      body: {priority: PriorityLevel.HIGH},
+    });
+
+    render(<StreamGroup id="1337" query="is:unresolved" />);
+
+    const priorityDropdown = screen.getByRole('button', {name: 'Modify issue priority'});
+    expect(within(priorityDropdown).getByText('Med')).toBeInTheDocument();
+    await userEvent.click(priorityDropdown);
+    await userEvent.click(screen.getByRole('menuitemradio', {name: 'High'}));
+    expect(within(priorityDropdown).getByText('High')).toBeInTheDocument();
+    expect(mockModifyGroup).toHaveBeenCalledWith(
+      '/organizations/org-slug/issues/',
+      expect.objectContaining({
+        data: expect.objectContaining({
+          priority: 'high',
+        }),
+      })
+    );
+  });
+
   it('tracks clicks from issues stream', async function () {
-    const {routerContext, organization} = initializeOrg();
+    const {router, organization} = initializeOrg();
     render(
       <StreamGroup
         id="1337"
         query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
-        {...routerContext}
       />,
-      {context: routerContext, organization}
+      {router, organization}
     );
 
     // skipHover - Prevent stacktrace preview from being rendered
     await userEvent.click(screen.getByText('RequestError'), {skipHover: true});
+  });
+
+  it('can select row', async function () {
+    const {router, organization} = initializeOrg();
+    render(<StreamGroup id="1337" query="is:unresolved" />, {router, organization});
+
+    expect(await screen.findByTestId('group')).toBeInTheDocument();
+    const checkbox = screen.getByRole('checkbox', {name: 'Select Issue'});
+    expect(checkbox).not.toBeChecked();
+    await userEvent.click(checkbox);
+    expect(checkbox).toBeChecked();
+    await userEvent.click(checkbox);
+    expect(checkbox).not.toBeChecked();
+  });
+
+  it('does not error when group is not in GroupStore', function () {
+    const {router, organization} = initializeOrg();
+    GroupStore.reset();
+    const {container} = render(
+      <StreamGroup
+        id="1337"
+        query="is:unresolved is:for_review assigned_or_suggested:[me, none]"
+      />,
+      {router, organization}
+    );
+
+    expect(container).toBeEmptyDOMElement();
   });
 });

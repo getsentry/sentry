@@ -1,4 +1,5 @@
-from typing import Any, Dict, Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from django.contrib.auth.models import AnonymousUser
 
@@ -25,7 +26,7 @@ class OutgoingNotificationActionSerializer(Serializer):
             NotificationActionProject.objects.filter(action_id__in=action_ids),
             "action_id",
         )
-        valid_triggers: Dict[int, str] = dict(NotificationAction.get_trigger_types())
+        valid_triggers: dict[int, str] = dict(NotificationAction.get_trigger_types())
         return {
             item: {
                 "trigger_type": valid_triggers[item.trigger_type],
@@ -34,7 +35,7 @@ class OutgoingNotificationActionSerializer(Serializer):
             for item in item_list
         }
 
-    def serialize(self, obj: NotificationAction, attrs, user, **kwargs) -> Dict[str, Any]:
+    def serialize(self, obj: NotificationAction, attrs, user, **kwargs) -> dict[str, Any]:
         return {
             "id": obj.id,
             "organizationId": obj.organization_id,

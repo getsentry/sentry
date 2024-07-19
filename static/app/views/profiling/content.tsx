@@ -1,11 +1,11 @@
 import {Fragment, useCallback, useEffect, useMemo} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {Alert} from 'sentry/components/alert';
 import {Button} from 'sentry/components/button';
 import SearchBar from 'sentry/components/events/searchBar';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -20,19 +20,17 @@ import {
   ProfilingUpgradeButton,
 } from 'sentry/components/profiling/billing/alerts';
 import {ProfileEventsTable} from 'sentry/components/profiling/profileEventsTable';
-import ProfilingFeedbackButton from 'sentry/components/profiling/profilingFeedbackButton';
 import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import {SidebarPanelKey} from 'sentry/components/sidebar/types';
-import SmartSearchBar, {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
+import type {SmartSearchBarProps} from 'sentry/components/smartSearchBar';
 import {MAX_QUERY_LENGTH} from 'sentry/constants';
 import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
 import {t} from 'sentry/locale';
 import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
 import {space} from 'sentry/styles/space';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {useProfileEvents} from 'sentry/utils/profiling/hooks/useProfileEvents';
-import {useProfileFilters} from 'sentry/utils/profiling/hooks/useProfileFilters';
 import {formatError, formatSort} from 'sentry/utils/profiling/hooks/utils';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -60,22 +58,13 @@ function ProfilingContent({location}: ProfilingContentProps) {
   const cursor = decodeScalar(location.query.cursor);
   const query = decodeScalar(location.query.query, '');
 
-  const profilingUsingTransactions = organization.features.includes(
-    'profiling-using-transactions'
-  );
-
-  const fields = profilingUsingTransactions ? ALL_FIELDS : BASE_FIELDS;
+  const fields = ALL_FIELDS;
 
   const sort = formatSort<FieldType>(decodeScalar(location.query.sort), fields, {
     key: 'count()',
     order: 'desc',
   });
 
-  const profileFilters = useProfileFilters({
-    query: '',
-    selection,
-    disabled: profilingUsingTransactions,
-  });
   const {projects} = useProjects();
 
   const transactions = useProfileEvents<FieldType>({
@@ -137,30 +126,10 @@ function ProfilingContent({location}: ProfilingContentProps) {
     );
   }, [selection.projects, projects]);
 
-  const eventView = useMemo(() => {
-    const _eventView = EventView.fromNewQueryWithLocation(
-      {
-        id: undefined,
-        version: 2,
-        name: t('Profiling'),
-        fields: [],
-        query,
-        projects: selection.projects,
-      },
-      location
-    );
-    _eventView.additionalConditions.setFilterValues('has', ['profile.id']);
-    return _eventView;
-  }, [location, query, selection.projects]);
-
   return (
     <SentryDocumentTitle title={t('Profiling')} orgSlug={organization.slug}>
       <PageFiltersContainer
-        defaultSelection={
-          profilingUsingTransactions
-            ? {datetime: DEFAULT_PROFILING_DATETIME_SELECTION}
-            : undefined
-        }
+        defaultSelection={{datetime: DEFAULT_PROFILING_DATETIME_SELECTION}}
       >
         <Layout.Page>
           <ProfilingBetaAlertBanner organization={organization} />
@@ -175,7 +144,7 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   )}
                 />
               </Layout.Title>
-              <ProfilingFeedbackButton />
+              <FeedbackWidgetButton />
             </StyledHeaderContent>
           </Layout.Header>
           <Layout.Body>
@@ -191,73 +160,69 @@ function ProfilingContent({location}: ProfilingContentProps) {
                   <EnvironmentPageFilter resetParamsOnChange={CURSOR_PARAMS} />
                   <DatePageFilter resetParamsOnChange={CURSOR_PARAMS} />
                 </PageFilterBar>
-                {profilingUsingTransactions ? (
-                  <SearchBar
-                    searchSource="profile_summary"
-                    organization={organization}
-                    projectIds={eventView.project}
-                    query={query}
-                    onSearch={handleSearch}
-                    maxQueryLength={MAX_QUERY_LENGTH}
-                  />
-                ) : (
-                  <SmartSearchBar
-                    organization={organization}
-                    hasRecentSearches
-                    searchSource="profile_landing"
-                    supportedTags={profileFilters}
-                    query={query}
-                    onSearch={handleSearch}
-                    maxQueryLength={MAX_QUERY_LENGTH}
-                  />
-                )}
+                <SearchBar
+                  searchSource="profile_landing"
+                  organization={organization}
+                  projectIds={selection.projects}
+                  query={query}
+                  onSearch={handleSearch}
+                  maxQueryLength={MAX_QUERY_LENGTH}
+                />
               </ActionBar>
               {shouldShowProfilingOnboardingPanel ? (
-                // If user is on m2, show default
-                <ProfilingOnboardingPanel
-                  content={
-                    <ProfilingAM1OrMMXUpgrade
-                      organization={organization}
-                      fallback={
-                        <Fragment>
-                          <h3>{t('Function level insights')}</h3>
-                          <p>
-                            {t(
-                              'Discover slow-to-execute or resource intensive functions within your application'
-                            )}
-                          </p>
-                        </Fragment>
-                      }
-                    />
-                  }
-                >
-                  <ProfilingUpgradeButton
-                    organization={organization}
-                    priority="primary"
-                    fallback={
-                      <Button onClick={onSetupProfilingClick} priority="primary">
-                        {t('Set Up Profiling')}
-                      </Button>
+                <Fragment>
+                  <ProfilingOnboardingPanel
+                    content={
+                      // If user is on m2, show default
+                      <ProfilingAM1OrMMXUpgrade
+                        organization={organization}
+                        fallback={
+                          <Fragment>
+                            <h3>{t('Function level insights')}</h3>
+                            <p>
+                              {t(
+                                'Discover slow-to-execute or resource intensive functions within your application'
+                              )}
+                            </p>
+                          </Fragment>
+                        }
+                      />
                     }
                   >
-                    {t('Update plan')}
-                  </ProfilingUpgradeButton>
-                  <Button href="https://docs.sentry.io/product/profiling/" external>
-                    {t('Read Docs')}
-                  </Button>
-                </ProfilingOnboardingPanel>
+                    <ProfilingUpgradeButton
+                      data-test-id="profiling-upgrade"
+                      organization={organization}
+                      priority="primary"
+                      onClick={onSetupProfilingClick}
+                      fallback={
+                        <Button onClick={onSetupProfilingClick} priority="primary">
+                          {t('Set Up Profiling')}
+                        </Button>
+                      }
+                    >
+                      {t('Set Up Profiling')}
+                    </ProfilingUpgradeButton>
+                    <Button href="https://docs.sentry.io/product/profiling/" external>
+                      {t('Read Docs')}
+                    </Button>
+                  </ProfilingOnboardingPanel>
+                </Fragment>
               ) : (
                 <Fragment>
                   {organization.features.includes(
                     'profiling-global-suspect-functions'
                   ) ? (
                     <Fragment>
-                      <ProfilesChartWidget
-                        chartHeight={150}
-                        referrer="api.profiling.landing-chart"
-                        userQuery={query}
-                        selection={selection}
-                      />
+                      {organization.features.includes(
+                        'continuous-profiling-ui'
+                      ) ? null : (
+                        <ProfilesChartWidget
+                          chartHeight={150}
+                          referrer="api.profiling.landing-chart"
+                          userQuery={query}
+                          selection={selection}
+                        />
+                      )}
                       <WidgetsContainer>
                         <LandingWidgetSelector
                           cursorName={LEFT_WIDGET_CURSOR}
@@ -315,18 +280,16 @@ function ProfilingContent({location}: ProfilingContentProps) {
   );
 }
 
-const BASE_FIELDS = [
+const ALL_FIELDS = [
   'transaction',
   'project.id',
   'last_seen()',
+  'p50()',
   'p75()',
   'p95()',
   'p99()',
   'count()',
 ] as const;
-
-// user misery is only available with the profiling-using-transactions feature
-const ALL_FIELDS = [...BASE_FIELDS, 'user_misery()'] as const;
 
 type FieldType = (typeof ALL_FIELDS)[number];
 

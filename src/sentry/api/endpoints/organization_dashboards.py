@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import re
 
 from django.db import IntegrityError, router, transaction
@@ -15,6 +17,7 @@ from sentry.api.serializers import serialize
 from sentry.api.serializers.models.dashboard import DashboardListSerializer
 from sentry.api.serializers.rest_framework import DashboardSerializer
 from sentry.models.dashboard import Dashboard
+from sentry.models.organization import Organization
 
 MAX_RETRIES = 10
 DUPLICATE_TITLE_PATTERN = r"(.*) copy(?:$|\s(\d+))"
@@ -28,6 +31,17 @@ class OrganizationDashboardsPermission(OrganizationPermission):
         "DELETE": ["org:read", "org:write", "org:admin"],
     }
 
+    def has_object_permission(self, request: Request, view, obj):
+        if isinstance(obj, Organization):
+            return super().has_object_permission(request, view, obj)
+
+        if isinstance(obj, Dashboard):
+            for project in obj.projects.all():
+                if not request.access.has_project_access(project):
+                    return False
+
+        return True
+
 
 @region_silo_endpoint
 class OrganizationDashboardsEndpoint(OrganizationEndpoint):
@@ -35,7 +49,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         "GET": ApiPublishStatus.UNKNOWN,
         "POST": ApiPublishStatus.UNKNOWN,
     }
-    owner = ApiOwner.DISCOVER_N_DASHBOARDS
+    owner = ApiOwner.PERFORMANCE
     permission_classes = (OrganizationDashboardsPermission,)
 
     def get(self, request: Request, organization) -> Response:
@@ -47,7 +61,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         If on the first page, this endpoint will also include any pre-built dashboards
         that haven't been replaced or removed.
 
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           dashboards belongs to.
         :qparam string query: the title of the dashboard being searched for.
         :auth: required
@@ -67,6 +81,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         else:
             desc = False
 
+        order_by: list[Case | str]
         if sort_by == "title":
             order_by = [
                 "-title" if desc else "title",
@@ -74,7 +89,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
 
         elif sort_by == "dateCreated":
-            order_by = "-date_added" if desc else "date_added"
+            order_by = ["-date_added" if desc else "date_added"]
 
         elif sort_by == "mostPopular":
             order_by = [
@@ -83,7 +98,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
 
         elif sort_by == "recentlyViewed":
-            order_by = "last_visited" if desc else "-last_visited"
+            order_by = ["last_visited" if desc else "-last_visited"]
 
         elif sort_by == "mydashboards":
             order_by = [
@@ -102,10 +117,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
             ]
 
         else:
-            order_by = "title"
-
-        if not isinstance(order_by, list):
-            order_by = [order_by]
+            order_by = ["title"]
 
         dashboards = dashboards.order_by(*order_by)
 
@@ -142,7 +154,7 @@ class OrganizationDashboardsEndpoint(OrganizationEndpoint):
         ``````````````````````````````````````````
 
         Create a new dashboard for the given Organization
-        :pparam string organization_slug: the slug of the organization the
+        :pparam string organization_id_or_slug: the id or slug of the organization the
                                           dashboards belongs to.
         """
         if not features.has("organizations:dashboards-edit", organization, actor=request.user):

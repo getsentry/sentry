@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from functools import cached_property
-from typing import Optional
 
 from django.db import models
 
@@ -23,15 +22,13 @@ class OrganizationAbsoluteUrlMixin:
         if request and is_using_customer_domain(request):
             return True
 
-        return features.has("organizations:customer-domains", self)
+        return features.has("system:multi-region")
 
     def _has_customer_domain(self) -> bool:
         # For getsentry compatibility
         return self.__has_customer_domain
 
-    def absolute_url(
-        self, path: str, query: Optional[str] = None, fragment: Optional[str] = None
-    ) -> str:
+    def absolute_url(self, path: str, query: str | None = None, fragment: str | None = None) -> str:
         """
         Get an absolute URL to `path` for this organization.
 
@@ -47,8 +44,8 @@ class OrganizationAbsoluteUrlMixin:
         has_customer_domain: bool,
         slug: str,
         path: str,
-        query: Optional[str] = None,
-        fragment: Optional[str] = None,
+        query: str | None = None,
+        fragment: str | None = None,
     ) -> str:
         """
         Get an absolute URL to `path` for this organization.

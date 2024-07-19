@@ -10,10 +10,8 @@ from sentry.integrations.utils.atlassian_connect import (
 )
 from sentry.silo.base import SiloMode
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test(stable=True)
 class AtlassianConnectTest(TestCase):
     def setUp(self):
         self.factory = RequestFactory()
@@ -32,6 +30,8 @@ class AtlassianConnectTest(TestCase):
         self.valid_jwt = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ0ZXN0c2VydmVyLmppcmE6MTIzIiwiaWF0IjoxMjM0NTY3ODkwLCJleHAiOjk5OTk5OTk5OTksInFzaCI6IjM2ZjQzYjg4ZDZhOGNkZjg5YmI4Zjc0NGUyMzc4YmIwY2ViNjM3OGU4MGFiMGI1MTMwODJhOGI3MjM5NmJjY2MiLCJzdWIiOiJjb25uZWN0OjEyMyJ9.DjaYGvzLDO0RWTbNRHk3jyXsUvo9Jb7fAP8hguqpMvE"
         self.unknown_issuer_jwt = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ0ZXN0c2VydmVyLmppcmE6dW5rbm93biIsImlhdCI6MTIzNDU2Nzg5MCwiZXhwIjo5OTk5OTk5OTk5LCJxc2giOiIzNmY0M2I4OGQ2YThjZGY4OWJiOGY3NDRlMjM3OGJiMGNlYjYzNzhlODBhYjBiNTEzMDgyYThiNzIzOTZiY2NjIiwic3ViIjoiY29ubmVjdDoxMjMifQ.dhIYA45uNkp4jONnpniNeW-k7E3dywJhPzMI55KVlus"
         self.invalid_secret_jwt = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ0ZXN0c2VydmVyLmppcmE6MTIzIiwiaWF0IjoxMjM0NTY3ODkwLCJleHAiOjk5OTk5OTk5OTksInFzaCI6IjM2ZjQzYjg4ZDZhOGNkZjg5YmI4Zjc0NGUyMzc4YmIwY2ViNjM3OGU4MGFiMGI1MTMwODJhOGI3MjM5NmJjY2MiLCJzdWIiOiJjb25uZWN0OjEyMyJ9.7nGQQWUeXewnfL8_yvwzLGyf_rgkGdaQxKbDoi7tu_g"
+
+        self.expired_jwt = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJ0ZXN0c2VydmVyLmppcmE6MTIzIiwiaWF0IjoxMjM0NTY3ODkwLCJleHAiOjEyMzQ1Njc4OTAsInFzaCI6IjM2ZjQzYjg4ZDZhOGNkZjg5YmI4Zjc0NGUyMzc4YmIwY2ViNjM3OGU4MGFiMGI1MTMwODJhOGI3MjM5NmJjY2MiLCJzdWIiOiJjb25uZWN0OjEyMyJ9.1ZIrXDbaS6nUMgtmdCE1BFbsT7yvNKTkzVnSjX-Q7TA"
 
     def test_get_token_success(self):
         request = self.factory.post(path=self.path, HTTP_AUTHORIZATION=f"JWT {self.valid_jwt}")
@@ -103,6 +103,17 @@ class AtlassianConnectTest(TestCase):
             )
         except AtlassianConnectValidationError as e:
             assert str(e) == "Query hash mismatch"
+
+        try:
+            get_integration_from_jwt(
+                token=self.expired_jwt,
+                path=self.path,
+                provider=self.provider,
+                query_params=self.query_params,
+                method=self.method,
+            )
+        except AtlassianConnectValidationError as e:
+            assert str(e) == "Signature is expired"
 
     @override_settings(SILO_MODE=SiloMode.CONTROL)
     def test_parse_integration_from_request(self):

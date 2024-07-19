@@ -1,5 +1,6 @@
 import logging
-from typing import Sequence
+from collections.abc import Sequence
+from typing import Any
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError
@@ -95,7 +96,7 @@ def adopt_releases(org_id: int, totals: Totals) -> Sequence[int]:
                                 environment__organization_id=org_id,
                             )
 
-                            updates = {}
+                            updates: dict[str, Any] = {}
                             if rpe.adopted is None:
                                 updates["adopted"] = timezone.now()
 

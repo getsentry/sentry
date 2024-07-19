@@ -1,7 +1,6 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
-import {browserHistory} from 'react-router';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
 import {SectionHeading} from 'sentry/components/charts/styles';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -16,12 +15,13 @@ import QuestionTooltip from 'sentry/components/questionTooltip';
 import Radio from 'sentry/components/radio';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, Project} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import EventView from 'sentry/utils/discover/eventView';
-import SegmentExplorerQuery, {
-  TableData,
-} from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {TableData} from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
+import SegmentExplorerQuery from 'sentry/utils/performance/segmentExplorer/segmentExplorerQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {SidebarSpacer} from 'sentry/views/performance/transactionSummary/utils';
 
@@ -290,7 +290,7 @@ function TagsSideBar(props: {
 const RadioLabel = styled('label')`
   cursor: pointer;
   margin-bottom: ${space(1)};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   display: grid;
   grid-auto-flow: column;
   grid-auto-columns: max-content 1fr;

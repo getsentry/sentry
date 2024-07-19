@@ -5,25 +5,28 @@ These receivers are triggered on the region silo as outbox messages
 are drained. Receivers are expected to make local state changes (tombstones)
 and perform RPC calls to propagate changes to Control Silo.
 """
+
 from __future__ import annotations
 
 from typing import Any
 
 from django.dispatch import receiver
 
-from sentry.models.actor import Actor
+from sentry.audit_log.services.log import AuditLogEvent, UserIpEvent, log_rpc_service
+from sentry.auth.services.auth import auth_service
+from sentry.auth.services.orgauthtoken import orgauthtoken_rpc_service
+from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
+from sentry.hybridcloud.services.organization_mapping.model import CustomerId
+from sentry.hybridcloud.services.organization_mapping.serial import (
+    update_organization_mapping_from_instance,
+)
 from sentry.models.authproviderreplica import AuthProviderReplica
+from sentry.models.files.utils import get_relocation_storage
 from sentry.models.organization import Organization
 from sentry.models.outbox import OutboxCategory, process_region_outbox
 from sentry.models.project import Project
 from sentry.receivers.outbox import maybe_process_tombstone
-from sentry.services.hybrid_cloud.auth import auth_service
-from sentry.services.hybrid_cloud.log import AuditLogEvent, UserIpEvent, log_rpc_service
-from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
-from sentry.services.hybrid_cloud.organization_mapping.serial import (
-    update_organization_mapping_from_instance,
-)
-from sentry.services.hybrid_cloud.orgauthtoken import orgauthtoken_rpc_service
+from sentry.relocation.services.relocation_export.service import control_relocation_export_service
 from sentry.types.region import get_local_region
 
 
@@ -52,13 +55,6 @@ def process_project_updates(object_identifier: int, **kwds: Any):
     proj
 
 
-@receiver(process_region_outbox, sender=OutboxCategory.ACTOR_UPDATE)
-def process_actor_updates(object_identifier: int, **kwds: Any):
-    if (actor := maybe_process_tombstone(Actor, object_identifier)) is None:
-        return
-    actor
-
-
 @receiver(process_region_outbox, sender=OutboxCategory.ORGANIZATION_MAPPING_CUSTOMER_ID_UPDATE)
 def process_organization_mapping_customer_id_update(
     object_identifier: int, payload: Any, **kwds: Any
@@ -68,12 +64,38 @@ def process_organization_mapping_customer_id_update(
 
     if payload and "customer_id" in payload:
         update = update_organization_mapping_from_instance(
-            org, get_local_region(), customer_id=(payload["customer_id"],)
+            org, get_local_region(), customer_id=CustomerId(value=payload["customer_id"])
         )
         organization_mapping_service.upsert(organization_id=org.id, update=update)
 
 
 @receiver(process_region_outbox, sender=OutboxCategory.DISABLE_AUTH_PROVIDER)
 def process_disable_auth_provider(object_identifier: int, shard_identifier: int, **kwds: Any):
+    # Deprecated
     auth_service.disable_provider(provider_id=object_identifier)
     AuthProviderReplica.objects.filter(auth_provider_id=object_identifier).delete()
+
+
+# See the comment on /src/sentry/tasks/relocation.py::uploading_start for a detailed description of
+# how this outbox drain handler fits into the entire SAAS->SAAS relocation workflow.
+@receiver(process_region_outbox, sender=OutboxCategory.RELOCATION_EXPORT_REPLY)
+def process_relocation_reply_with_export(payload: Any, **kwds):
+    uuid = payload["relocation_uuid"]
+    slug = payload["org_slug"]
+    relocation_storage = get_relocation_storage()
+    path = f"runs/{uuid}/saas_to_saas_export/{slug}.tar"
+    try:
+        encrypted_contents = relocation_storage.open(path)
+    except Exception:
+        raise FileNotFoundError(
+            "Could not open SaaS -> SaaS export in export-side relocation bucket."
+        )
+
+    with encrypted_contents:
+        control_relocation_export_service.reply_with_export(
+            relocation_uuid=uuid,
+            requesting_region_name=payload["requesting_region_name"],
+            replying_region_name=payload["replying_region_name"],
+            org_slug=slug,
+            encrypted_contents=encrypted_contents.read(),
+        )

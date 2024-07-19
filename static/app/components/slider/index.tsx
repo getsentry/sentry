@@ -2,7 +2,8 @@ import {forwardRef, useCallback, useImperativeHandle, useMemo, useRef} from 'rea
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {useNumberFormatter} from '@react-aria/i18n';
-import {AriaSliderProps, AriaSliderThumbOptions, useSlider} from '@react-aria/slider';
+import type {AriaSliderProps, AriaSliderThumbOptions} from '@react-aria/slider';
+import {useSlider} from '@react-aria/slider';
 import {useSliderState} from '@react-stately/slider';
 
 import {Tooltip} from 'sentry/components/tooltip';
@@ -171,16 +172,12 @@ function BaseSlider(
 
   const nThumbs = state.values.length;
   const refs = useRef<Array<HTMLInputElement>>([]);
-  useImperativeHandle(
-    forwardedRef,
-    () => {
-      if (nThumbs > 1) {
-        return refs.current;
-      }
-      return refs.current[0];
-    },
-    [nThumbs]
-  );
+  useImperativeHandle(forwardedRef, () => {
+    if (nThumbs > 1) {
+      return refs.current;
+    }
+    return refs.current[0];
+  }, [nThumbs]);
 
   const getFormattedValue = useCallback(
     (val: number) => {
@@ -254,8 +251,8 @@ function BaseSlider(
                 index === 0
                   ? 'start'
                   : index === allTickValues.length - 1
-                  ? 'end'
-                  : 'center'
+                    ? 'end'
+                    : 'center'
               }
             >
               {showTickLabels && (
@@ -317,7 +314,7 @@ const SliderLabelWrapper = styled('div')`
 `;
 
 const SliderLabel = styled('label')`
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   color: ${p => p.theme.textColor};
 `;
 

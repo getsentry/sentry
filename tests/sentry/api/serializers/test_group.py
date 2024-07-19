@@ -4,32 +4,28 @@ from unittest.mock import patch
 from django.utils import timezone
 
 from sentry.api.serializers import serialize
+from sentry.integrations.types import ExternalProviderEnum
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouplink import GroupLink
 from sentry.models.groupresolution import GroupResolution
 from sentry.models.groupsnooze import GroupSnooze
 from sentry.models.groupsubscription import GroupSubscription
-from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.options.user_option import UserOption
 from sentry.notifications.types import (
     NotificationScopeEnum,
     NotificationSettingEnum,
-    NotificationSettingOptionValues,
     NotificationSettingsOptionEnum,
-    NotificationSettingTypes,
 )
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import PerformanceIssueTestCase, TestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
-from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
 
 pytestmark = [requires_snuba]
 
 
-@region_silo_test(stable=True)
 class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
     def test_project(self):
         user = self.create_user()
@@ -343,20 +339,6 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.WORKFLOW,
-                NotificationSettingOptionValues.NEVER,
-                user_id=user.id,
-            )
-
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.WORKFLOW,
-                NotificationSettingOptionValues.NEVER,
-                user_id=user.id,
-            )
-
             NotificationSettingOption.objects.create_or_update(
                 scope_type=NotificationScopeEnum.USER.value,
                 scope_identifier=user.id,
@@ -378,22 +360,6 @@ class GroupSerializerTest(TestCase, PerformanceIssueTestCase):
         )
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.WORKFLOW,
-                NotificationSettingOptionValues.NEVER,
-                user_id=user.id,
-                project=group.project,
-            )
-
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.SLACK,
-                NotificationSettingTypes.WORKFLOW,
-                NotificationSettingOptionValues.NEVER,
-                user_id=user.id,
-                project=group.project,
-            )
-
             NotificationSettingOption.objects.create_or_update(
                 scope_type=NotificationScopeEnum.PROJECT.value,
                 scope_identifier=group.project.id,

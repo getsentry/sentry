@@ -1,10 +1,13 @@
-import {browserHistory, Router, RouterContext} from 'react-router';
+import {Router, RouterContext} from 'react-router';
+import {ReactQueryDevtools} from '@tanstack/react-query-devtools';
 
 import DemoHeader from 'sentry/components/demo/demoHeader';
 import {OnboardingContextProvider} from 'sentry/components/onboarding/onboardingContext';
 import {ThemeAndStyleProvider} from 'sentry/components/themeAndStyleProvider';
+import {USE_REACT_QUERY_DEVTOOL} from 'sentry/constants';
 import {routes} from 'sentry/routes';
 import ConfigStore from 'sentry/stores/configStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import {
   DEFAULT_QUERY_CLIENT_CONFIG,
   QueryClient,
@@ -39,6 +42,9 @@ function Main() {
             {routes()}
           </Router>
         </OnboardingContextProvider>
+        {USE_REACT_QUERY_DEVTOOL && (
+          <ReactQueryDevtools initialIsOpen={false} position="bottom-left" />
+        )}
       </QueryClientProvider>
     </ThemeAndStyleProvider>
   );

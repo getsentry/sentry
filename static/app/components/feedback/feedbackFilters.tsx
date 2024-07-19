@@ -1,4 +1,4 @@
-import {CSSProperties} from 'react';
+import type {CSSProperties} from 'react';
 
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';

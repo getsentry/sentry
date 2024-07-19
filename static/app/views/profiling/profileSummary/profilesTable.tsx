@@ -12,25 +12,44 @@ import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 import {useLocation} from 'sentry/utils/useLocation';
 
+const ALL_FIELDS = [
+  'profile.id',
+  'timestamp',
+  'transaction.duration',
+  'release',
+  'environment',
+  'trace',
+  'trace.transaction',
+  'id',
+] as const;
+
+type FieldType = (typeof ALL_FIELDS)[number];
+
 const FIELDS = [
   'profile.id',
   'timestamp',
-  'profile.duration',
+  'transaction.duration',
   'release',
   'environment',
-  'os.name',
-  'os.version',
   'trace',
   'trace.transaction',
 ] as const;
 
-type FieldType = (typeof FIELDS)[number];
+const QUERY_FIELDS = [
+  'profile.id',
+  'timestamp',
+  'transaction.duration',
+  'release',
+  'environment',
+  'trace',
+  'id',
+] as const;
 
 export function ProfilesTable() {
   const location = useLocation();
 
   const sort = useMemo(() => {
-    return formatSort<FieldType>(decodeScalar(location.query.sort), FIELDS, {
+    return formatSort<FieldType>(decodeScalar(location.query.sort), QUERY_FIELDS, {
       key: 'timestamp',
       order: 'desc',
     });
@@ -58,7 +77,7 @@ export function ProfilesTable() {
 
   const profiles = useProfileEvents<FieldType>({
     cursor: profilesCursor,
-    fields: FIELDS,
+    fields: QUERY_FIELDS,
     query,
     sort,
     limit: 20,
@@ -66,15 +85,33 @@ export function ProfilesTable() {
   });
 
   const eventsTableProps = useMemo(() => {
-    return {columns: FIELDS.slice(), sortableColumns: new Set(FIELDS)};
+    return {columns: FIELDS, sortableColumns: new Set(FIELDS)};
   }, []);
+
+  // Transform the response so that the data is compatible with the renderer
+  // regardless if we're using the transactions or profiles table
+  const data = useMemo(() => {
+    if (!profiles.data) {
+      return null;
+    }
+    const _data = {
+      data: profiles.data.data.map(row => {
+        return {
+          ...row,
+          'trace.transaction': row.id,
+        };
+      }),
+      meta: profiles.data.meta,
+    };
+    return _data;
+  }, [profiles.data]);
 
   return (
     <ProfileEvents>
       <ProfileEventsTableContainer>
         <ProfileEventsTable
           sort={sort}
-          data={profiles.status === 'success' ? profiles.data : null}
+          data={profiles.status === 'success' ? data : null}
           error={profiles.status === 'error' ? t('Unable to load profiles') : null}
           isLoading={profiles.status === 'loading'}
           {...eventsTableProps}

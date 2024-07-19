@@ -1,0 +1,2 @@
+family:javascript error.type:"ChunkLoadError" -> chunkloaderror
+family:javascript error.value:"ChunkLoadError*" -> chunkloaderror

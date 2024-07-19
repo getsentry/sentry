@@ -3,17 +3,15 @@ import io
 import zipfile
 from uuid import uuid4
 
+import orjson
 from django.urls import reverse
 
 from sentry.models.artifactbundle import ArtifactBundle, ProjectArtifactBundle
 from sentry.models.files.file import File
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.helpers.response import close_streaming_response
-from sentry.testutils.silo import region_silo_test
-from sentry.utils import json
 
 
-@region_silo_test(stable=True)
 class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
     @staticmethod
     def get_compressed_zip_file(artifact_name, files, type="artifact.bundle"):
@@ -28,7 +26,7 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
 
             zip_file.writestr(
                 "manifest.json",
-                json.dumps(
+                orjson.dumps(
                     {
                         # We remove the "content" key in the original dict, thus no subsequent calls should be made.
                         "files": {
@@ -36,7 +34,7 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
                             for file_path, info in files.items()
                         }
                     }
-                ),
+                ).decode(),
             )
         compressed.seek(0)
 
@@ -84,8 +82,8 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-artifact-bundle-file-details",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "bundle_id": artifact_bundle.bundle_id,
                 "file_id": base64.urlsafe_b64encode(b"files/_/_/index.js.map").decode("utf-8"),
             },
@@ -107,8 +105,8 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-artifact-bundle-file-details",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "bundle_id": artifact_bundle.bundle_id,
                 "file_id": base64.urlsafe_b64encode(b"files/_/_/index.js").decode("utf-8"),
             },
@@ -126,8 +124,8 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-artifact-bundle-file-details",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "bundle_id": artifact_bundle.bundle_id,
                 "file_id": base64.urlsafe_b64encode(b"files/_/_/bundle.js").decode("utf-8"),
             },
@@ -141,8 +139,8 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-artifact-bundle-file-details",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "bundle_id": artifact_bundle.bundle_id,
                 "file_id": 1234,
             },
@@ -200,8 +198,8 @@ class ProjectArtifactBundleFileDetailsEndpointTest(APITestCase):
         url = reverse(
             "sentry-api-0-project-artifact-bundle-file-details",
             kwargs={
-                "organization_slug": project.organization.slug,
-                "project_slug": project.slug,
+                "organization_id_or_slug": project.organization.slug,
+                "project_id_or_slug": project.slug,
                 "bundle_id": artifact_bundle.bundle_id,
                 "file_id": base64.urlsafe_b64encode(b"files/_/_/bundle.js").decode("utf-8"),
             },

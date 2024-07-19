@@ -21,6 +21,7 @@ from sentry.search.events.constants import (
     SEMVER_BUILD_ALIAS,
     SEMVER_PACKAGE_ALIAS,
 )
+from sentry.search.events.types import ParamsType
 from sentry.snuba import discover
 from sentry.testutils.cases import SnubaTestCase, TestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
@@ -29,14 +30,14 @@ from sentry.utils.samples import load_data
 ARRAY_COLUMNS = ["measurements", "span_op_breakdowns"]
 
 
-class QueryIntegrationTest(SnubaTestCase, TestCase):
+class DiscoverQueryIntegrationTest(SnubaTestCase, TestCase):
     def setUp(self):
         super().setUp()
         self.environment = self.create_environment(self.project, name="prod")
         self.release = self.create_release(self.project, version="first-release")
-        self.now = before_now().replace(tzinfo=timezone.utc)
-        self.one_min_ago = before_now(minutes=1).replace(tzinfo=timezone.utc)
-        self.two_min_ago = before_now(minutes=2).replace(tzinfo=timezone.utc)
+        self.now = before_now()
+        self.one_min_ago = before_now(minutes=1)
+        self.two_min_ago = before_now(minutes=2)
 
         self.event_time = self.one_min_ago
         self.event = self.store_event(
@@ -51,10 +52,10 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             },
             project_id=self.project.id,
         )
-        self.params = {
+        self.params: ParamsType = {
             "organization_id": self.organization.id,
             "project_id": [self.project.id],
-            "start": before_now(days=1).replace(tzinfo=timezone.utc),
+            "start": before_now(days=1),
             "end": self.now,
         }
 
@@ -70,7 +71,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["project", "message"],
             query="",
             params=self.params,
-            orderby="project",
+            orderby=["project"],
             referrer="discover",
         )
 
@@ -94,7 +95,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["project", "message"],
             query="",
             params=self.params,
-            orderby="project",
+            orderby=["project"],
             referrer="test_discover_query",
         )
         data = result["data"]
@@ -117,7 +118,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["project", "message"],
             query="",
             params=self.params,
-            orderby="-project",
+            orderby=["-project"],
             referrer="test_discover_query",
         )
         data = result["data"]
@@ -140,7 +141,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["project.name", "message", "project"],
             query="",
             params=self.params,
-            orderby="project.name",
+            orderby=["project.name"],
             referrer="test_discover_query",
         )
         data = result["data"]
@@ -172,7 +173,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["message", "project"],
             query="",
             params=self.params,
-            orderby="project",
+            orderby=["project"],
             referrer="test_discover_query",
         )
         data = result["data"]
@@ -247,7 +248,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=[column],
                 query="",
                 params=self.params,
-                orderby=orderby,
+                orderby=[orderby],
                 referrer="test_discover_query",
             )
             data = result["data"]
@@ -295,7 +296,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=[column],
                 query=query,
                 params=self.params,
-                orderby=column,
+                orderby=[column],
                 referrer="test_discover_query",
             )
             data = result["data"]
@@ -328,7 +329,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=[column],
                 query=query,
                 params=self.params,
-                orderby=column,
+                orderby=[column],
                 referrer="test_discover_query",
             )
             data = result["data"]
@@ -360,7 +361,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     selected_columns=[column],
                     query="",
                     params=self.params,
-                    orderby=f"{direction}{column}",
+                    orderby=[f"{direction}{column}"],
                     referrer="discover",
                 )
                 data = result["data"]
@@ -386,9 +387,9 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         assert [item["timestamp.to_day"] for item in data] == [f"{iso_format(day)}+00:00"]
 
     def test_timestamp_rounding_filters(self):
-        one_day_ago = before_now(days=1).replace(tzinfo=timezone.utc)
-        two_day_ago = before_now(days=2).replace(tzinfo=timezone.utc)
-        three_day_ago = before_now(days=3).replace(tzinfo=timezone.utc)
+        one_day_ago = before_now(days=1)
+        two_day_ago = before_now(days=2)
+        three_day_ago = before_now(days=3)
         self.params["start"] = three_day_ago
 
         self.store_event(
@@ -519,7 +520,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=["message"],
                 query="",
                 params=self.params,
-                orderby=orderby,
+                orderby=[orderby],
                 referrer="test_discover_query",
             )
 
@@ -558,7 +559,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=["message"],
                 query=query,
                 params=self.params,
-                orderby="message",
+                orderby=["message"],
                 referrer="test_discover_query",
             )
 
@@ -771,7 +772,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=cols,
                 query=query,
-                orderby="transaction",
+                orderby=["transaction"],
                 params={
                     "start": before_now(minutes=10),
                     "end": before_now(minutes=2),
@@ -917,7 +918,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=["transaction", "failure_count()"],
                 query=query,
-                orderby="transaction",
+                orderby=["transaction"],
                 params={
                     "start": before_now(minutes=10),
                     "end": before_now(minutes=2),
@@ -991,7 +992,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=["transaction"] + col,
                 query=query,
-                orderby="transaction",
+                orderby=["transaction"],
                 referrer="discover",
                 params={
                     "start": before_now(minutes=30),
@@ -1081,7 +1082,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=["transaction"] + col,
                 query=query,
-                orderby="transaction",
+                orderby=["transaction"],
                 referrer="discover",
                 params={
                     "start": before_now(minutes=30),
@@ -1175,7 +1176,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=["transaction"] + col,
                 referrer="discover",
                 query=query,
-                orderby="transaction",
+                orderby=["transaction"],
                 params={
                     "start": before_now(minutes=30),
                     "end": before_now(minutes=2),
@@ -1212,7 +1213,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=["transaction", "count()"],
                 query=query,
-                orderby="transaction",
+                orderby=["transaction"],
                 params={
                     "start": before_now(minutes=10),
                     "end": before_now(minutes=2),
@@ -1269,7 +1270,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 referrer="discover",
                 selected_columns=selected,
                 query=query,
-                orderby="transaction",
+                orderby=["transaction"],
                 params={
                     "start": before_now(minutes=10),
                     "end": before_now(minutes=2),
@@ -1308,7 +1309,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 selected_columns=["transaction", "last_seen()"],
                 query=query,
                 referrer="discover",
-                orderby="transaction",
+                orderby=["transaction"],
                 params={
                     "start": before_now(minutes=10),
                     "end": before_now(minutes=2),
@@ -1337,7 +1338,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         result = discover.query(
             selected_columns=["transaction", "latest_event()"],
             query="",
-            orderby="transaction",
+            orderby=["transaction"],
             referrer="discover",
             params={
                 "start": before_now(minutes=10),
@@ -1383,7 +1384,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             result = discover.query(
                 selected_columns=["transaction", "failure_rate()"],
                 query=query,
-                orderby="transaction",
+                orderby=["transaction"],
                 params={
                     "start": before_now(minutes=10),
                     "end": before_now(minutes=2),
@@ -1432,7 +1433,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "percentile(transaction.duration, 0.5)",
                 ],
                 query=query,
-                orderby="transaction",
+                orderby=["transaction"],
                 params={
                     "start": before_now(minutes=20),
                     "end": before_now(minutes=2),
@@ -1467,7 +1468,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "p50(transaction.duration)",
                 ],
                 query=query,
-                orderby="transaction",
+                orderby=["transaction"],
                 params={
                     "start": before_now(minutes=20),
                     "end": before_now(minutes=2),
@@ -1500,7 +1501,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "p75(transaction.duration)",
                 ],
                 query=query,
-                orderby="transaction",
+                orderby=["transaction"],
                 params={
                     "start": before_now(minutes=20),
                     "end": before_now(minutes=2),
@@ -1534,7 +1535,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "p95(transaction.duration)",
                 ],
                 query=query,
-                orderby="transaction",
+                orderby=["transaction"],
                 params={
                     "start": before_now(minutes=20),
                     "end": before_now(minutes=2),
@@ -1568,7 +1569,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "p99(transaction.duration)",
                 ],
                 query=query,
-                orderby="transaction",
+                orderby=["transaction"],
                 params={
                     "start": before_now(minutes=20),
                     "end": before_now(minutes=2),
@@ -1602,7 +1603,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "p100(transaction.duration)",
                 ],
                 query=query,
-                orderby="transaction",
+                orderby=["transaction"],
                 params={
                     "start": before_now(minutes=20),
                     "end": before_now(minutes=2),
@@ -1645,7 +1646,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "p100(measurements.frames_slow_rate)",
                 ],
                 query=query,
-                orderby="transaction",
+                orderby=["transaction"],
                 params={
                     "start": before_now(minutes=20),
                     "end": before_now(minutes=2),
@@ -1828,7 +1829,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "tps(60)",
                 ],
                 query=query,
-                orderby="transaction",
+                orderby=["transaction"],
                 params={
                     "start": before_now(minutes=4),
                     "end": before_now(minutes=2),
@@ -1881,7 +1882,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "tpm(60)",
                 ],
                 query=query,
-                orderby="transaction",
+                orderby=["transaction"],
                 params={
                     "start": before_now(minutes=4),
                     "end": before_now(minutes=2),
@@ -1984,7 +1985,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         )
         for event in events:
             data["event_id"] = event[0]
-            data["message"] = event[1]
+            data["logentry"] = {"formatted": event[1]}
             data["exception"]["values"][0]["value"] = event[1]
             data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
             self.store_event(data=data, project_id=self.project.id)
@@ -2027,7 +2028,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         )
         for event in events:
             data["event_id"] = event[0]
-            data["message"] = event[1]
+            data["logentry"] = {"formatted": event[1]}
             data["exception"]["values"][0]["value"] = event[1]
             data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
             self.store_event(data=data, project_id=self.project.id)
@@ -2163,16 +2164,16 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         for event in events:
             data["event_id"] = event[0]
             data["transaction"] = event[0]
-            data["message"] = event[1]
+            data["logentry"] = {"formatted": event[1]}
             data["exception"]["values"][0]["value"] = event[1]
             data["exception"]["values"][0]["mechanism"]["handled"] = event[2]
             self.store_event(data=data, project_id=self.project.id)
 
         queries = [
             (["error.unhandled"], [0, 0, 1]),
-            ("error.unhandled", [0, 0, 1]),
+            (["error.unhandled"], [0, 0, 1]),
             (["-error.unhandled"], [1, 0, 0]),
-            ("-error.unhandled", [1, 0, 0]),
+            (["-error.unhandled"], [1, 0, 0]),
         ]
 
         for orderby, expected in queries:
@@ -2217,11 +2218,11 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
         orderbys = [
             (["failure_count()"], [0, 0, 1, 1, 1, 1, 1, 2]),
-            ("failure_count()", [0, 0, 1, 1, 1, 1, 1, 2]),
+            (["failure_count()"], [0, 0, 1, 1, 1, 1, 1, 2]),
             (["-failure_count()"], [2, 1, 1, 1, 1, 1, 0, 0]),
-            ("-failure_count()", [2, 1, 1, 1, 1, 1, 0, 0]),
-            ("failure_count", [0, 0, 1, 1, 1, 1, 1, 2]),
-            ("-failure_count", [2, 1, 1, 1, 1, 1, 0, 0]),
+            (["-failure_count()"], [2, 1, 1, 1, 1, 1, 0, 0]),
+            (["failure_count"], [0, 0, 1, 1, 1, 1, 1, 2]),
+            (["-failure_count"], [2, 1, 1, 1, 1, 1, 0, 0]),
         ]
 
         for orderby, expected in orderbys:
@@ -2495,7 +2496,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
         result = discover.query(
             selected_columns=["id"],
-            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED}",
+            query=f"{RELEASE_STAGE_ALIAS}:{ReleaseStages.ADOPTED.value}",
             params=self.params,
             referrer="discover",
         )
@@ -2506,7 +2507,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
 
         result = discover.query(
             selected_columns=["id"],
-            query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION}",
+            query=f"!{RELEASE_STAGE_ALIAS}:{ReleaseStages.LOW_ADOPTION.value}",
             params=self.params,
             referrer="discover",
         )
@@ -2518,7 +2519,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
         }
         result = discover.query(
             selected_columns=["id"],
-            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED}, {ReleaseStages.REPLACED}]",
+            query=f"{RELEASE_STAGE_ALIAS}:[{ReleaseStages.ADOPTED.value}, {ReleaseStages.REPLACED.value}]",
             params=self.params,
             referrer="discover",
         )
@@ -2664,7 +2665,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "start": self.two_min_ago,
                 "end": self.now,
             },
-            orderby="message",
+            orderby=["message"],
             referrer="discover",
         )
 
@@ -2702,7 +2703,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "start": self.two_min_ago,
                 "end": self.now,
             },
-            orderby="release",
+            orderby=["release"],
             referrer="discover",
         )
 
@@ -2716,7 +2717,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             data = load_data("transaction")
             data["timestamp"] = iso_format(self.one_min_ago)
             data["transaction"] = val * 32
-            data["message"] = val * 32
+            data["logentry"] = {"formatted": val * 32}
             data["tags"] = {"sub_customer.is-Enterprise-42": val * 32}
             self.store_event(data=data, project_id=self.project.id)
 
@@ -2728,7 +2729,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "start": self.two_min_ago,
                 "end": self.now,
             },
-            orderby="title",
+            orderby=["title"],
             referrer="discover",
         )
 
@@ -2747,7 +2748,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "start": self.two_min_ago,
                 "end": self.now,
             },
-            orderby="title",
+            orderby=["title"],
             referrer="discover",
         )
 
@@ -2764,7 +2765,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 data = load_data("transaction")
                 data["timestamp"] = iso_format(self.one_min_ago)
                 data["transaction"] = f"{val}-{i}"
-                data["message"] = val
+                data["logentry"] = {"formatted": val}
                 data["tags"] = {"trek": val}
                 self.store_event(data=data, project_id=self.project.id)
 
@@ -2778,7 +2779,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "start": self.two_min_ago,
                 "end": self.now,
             },
-            orderby="trek",
+            orderby=["trek"],
             use_aggregate_conditions=True,
             referrer="discover",
         )
@@ -2796,7 +2797,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 data = load_data("transaction")
                 data["timestamp"] = iso_format(self.one_min_ago)
                 data["transaction"] = f"{val}-{i}"
-                data["message"] = val
+                data["logentry"] = {"formatted": val}
                 data["tags"] = {"trek": val}
                 self.store_event(data=data, project_id=self.project.id)
 
@@ -2810,7 +2811,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "start": self.two_min_ago,
                 "end": self.now,
             },
-            orderby="trek",
+            orderby=["trek"],
             use_aggregate_conditions=True,
             referrer="discover",
         )
@@ -2832,7 +2833,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                     "start": self.two_min_ago,
                     "end": self.now,
                 },
-                orderby="trek",
+                orderby=["trek"],
                 use_aggregate_conditions=True,
             )
         assert "used in a condition but is not a selected column" in str(err)
@@ -2857,7 +2858,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "start": self.two_min_ago,
                 "end": self.now,
             },
-            orderby="transaction",
+            orderby=["transaction"],
             use_aggregate_conditions=True,
             referrer="discover",
         )
@@ -2899,7 +2900,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["transaction", "count()"],
             query="event.type:transaction AND (count():<1 OR count():>0)",
             params=self.params,
-            orderby="transaction",
+            orderby=["transaction"],
             use_aggregate_conditions=True,
             referrer="discover",
         )
@@ -3032,7 +3033,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
             selected_columns=["message"],
             query="",
             params=self.params,
-            orderby="message",
+            orderby=["message"],
             limit=1,
             offset=1,
             referrer="discover",
@@ -3132,7 +3133,7 @@ class QueryIntegrationTest(SnubaTestCase, TestCase):
                 "start": self.two_min_ago,
                 "end": self.now,
             },
-            orderby="project",
+            orderby=["project"],
             referrer="discover",
         )
         data = result["data"]
@@ -3145,14 +3146,18 @@ class ArithmeticTest(SnubaTestCase, TestCase):
         super().setUp()
 
         self.day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
-        self.now = before_now().replace(tzinfo=timezone.utc)
+        self.now = before_now()
         event_data = load_data("transaction")
         # Half of duration so we don't get weird rounding differences when comparing the results
         event_data["breakdowns"]["span_ops"]["ops.http"]["value"] = 1500
         event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
         event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
         self.store_event(data=event_data, project_id=self.project.id)
-        self.params = {"project_id": [self.project.id], "start": self.day_ago, "end": self.now}
+        self.params: ParamsType = {
+            "project_id": [self.project.id],
+            "start": self.day_ago,
+            "end": self.now,
+        }
         self.query = "event.type:transaction"
 
     def test_simple(self):
@@ -3250,32 +3255,57 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
             event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
             self.store_event(data=event_data, project_id=self.project.id)
-        query_params = {
-            "selected_columns": [
+        results = discover.query(
+            selected_columns=[
                 "spans.http",
                 "transaction.duration",
             ],
-            "equations": [
+            equations=[
                 "spans.http / transaction.duration",
                 "transaction.duration / spans.http",
                 "1500 + transaction.duration",
             ],
-            "orderby": ["equation[0]"],
-            "query": self.query,
-            "params": self.params,
-            "referrer": "discover",
-        }
-        results = discover.query(**query_params)
+            orderby=["equation[0]"],
+            query=self.query,
+            params=self.params,
+            referrer="discover",
+        )
         assert len(results["data"]) == 3
         assert [result["equation[0]"] for result in results["data"]] == [0.1, 0.2, 0.5]
 
-        query_params["orderby"] = ["equation[1]"]
-        results = discover.query(**query_params)
+        results = discover.query(
+            selected_columns=[
+                "spans.http",
+                "transaction.duration",
+            ],
+            equations=[
+                "spans.http / transaction.duration",
+                "transaction.duration / spans.http",
+                "1500 + transaction.duration",
+            ],
+            orderby=["equation[1]"],
+            query=self.query,
+            params=self.params,
+            referrer="discover",
+        )
         assert len(results["data"]) == 3
         assert [result["equation[1]"] for result in results["data"]] == [2, 5, 10]
 
-        query_params["orderby"] = ["-equation[0]"]
-        results = discover.query(**query_params)
+        results = discover.query(
+            selected_columns=[
+                "spans.http",
+                "transaction.duration",
+            ],
+            equations=[
+                "spans.http / transaction.duration",
+                "transaction.duration / spans.http",
+                "1500 + transaction.duration",
+            ],
+            orderby=["-equation[0]"],
+            query=self.query,
+            params=self.params,
+            referrer="discover",
+        )
         assert len(results["data"]) == 3
         assert [result["equation[0]"] for result in results["data"]] == [0.5, 0.2, 0.1]
 
@@ -3375,30 +3405,53 @@ class ArithmeticTest(SnubaTestCase, TestCase):
             event_data["start_timestamp"] = iso_format(self.day_ago + timedelta(minutes=30))
             event_data["timestamp"] = iso_format(self.day_ago + timedelta(minutes=30, seconds=3))
             self.store_event(data=event_data, project_id=self.project.id)
-        query_params = {
-            "selected_columns": [
+        results = discover.query(
+            selected_columns=[
                 "spans.http",
                 "transaction.duration",
             ],
-            "equations": [
+            equations=[
                 "transaction.duration / spans.http",  # inf
                 "spans.http / spans.http",  # nan
             ],
-            "orderby": ["equation[0]"],
-            "query": self.query,
-            "params": self.params,
-            "referrer": "discover",
-        }
-        results = discover.query(**query_params)
+            orderby=["equation[0]"],
+            query=self.query,
+            params=self.params,
+            referrer="discover",
+        )
         assert len(results["data"]) == 3
         assert [result["equation[0]"] for result in results["data"]] == [2, None, None]
 
-        query_params["orderby"] = ["equation[1]"]
-        results = discover.query(**query_params)
+        results = discover.query(
+            selected_columns=[
+                "spans.http",
+                "transaction.duration",
+            ],
+            equations=[
+                "transaction.duration / spans.http",  # inf
+                "spans.http / spans.http",  # nan
+            ],
+            orderby=["equation[1]"],
+            query=self.query,
+            params=self.params,
+            referrer="discover",
+        )
         assert len(results["data"]) == 3
         assert [result["equation[1]"] for result in results["data"]] == [1, None, None]
 
-        query_params["orderby"] = ["-equation[0]"]
-        results = discover.query(**query_params)
+        results = discover.query(
+            selected_columns=[
+                "spans.http",
+                "transaction.duration",
+            ],
+            equations=[
+                "transaction.duration / spans.http",  # inf
+                "spans.http / spans.http",  # nan
+            ],
+            orderby=["-equation[0]"],
+            query=self.query,
+            params=self.params,
+            referrer="discover",
+        )
         assert len(results["data"]) == 3
         assert [result["equation[0]"] for result in results["data"]] == [2, None, None]

@@ -4,7 +4,7 @@ from drf_spectacular.utils import OpenApiExample
 class DiscoverAndPerformanceExamples:
     QUERY_DISCOVER_EVENTS = [
         OpenApiExample(
-            "Success",
+            "Query Events",
             value={
                 "data": [
                     {

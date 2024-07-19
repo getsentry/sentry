@@ -1,25 +1,42 @@
 import merge from 'lodash/merge';
+import {GitHubIntegrationFixture} from 'sentry-fixture/githubIntegration';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {RepositoryFixture} from 'sentry-fixture/repository';
+import {RepositoryProjectPathConfigFixture} from 'sentry-fixture/repositoryProjectPathConfig';
 
-import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen, userEvent, within} from 'sentry-test/reactTestingLibrary';
 
 import {Threads} from 'sentry/components/events/interfaces/threads';
 import {displayOptions} from 'sentry/components/events/traceEventDataSection';
+import ProjectsStore from 'sentry/stores/projectsStore';
 import {EventOrGroupType} from 'sentry/types';
-import {EntryType, Event} from 'sentry/types/event';
+import type {Event} from 'sentry/types/event';
+import {EntryType} from 'sentry/types/event';
 
 describe('Threads', function () {
+  const organization = OrganizationFixture();
+  const project = ProjectFixture();
+  const integration = GitHubIntegrationFixture();
+  const repo = RepositoryFixture({integrationId: integration.id});
+  const config = RepositoryProjectPathConfigFixture({project, repo, integration});
+
   beforeEach(() => {
+    MockApiClient.clearMockResponses();
     const promptResponse = {
       dismissed_ts: undefined,
       snoozed_ts: undefined,
     };
     MockApiClient.addMockResponse({
-      url: '/prompts-activity/',
+      url: `/organizations/${organization.slug}/prompts-activity/`,
       body: promptResponse,
     });
+    MockApiClient.addMockResponse({
+      url: `/projects/${organization.slug}/${project.slug}/stacktrace-link/`,
+      body: {config, sourceUrl: 'https://something.io', integrations: [integration]},
+    });
+    ProjectsStore.loadInitialData([project]);
   });
-  const {project, organization} = initializeOrg();
 
   describe('non native platform', function () {
     describe('other platform', function () {
@@ -27,7 +44,7 @@ describe('Threads', function () {
         id: '020eb33f6ce64ed6adc60f8993535816',
         groupID: '68',
         eventID: '020eb33f6ce64ed6adc60f8993535816',
-        projectID: '2',
+        projectID: project.id,
         size: 3481,
         entries: [
           {
@@ -57,7 +74,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -76,7 +92,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -103,7 +118,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: true,
                         trust: null,
-                        errors: null,
                         vars: null,
                         minGroupingLevel: 1,
                       },
@@ -131,7 +145,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: true,
                         trust: null,
-                        errors: null,
                         vars: null,
                         minGroupingLevel: 0,
                       },
@@ -215,13 +228,15 @@ describe('Threads', function () {
         organization,
       };
 
-      it('renders', function () {
+      it('renders', async function () {
         render(<Threads {...props} />, {
           organization,
         });
 
         // Title
-        expect(screen.getByRole('heading', {name: 'Stack Trace'})).toBeInTheDocument();
+        expect(
+          await screen.findByRole('heading', {name: 'Stack Trace'})
+        ).toBeInTheDocument();
 
         // Actions
         expect(screen.getByRole('radio', {name: 'Full Stack Trace'})).toBeInTheDocument();
@@ -325,7 +340,7 @@ describe('Threads', function () {
         id: 'bfe4379d82934b2b91d70b1167bcae8d',
         groupID: '24',
         eventID: 'bfe4379d82934b2b91d70b1167bcae8d',
-        projectID: '2',
+        projectID: project.id,
         size: 89101,
         entries: [
           {
@@ -352,7 +367,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -371,7 +385,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -390,7 +403,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -410,7 +422,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: true,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -430,7 +441,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                     ],
@@ -514,7 +524,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -533,7 +542,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -553,7 +561,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: true,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -573,7 +580,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: true,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -593,7 +599,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                     ],
@@ -673,7 +678,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                       {
@@ -692,7 +696,6 @@ describe('Threads', function () {
                         colNo: null,
                         inApp: false,
                         trust: null,
-                        errors: null,
                         vars: null,
                       },
                     ],
@@ -878,10 +881,10 @@ describe('Threads', function () {
         organization,
       };
 
-      it('renders', function () {
+      it('renders', async function () {
         render(<Threads {...props} />, {organization});
         // Title
-        const threadSelector = screen.getByTestId('thread-selector');
+        const threadSelector = await screen.findByTestId('thread-selector');
         expect(threadSelector).toBeInTheDocument();
         within(threadSelector).getByText('main');
 
@@ -906,7 +909,7 @@ describe('Threads', function () {
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
       });
 
-      it('renders thread state and lock reason', function () {
+      it('renders thread state and lock reason', async function () {
         const newOrg = {
           ...organization,
           features: ['anr-improvements'],
@@ -914,7 +917,7 @@ describe('Threads', function () {
         const newProps = {...props, organization: newOrg};
         render(<Threads {...newProps} />, {organization: newOrg});
         // Title
-        expect(screen.getByTestId('thread-selector')).toBeInTheDocument();
+        expect(await screen.findByTestId('thread-selector')).toBeInTheDocument();
 
         expect(screen.getByText('Threads')).toBeInTheDocument();
         expect(screen.getByText('Thread State')).toBeInTheDocument();
@@ -941,7 +944,7 @@ describe('Threads', function () {
         expect(screen.queryAllByTestId('stack-trace-frame')).toHaveLength(3);
       });
 
-      it('hides thread tag event entry if none', function () {
+      it('hides thread tag event entry if none', async function () {
         const newOrg = {
           ...organization,
           features: ['anr-improvements'],
@@ -973,7 +976,6 @@ describe('Threads', function () {
                       colNo: null,
                       inApp: false,
                       trust: null,
-                      errors: null,
                       vars: null,
                     },
                   ],
@@ -992,10 +994,11 @@ describe('Threads', function () {
           organization: newOrg,
         };
         render(<Threads {...newProps} />, {organization: newOrg});
+        expect(await screen.findByTestId('event-section-threads')).toBeInTheDocument();
         expect(screen.queryByText('Thread Tags')).not.toBeInTheDocument();
       });
 
-      it('maps android vm states to java vm states', function () {
+      it('maps android vm states to java vm states', async function () {
         const newEvent = {...event};
         const threadsEntry = newEvent.entries[1].data as React.ComponentProps<
           typeof Threads
@@ -1023,7 +1026,6 @@ describe('Threads', function () {
                 colNo: null,
                 inApp: false,
                 trust: null,
-                errors: null,
                 vars: null,
               },
             ],
@@ -1051,7 +1053,7 @@ describe('Threads', function () {
         const newProps = {...props, event: newEvent, organization: newOrg};
         render(<Threads {...newProps} />, {organization: newOrg});
         // Title
-        expect(screen.getByTestId('thread-selector')).toBeInTheDocument();
+        expect(await screen.findByTestId('thread-selector')).toBeInTheDocument();
 
         expect(screen.getByText('Threads')).toBeInTheDocument();
         expect(screen.getByText('Thread State')).toBeInTheDocument();
@@ -1202,7 +1204,7 @@ describe('Threads', function () {
         expect(screen.getByRole('option', {name: 'Raw stack trace'})).toBeInTheDocument();
       });
 
-      it('uses thread label in selector if name not available', function () {
+      it('uses thread label in selector if name not available', async function () {
         const newEvent = {...event};
         const threadsEntry = newEvent.entries[1].data as React.ComponentProps<
           typeof Threads
@@ -1230,7 +1232,6 @@ describe('Threads', function () {
                 colNo: null,
                 inApp: false,
                 trust: null,
-                errors: null,
                 vars: null,
               },
             ],
@@ -1252,7 +1253,7 @@ describe('Threads', function () {
         const newProps = {...props, event: newEvent};
         render(<Threads {...newProps} />, {organization});
         // Title
-        const threadSelector = screen.getByTestId('thread-selector');
+        const threadSelector = await screen.findByTestId('thread-selector');
         expect(threadSelector).toBeInTheDocument();
         within(threadSelector).getByText('ViewController.causeCrash');
       });

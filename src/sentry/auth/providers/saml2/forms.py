@@ -43,7 +43,7 @@ def process_xml(form):
 
 
 class URLMetadataForm(forms.Form):
-    metadata_url = forms.URLField(label="Metadata URL")
+    metadata_url = forms.URLField(label="Metadata URL", assume_scheme="https")
     processor = process_url
 
 
@@ -54,8 +54,8 @@ class XMLMetadataForm(forms.Form):
 
 class SAMLForm(forms.Form):
     entity_id = forms.CharField(label="Entity ID")
-    sso_url = forms.URLField(label="Single Sign On URL")
-    slo_url = forms.URLField(label="Single Log Out URL", required=False)
+    sso_url = forms.URLField(label="Single Sign On URL", assume_scheme="https")
+    slo_url = forms.URLField(label="Single Log Out URL", required=False, assume_scheme="https")
     x509cert = forms.CharField(label="x509 public certificate", widget=forms.Textarea)
     processor = lambda d: d.cleaned_data
 

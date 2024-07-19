@@ -1,4 +1,5 @@
-import {Organization} from 'sentry-fixture/organization';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
 
 import {
   render,
@@ -24,15 +25,15 @@ function renderComponent(eventView, organization, onChangeThreshold) {
 }
 
 describe('TransactionThresholdButton', function () {
-  const organization = Organization({features: ['performance-view']});
-  const project = TestStubs.Project();
+  const organization = OrganizationFixture({features: ['performance-view']});
+  const project = ProjectFixture();
   const eventView = new EventView({
     id: '1',
     name: 'my query',
     fields: [{field: 'count()'}],
     sorts: [{field: 'count', kind: 'desc'}],
     query: '',
-    project: [project.id],
+    project: [parseInt(project.id, 10)],
     start: '2019-10-01T00:00:00',
     end: '2019-10-02T00:00:00',
     statsPeriod: '14d',

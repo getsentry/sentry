@@ -1,10 +1,9 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import isObject from 'lodash/isObject';
 
-import type {OnAssignCallback} from 'sentry/components/assigneeSelectorDropdown';
 import AvatarList from 'sentry/components/avatar/avatarList';
-import DateTime from 'sentry/components/dateTime';
+import {DateTime} from 'sentry/components/dateTime';
+import type {OnAssignCallback} from 'sentry/components/deprecatedAssigneeSelectorDropdown';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import {EventThroughput} from 'sentry/components/events/eventStatisticalDetector/eventThroughput';
 import AssignedTo from 'sentry/components/group/assignedTo';
@@ -22,19 +21,20 @@ import * as SidebarSection from 'sentry/components/sidebarSection';
 import {backend, frontend} from 'sentry/data/platformCategories';
 import {t, tn} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
+import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
 import {space} from 'sentry/styles/space';
-import {
+import type {
   AvatarUser,
   CurrentRelease,
   Group,
-  IssueType,
   Organization,
   OrganizationSummary,
   Project,
   TeamParticipant,
   UserParticipant,
 } from 'sentry/types';
-import {Event} from 'sentry/types/event';
+import {IssueType} from 'sentry/types';
+import type {Event} from 'sentry/types/event';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getUtcDateString} from 'sentry/utils/dates';
 import {getAnalyticsDataForGroup} from 'sentry/utils/events';
@@ -90,7 +90,7 @@ export default function GroupSidebar({
   const {data: currentRelease} = useFetchCurrentRelease(organization, group);
   const location = useLocation();
 
-  const trackAssign: OnAssignCallback = (type, _assignee, suggestedAssignee) => {
+  const onAssign: OnAssignCallback = (type, _assignee, suggestedAssignee) => {
     const {alert_date, alert_rule_id, alert_type} = location.query;
     trackAnalytics('issue_details.action_clicked', {
       organization,
@@ -104,6 +104,7 @@ export default function GroupSidebar({
       ...getAnalyticsDataForGroup(group),
       ...getAnalyicsDataForProject(project),
     });
+    IssueListCacheStore.reset();
   };
 
   const renderPluginIssue = () => {
@@ -115,7 +116,9 @@ export default function GroupSidebar({
         issues.push(
           <Fragment key={plugin.slug}>
             <span>{`${plugin.shortName || plugin.name || plugin.title}: `}</span>
-            <a href={issue.url}>{isObject(issue.label) ? issue.label.id : issue.label}</a>
+            <a href={issue.url}>
+              {typeof issue.label === 'object' ? issue.label.id : issue.label}
+            </a>
           </Fragment>
         );
       }
@@ -135,7 +138,6 @@ export default function GroupSidebar({
     );
   };
 
-  const hasParticipantsFeature = organization.features.includes('participants-purge');
   const renderParticipantData = () => {
     const {participants} = group;
     if (!participants.length) {
@@ -150,10 +152,6 @@ export default function GroupSidebar({
     );
 
     const getParticipantTitle = (): React.ReactNode => {
-      if (!hasParticipantsFeature) {
-        return `${group.participants.length}`;
-      }
-
       const individualText = tn(
         '%s Individual',
         '%s Individuals',
@@ -181,7 +179,7 @@ export default function GroupSidebar({
         users={userParticipants}
         teams={teamParticipants}
         avatarSize={28}
-        maxVisibleAvatars={hasParticipantsFeature ? 12 : 13}
+        maxVisibleAvatars={12}
         typeAvatars="participants"
       />
     );
@@ -199,23 +197,13 @@ export default function GroupSidebar({
           />
         </SidebarSection.Title>
         <SidebarSection.Content>
-          {hasParticipantsFeature ? (
-            <ParticipantList
-              users={userParticipants}
-              teams={teamParticipants}
-              description={t('participants')}
-            >
-              {avatars}
-            </ParticipantList>
-          ) : (
-            <StyledAvatarList
-              users={userParticipants}
-              teams={teamParticipants}
-              avatarSize={28}
-              maxVisibleAvatars={13}
-              typeAvatars="participants"
-            />
-          )}
+          <ParticipantList
+            users={userParticipants}
+            teams={teamParticipants}
+            description={t('participants')}
+          >
+            {avatars}
+          </ParticipantList>
         </SidebarSection.Content>
       </SmallerSidebarWrap>
     );
@@ -234,7 +222,7 @@ export default function GroupSidebar({
       <StyledAvatarList
         users={displayUsers}
         avatarSize={28}
-        maxVisibleAvatars={hasParticipantsFeature ? 12 : 13}
+        maxVisibleAvatars={12}
         renderTooltip={user => (
           <Fragment>
             {userDisplayName(user)}
@@ -257,23 +245,19 @@ export default function GroupSidebar({
           />
         </SidebarSection.Title>
         <SidebarSection.Content>
-          {hasParticipantsFeature ? (
-            <ParticipantList users={displayUsers} teams={[]} description={t('users')}>
-              {avatars}
-            </ParticipantList>
-          ) : (
-            avatars
-          )}
+          <ParticipantList users={displayUsers} teams={[]} description={t('users')}>
+            {avatars}
+          </ParticipantList>
         </SidebarSection.Content>
       </SmallerSidebarWrap>
     );
   };
 
-  const issueTypeConfig = getConfigForIssueType(group);
+  const issueTypeConfig = getConfigForIssueType(group, project);
 
   return (
     <Container>
-      <AssignedTo group={group} event={event} project={project} onAssign={trackAssign} />
+      <AssignedTo group={group} event={event} project={project} onAssign={onAssign} />
       {issueTypeConfig.stats.enabled && (
         <GroupReleaseStats
           organization={organization}
@@ -300,10 +284,10 @@ export default function GroupSidebar({
                 ? MOBILE_TAGS.filter(tag => tag !== 'device.class')
                 : MOBILE_TAGS
               : frontend.some(val => val === project?.platform)
-              ? FRONTEND_TAGS
-              : backend.some(val => val === project?.platform)
-              ? BACKEND_TAGS
-              : DEFAULT_TAGS
+                ? FRONTEND_TAGS
+                : backend.some(val => val === project?.platform)
+                  ? BACKEND_TAGS
+                  : DEFAULT_TAGS
           }
           event={event}
           tagFormatter={TAGS_FORMATTER}
@@ -339,7 +323,7 @@ const StyledAvatarList = styled(AvatarList)`
 `;
 
 const TitleNumber = styled('span')`
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
 `;
 
 // Using 22px + space(1) = space(4)

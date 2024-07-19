@@ -1,7 +1,7 @@
-import {browserHistory, InjectedRouter} from 'react-router';
-import {Location} from 'history';
+import type {InjectedRouter} from 'react-router';
+import type {Location} from 'history';
 
-import {Client} from 'sentry/api';
+import type {Client} from 'sentry/api';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
 import {
@@ -9,11 +9,13 @@ import {
   normalizeDateTimeString,
 } from 'sentry/components/organizations/pageFilters/parse';
 import {getPageFilterStorage} from 'sentry/components/organizations/pageFilters/persistence';
-import {Organization, PageFilters, SavedQuery} from 'sentry/types';
+import type {Organization, PageFilters, SavedQuery} from 'sentry/types';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
 import withPageFilters from 'sentry/utils/withPageFilters';
+import {getSavedQueryWithDataset} from 'sentry/views/discover/savedQuery/utils';
 
 import {Results} from './results';
 
@@ -107,10 +109,18 @@ class HomepageQueryAPI extends DeprecatedAsyncComponent<Props, HomepageQueryStat
 
   renderBody(): React.ReactNode {
     const {savedQuery, loading} = this.state;
+    const {organization} = this.props;
+    let savedQueryWithDataset = savedQuery;
+    if (
+      organization.features.includes('performance-discover-dataset-selector') &&
+      savedQuery
+    ) {
+      savedQueryWithDataset = getSavedQueryWithDataset(savedQuery);
+    }
     return (
       <Results
         {...this.props}
-        savedQuery={savedQuery ?? undefined}
+        savedQuery={savedQueryWithDataset ?? undefined}
         loading={loading}
         setSavedQuery={this.setSavedQuery}
         isHomepage

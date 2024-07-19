@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from typing import TYPE_CHECKING, Any, ClassVar, Mapping, Optional
+from collections.abc import Mapping
+from typing import TYPE_CHECKING, Any, ClassVar
 
 from django.conf import settings
 from django.db import IntegrityError, models
@@ -12,20 +13,20 @@ from sentry import analytics
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
     ArrayField,
-    BaseManager,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     Model,
-    control_silo_only_model,
+    control_silo_model,
 )
 from sentry.db.models.fields.jsonfield import JSONField
-from sentry.services.hybrid_cloud.user import RpcUser
-from sentry.types.integrations import ExternalProviders
+from sentry.db.models.manager.base import BaseManager
+from sentry.integrations.types import ExternalProviders
+from sentry.users.services.user import RpcUser
 
 if TYPE_CHECKING:
     from sentry.identity.base import Provider
+    from sentry.identity.services.identity import RpcIdentityProvider
     from sentry.models.user import User
-    from sentry.services.hybrid_cloud.identity import RpcIdentityProvider
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +38,7 @@ class IdentityStatus:
     INVALID = 2
 
 
-@control_silo_only_model
+@control_silo_model
 class IdentityProvider(Model):
     """
     An IdentityProvider is an instance of a provider.
@@ -82,7 +83,7 @@ class IdentityManager(BaseManager["Identity"]):
         idp: IdentityProvider | RpcIdentityProvider,
         external_id: str,
         should_reattach: bool = True,
-        defaults: Optional[Mapping[str, Any | None]] = None,
+        defaults: Mapping[str, Any | None] | None = None,
     ) -> Identity:
         """
         Link the user with the identity. If `should_reattach` is passed, handle
@@ -100,9 +101,9 @@ class IdentityManager(BaseManager["Identity"]):
             )
             if not created:
                 identity.update(**defaults)
-        except IntegrityError as e:
+        except IntegrityError:
             if not should_reattach:
-                raise e
+                raise
             return self.reattach(idp, external_id, user, defaults)
 
         analytics.record(
@@ -172,7 +173,7 @@ class IdentityManager(BaseManager["Identity"]):
         """
         query = self.filter(user_id=user.id, idp=idp)
         query.update(external_id=external_id, **defaults)
-        identity_model = query.first()
+        identity_model = query.get()
         logger.info(
             "updated-identity",
             extra={
@@ -185,7 +186,7 @@ class IdentityManager(BaseManager["Identity"]):
         return identity_model
 
 
-@control_silo_only_model
+@control_silo_model
 class Identity(Model):
     """
     A verified link between a user and a third party identity.

@@ -1,10 +1,14 @@
-import {EventStacktraceMessage} from 'sentry-fixture/eventStacktraceException';
+import {EventFixture} from 'sentry-fixture/event';
+import {
+  EventStacktraceExceptionFixture,
+  EventStacktraceMessageFixture,
+} from 'sentry-fixture/eventStacktraceException';
 
 import getStacktraceBody from 'sentry/utils/getStacktraceBody';
 
 describe('getStacktraceBody', function () {
-  const eventException = TestStubs.EventStacktraceException({platform: 'python'});
-  const eventMessage = EventStacktraceMessage({platform: 'python'});
+  const eventException = EventStacktraceExceptionFixture({platform: 'python'});
+  const eventMessage = EventStacktraceMessageFixture({platform: 'python'});
 
   it('formats with an exception', function () {
     const result = getStacktraceBody(eventException);
@@ -21,7 +25,7 @@ describe('getStacktraceBody', function () {
   });
 
   it('returns empty array for empty event entries', function () {
-    const result = getStacktraceBody(TestStubs.Event({entries: []}));
+    const result = getStacktraceBody(EventFixture({entries: []}));
     expect(result).toEqual([]);
   });
 });

@@ -1,21 +1,18 @@
 from __future__ import annotations
 
 import logging
-import re
 from time import time
 
 from sentry.attachments import attachment_cache
 from sentry.eventstore.processing import event_processing_store
 from sentry.ingest.consumer.processors import CACHE_TIMEOUT
 from sentry.tasks.store import preprocess_event, preprocess_event_from_reprocessing
-from sentry.utils.canonical import CANONICAL_TYPES
 
 # TODO: We should make the API a class, and UDP/HTTP just inherit from it
 #       This will make it so we can more easily control logging with various
 #       metadata (rather than generic log messages which aren't useful).
 
 
-_dist_re = re.compile(r"^[a-zA-Z0-9_.-]+$")
 logger = logging.getLogger("sentry.api")
 
 
@@ -55,7 +52,7 @@ def insert_data_to_database_legacy(
         start_time = time()
 
     # we might be passed some subclasses of dict that fail dumping
-    if isinstance(data, CANONICAL_TYPES):
+    if not isinstance(data, dict):
         data = dict(data.items())
 
     cache_key = event_processing_store.store(data)

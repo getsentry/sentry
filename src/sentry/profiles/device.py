@@ -1,5 +1,4 @@
 from enum import Enum
-from typing import Dict, Optional, Tuple
 
 GIB = 1024 * 1024 * 1024
 UNKNOWN_DEVICE = "Unknown Device"
@@ -28,8 +27,8 @@ def classify_device(
     model: str,
     os_name: str,
     is_emulator: bool,
-    cpu_frequencies: Optional[Tuple[int]] = None,
-    physical_memory_bytes: Optional[int] = None,
+    cpu_frequencies: tuple[int] | None = None,
+    physical_memory_bytes: int | None = None,
 ) -> DeviceClass:
     platform = get_platform(os_name, is_emulator)
     if platform in (Platform.IOS_SIMULATOR, Platform.ANDROID_EMULATOR):
@@ -58,11 +57,11 @@ def classify_device(
     return DeviceClass.UNCLASSIFIED
 
 
-def number_of_cores(frequencies: Optional[Tuple[int, ...]]) -> int:
+def number_of_cores(frequencies: tuple[int, ...] | None) -> int:
     return len(frequencies) if frequencies is not None else 0
 
 
-def core_frequency(frequencies: Optional[Tuple[int, ...]]) -> int:
+def core_frequency(frequencies: tuple[int, ...] | None) -> int:
     return max(frequencies) if frequencies is not None else 0
 
 
@@ -97,11 +96,14 @@ IPADGEN6 = "iPad (6th gen)"
 IPADGEN7 = "iPad (7th gen)"
 IPADGEN8 = "iPad (8th gen)"
 IPADGEN9 = "iPad (9th gen)"
+IPADGEN10 = "iPad (10th gen)"
 
 IPADAIRGEN1 = "iPad Air (1st gen)"
 IPADAIR2 = "iPad Air 2"
 IPADAIRGEN3 = "iPad Air (3rd gen)"
 IPADAIRGEN4 = "iPad Air (4th gen)"
+IPADAIRGEN5 = "iPad Air (5th gen)"
+
 IPADPRO12GEN1 = "iPad Pro (12.9-inch, 1st gen)"
 IPADPRO9GEN1 = "iPad Pro (9.7-inch, 1st gen)"
 IPADPRO12GEN2 = "iPad Pro (12.9-inch, 2nd gen)"
@@ -111,7 +113,9 @@ IPADPRO12GEN3 = "iPad Pro (12.9-inch, 3rd gen)"
 IPADPRO11GEN2 = "iPad Pro (11-inch, 2nd gen)"
 IPADPRO12GEN4 = "iPad Pro (12.9-inch, 4th gen)"
 IPADPRO11GEN3 = "iPad Pro (11-inch, 3rd gen)"
+IPADPRO11GEN4 = "iPad Pro (11-inch, 4th gen)"
 IPADPRO12GEN5 = "iPad Pro (12.9-inch, 5th gen)"
+IPADPRO12GEN6 = "iPad Pro (12.9-inch 6th gen)"
 
 IPADMINIGEN1 = "iPad mini (1st gen)"
 IPADMINI2 = "iPad mini 2"
@@ -134,7 +138,7 @@ APPLETVGEN2 = "Apple TV (2nd gen)"
 APPLETVGEN3 = "Apple TV (3rd gen)"
 
 # https:#www.theiphonewiki.com/wiki/Models
-IOS_MODELS: Dict[str, str] = {
+IOS_MODELS: dict[str, str] = {
     "iPhone1,1": "iPhone (1st gen)",
     "iPhone1,2": "iPhone 3G",
     "iPhone2,1": "iPhone 3GS",
@@ -184,6 +188,10 @@ IOS_MODELS: Dict[str, str] = {
     "iPhone14,8": "iPhone 14 Plus",
     "iPhone15,2": "iPhone 14 Pro",
     "iPhone15,3": "iPhone 14 Pro Max",
+    "iPhone15,4": "iPhone 15",
+    "iPhone15,5": "iPhone 15 Plus",
+    "iPhone16,1": "iPhone 15 Pro",
+    "iPhone16,2": "iPhone 15 Pro Max",
     "iPod1,1": "iPod touch (1st gen)",
     "iPod2,1": "iPod touch (2nd gen)",
     "iPod3,1": "iPod touch (3rd gen)",
@@ -221,6 +229,8 @@ IOS_MODELS: Dict[str, str] = {
     "iPad11,4": IPADAIRGEN3,
     "iPad13,1": IPADAIRGEN4,
     "iPad13,2": IPADAIRGEN4,
+    "iPad13,16": IPADAIRGEN5,
+    "iPad13,17": IPADAIRGEN5,
     "iPad6,7": IPADPRO12GEN1,
     "iPad6,8": IPADPRO12GEN1,
     "iPad6,3": IPADPRO9GEN1,
@@ -262,8 +272,14 @@ IOS_MODELS: Dict[str, str] = {
     "iPad5,2": IPADMINI4,
     "iPad11,1": IPADMINIGEN5,
     "iPad11,2": IPADMINIGEN5,
+    "iPad13,18": IPADGEN10,
+    "iPad13,19": IPADGEN10,
     "iPad14,1": IPADMINIGEN6,
     "iPad14,2": IPADMINIGEN6,
+    "iPad14,3": IPADPRO11GEN4,
+    "iPad14,4": IPADPRO11GEN4,
+    "iPad14,5": IPADPRO12GEN6,
+    "iPad14,6": IPADPRO12GEN6,
     "Watch1,1": APPLEWATCHGEN1,
     "Watch1,2": APPLEWATCHGEN1,
     "Watch2,6": APPLEWATCHSERIES1,
@@ -339,7 +355,7 @@ CPU22 = (3230, 3230, 2020, 2020, 2020, 2020)
 CPU23 = (3460, 3460, 2020, 2020, 2020, 2020)
 
 
-IOS_CPU_FREQUENCIES: Dict[str, Tuple[int, ...]] = {
+IOS_CPU_FREQUENCIES: dict[str, tuple[int, ...]] = {
     "iPhone1,1": (412,),
     "iPhone1,2": (412,),
     "iPod1,1": (412,),
@@ -507,7 +523,7 @@ IOS_CPU_FREQUENCIES: Dict[str, Tuple[int, ...]] = {
 }
 
 
-def ios_cpu_core_max_frequencies_mhz(model: str) -> Optional[Tuple[int, ...]]:
+def ios_cpu_core_max_frequencies_mhz(model: str) -> tuple[int, ...] | None:
     if model in IOS_CPU_FREQUENCIES:
         return IOS_CPU_FREQUENCIES[model]
     # New unreleased device, assume device is best of class */

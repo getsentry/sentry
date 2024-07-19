@@ -1,4 +1,5 @@
-from typing import Any, Mapping, Optional, Sequence, Type, TypeVar, cast
+from collections.abc import Mapping, Sequence
+from typing import Any, TypeVar, cast
 
 from django.db.models.fields import BigIntegerField
 
@@ -192,7 +193,7 @@ class TypedClassBitField(metaclass=TypedBitfieldMeta):
     attributes in a type-safe way.
     """
 
-    bitfield_default: Optional[Any]
+    bitfield_default: Any | None
     bitfield_null: bool
 
     _value: int
@@ -201,7 +202,7 @@ class TypedClassBitField(metaclass=TypedBitfieldMeta):
 T = TypeVar("T")
 
 
-def typed_dict_bitfield(definition: Type[T], default=None, null=False) -> T:
+def typed_dict_bitfield(definition: type[T], default=None, null=False) -> T:
     """
     A wrapper around BitField that allows you to access its fields as
     dictionary keys attributes in a type-safe way.

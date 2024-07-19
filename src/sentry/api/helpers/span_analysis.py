@@ -1,4 +1,4 @@
-from typing import Any, List, TypedDict
+from typing import Any, TypedDict
 
 
 class Row(TypedDict):
@@ -17,7 +17,7 @@ class AugmentedData(Row):
     score: float
 
 
-def span_analysis(data: List[Row]):
+def span_analysis(data: list[Row]):
 
     # create a unique identifier for each span
     span_keys = [row["span_op"] + "," + row["span_group"] for row in data]
@@ -33,7 +33,7 @@ def span_analysis(data: List[Row]):
     relative_freq = [count_col[x] / txn_count[x] for x in range(len(count_col))]
     score_col = [relative_freq[x] * p95_self_time[x] for x in range(len(relative_freq))]
 
-    data_frames: List[AugmentedData] = [
+    data_frames: list[AugmentedData] = [
         {
             **data[i],
             "relative_freq": relative_freq[i],
@@ -50,7 +50,7 @@ def span_analysis(data: List[Row]):
     all_keys = set(span_data_p0.keys()).union(span_data_p1.keys())
 
     # merge the dataframes to do span analysis
-    problem_spans: List[Any] = []
+    problem_spans: list[Any] = []
 
     # Perform the join operation
     for key in all_keys:

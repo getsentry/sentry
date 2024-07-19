@@ -2,14 +2,16 @@ import logging
 
 from django.conf import settings
 from django.core.signing import SignatureExpired
-from django.http import HttpRequest, HttpResponse, HttpResponseRedirect
+from django.http import HttpRequest, HttpResponseRedirect
+from django.http.response import HttpResponseBase
 from django.urls import reverse
 from django.utils.http import urlencode
 
-from sentry import features, integrations
+from sentry import features
+from sentry.integrations.manager import default_manager as integrations
 from sentry.integrations.pipeline import IntegrationPipeline
-from sentry.services.hybrid_cloud.organization import organization_service
-from sentry.services.hybrid_cloud.user.service import user_service
+from sentry.organizations.services.organization import organization_service
+from sentry.users.services.user.service import user_service
 from sentry.web.frontend.base import BaseView
 
 logger = logging.getLogger(__name__)
@@ -35,7 +37,7 @@ class ExternalIntegrationPipeline(IntegrationPipeline):
 class IntegrationExtensionConfigurationView(BaseView):
     auth_required = False
 
-    def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponse:
+    def get(self, request: HttpRequest, *args, **kwargs) -> HttpResponseBase:
         if not request.user.is_authenticated:
             configure_uri = "/extensions/{}/configure/?{}".format(
                 self.provider,
@@ -81,6 +83,11 @@ class IntegrationExtensionConfigurationView(BaseView):
                     try:
                         pipeline = self.init_pipeline(request, organization, request.GET.dict())
                         return pipeline.current_step()
+                    except ValueError as e:
+                        return self.respond(
+                            "sentry/pipeline-error.html",
+                            {"error": e},
+                        )
                     except SignatureExpired:
                         return self.respond(
                             "sentry/pipeline-error.html",

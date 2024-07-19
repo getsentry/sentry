@@ -1,3 +1,5 @@
+import {EventFixture} from 'sentry-fixture/event';
+
 import {
   deviceKnownDataValues,
   getDeviceKnownDataDetails,
@@ -13,7 +15,7 @@ describe('getDeviceKnownDataDetails', function () {
       const deviceKnownData = getDeviceKnownDataDetails({
         type: deviceKnownDataValues[type],
         data: deviceMockData,
-        event: TestStubs.Event(),
+        event: EventFixture(),
       });
 
       if (!deviceKnownData) {

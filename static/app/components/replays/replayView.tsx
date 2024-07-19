@@ -1,49 +1,65 @@
 import {Fragment, useState} from 'react';
 import styled from '@emotion/styled';
 
-import {Button} from 'sentry/components/button';
+import {useReplayContext} from 'sentry/components/replays/replayContext';
 import ReplayController from 'sentry/components/replays/replayController';
+import ReplayCurrentScreen from 'sentry/components/replays/replayCurrentScreen';
 import ReplayCurrentUrl from 'sentry/components/replays/replayCurrentUrl';
 import ReplayPlayer from 'sentry/components/replays/replayPlayer';
-import {IconChevron} from 'sentry/icons';
-import {t} from 'sentry/locale';
+import ReplayProcessingError from 'sentry/components/replays/replayProcessingError';
+import {ReplaySidebarToggleButton} from 'sentry/components/replays/replaySidebarToggleButton';
+import TextCopyInput from 'sentry/components/textCopyInput';
 import {space} from 'sentry/styles/space';
-import useOrganization from 'sentry/utils/useOrganization';
 import useIsFullscreen from 'sentry/utils/window/useIsFullscreen';
 import Breadcrumbs from 'sentry/views/replays/detail/breadcrumbs';
 import BrowserOSIcons from 'sentry/views/replays/detail/browserOSIcons';
 import FluidHeight from 'sentry/views/replays/detail/layout/fluidHeight';
 
+import {CanvasSupportNotice} from './canvasSupportNotice';
+
 type Props = {
+  isLoading: boolean;
   toggleFullscreen: () => void;
 };
 
-function ReplayView({toggleFullscreen}: Props) {
-  const organization = useOrganization();
-  const hasNewTimeline = organization.features.includes('session-replay-new-timeline');
+function ReplayView({toggleFullscreen, isLoading}: Props) {
   const isFullscreen = useIsFullscreen();
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const {isFetching, replay} = useReplayContext();
+  const isVideoReplay = replay?.isVideoReplay();
 
   return (
     <Fragment>
       <PlayerBreadcrumbContainer>
         <PlayerContainer>
           <ContextContainer>
-            <ReplayCurrentUrl />
-            <BrowserOSIcons />
+            {isLoading ? (
+              <TextCopyInput size="sm" disabled>
+                {''}
+              </TextCopyInput>
+            ) : isVideoReplay ? (
+              <ReplayCurrentScreen />
+            ) : (
+              <ReplayCurrentUrl />
+            )}
+            <BrowserOSIcons showBrowser={!isVideoReplay} isLoading={isLoading} />
             {isFullscreen ? (
-              <Button
-                size="sm"
-                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                icon={<IconChevron direction={isSidebarOpen ? 'right' : 'left'} />}
-              >
-                {isSidebarOpen ? t('Collapse Sidebar') : t('Open Sidebar')}
-              </Button>
+              <ReplaySidebarToggleButton
+                isOpen={isSidebarOpen}
+                setIsOpen={setIsSidebarOpen}
+              />
             ) : null}
           </ContextContainer>
-          <Panel>
-            <ReplayPlayer />
-          </Panel>
+          {!isFetching && replay?.hasProcessingErrors() ? (
+            <ReplayProcessingError processingErrors={replay.processingErrors()} />
+          ) : (
+            <FluidHeight>
+              <CanvasSupportNotice />
+              <Panel>
+                <ReplayPlayer />
+              </Panel>
+            </FluidHeight>
+          )}
         </PlayerContainer>
         {isFullscreen && isSidebarOpen ? (
           <BreadcrumbContainer>
@@ -51,8 +67,11 @@ function ReplayView({toggleFullscreen}: Props) {
           </BreadcrumbContainer>
         ) : null}
       </PlayerBreadcrumbContainer>
-      {isFullscreen || !hasNewTimeline ? (
-        <ReplayController toggleFullscreen={toggleFullscreen} />
+      {isFullscreen ? (
+        <ReplayController
+          toggleFullscreen={toggleFullscreen}
+          disableFastForward={isVideoReplay}
+        />
       ) : null}
     </Fragment>
   );
@@ -68,7 +87,7 @@ const Panel = styled(FluidHeight)`
 const ContextContainer = styled('div')`
   display: grid;
   grid-auto-flow: column;
-  grid-template-columns: 1fr max-content max-content;
+  grid-template-columns: 1fr max-content;
   align-items: center;
   gap: ${space(1)};
 `;
@@ -77,7 +96,7 @@ const PlayerContainer = styled('div')`
   display: grid;
   grid-auto-flow: row;
   grid-template-rows: auto 1fr;
-  gap: ${space(1)};
+  gap: 10px;
   flex-grow: 1;
 `;
 

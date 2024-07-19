@@ -1,6 +1,7 @@
 import io
 import os
-from datetime import datetime, timedelta, timezone
+import uuid
+from datetime import UTC, datetime, timedelta
 from hashlib import sha1
 from unittest import mock
 from unittest.mock import patch
@@ -9,7 +10,6 @@ from django.core.files.base import ContentFile
 
 from sentry.models.artifactbundle import (
     ArtifactBundle,
-    ArtifactBundleFlatFileIndex,
     ArtifactBundleIndexingState,
     DebugIdArtifactBundle,
     ProjectArtifactBundle,
@@ -29,10 +29,13 @@ from sentry.tasks.assemble import (
     assemble_artifacts,
     assemble_dif,
     assemble_file,
+    delete_assemble_status,
     get_assemble_status,
+    set_assemble_status,
 )
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
+from sentry.testutils.helpers.redis import use_redis_cluster
 
 
 class BaseAssembleTest(TestCase):
@@ -206,9 +209,6 @@ class AssembleDifTest(BaseAssembleTest):
 
 
 class AssembleArtifactsTest(BaseAssembleTest):
-    def setUp(self):
-        super().setUp()
-
     def test_artifacts_with_debug_ids(self):
         bundle_file = self.create_artifact_bundle_zip(
             fixture_path="artifact_bundle_debug_ids", project=self.project.id
@@ -264,8 +264,8 @@ class AssembleArtifactsTest(BaseAssembleTest):
                 )
                 assert len(release_artifact_bundle) == count
                 if count == 1:
-                    release_artifact_bundle[0].version_name = version
-                    release_artifact_bundle[0].dist_name = dist
+                    assert release_artifact_bundle[0].release_name == version
+                    assert release_artifact_bundle[0].dist_name == (dist or "")
 
                 project_artifact_bundles = ProjectArtifactBundle.objects.filter(
                     project_id=self.project.id
@@ -397,9 +397,7 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
         # Since we are uploading the same bundle 3 times, we expect that all of them will result with the same
         # `date_added` or the last upload.
-        expected_updated_date = datetime.fromisoformat("2023-05-31T12:00:00").replace(
-            tzinfo=timezone.utc
-        )
+        expected_updated_date = datetime.fromisoformat("2023-05-31T12:00:00+00:00")
 
         artifact_bundles = ArtifactBundle.objects.filter(bundle_id=bundle_id)
         assert len(artifact_bundles) == 1
@@ -665,39 +663,33 @@ class AssembleArtifactsTest(BaseAssembleTest):
             upload_as_artifact_bundle=True,
         )
 
+        # Since the threshold is not surpassed we expect the system to not perform indexing.
+        index_artifact_bundles_for_release.assert_not_called()
+
+        bundle_file_3 = self.create_artifact_bundle_zip(
+            fixture_path="artifact_bundle_duplicated_debug_ids", project=self.project.id
+        )
+        blob1_3 = FileBlob.from_file(ContentFile(bundle_file_3))
+        total_checksum_3 = sha1(bundle_file_3).hexdigest()
+
+        # We try to upload the first bundle.
+        assemble_artifacts(
+            org_id=self.organization.id,
+            project_ids=[self.project.id],
+            version=release,
+            dist=dist,
+            checksum=total_checksum_3,
+            chunks=[blob1_3.checksum],
+            upload_as_artifact_bundle=True,
+        )
+
         bundles = ArtifactBundle.objects.all()
 
         # Since the threshold is now passed, we expect the system to perform indexing.
         index_artifact_bundles_for_release.assert_called_with(
             organization_id=self.organization.id,
-            artifact_bundles=[(bundles[0], None), (bundles[1], mock.ANY)],
+            artifact_bundles=[(bundles[2], mock.ANY)],
         )
-
-    def test_bundle_flat_file_indexing(self):
-        release = "1.0"
-        dist = "android"
-
-        bundle_file_1 = self.create_artifact_bundle_zip(
-            fixture_path="artifact_bundle_debug_ids", project=self.project.id
-        )
-        blob1_1 = FileBlob.from_file(ContentFile(bundle_file_1))
-        total_checksum_1 = sha1(bundle_file_1).hexdigest()
-
-        with self.feature("organizations:sourcemaps-bundle-flat-file-indexing"):
-            assemble_artifacts(
-                org_id=self.organization.id,
-                project_ids=[self.project.id],
-                version=release,
-                dist=dist,
-                checksum=total_checksum_1,
-                chunks=[blob1_1.checksum],
-                upload_as_artifact_bundle=True,
-            )
-
-        flat_file_index = ArtifactBundleFlatFileIndex.objects.get(
-            project_id=self.project.id, release_name=release, dist_name=dist
-        )
-        assert flat_file_index.load_flat_file_index() is not None
 
     def test_artifacts_without_debug_ids(self):
         bundle_file = self.create_artifact_bundle_zip(
@@ -816,7 +808,6 @@ class AssembleArtifactsTest(BaseAssembleTest):
 
         with self.options(
             {
-                "processing.save-release-archives": True,
                 "processing.release-archive-min-files": 1,
             }
         ):
@@ -889,7 +880,9 @@ class ArtifactBundleIndexingTest(TestCase):
             project_ids=[],
         ) as post_assembler:
             post_assembler._index_bundle_if_needed(
-                artifact_bundle=None, release=release, dist=dist, date_snapshot=datetime.now()
+                artifact_bundle=None,
+                release=release,
+                dist=dist,
             )
 
         index_artifact_bundles_for_release.assert_not_called()
@@ -906,7 +899,7 @@ class ArtifactBundleIndexingTest(TestCase):
             dist=dist,
             bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
             indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
-            date=datetime.now() - timedelta(hours=1),
+            date=datetime.now(UTC) - timedelta(hours=1),
         )
 
         with ArtifactBundlePostAssembler(
@@ -917,7 +910,9 @@ class ArtifactBundleIndexingTest(TestCase):
             project_ids=[],
         ) as post_assembler:
             post_assembler._index_bundle_if_needed(
-                artifact_bundle=None, release=release, dist=dist, date_snapshot=datetime.now()
+                artifact_bundle=None,
+                release=release,
+                dist=dist,
             )
 
         index_artifact_bundles_for_release.assert_not_called()
@@ -929,20 +924,28 @@ class ArtifactBundleIndexingTest(TestCase):
         release = "1.0"
         dist = "android"
 
-        artifact_bundle_1 = self._create_bundle_and_bind_to_release(
+        self._create_bundle_and_bind_to_release(
             release=release,
             dist=dist,
             bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
             indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
-            date=datetime.now() - timedelta(hours=2),
+            date=datetime.now(UTC) - timedelta(hours=2),
         )
 
-        artifact_bundle_2 = self._create_bundle_and_bind_to_release(
+        self._create_bundle_and_bind_to_release(
+            release=release,
+            dist=dist,
+            bundle_id="0cf678f2-0771-4e2f-8ace-d6cea8493f0c",
+            indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
+            date=datetime.now(UTC) - timedelta(hours=1),
+        )
+
+        artifact_bundle_3 = self._create_bundle_and_bind_to_release(
             release=release,
             dist=dist,
             bundle_id="0cf678f2-0771-4e2f-8ace-d6cea8493f0d",
             indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
-            date=datetime.now() - timedelta(hours=1),
+            date=datetime.now(UTC) - timedelta(hours=1),
         )
 
         with ArtifactBundlePostAssembler(
@@ -953,15 +956,14 @@ class ArtifactBundleIndexingTest(TestCase):
             project_ids=[],
         ) as post_assembler:
             post_assembler._index_bundle_if_needed(
-                artifact_bundle=artifact_bundle_2,
+                artifact_bundle=artifact_bundle_3,
                 release=release,
                 dist=dist,
-                date_snapshot=datetime.now(),
             )
 
         index_artifact_bundles_for_release.assert_called_with(
             organization_id=self.organization.id,
-            artifact_bundles=[(artifact_bundle_1, None), (artifact_bundle_2, mock.ANY)],
+            artifact_bundles=[(artifact_bundle_3, mock.ANY)],
         )
 
     @patch("sentry.tasks.assemble.index_artifact_bundles_for_release")
@@ -974,7 +976,7 @@ class ArtifactBundleIndexingTest(TestCase):
             dist=dist,
             bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
             indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value,
-            date=datetime.now() - timedelta(hours=2),
+            date=datetime.now(UTC) - timedelta(hours=2),
         )
 
         self._create_bundle_and_bind_to_release(
@@ -982,7 +984,7 @@ class ArtifactBundleIndexingTest(TestCase):
             dist=dist,
             bundle_id="0cf678f2-0771-4e2f-8ace-d6cea8493f0d",
             indexing_state=ArtifactBundleIndexingState.WAS_INDEXED.value,
-            date=datetime.now() - timedelta(hours=1),
+            date=datetime.now(UTC) - timedelta(hours=1),
         )
 
         with ArtifactBundlePostAssembler(
@@ -992,9 +994,7 @@ class ArtifactBundleIndexingTest(TestCase):
             dist=dist,
             project_ids=[],
         ) as post_assembler:
-            post_assembler._index_bundle_if_needed(
-                artifact_bundle=None, release=release, dist=dist, date_snapshot=datetime.now()
-            )
+            post_assembler._index_bundle_if_needed(artifact_bundle=None, release=release, dist=dist)
 
         index_artifact_bundles_for_release.assert_not_called()
 
@@ -1010,15 +1010,15 @@ class ArtifactBundleIndexingTest(TestCase):
             dist=dist,
             bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
             indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
-            date=datetime.now() - timedelta(hours=1),
+            date=datetime.now(UTC) - timedelta(hours=1),
         )
 
-        artifact_bundle_2 = self._create_bundle_and_bind_to_release(
+        self._create_bundle_and_bind_to_release(
             release=release,
             dist=dist,
             bundle_id="2c5b367b-4fef-4db8-849d-b9e79607d630",
             indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
-            date=datetime.now() - timedelta(hours=2),
+            date=datetime.now(UTC) - timedelta(hours=2),
         )
 
         self._create_bundle_and_bind_to_release(
@@ -1028,7 +1028,7 @@ class ArtifactBundleIndexingTest(TestCase):
             indexing_state=ArtifactBundleIndexingState.NOT_INDEXED.value,
             # We simulate that this bundle is into the database but was created after the assembling of bundle 1 started
             # its progress but did not finish.
-            date=datetime.now() + timedelta(hours=1),
+            date=datetime.now(UTC) + timedelta(hours=1),
         )
 
         with ArtifactBundlePostAssembler(
@@ -1042,10 +1042,30 @@ class ArtifactBundleIndexingTest(TestCase):
                 artifact_bundle=artifact_bundle_1,
                 release=release,
                 dist=dist,
-                date_snapshot=datetime.now(),
             )
 
         index_artifact_bundles_for_release.assert_called_with(
             organization_id=self.organization.id,
-            artifact_bundles=[(artifact_bundle_1, mock.ANY), (artifact_bundle_2, None)],
+            artifact_bundles=[(artifact_bundle_1, mock.ANY)],
         )
+
+
+@use_redis_cluster()
+def test_redis_assemble_status():
+    task = AssembleTask.DIF
+    project_id = uuid.uuid4().hex
+    checksum = uuid.uuid4().hex
+
+    # If it doesn't exist, it should return correct values.
+    assert get_assemble_status(task=task, scope=project_id, checksum=checksum) == (None, None)
+
+    # Test setter
+    set_assemble_status(task, project_id, checksum, ChunkFileState.CREATED, detail="cylons")
+    assert get_assemble_status(task=task, scope=project_id, checksum=checksum) == (
+        "created",
+        "cylons",
+    )
+
+    # Deleting should actually delete it.
+    delete_assemble_status(task, project_id, checksum=checksum)
+    assert get_assemble_status(task=task, scope=project_id, checksum=checksum) == (None, None)

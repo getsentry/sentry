@@ -1,16 +1,16 @@
+import orjson
 from django.urls import reverse
 
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.testutils.cases import APITestCase
 from sentry.testutils.silo import control_silo_test
-from sentry.utils import json
 
 
 def assert_response_json(response, data):
     """
     Normalizes unicode strings by encoding/decoding expected output
     """
-    assert json.loads(response.content) == json.loads(json.dumps(data))
+    assert orjson.loads(response.content) == orjson.loads(orjson.dumps(data))
 
 
 class OrganizationSentryAppsTest(APITestCase):
@@ -26,7 +26,7 @@ class OrganizationSentryAppsTest(APITestCase):
         self.url = reverse("sentry-api-0-organization-sentry-apps", args=[self.org.slug])
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GetOrganizationSentryAppsTest(OrganizationSentryAppsTest):
     def test_gets_all_apps_in_own_org(self):
         self.login_as(user=self.user)

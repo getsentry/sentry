@@ -1,7 +1,7 @@
 import {trimPackage} from 'sentry/components/events/interfaces/frame/utils';
-import {ExceptionValue, Frame} from 'sentry/types';
-import {StacktraceType} from 'sentry/types/stacktrace';
-import {defined, trim} from 'sentry/utils';
+import type {ExceptionValue, Frame} from 'sentry/types';
+import type {StacktraceType} from 'sentry/types/stacktrace';
+import {defined} from 'sentry/utils';
 
 function getJavaScriptFrame(frame: Frame): string {
   let result = '';
@@ -72,7 +72,7 @@ export function getPythonFrame(frame: Frame): string {
   if (defined(frame.context)) {
     frame.context.forEach(item => {
       if (item[0] === frame.lineNo) {
-        result += '\n    ' + trim(item[1]);
+        result += '\n    ' + item[1].trim();
       }
     });
   }
@@ -167,13 +167,21 @@ function getFrame(frame: Frame, frameIdx: number, platform: string | undefined):
 export default function displayRawContent(
   data: StacktraceType,
   platform?: string,
-  exception?: ExceptionValue
+  exception?: ExceptionValue,
+  hasSimilarityEmbeddingsFeature: boolean = false
 ) {
-  const frames: string[] = [];
+  const rawFrames = data?.frames || [];
 
-  (data?.frames ?? []).forEach((frame, frameIdx) => {
-    frames.push(getFrame(frame, frameIdx, platform));
-  });
+  const hasInAppFrames = rawFrames.some(frame => frame.inApp);
+  const shouldFilterOutSystemFrames = hasSimilarityEmbeddingsFeature && hasInAppFrames;
+
+  const framesToUse = shouldFilterOutSystemFrames
+    ? rawFrames.filter(frame => frame.inApp)
+    : rawFrames;
+
+  const frames = framesToUse.map((frame, frameIdx) =>
+    getFrame(frame, frameIdx, platform)
+  );
 
   if (platform !== 'python') {
     frames.reverse();

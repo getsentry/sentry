@@ -1,15 +1,12 @@
-import functools
-
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.api.serializers.models.commit import CommitWithReleaseSerializer
 from sentry.models.activity import Activity
 from sentry.models.commit import Commit
 from sentry.models.group import Group
 from sentry.models.pullrequest import PullRequest
-from sentry.services.hybrid_cloud.user.serial import serialize_generic_user
-from sentry.services.hybrid_cloud.user.service import user_service
 from sentry.types.activity import ActivityType
-from sentry.utils.functional import apply_values
+from sentry.users.services.user.serial import serialize_generic_user
+from sentry.users.services.user.service import user_service
 
 
 @register(Activity)
@@ -65,9 +62,9 @@ class ActivitySerializer(Serializer):
         else:
             pull_requests = {}
 
-        groups = apply_values(
-            functools.partial(serialize, user=user),
-            Group.objects.in_bulk(
+        groups = {
+            k: serialize(v, user=user)
+            for k, v in Group.objects.in_bulk(
                 {
                     i.data["source_id"]
                     for i in item_list
@@ -78,8 +75,8 @@ class ActivitySerializer(Serializer):
                     for i in item_list
                     if i.type == ActivityType.UNMERGE_SOURCE.value
                 }
-            ),
-        )
+            ).items()
+        }
 
         return {
             item: {

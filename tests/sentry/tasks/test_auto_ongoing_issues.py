@@ -1,22 +1,18 @@
 from datetime import datetime, timedelta, timezone
 from unittest import mock
 
+from sentry.issues.ongoing import TRANSITION_AFTER_DAYS
 from sentry.models.activity import Activity
 from sentry.models.group import Group, GroupStatus
 from sentry.models.grouphistory import GroupHistory, GroupHistoryStatus, record_group_history
 from sentry.models.groupinbox import GroupInbox, GroupInboxReason, add_group_to_inbox
-from sentry.tasks.auto_ongoing_issues import (
-    TRANSITION_AFTER_DAYS,
-    schedule_auto_transition_to_ongoing,
-)
+from sentry.tasks.auto_ongoing_issues import schedule_auto_transition_to_ongoing
 from sentry.testutils.cases import TestCase
-from sentry.testutils.helpers import apply_feature_flag_on_cls
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus
 
 
-@apply_feature_flag_on_cls("organizations:escalating-issues")
 class ScheduleAutoNewOngoingIssuesTest(TestCase):
     @freeze_time("2023-07-12 18:40:00Z")
     @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
@@ -264,12 +260,10 @@ class ScheduleAutoNewOngoingIssuesTest(TestCase):
             extra={
                 "first_seen_lte": 1688582400,
                 "first_seen_lte_datetime": datetime(2023, 7, 5, 18, 40, tzinfo=timezone.utc),
-                "issue_first_seen": datetime(2023, 7, 5, 17, 40, tzinfo=timezone.utc),
             },
         )
 
 
-@apply_feature_flag_on_cls("organizations:escalating-issues")
 class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
     @freeze_time("2023-07-12 18:40:00Z")
     @mock.patch("sentry.tasks.auto_ongoing_issues.backend")
@@ -373,7 +367,6 @@ class ScheduleAutoRegressedOngoingIssuesTest(TestCase):
         )
 
 
-@apply_feature_flag_on_cls("organizations:escalating-issues")
 class ScheduleAutoEscalatingOngoingIssuesTest(TestCase):
     @freeze_time("2023-07-12 18:40:00Z")
     @mock.patch("sentry.tasks.auto_ongoing_issues.backend")

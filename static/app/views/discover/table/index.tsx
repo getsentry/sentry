@@ -1,20 +1,21 @@
 import {PureComponent} from 'react';
 import styled from '@emotion/styled';
-import {Location} from 'history';
+import type {Location} from 'history';
 
-import {EventQuery} from 'sentry/actionCreators/events';
-import {Client} from 'sentry/api';
-import Pagination, {CursorHandler} from 'sentry/components/pagination';
+import type {EventQuery} from 'sentry/actionCreators/events';
+import type {Client} from 'sentry/api';
+import type {CursorHandler} from 'sentry/components/pagination';
+import Pagination from 'sentry/components/pagination';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import {metric, trackAnalytics} from 'sentry/utils/analytics';
 import {CustomMeasurementsContext} from 'sentry/utils/customMeasurements/customMeasurementsContext';
-import {TableData} from 'sentry/utils/discover/discoverQuery';
-import EventView, {
-  isAPIPayloadSimilar,
-  LocationQuery,
-} from 'sentry/utils/discover/eventView';
+import type {TableData} from 'sentry/utils/discover/discoverQuery';
+import type {LocationQuery} from 'sentry/utils/discover/eventView';
+import type EventView from 'sentry/utils/discover/eventView';
+import {isAPIPayloadSimilar} from 'sentry/utils/discover/eventView';
 import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
+import type {DiscoverDatasets, SavedQueryDatasets} from 'sentry/utils/discover/types';
 import Measurements from 'sentry/utils/measurements/measurements';
 import parseLinkHeader from 'sentry/utils/parseLinkHeader';
 import {VisuallyCompleteWithData} from 'sentry/utils/performanceForSentry';
@@ -33,7 +34,9 @@ type TableProps = {
   setError: (msg: string, code: number) => void;
   showTags: boolean;
   title: string;
+  dataset?: DiscoverDatasets;
   isHomepage?: boolean;
+  setSplitDecision?: (value: SavedQueryDatasets) => void;
   setTips?: (tips: string[]) => void;
 };
 
@@ -100,8 +103,15 @@ class Table extends PureComponent<TableProps, TableState> {
   };
 
   fetchData = () => {
-    const {eventView, organization, location, setError, confirmedQuery, setTips} =
-      this.props;
+    const {
+      eventView,
+      organization,
+      location,
+      setError,
+      confirmedQuery,
+      setTips,
+      setSplitDecision,
+    } = this.props;
 
     if (!eventView.isValid() || !confirmedQuery) {
       return;
@@ -116,6 +126,41 @@ class Table extends PureComponent<TableProps, TableState> {
 
     const apiPayload = eventView.getEventsAPIPayload(location) as LocationQuery &
       EventQuery;
+
+    // We are now routing to the trace view on clicking event ids. Therefore, we need the trace slug associated to the event id.
+    // Note: Event ID or 'id' is added to the fields in the API payload response by default for all non-aggregate queries.
+    if (!eventView.hasAggregateField() || apiPayload.field.includes('id')) {
+      apiPayload.field.push('trace');
+
+      // We need to include the event.type field because we want to
+      // route to issue details for error and default event types.
+      apiPayload.field.push('event.type');
+    }
+
+    // To generate the target url for TRACE ID and EVENT ID links we always include a timestamp,
+    // to speed up the trace endpoint. Adding timestamp for the non-aggregate case and
+    // max(timestamp) for the aggregate case as fields, to accomodate this.
+    if (
+      eventView.hasAggregateField() &&
+      apiPayload.field.includes('trace') &&
+      !apiPayload.field.includes('max(timestamp)') &&
+      !apiPayload.field.includes('timestamp')
+    ) {
+      apiPayload.field.push('max(timestamp)');
+    } else if (
+      apiPayload.field.includes('trace') &&
+      !apiPayload.field.includes('timestamp')
+    ) {
+      apiPayload.field.push('timestamp');
+    }
+
+    if (
+      organization.features.includes('performance-discover-dataset-selector') &&
+      eventView.id
+    ) {
+      apiPayload.discoverSavedQueryId = eventView.id;
+    }
+
     apiPayload.referrer = 'api.discover.query-table';
 
     setError('', 200);
@@ -136,7 +181,7 @@ class Table extends PureComponent<TableProps, TableState> {
           name: 'app.api.discover-query',
           start: `discover-events-start-${apiPayload.query}`,
           data: {
-            status: resp && resp.status,
+            status: resp?.status,
           },
         });
         if (this.state.tableFetchID !== tableFetchID) {
@@ -150,6 +195,13 @@ class Table extends PureComponent<TableProps, TableState> {
           ...data,
           meta: {...fields, ...nonFieldsMeta},
         };
+
+        trackAnalytics('discover_search.success', {
+          has_results: tableData.data.length > 0,
+          organization: this.props.organization,
+          search_type: 'events',
+          search_source: 'discover_search',
+        });
 
         this.setState(prevState => ({
           isLoading: false,
@@ -168,6 +220,10 @@ class Table extends PureComponent<TableProps, TableState> {
           tips.push(columns);
         }
         setTips?.(tips);
+        const splitDecision = tableData?.meta?.discoverSplitDecision;
+        if (splitDecision) {
+          setSplitDecision?.(splitDecision);
+        }
       })
       .catch(err => {
         metric.measure({
@@ -197,7 +253,7 @@ class Table extends PureComponent<TableProps, TableState> {
   };
 
   render() {
-    const {eventView, onCursor} = this.props;
+    const {eventView, onCursor, dataset} = this.props;
     const {pageLinks, tableData, isLoading, error} = this.state;
 
     const isFirstPage = pageLinks
@@ -228,6 +284,7 @@ class Table extends PureComponent<TableProps, TableState> {
                       measurementKeys={measurementKeys}
                       spanOperationBreakdownKeys={SPAN_OP_BREAKDOWN_FIELDS}
                       customMeasurements={contextValue?.customMeasurements ?? undefined}
+                      dataset={dataset}
                     />
                   </VisuallyCompleteWithData>
                 )}

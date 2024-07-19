@@ -122,7 +122,7 @@ const Input = styled('input')`
     box-shadow: none;
     font-variant-numeric: tabular-nums;
 
-    &&.focus-visible {
+    &&:focus-visible {
       outline: none;
       border-color: ${p => p.theme.focusBorder};
       box-shadow: 0 0 0 1px ${p => p.theme.focusBorder};

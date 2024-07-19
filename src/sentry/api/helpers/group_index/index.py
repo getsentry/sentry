@@ -1,7 +1,9 @@
+from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, Callable, Mapping, MutableMapping, Optional, Sequence, Tuple
+from typing import Any, Optional
 
 import sentry_sdk
+from django.contrib.auth.models import AnonymousUser
 from django.db.models import Q
 from rest_framework.exceptions import ParseError
 from rest_framework.request import Request
@@ -15,6 +17,7 @@ from sentry.constants import DEFAULT_SORT_OPTION
 from sentry.exceptions import InvalidSearchQuery
 from sentry.models.environment import Environment
 from sentry.models.group import Group, looks_like_short_id
+from sentry.models.groupsearchview import GroupSearchView
 from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release
@@ -33,10 +36,12 @@ EndpointFunction = Callable[..., Response]
 
 # List of conditions that mark a SearchFilter as an advanced search. Format is
 # (lambda SearchFilter(): <boolean condition>, '<feature_name')
-advanced_search_features: Sequence[Tuple[Callable[[SearchFilter], Any], str]] = [
+advanced_search_features: Sequence[tuple[Callable[[SearchFilter], Any], str]] = [
     (lambda search_filter: search_filter.is_negation, "negative search"),
     (lambda search_filter: search_filter.value.is_wildcard(), "wildcard search"),
 ]
+
+DEFAULT_QUERY = "is:unresolved issue.priority:[high, medium]"
 
 
 def parse_and_convert_issue_search_query(
@@ -44,7 +49,7 @@ def parse_and_convert_issue_search_query(
     organization: Organization,
     projects: Sequence[Project],
     environments: Sequence[Environment],
-    user: User,
+    user: User | AnonymousUser,
 ) -> Sequence[SearchFilter]:
     try:
         search_filters = convert_query_values(
@@ -61,7 +66,7 @@ def build_query_params_from_request(
     request: Request,
     organization: "Organization",
     projects: Sequence["Project"],
-    environments: Optional[Sequence["Environment"]],
+    environments: Sequence["Environment"] | None,
 ) -> MutableMapping[str, Any]:
     query_kwargs = {"projects": projects, "sort_by": request.GET.get("sort", DEFAULT_SORT_OPTION)}
 
@@ -78,34 +83,55 @@ def build_query_params_from_request(
             query_kwargs["cursor"] = Cursor.from_string(request.GET.get("cursor"))
         except ValueError:
             raise ParseError(detail="Invalid cursor parameter.")
-    has_query = request.GET.get("query")
-    query = request.GET.get("query", "is:unresolved").strip()
-    if request.GET.get("savedSearch") == "0" and request.user and not has_query:
-        saved_searches = (
-            SavedSearch.objects
-            # Do not include pinned or personal searches from other users in
-            # the same organization. DOES include the requesting users pinned
-            # search
-            .exclude(
-                ~Q(owner_id=request.user.id),
-                visibility__in=(Visibility.OWNER, Visibility.OWNER_PINNED),
-            )
-            .filter(
-                Q(organization=organization) | Q(is_global=True),
-            )
-            .extra(order_by=["name"])
-        )
-        selected_search_id = request.GET.get("searchId", None)
-        if selected_search_id:
-            # saved search requested by the id
-            saved_search = saved_searches.filter(id=int(selected_search_id)).first()
-        else:
-            # pinned saved search
-            saved_search = saved_searches.filter(visibility=Visibility.OWNER_PINNED).first()
 
-        if saved_search:
-            query_kwargs["sort_by"] = saved_search.sort
-            query = saved_search.query
+    has_query = request.GET.get("query")
+    query = request.GET.get("query", None)
+    if query is None:
+        query = DEFAULT_QUERY
+
+    query = query.strip()
+
+    if request.GET.get("savedSearch") == "0" and request.user and not has_query:
+        if features.has("organizations:issue-stream-custom-views", organization):
+            selected_view_id = request.GET.get("searchId")
+            if selected_view_id:
+                default_view = GroupSearchView.objects.filter(id=int(selected_view_id)).first()
+            else:
+                default_view = GroupSearchView.objects.filter(
+                    organization=organization,
+                    user_id=request.user.id,
+                    position=0,
+                ).first()
+
+            if default_view:
+                query_kwargs["sort_by"] = default_view.query_sort
+                query = default_view.query
+        else:
+            saved_searches = (
+                SavedSearch.objects
+                # Do not include pinned or personal searches from other users in
+                # the same organization. DOES include the requesting users pinned
+                # search
+                .exclude(
+                    ~Q(owner_id=request.user.id),
+                    visibility__in=(Visibility.OWNER, Visibility.OWNER_PINNED),
+                )
+                .filter(
+                    Q(organization=organization) | Q(is_global=True),
+                )
+                .extra(order_by=["name"])
+            )
+            selected_search_id = request.GET.get("searchId", None)
+            if selected_search_id:
+                # saved search requested by the id
+                saved_search = saved_searches.filter(id=int(selected_search_id)).first()
+            else:
+                # pinned saved search
+                saved_search = saved_searches.filter(visibility=Visibility.OWNER_PINNED).first()
+
+            if saved_search:
+                query_kwargs["sort_by"] = saved_search.sort
+                query = saved_search.query
 
     sentry_sdk.set_tag("search.query", query)
     sentry_sdk.set_tag("search.sort", query)
@@ -205,10 +231,10 @@ def track_slo_response(name: str) -> Callable[[EndpointFunction], EndpointFuncti
 
 
 def calculate_stats_period(
-    stats_period: Optional[str],
-    start: Optional[datetime],
-    end: Optional[datetime],
-) -> Tuple[Optional[str], Optional[datetime], Optional[datetime]]:
+    stats_period: str | None,
+    start: datetime | None,
+    end: datetime | None,
+) -> tuple[str | None, datetime | None, datetime | None]:
     if stats_period is None:
         # default
         stats_period = "24h"
@@ -229,8 +255,8 @@ def prep_search(
     cls: Any,
     request: Request,
     project: "Project",
-    extra_query_kwargs: Optional[Mapping[str, Any]] = None,
-) -> Tuple[CursorResult[Group], Mapping[str, Any]]:
+    extra_query_kwargs: Mapping[str, Any] | None = None,
+) -> tuple[CursorResult[Group], Mapping[str, Any]]:
     try:
         environment = cls._get_environment_from_request(request, project.organization_id)
     except Environment.DoesNotExist:
@@ -249,14 +275,14 @@ def prep_search(
 
         query_kwargs["environments"] = environments
         query_kwargs["actor"] = request.user
-        result = search.query(**query_kwargs)
+        result = search.backend.query(**query_kwargs)
     return result, query_kwargs
 
 
 def get_first_last_release(
     request: Request,
     group: "Group",
-) -> Tuple[Optional[Mapping[str, Any]], Optional[Mapping[str, Any]]]:
+) -> tuple[Mapping[str, Any] | None, Mapping[str, Any] | None]:
     first_release = group.get_first_release()
     if first_release is not None:
         last_release = group.get_last_release()

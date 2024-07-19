@@ -3,9 +3,8 @@ from __future__ import annotations
 import urllib.parse
 from collections import defaultdict
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any
 
-from sentry import features
 from sentry.issues.grouptype import PerformanceHTTPOverheadGroupType
 from sentry.issues.issue_occurrence import IssueEvidence
 from sentry.models.organization import Organization
@@ -53,9 +52,11 @@ class HTTPOverheadDetector(PerformanceDetector):
     type = DetectorType.HTTP_OVERHEAD
     settings_key = DetectorType.HTTP_OVERHEAD
 
-    def init(self):
+    def __init__(self, settings: dict[DetectorType, Any], event: dict[str, Any]) -> None:
+        super().__init__(settings, event)
+
         self.stored_problems: dict[str, PerformanceProblem] = {}
-        self.location_to_indicators = defaultdict(list)
+        self.location_to_indicators: dict[str, list[list[ProblemIndicator]]] = defaultdict(list)
 
     def visit_span(self, span: Span) -> None:
         span_data = span.get("data", {})
@@ -118,7 +119,7 @@ class HTTPOverheadDetector(PerformanceDetector):
     def _store_performance_problem(self, location: str) -> None:
         delay_threshold = self.settings.get("http_request_delay_threshold")
 
-        max_delay = -1
+        max_delay = -1.0
         chain = None
         for indicator_chain in self.location_to_indicators[location]:
             # Browsers queue past 4-6 connections.
@@ -177,12 +178,8 @@ class HTTPOverheadDetector(PerformanceDetector):
         for location in self.location_to_indicators:
             self._store_performance_problem(location)
 
-    def is_creation_allowed_for_organization(self, organization: Optional[Organization]) -> bool:
-        return features.has(
-            "organizations:performance-issues-http-overhead-detector",
-            organization,
-            actor=None,
-        )
+    def is_creation_allowed_for_organization(self, organization: Organization | None) -> bool:
+        return True
 
     def is_creation_allowed_for_project(self, project: Project) -> bool:
         return self.settings["detection_enabled"]

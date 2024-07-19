@@ -3,7 +3,7 @@ import styled from '@emotion/styled';
 import AvatarList from 'sentry/components/avatar/avatarList';
 import {t, tn} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Release} from 'sentry/types';
+import type {Release} from 'sentry/types';
 
 type Props = {
   release: Release;
@@ -12,7 +12,7 @@ type Props = {
 
 function ReleaseCardCommits({release, withHeading = true}: Props) {
   const commitCount = release.commitCount || 0;
-  const authorCount = (release.authors && release.authors.length) || 0;
+  const authorCount = release.authors?.length || 0;
   if (commitCount === 0) {
     return null;
   }
@@ -37,7 +37,7 @@ const ReleaseSummaryHeading = styled('div')`
   color: ${p => p.theme.gray300};
   font-size: ${p => p.theme.fontSizeSmall};
   line-height: 1.2;
-  font-weight: 600;
+  font-weight: ${p => p.theme.fontWeightBold};
   text-transform: uppercase;
   margin-bottom: ${space(0.5)};
 `;

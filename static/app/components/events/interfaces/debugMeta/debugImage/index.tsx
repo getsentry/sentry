@@ -5,7 +5,7 @@ import NotAvailable from 'sentry/components/notAvailable';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Image, ImageStatus} from 'sentry/types/debugImage';
+import type {Image, ImageStatus} from 'sentry/types/debugImage';
 
 import layout from '../layout';
 import {getFileName, getImageAddress} from '../utils';

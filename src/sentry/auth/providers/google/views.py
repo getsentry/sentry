@@ -1,10 +1,10 @@
 import logging
 
+import orjson
 from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.auth.view import AuthView, ConfigureView
-from sentry.utils import json
 from sentry.utils.signing import urlsafe_b64decode
 
 from .constants import DOMAIN_BLOCKLIST, ERR_INVALID_DOMAIN, ERR_INVALID_RESPONSE
@@ -24,23 +24,23 @@ class FetchUser(AuthView):
         try:
             id_token = data["id_token"]
         except KeyError:
-            logger.error("Missing id_token in OAuth response: %s" % data)
+            logger.exception("Missing id_token in OAuth response: %s", data)
             return helper.error(ERR_INVALID_RESPONSE)
 
         try:
             _, payload, _ = map(urlsafe_b64decode, id_token.split(".", 2))
         except Exception as exc:
-            logger.error("Unable to decode id_token: %s" % exc, exc_info=True)
+            logger.exception("Unable to decode id_token: %s", exc)
             return helper.error(ERR_INVALID_RESPONSE)
 
         try:
-            payload = json.loads(payload)
+            payload = orjson.loads(payload)
         except Exception as exc:
-            logger.error("Unable to decode id_token payload: %s" % exc, exc_info=True)
+            logger.exception("Unable to decode id_token payload: %s", exc)
             return helper.error(ERR_INVALID_RESPONSE)
 
         if not payload.get("email"):
-            logger.error("Missing email in id_token payload: %s" % id_token)
+            logger.error("Missing email in id_token payload: %s", id_token)
             return helper.error(ERR_INVALID_RESPONSE)
 
         # support legacy style domains with pure domain regexp

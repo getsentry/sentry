@@ -1,20 +1,18 @@
 from __future__ import annotations
 
-from typing import FrozenSet, List
-
 from django.db import models
 
 from sentry.backup.dependencies import ImportKind, PrimaryKeyMap, get_model_name
 from sentry.backup.helpers import ImportFlags
 from sentry.backup.mixins import OverwritableConfigMixin
 from sentry.backup.scopes import ImportScope, RelocationScope
-from sentry.db.models import FlexibleForeignKey, control_silo_only_model, sane_repr
+from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
 from sentry.db.models.outboxes import ControlOutboxProducingModel
 from sentry.models.outbox import ControlOutboxBase, OutboxCategory
 from sentry.types.region import find_regions_for_user
 
 
-@control_silo_only_model
+@control_silo_model
 class UserPermission(OverwritableConfigMixin, ControlOutboxProducingModel):
     """
     Permissions are applied to administrative users and control explicit scope-like permissions within the API.
@@ -23,6 +21,7 @@ class UserPermission(OverwritableConfigMixin, ControlOutboxProducingModel):
     """
 
     __relocation_scope__ = RelocationScope.Config
+    __relocation_custom_ordinal__ = ["user", "permission"]
 
     user = FlexibleForeignKey("sentry.User")
     # permissions should be in the form of 'service-name.permission-name'
@@ -36,13 +35,13 @@ class UserPermission(OverwritableConfigMixin, ControlOutboxProducingModel):
     __repr__ = sane_repr("user_id", "permission")
 
     @classmethod
-    def for_user(cls, user_id: int) -> FrozenSet[str]:
+    def for_user(cls, user_id: int) -> frozenset[str]:
         """
         Return a set of permission for the given user ID.
         """
         return frozenset(cls.objects.filter(user=user_id).values_list("permission", flat=True))
 
-    def outboxes_for_update(self, shard_identifier: int | None = None) -> List[ControlOutboxBase]:
+    def outboxes_for_update(self, shard_identifier: int | None = None) -> list[ControlOutboxBase]:
         regions = find_regions_for_user(self.user_id)
         return [
             outbox
@@ -63,7 +62,7 @@ class UserPermission(OverwritableConfigMixin, ControlOutboxProducingModel):
         if old_pk is None:
             return None
 
-        # If we are merging users, ignore the imported permissions and use the merged user's
+        # If we are merging users, ignore the imported permissions and use the existing user's
         # permissions instead.
         if pk_map.get_kind(get_model_name(User), old_user_id) == ImportKind.Existing:
             return None

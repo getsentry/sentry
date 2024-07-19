@@ -9,15 +9,15 @@ from django.utils.translation import gettext_lazy as _
 
 from sentry.backup.scopes import RelocationScope
 from sentry.db.models import (
-    BaseManager,
     BoundedBigIntegerField,
     BoundedPositiveIntegerField,
     FlexibleForeignKey,
     JSONField,
     Model,
-    region_silo_only_model,
+    region_silo_model,
     sane_repr,
 )
+from sentry.db.models.manager.base import BaseManager
 
 if TYPE_CHECKING:
     from sentry.models.group import Group
@@ -37,7 +37,7 @@ class GroupLinkManager(BaseManager["GroupLink"]):
         return self.filter(**kwargs)
 
 
-@region_silo_only_model
+@region_silo_model
 class GroupLink(Model):
     """
     Link a group with an external resource like a commit, issue, or pull request

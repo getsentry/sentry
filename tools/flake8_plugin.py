@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import ast
-from typing import Any, Generator
+from collections.abc import Generator
+from typing import Any
 
 S001_fmt = (
     "S001 Avoid using the {} mock call as it is "
@@ -26,11 +27,19 @@ S007_msg = "S007 Do not import sentry.testutils into production code."
 
 S008_msg = "S008 Use stdlib datetime.timezone.utc instead of pytz.utc / pytz.UTC"
 
+S009_msg = "S009 Use `raise` with no arguments to reraise exceptions"
+
+S010_msg = "S010 Except handler does nothing and should be removed"
+
+S011_msg = "S011 Use override_options(...) instead to ensure proper cleanup"
+
 
 class SentryVisitor(ast.NodeVisitor):
     def __init__(self, filename: str) -> None:
         self.errors: list[tuple[int, int, str]] = []
         self.filename = filename
+
+        self._except_vars: list[str | None] = []
 
     def visit_ImportFrom(self, node: ast.ImportFrom) -> None:
         if node.module and not node.level:
@@ -88,6 +97,52 @@ class SentryVisitor(ast.NodeVisitor):
     def visit_Name(self, node: ast.Name) -> None:
         if node.id == "print":
             self.errors.append((node.lineno, node.col_offset, S002_msg))
+
+        self.generic_visit(node)
+
+    def visit_ExceptHandler(self, node: ast.ExceptHandler) -> None:
+        self._except_vars.append(node.name)
+        try:
+            self.generic_visit(node)
+        finally:
+            self._except_vars.pop()
+
+    def visit_Raise(self, node: ast.Raise) -> None:
+        if (
+            self._except_vars
+            and isinstance(node.exc, ast.Name)
+            and node.exc.id == self._except_vars[-1]
+        ):
+            self.errors.append((node.lineno, node.col_offset, S009_msg))
+        self.generic_visit(node)
+
+    def visit_Try(self, node: ast.Try) -> None:
+        if (
+            node.handlers
+            and len(node.handlers[-1].body) == 1
+            and isinstance(node.handlers[-1].body[0], ast.Raise)
+            and node.handlers[-1].body[0].exc is None
+        ):
+            self.errors.append((node.handlers[-1].lineno, node.handlers[-1].col_offset, S010_msg))
+
+        self.generic_visit(node)
+
+    def visit_Call(self, node: ast.Call) -> None:
+        if (
+            # override_settings(...)
+            (isinstance(node.func, ast.Name) and node.func.id == "override_settings")
+            or
+            # self.settings(...)
+            (
+                isinstance(node.func, ast.Attribute)
+                and isinstance(node.func.value, ast.Name)
+                and node.func.value.id == "self"
+                and node.func.attr == "settings"
+            )
+        ):
+            for keyword in node.keywords:
+                if keyword.arg == "SENTRY_OPTIONS":
+                    self.errors.append((keyword.lineno, keyword.col_offset, S011_msg))
 
         self.generic_visit(node)
 

@@ -1,14 +1,9 @@
-import flatten from 'lodash/flatten';
 import uniqBy from 'lodash/uniqBy';
 
 import type {ExceptionValue, Frame, Organization} from 'sentry/types';
 import {defined} from 'sentry/utils';
-import {
-  ApiQueryKey,
-  useApiQuery,
-  UseApiQueryOptions,
-  useQueries,
-} from 'sentry/utils/queryClient';
+import type {ApiQueryKey, UseApiQueryOptions} from 'sentry/utils/queryClient';
+import {useApiQuery, useQueries} from 'sentry/utils/queryClient';
 import useApi from 'sentry/utils/useApi';
 
 import {isFrameFilenamePathlike, sourceMapSdkDocsMap} from './utils';
@@ -173,25 +168,23 @@ export function getUniqueFilesFromException(
   excValues: ExceptionValue[],
   props: Omit<UseSourceMapDebugProps, 'frameIdx' | 'exceptionIdx'>
 ): StacktraceFilenameQuery[] {
-  const fileFrame = flatten(
-    excValues.map((excValue, exceptionIdx) => {
-      return (excValue.stacktrace?.frames || [])
-        .map<[Frame, number]>((frame, idx) => [frame, idx])
-        .filter(
-          ([frame]) =>
-            // Only debug inApp frames
-            frame.inApp &&
-            // Only debug frames with a filename that are not <anonymous> etc.
-            !isFrameFilenamePathlike(frame) &&
-            // Line number might not work for non-javascript languages
-            defined(frame.lineNo)
-        )
-        .map<StacktraceFilenameQuery>(([frame, idx]) => ({
-          filename: frame.filename!,
-          query: {...props, frameIdx: idx, exceptionIdx},
-        }));
-    })
-  );
+  const fileFrame = excValues.flatMap((excValue, exceptionIdx) => {
+    return (excValue.stacktrace?.frames || [])
+      .map<[Frame, number]>((frame, idx) => [frame, idx])
+      .filter(
+        ([frame]) =>
+          // Only debug inApp frames
+          frame.inApp &&
+          // Only debug frames with a filename that are not <anonymous> etc.
+          !isFrameFilenamePathlike(frame) &&
+          // Line number might not work for non-javascript languages
+          defined(frame.lineNo)
+      )
+      .map<StacktraceFilenameQuery>(([frame, idx]) => ({
+        filename: frame.filename!,
+        query: {...props, frameIdx: idx, exceptionIdx},
+      }));
+  });
 
   // Return only the first MAX_FRAMES unique filenames
   return uniqBy(fileFrame.reverse(), ({filename}) => filename).slice(0, MAX_FRAMES);

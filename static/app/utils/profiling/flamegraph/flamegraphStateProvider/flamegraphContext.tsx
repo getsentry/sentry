@@ -2,7 +2,10 @@ import {createContext} from 'react';
 
 import {Rect} from 'sentry/utils/profiling/speedscope';
 import {makeCombinedReducers} from 'sentry/utils/useCombinedReducer';
-import {UndoableReducer, UndoableReducerAction} from 'sentry/utils/useUndoableReducer';
+import type {
+  UndoableReducer,
+  UndoableReducerAction,
+} from 'sentry/utils/useUndoableReducer';
 
 import {flamegraphPreferencesReducer} from './reducers/flamegraphPreferences';
 import {flamegraphProfilesReducer} from './reducers/flamegraphProfiles';

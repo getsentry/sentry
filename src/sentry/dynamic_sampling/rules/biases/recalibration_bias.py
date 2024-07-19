@@ -1,5 +1,3 @@
-from typing import List
-
 from sentry.dynamic_sampling.rules.biases.base import Bias
 from sentry.dynamic_sampling.rules.utils import RESERVED_IDS, PolymorphicRule, RuleType
 from sentry.dynamic_sampling.tasks.helpers.recalibrate_orgs import get_adjusted_factor
@@ -18,7 +16,7 @@ class RecalibrationBias(Bias):
     how this should be done.
     """
 
-    def generate_rules(self, project: Project, base_sample_rate: float) -> List[PolymorphicRule]:
+    def generate_rules(self, project: Project, base_sample_rate: float) -> list[PolymorphicRule]:
         adjusted_factor = get_adjusted_factor(project.organization.id)
         # We don't want to generate any rule in case the factor is 1.0 since we should multiply the factor and 1.0
         # is the identity of the multiplication.

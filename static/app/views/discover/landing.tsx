@@ -1,11 +1,11 @@
-import {browserHistory, RouteComponentProps} from 'react-router';
+import type {RouteComponentProps} from 'react-router';
 import styled from '@emotion/styled';
 import isEqual from 'lodash/isEqual';
 import pick from 'lodash/pick';
 
 import Feature from 'sentry/components/acl/feature';
 import {Alert} from 'sentry/components/alert';
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
 import DeprecatedAsyncComponent from 'sentry/components/deprecatedAsyncComponent';
@@ -15,8 +15,9 @@ import SentryDocumentTitle from 'sentry/components/sentryDocumentTitle';
 import Switch from 'sentry/components/switchButton';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {Organization, SavedQuery, SelectValue} from 'sentry/types';
+import type {Organization, SavedQuery, SelectValue} from 'sentry/types';
 import {trackAnalytics} from 'sentry/utils/analytics';
+import {browserHistory} from 'sentry/utils/browserHistory';
 import EventView from 'sentry/utils/discover/eventView';
 import {getDiscoverLandingUrl} from 'sentry/utils/discover/urls';
 import {decodeScalar} from 'sentry/utils/queryString';
@@ -99,7 +100,7 @@ class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
 
           // if a search is performed on the list of queries, we filter
           // on the pre-built queries
-          if (eventView.name && eventView.name.toLowerCase().includes(needleSearch)) {
+          if (eventView.name?.toLowerCase().includes(needleSearch)) {
             return sum + 1;
           }
 
@@ -269,7 +270,7 @@ class DiscoverLanding extends DeprecatedAsyncComponent<Props, State> {
     return (
       <Feature
         organization={organization}
-        features={['discover-query']}
+        features="discover-query"
         renderDisabled={this.renderNoAccess}
       >
         <SentryDocumentTitle title={t('Discover')} orgSlug={organization.slug}>
@@ -309,7 +310,7 @@ const PrebuiltSwitch = styled('label')`
   display: flex;
   align-items: center;
   gap: ${space(1.5)};
-  font-weight: normal;
+  font-weight: ${p => p.theme.fontWeightNormal};
   margin: 0;
 `;
 

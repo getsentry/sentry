@@ -58,8 +58,8 @@
 //    |                            parts of the application (such as loading
 //    |                            your org list)
 //    |
-//    <OrganizationDetails>    <-- Most routes live within the
-//                                 OrganizationDetails, which handles loading
+//    <OrganizationLayout>     <-- Most routes live within the
+//                                 OrganizationLayout, which handles loading
 //                                 details for the org, projects, and teams.
 //
 //

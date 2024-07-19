@@ -1,12 +1,12 @@
 import {useEffect, useMemo} from 'react';
-import {mat3} from 'gl-matrix';
+import type {mat3} from 'gl-matrix';
 
-import {CanvasView} from 'sentry/utils/profiling/canvasView';
+import type {CanvasView} from 'sentry/utils/profiling/canvasView';
 
-import {FlamegraphFrame} from './flamegraphFrame';
-import {SpanChartNode} from './spanChart';
-import {Rect} from './speedscope';
-import {UIFrameNode} from './uiFrames';
+import type {FlamegraphFrame} from './flamegraphFrame';
+import type {SpanChartNode} from './spanChart';
+import type {Rect} from './speedscope';
+import type {UIFrameNode} from './uiFrames';
 
 type DrawFn = () => void;
 type ArgumentTypes<F> = F extends (...args: infer A) => any ? A : never;

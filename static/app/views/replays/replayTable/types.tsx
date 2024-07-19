@@ -8,4 +8,5 @@ export enum ReplayColumn {
   OS = 'os',
   REPLAY = 'replay',
   SLOWEST_TRANSACTION = 'slowestTransaction',
+  PLAY_PAUSE = 'play_pause',
 }

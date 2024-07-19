@@ -4,7 +4,7 @@ from rest_framework.request import Request
 from rest_framework.response import Response
 
 from sentry.exceptions import PluginError, PluginIdentityRequired
-from sentry.integrations import FeatureDescription, IntegrationFeatures
+from sentry.integrations.base import FeatureDescription, IntegrationFeatures
 from sentry.plugins.bases.issue2 import IssueGroupActionEndpoint, IssuePlugin2
 from sentry.utils.http import absolute_uri
 from sentry_plugins.base import CorePluginMixin
@@ -232,8 +232,8 @@ class AsanaPlugin(CorePluginMixin, IssuePlugin2):
         ]
 
     def view_autocomplete(self, request: Request, group, **kwargs):
-        field = request.GET.get("autocomplete_field")
-        query = request.GET.get("autocomplete_query")
+        field = request.GET["autocomplete_field"]
+        query = request.GET["autocomplete_query"]
 
         client = self.get_client(request.user)
         workspace = self.get_option("workspace", group.project)

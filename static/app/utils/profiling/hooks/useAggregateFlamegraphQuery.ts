@@ -1,47 +1,58 @@
 import {useMemo} from 'react';
 
 import {normalizeDateTimeParams} from 'sentry/components/organizations/pageFilters/parse';
-import {PageFilters} from 'sentry/types';
+import type {PageFilters} from 'sentry/types/core';
+import type {UseApiQueryResult} from 'sentry/utils/queryClient';
 import {useApiQuery} from 'sentry/utils/queryClient';
-import {MutableSearch} from 'sentry/utils/tokenizeSearch';
+import type RequestError from 'sentry/utils/requestError/requestError';
 import useOrganization from 'sentry/utils/useOrganization';
+import usePageFilters from 'sentry/utils/usePageFilters';
+
+export interface AggregateFlamegraphQueryParameters {
+  query: string;
+  datetime?: PageFilters['datetime'];
+  enabled?: boolean;
+  environments?: PageFilters['environments'];
+  fingerprint?: string;
+  projects?: PageFilters['projects'];
+}
+
+export type UseAggregateFlamegraphQueryResult = UseApiQueryResult<
+  Profiling.Schema,
+  RequestError
+>;
 
 export function useAggregateFlamegraphQuery({
-  projects,
   datetime,
+  enabled,
   environments,
-  transaction,
-}: {
-  datetime: Partial<PageFilters['datetime']>;
-  environments: string[];
-  projects: number[];
-  transaction: string;
-}) {
+  projects,
+  query,
+  fingerprint,
+}: AggregateFlamegraphQueryParameters): UseAggregateFlamegraphQueryResult {
   const organization = useOrganization();
-  const path = `/organizations/${organization.slug}/profiling/flamegraph/`;
+  const {selection} = usePageFilters();
 
-  const query = useMemo(() => {
-    // TODO: this should contain the user query
-    // wait util we fully switch over to the transactions dataset
-    const conditions = new MutableSearch([]);
-    conditions.setFilterValues('transaction', [transaction]);
-    return conditions.formatString();
-  }, [transaction]);
+  const endpointOptions = useMemo(() => {
+    const params = {
+      query: {
+        project: projects ?? selection.projects,
+        environment: environments ?? selection.environments,
+        ...normalizeDateTimeParams(datetime ?? selection.datetime),
+        fingerprint,
+        query,
+      },
+    };
 
-  const enabled = !!transaction && Array.isArray(projects) && projects.length > 0;
+    return params;
+  }, [datetime, environments, projects, fingerprint, query, selection]);
 
-  const endpointOptions = {
-    query: {
-      project: projects,
-      environment: environments,
-      ...normalizeDateTimeParams(datetime),
-      query,
-    },
-  };
-
-  return useApiQuery<Profiling.Schema>([path, endpointOptions], {
-    staleTime: 0,
-    retry: false,
-    enabled,
-  });
+  return useApiQuery<Profiling.Schema>(
+    [`/organizations/${organization.slug}/profiling/flamegraph/`, endpointOptions],
+    {
+      staleTime: 0,
+      retry: false,
+      enabled,
+    }
+  );
 }

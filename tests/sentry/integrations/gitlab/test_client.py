@@ -1,23 +1,28 @@
 from __future__ import annotations
 
-import base64
 from dataclasses import asdict
 from datetime import datetime, timezone
 from unittest import mock
+from unittest.mock import patch
 from urllib.parse import quote
 
+import orjson
 import pytest
 import responses
+from requests.exceptions import ConnectionError
 
 from fixtures.gitlab import GET_COMMIT_RESPONSE, GitLabTestCase
 from sentry.auth.exceptions import IdentityNotValid
+from sentry.constants import ObjectStatus
 from sentry.integrations.gitlab.blame import GitLabCommitResponse, GitLabFileBlameResponseItem
 from sentry.integrations.gitlab.utils import get_rate_limit_info_from_response
 from sentry.integrations.mixins.commit_context import CommitInfo, FileBlameInfo, SourceLineInfo
+from sentry.integrations.request_buffer import IntegrationRequestBuffer
 from sentry.models.identity import Identity
-from sentry.shared_integrations.exceptions import ApiError, ApiRateLimitedError
+from sentry.models.integrations import Integration
+from sentry.shared_integrations.exceptions import ApiError, ApiHostError, ApiRateLimitedError
+from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import control_silo_test
-from sentry.utils import json
 from sentry.utils.cache import cache
 
 GITLAB_CODEOWNERS = {
@@ -47,7 +52,7 @@ class GitLabClientTest(GitLabTestCase):
         self.gitlab_id = 123
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GitlabRefreshAuthTest(GitLabClientTest):
     get_user_should_succeed = True
 
@@ -100,7 +105,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         self.assert_response_call(responses_calls[1], self.refresh_url, 200)
         self.assert_response_call(responses_calls[2], self.request_url, 200)
 
-        assert json.loads(responses_calls[2].response.text) == self.request_data
+        assert orjson.loads(responses_calls[2].response.text) == self.request_data
 
     def assert_identity_was_refreshed(self):
         data = self.gitlab_client.identity.data
@@ -206,8 +211,8 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         )
         responses.add(
             method=responses.GET,
-            url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/CODEOWNERS?ref=master",
-            json={"content": base64.b64encode(GITLAB_CODEOWNERS["raw"].encode()).decode("ascii")},
+            url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/CODEOWNERS/raw?ref=master",
+            body="docs/*    @NisanthanNanthakumar   @getsentry/ecosystem\n* @NisanthanNanthakumar\n",
         )
         result = self.installation.get_codeowner_file(
             self.config.repository, ref=self.config.default_branch
@@ -221,11 +226,11 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         responses.add(
             method=responses.GET,
             url=f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/commits/{commit}",
-            json=json.loads(GET_COMMIT_RESPONSE),
+            json=orjson.loads(GET_COMMIT_RESPONSE),
         )
 
         resp = self.gitlab_client.get_commit(self.gitlab_id, commit)
-        assert resp == json.loads(GET_COMMIT_RESPONSE)
+        assert resp == orjson.loads(GET_COMMIT_RESPONSE)
 
     @responses.activate
     def test_get_rate_limit_info_from_response(self):
@@ -274,7 +279,7 @@ class GitlabRefreshAuthTest(GitLabClientTest):
         assert not rate_limit_info
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class GitLabBlameForFilesTest(GitLabClientTest):
     def setUp(self):
         super().setUp()
@@ -286,28 +291,28 @@ class GitLabBlameForFilesTest(GitLabClientTest):
             lineno=10,
             ref="master",
             repo=self.repo,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         self.file_2 = SourceLineInfo(
             path="src/sentry/integrations/github/client_1.py",
             lineno=15,
             ref="master",
             repo=self.repo,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         self.file_3 = SourceLineInfo(
             path="src/sentry/integrations/github/client_2.py",
             lineno=20,
             ref="master",
             repo=self.repo,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         self.file_4 = SourceLineInfo(
             path="src/sentry/integrations/github/client_3.py",
             lineno=20,
             ref="master",
             repo=self.repo,
-            code_mapping=None,  # type: ignore
+            code_mapping=None,  # type: ignore[arg-type]
         )
         self.blame_1 = FileBlameInfo(
             **asdict(self.file_1),
@@ -361,7 +366,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         )
 
     def make_blame_request(self, file: SourceLineInfo) -> str:
-        return f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/{quote(file.path, safe='')}/blame?ref={file.ref}&range[start]={file.lineno}&range[end]={file.lineno}"
+        return f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/{quote(file.path.strip('/'), safe='')}/blame?ref={file.ref}&range[start]={file.lineno}&range[end]={file.lineno}"
 
     def make_blame_response(self, **kwargs) -> list[GitLabFileBlameResponseItem]:
         return [
@@ -446,19 +451,23 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         )
 
     @mock.patch(
-        "sentry.integrations.gitlab.blame.logger.exception",
+        "sentry.integrations.gitlab.blame.logger.warning",
     )
     @responses.activate
-    def test_failure_404(self, mock_logger_exception):
-        responses.add(responses.GET, self.make_blame_request(self.file_1), status=404)
+    def test_failure_404(self, mock_logger_warning):
+        responses.add(
+            responses.GET, self.make_blame_request(self.file_1), status=404, body="No file found"
+        )
         resp = self.gitlab_client.get_blame_for_files(files=[self.file_1], extra={})
 
         assert resp == []
-        mock_logger_exception.assert_called_with(
+        mock_logger_warning.assert_called_with(
             "get_blame_for_files.api_error",
             extra={
                 "provider": "gitlab",
                 "org_integration_id": self.gitlab_client.org_integration_id,
+                "code": 404,
+                "error_message": "No file found",
                 "repo_name": self.repo.name,
                 "file_path": self.file_1.path,
                 "branch_name": self.file_1.ref,
@@ -466,32 +475,18 @@ class GitLabBlameForFilesTest(GitLabClientTest):
             },
         )
 
-    @mock.patch(
-        "sentry.integrations.gitlab.blame.logger.exception",
-    )
     @responses.activate
-    def test_failure_response_type(self, mock_logger_exception):
+    def test_failure_response_type(self):
         responses.add(responses.GET, self.make_blame_request(self.file_1), json={}, status=200)
-        resp = self.gitlab_client.get_blame_for_files(files=[self.file_1], extra={})
 
-        assert resp == []
-        mock_logger_exception.assert_called_with(
-            "get_blame_for_files.api_error",
-            extra={
-                "provider": "gitlab",
-                "org_integration_id": self.gitlab_client.org_integration_id,
-                "repo_name": self.repo.name,
-                "file_path": self.file_1.path,
-                "branch_name": self.file_1.ref,
-                "file_lineno": self.file_1.lineno,
-            },
-        )
+        with pytest.raises(ApiError):
+            self.gitlab_client.get_blame_for_files(files=[self.file_1], extra={})
 
     @mock.patch(
-        "sentry.integrations.gitlab.blame.logger.exception",
+        "sentry.integrations.gitlab.blame.logger.error",
     )
     @responses.activate
-    def test_failure_approaching_rate_limit(self, mock_logger_exception):
+    def test_failure_approaching_rate_limit(self, mock_logger_error):
         """
         If there aren't enough requests left to stay above the minimum request
         limit, should raise a ApiRateLimitedError.
@@ -513,7 +508,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
             self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2], extra={})
 
         assert excinfo.value.text == "Approaching GitLab API rate limit"
-        mock_logger_exception.assert_called_with(
+        mock_logger_error.assert_called_with(
             "get_blame_for_files.rate_limit_too_low",
             extra={
                 "provider": "gitlab",
@@ -526,10 +521,10 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         )
 
     @mock.patch(
-        "sentry.integrations.gitlab.blame.logger.exception",
+        "sentry.integrations.gitlab.blame.logger.warning",
     )
     @responses.activate
-    def test_failure_partial(self, mock_logger_exception):
+    def test_failure_partial_expected(self, mock_logger_warning):
         """
         Tests that blames are still returned when some succeed
         and others fail.
@@ -548,10 +543,12 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         assert resp == [self.blame_2]
 
         # Should log the unsuccessful one
-        mock_logger_exception.assert_called_once()
-        mock_logger_exception.assert_called_with(
+        mock_logger_warning.assert_called_once()
+        mock_logger_warning.assert_called_with(
             "get_blame_for_files.api_error",
             extra={
+                "code": 404,
+                "error_message": "",
                 "provider": "gitlab",
                 "org_integration_id": self.gitlab_client.org_integration_id,
                 "repo_name": self.repo.name,
@@ -560,6 +557,17 @@ class GitLabBlameForFilesTest(GitLabClientTest):
                 "file_lineno": self.file_1.lineno,
             },
         )
+
+    @responses.activate
+    def test_failure_partial_fatal(self):
+        """
+        Tests that the function is aborted when a fatal response is returned
+        """
+        # First file returns a 500
+        responses.add(responses.GET, self.make_blame_request(self.file_1), status=500)
+
+        with pytest.raises(ApiError):
+            self.gitlab_client.get_blame_for_files(files=[self.file_1, self.file_2], extra={})
 
     @responses.activate
     def test_invalid_commits(self):
@@ -587,7 +595,7 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         responses.add(
             responses.GET,
             url=self.make_blame_request(self.file_4),
-            json={"lines": [], "commit": None},
+            json=[{"lines": [], "commit": None}],
             status=200,
         )
         resp = self.gitlab_client.get_blame_for_files(
@@ -595,3 +603,32 @@ class GitLabBlameForFilesTest(GitLabClientTest):
         )
 
         assert resp == []
+
+
+@control_silo_test
+class GitLabUnhappyPathTest(GitLabClientTest):
+    @pytest.mark.skip("Feature is temporarily disabled")
+    @responses.activate
+    @patch.object(IntegrationRequestBuffer, "is_integration_broken", return_value=True)
+    def test_unreachable_host(self, mock_is_integration_broken):
+
+        integration = Integration.objects.get(id=self.integration.id)
+        assert integration.status == ObjectStatus.ACTIVE
+
+        path = "src/file.py"
+        ref = "537f2e94fbc489b2564ca3d6a5f0bd9afa38c3c3"
+        responses.add(
+            responses.HEAD,
+            f"https://example.gitlab.com/api/v4/projects/{self.gitlab_id}/repository/files/src%2Ffile.py?ref={ref}",
+            body=ConnectionError("Unable to reach host: https://example.gitlab.com"),
+        )
+        with (
+            self.feature({"organizations:gitlab-disable-on-broken": True}),
+            outbox_runner(),
+            pytest.raises(ApiHostError),
+        ):
+            self.gitlab_client.check_file(self.repo, path, ref)
+
+        # Assert integration is disabled.
+        integration = Integration.objects.get(id=self.integration.id)
+        assert integration.status == ObjectStatus.DISABLED

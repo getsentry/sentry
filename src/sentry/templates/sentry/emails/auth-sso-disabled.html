@@ -1,13 +1,14 @@
 {% extends "sentry/emails/base.html" %}
 
 {% load i18n %}
+{% load sentry_helpers %}
 
 {% block main %}
   <h3>Single Sign-On disabled</h3>
 
   <p>
     <strong>{{ provider.name }}</strong> Single Sign-On has been disabled for the
-    <strong>{{ organization.name }}</strong> organization.
+    <strong>{{ organization.name|sanitize_periods }}</strong> organization.
   </p>
 
   {% if has_password %}

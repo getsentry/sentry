@@ -1,13 +1,13 @@
 import {Fragment, useMemo} from 'react';
 import styled from '@emotion/styled';
 
-import {
-  CompactSelect,
+import FeatureBadge from 'sentry/components/badge/featureBadge';
+import type {
   MultipleSelectProps,
   SelectOption,
   SingleSelectProps,
 } from 'sentry/components/compactSelect';
-import FeatureBadge from 'sentry/components/featureBadge';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import Truncate from 'sentry/components/truncate';
 import {defined} from 'sentry/utils';
 
@@ -85,10 +85,10 @@ function OptionSelector({
   function isOptionDisabled(option) {
     return (
       // Option is explicitly marked as disabled
-      option.disabled ||
       // The user has reached the maximum number of selections (3), and the option hasn't
       // yet been selected. These options should be disabled to visually indicate that the
       // user has reached the max.
+      option.disabled ||
       (multiple && selected.length === 3 && !selected.includes(option.value))
     );
   }

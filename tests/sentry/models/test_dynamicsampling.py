@@ -1,5 +1,4 @@
-from datetime import timedelta
-from typing import List, Optional
+from datetime import datetime, timedelta
 
 import pytest
 from django.utils import timezone
@@ -13,11 +12,10 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers.datetime import freeze_time
-from sentry.testutils.silo import region_silo_test
 
 
 def _create_rule_for_env(
-    env_idx: int, projects: List[Project], organization: Organization
+    env_idx: int, projects: list[Project], organization: Organization
 ) -> CustomDynamicSamplingRule:
     condition = {"op": "equals", "name": "environment", "value": f"prod{env_idx}"}
     return CustomDynamicSamplingRule.update_or_create(
@@ -33,7 +31,6 @@ def _create_rule_for_env(
 
 
 @freeze_time("2023-09-18")
-@region_silo_test()
 class TestCustomDynamicSamplingRuleProject(TestCase):
     def setUp(self):
         super().setUp()
@@ -192,8 +189,8 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
         idx = [1]
 
         def create_rule(
-            project_ids: List[int],
-            org_id: Optional[int] = None,
+            project_ids: list[int],
+            org_id: int | None = None,
             old: bool = False,
             new: bool = False,
         ) -> CustomDynamicSamplingRule:
@@ -284,6 +281,60 @@ class TestCustomDynamicSamplingRuleProject(TestCase):
         second_projects = second_rule.projects.all()
         assert len(second_projects) == 1
         assert self.second_project == second_projects[0]
+
+    def test_deactivate_expired_rules(self):
+        """
+        Tests that expired, and only expired, rules are deactivated
+        """
+
+        def create_rule(env_idx: int, end: datetime, project_ids: list[int]):
+            condition = {"op": "equals", "name": "environment", "value": f"prod{env_idx}"}
+            return CustomDynamicSamplingRule.update_or_create(
+                condition=condition,
+                start=timezone.now() - timedelta(hours=5),
+                end=end,
+                project_ids=project_ids,
+                organization_id=self.organization.id,
+                num_samples=100,
+                sample_rate=0.5,
+                query=f"environment:prod{env_idx}",
+            )
+
+        env_idx = 1
+        expired_rules: set[int] = set()
+        active_rules: set[int] = set()
+
+        for projects in [
+            [self.project],
+            [self.second_project],
+            [self.third_project],
+            [self.project, self.second_project, self.third_project],
+            [],
+        ]:
+            # create some expired rules
+            project_ids = [p.id for p in projects]
+            rule = create_rule(env_idx, timezone.now() - timedelta(minutes=5), project_ids)
+            expired_rules.add(rule.id)
+            env_idx += 1
+
+            # create some active rules
+            rule = create_rule(env_idx, timezone.now() + timedelta(minutes=5), project_ids)
+            active_rules.add(rule.id)
+            env_idx += 1
+
+        # check that all rules are active before deactivation
+        for rule in CustomDynamicSamplingRule.objects.all():
+            assert rule.is_active
+
+        CustomDynamicSamplingRule.deactivate_expired_rules()
+
+        # check that all expired rules are inactive and all active rules are still active
+        for rule in CustomDynamicSamplingRule.objects.all():
+            if rule.id in expired_rules:
+                assert not rule.is_active
+            else:
+                assert rule.is_active
+                assert rule.id in active_rules
 
     def test_per_project_limit(self):
         """

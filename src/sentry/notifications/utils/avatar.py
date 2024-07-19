@@ -6,7 +6,7 @@ from django.utils.safestring import SafeString
 
 from sentry.models.avatars.user_avatar import UserAvatar
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.users.services.user import RpcUser
 from sentry.utils.assets import get_asset_url
 from sentry.utils.avatar import get_email_avatar
 from sentry.utils.http import absolute_uri
@@ -21,8 +21,6 @@ def get_user_avatar_url(user: User | RpcUser, size: int = 20) -> str:
         except UserAvatar.DoesNotExist:
             return ""
     elif user.avatar:
-        if user.avatar is None:
-            return ""
         ident = user.avatar.ident
     else:
         return ""

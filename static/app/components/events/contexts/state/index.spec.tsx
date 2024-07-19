@@ -1,3 +1,5 @@
+import {EventFixture} from 'sentry-fixture/event';
+
 import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
 import {textWithMarkupMatcher} from 'sentry-test/utils';
 
@@ -20,7 +22,7 @@ describe('StateContext', function () {
             },
           },
         }}
-        event={TestStubs.Event()}
+        event={EventFixture()}
       />
     );
 
@@ -32,8 +34,7 @@ describe('StateContext', function () {
   });
 
   it('display redacted data', async function () {
-    const event = {
-      ...TestStubs.Event(),
+    const event = EventFixture({
       _meta: {
         contexts: {
           state: {
@@ -48,7 +49,7 @@ describe('StateContext', function () {
           },
         },
       },
-    };
+    });
 
     render(
       <StateEventContext
@@ -68,7 +69,7 @@ describe('StateContext', function () {
     );
 
     expect(screen.getByText('State (Redux)')).toBeInTheDocument();
-    await userEvent.hover(screen.getByText('None'));
+    await userEvent.hover(screen.getByText('null'));
     expect(
       await screen.findByText(
         textWithMarkupMatcher(

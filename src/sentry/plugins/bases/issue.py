@@ -8,10 +8,10 @@ from rest_framework.request import Request
 from sentry.models.activity import Activity
 from sentry.models.groupmeta import GroupMeta
 from sentry.plugins.base.v1 import Plugin
-from sentry.services.hybrid_cloud.usersocialauth.model import RpcUserSocialAuth
-from sentry.services.hybrid_cloud.usersocialauth.service import usersocialauth_service
 from sentry.signals import issue_tracker_used
 from sentry.types.activity import ActivityType
+from sentry.users.services.usersocialauth.model import RpcUserSocialAuth
+from sentry.users.services.usersocialauth.service import usersocialauth_service
 from sentry.utils.auth import get_auth_providers
 from sentry.utils.http import absolute_uri
 from sentry.utils.safe import safe_execute
@@ -24,7 +24,7 @@ class NewIssueForm(forms.Form):
 
 class IssueTrackingPlugin(Plugin):
     # project_conf_form = BaseIssueOptionsForm
-    new_issue_form = NewIssueForm
+    new_issue_form: type[forms.Form] = NewIssueForm
     link_issue_form = None
 
     create_issue_template = "sentry/plugins/bases/issue/create_issue.html"
@@ -40,7 +40,7 @@ class IssueTrackingPlugin(Plugin):
     def _get_group_body(self, request: Request, group, event, **kwargs):
         result = []
         for interface in event.interfaces.values():
-            output = safe_execute(interface.to_string, event, _with_transaction=False)
+            output = safe_execute(interface.to_string, event)
             if output:
                 result.append(output)
         return "\n\n".join(result)

@@ -1,9 +1,9 @@
-import {RouteComponentProps} from 'react-router';
-import moment from 'moment';
+import type {RouteComponentProps} from 'react-router';
+import moment from 'moment-timezone';
 
 import ResultGrid from 'sentry/components/resultGrid';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 
 type Row = {
   dateCreated: string;

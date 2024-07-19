@@ -3,7 +3,7 @@ import {Alert} from 'sentry/components/alert';
 import * as Layout from 'sentry/components/layouts/thirds';
 import NoProjectMessage from 'sentry/components/noProjectMessage';
 import {t} from 'sentry/locale';
-import {Organization} from 'sentry/types';
+import type {Organization} from 'sentry/types/organization';
 import withOrganization from 'sentry/utils/withOrganization';
 
 type Props = {
@@ -22,7 +22,7 @@ function DiscoverContainer({organization, children}: Props) {
 
   return (
     <Feature
-      features={['discover-basic']}
+      features="discover-basic"
       organization={organization}
       hookName="feature-disabled:discover2-page"
       renderDisabled={renderNoAccess}

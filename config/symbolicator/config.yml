@@ -1,7 +1,7 @@
-bind: "0.0.0.0:3021"
+bind: '0.0.0.0:3021'
 logging:
-  level: "debug"
-  format: "pretty"
+  level: 'debug'
+  format: 'pretty'
   enable_backtraces: true
 
 # explicitly disable caches as it's not something we want in tests. in

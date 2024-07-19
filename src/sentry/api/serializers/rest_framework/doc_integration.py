@@ -1,4 +1,5 @@
-from typing import Any, MutableMapping
+from collections.abc import MutableMapping
+from typing import Any
 
 from django.db import router, transaction
 from jsonschema.exceptions import ValidationError as SchemaValidationError

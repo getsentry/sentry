@@ -1,4 +1,4 @@
-import {BuiltInSymbolSources} from 'sentry-fixture/builtInSymbolSources';
+import {BuiltInSymbolSourcesFixture} from 'sentry-fixture/builtInSymbolSources';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
 import {render, screen} from 'sentry-test/reactTestingLibrary';
@@ -9,7 +9,7 @@ describe('Built-in Repositories', function () {
   const api = new MockApiClient();
   const {project, organization} = initializeOrg();
 
-  const builtinSymbolSourceOptions = BuiltInSymbolSources();
+  const builtinSymbolSourceOptions = BuiltInSymbolSourcesFixture();
   const builtinSymbolSources = ['ios', 'microsoft', 'android'];
 
   it('renders', function () {
@@ -18,7 +18,6 @@ describe('Built-in Repositories', function () {
         api={api}
         organization={organization}
         project={project}
-        isLoading={false}
         builtinSymbolSourceOptions={builtinSymbolSourceOptions}
         builtinSymbolSources={builtinSymbolSources}
       />

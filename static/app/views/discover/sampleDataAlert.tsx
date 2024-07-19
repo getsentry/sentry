@@ -9,7 +9,22 @@ import {space} from 'sentry/styles/space';
 import useDismissAlert from 'sentry/utils/useDismissAlert';
 import useOrganization from 'sentry/utils/useOrganization';
 
-export function SampleDataAlert() {
+const EXCLUDED_CONDITIONS = [
+  'event.type:error',
+  '!event.type:transaction',
+  'event.type:csp',
+  'event.type:default',
+  'handled:',
+  'unhandled:',
+  'culprit:',
+  'issue:',
+  'level:',
+  'unreal.crash_type:',
+  'stack.',
+  'error.',
+];
+
+export function SampleDataAlert({query}: {query?: string}) {
   const user = ConfigStore.get('user');
   const {slug, isDynamicallySampled} = useOrganization();
 
@@ -17,7 +32,11 @@ export function SampleDataAlert() {
     key: `${slug}-${user.id}:sample-data-alert-dismissed`,
   });
 
-  if (isDismissed || !isDynamicallySampled) {
+  const isQueryingErrors = EXCLUDED_CONDITIONS.some(condition =>
+    query?.includes(condition)
+  );
+
+  if (isDismissed || !isDynamicallySampled || isQueryingErrors) {
     return null;
   }
 
@@ -40,10 +59,9 @@ export function SampleDataAlert() {
 }
 
 const DismissButton = styled(Button)`
-  color: ${p => p.theme.alert.warning.iconColor};
+  color: ${p => p.theme.alert.warning.color};
   pointer-events: all;
   &:hover {
-    color: ${p => p.theme.alert.warning.iconHoverColor};
     opacity: 0.5;
   }
 `;

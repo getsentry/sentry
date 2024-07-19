@@ -1,13 +1,13 @@
 import {createStore} from 'reflux';
 
 import {ORGANIZATION_FETCH_ERROR_TYPES} from 'sentry/constants';
-import {Organization} from 'sentry/types';
-import RequestError from 'sentry/utils/requestError/requestError';
+import type {Organization} from 'sentry/types/organization';
+import type RequestError from 'sentry/utils/requestError/requestError';
 
 import HookStore from './hookStore';
 import LatestContextStore from './latestContextStore';
 import ReleaseStore from './releaseStore';
-import {CommonStoreDefinition} from './types';
+import type {StrictStoreDefinition} from './types';
 
 type State = {
   dirty: boolean;
@@ -17,16 +17,23 @@ type State = {
   errorType?: string | null;
 };
 
-interface OrganizationStoreDefinition extends CommonStoreDefinition<State> {
+interface OrganizationStoreDefinition extends StrictStoreDefinition<State> {
   get(): State;
-  init(): void;
   onFetchOrgError(err: RequestError): void;
   onUpdate(org: Organization, options?: {replace: true}): void;
   onUpdate(org: Partial<Organization>, options?: {replace?: false}): void;
   reset(): void;
+  setNoOrganization(): void;
 }
 
 const storeConfig: OrganizationStoreDefinition = {
+  state: {
+    dirty: false,
+    loading: true,
+    organization: null,
+    error: null,
+    errorType: null,
+  },
   init() {
     // XXX: Do not use `this.listenTo` in this store. We avoid usage of reflux
     // listeners due to their leaky nature in tests.
@@ -35,61 +42,76 @@ const storeConfig: OrganizationStoreDefinition = {
   },
 
   reset() {
-    this.loading = true;
-    this.error = null;
-    this.errorType = null;
-    this.organization = null;
-    this.dirty = false;
+    this.state = {
+      dirty: false,
+      loading: true,
+      organization: null,
+      error: null,
+      errorType: null,
+    };
     this.trigger(this.get());
   },
 
   onUpdate(updatedOrg: Organization, {replace = false} = {}) {
-    this.loading = false;
-    this.error = null;
-    this.errorType = null;
-    this.organization = replace ? updatedOrg : {...this.organization, ...updatedOrg};
-    this.dirty = false;
+    const organization = replace
+      ? updatedOrg
+      : {...this.state.organization, ...updatedOrg};
+    this.state = {
+      loading: false,
+      dirty: false,
+      errorType: null,
+      error: null,
+      organization,
+    };
     this.trigger(this.get());
 
-    ReleaseStore.updateOrganization(this.organization);
-    LatestContextStore.onUpdateOrganization(this.organization);
+    ReleaseStore.updateOrganization(organization);
+    LatestContextStore.onUpdateOrganization(organization);
     HookStore.getCallback(
       'react-hook:route-activated',
       'setOrganization'
-    )?.(this.organization);
+    )?.(organization);
   },
 
   onFetchOrgError(err) {
-    this.organization = null;
-    this.errorType = null;
+    let errorType: State['errorType'] = null;
 
     switch (err?.status) {
       case 401:
-        this.errorType = ORGANIZATION_FETCH_ERROR_TYPES.ORG_NO_ACCESS;
+        errorType = ORGANIZATION_FETCH_ERROR_TYPES.ORG_NO_ACCESS;
         break;
       case 404:
-        this.errorType = ORGANIZATION_FETCH_ERROR_TYPES.ORG_NOT_FOUND;
+        errorType = ORGANIZATION_FETCH_ERROR_TYPES.ORG_NOT_FOUND;
         break;
       default:
     }
-    this.loading = false;
-    this.error = err;
-    this.dirty = false;
+    this.state = {
+      errorType,
+      dirty: false,
+      error: err,
+      loading: false,
+      organization: null,
+    };
+    this.trigger(this.get());
+  },
+
+  setNoOrganization() {
+    this.state = {
+      ...this.state,
+      organization: null,
+      errorType: ORGANIZATION_FETCH_ERROR_TYPES.NO_ORGS,
+      loading: false,
+      dirty: false,
+    };
     this.trigger(this.get());
   },
 
   get() {
-    return {
-      organization: this.organization,
-      error: this.error,
-      loading: this.loading,
-      errorType: this.errorType,
-      dirty: this.dirty,
-    };
+    return this.state;
   },
 
   getState() {
-    return this.get();
+    return this.state;
   },
 };
 

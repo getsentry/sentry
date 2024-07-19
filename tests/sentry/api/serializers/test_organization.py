@@ -24,7 +24,6 @@ from sentry.models.organizationonboardingtask import (
 )
 from sentry.models.releaseprojectenvironment import ReleaseProjectEnvironment
 from sentry.testutils.cases import TestCase
-from sentry.testutils.silo import region_silo_test
 from sentry.testutils.skips import requires_snuba
 
 pytestmark = [requires_snuba]
@@ -54,7 +53,6 @@ mock_options_as_features = {
 }
 
 
-@region_silo_test(stable=True)
 class OrganizationSerializerTest(TestCase):
     def test_simple(self):
         user = self.create_user()
@@ -77,20 +75,23 @@ class OrganizationSerializerTest(TestCase):
             "event-attachments",
             "integrations-alert-rule",
             "integrations-chat-unfurl",
+            "integrations-codeowners",
             "integrations-deployment",
+            "dashboard-widget-indicators",
             "integrations-enterprise-alert-rule",
             "integrations-enterprise-incident-management",
             "integrations-event-hooks",
             "integrations-incident-management",
             "integrations-issue-basic",
             "integrations-issue-sync",
+            "integrations-stacktrace-link",
             "integrations-ticket-rules",
+            "performance-tracing-without-performance",
             "invite-members",
             "invite-members-rate-limits",
             "minute-resolution-sessions",
             "new-page-filter",
             "open-membership",
-            "project-stats",
             "relay",
             "shared-issues",
             "session-replay-ui",
@@ -147,7 +148,6 @@ class OrganizationSerializerTest(TestCase):
             assert feature not in features
 
 
-@region_silo_test(stable=True)
 class DetailedOrganizationSerializerTest(TestCase):
     def test_detailed(self):
         user = self.create_user()
@@ -163,9 +163,9 @@ class DetailedOrganizationSerializerTest(TestCase):
         assert result["relayPiiConfig"] is None
         assert isinstance(result["orgRoleList"], list)
         assert isinstance(result["teamRoleList"], list)
+        assert result["requiresSso"] == acc.requires_sso
 
 
-@region_silo_test(stable=True)
 class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
     def test_detailed_org_projs_teams(self):
         # access the test fixtures so they're initialized
@@ -186,7 +186,7 @@ class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
         self.team
         self.project
         self.release = self.create_release(self.project)
-        self.date = datetime.datetime(2018, 1, 12, 3, 8, 25, tzinfo=timezone.utc)
+        self.date = datetime.datetime(2018, 1, 12, 3, 8, 25, tzinfo=datetime.UTC)
         self.environment_1 = Environment.objects.create(
             organization_id=self.organization.id, name="production"
         )
@@ -222,7 +222,6 @@ class DetailedOrganizationSerializerWithProjectsAndTeamsTest(TestCase):
         options.set("api.organization.disable-last-deploys", opt_val)
 
 
-@region_silo_test(stable=True)
 class OnboardingTasksSerializerTest(TestCase):
     def test_onboarding_tasks_serializer(self):
         completion_seen = timezone.now()
@@ -242,7 +241,6 @@ class OnboardingTasksSerializerTest(TestCase):
         assert result["data"] == {}
 
 
-@region_silo_test(stable=True)
 class TrustedRelaySerializer(TestCase):
     def test_trusted_relay_serializer(self):
         completion_seen = timezone.now()

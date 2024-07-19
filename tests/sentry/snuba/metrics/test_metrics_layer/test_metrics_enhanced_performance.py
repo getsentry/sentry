@@ -1,6 +1,7 @@
 """
 Metrics Service Layer Tests for Performance
 """
+
 import re
 from datetime import datetime, timedelta
 from datetime import timezone as datetime_timezone
@@ -11,7 +12,7 @@ from django.utils import timezone
 from django.utils.datastructures import MultiValueDict
 from snuba_sdk import Column, Condition, Direction, Function, Granularity, Limit, Offset, Op
 
-from sentry.api.utils import InvalidParams
+from sentry.exceptions import InvalidParams
 from sentry.models.transaction_threshold import (
     ProjectTransactionThreshold,
     ProjectTransactionThresholdOverride,
@@ -22,11 +23,11 @@ from sentry.sentry_metrics.aggregation_option_registry import AggregationOption
 from sentry.sentry_metrics.use_case_id_registry import UseCaseID
 from sentry.snuba.metrics import (
     MAX_POINTS,
+    DeprecatingMetricsQuery,
     MetricConditionField,
     MetricField,
     MetricGroupByField,
     MetricOrderByField,
-    MetricsQuery,
 )
 from sentry.snuba.metrics.datasource import get_custom_measurements, get_series
 from sentry.snuba.metrics.naming_layer import (
@@ -410,49 +411,6 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             ],
             key=lambda elem: elem["name"],
         )
-
-    def test_custom_measurement_query_with_invalid_mri(self):
-        invalid_mris = [
-            "d:sessions/measurements.speed@millisecond",
-            "s:transactions/measurements.speed@millisecond",
-        ]
-
-        for value, invalid_mri in zip([100, 200], invalid_mris):
-            self.store_performance_metric(
-                name=invalid_mri,
-                tags={},
-                value=value,
-            )
-
-        for invalid_mri in invalid_mris:
-            with pytest.raises(
-                InvalidParams,
-                match=f"Unable to find a mri reverse mapping for '{invalid_mri}'.",
-            ):
-                # We keep the query in order to add more context to the test, even though the actual test
-                # is testing for the '__post_init__' inside 'MetricField'.
-                metrics_query = self.build_metrics_query(
-                    before_now="1h",
-                    granularity="1h",
-                    select=[
-                        MetricField(
-                            op="count",
-                            metric_mri=invalid_mri,
-                        ),
-                    ],
-                    groupby=[],
-                    orderby=[],
-                    limit=Limit(limit=2),
-                    offset=Offset(offset=0),
-                    include_series=False,
-                )
-
-                get_series(
-                    [self.project],
-                    metrics_query=metrics_query,
-                    include_meta=True,
-                    use_case_id=UseCaseID.TRANSACTIONS,
-                )
 
     def test_query_with_order_by_valid_str_field(self):
         project_2 = self.create_project()
@@ -1262,7 +1220,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                     seconds_before_now=-1,
                 )
 
-        metrics_query = MetricsQuery(
+        metrics_query = DeprecatingMetricsQuery(
             org_id=self.organization.id,
             project_ids=[self.project.id],
             select=[
@@ -1810,9 +1768,11 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                             lhs=Function(
                                 "match",
                                 parameters=[
-                                    Function("ifNull", parameters=[column, ""])
-                                    if use_if_null
-                                    else column,
+                                    (
+                                        Function("ifNull", parameters=[column, ""])
+                                        if use_if_null
+                                        else column
+                                    ),
                                     f"(?i)^{tag_wildcard_value.replace('*', '.*')}$",
                                 ],
                             ),
@@ -1894,7 +1854,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
                 minutes_before_now=minutes,
             )
 
-        metrics_query = MetricsQuery(
+        metrics_query = DeprecatingMetricsQuery(
             org_id=self.organization.id,
             project_ids=[self.project.id],
             select=[
@@ -1990,7 +1950,7 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
 
     def test_limit_when_not_passed_and_interval_is_provided(self):
         day_ago = before_now(days=1).replace(hour=10, minute=0, second=0, microsecond=0)
-        metrics_query = MetricsQuery(
+        metrics_query = DeprecatingMetricsQuery(
             org_id=self.organization.id,
             project_ids=[self.project.id],
             select=[
@@ -2043,9 +2003,9 @@ class PerformanceMetricsLayerTestCase(BaseMetricsLayerTestCase, TestCase):
             "include_series": True,
         }
         with pytest.raises(InvalidParams):
-            MetricsQuery(**metrics_query_dict)
+            DeprecatingMetricsQuery(**metrics_query_dict)
 
-        mq = MetricsQuery(**metrics_query_dict, interval=3600)
+        mq = DeprecatingMetricsQuery(**metrics_query_dict, interval=3600)
         assert mq.limit is not None
         assert mq.limit.limit == 50
 
@@ -2433,7 +2393,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
         ]
 
     @mock.patch("sentry.snuba.metrics.datasource.parse_mri")
-    def test_broken_custom_metric(self, mock):
+    def test_broken_custom_metric(self, mocked_parse_mri):
         # Store valid metric
         self.store_transaction_metric(
             1,
@@ -2444,7 +2404,7 @@ class GetCustomMeasurementsTestCase(MetricsEnhancedPerformanceTestCase):
         )
 
         # mock mri failing to parse the metric
-        mock.return_value = None
+        mocked_parse_mri.return_value = None
         result = get_custom_measurements(
             project_ids=[self.project.id],
             organization_id=self.organization.id,

@@ -1,47 +1,50 @@
-import {useMemo} from 'react';
+import {useCallback, useEffect} from 'react';
 
-import {ALL_ACCESS_PROJECTS} from 'sentry/constants/pageFilters';
-import {Project} from 'sentry/types';
-import {PageFilters} from 'sentry/types/core';
-import usePageFilters from 'sentry/utils/usePageFilters';
-import useProjects from 'sentry/utils/useProjects';
+import {SidebarPanelKey} from 'sentry/components/sidebar/types';
+import SidebarPanelStore from 'sentry/stores/sidebarPanelStore';
+import useSelectedProjectsHaveField from 'sentry/utils/project/useSelectedProjectsHaveField';
+import {useLocation} from 'sentry/utils/useLocation';
+import useOrganization from 'sentry/utils/useOrganization';
 
-function getSelectedProjectList(
-  selectedProjects: PageFilters['projects'],
-  projects: Project[]
-) {
-  if (selectedProjects[0] === ALL_ACCESS_PROJECTS || selectedProjects.length === 0) {
-    return projects;
-  }
+export const CRASH_REPORT_HASH = '#crashreport-sidequest';
+export const FEEDBACK_HASH = '#feedback-sidequest';
 
-  const projectsByProjectId = projects.reduce<Record<string, Project>>((acc, project) => {
-    acc[project.id] = project;
-    return acc;
-  }, {});
-  return selectedProjects.map(id => projectsByProjectId[id]).filter(Boolean);
+export default function useHaveSelectedProjectsSetupFeedback() {
+  const {hasField: hasSetupOneFeedback, fetching} =
+    useSelectedProjectsHaveField('hasFeedbacks');
+  return {hasSetupOneFeedback, fetching};
 }
 
-export function useHasOrganizationSetupFeedback() {
-  const {projects, fetching} = useProjects();
-  const hasOrgSetupFeedback = useMemo(
-    () => projects.some(p => p.hasFeedbacks),
-    [projects]
+export function useHaveSelectedProjectsSetupNewFeedback() {
+  const {hasField: hasSetupNewFeedback, fetching} =
+    useSelectedProjectsHaveField('hasNewFeedbacks');
+  return {hasSetupNewFeedback, fetching};
+}
+
+export function useFeedbackOnboardingSidebarPanel() {
+  const location = useLocation();
+  const organization = useOrganization();
+
+  useEffect(() => {
+    if (location.hash === FEEDBACK_HASH || location.hash === CRASH_REPORT_HASH) {
+      SidebarPanelStore.activatePanel(SidebarPanelKey.FEEDBACK_ONBOARDING);
+    }
+  }, [location.hash, organization]);
+
+  const activateSidebar = useCallback((event: {preventDefault: () => void}) => {
+    event.preventDefault();
+    window.location.hash = FEEDBACK_HASH;
+    SidebarPanelStore.activatePanel(SidebarPanelKey.FEEDBACK_ONBOARDING);
+  }, []);
+
+  const activateSidebarIssueDetails = useCallback(
+    (event: {preventDefault: () => void}) => {
+      event.preventDefault();
+      window.location.hash = CRASH_REPORT_HASH;
+      SidebarPanelStore.activatePanel(SidebarPanelKey.FEEDBACK_ONBOARDING);
+    },
+    []
   );
-  return {hasOrgSetupFeedback, fetching};
-}
 
-export function useHaveSelectedProjectsSetupFeedback() {
-  const {projects, fetching} = useProjects();
-  const {selection} = usePageFilters();
-
-  const orgSetupOneOrMoreFeedback = useMemo(() => {
-    const selectedProjects = getSelectedProjectList(selection.projects, projects);
-    const hasSetupOneFeedback = selectedProjects.some(project => project.hasFeedbacks);
-    return hasSetupOneFeedback;
-  }, [selection.projects, projects]);
-
-  return {
-    hasSetupOneFeedback: orgSetupOneOrMoreFeedback,
-    fetching,
-  };
+  return {activateSidebar, activateSidebarIssueDetails};
 }

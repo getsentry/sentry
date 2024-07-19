@@ -1,6 +1,7 @@
-import {createStore, StoreDefinition} from 'reflux';
+import type {StoreDefinition} from 'reflux';
+import {createStore} from 'reflux';
 
-import {OnboardingTaskKey} from 'sentry/types';
+import {OnboardingTaskKey} from 'sentry/types/onboarding';
 
 interface DemoWalkthroughStoreDefinition extends StoreDefinition {
   activateGuideAnchor(guide: string): void;

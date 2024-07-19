@@ -1,22 +1,39 @@
 import {Fragment} from 'react';
-import {browserHistory} from 'react-router';
 
-import Breadcrumbs from 'sentry/components/breadcrumbs';
+import {Breadcrumbs} from 'sentry/components/breadcrumbs';
+import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import {t} from 'sentry/locale';
+import HookStore from 'sentry/stores/hookStore';
+import {browserHistory} from 'sentry/utils/browserHistory';
+import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useOrganization from 'sentry/utils/useOrganization';
-import {normalizeUrl} from 'sentry/utils/withDomainRequired';
+import usePageFilters from 'sentry/utils/usePageFilters';
 
-import CronsFeedbackButton from './components/cronsFeedbackButton';
 import MonitorForm from './components/monitorForm';
-import {Monitor} from './types';
+import type {Monitor} from './types';
 
 function CreateMonitor() {
-  const {slug: orgSlug} = useOrganization();
+  const organization = useOrganization();
+  const orgSlug = organization.slug;
+  const {selection} = usePageFilters();
+
+  const monitorCreationCallbacks = HookStore.get('callback:on-monitor-created');
 
   function onSubmitSuccess(data: Monitor) {
-    const url = normalizeUrl(`/organizations/${orgSlug}/crons/${data.slug}/`);
-    browserHistory.push(url);
+    const endpointOptions = {
+      query: {
+        project: selection.projects,
+        environment: selection.environments,
+      },
+    };
+    browserHistory.push(
+      normalizeUrl({
+        pathname: `/organizations/${orgSlug}/crons/${data.project.slug}/${data.slug}/`,
+        query: endpointOptions.query,
+      })
+    );
+    monitorCreationCallbacks.map(cb => cb(organization));
   }
 
   return (
@@ -37,7 +54,7 @@ function CreateMonitor() {
           <Layout.Title>{t('Add Monitor')}</Layout.Title>
         </Layout.HeaderContent>
         <Layout.HeaderActions>
-          <CronsFeedbackButton />
+          <FeedbackWidgetButton />
         </Layout.HeaderActions>
       </Layout.Header>
       <Layout.Body>
@@ -46,7 +63,7 @@ function CreateMonitor() {
             apiMethod="POST"
             apiEndpoint={`/organizations/${orgSlug}/monitors/`}
             onSubmitSuccess={onSubmitSuccess}
-            submitLabel={t('Next')}
+            submitLabel={t('Create')}
           />
         </Layout.Main>
       </Layout.Body>

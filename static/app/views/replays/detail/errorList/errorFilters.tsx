@@ -1,8 +1,9 @@
-import {CompactSelect, SelectOption} from 'sentry/components/compactSelect';
+import type {SelectOption} from 'sentry/components/compactSelect';
+import {CompactSelect} from 'sentry/components/compactSelect';
 import SearchBar from 'sentry/components/searchBar';
 import {t} from 'sentry/locale';
 import type {ErrorFrame} from 'sentry/utils/replays/types';
-import useErrorFilters from 'sentry/views/replays/detail/errorList/useErrorFilters';
+import type useErrorFilters from 'sentry/views/replays/detail/errorList/useErrorFilters';
 import FiltersGrid from 'sentry/views/replays/detail/filtersGrid';
 
 type Props = {

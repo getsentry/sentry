@@ -2,13 +2,14 @@ import {Component, Fragment} from 'react';
 
 import Panel from 'sentry/components/panels/panel';
 import PanelBody from 'sentry/components/panels/panelBody';
-import {Organization, Project} from 'sentry/types';
-import {removeAtArrayIndex} from 'sentry/utils/removeAtArrayIndex';
-import {replaceAtArrayIndex} from 'sentry/utils/replaceAtArrayIndex';
+import type {Organization} from 'sentry/types/organization';
+import type {Project} from 'sentry/types/project';
+import removeAtArrayIndex from 'sentry/utils/array/removeAtArrayIndex';
+import replaceAtArrayIndex from 'sentry/utils/array/replaceAtArrayIndex';
 import ActionsPanel from 'sentry/views/alerts/rules/metric/triggers/actionsPanel';
 import TriggerForm from 'sentry/views/alerts/rules/metric/triggers/form';
 
-import {
+import type {
   Action,
   AlertRuleComparisonType,
   AlertRuleThresholdType,

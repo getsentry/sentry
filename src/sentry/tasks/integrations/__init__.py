@@ -3,7 +3,7 @@ import logging
 from django.conf import settings
 
 from sentry import features
-from sentry.integrations import IntegrationInstallation
+from sentry.integrations.base import IntegrationInstallation
 from sentry.models.integrations.external_issue import ExternalIssue
 from sentry.models.organization import Organization
 
@@ -38,7 +38,7 @@ __all__ = (
 settings.CELERY_IMPORTS += (
     "sentry.tasks.integrations.create_comment",
     "sentry.tasks.integrations.github.pr_comment",
-    "sentry.tasks.integrations.kick_off_status_syncs",
+    "sentry.tasks.integrations.kick_off_status_syncs_impl",
     "sentry.tasks.integrations.link_all_repos",
     "sentry.tasks.integrations.migrate_opsgenie_plugins",
     "sentry.tasks.integrations.migrate_issues",
@@ -53,8 +53,7 @@ settings.CELERY_IMPORTS += (
 )
 
 from .create_comment import create_comment
-from .kick_off_status_syncs import kick_off_status_syncs
-from .migrate_issues import migrate_issues
+from .kick_off_status_syncs_impl import kick_off_status_syncs
 from .migrate_opsgenie_plugins import migrate_opsgenie_plugin
 from .migrate_repo import migrate_repo
 from .sync_assignee_outbound_impl import sync_assignee_outbound

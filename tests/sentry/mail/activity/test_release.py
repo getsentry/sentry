@@ -1,8 +1,8 @@
 from django.core import mail
 
+from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.models.activity import Activity
 from sentry.models.environment import Environment
-from sentry.models.notificationsetting import NotificationSetting
 from sentry.models.notificationsettingoption import NotificationSettingOption
 from sentry.models.notificationsettingprovider import NotificationSettingProvider
 from sentry.models.release import Release
@@ -12,20 +12,16 @@ from sentry.notifications.types import (
     GroupSubscriptionReason,
     NotificationScopeEnum,
     NotificationSettingEnum,
-    NotificationSettingOptionValues,
     NotificationSettingsOptionEnum,
-    NotificationSettingTypes,
 )
-from sentry.services.hybrid_cloud.actor import RpcActor
-from sentry.services.hybrid_cloud.user.service import user_service
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.testutils.cases import ActivityTestCase
-from sentry.testutils.silo import assume_test_silo_mode, region_silo_test
+from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
-from sentry.types.integrations import ExternalProviderEnum, ExternalProviders
+from sentry.types.actor import Actor
+from sentry.users.services.user.service import user_service
 
 
-@region_silo_test(stable=True)
 class ReleaseTestCase(ActivityTestCase):
     def setUp(self):
         super().setUp()
@@ -63,38 +59,15 @@ class ReleaseTestCase(ActivityTestCase):
         self.commit3 = self.another_commit(2, "c", self.user4, repository)
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.DEPLOY,
-                NotificationSettingOptionValues.ALWAYS,
-                user_id=self.user3.id,
-                organization=self.org,
-            )
-
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.DEPLOY,
-                NotificationSettingOptionValues.NEVER,
-                user_id=self.user4.id,
-                organization=self.org,
-            )
-
             # added to make sure org default above takes precedent
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.DEPLOY,
-                NotificationSettingOptionValues.ALWAYS,
-                user_id=self.user4.id,
-            )
-
-            NotificationSettingOption.objects.create_or_update(
+            NotificationSettingOption.objects.create(
                 scope_type=NotificationScopeEnum.ORGANIZATION.value,
                 scope_identifier=self.org.id,
                 user_id=self.user3.id,
                 type=NotificationSettingEnum.DEPLOY.value,
                 value=NotificationSettingsOptionEnum.ALWAYS.value,
             )
-            NotificationSettingProvider.objects.create_or_update(
+            NotificationSettingProvider.objects.create(
                 scope_type=NotificationScopeEnum.ORGANIZATION.value,
                 scope_identifier=self.org.id,
                 user_id=self.user3.id,
@@ -103,14 +76,14 @@ class ReleaseTestCase(ActivityTestCase):
                 value=NotificationSettingsOptionEnum.ALWAYS.value,
             )
 
-            NotificationSettingOption.objects.create_or_update(
+            NotificationSettingOption.objects.create(
                 scope_type=NotificationScopeEnum.ORGANIZATION.value,
                 scope_identifier=self.org.id,
                 user_id=self.user4.id,
                 type=NotificationSettingEnum.DEPLOY.value,
                 value=NotificationSettingsOptionEnum.NEVER.value,
             )
-            NotificationSettingProvider.objects.create_or_update(
+            NotificationSettingProvider.objects.create(
                 scope_type=NotificationScopeEnum.ORGANIZATION.value,
                 scope_identifier=self.org.id,
                 user_id=self.user4.id,
@@ -120,14 +93,14 @@ class ReleaseTestCase(ActivityTestCase):
             )
 
             # added to make sure org default above takes precedent
-            NotificationSettingOption.objects.create_or_update(
+            NotificationSettingOption.objects.create(
                 scope_type=NotificationScopeEnum.USER.value,
                 scope_identifier=self.user4.id,
                 user_id=self.user4.id,
                 type=NotificationSettingEnum.DEPLOY.value,
                 value=NotificationSettingsOptionEnum.ALWAYS.value,
             )
-            NotificationSettingProvider.objects.create_or_update(
+            NotificationSettingProvider.objects.create(
                 scope_type=NotificationScopeEnum.USER.value,
                 scope_identifier=self.user4.id,
                 user_id=self.user4.id,
@@ -159,9 +132,9 @@ class ReleaseTestCase(ActivityTestCase):
             )
         )
         assert participants == {
-            (RpcActor.from_orm_user(self.user1), GroupSubscriptionReason.committed),
-            (RpcActor.from_orm_user(self.user3), GroupSubscriptionReason.deploy_setting),
-            (RpcActor.from_orm_user(self.user5), GroupSubscriptionReason.committed),
+            (Actor.from_orm_user(self.user1), GroupSubscriptionReason.committed),
+            (Actor.from_orm_user(self.user3), GroupSubscriptionReason.deploy_setting),
+            (Actor.from_orm_user(self.user5), GroupSubscriptionReason.committed),
         }
 
         context = email.get_context()
@@ -175,7 +148,7 @@ class ReleaseTestCase(ActivityTestCase):
             (self.commit1, user_service.get_user(user_id=self.user1.id)),
         ]
 
-        user_context = email.get_recipient_context(RpcActor.from_orm_user(self.user1), {})
+        user_context = email.get_recipient_context(Actor.from_orm_user(self.user1), {})
         # make sure this only includes projects user has access to
         assert len(user_context["projects"]) == 1
         assert user_context["projects"][0][0] == self.project
@@ -226,14 +199,14 @@ class ReleaseTestCase(ActivityTestCase):
             )
         )
         assert participants == {
-            (RpcActor.from_orm_user(self.user3), GroupSubscriptionReason.deploy_setting)
+            (Actor.from_orm_user(self.user3), GroupSubscriptionReason.deploy_setting)
         }
 
         context = email.get_context()
         assert context["environment"] == "production"
         assert context["repos"] == []
 
-        user_context = email.get_recipient_context(RpcActor.from_orm_user(self.user1), {})
+        user_context = email.get_recipient_context(Actor.from_orm_user(self.user1), {})
         # make sure this only includes projects user has access to
         assert len(user_context["projects"]) == 1
         assert user_context["projects"][0][0] == self.project
@@ -252,19 +225,12 @@ class ReleaseTestCase(ActivityTestCase):
         self.create_member(user=user6, organization=self.org, teams=[self.team])
 
         with assume_test_silo_mode(SiloMode.CONTROL):
-            NotificationSetting.objects.update_settings(
-                ExternalProviders.EMAIL,
-                NotificationSettingTypes.DEPLOY,
-                NotificationSettingOptionValues.ALWAYS,
-                user_id=user6.id,
-            )
-            NotificationSettingProvider.objects.update_or_create(
-                provider=ExternalProviderEnum.EMAIL.value,
-                type=NotificationSettingEnum.DEPLOY.value,
-                user_id=user6.id,
+            NotificationSettingOption.objects.create(
                 scope_type=NotificationScopeEnum.USER.value,
                 scope_identifier=user6.id,
-                defaults={"value": NotificationSettingsOptionEnum.ALWAYS.value},
+                user_id=user6.id,
+                type=NotificationSettingEnum.DEPLOY.value,
+                value=NotificationSettingsOptionEnum.ALWAYS.value,
             )
 
         release, deploy = self.another_release("b")
@@ -287,15 +253,15 @@ class ReleaseTestCase(ActivityTestCase):
         )
         assert len(participants) == 2
         assert participants == {
-            (RpcActor.from_orm_user(user6), GroupSubscriptionReason.deploy_setting),
-            (RpcActor.from_orm_user(self.user3), GroupSubscriptionReason.deploy_setting),
+            (Actor.from_orm_user(user6), GroupSubscriptionReason.deploy_setting),
+            (Actor.from_orm_user(self.user3), GroupSubscriptionReason.deploy_setting),
         }
 
         context = email.get_context()
         assert context["environment"] == "production"
         assert context["repos"] == []
 
-        user_context = email.get_recipient_context(RpcActor.from_orm_user(user6), {})
+        user_context = email.get_recipient_context(Actor.from_orm_user(user6), {})
         # make sure this only includes projects user has access to
         assert len(user_context["projects"]) == 1
         assert user_context["projects"][0][0] == self.project

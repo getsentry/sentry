@@ -1,38 +1,23 @@
 import styled from '@emotion/styled';
 
-import DateTime from 'sentry/components/dateTime';
 import NotAvailable from 'sentry/components/notAvailable';
-import {t, tct} from 'sentry/locale';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import {AppStoreConnectStatusData} from 'sentry/types/debugFiles';
 
-type Props = {
-  details?: AppStoreConnectStatusData;
-};
-
-function Details({details}: Props) {
-  const {latestBuildVersion, latestBuildNumber, lastCheckedBuilds} = details ?? {};
+function Details() {
   return (
     <Wrapper>
       {t('Last detected version')}
       <Value>
-        {latestBuildVersion ? (
-          tct('v[version]', {version: latestBuildVersion})
-        ) : (
-          <NotAvailable tooltip={t('Not available')} />
-        )}
+        <NotAvailable tooltip={t('Not available')} />
       </Value>
 
       {t('Last detected build')}
-      <Value>{latestBuildNumber ?? <NotAvailable tooltip={t('Not available')} />}</Value>
+      <Value>{<NotAvailable tooltip={t('Not available')} />}</Value>
 
       {t('Detected last build on')}
       <Value>
-        {lastCheckedBuilds ? (
-          <DateTime date={lastCheckedBuilds} />
-        ) : (
-          <NotAvailable tooltip={t('Not available')} />
-        )}
+        <NotAvailable tooltip={t('Not available')} />
       </Value>
     </Wrapper>
   );
@@ -46,7 +31,7 @@ const Wrapper = styled('div')`
   margin-top: ${space(0.5)};
   align-items: center;
   font-size: ${p => p.theme.fontSizeSmall};
-  font-weight: 700;
+  font-weight: ${p => p.theme.fontWeightBold};
 
   grid-column: 2/-1;
 
@@ -59,7 +44,7 @@ const Wrapper = styled('div')`
 `;
 
 const Value = styled('div')`
-  font-weight: 400;
+  font-weight: ${p => p.theme.fontWeightNormal};
   white-space: pre-wrap;
   word-break: break-all;
   padding: ${space(1)} ${space(1.5)};

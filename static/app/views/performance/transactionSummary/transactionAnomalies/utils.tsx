@@ -1,8 +1,8 @@
-import {Theme} from '@emotion/react';
-import {Location, Query} from 'history';
+import type {Theme} from '@emotion/react';
+import type {Location, Query} from 'history';
 
 import EventView from 'sentry/utils/discover/eventView';
-import {AnomalyConfidence} from 'sentry/utils/performance/anomalies/anomaliesQuery';
+import type {AnomalyConfidence} from 'sentry/utils/performance/anomalies/anomaliesQuery';
 import {decodeScalar} from 'sentry/utils/queryString';
 import {MutableSearch} from 'sentry/utils/tokenizeSearch';
 

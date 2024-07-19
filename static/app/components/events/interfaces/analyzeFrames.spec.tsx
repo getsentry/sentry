@@ -5,7 +5,8 @@ import {
   analyzeFrameForRootCause,
   analyzeFramesForRootCause,
 } from 'sentry/components/events/interfaces/analyzeFrames';
-import {EntryType, Event, EventOrGroupType, Frame, LockType} from 'sentry/types/event';
+import type {Event, Frame} from 'sentry/types/event';
+import {EntryType, EventOrGroupType, LockType} from 'sentry/types/event';
 
 const makeEventWithFrames = (frames: Frame[]): Event => {
   const event: Event = {
@@ -42,7 +43,6 @@ const makeEventWithFrames = (frames: Frame[]): Event => {
                     colNo: null,
                     inApp: false,
                     trust: null,
-                    errors: null,
                     vars: null,
                   },
                   ...frames,
@@ -140,7 +140,6 @@ describe('analyzeAnrFrames', function () {
         colNo: null,
         inApp: false,
         trust: null,
-        errors: null,
         vars: null,
       },
     ]);
@@ -171,7 +170,6 @@ describe('analyzeAnrFrames', function () {
         colNo: null,
         inApp: false,
         trust: null,
-        errors: null,
         vars: null,
       },
     ]);
@@ -200,7 +198,6 @@ describe('analyzeAnrFrames', function () {
         colNo: null,
         inApp: false,
         trust: null,
-        errors: null,
         vars: null,
       },
       {
@@ -219,7 +216,6 @@ describe('analyzeAnrFrames', function () {
         colNo: null,
         inApp: false,
         trust: null,
-        errors: null,
         vars: null,
       },
     ]);
@@ -249,7 +245,6 @@ describe('analyzeAnrFrames', function () {
       colNo: null,
       inApp: false,
       trust: null,
-      errors: null,
       vars: null,
       lock: {
         type: LockType.BLOCKED,
@@ -275,7 +270,6 @@ describe('analyzeAnrFrames', function () {
       colNo: null,
       inApp: false,
       trust: null,
-      errors: null,
       vars: null,
       lock: {
         type: LockType.BLOCKED,
@@ -316,7 +310,6 @@ describe('analyzeAnrFrames', function () {
       colNo: null,
       inApp: false,
       trust: null,
-      errors: null,
       vars: null,
       lock: {
         type: LockType.BLOCKED,
@@ -353,7 +346,6 @@ describe('analyzeAnrFrames', function () {
       colNo: null,
       inApp: false,
       trust: null,
-      errors: null,
       vars: null,
       lock: {
         type: LockType.BLOCKED,

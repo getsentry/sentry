@@ -14,7 +14,7 @@ class UserNotificationSettingsOptionsDetailsBaseTest(APITestCase):
     endpoint = "sentry-api-0-user-notification-options-details"
 
 
-@control_silo_test(stable=True)
+@control_silo_test
 class UserNotificationSettingsOptionsDetailsDeleteTest(
     UserNotificationSettingsOptionsDetailsBaseTest
 ):

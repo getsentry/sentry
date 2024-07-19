@@ -1,5 +1,6 @@
-import {Organization} from 'sentry-fixture/organization';
-import {SessionStatusCountByProjectInPeriod} from 'sentry-fixture/sessions';
+import {OrganizationFixture} from 'sentry-fixture/organization';
+import {ProjectFixture} from 'sentry-fixture/project';
+import {SessionStatusCountByProjectInPeriodFixture} from 'sentry-fixture/sessions';
 
 import {render, screen} from 'sentry-test/reactTestingLibrary';
 
@@ -11,28 +12,32 @@ describe('TeamStability', () => {
     MockApiClient.clearMockResponses();
     sessionsApi = MockApiClient.addMockResponse({
       url: `/organizations/org-slug/sessions/`,
-      body: SessionStatusCountByProjectInPeriod(),
+      body: SessionStatusCountByProjectInPeriodFixture(),
     });
   });
 
   it('should compare selected past crash rate with current week', async () => {
-    const project = TestStubs.Project({hasSessions: true, id: 123});
+    const project = ProjectFixture({hasSessions: true, id: '123'});
     render(
-      <TeamStability projects={[project]} organization={Organization()} period="2w" />
+      <TeamStability
+        projects={[project]}
+        organization={OrganizationFixture()}
+        period="2w"
+      />
     );
 
     expect(screen.getByText('project-slug')).toBeInTheDocument();
-    expect(await screen.findAllByText('90%')).toHaveLength(2);
+    expect(await screen.findAllByText('90.416%')).toHaveLength(2);
     expect(await screen.findByText('0%')).toBeInTheDocument();
     expect(sessionsApi).toHaveBeenCalledTimes(2);
   });
 
   it('should render no sessions', async () => {
-    const noSessionProject = TestStubs.Project({hasSessions: false, id: 321});
+    const noSessionProject = ProjectFixture({hasSessions: false, id: '321'});
     render(
       <TeamStability
         projects={[noSessionProject]}
-        organization={Organization()}
+        organization={OrganizationFixture()}
         period="7d"
       />
     );
@@ -41,7 +46,9 @@ describe('TeamStability', () => {
   });
 
   it('should render no projects', () => {
-    render(<TeamStability projects={[]} organization={Organization()} period="7d" />);
+    render(
+      <TeamStability projects={[]} organization={OrganizationFixture()} period="7d" />
+    );
 
     expect(
       screen.getByText('No projects with release health enabled')

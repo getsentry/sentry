@@ -1,6 +1,8 @@
+from unittest import mock
+
 import pytest
 
-from sentry.utils.tag_normalization import normalize_sdk_tag
+from sentry.utils.tag_normalization import normalize_sdk_tag, normalized_sdk_tag_from_event
 
 
 @pytest.mark.parametrize(
@@ -70,3 +72,22 @@ def test_responses_cached():
 
     assert normalize_sdk_tag.cache_info().hits == 1
     assert normalize_sdk_tag.cache_info().misses == 1
+
+
+@pytest.mark.parametrize(
+    ("tag", "expected"),
+    (
+        ("sentry.javascript.angular", "sentry.javascript.angular"),
+        ("sentry.javascript.angular.ivy", "sentry.javascript.angular"),
+        ("sentry.symfony", "sentry.php"),
+        ("sentry.unity", "sentry.native.unity"),
+        ("sentry.javascript.react.native.expo", "sentry.javascript.react.native"),
+    ),
+)
+def test_normalized_sdk_tag_from_event(tag: str, expected: str) -> None:
+    assert normalized_sdk_tag_from_event({"sdk": {"name": tag}}) == expected
+
+
+def test_normalized_sdk_tag_from_event_exception():
+    mock_event = mock.Mock()
+    assert normalized_sdk_tag_from_event(mock_event) == "other"

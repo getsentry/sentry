@@ -2,16 +2,16 @@ import {useState} from 'react';
 import isPropValid from '@emotion/is-prop-valid';
 import styled from '@emotion/styled';
 import {motion} from 'framer-motion';
-import {LocationDescriptor} from 'history';
+import type {LocationDescriptor} from 'history';
 
-import {TagSegment} from 'sentry/actionCreators/events';
+import type {TagSegment} from 'sentry/actionCreators/events';
 import {Button} from 'sentry/components/button';
 import Link from 'sentry/components/links/link';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconChevron} from 'sentry/icons/iconChevron';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {Project} from 'sentry/types';
+import type {Project} from 'sentry/types/project';
 import {percent} from 'sentry/utils';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {isMobilePlatform} from 'sentry/utils/platform';
@@ -181,7 +181,7 @@ function TagFacetsDistributionMeter({
                     {segment.name ?? <NotApplicableLabel>{t('n/a')}</NotApplicableLabel>}
                   </LegendText>
                 </Tooltip>
-                {<LegendPercent>{`${pctLabel}%`}</LegendPercent>}
+                <LegendPercent>{`${pctLabel}%`}</LegendPercent>
               </LegendRow>
             );
 
@@ -272,7 +272,7 @@ const Title = styled('div')`
 const TitleType = styled('div')`
   flex: none;
   color: ${p => p.theme.textColor};
-  font-weight: bold;
+  font-weight: ${p => p.theme.fontWeightBold};
   font-size: ${p => p.theme.fontSizeMedium};
   margin-right: ${space(1)};
   align-self: center;

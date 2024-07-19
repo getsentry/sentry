@@ -1,30 +1,8 @@
-import {formatSecondsToClock} from 'sentry/utils/formatters';
-import type {ReplayFrame, SpanFrame} from 'sentry/utils/replays/types';
+import type {ReplayFrame, SpanFrame, VideoEvent} from 'sentry/utils/replays/types';
 
 const SECOND = 1000;
 const MINUTE = 60 * SECOND;
 const HOUR = 60 * MINUTE;
-
-export function showPlayerTime(
-  timestamp: ConstructorParameters<typeof Date>[0],
-  relativeTimeMs: number,
-  showMs: boolean = false
-): string {
-  return formatTime(Math.abs(new Date(timestamp).getTime() - relativeTimeMs), showMs);
-}
-
-export function formatTime(ms: number, showMs?: boolean): string {
-  if (ms <= 0 || isNaN(ms)) {
-    if (showMs) {
-      return '00:00.000';
-    }
-
-    return '00:00';
-  }
-
-  const seconds = ms / 1000;
-  return formatSecondsToClock(showMs ? seconds : Math.floor(seconds));
-}
 
 /**
  * Figure out how many ticks to show in an area.
@@ -178,11 +156,41 @@ export function flattenFrames(frames: SpanFrame[]): FlattenedSpanRange[] {
 }
 
 /**
- * Divide two numbers safely
+ * Finds the index of the mobile replay segment that is nearest
  */
-export function divide(numerator: number, denominator: number | undefined) {
-  if (denominator === undefined || isNaN(denominator) || denominator === 0) {
-    return 0;
+export function findVideoSegmentIndex(
+  trackList: [ts: number, index: number][],
+  segments: VideoEvent[],
+  targetTimestamp: number,
+  optionalStart?: number,
+  optionalEnd?: number
+) {
+  const start = optionalStart ?? 0;
+  const end = optionalEnd ?? segments.length - 1;
+
+  if (start > end) {
+    // XXX: This means we are not returning "exact" segments, but the prior
+    // segment if it doesn't not satisfy the exact time constraints
+    //
+    // In the case where targetTimestamp is < first segment, end can be -1
+    return end;
   }
-  return numerator / denominator;
+
+  const mid = Math.floor((start + end) / 2);
+
+  const [ts, index] = trackList[mid];
+  const segment = segments[index];
+
+  // Segment match found
+  if (targetTimestamp >= ts && targetTimestamp <= ts + segment.duration) {
+    return index;
+  }
+
+  // Search higher half
+  if (targetTimestamp > ts) {
+    return findVideoSegmentIndex(trackList, segments, targetTimestamp, mid + 1, end);
+  }
+
+  // Search lower half
+  return findVideoSegmentIndex(trackList, segments, targetTimestamp, start, mid - 1);
 }

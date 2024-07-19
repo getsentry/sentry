@@ -1,5 +1,5 @@
 ---
-created: '2023-02-01T08:22:03.508061Z'
+created: '2023-12-12T13:53:11.913366Z'
 creator: sentry
 source: tests/sentry/grouping/test_variants.py
 ---
@@ -28,7 +28,7 @@ app:
           frame (non app frame)
             function*
               "OpenAdapter12"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame (non app frame)
         type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_READ"
         value*
@@ -59,7 +59,7 @@ system:
           frame (ignored by stack trace rule (category:internals -group))
             function*
               "OpenAdapter12"
-          frame (marked as prefix frame by stack trace rule (category:driver +sentinel +prefix))
+          frame
         type (ignored because exception is synthetic)
           "EXCEPTION_ACCESS_VIOLATION_READ"
         value (ignored because stacktrace takes precedence)

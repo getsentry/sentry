@@ -1,8 +1,11 @@
 import {t} from 'sentry/locale';
-import EventView from 'sentry/utils/discover/eventView';
-import {AggregationKeyWithAlias, LooseFieldKey} from 'sentry/utils/discover/fields';
+import type EventView from 'sentry/utils/discover/eventView';
+import type {AggregationKeyWithAlias, LooseFieldKey} from 'sentry/utils/discover/fields';
+import {SPAN_OP_BREAKDOWN_FIELDS} from 'sentry/utils/discover/fields';
+import {parsePeriodToHours} from 'sentry/utils/duration/parsePeriodToHours';
 import {AggregationKey} from 'sentry/utils/fields';
 import {WEB_VITAL_DETAILS} from 'sentry/utils/performance/vitals/constants';
+import type {Trigger, UnsavedMetricRule} from 'sentry/views/alerts/rules/metric/types';
 import {
   AlertRuleComparisonType,
   AlertRuleThresholdType,
@@ -11,15 +14,13 @@ import {
   Datasource,
   EventTypes,
   TimeWindow,
-  Trigger,
-  UnsavedMetricRule,
 } from 'sentry/views/alerts/rules/metric/types';
 import {
   DATA_SOURCE_TO_SET_AND_EVENT_TYPES,
   getQueryDatasource,
   isSessionAggregate,
 } from 'sentry/views/alerts/utils';
-import {AlertType, WizardRuleTemplate} from 'sentry/views/alerts/wizard/options';
+import type {AlertType, WizardRuleTemplate} from 'sentry/views/alerts/wizard/options';
 
 export const DEFAULT_COUNT_TIME_WINDOW = 1; // 1min
 export const DEFAULT_CHANGE_TIME_WINDOW = 60; // 1h
@@ -45,6 +46,7 @@ export type OptionConfig = {
   aggregations: AggregationKeyWithAlias[];
   fields: LooseFieldKey[];
   measurementKeys?: string[];
+  spanOperationBreakdownKeys?: string[];
 };
 
 /**
@@ -57,9 +59,9 @@ export const errorFieldConfig: OptionConfig = {
 
 const commonAggregations = [
   AggregationKey.AVG,
-  AggregationKey.PERCENTILE,
   AggregationKey.P50,
   AggregationKey.P75,
+  AggregationKey.P90,
   AggregationKey.P95,
   AggregationKey.P99,
   AggregationKey.P100,
@@ -112,19 +114,26 @@ export function getWizardAlertFieldConfig(
   alertType: AlertType,
   dataset: Dataset
 ): OptionConfig {
-  if (alertType === 'custom' && dataset === Dataset.ERRORS) {
+  if (alertType === 'custom_transactions' && dataset === Dataset.ERRORS) {
     return errorFieldConfig;
   }
   // If user selected apdex we must include that in the OptionConfig as it has a user specified column
   const aggregations =
-    alertType === 'apdex' || alertType === 'custom'
+    alertType === 'apdex' || alertType === 'custom_transactions'
       ? allAggregations
       : commonAggregations;
-  return {
+
+  const config: OptionConfig = {
     aggregations,
     fields: ['transaction.duration'],
     measurementKeys: Object.keys(WEB_VITAL_DETAILS),
   };
+
+  if ([Dataset.TRANSACTIONS, Dataset.GENERIC_METRICS].includes(dataset)) {
+    config.spanOperationBreakdownKeys = SPAN_OP_BREAKDOWN_FIELDS;
+  }
+
+  return config;
 }
 
 /**
@@ -133,6 +142,7 @@ export function getWizardAlertFieldConfig(
 export const transactionFieldConfig: OptionConfig = {
   aggregations: allAggregations,
   fields: ['transaction.duration'],
+  spanOperationBreakdownKeys: SPAN_OP_BREAKDOWN_FIELDS,
   measurementKeys: Object.keys(WEB_VITAL_DETAILS),
 };
 
@@ -166,6 +176,30 @@ export function createDefaultRule(
   };
 }
 
+function getAlertTimeWindow(period: string | undefined): TimeWindow | undefined {
+  if (!period) {
+    return undefined;
+  }
+
+  const periodMinutes = parsePeriodToHours(period) * 60;
+  if (periodMinutes < 0) {
+    return undefined;
+  }
+
+  const timeWindows = Object.values(TimeWindow)
+    .filter((value): value is TimeWindow => typeof value === 'number')
+    .sort((a, b) => a - b);
+
+  for (let index = 0; index < timeWindows.length; index++) {
+    const timeWindow = timeWindows[index];
+    if (periodMinutes <= timeWindow) {
+      return timeWindow;
+    }
+  }
+
+  return undefined;
+}
+
 /**
  * Create an unsaved alert from a discover EventView object
  */
@@ -183,12 +217,13 @@ export function createRuleFromEventView(eventView: EventView): UnsavedMetricRule
     // p95() -> p95(transaction.duration)
     aggregate = eventView.getYAxis().slice(0, 3) + '(transaction.duration)';
   }
-
+  const defaultRule = createDefaultRule();
   return {
-    ...createDefaultRule(),
+    ...defaultRule,
     ...datasetAndEventtypes,
     query: parsedQuery?.query ?? eventView.query,
     aggregate,
+    timeWindow: getAlertTimeWindow(eventView.interval) ?? defaultRule.timeWindow,
     environment: eventView.environment.length ? eventView.environment[0] : null,
   };
 }
@@ -196,7 +231,7 @@ export function createRuleFromEventView(eventView: EventView): UnsavedMetricRule
 export function createRuleFromWizardTemplate(
   wizardTemplate: WizardRuleTemplate
 ): UnsavedMetricRule {
-  const {eventTypes, aggregate, dataset} = wizardTemplate;
+  const {eventTypes, aggregate, dataset, query} = wizardTemplate;
   const defaultRuleOptions: Partial<UnsavedMetricRule> = {};
 
   if (isSessionAggregate(aggregate)) {
@@ -213,6 +248,7 @@ export function createRuleFromWizardTemplate(
     eventTypes: [eventTypes],
     aggregate,
     dataset,
+    query: query ?? '',
   };
 }
 

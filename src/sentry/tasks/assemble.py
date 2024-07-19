@@ -6,25 +6,25 @@ import uuid
 from abc import ABC, abstractmethod
 from datetime import datetime
 from os import path
-from typing import IO, Generic, List, NamedTuple, Optional, Protocol, Tuple, TypeVar
+from typing import IO, TYPE_CHECKING, Generic, NamedTuple, Protocol, TypeVar
 
+import orjson
 import sentry_sdk
+from django.conf import settings
 from django.db import IntegrityError, router
 from django.db.models import Q
 from django.utils import timezone
 
-from sentry import features, options
+from sentry import options
 from sentry.api.serializers import serialize
-from sentry.cache import default_cache
 from sentry.constants import ObjectStatus
-from sentry.debug_files.artifact_bundle_indexing import (
-    BundleManifest,
-    mark_bundle_for_flat_file_indexing,
-    update_artifact_bundle_index,
-)
-from sentry.debug_files.artifact_bundles import index_artifact_bundles_for_release
-from sentry.models.artifactbundle import (
+from sentry.debug_files.artifact_bundles import (
     INDEXING_THRESHOLD,
+    get_bundles_indexing_state,
+    index_artifact_bundles_for_release,
+)
+from sentry.debug_files.tasks import backfill_artifact_bundle_db_indexing
+from sentry.models.artifactbundle import (
     NULL_STRING,
     ArtifactBundle,
     ArtifactBundleArchive,
@@ -38,14 +38,17 @@ from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.models.release import Release
 from sentry.models.releasefile import ReleaseArchive, ReleaseFile, update_artifact_index
-from sentry.silo import SiloMode
+from sentry.silo.base import SiloMode
 from sentry.tasks.base import instrumented_task
-from sentry.utils import metrics
+from sentry.utils import metrics, redis
 from sentry.utils.db import atomic_transaction
 from sentry.utils.files import get_max_file_size
-from sentry.utils.sdk import bind_organization_context, configure_scope
+from sentry.utils.sdk import Scope, bind_organization_context
 
 logger = logging.getLogger(__name__)
+
+if TYPE_CHECKING:
+    from rediscluster import RedisCluster
 
 
 class ChunkFileState:
@@ -74,9 +77,7 @@ class AssembleResult(NamedTuple):
 
 
 @sentry_sdk.tracing.trace
-def assemble_file(
-    task, org_or_project, name, checksum, chunks, file_type
-) -> Optional[AssembleResult]:
+def assemble_file(task, org_or_project, name, checksum, chunks, file_type) -> AssembleResult | None:
     """
     Verifies and assembles a file model from chunks.
 
@@ -98,14 +99,15 @@ def assemble_file(
     file_blobs = FileBlob.objects.filter(checksum__in=chunks).values_list("id", "checksum", "size")
 
     # Reject all files that exceed the maximum allowed size for this organization.
-    file_size = sum(x[2] for x in file_blobs)
-    if file_size > get_max_file_size(organization):
+    file_size = sum(size for _, _, size in file_blobs if size is not None)
+    max_file_size = get_max_file_size(organization)
+    if file_size > max_file_size:
         set_assemble_status(
             task,
             org_or_project.id,
             checksum,
             ChunkFileState.ERROR,
-            detail="File exceeds maximum size",
+            detail=f"File {name} exceeds maximum size ({file_size} > {max_file_size})",
         )
 
         return None
@@ -166,12 +168,18 @@ def _get_cache_key(task, scope, checksum):
             % (
                 str(scope).encode("ascii"),
                 checksum.encode("ascii"),
-                str(task).encode("utf-8"),
+                str(task).encode(),
             )
         ).hexdigest()
     )
 
 
+def _get_redis_cluster_for_assemble() -> RedisCluster:
+    cluster_key = settings.SENTRY_ASSEMBLE_CLUSTER
+    return redis.redis_clusters.get(cluster_key)  # type: ignore[return-value]
+
+
+@sentry_sdk.tracing.trace
 def get_assemble_status(task, scope, checksum):
     """
     Checks the current status of an assembling task.
@@ -181,26 +189,34 @@ def get_assemble_status(task, scope, checksum):
     notice or error message.
     """
     cache_key = _get_cache_key(task, scope, checksum)
-    rv = default_cache.get(cache_key)
+    client = _get_redis_cluster_for_assemble()
+    rv = client.get(cache_key)
+
     if rv is None:
         return None, None
-    return tuple(rv)
+
+    # It is stored as bytes with [state, detail] on Redis.
+    return tuple(orjson.loads(rv))
 
 
+@sentry_sdk.tracing.trace
 def set_assemble_status(task, scope, checksum, state, detail=None):
     """
     Updates the status of an assembling task. It is cached for 10 minutes.
     """
     cache_key = _get_cache_key(task, scope, checksum)
-    default_cache.set(cache_key, (state, detail), 600)
+    redis_client = _get_redis_cluster_for_assemble()
+    redis_client.set(name=cache_key, value=orjson.dumps([state, detail]), ex=600)
 
 
+@sentry_sdk.tracing.trace
 def delete_assemble_status(task, scope, checksum):
     """
     Deletes the status of an assembling task.
     """
     cache_key = _get_cache_key(task, scope, checksum)
-    default_cache.delete(cache_key)
+    redis_client = _get_redis_cluster_for_assemble()
+    redis_client.delete(cache_key)
 
 
 @instrumented_task(
@@ -215,10 +231,8 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
     from sentry.lang.native.sources import record_last_upload
     from sentry.models.debugfile import BadDif, create_dif_from_id, detect_dif_from_path
     from sentry.models.project import Project
-    from sentry.reprocessing import bump_reprocessing_revision
 
-    with configure_scope() as scope:
-        scope.set_tag("project", project_id)
+    Scope.get_isolation_scope().set_tag("project", project_id)
 
     delete_file = False
 
@@ -262,12 +276,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
             delete_file = False
 
             if created:
-                # Bump the reprocessing revision since the symbol has changed
-                # and might resolve processing issues. If the file was not
-                # created, someone else has created it and will bump the
-                # revision instead.
                 record_last_upload(project)
-                bump_reprocessing_revision(project, use_buffer=True)
     except Exception:
         set_assemble_status(
             AssembleTask.DIF,
@@ -276,7 +285,7 @@ def assemble_dif(project_id, name, checksum, chunks, debug_id=None, **kwargs):
             ChunkFileState.ERROR,
             detail="internal server error",
         )
-        logger.error("failed to assemble dif", exc_info=True)
+        logger.exception("failed to assemble dif")
     else:
         set_assemble_status(
             AssembleTask.DIF, project_id, checksum, ChunkFileState.OK, detail=serialize(dif)
@@ -394,8 +403,8 @@ class ReleaseBundlePostAssembler(PostAssembler[ReleaseArchive]):
                 )
                 metrics.incr("sourcemaps.upload.release_bundle")
                 saved_as_archive = True
-            except Exception as exc:
-                logger.error("Unable to update artifact index", exc_info=exc)
+            except Exception:
+                logger.exception("Unable to update artifact index")
 
         if not saved_as_archive:
             meta = {
@@ -482,9 +491,9 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
         self,
         assemble_result: AssembleResult,
         organization: Organization,
-        release: Optional[str],
-        dist: Optional[str],
-        project_ids: List[int],
+        release: str | None,
+        dist: str | None,
+        project_ids: list[int],
         is_release_bundle_migration: bool = False,
     ):
         super().__init__(assemble_result)
@@ -520,11 +529,13 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
         # We rather use the `project` of the bundle manifest instead.
         if len(self.project_ids) > 2 and self.is_release_bundle_migration:
             if project_in_manifest := self.archive.manifest.get("project"):
-                project_ids = Project.objects.filter(
-                    organization=self.organization,
-                    status=ObjectStatus.ACTIVE,
-                    slug=project_in_manifest,
-                ).values_list("id", flat=True)
+                project_ids = list(
+                    Project.objects.filter(
+                        organization=self.organization,
+                        status=ObjectStatus.ACTIVE,
+                        slug=project_in_manifest,
+                    ).values_list("id", flat=True)
+                )
                 if len(project_ids) > 0:
                     self.project_ids = project_ids
 
@@ -623,26 +634,19 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
         # fast indexing performance. We might though run indexing if a customer has debug ids in the manifest, since
         # we want to have a fallback mechanism in case they have problems setting them up (e.g., SDK version does
         # not support them, some files were not injected...).
-        if self.release:
+        if created and self.release:
             # After we committed the transaction we want to try and run indexing by passing non-null release and
             # dist. The dist here can be "" since it will be the equivalent of NULL for the db query.
             self._index_bundle_if_needed(
                 artifact_bundle,
                 release=self.release,
                 dist=(self.dist or NULL_STRING),
-                date_snapshot=date_snapshot,
             )
-
-        if features.has("organizations:sourcemaps-bundle-flat-file-indexing", self.organization):
-            try:
-                self._index_bundle_into_flat_file(artifact_bundle)
-            except Exception as e:
-                sentry_sdk.capture_exception(e)
 
     @sentry_sdk.tracing.trace
     def _create_or_update_artifact_bundle(
         self, bundle_id: str, date_added: datetime
-    ) -> Tuple[ArtifactBundle, bool]:
+    ) -> tuple[ArtifactBundle, bool]:
         existing_artifact_bundles = list(
             ArtifactBundle.objects.filter(organization_id=self.organization.id, bundle_id=bundle_id)
         )
@@ -703,7 +707,7 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
 
             return existing_artifact_bundle, False
 
-    def _remove_duplicate_artifact_bundles(self, ids: List[int]):
+    def _remove_duplicate_artifact_bundles(self, ids: list[int]):
         # In case there are no ids to delete, we don't want to run the query, otherwise it will result in a deletion of
         # all ArtifactBundle(s) with the specific bundle_id.
         if not ids:
@@ -714,36 +718,16 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
         ArtifactBundle.objects.filter(Q(id__in=ids), organization_id=self.organization.id).delete()
 
     @sentry_sdk.tracing.trace
-    def _index_bundle_if_needed(
-        self, artifact_bundle: ArtifactBundle, release: str, dist: str, date_snapshot: datetime
-    ):
+    def _index_bundle_if_needed(self, artifact_bundle: ArtifactBundle, release: str, dist: str):
         # We collect how many times we tried to perform indexing.
         metrics.incr("tasks.assemble.artifact_bundle.try_indexing")
 
-        # We get the number of associations by upper bounding the query to the "date_snapshot", which is done to
-        # prevent the case in which concurrent updates on the database will lead to problems. For example if we have
-        # a threshold of 1, and we have two uploads happening concurrently and the database will contain two
-        # associations even when the assembling of the first upload is running this query, we will have the first
-        # upload task see 2 associations , thus it will trigger the indexing. The same will also happen for the
-        # second upload but in reality we just want the second upload to perform indexing.
-        #
-        # This date implementation might still lead to issues, more specifically in the case in which the
-        # "date_last_modified" is the same but the probability of that happening is so low that it's a negligible
-        # detail for now, as long as the indexing is idempotent.
-        associated_bundles = list(
-            ArtifactBundle.objects.filter(
-                releaseartifactbundle__organization_id=self.organization.id,
-                releaseartifactbundle__release_name=release,
-                releaseartifactbundle__dist_name=dist,
-                # Since the `date_snapshot` will be the same as `date_last_modified` of the last bundle uploaded in this
-                # async job, we want to use the `<=` condition for time, effectively saying give me all the bundles that
-                # were created now or in the past.
-                date_last_modified__lte=date_snapshot,
-            )
+        (total_bundles, indexed_bundles) = get_bundles_indexing_state(
+            self.organization, release, dist
         )
 
         # In case we didn't surpass the threshold, indexing will not happen.
-        if len(associated_bundles) <= INDEXING_THRESHOLD:
+        if total_bundles < INDEXING_THRESHOLD:
             return
 
         # We collect how many times we run indexing.
@@ -751,65 +735,23 @@ class ArtifactBundlePostAssembler(PostAssembler[ArtifactBundleArchive]):
 
         # We want to measure how much time it takes to perform indexing.
         with metrics.timer("tasks.assemble.artifact_bundle.index_bundles"):
-            # We now call the indexing logic with all the bundles that require indexing. We might need to make this call
-            # async if we see a performance degradation of assembling.
-            try:
-                # We only want to get the bundles that are not indexed. Keep in mind that this query is concurrency
-                # unsafe since in the meanwhile the bundles might be modified and the modification will not be
-                # reflected in the objects that we are iterating here.
-                #
-                # In case of concurrency issues, we might do extra work but due to the idempotency of the indexing
-                # function no consistency issues should arise.
-                bundles_to_index = [
-                    (
-                        associated_bundle,
-                        self.archive if associated_bundle.id == artifact_bundle.id else None,
-                    )
-                    for associated_bundle in associated_bundles
-                    if associated_bundle.indexing_state
-                    == ArtifactBundleIndexingState.NOT_INDEXED.value
-                ]
+            # NOTE: this is doing a try/catch internally
+            index_artifact_bundles_for_release(
+                organization_id=self.organization.id,
+                artifact_bundles=[(artifact_bundle, self.archive)],
+            )
 
-                # We want to index only if we have bundles to index.
-                if len(bundles_to_index) > 0:
-                    index_artifact_bundles_for_release(
-                        organization_id=self.organization.id,
-                        artifact_bundles=bundles_to_index,
-                    )
-            except Exception as e:
-                # We want to capture any exception happening during indexing, since it's crucial to understand if
-                # the system is behaving well because the database can easily end up in an inconsistent state.
-                metrics.incr("tasks.assemble.artifact_bundle.index_artifact_bundles_error")
-                sentry_sdk.capture_exception(e)
-
-    @sentry_sdk.tracing.trace
-    def _index_bundle_into_flat_file(self, artifact_bundle: ArtifactBundle):
-        identifiers = mark_bundle_for_flat_file_indexing(
-            artifact_bundle, self.archive.has_debug_ids(), self.project_ids, self.release, self.dist
-        )
-
-        bundles_to_add = [BundleManifest.from_artifact_bundle(artifact_bundle, self.archive)]
-
-        for identifier in identifiers:
-            try:
-                was_indexed = update_artifact_bundle_index(
-                    identifier, bundles_to_add=bundles_to_add
-                )
-                if not was_indexed:
-                    metrics.incr("artifact_bundle_flat_file_indexing.indexing.would_block")
-                    # NOTE: the `backfill_artifact_index_updates` will pick this up automatically,
-                    # no need to explicitly spawn any backfill task for this
-            except Exception as e:
-                metrics.incr("artifact_bundle_flat_file_indexing.error_when_indexing")
-                sentry_sdk.capture_exception(e)
+        # Backfill older bundles we did not index yet if any are missing
+        if indexed_bundles + 1 < total_bundles:
+            backfill_artifact_bundle_db_indexing.delay(self.organization.id, release, dist)
 
 
 def prepare_post_assembler(
     assemble_result: AssembleResult,
     organization: Organization,
-    release: Optional[str],
-    dist: Optional[str],
-    project_ids: Optional[List[int]],
+    release: str | None,
+    dist: str | None,
+    project_ids: list[int] | None,
     upload_as_artifact_bundle: bool,
     is_release_bundle_migration: bool,
 ) -> PostAssembler:
@@ -901,7 +843,7 @@ def assemble_artifacts(
     except AssembleArtifactsError as e:
         set_assemble_status(assemble_task, org_id, checksum, ChunkFileState.ERROR, detail=str(e))
     except Exception as e:
-        logger.error("failed to assemble bundle", exc_info=True)
+        logger.exception("failed to assemble bundle")
         sentry_sdk.capture_exception(e)
         set_assemble_status(
             assemble_task,

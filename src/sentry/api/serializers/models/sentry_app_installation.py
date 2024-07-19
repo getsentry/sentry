@@ -1,14 +1,15 @@
 from __future__ import annotations
 
-from typing import Any, MutableMapping, Sequence
+from collections.abc import MutableMapping, Sequence
+from typing import Any
 
 from sentry.api.serializers import Serializer, register
 from sentry.constants import SentryAppInstallationStatus
+from sentry.hybridcloud.services.organization_mapping import organization_mapping_service
 from sentry.models.integrations.sentry_app import SentryApp
 from sentry.models.integrations.sentry_app_installation import SentryAppInstallation
 from sentry.models.user import User
-from sentry.services.hybrid_cloud.organization_mapping import organization_mapping_service
-from sentry.services.hybrid_cloud.user import RpcUser
+from sentry.users.services.user import RpcUser
 
 
 @register(SentryAppInstallation)
@@ -35,7 +36,7 @@ class SentryAppInstallationSerializer(Serializer):
             }
         return result
 
-    def serialize(self, install, attrs, user):
+    def serialize(self, install, attrs, user, access=None):
         data = {
             "app": {"uuid": attrs["sentry_app"].uuid, "slug": attrs["sentry_app"].slug},
             "organization": {"slug": attrs["organization"].slug},
@@ -43,7 +44,7 @@ class SentryAppInstallationSerializer(Serializer):
             "status": SentryAppInstallationStatus.as_str(install.status),
         }
 
-        if install.api_grant:
+        if install.api_grant and access and access.has_scope("org:integrations"):
             data["code"] = install.api_grant.code
 
         return data

@@ -1,5 +1,5 @@
-import {useEffect} from 'react';
-import {RouteComponentProps} from 'react-router';
+import {useLayoutEffect} from 'react';
+import type {RouteComponentProps} from 'react-router';
 import * as Sentry from '@sentry/react';
 
 import NotFound from 'sentry/components/errors/notFound';
@@ -16,7 +16,7 @@ function RouteNotFound({router, location}: Props) {
 
   const isMissingSlash = pathname[pathname.length - 1] !== '/';
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     // Attempt to fix trailing slashes first
     if (isMissingSlash) {
       router.replace(`${pathname}/${search}${hash}`);
@@ -25,6 +25,8 @@ function RouteNotFound({router, location}: Props) {
 
     Sentry.withScope(scope => {
       scope.setFingerprint(['RouteNotFound']);
+      scope.setTag('isMissingSlash', isMissingSlash);
+      scope.setTag('pathname', pathname);
       Sentry.captureException(new Error('Route not found'));
     });
   }, [pathname, search, hash, isMissingSlash, router]);
@@ -36,7 +38,7 @@ function RouteNotFound({router, location}: Props) {
   return (
     <SentryDocumentTitle title={t('Page Not Found')}>
       <div className="app">
-        <Sidebar location={location} />
+        <Sidebar />
         <Layout.Page withPadding>
           <NotFound />
         </Layout.Page>

@@ -1,10 +1,8 @@
 from sentry.constants import DS_DENYLIST
 from sentry.testutils.cases import APITestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
-from sentry.testutils.silo import region_silo_test
 
 
-@region_silo_test
 class ProjectTagsTest(APITestCase, SnubaTestCase):
     endpoint = "sentry-api-0-project-tags"
 
