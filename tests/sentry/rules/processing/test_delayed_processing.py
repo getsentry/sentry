@@ -8,7 +8,7 @@ from uuid import uuid4
 import pytest
 
 from sentry import buffer
-from sentry.eventstore.models import GroupEvent
+from sentry.eventstore.models import Event, GroupEvent
 from sentry.models.project import Project
 from sentry.models.rulefirehistory import RuleFireHistory
 from sentry.rules.conditions.event_frequency import (
@@ -24,6 +24,7 @@ from sentry.rules.processing.delayed_processing import (
     generate_unique_queries,
     get_condition_group_results,
     get_condition_query_groups,
+    get_group_to_groupevent,
     get_rules_to_groups,
     get_rules_to_slow_conditions,
     get_slow_conditions,
@@ -75,7 +76,7 @@ class CreateEventTestCase(TestCase, BaseEventFrequencyPercentTest):
         fingerprint: str,
         environment=None,
         tags: list[list[str]] | None = None,
-    ) -> GroupEvent:
+    ) -> Event:
         data = {
             "timestamp": iso_format(timestamp),
             "environment": environment,
@@ -133,7 +134,7 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
     interval = "1h"
     comparison_interval = "15m"
 
-    def create_events(self, comparison_type: ComparisonType) -> GroupEvent:
+    def create_events(self, comparison_type: ComparisonType) -> Event:
         # Create current events for the first query
         event = self.create_event(self.project.id, FROZEN_TIME, "group-1", self.environment.name)
         self.create_event(self.project.id, FROZEN_TIME, "group-1", self.environment.name)
@@ -280,9 +281,93 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
         }
 
 
-class GetGroupToGroupEventTest(TestCase):
-    def test_get_group_to_groupevent(self):
-        pass
+class GetGroupToGroupEventTest(CreateEventTestCase):
+    def setUp(self):
+        super().setUp()
+        self.project = self.create_project()
+
+        self.rule = self.create_alert_rule(self.organization, [self.project])
+
+        # Create some groups
+        self.group1 = self.create_group(self.project)
+        self.group2 = self.create_group(self.project)
+
+        # Create some events
+        e1 = self.create_event(self.project.id, FROZEN_TIME, "group-1", self.environment.name)
+        e2 = self.create_event(self.project.id, FROZEN_TIME, "group-2", self.environment.name)
+
+        # Turn events into GroupEvents
+        self.event1 = GroupEvent(self.project.id, e1.event_id, self.group1, e1.data, e1._snuba_data)
+        self.event2 = GroupEvent(self.project.id, e2.event_id, self.group2, e2.data, e2._snuba_data)
+
+        self.occurrence1 = {"occurrence_id": "occ1"}
+        self.occurrence2 = {"occurrence_id": "occ2"}
+
+    def test_get_group_to_groupevent_basic(self):
+        group_ids = {self.group1.id, self.group2.id}
+        parsed_data = {
+            (self.rule.id, self.group1.id): {
+                "event_id": self.event1.event_id,
+                "occurrence_id": self.occurrence1["occurrence_id"],
+            },
+            (self.rule.id, self.group2.id): {
+                "event_id": self.event2.event_id,
+                "occurrence_id": self.occurrence2["occurrence_id"],
+            },
+        }
+
+        result = get_group_to_groupevent(parsed_data, self.project.id, group_ids)
+
+        assert len(result) == 2
+        assert result[self.group1].event_id == self.event1.event_id
+        assert result[self.group2] == self.event2
+
+    def test_get_group_to_groupevent_missing_event(self):
+        parsed_data = {
+            (self.rule.id, self.group1.id): {
+                "event_id": self.event1.event_id,
+                "occurrence_id": self.occurrence1["occurrence_id"],
+            },
+            (self.rule.id, self.group2.id): {
+                "event_id": "0",
+                "occurrence_id": self.occurrence2["occurrence_id"],
+            },
+        }
+
+        group_ids = {self.group1.id, self.group2.id}
+        result = get_group_to_groupevent(parsed_data, self.project.id, group_ids)
+
+        assert len(result) == 1
+        assert result[self.group1] == self.event1
+
+    def test_get_group_to_groupevent_missing_occurrence(self):
+        """
+        We don't use the occurrence_id in the GroupEvent, so it's okay if it's missing.
+        """
+        parsed_data = {
+            (self.rule.id, self.group1.id): {
+                "event_id": self.event1.event_id,
+                "occurrence_id": self.occurrence1["occurrence_id"],
+            },
+            (self.rule.id, self.group2.id): {
+                "event_id": self.event2.event_id,
+                "occurrence_id": "0",
+            },
+        }
+        group_ids = {self.group1.id, self.group2.id}
+        result = get_group_to_groupevent(parsed_data, self.project.id, group_ids)
+
+        assert len(result) == 2
+        assert self.group1 in result
+        assert self.group2 in result
+        assert result[self.group1] == self.event1
+        assert result[self.group2] == self.event2
+
+    def test_get_group_to_groupevent_empty_input(self):
+        parsed_data: dict[tuple[str, str], dict[str, str]] = {}
+        result = get_group_to_groupevent(parsed_data, self.project.id, set())
+
+        assert len(result) == 0
 
 
 class GetRulesToFireTest(TestCase):
