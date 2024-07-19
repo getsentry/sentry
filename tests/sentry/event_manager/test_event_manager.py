@@ -564,44 +564,55 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
         assert regressed_activity.data["follows_semver"] is True
         assert regressed_activity.data["resolved_in_version"] == "foo@1.0.0"
 
+    def resolve_in_release(self, group: Group, release: Release) -> Activity:
+        # Resolved in a future known release
+        group.update(status=GroupStatus.RESOLVED, substatus=None)
+        resolution = GroupResolution.objects.create(
+            release=release,
+            group=group,
+            type=GroupResolution.Type.in_release,
+        )
+        return Activity.objects.create(
+            group=group,
+            project=group.project,
+            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
+            ident=resolution.id,
+            data={"version": release.version},
+        )
+
     @mock.patch("sentry.event_manager.plugin_is_regression")
     def test_does_not_resolve_for_semver(self, plugin_is_regression: mock.MagicMock) -> None:
         plugin_is_regression.return_value = True
 
-        patch_version6 = "com.foo.FooTest@388.0+388.0.6"
-        patch_version8 = "com.foo.Foo@388.0+388.0.8"
-        creation_date_06 = timezone.now() - timedelta(minutes=30)
-        creation_date_08 = timezone.now() - timedelta(minutes=20)
-        release_06 = self.create_release(version=patch_version6, date_added=creation_date_06)
-        release_08 = self.create_release(version=patch_version8, date_added=creation_date_08)
+        def _date(minutes):
+            return timezone.now() - timedelta(minutes=minutes)
+
+        first_release_version = "com.foo.FooTest@387.0+387.0.18"
+        first_release = self.create_release(version=first_release_version, date_added=_date(90))
 
         manager = EventManager(
             make_event(
                 event_id="a" * 32,
                 checksum="a" * 32,
-                timestamp=time() - 50000,
-                # XXX: Does it matter the first event?
-                release=release_06.version,
+                # 10 minutes after release creation
+                timestamp=time() - 80 * 60,
+                release=first_release.version,
             )
         )
         event = manager.save(self.project.id)
         assert event.group is not None
         group = event.group
 
-        # XXX: This block of code should be a function we call rather than doing this
-        # Resolved in a future known release
-        group.update(status=GroupStatus.RESOLVED, substatus=None)
-        # Marked as resolved in the most recent release
-        resolution = GroupResolution.objects.create(release=release_08, group=group)
-        activity = Activity.objects.create(
-            group=group,
-            project=group.project,
-            type=ActivityType.SET_RESOLVED_IN_RELEASE.value,
-            ident=resolution.id,
-            data={"version": patch_version8},
-        )
-        assert activity.data["version"] == patch_version8
-        assert group.status == GroupStatus.RESOLVED
+        patch_version6 = "com.foo.FooTest@388.0+388.0.6"
+        release_06 = self.create_release(version=patch_version6, date_added=_date(70))
+
+        patch_version8 = "com.foo.Foo@388.0+388.0.8"
+        release_08 = self.create_release(version=patch_version8, date_added=_date(65))
+
+        self.create_release(version="com.foo.Foo@388.0+388.0.13", date_added=_date(60))
+
+        # Marking as resolved in the second latest release
+        self.resolve_in_release(group, release_08)
 
         # Creates event for an older release
         manager = EventManager(
@@ -614,8 +625,9 @@ class EventManagerTest(TestCase, SnubaTestCase, EventManagerTestMixin, Performan
             )
         )
         event = manager.save(self.project.id)
-        assert event.group_id == group.id
-        group = Group.objects.get(id=group.id)
+        assert event.group is not None
+        group = event.group
+
         # XXX: The GH issue shows that it should have unresolved
         assert group.status == GroupStatus.RESOLVED
         # XXX: The GH issue shows that it should have a regression
