@@ -303,23 +303,7 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
         self.occurrence1 = {"occurrence_id": "occ1"}
         self.occurrence2 = {"occurrence_id": "occ2"}
 
-    def test_basic(self):
-        group_ids = {self.group1.id, self.group2.id}
-        parsed_data = {
-            (self.rule.id, self.group1.id): {
-                "event_id": self.event1.event_id,
-                **self.occurrence1,
-            },
-        }
-
-        result = get_group_to_groupevent(parsed_data, self.project.id, group_ids)
-
-        assert len(result) == 1
-        assert result[self.group1] == self.event1
-
-    def test_many(self):
-        group_ids = {self.group1.id, self.group2.id}
-        parsed_data = {
+        self.parsed_data = {
             (self.rule.id, self.group1.id): {
                 "event_id": self.event1.event_id,
                 **self.occurrence1,
@@ -330,7 +314,17 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
             },
         }
 
-        result = get_group_to_groupevent(parsed_data, self.project.id, group_ids)
+    def test_basic(self):
+        group_ids = {self.group1.id, self.group2.id}
+        self.parsed_data.pop((self.rule.id, self.group2.id))
+        result = get_group_to_groupevent(self.parsed_data, self.project.id, group_ids)
+
+        assert len(result) == 1
+        assert result[self.group1] == self.event1
+
+    def test_many(self):
+        group_ids = {self.group1.id, self.group2.id}
+        result = get_group_to_groupevent(self.parsed_data, self.project.id, group_ids)
 
         assert len(result) == 2
         assert result[self.group1] == self.event1
@@ -361,11 +355,11 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
         parsed_data = {
             (self.rule.id, self.group1.id): {
                 "event_id": self.event1.event_id,
-                **self.occurrence1,
+                "occurrence_id": "0",
             },
             (self.rule.id, self.group2.id): {
                 "event_id": self.event2.event_id,
-                "occurrence_id": "0",
+                **self.occurrence2,
             },
         }
         group_ids = {self.group1.id, self.group2.id}
@@ -380,29 +374,16 @@ class GetGroupToGroupEventTest(CreateEventTestCase):
     def test_empty_input(self):
         parsed_data: dict[tuple[str, str], dict[str, str]] = {}
         result = get_group_to_groupevent(parsed_data, self.project.id, set())
-
         assert len(result) == 0
 
     def test_invalid_project_id(self):
-        parsed_data = {
-            (self.rule.id, self.group1.id): {
-                "event_id": self.event1.event_id,
-                **self.occurrence1,
-            },
-        }
         group_ids = {self.group1.id}
-        result = get_group_to_groupevent(parsed_data, 0, group_ids)
+        result = get_group_to_groupevent(self.parsed_data, 0, group_ids)
         assert len(result) == 0
 
     def test_invalid_group_ids(self):
-        parsed_data = {
-            (self.rule.id, self.group1.id): {
-                "event_id": self.event1.event_id,
-                **self.occurrence1,
-            },
-        }
         group_ids = {0}
-        result = get_group_to_groupevent(parsed_data, self.project.id, group_ids)
+        result = get_group_to_groupevent(self.parsed_data, self.project.id, group_ids)
         assert len(result) == 0
 
 
