@@ -384,14 +384,13 @@ def get_group_to_groupevent(
     bulk_occurrence_id_to_occurrence = {
         occurrence.id: occurrence for occurrence in bulk_occurrences if occurrence
     }
-    group_to_groupevent = build_group_to_groupevent(
+    return build_group_to_groupevent(
         parsed_rulegroup_to_event_data,
         bulk_event_id_to_events,
         bulk_occurrence_id_to_occurrence,
         group_id_to_group,
         project_id,
     )
-    return group_to_groupevent
 
 
 def bucket_num_groups(num_groups: int) -> str:
