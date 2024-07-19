@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from typing import Any
 
 
@@ -46,7 +47,7 @@ MATCH_CHOICES = {
 }
 
 
-def match_values(group_values: list[Any], match_value: str, match_type: str) -> bool:
+def match_values(group_values: Iterable[Any], match_value: str, match_type: str) -> bool:
     if match_type == MatchType.EQUAL:
         group_values_set = set(group_values)
         return match_value in group_values_set
