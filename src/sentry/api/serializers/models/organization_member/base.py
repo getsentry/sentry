@@ -99,8 +99,6 @@ class OrganizationMemberSerializer(Serializer):
             "email": email,
             "name": user["name"] if user else email,
             "user": attrs["user"],
-            "role": obj.role,  # Deprecated, use orgRole instead
-            "roleName": roles.get(obj.role).name,  # Deprecated
             "orgRole": obj.role,
             "pending": obj.is_pending,
             "expired": obj.token_expired,
@@ -115,6 +113,8 @@ class OrganizationMemberSerializer(Serializer):
             "dateCreated": obj.date_added,
             "inviteStatus": obj.get_invite_status_name(),
             "inviterName": inviter_name,
+            "role": obj.role,  # Deprecated, use orgRole instead
+            "roleName": roles.get(obj.role).name,  # Deprecated
         }
 
         if "externalUsers" in self.expand:
