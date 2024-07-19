@@ -1372,6 +1372,14 @@ function buildRoutes() {
     </Fragment>
   );
 
+  const activityRoutes = (
+    <Route
+      path="/activity/"
+      component={make(() => import('sentry/views/organizationActivity'))}
+      withOrgPath
+    />
+  );
+
   const statsRoutes = (
     <Fragment>
       <Route path="/stats/" withOrgPath>
@@ -2097,6 +2105,7 @@ function buildRoutes() {
       {cronsRoutes}
       {replayRoutes}
       {releasesRoutes}
+      {activityRoutes}
       {statsRoutes}
       {discoverRoutes}
       {performanceRoutes}
