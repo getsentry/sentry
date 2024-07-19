@@ -85,8 +85,8 @@ function GroupHeaderTabs({
   });
 
   useEffect(() => {
-    if (organization && group.issueType === IssueType.REPLAY_HYDRATION_ERROR) {
-      trackAnalytics('replay.hydration-error.issue-details', {organization});
+    if (group.issueType === IssueType.REPLAY_HYDRATION_ERROR) {
+      trackAnalytics('replay.hydration-error.issue-details-opened', {organization});
     }
   }, [group.issueType, organization]);
 

@@ -72,12 +72,11 @@ function DiffSides({leftOffsetMs, replay, rightOffsetMs, viewDimensions, width})
   const onDividerMouseDownWithAnalytics: React.MouseEventHandler<HTMLElement> =
     useCallback(
       (event: React.MouseEvent<HTMLElement>) => {
-        // tracks only the first mouseDown, since the first render
+        // tracks only the first mouseDown since the last render
         if (organization && !dividerClickedRef.current) {
           trackAnalytics('replay.hydration-modal.slider-interaction', {organization});
           dividerClickedRef.current = true;
         }
-
         onDividerMouseDown(event);
       },
       [onDividerMouseDown, organization]
