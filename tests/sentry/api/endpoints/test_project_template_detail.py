@@ -64,6 +64,78 @@ class ProjectTemplateDetailTest(ProjectTemplateAPIBase):
         assert response.status_code == 403
 
 
+class ProjectTemplateUpdateTest(ProjectTemplateAPIBase):
+    endpoint = "sentry-api-0-organization-project-template-detail"
+    method = "put"
+
+    def test_put__no_feature(self):
+        response = self.get_error_response(
+            self.organization.id, self.project_template.id, status_code=404
+        )
+        assert response.status_code == 404
+
+    @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
+    def test_put__only_name(self):
+        response = self.get_success_response(
+            self.organization.id,
+            self.project_template.id,
+            name="Updated",
+        )
+
+        assert response.data["name"] == "Updated"
+
+        # validate db is updated
+        self.project_template.refresh_from_db()
+        assert self.project_template.name == "Updated"
+
+    @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
+    def test_put__only_options(self):
+        options = {"sentry:release_track": "test"}
+        response = self.get_success_response(
+            self.organization.id, self.project_template.id, options=options
+        )
+
+        assert response.data["name"] == self.project_template.name
+        assert response.data["options"] == options
+
+        # validate db is updated
+        self.project_template.refresh_from_db()
+        assert options == {
+            option.key: option.value for option in self.project_template.options.all()
+        }
+
+    @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
+    def test_put__name_and_options(self):
+        options = {"sentry:release_track": "test"}
+        response = self.get_success_response(
+            self.organization.id,
+            self.project_template.id,
+            name="Updated",
+            options=options,
+        )
+
+        assert response.data["name"] == "Updated"
+        assert response.data["options"] == options
+
+        # validate db is updated
+        self.project_template.refresh_from_db()
+        assert self.project_template.name == "Updated"
+        assert options == {
+            option.key: option.value for option in self.project_template.options.all()
+        }
+
+    @with_feature(PROJECT_TEMPLATE_FEATURE_FLAG)
+    def test_put__not_found(self):
+        response = self.get_error_response(self.organization.id, 100, status_code=404)
+
+        assert response.status_code == 404
+        assert response.data == {
+            "detail": ErrorDetail(
+                string="No ProjectTemplate matches the given query.", code="not_found"
+            )
+        }
+
+
 class ProjectTemplateDetailDeleteTest(ProjectTemplateAPIBase):
     endpoint = "sentry-api-0-organization-project-template-detail"
     method = "delete"

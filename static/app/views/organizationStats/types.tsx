@@ -12,11 +12,10 @@ export interface UsageSeries extends SeriesApi {
 
 export type UsageStat = {
   accepted: number;
+  clientDiscard: number;
   date: string;
-  dropped: {
-    total: number;
-    other?: number;
-  };
   filtered: number;
+  invalid: number;
+  rateLimited: number;
   total: number;
 };

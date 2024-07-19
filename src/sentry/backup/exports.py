@@ -120,7 +120,7 @@ def _export(
         dep_models = {get_model_name(d) for d in model_relations.get_dependencies_for_relocation()}
         export_by_model = ImportExportService.get_exporter_for_model(model)
         result = export_by_model(
-            model_name=str(model_name),
+            export_model_name=str(model_name),
             scope=RpcExportScope.into_rpc(scope),
             from_pk=0,
             filter_by=[RpcFilter.into_rpc(f) for f in filters],

@@ -135,9 +135,6 @@ class Tags extends Component<Props, State> {
       }
 
       let tags = data;
-      if (!organization.features.includes('device-classification')) {
-        tags = tags.filter(tag => tag.key !== 'device.class');
-      }
       if (appendTags) {
         tags = [...this.state.tags, ...tags];
       }

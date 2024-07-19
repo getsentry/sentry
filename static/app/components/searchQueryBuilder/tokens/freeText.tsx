@@ -16,6 +16,7 @@ import {
   useShiftFocusToChild,
 } from 'sentry/components/searchQueryBuilder/tokens/utils';
 import type {
+  FieldDefinitionGetter,
   FilterKeySection,
   FocusOverride,
 } from 'sentry/components/searchQueryBuilder/types';
@@ -28,7 +29,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import {FieldKind, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {type FieldDefinition, FieldKind, FieldValueType} from 'sentry/utils/fields';
 import {useFuzzySearch} from 'sentry/utils/fuzzySearch';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {toTitleCase} from 'sentry/utils/string/toTitleCase';
@@ -91,14 +92,14 @@ function getWordAtCursorPosition(value: string, cursorPosition: number) {
   return value;
 }
 
-function getInitialFilterText(key: string) {
-  const defaultValue = getDefaultFilterValue({key});
+function getInitialFilterText(key: string, fieldDefinition: FieldDefinition | null) {
+  const defaultValue = getDefaultFilterValue({key, fieldDefinition});
 
-  const fieldDef = getFieldDefinition(key);
-
-  switch (fieldDef?.valueType) {
+  switch (fieldDefinition?.valueType) {
     case FieldValueType.INTEGER:
     case FieldValueType.NUMBER:
+    case FieldValueType.DURATION:
+    case FieldValueType.PERCENTAGE:
       return `${key}:>${defaultValue}`;
     case FieldValueType.STRING:
     default:
@@ -115,7 +116,8 @@ function getInitialFilterText(key: string) {
 function replaceFocusedWordWithFilter(
   value: string,
   cursorPosition: number,
-  key: string
+  key: string,
+  getFieldDefinition: FieldDefinitionGetter
 ) {
   const words = value.split(' ');
 
@@ -125,7 +127,7 @@ function replaceFocusedWordWithFilter(
     if (characterCount >= cursorPosition) {
       return (
         value.slice(0, characterCount - word.length - 1).trim() +
-        ` ${getInitialFilterText(key)} ` +
+        ` ${getInitialFilterText(key, getFieldDefinition(key))} ` +
         value.slice(characterCount).trim()
       ).trim();
     }
@@ -134,29 +136,7 @@ function replaceFocusedWordWithFilter(
   return value;
 }
 
-/**
- * Takes a string that contains a filter value `<key>:` and replaces with any aliases that may exist.
- *
- * Example:
- * replaceAliasedFilterKeys('foo issue: bar', {'status': 'is'}) => 'foo is: bar'
- */
-function replaceAliasedFilterKeys(value: string, aliasToKeyMap: Record<string, string>) {
-  const key = value.match(/(\S+):/);
-  const matchedKey = key?.[1];
-  if (matchedKey && aliasToKeyMap[matchedKey]) {
-    const actualKey = aliasToKeyMap[matchedKey];
-    const replacedValue = value.replace(
-      `${matchedKey}:`,
-      getInitialFilterText(actualKey)
-    );
-    return replacedValue;
-  }
-
-  return value;
-}
-
-function createItem(tag: Tag): KeyItem {
-  const fieldDefinition = getFieldDefinition(tag.key);
+function createItem(tag: Tag, fieldDefinition: FieldDefinition | null): KeyItem {
   const description = fieldDefinition?.desc;
 
   return {
@@ -171,12 +151,16 @@ function createItem(tag: Tag): KeyItem {
   };
 }
 
-function createSection(section: FilterKeySection, keys: TagCollection): KeySectionItem {
+function createSection(
+  section: FilterKeySection,
+  keys: TagCollection,
+  getFieldDefinition: FieldDefinitionGetter
+): KeySectionItem {
   return {
     key: section.value,
     value: section.value,
     title: section.label,
-    options: section.children.map(key => createItem(keys[key])),
+    options: section.children.map(key => createItem(keys[key], getFieldDefinition(key))),
   };
 }
 
@@ -222,10 +206,13 @@ function useSortItems({
 }: {
   filterValue: string;
 }): Array<KeySectionItem | KeyItem> {
-  const {filterKeys, filterKeySections} = useSearchQueryBuilder();
+  const {filterKeys, filterKeySections, getFieldDefinition} = useSearchQueryBuilder();
   const flatItems = useMemo<KeyItem[]>(
-    () => Object.values(filterKeys).map(createItem),
-    [filterKeys]
+    () =>
+      Object.values(filterKeys).map(filterKey =>
+        createItem(filterKey, getFieldDefinition(filterKey.key))
+      ),
+    [filterKeys, getFieldDefinition]
   );
   const search = useFuzzySearch(flatItems, FUZZY_SEARCH_OPTIONS);
 
@@ -234,14 +221,18 @@ function useSortItems({
       if (!filterKeySections.length) {
         return flatItems;
       }
-      return filterKeySections.map(section => createSection(section, filterKeys));
+      return filterKeySections.map(section =>
+        createSection(section, filterKeys, getFieldDefinition)
+      );
     }
 
     return search.search(filterValue).map(({item}) => item);
-  }, [filterKeySections, filterKeys, filterValue, flatItems, search]);
+  }, [filterKeySections, filterKeys, filterValue, flatItems, getFieldDefinition, search]);
 }
 
 function KeyDescription({tag}: {tag: Tag}) {
+  const {getFieldDefinition} = useSearchQueryBuilder();
+
   const fieldDefinition = getFieldDefinition(tag.key);
 
   if (!fieldDefinition || !fieldDefinition.desc) {
@@ -299,13 +290,12 @@ function SearchQueryBuilderInputInternal({
     filterKeys,
     filterKeySections,
     dispatch,
+    getFieldDefinition,
     handleSearch,
+    placeholder,
     searchSource,
     savedSearchType,
   } = useSearchQueryBuilder();
-  const aliasToKeyMap = useMemo(() => {
-    return Object.fromEntries(Object.values(filterKeys).map(key => [key.alias, key.key]));
-  }, [filterKeys]);
 
   const items = useSortItems({filterValue});
 
@@ -377,11 +367,11 @@ function SearchQueryBuilderInputInternal({
       dispatch({
         type: 'REPLACE_TOKENS_WITH_TEXT',
         tokens: [token],
-        text: replaceAliasedFilterKeys(text, aliasToKeyMap),
+        text,
       });
       resetInputValue();
     },
-    [aliasToKeyMap, dispatch, resetInputValue, token]
+    [dispatch, resetInputValue, token]
   );
 
   const onClick = useCallback(() => {
@@ -392,11 +382,17 @@ function SearchQueryBuilderInputInternal({
     <SearchQueryBuilderCombobox
       ref={inputRef}
       items={items}
+      placeholder={query === '' ? placeholder : undefined}
       onOptionSelected={value => {
         dispatch({
           type: 'UPDATE_FREE_TEXT',
           tokens: [token],
-          text: replaceFocusedWordWithFilter(inputValue, selectionIndex, value),
+          text: replaceFocusedWordWithFilter(
+            inputValue,
+            selectionIndex,
+            value,
+            getFieldDefinition
+          ),
           focusOverride: calculateNextFocusForFilter(state),
         });
         resetInputValue();
@@ -449,7 +445,7 @@ function SearchQueryBuilderInputInternal({
           dispatch({
             type: 'UPDATE_FREE_TEXT',
             tokens: [token],
-            text: replaceAliasedFilterKeys(e.target.value, aliasToKeyMap),
+            text: e.target.value,
             focusOverride: calculateNextFocusForFilter(state),
           });
           resetInputValue();
@@ -528,6 +524,7 @@ const Row = styled('div')`
   display: flex;
   align-items: stretch;
   height: 24px;
+  max-width: 100%;
 
   &:last-child {
     flex-grow: 1;

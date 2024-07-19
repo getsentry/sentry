@@ -2,6 +2,7 @@ import type {MetricType, MRI, ParsedMRI, UseCase} from 'sentry/types/metrics';
 import {
   formatMRI,
   getUseCaseFromMRI,
+  isExtractedCustomMetric,
   parseField,
   parseMRI,
   toMRI,
@@ -221,5 +222,20 @@ describe('formatMRI', () => {
   it('strips the projectId from virtual metrics', () => {
     expect(formatMRI('v:custom/foo|123@none')).toEqual('foo');
     expect(formatMRI('v:custom/bar|456@ms')).toEqual('bar');
+  });
+});
+
+describe('isExtractedCustomMetric', () => {
+  it('should return true if the metric name is prefixed', () => {
+    expect(isExtractedCustomMetric({mri: 'c:custom/span_attribute_123@none'})).toBe(true);
+    expect(isExtractedCustomMetric({mri: 's:custom/span_attribute_foo@none'})).toBe(true);
+    expect(isExtractedCustomMetric({mri: 'g:custom/span_attribute_baz@none'})).toBe(true);
+  });
+
+  it('should return false if the metric name is not prefixed', () => {
+    expect(isExtractedCustomMetric({mri: 'c:custom/12span_attribute_@none'})).toBe(false);
+    expect(isExtractedCustomMetric({mri: 's:custom/foo@none'})).toBe(false);
+    expect(isExtractedCustomMetric({mri: 'd:custom/_span_attribute_@none'})).toBe(false);
+    expect(isExtractedCustomMetric({mri: 'g:custom/span_attributebaz@none'})).toBe(false);
   });
 });

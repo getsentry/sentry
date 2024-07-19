@@ -1,5 +1,7 @@
 import type {ReactNode} from 'react';
 
+import type {FieldDefinition} from 'sentry/utils/fields';
+
 export type FilterKeySection = {
   children: string[];
   label: ReactNode;
@@ -15,3 +17,5 @@ export type FocusOverride = {
   itemKey: string;
   part?: 'value';
 };
+
+export type FieldDefinitionGetter = (key: string) => FieldDefinition | null;

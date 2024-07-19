@@ -23,10 +23,14 @@ from sentry.incidents.models.alert_rule import (
     AlertRule,
     AlertRuleActivity,
     AlertRuleActivityType,
+    AlertRuleDetectionType,
     AlertRuleExcludedProjects,
     AlertRuleMonitorTypeInt,
     AlertRuleProjects,
+    AlertRuleSeasonality,
+    AlertRuleSensitivity,
     AlertRuleStatus,
+    AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
     AlertRuleTriggerExclusion,
@@ -516,6 +520,9 @@ def create_alert_rule(
     monitor_type: AlertRuleMonitorTypeInt = AlertRuleMonitorTypeInt.CONTINUOUS,
     activation_condition: AlertRuleActivationConditionType | None = None,
     description: str | None = None,
+    sensitivity: AlertRuleSensitivity | None = None,
+    seasonality: AlertRuleSeasonality | None = None,
+    detection_type: AlertRuleDetectionType = AlertRuleDetectionType.STATIC,
     **kwargs,
 ):
     """
@@ -545,6 +552,9 @@ def create_alert_rule(
     :param event_types: List of `EventType` that this alert will be related to
     :param comparison_delta: An optional int representing the time delta to use to determine the
     comparison period. In minutes.
+    :param sensitivity: An AlertRuleSensitivity that specifies sensitivity of anomaly detection alerts
+    :param seasonality: An AlertRuleSeasonality that specifies seasonality of anomaly detection alerts
+    :param detection_type: the type of metric alert; defaults to AlertRuleDetectionType.STATIC
 
     :return: The created `AlertRule`
     """
@@ -552,6 +562,31 @@ def create_alert_rule(
         raise ValidationError("Activation condition required for activated alert rule")
 
     resolution = get_alert_resolution(time_window, organization)
+
+    if detection_type == AlertRuleDetectionType.DYNAMIC:
+        if not (sensitivity and seasonality):
+            raise ValidationError("Dynamic alerts require both sensitivity and seasonality")
+    else:
+        if sensitivity or seasonality:
+            raise ValidationError(
+                "Sensitivity and seasonality are not valid fields for this alert type"
+            )
+        if threshold_type == AlertRuleThresholdType.ABOVE_AND_BELOW:
+            raise ValidationError(
+                "Above and below is not a valid threshold type for this alert type"
+            )
+
+    if detection_type == AlertRuleDetectionType.PERCENT:
+        if comparison_delta is None:
+            raise ValidationError("Percentage-based alerts require a comparison delta")
+    else:
+        if comparison_delta is not None:
+            if not (sensitivity or seasonality):
+                # this is a user setting up a percent-based metric alert who doesn't know about the new field
+                detection_type = AlertRuleDetectionType.PERCENT
+            else:
+                # this is an incorrect field selection
+                raise ValidationError("Comparison delta is not a valid field for this alert type")
 
     if comparison_delta is not None:
         # Since comparison alerts make twice as many queries, run the queries less frequently.
@@ -583,6 +618,9 @@ def create_alert_rule(
             owner=owner,
             monitor_type=monitor_type,
             description=description,
+            sensitivity=sensitivity,
+            seasonality=seasonality,
+            detection_type=detection_type,
         )
 
         if user:
@@ -696,6 +734,9 @@ def update_alert_rule(
     comparison_delta=NOT_SET,
     monitor_type: AlertRuleMonitorTypeInt | None = None,
     description: str | None = None,
+    sensitivity: AlertRuleSensitivity | None = None,
+    seasonality: AlertRuleSeasonality | None = None,
+    detection_type: AlertRuleDetectionType | None = None,
     **kwargs,
 ):
     """
@@ -724,6 +765,9 @@ def update_alert_rule(
     :param comparison_delta: An optional int representing the time delta to use to determine the
     comparison period. In minutes.
     :param description: An optional str that will be rendered in the notification
+    :param sensitivity: An AlertRuleSensitivity that specifies sensitivity of anomaly detection alerts
+    :param seasonality: An AlertRuleSeasonality that specifies seasonality of anomaly detection alerts
+    :param detection_type: the type of metric alert; defaults to AlertRuleDetectionType.STATIC
     :return: The updated `AlertRule`
     """
     updated_fields: dict[str, Any] = {"date_modified": django_timezone.now()}
@@ -732,6 +776,10 @@ def update_alert_rule(
         updated_fields["name"] = name
     if description:
         updated_fields["description"] = description
+    if sensitivity:
+        updated_fields["sensitivity"] = sensitivity
+    if seasonality:
+        updated_fields["seasonality"] = seasonality
     if query is not None:
         updated_query_fields["query"] = query
     if aggregate is not None:
@@ -767,6 +815,14 @@ def update_alert_rule(
 
     # if we modified the comparison_delta or the time_window, we should update the resolution accordingly
     if "comparison_delta" in updated_fields or "time_window" in updated_query_fields:
+        if comparison_delta is not None:
+            detection_type = AlertRuleDetectionType.PERCENT
+        else:
+            if seasonality:
+                detection_type = AlertRuleDetectionType.DYNAMIC
+            else:
+                detection_type = AlertRuleDetectionType.STATIC
+
         window = int(
             updated_query_fields.get(
                 "time_window", timedelta(seconds=alert_rule.snuba_query.time_window)
@@ -785,6 +841,19 @@ def update_alert_rule(
             )
         else:
             updated_query_fields["resolution"] = timedelta(minutes=resolution)
+
+    if detection_type:
+        updated_fields["detection_type"] = detection_type
+        # make sure we clear the incorrect fields for each detection type
+        if detection_type == AlertRuleDetectionType.STATIC:
+            updated_fields["sensitivity"] = None
+            updated_fields["seasonality"] = None
+            updated_fields["comparison_delta"] = None
+        elif detection_type == AlertRuleDetectionType.PERCENT:
+            updated_fields["sensitivity"] = None
+            updated_fields["seasonality"] = None
+        elif detection_type == AlertRuleDetectionType.DYNAMIC:
+            updated_fields["comparison_delta"] = None
 
     with transaction.atomic(router.db_for_write(AlertRuleActivity)):
         incidents = Incident.objects.filter(alert_rule=alert_rule).exists()
@@ -1553,7 +1622,7 @@ def get_available_action_integrations_for_org(organization) -> list[RpcIntegrati
 
     providers = [
         registration.integration_provider
-        for registration in AlertRuleTriggerAction.get_registered_types()
+        for registration in AlertRuleTriggerAction.get_registered_factories()
         if registration.integration_provider is not None
     ]
     return integration_service.get_integrations(

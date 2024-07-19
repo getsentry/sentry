@@ -122,7 +122,7 @@ export function SpanNodeDetails({
                   />
                   <SpanHTTPInfo span={node.value} />
                   <Tags span={node.value} />
-                  <SpanKeys node={node} />
+                  <SpanKeys projectId={project?.id} node={node} />
                   <CustomMetricsEventData
                     projectId={project?.id || ''}
                     metricsSummary={node.value._metrics_summary}

@@ -35,7 +35,8 @@ def get_chunk_ids(
             Condition(Column("project_id"), Op.EQ, project_id),
             Condition(Column("profiler_id"), Op.EQ, profiler_id),
         ],
-        orderby=[OrderBy(Column("start_timestamp"), Direction.ASC)],
+        # We want the generate the flamegraph using the newest data
+        orderby=[OrderBy(Column("start_timestamp"), Direction.DESC)],
     ).set_limit(max_chunks)
 
     request = Request(
@@ -56,21 +57,29 @@ def get_chunk_ids(
     return [row["chunk_id"] for row in result["data"]]
 
 
-def resolve_datetime64(value: datetime | None, precision: int = 6) -> Function | None:
+def resolve_datetime64(
+    raw_value: datetime | str | float | None, precision: int = 6
+) -> Function | None:
     # This is normally handled by the snuba-sdk but it assumes that the underlying
     # table uses DateTime. Because we use DateTime64(6) as the underlying column,
     # we need to cast to the same type or we risk truncating the timestamp which
     # can lead to subtle errors.
 
+    value: str | float | None = None
+
+    if isinstance(raw_value, datetime):
+        if raw_value.tzinfo is not None:
+            # This is adapted from snuba-sdk
+            # See https://github.com/getsentry/snuba-sdk/blob/2f7f014920b4f527a87f18c05b6aa818212bec6e/snuba_sdk/visitors.py#L168-L172
+            delta = raw_value.utcoffset()
+            assert delta is not None
+            raw_value -= delta
+            raw_value = raw_value.replace(tzinfo=None)
+        value = raw_value.isoformat()
+    elif isinstance(raw_value, float):
+        value = raw_value
+
     if value is None:
         return None
 
-    if isinstance(value, datetime) and value.tzinfo is not None:
-        # This is adapted from snuba-sdk
-        # See https://github.com/getsentry/snuba-sdk/blob/2f7f014920b4f527a87f18c05b6aa818212bec6e/snuba_sdk/visitors.py#L168-L172
-        delta = value.utcoffset()
-        assert delta is not None
-        value -= delta
-        value.replace(tzinfo=None)
-
-    return Function("toDateTime64", [value.isoformat(), precision])
+    return Function("toDateTime64", [value, precision])

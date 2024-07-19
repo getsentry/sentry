@@ -755,6 +755,15 @@ export const TRANSACTION_FIELDS = DISCOVER_FIELDS.filter(
   f => !ERROR_ONLY_FIELDS.includes(f)
 );
 
+export const ERRORS_AGGREGATION_FUNCTIONS = [
+  AggregationKey.COUNT,
+  AggregationKey.COUNT_IF,
+  AggregationKey.COUNT_UNIQUE,
+  AggregationKey.EPS,
+  AggregationKey.EPM,
+  AggregationKey.LAST_SEEN,
+];
+
 // This list contains fields/functions that are available with profiling feature.
 export const PROFILING_FIELDS: string[] = [FieldKey.PROFILE_ID];
 

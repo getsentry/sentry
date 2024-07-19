@@ -48,6 +48,8 @@ DEBOUNCE_PR_COMMENT_LOCK_KEY = lambda pullrequest_id: f"queue_comment_task:{pull
 PR_COMMENT_TASK_TTL = timedelta(minutes=5).total_seconds()
 PR_COMMENT_WINDOW = 14  # days
 
+PR_COMMENT_SUPPORTED_PROVIDERS = {"integrations:github"}
+
 logger = logging.getLogger(__name__)
 
 
@@ -63,34 +65,22 @@ def queue_comment_task_if_needed(
 
     # client will raise an Exception if the request is not successful
     try:
-        response = installation.get_client().get_pullrequest_from_commit(
-            repo=repo.name, sha=commit.key
-        )
+        client = installation.get_client()
+        merge_commit_sha = client.get_merge_commit_sha_from_commit(repo=repo.name, sha=commit.key)
     except Exception as e:
         sentry_sdk.capture_exception(e)
         return
 
-    if not isinstance(response, list) or len(response) != 1:
-        # the response should return a single PR, return if multiple
-        if len(response) > 1:
-            logger.info(
-                "github.pr_comment.queue_comment_check.commit_not_in_default_branch",
-                extra={
-                    "organization_id": commit.organization_id,
-                    "repository_id": repo.id,
-                    "commit_sha": commit.key,
-                },
-            )
-        return
-
-    if response[0]["state"] == "open":
-        metrics.incr(
-            "github_pr_comment.queue_comment_check.open_pr",
-            sample_rate=1.0,
+    if merge_commit_sha is None:
+        logger.info(
+            "github.pr_comment.queue_comment_check.commit_not_in_default_branch",
+            extra={
+                "organization_id": commit.organization_id,
+                "repository_id": repo.id,
+                "commit_sha": commit.key,
+            },
         )
         return
-
-    merge_commit_sha = response[0]["merge_commit_sha"]
 
     pr_query = PullRequest.objects.filter(
         organization_id=commit.organization_id,
@@ -288,13 +278,13 @@ def process_commit_context(
                     "github.pr_comment",
                     extra={"organization_id": project.organization_id},
                 )
-                repo = Repository.objects.filter(id=commit.repository_id)
+                repo = Repository.objects.filter(id=commit.repository_id).order_by("-date_added")
                 group = Group.objects.get_from_cache(id=group_id)
                 if (
                     group.level is not logging.INFO  # Don't comment on info level issues
                     and installation is not None
                     and repo.exists()
-                    and repo.get().provider == "integrations:github"
+                    and repo.get().provider in PR_COMMENT_SUPPORTED_PROVIDERS
                 ):
                     queue_comment_task_if_needed(commit, group_owner, repo.get(), installation)
                 else:

@@ -433,6 +433,7 @@ class AlertRuleTriggerManager(BaseManager["AlertRuleTrigger"]):
 class AlertRuleThresholdType(Enum):
     ABOVE = 0
     BELOW = 1
+    ABOVE_AND_BELOW = 2
 
 
 @region_silo_model
@@ -496,8 +497,8 @@ class AlertRuleTriggerActionManager(BaseManager["AlertRuleTriggerAction"]):
         return super().get_queryset().exclude(status=ObjectStatus.PENDING_DELETION)
 
 
-class AlertRuleActionHandlerFactory(abc.ABC):
-    """A factory for action handlers tied to a specific service.
+class ActionHandlerFactory(abc.ABC):
+    """A factory for action handlers tied to a specific incident service.
 
     The factory's builder method is augmented with metadata about which service it is
     for and which target types that service supports.
@@ -525,7 +526,7 @@ class AlertRuleActionHandlerFactory(abc.ABC):
         raise NotImplementedError
 
 
-class _AlertRuleActionHandlerClassFactory(AlertRuleActionHandlerFactory):
+class _AlertRuleActionHandlerClassFactory(ActionHandlerFactory):
     """A factory derived from a concrete ActionHandler class.
 
     The factory builds a handler simply by instantiating the provided class. The
@@ -563,7 +564,7 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
     Type = ActionService
     TargetType = ActionTarget
 
-    _factory_registrations: dict[ActionService, AlertRuleActionHandlerFactory] = {}
+    _factory_registrations: dict[ActionService, ActionHandlerFactory] = {}
 
     INTEGRATION_TYPES = frozenset(
         (
@@ -651,7 +652,7 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
             return handler.resolve(metric_value, new_status, notification_uuid)
 
     @classmethod
-    def register_factory(cls, factory: AlertRuleActionHandlerFactory) -> None:
+    def register_factory(cls, factory: ActionHandlerFactory) -> None:
         if factory.service_type not in cls._factory_registrations:
             cls._factory_registrations[factory.service_type] = factory
         else:
@@ -666,16 +667,20 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         integration_provider: str | None = None,
     ) -> Callable[[type[ActionHandler]], type[ActionHandler]]:
         """
-        Registers a handler class for a given type.
+        Register a factory for the decorated ActionHandler class, for a given service type.
+
         :param slug: A string representing the name of this type registration
-        :param service_type: The `Type` to handle.
-        :param handler: A subclass of `ActionHandler` that accepts the
-        `AlertRuleActionHandler` and `Incident`.
+        :param service_type: The action service type the decorated handler supports.
+        :param supported_target_types: The target types the decorated handler supports.
         :param integration_provider: String representing the integration provider
-        related to this type.
+               related to this type.
         """
 
         def inner(handler: type[ActionHandler]) -> type[ActionHandler]:
+            """
+            :param handler: A subclass of `ActionHandler` that accepts the
+                            `AlertRuleActionHandler` and `Incident`.
+            """
             factory = _AlertRuleActionHandlerClassFactory(
                 slug, service_type, supported_target_types, integration_provider, handler
             )
@@ -685,11 +690,11 @@ class AlertRuleTriggerAction(AbstractNotificationAction):
         return inner
 
     @classmethod
-    def get_registered_type(cls, type: ActionService) -> AlertRuleActionHandlerFactory:
-        return cls._factory_registrations[type]
+    def get_registered_factory(cls, service_type: ActionService) -> ActionHandlerFactory:
+        return cls._factory_registrations[service_type]
 
     @classmethod
-    def get_registered_types(cls) -> list[AlertRuleActionHandlerFactory]:
+    def get_registered_factories(cls) -> list[ActionHandlerFactory]:
         return list(cls._factory_registrations.values())
 
 

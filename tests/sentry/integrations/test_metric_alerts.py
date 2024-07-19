@@ -5,6 +5,7 @@ import pytest
 from django.utils import timezone
 
 from sentry.incidents.logic import CRITICAL_TRIGGER_LABEL
+from sentry.incidents.models.alert_rule import AlertRuleDetectionType
 from sentry.incidents.models.incident import IncidentStatus, IncidentTrigger
 from sentry.integrations.metric_alerts import incident_attachment_info
 from sentry.snuba.dataset import Dataset
@@ -131,7 +132,9 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
 
     def test_percent_change_alert(self):
         # 1 hour comparison_delta
-        alert_rule = self.create_alert_rule(comparison_delta=60)
+        alert_rule = self.create_alert_rule(
+            comparison_delta=60, detection_type=AlertRuleDetectionType.PERCENT
+        )
         date_started = self.now
         incident = self.create_incident(
             self.organization,
@@ -154,7 +157,9 @@ class IncidentAttachmentInfoTest(TestCase, BaseIncidentsTest):
 
     def test_percent_change_alert_custom_comparison_delta(self):
         # 12 hour comparison_delta
-        alert_rule = self.create_alert_rule(comparison_delta=60 * 12)
+        alert_rule = self.create_alert_rule(
+            comparison_delta=60 * 12, detection_type=AlertRuleDetectionType.PERCENT
+        )
         date_started = self.now
         incident = self.create_incident(
             self.organization,

@@ -4,6 +4,7 @@ import {addSuccessMessage} from 'sentry/actionCreators/indicator';
 import {CodeSnippet} from 'sentry/components/codeSnippet';
 import JSXNode from 'sentry/components/stories/jsxNode';
 import JSXProperty from 'sentry/components/stories/jsxProperty';
+import Matrix from 'sentry/components/stories/matrix';
 import StructuredEventData from 'sentry/components/structuredEventData';
 import storyBook from 'sentry/stories/storyBook';
 
@@ -25,6 +26,31 @@ export default storyBook(StructuredEventData, story => {
       </Fragment>
     );
   });
+
+  story('Auto-Expanded items', () => (
+    <Matrix
+      propMatrix={{
+        data: [
+          {
+            foo: 'bar',
+            'the_real_world?': {
+              the_city: {
+                the_hotel: {
+                  the_fortress: 'a pinwheel',
+                },
+              },
+            },
+            arr5: [1, 2, 3, 4, 5],
+            arr6: [1, 2, 3, 4, 5, 6],
+          },
+        ],
+        forceDefaultExpand: [undefined, true, false],
+        maxDefaultDepth: [undefined, 0, 1, 2, 3],
+      }}
+      render={StructuredEventData}
+      selectedProps={['forceDefaultExpand', 'maxDefaultDepth']}
+    />
+  ));
 
   story('Annotations', () => {
     return (
