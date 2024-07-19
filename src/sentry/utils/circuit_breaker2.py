@@ -185,6 +185,20 @@ class CircuitBreaker:
                 self.window,
             )
 
+    def should_allow_request(self) -> bool:
+        """
+        Determine, based on the current state of the breaker and the number of allowable errors
+        remaining, whether requests should be allowed through.
+        """
+        state, _ = self._get_state_and_remaining_time()
+
+        if state == CircuitBreakerState.BROKEN:
+            return False
+
+        controlling_quota = self._get_controlling_quota(state)
+
+        return self._get_remaining_error_quota(controlling_quota) > 0
+
     @overload
     def _get_remaining_error_quota(self, quota: None, window_end: int | None) -> None:
         ...
