@@ -6,6 +6,7 @@ and get rid of the old one, at which point this can lose the `2`.
 """
 
 import logging
+import time
 from enum import Enum
 from typing import Any, NotRequired, TypedDict
 
@@ -183,6 +184,42 @@ class CircuitBreaker:
                 self.recovery_duration,
                 self.window,
             )
+
+    def _get_state_and_remaining_time(
+        self,
+    ) -> tuple[CircuitBreakerState, int | None]:
+        """
+        Return the current state of the breaker (OK, BROKEN, or in RECOVERY), along with the
+        number of seconds until that state expires (or `None` when in OK state, as it has no
+        expiry).
+        """
+        now = int(time.time())
+
+        try:
+            broken_state_expiry, recovery_state_expiry = self._get_from_redis(
+                [self.broken_state_key, self.recovery_state_key]
+            )
+        except Exception:
+            logger.exception("Couldn't get state from redis for circuit breaker '%s'", self.key)
+
+            # Default to letting traffic through so the breaker doesn't become a single point of failure
+            return (CircuitBreakerState.OK, None)
+
+        # The BROKEN state key should always expire before the RECOVERY state one, so check it first
+        if broken_state_expiry is not None:
+            broken_state_seconds_left = int(broken_state_expiry) - now
+
+            # In theory there should always be time left (the key should have expired otherwise),
+            # but race conditions/caching/etc means we should check, just to be sure
+            if broken_state_seconds_left > 0:
+                return (CircuitBreakerState.BROKEN, broken_state_seconds_left)
+
+        if recovery_state_expiry is not None:
+            recovery_state_seconds_left = int(recovery_state_expiry) - now
+            if recovery_state_seconds_left > 0:
+                return (CircuitBreakerState.RECOVERY, recovery_state_seconds_left)
+
+        return (CircuitBreakerState.OK, None)
 
     def _set_in_redis(self, keys_values_and_timeouts: list[tuple[str, Any, int]]) -> None:
         for key, value, timeout in keys_values_and_timeouts:
