@@ -2264,10 +2264,18 @@ class FunctionDetails(NamedTuple):
 def resolve_datetime64(
     raw_value: datetime | str | float | None, precision: int = 6
 ) -> Function | None:
-    # This is normally handled by the snuba-sdk but it assumes that the underlying
-    # table uses DateTime. Because we use DateTime64(6) as the underlying column,
-    # we need to cast to the same type or we risk truncating the timestamp which
-    # can lead to subtle errors.
+    """
+    This is normally handled by the snuba-sdk but it assumes that the underlying
+    table uses DateTime. Because we use DateTime64(6) as the underlying column,
+    we need to cast to the same type or we risk truncating the timestamp which
+    can lead to subtle errors.
+
+    raw_value - Can be one of several types
+        - None: Resolves to `None`
+        - float: Assumed to be a epoch timestamp in seconds with fractional parts
+        - str: Assumed to be isoformat timestamp in UTC time (without timezone info)
+        - datetime: Will be formatted as a isoformat timestamp in UTC time
+    """
 
     value: str | float | None = None
 
