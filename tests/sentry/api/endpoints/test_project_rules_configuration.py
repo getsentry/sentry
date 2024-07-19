@@ -232,7 +232,6 @@ class ProjectRuleConfigurationTest(APITestCase):
             ]
             assert MatchType.IS_IN not in filter_list
 
-        # NOTE: failing because the False case above is removing the choice from the registry :think:
         with self.feature({"organizations:issues-alerts-is-in": True}):
             response = self.get_success_response(self.organization.slug, self.project.slug)
             tagged_event_filter = next(
