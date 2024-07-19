@@ -209,7 +209,7 @@ export function useMetricsQuery(
             return query;
           }
           if (!query.condition) {
-            // Invalid state. A virtual metric always need to have a condition
+            // Invalid state. A virtual metric always needs to have a condition
             return null;
           }
           const {mri, aggregation} = resolveVirtualMRI(
