@@ -34,6 +34,7 @@ describe('ScreensTable', () => {
         columnNameMap={{
           transaction: 'Screen',
         }}
+        columnToolTipMap={{}}
         columnOrder={['transaction']}
         data={{
           data: [{id: '1', transaction: 'Screen 1'}],
@@ -56,6 +57,7 @@ describe('ScreensTable', () => {
         columnNameMap={{
           transaction: 'Screen',
         }}
+        columnToolTipMap={{}}
         columnOrder={['transaction', 'non-custom']}
         data={{
           data: [
