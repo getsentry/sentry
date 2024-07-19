@@ -7,7 +7,7 @@ from django import forms
 
 from sentry import tagstore
 from sentry.eventstore.models import GroupEvent
-from sentry.rules import MATCH_CHOICES, EventState, MatchType
+from sentry.rules import MATCH_CHOICES, EventState, MatchType, match_values
 from sentry.rules.conditions.base import EventCondition
 from sentry.rules.history.preview_strategy import get_dataset_columns
 from sentry.snuba.dataset import Dataset
@@ -64,6 +64,7 @@ class TaggedEventCondition(EventCondition):
             for k in gen
         )
 
+        # NOTE: IS_SET condition differs btw tagged_event and event_attribute so not handled by match_values
         if option_match == MatchType.IS_SET:
             return option_key in tag_keys
 
@@ -83,62 +84,9 @@ class TaggedEventCondition(EventCondition):
             if k.lower() == option_key or tagstore.backend.get_standardized_key(k) == option_key
         )
 
-        if option_match == MatchType.EQUAL:
-            for t_value in tag_values:
-                if t_value == option_value:
-                    return True
-            return False
-
-        elif option_match == MatchType.NOT_EQUAL:
-            for t_value in tag_values:
-                if t_value == option_value:
-                    return False
-            return True
-
-        elif option_match == MatchType.STARTS_WITH:
-            for t_value in tag_values:
-                if t_value.startswith(option_value):
-                    return True
-            return False
-
-        elif option_match == MatchType.NOT_STARTS_WITH:
-            for t_value in tag_values:
-                if t_value.startswith(option_value):
-                    return False
-            return True
-
-        elif option_match == MatchType.ENDS_WITH:
-            for t_value in tag_values:
-                if t_value.endswith(option_value):
-                    return True
-            return False
-
-        elif option_match == MatchType.NOT_ENDS_WITH:
-            for t_value in tag_values:
-                if t_value.endswith(option_value):
-                    return False
-            return True
-
-        elif option_match == MatchType.CONTAINS:
-            for t_value in tag_values:
-                if option_value in t_value:
-                    return True
-            return False
-
-        elif option_match == MatchType.NOT_CONTAINS:
-            for t_value in tag_values:
-                if option_value in t_value:
-                    return False
-            return True
-
-        elif option_match == MatchType.IS_IN:
-            values = option_value.replace(" ", "").split(",")
-            for t_value in tag_values:
-                if t_value in values:
-                    return True
-            return False
-
-        raise RuntimeError("Invalid Match")
+        return match_values(
+            group_values=tag_values, match_value=option_value, match_type=option_match
+        )
 
     def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
         return self._passes(event.tags)

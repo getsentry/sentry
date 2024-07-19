@@ -6,7 +6,7 @@ from typing import Any
 from django import forms
 
 from sentry.eventstore.models import GroupEvent
-from sentry.rules import MATCH_CHOICES, EventState, MatchType
+from sentry.rules import MATCH_CHOICES, EventState, MatchType, match_values
 from sentry.rules.conditions.base import EventCondition
 from sentry.rules.history.preview_strategy import DATASET_TO_COLUMN_NAME, get_dataset_columns
 from sentry.snuba.dataset import Dataset
@@ -256,68 +256,16 @@ class EventAttributeCondition(EventCondition):
 
         attr_values = [str(v).lower() for v in attribute_values if v is not None]
 
-        if option_match == MatchType.EQUAL:
-            for a_value in attr_values:
-                if a_value == option_value:
-                    return True
-            return False
-
-        elif option_match == MatchType.NOT_EQUAL:
-            for a_value in attr_values:
-                if a_value == option_value:
-                    return False
-            return True
-
-        elif option_match == MatchType.STARTS_WITH:
-            for a_value in attr_values:
-                if a_value.startswith(option_value):
-                    return True
-            return False
-
-        elif option_match == MatchType.NOT_STARTS_WITH:
-            for a_value in attr_values:
-                if a_value.startswith(option_value):
-                    return False
-            return True
-
-        elif option_match == MatchType.ENDS_WITH:
-            for a_value in attr_values:
-                if a_value.endswith(option_value):
-                    return True
-            return False
-
-        elif option_match == MatchType.NOT_ENDS_WITH:
-            for a_value in attr_values:
-                if a_value.endswith(option_value):
-                    return False
-            return True
-
-        elif option_match == MatchType.CONTAINS:
-            for a_value in attr_values:
-                if option_value in a_value:
-                    return True
-            return False
-
-        elif option_match == MatchType.NOT_CONTAINS:
-            for a_value in attr_values:
-                if option_value in a_value:
-                    return False
-            return True
-
-        elif option_match == MatchType.IS_SET:
+        # NOTE: IS_SET condition differs btw tagged_event and event_attribute so not handled by match_values
+        if option_match == MatchType.IS_SET:
             return bool(attr_values)
 
         elif option_match == MatchType.NOT_SET:
             return not attr_values
 
-        elif option_match == MatchType.IS_IN:
-            values = option_value.replace(" ", "").split(",")
-            for a_value in attr_values:
-                if a_value in values:
-                    return True
-            return False
-
-        raise RuntimeError("Invalid Match")
+        return match_values(
+            group_values=attr_values, match_value=option_value, match_type=option_match
+        )
 
     def passes(self, event: GroupEvent, state: EventState, **kwargs: Any) -> bool:
         attr = self.get_option("attribute", "")
