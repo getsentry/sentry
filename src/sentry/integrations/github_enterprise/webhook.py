@@ -37,8 +37,8 @@ SHA1_PATTERN = r"^sha1=[0-9a-fA-F]{40}$"
 SHA256_PATTERN = r"^sha256=[0-9a-fA-F]{64}$"
 
 INVALID_SIGNATURE_ERROR = "Provided signature does not match the computed body signature"
-MALFORMED_SIGNATURE_ERROR = "Singature value does not match the expected format"
-UNSUPPORTED_SIGNATURE_ALGORITHM_ERROR = "Singature algorithm is unsupported"
+MALFORMED_SIGNATURE_ERROR = "Signature value does not match the expected format"
+UNSUPPORTED_SIGNATURE_ALGORITHM_ERROR = "Signature algorithm is unsupported"
 MISSING_WEBHOOK_PAYLOAD_ERROR = "Webhook payload not found"
 
 
