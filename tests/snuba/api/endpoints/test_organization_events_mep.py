@@ -3778,7 +3778,7 @@ class OrganizationEventsMetricsEnhancedPerformanceEndpointTestWithOnDemandMetric
 
         response = self.do_request(
             {
-                "field": ["count()", "transaction.name", "error.type"],
+                "field": ["count()", "transaction.op", "error.type"],
                 "query": "",
                 "dataset": "metricsEnhanced",
                 "per_page": 50,

@@ -425,7 +425,10 @@ class OrganizationEventsEndpoint(OrganizationEventsV2EndpointBase):
                     return _data_fn(split_dataset, offset, limit, scoped_query)
 
                 dataset_inferred_from_query = dataset_split_decision_inferred_from_query(
-                    self.get_field_list(organization, request), scoped_query, DashboardWidgetTypes
+                    self.get_field_list(organization, request),
+                    scoped_query,
+                    DashboardWidgetTypes,
+                    False,
                 )
                 has_errors = False
                 has_transactions = False
