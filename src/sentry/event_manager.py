@@ -2109,8 +2109,8 @@ def _handle_regression(group: Group, event: BaseEvent, release: Release | None) 
 
     # we only mark it as a regression if the event's release is newer than
     # the release which we originally marked this as resolved
-    elif GroupResolution.has_resolution(group, release):
-        return None
+    # elif GroupResolution.has_resolution(group, release):
+    #     return None
 
     elif has_pending_commit_resolution(group):
         return None
