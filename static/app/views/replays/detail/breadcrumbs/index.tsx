@@ -1,7 +1,6 @@
 import {useEffect, useMemo, useRef, useState} from 'react';
 import type {ListRowProps} from 'react-virtualized';
 import {AutoSizer, CellMeasurer, List as ReactVirtualizedList} from 'react-virtualized';
-import type {eventWithTime} from '@sentry-internal/rrweb';
 
 import Placeholder from 'sentry/components/placeholder';
 import JumpButtons from 'sentry/components/replays/jumpButtons';
@@ -99,7 +98,7 @@ function Breadcrumbs() {
         <BreadcrumbRow
           index={index}
           frame={item}
-          extraction={frameToExtraction?.get(item as unknown as eventWithTime)}
+          extraction={frameToExtraction?.get(item)}
           startTimestampMs={startTimestampMs}
           style={style}
           expandPaths={Array.from(expandPathsRef.current?.get(index) || [])}
