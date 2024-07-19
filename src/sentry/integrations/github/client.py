@@ -233,7 +233,7 @@ class GitHubClientMixin(GithubProxyClient):
             # the response should return a single merged PR, return if multiple
             return None
 
-        pull_request = response[0]
+        (pull_request,) = response
         if pull_request["state"] == "open":
             metrics.incr(
                 "github_pr_comment.queue_comment_check.open_pr",
