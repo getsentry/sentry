@@ -3069,7 +3069,7 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
             )
             assert len(response.data) == len(expected_groups)
             assert {int(r["id"]) for r in response.data} == set(expected_groups)
-    
+
     @patch(
         "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
         side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
