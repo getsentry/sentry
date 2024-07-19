@@ -471,7 +471,7 @@ class TestAlertRuleSerializer(TestAlertRuleSerializerBase):
         base_params["name"] = "Aun1qu3n4m3"
         base_params["triggers"][0]["actions"].append(
             {
-                "type": AlertRuleTriggerAction.get_registered_type(
+                "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.SLACK
                 ).slug,
                 "targetType": ACTION_TARGET_TYPE_TO_STRING[
@@ -859,7 +859,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
     @cached_property
     def valid_params(self):
         return {
-            "type": AlertRuleTriggerAction.get_registered_type(
+            "type": AlertRuleTriggerAction.get_registered_factory(
                 AlertRuleTriggerAction.Type.EMAIL
             ).slug,
             "target_type": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.SPECIFIC],
@@ -950,7 +950,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
     def test_invalid_priority(self):
         self.run_fail_validation_test(
             {
-                "type": AlertRuleTriggerAction.get_registered_type(
+                "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.MSTEAMS
                 ).slug,
                 "targetType": ACTION_TARGET_TYPE_TO_STRING[
@@ -966,7 +966,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
         )
         self.run_fail_validation_test(
             {
-                "type": AlertRuleTriggerAction.get_registered_type(
+                "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.PAGERDUTY
                 ).slug,
                 "targetType": ACTION_TARGET_TYPE_TO_STRING[
@@ -985,7 +985,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
         )
         self.run_fail_validation_test(
             {
-                "type": AlertRuleTriggerAction.get_registered_type(
+                "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.OPSGENIE
                 ).slug,
                 "targetType": ACTION_TARGET_TYPE_TO_STRING[
@@ -1009,7 +1009,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
     )
     def test_pagerduty_valid_priority(self, mock_get):
         params = {
-            "type": AlertRuleTriggerAction.get_registered_type(
+            "type": AlertRuleTriggerAction.get_registered_factory(
                 AlertRuleTriggerAction.Type.PAGERDUTY
             ).slug,
             "targetType": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.SPECIFIC],
@@ -1027,7 +1027,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
     )
     def test_opsgenie_valid_priority(self, mock_get):
         params = {
-            "type": AlertRuleTriggerAction.get_registered_type(
+            "type": AlertRuleTriggerAction.get_registered_factory(
                 AlertRuleTriggerAction.Type.OPSGENIE
             ).slug,
             "targetType": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.SPECIFIC],
@@ -1042,7 +1042,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
     def test_discord(self):
         self.run_fail_validation_test(
             {
-                "type": AlertRuleTriggerAction.get_registered_type(
+                "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.DISCORD
                 ).slug,
                 "targetType": ACTION_TARGET_TYPE_TO_STRING[
@@ -1056,7 +1056,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
     def test_slack(self):
         self.run_fail_validation_test(
             {
-                "type": AlertRuleTriggerAction.get_registered_type(
+                "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.SLACK
                 ).slug,
                 "target_type": ACTION_TARGET_TYPE_TO_STRING[AlertRuleTriggerAction.TargetType.USER],
@@ -1066,7 +1066,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
         )
         self.run_fail_validation_test(
             {
-                "type": AlertRuleTriggerAction.get_registered_type(
+                "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.SLACK
                 ).slug,
                 "targetType": ACTION_TARGET_TYPE_TO_STRING[
@@ -1080,7 +1080,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
         base_params = self.valid_params.copy()
         base_params.update(
             {
-                "type": AlertRuleTriggerAction.get_registered_type(
+                "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.SLACK
                 ).slug,
                 "targetType": ACTION_TARGET_TYPE_TO_STRING[
@@ -1103,7 +1103,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
         base_params = self.valid_params.copy()
         base_params.update(
             {
-                "type": AlertRuleTriggerAction.get_registered_type(
+                "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.SLACK
                 ).slug,
                 "targetType": ACTION_TARGET_TYPE_TO_STRING[
@@ -1137,7 +1137,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
         base_params = self.valid_params.copy()
         base_params.update(
             {
-                "type": AlertRuleTriggerAction.get_registered_type(
+                "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.SLACK
                 ).slug,
                 "targetType": ACTION_TARGET_TYPE_TO_STRING[
@@ -1171,7 +1171,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
         base_params = self.valid_params.copy()
         base_params.update(
             {
-                "type": AlertRuleTriggerAction.get_registered_type(
+                "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.SLACK
                 ).slug,
                 "targetType": ACTION_TARGET_TYPE_TO_STRING[
@@ -1197,7 +1197,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
     def test_sentry_app_action_missing_params(self):
         self.run_fail_validation_test(
             {
-                "type": AlertRuleTriggerAction.get_registered_type(
+                "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.SENTRY_APP
                 ).slug,
                 "target_type": ACTION_TARGET_TYPE_TO_STRING[
@@ -1214,7 +1214,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
         serializer = AlertRuleTriggerActionSerializer(
             context=self.context,
             data={
-                "type": AlertRuleTriggerAction.get_registered_type(
+                "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.SENTRY_APP
                 ).slug,
                 "target_type": ACTION_TARGET_TYPE_TO_STRING[
@@ -1241,7 +1241,7 @@ class TestAlertRuleTriggerActionSerializer(TestAlertRuleSerializerBase):
         serializer = AlertRuleTriggerActionSerializer(
             context=self.context,
             data={
-                "type": AlertRuleTriggerAction.get_registered_type(
+                "type": AlertRuleTriggerAction.get_registered_factory(
                     AlertRuleTriggerAction.Type.SENTRY_APP
                 ).slug,
                 "target_type": ACTION_TARGET_TYPE_TO_STRING[

@@ -90,7 +90,7 @@ class AlertRuleTriggerActionSerializer(CamelSnakeModelSerializer):
         identifier = attrs.get("target_identifier")
 
         if type is not None:
-            type_info = AlertRuleTriggerAction.get_registered_type(type)
+            type_info = AlertRuleTriggerAction.get_registered_factory(type)
             if target_type not in type_info.supported_target_types:
                 allowed_target_types = ",".join(
                     ACTION_TARGET_TYPE_TO_STRING[type_name]

@@ -1622,7 +1622,7 @@ def get_available_action_integrations_for_org(organization) -> list[RpcIntegrati
 
     providers = [
         registration.integration_provider
-        for registration in AlertRuleTriggerAction.get_registered_types()
+        for registration in AlertRuleTriggerAction.get_registered_factories()
         if registration.integration_provider is not None
     ]
     return integration_service.get_integrations(

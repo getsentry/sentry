@@ -208,7 +208,7 @@ class HandleTriggerActionTest(TestCase):
         )
 
     def test(self):
-        with patch.object(AlertRuleTriggerAction, "_type_registrations", new={}):
+        with patch.object(AlertRuleTriggerAction, "_factory_registrations", new={}):
             mock_handler = Mock()
             AlertRuleTriggerAction.register_type("email", AlertRuleTriggerAction.Type.EMAIL, [])(
                 mock_handler

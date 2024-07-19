@@ -69,8 +69,8 @@ class ProcessUpdateBaseClass(TestCase, SnubaTestCase):
 
     def setUp(self):
         super().setUp()
-        self.old_handlers = AlertRuleTriggerAction._type_registrations
-        AlertRuleTriggerAction._type_registrations = {}
+        self.old_handlers = AlertRuleTriggerAction._factory_registrations
+        AlertRuleTriggerAction._factory_registrations = {}
         self.email_action_handler = Mock()
         AlertRuleTriggerAction.register_type("email", AlertRuleTriggerAction.Type.EMAIL, [])(
             self.email_action_handler
@@ -80,7 +80,7 @@ class ProcessUpdateBaseClass(TestCase, SnubaTestCase):
 
     def tearDown(self):
         super().tearDown()
-        AlertRuleTriggerAction._type_registrations = self.old_handlers
+        AlertRuleTriggerAction._factory_registrations = self.old_handlers
         self._run_tasks.__exit__(None, None, None)
 
     def assert_trigger_exists_with_status(self, incident, trigger, status):
