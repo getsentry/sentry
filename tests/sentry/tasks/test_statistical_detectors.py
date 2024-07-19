@@ -260,9 +260,9 @@ def test_detect_function_trends_query_timerange(functions_query, timestamp, proj
         detect_function_trends([project.id], timestamp)
 
     assert functions_query.called
-    params = functions_query.mock_calls[0].kwargs["params"]
-    assert params["start"] == datetime(2023, 8, 1, 11, 0, tzinfo=UTC)
-    assert params["end"] == datetime(2023, 8, 1, 11, 1, tzinfo=UTC)
+    params = functions_query.mock_calls[0].kwargs["snuba_params"]
+    assert params.start == datetime(2023, 8, 1, 11, 0, tzinfo=UTC)
+    assert params.end == datetime(2023, 8, 1, 11, 1, tzinfo=UTC)
 
 
 @mock.patch("sentry.tasks.statistical_detectors.query_transactions")

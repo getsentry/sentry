@@ -92,6 +92,8 @@ class SnubaParams:
             self.end = self.end.replace(tzinfo=timezone.utc)
         if self.start is None and self.end is None:
             self.parse_stats_period()
+        if self.organization is None and len(self.projects) > 0:
+            self.organization = self.projects[0].organization
 
         # Only used in the trend query builder
         self.aliases: dict[str, Alias] | None = {}
