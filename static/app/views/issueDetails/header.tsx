@@ -243,6 +243,8 @@ function GroupHeader({
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
+  const NEW_ISSUE_TYPES = [IssueType.REPLAY_HYDRATION_ERROR]; // adds a "new" banner next to the title
+
   return (
     <Layout.Header>
       <div className={className}>
@@ -271,9 +273,7 @@ function GroupHeader({
         <HeaderRow>
           <TitleWrapper>
             <TitleHeading>
-              {group.issueCategory === IssueCategory.REPLAY && (
-                <StyledFeatureBadge type="new" />
-              )}
+              {group.issueType in NEW_ISSUE_TYPES && <StyledFeatureBadge type="new" />}
               <h3>
                 <StyledEventOrGroupTitle data={group} />
               </h3>
