@@ -36,6 +36,11 @@ from sentry.integrations.services.integration.model import RpcIntegration
 SHA1_PATTERN = r"^sha1=[0-9a-fA-F]{40}$"
 SHA256_PATTERN = r"^sha256=[0-9a-fA-F]{64}$"
 
+INVALID_SIGNATURE_ERROR = "Provided signature does not match the computed body signature"
+MALFORMED_SIGNATURE_ERROR = "Singature value does not match the expected format"
+UNSUPPORTED_SIGNATURE_ALGORITHM_ERROR = "Singature algorithm is unsupported"
+MISSING_WEBHOOK_PAYLOAD_ERROR = "Webhook payload not found"
+
 
 class MissingRequiredHeaderError(Exception):
     pass
@@ -222,40 +227,32 @@ class GitHubEnterpriseWebhookBase(Endpoint):
                 if not re.match(SHA256_PATTERN, sha256_signature):
                     # before we try to parse the parts of the signature, make sure it
                     # looks as expected to avoid any IndexErrors when we split it
-                    raise InvalidSignatureError(
-                        "Provided signature does not match the computed body signature"
-                    )
+                    raise InvalidSignatureError()
 
                 _, signature = sha256_signature.split("=", 1)
                 extra["signature_algorithm"] = "sha256"
                 is_valid = self.is_valid_signature("sha256", body, secret, signature)
                 if not is_valid:
-                    raise MalformedSignatureError(
-                        "Signature value does not match the expected format"
-                    )
+                    raise MalformedSignatureError()
 
             if sha1_signature:
                 if not re.match(SHA1_PATTERN, sha1_signature):
                     # before we try to parse the parts of the signature, make sure it
                     # looks as expected to avoid any IndexErrors when we split it
-                    raise MalformedSignatureError(
-                        "Signature value does not match the expected format"
-                    )
+                    raise MalformedSignatureError()
 
                 _, signature = sha1_signature.split("=", 1)
                 is_valid = self.is_valid_signature("sha1", body, secret, signature)
                 extra["signature_algorithm"] = "sha1"
                 if not is_valid:
-                    raise InvalidSignatureError(
-                        "Provided signature does not match the computed body signature"
-                    )
+                    raise InvalidSignatureError()
 
         except InvalidSignatureError as e:
             logger.warning("github_enterprise.webhook.invalid-signature", extra=extra)
             sentry_sdk.capture_exception(e)
 
-            return HttpResponse(str(e), status=401)
-
+            return HttpResponse(INVALID_SIGNATURE_ERROR, status=401)
+        except UnsupportedSignatureAlgorithmError as e:
             # we should never end up here with the regex checks above on the signature format,
             # but just in case
             logger.exception(
@@ -288,7 +285,7 @@ class GitHubEnterpriseWebhookBase(Endpoint):
         except (MalformedSignatureError, IndexError) as e:
             logger.warning("github_enterprise.webhook.malformed-signature", extra=extra)
             sentry_sdk.capture_exception(e)
-            return HttpResponse(str(e), status=400)
+            return HttpResponse(MALFORMED_SIGNATURE_ERROR, status=400)
 
         handler()(event, host)
         return HttpResponse(status=204)
