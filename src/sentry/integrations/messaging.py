@@ -171,7 +171,7 @@ class MessagingIntegrationSpec(ABC):
         return None
 
 
-class _MessagingActionHandler(DefaultActionHandler):
+class MessagingActionHandler(DefaultActionHandler):
     def __init__(
         self,
         action: AlertRuleTriggerAction,
@@ -212,4 +212,4 @@ class _MessagingHandlerFactory(AlertRuleActionHandlerFactory):
     def build_handler(
         self, action: AlertRuleTriggerAction, incident: Incident, project: Project
     ) -> ActionHandler:
-        return _MessagingActionHandler(action, incident, project, self.spec)
+        return MessagingActionHandler(action, incident, project, self.spec)
