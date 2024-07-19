@@ -181,7 +181,7 @@ def get_current_batch_groups_from_postgres(
                 "backfill_seer_grouping_records.enable_ingestion",
                 extra={"project_id": project.id},
             )
-            project.update_option("sentry:similarity_backfill_completed", True)
+            project.update_option("sentry:similarity_backfill_completed", int(time.time()))
 
         return (
             groups_to_backfill_batch,

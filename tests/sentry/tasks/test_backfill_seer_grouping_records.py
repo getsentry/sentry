@@ -1565,7 +1565,7 @@ class TestBackfillSeerGroupingRecords(SnubaTestCase, TestCase):
             "backfill_seer_grouping_records.enable_ingestion",
             extra={"project_id": self.project.id},
         )
-        assert self.project.get_option("sentry:similarity_backfill_completed") is True
+        assert self.project.get_option("sentry:similarity_backfill_completed") is not None
 
     @with_feature("projects:similarity-embeddings-backfill")
     @patch("sentry.tasks.embeddings_grouping.utils.logger")
