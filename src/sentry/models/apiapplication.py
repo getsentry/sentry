@@ -71,11 +71,7 @@ class ApiApplication(Model):
     # organization defined on the application. Cross-organization access is not tolerable
     # regardless of the token's scope.
     organization_id = HybridCloudForeignKey(
-        "sentry.Organization",
-        db_index=True,
-        null=True,
-        on_delete="CASCADE",
-        unique=True,
+        "sentry.Organization", db_index=True, null=True, unique=True
     )
 
     date_added = models.DateTimeField(default=timezone.now)

@@ -17,6 +17,7 @@ from sentry.backup.sanitize import SanitizableField, Sanitizer
 from sentry.backup.scopes import ImportScope, RelocationScope
 from sentry.constants import SentryAppStatus
 from sentry.db.models import FlexibleForeignKey, control_silo_model, sane_repr
+from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.outboxes import ControlOutboxProducingManager, ReplicatedControlModel
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apiscopes import HasApiScopes
@@ -118,6 +119,9 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     hashed_refresh_token = models.CharField(max_length=128, unique=True, null=True)
     expires_at = models.DateTimeField(null=True, default=default_expiration)
     date_added = models.DateTimeField(default=timezone.now)
+
+    # Token's can be scoped to only access a single organization.
+    scoping_organization_id = HybridCloudForeignKey("sentry.Organization", null=True)
 
     objects: ClassVar[ApiTokenManager] = ApiTokenManager(cache_fields=("token",))
 

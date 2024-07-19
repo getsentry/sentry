@@ -433,9 +433,6 @@ class UserAuthTokenAuthentication(StandardAuthentication):
         if application_is_inactive:
             raise AuthenticationFailed("UserApplication inactive or deleted")
 
-        if token.organization_id != query_params_org_id:
-            raise AuthenticationFailed("Token is scoped to a single organization")
-
         return self.transform_auth(
             user,
             token,
