@@ -102,6 +102,8 @@ class TeamExamples:
         )
     ]
 
+    LIST_TEAM_MEMBERS = []
+
     LIST_ORG_TEAMS = [
         OpenApiExample(
             "Get list of organization's teams",

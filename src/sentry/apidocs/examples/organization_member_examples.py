@@ -36,9 +36,7 @@ class OrganizationMemberExamples:
                     "authenticators": [],
                     "canReset2fa": True,
                 },
-                "role": "member",
                 "orgRole": "member",
-                "roleName": "Member",
                 "pending": False,
                 "expired": False,
                 "flags": {
@@ -93,9 +91,7 @@ class OrganizationMemberExamples:
                         "authenticators": [],
                         "canReset2fa": True,
                     },
-                    "role": "member",
                     "orgRole": "member",
-                    "roleName": "Member",
                     "pending": False,
                     "expired": False,
                     "flags": {
@@ -114,9 +110,7 @@ class OrganizationMemberExamples:
                     "id": "57377908165",
                     "email": "rockhopper@antarcticarocks.com",
                     "name": "Rockhopper",
-                    "role": "member",
                     "orgRole": "member",
-                    "roleName": "Member",
                     "pending": True,
                     "expired": False,
                     "flags": {

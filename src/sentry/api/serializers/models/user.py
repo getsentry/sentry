@@ -5,7 +5,7 @@ import warnings
 from collections import defaultdict
 from collections.abc import Callable, Mapping, MutableMapping, Sequence
 from datetime import datetime
-from typing import Any, TypedDict, cast
+from typing import Any, NotRequired, TypedDict, cast
 
 from django.conf import settings
 from django.contrib.auth.models import AnonymousUser
@@ -79,14 +79,11 @@ class _UserOptions(TypedDict):
     issueDetailsNewExperienceQ42023: bool
 
 
-class UserSerializerResponseOptional(TypedDict, total=False):
-    identities: list[_Identity]
-    avatar: SerializedAvatarFields
-    authenticators: list[Any]  # TODO: find out what type this is
-    canReset2fa: bool
-
-
-class UserSerializerResponse(UserSerializerResponseOptional):
+class UserSerializerResponse(TypedDict):
+    identities: NotRequired[list[_Identity]]
+    avatar: NotRequired[SerializedAvatarFields]
+    authenticators: NotRequired[list[Any]]  # TODO: find out what type this is
+    canReset2fa: NotRequired[bool]
     id: str
     name: str
     username: str
