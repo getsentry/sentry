@@ -819,6 +819,10 @@ export function getSortField(
     return field;
   }
 
+  if (field.startsWith('division_if(')) {
+    return field;
+  }
+
   for (const alias in AGGREGATIONS) {
     if (field.startsWith(alias)) {
       return AGGREGATIONS[alias].isSortable ? field : null;
