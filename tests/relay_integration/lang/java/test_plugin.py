@@ -1556,7 +1556,6 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
 
     def test_is_jvm_event(self):
         from sentry.lang.java.utils import is_jvm_event
-        from sentry.stacktraces.processing import find_stacktraces_in_data
 
         event = {
             "user": {"ip_address": "31.172.207.97"},
@@ -1586,8 +1585,7 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             },
             "timestamp": iso_format(before_now(seconds=1)),
         }
-        stacktraces = find_stacktraces_in_data(event)
-        assert is_jvm_event(event, stacktraces)
+        assert is_jvm_event(event)
 
         event = {
             "user": {"ip_address": "31.172.207.97"},
@@ -1616,9 +1614,8 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             },
             "timestamp": iso_format(before_now(seconds=1)),
         }
-        stacktraces = find_stacktraces_in_data(event)
         # has no platform
-        assert not is_jvm_event(event, stacktraces)
+        assert is_jvm_event(event)
 
         event = {
             "user": {"ip_address": "31.172.207.97"},
@@ -1648,6 +1645,5 @@ class BasicResolvingIntegrationTest(RelayStoreHelper, TransactionTestCase):
             },
             "timestamp": iso_format(before_now(seconds=1)),
         }
-        stacktraces = find_stacktraces_in_data(event)
         # has no modules
-        assert not is_jvm_event(event, stacktraces)
+        assert not is_jvm_event(event)

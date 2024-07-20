@@ -136,7 +136,7 @@ class DeleteGroupTest(TestCase, SnubaTestCase):
 
         assert nodestore_delete_multi.call_count == 0
 
-    @with_feature("projects:similarity-embeddings-delete-by-hash")
+    @with_feature("projects:similarity-embeddings-grouping")
     @mock.patch(
         "sentry.tasks.delete_seer_grouping_records.delete_seer_grouping_records_by_hash.apply_async"
     )

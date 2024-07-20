@@ -199,12 +199,8 @@ def main(context: dict[str, str]) -> int:
         reporoot,
         venv_dir,
         (
-            (
-                "python dependencies (4/4)",
-                ("python3", "-m", "tools.fast_editable", "--path", "."),
-                {},
-            ),
-            ("pre-commit dependencies", ("pre-commit", "install", "--install-hooks", "-f"), {}),
+            ("python dependencies (4/4)", ("python3", "-m", "tools.fast_editable", "--path", ".")),
+            ("pre-commit dependencies", ("pre-commit", "install", "--install-hooks", "-f")),
         ),
     ):
         return 1

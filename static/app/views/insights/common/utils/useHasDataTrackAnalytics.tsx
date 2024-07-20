@@ -1,4 +1,5 @@
 import {useEffect} from 'react';
+import * as Sentry from '@sentry/react';
 
 import {trackAnalytics} from 'sentry/utils/analytics';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -10,6 +11,8 @@ export function useHasDataTrackAnalytics(module: ModuleName, analyticEvent: stri
   const organization = useOrganization();
   const pageFilters = usePageFilters();
   const hasEverSentData = useHasFirstSpan(module);
+
+  Sentry.setTag(`insights.${module}.hasEverSentData`, hasEverSentData);
 
   const projects = JSON.stringify(pageFilters.selection.projects);
 

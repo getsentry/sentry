@@ -860,7 +860,7 @@ def query_transactions_timeseries(
                     start,
                     end,
                     interval,
-                    "time",
+                    ["time"],
                 ),
                 "project": project_id,
             },

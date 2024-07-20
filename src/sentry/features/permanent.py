@@ -124,13 +124,27 @@ def register_permanent_features(manager: FeatureManager):
 
     for org_feature, default in permanent_organization_features.items():
         manager.add(
-            org_feature, OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=default
+            org_feature,
+            OrganizationFeature,
+            FeatureHandlerStrategy.INTERNAL,
+            default=default,
+            api_expose=True,
         )
 
     for project_feature, default in permanent_project_features.items():
         manager.add(
-            project_feature, ProjectFeature, FeatureHandlerStrategy.INTERNAL, default=default
+            project_feature,
+            ProjectFeature,
+            FeatureHandlerStrategy.INTERNAL,
+            default=default,
+            api_expose=True,
         )
 
     # Enable support for multiple regions, and org slug subdomains (customer-domains).
-    manager.add("system:multi-region", SystemFeature, default=False)
+    manager.add(
+        "system:multi-region",
+        SystemFeature,
+        FeatureHandlerStrategy.INTERNAL,
+        default=False,
+        api_expose=False,
+    )

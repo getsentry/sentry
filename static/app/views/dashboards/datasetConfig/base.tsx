@@ -10,6 +10,7 @@ import type {MetaType} from 'sentry/utils/discover/eventView';
 import type {getFieldRenderer} from 'sentry/utils/discover/fieldRenderers';
 import type {AggregationOutputType, QueryFieldValue} from 'sentry/utils/discover/fields';
 import {isEquation} from 'sentry/utils/discover/fields';
+import type {DiscoverDatasets} from 'sentry/utils/discover/types';
 import type {MEPState} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import type {OnDemandControlContext} from 'sentry/utils/performance/contexts/onDemandControl';
 import type {FieldValueOption} from 'sentry/views/discover/table/queryField';
@@ -19,9 +20,11 @@ import type {DisplayType, Widget, WidgetQuery} from '../types';
 import {WidgetType} from '../types';
 import {getNumEquations} from '../utils';
 
+import {ErrorsConfig} from './errors';
 import {ErrorsAndTransactionsConfig} from './errorsAndTransactions';
 import {IssuesConfig} from './issues';
 import {ReleasesConfig} from './releases';
+import {TransactionsConfig} from './transactions';
 
 export type WidgetBuilderSearchBarProps = {
   getFilterWarning: SearchBarProps['getFilterWarning'];
@@ -30,6 +33,7 @@ export type WidgetBuilderSearchBarProps = {
   organization: Organization;
   pageFilters: PageFilters;
   widgetQuery: WidgetQuery;
+  dataset?: DiscoverDatasets;
 };
 
 export interface DatasetConfig<SeriesResponse, TableResponse> {
@@ -215,16 +219,29 @@ export function getDatasetConfig<T extends WidgetType | undefined>(
   ? typeof IssuesConfig
   : T extends WidgetType.RELEASE
     ? typeof ReleasesConfig
-    : typeof ErrorsAndTransactionsConfig;
+    : T extends WidgetType.ERRORS
+      ? typeof ErrorsConfig
+      : T extends WidgetType.TRANSACTIONS
+        ? typeof TransactionsConfig
+        : typeof ErrorsAndTransactionsConfig;
 
 export function getDatasetConfig(
   widgetType?: WidgetType
-): typeof IssuesConfig | typeof ReleasesConfig | typeof ErrorsAndTransactionsConfig {
+):
+  | typeof IssuesConfig
+  | typeof ReleasesConfig
+  | typeof ErrorsAndTransactionsConfig
+  | typeof ErrorsConfig
+  | typeof TransactionsConfig {
   switch (widgetType) {
     case WidgetType.ISSUE:
       return IssuesConfig;
     case WidgetType.RELEASE:
       return ReleasesConfig;
+    case WidgetType.ERRORS:
+      return ErrorsConfig;
+    case WidgetType.TRANSACTIONS:
+      return TransactionsConfig;
     case WidgetType.DISCOVER:
     default:
       return ErrorsAndTransactionsConfig;

@@ -346,13 +346,14 @@ export const replayBackendPlatforms: readonly PlatformKey[] = [
 
 // These are the frontend platforms that can set up replay.
 export const replayFrontendPlatforms: readonly PlatformKey[] = [
-  'capacitor',
-  'electron',
+  'javascript',
   'javascript-angular',
   'javascript-astro',
   'javascript-backbone',
   'javascript-capacitor',
+  'capacitor',
   'javascript-electron',
+  'electron',
   'javascript-ember',
   'javascript-gatsby',
   'javascript-nextjs',
@@ -361,7 +362,6 @@ export const replayFrontendPlatforms: readonly PlatformKey[] = [
   'javascript-svelte',
   'javascript-sveltekit',
   'javascript-vue',
-  'javascript',
 ];
 
 // These are all the platforms that can set up replay.

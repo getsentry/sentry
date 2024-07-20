@@ -27,7 +27,7 @@ import {type SectionCardKeyValueList, TraceDrawerComponents} from '../../details
 
 type GeneralInfoProps = {
   metaResults: TraceMetaQueryResults;
-  node: TraceTreeNode<TraceTree.NodeValue> | null;
+  node: TraceTreeNode<TraceTree.NodeValue>;
   organization: Organization;
   rootEventResults: UseApiQueryResult<EventTransaction, RequestError>;
   traces: TraceSplitResults<TraceFullDetailed> | null;
@@ -169,7 +169,7 @@ export function GeneralInfo(props: GeneralInfoProps) {
           position="bottom"
         >
           {uniqueIssuesCount > 0 ? (
-            <TraceDrawerComponents.IssuesLink>
+            <TraceDrawerComponents.IssuesLink node={props.node}>
               {uniqueIssuesCount}
             </TraceDrawerComponents.IssuesLink>
           ) : uniqueIssuesCount === 0 ? (

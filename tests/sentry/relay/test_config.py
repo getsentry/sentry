@@ -766,10 +766,10 @@ def test_desktop_performance_calculate_score(default_project):
     assert performance_score[0] == {
         "name": "Chrome",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": False},
-            {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": False},
-            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
-            {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": False},
+            {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": True},
+            {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": True},
+            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
+            {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": True},
         ],
         "condition": {
             "op": "eq",
@@ -786,7 +786,7 @@ def test_desktop_performance_calculate_score(default_project):
                 "weight": 0.15,
                 "p10": 900.0,
                 "p50": 1600.0,
-                "optional": False,
+                "optional": True,
             },
             {
                 "measurement": "lcp",
@@ -801,7 +801,7 @@ def test_desktop_performance_calculate_score(default_project):
                 "weight": 0.1,
                 "p10": 200.0,
                 "p50": 400.0,
-                "optional": False,
+                "optional": True,
             },
         ],
         "condition": {
@@ -819,7 +819,7 @@ def test_desktop_performance_calculate_score(default_project):
                 "weight": 0.15,
                 "p10": 900.0,
                 "p50": 1600.0,
-                "optional": False,
+                "optional": True,
             },
             {
                 "measurement": "lcp",
@@ -834,7 +834,7 @@ def test_desktop_performance_calculate_score(default_project):
                 "weight": 0.1,
                 "p10": 200.0,
                 "p50": 400.0,
-                "optional": False,
+                "optional": True,
             },
         ],
         "condition": {
@@ -847,10 +847,10 @@ def test_desktop_performance_calculate_score(default_project):
     assert performance_score[3] == {
         "name": "Edge",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": False},
-            {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": False},
-            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
-            {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": False},
+            {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": True},
+            {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": True},
+            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
+            {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": True},
         ],
         "condition": {
             "op": "eq",
@@ -862,10 +862,10 @@ def test_desktop_performance_calculate_score(default_project):
     assert performance_score[4] == {
         "name": "Opera",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": False},
-            {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": False},
-            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
-            {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": False},
+            {"measurement": "fcp", "weight": 0.15, "p10": 900, "p50": 1600, "optional": True},
+            {"measurement": "lcp", "weight": 0.3, "p10": 1200, "p50": 2400, "optional": True},
+            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
+            {"measurement": "ttfb", "weight": 0.1, "p10": 200, "p50": 400, "optional": True},
         ],
         "condition": {
             "op": "eq",
@@ -935,10 +935,10 @@ def test_mobile_performance_calculate_score(default_project):
     assert performance_score[8] == {
         "name": "Chrome Mobile",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": False},
-            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": False},
-            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
-            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": False},
+            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": True},
+            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": True},
+            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
+            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": True},
         ],
         "condition": {
             "op": "eq",
@@ -950,10 +950,10 @@ def test_mobile_performance_calculate_score(default_project):
     assert performance_score[9] == {
         "name": "Firefox Mobile",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": False},
+            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": True},
             {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": True},
             {"measurement": "cls", "weight": 0.0, "p10": 0.1, "p50": 0.25, "optional": False},
-            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": False},
+            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": True},
         ],
         "condition": {
             "op": "eq",
@@ -965,10 +965,10 @@ def test_mobile_performance_calculate_score(default_project):
     assert performance_score[10] == {
         "name": "Safari Mobile",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": False},
+            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": True},
             {"measurement": "lcp", "weight": 0.0, "p10": 2500.0, "p50": 4000.0, "optional": False},
             {"measurement": "cls", "weight": 0.0, "p10": 0.1, "p50": 0.25, "optional": False},
-            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": False},
+            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": True},
         ],
         "condition": {
             "op": "eq",
@@ -980,10 +980,10 @@ def test_mobile_performance_calculate_score(default_project):
     assert performance_score[11] == {
         "name": "Edge Mobile",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": False},
-            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": False},
-            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
-            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": False},
+            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": True},
+            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": True},
+            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
+            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": True},
         ],
         "condition": {
             "op": "eq",
@@ -996,10 +996,10 @@ def test_mobile_performance_calculate_score(default_project):
     assert performance_score[12] == {
         "name": "Opera Mobile",
         "scoreComponents": [
-            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": False},
-            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": False},
-            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": False},
-            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": False},
+            {"measurement": "fcp", "weight": 0.15, "p10": 1800.0, "p50": 3000.0, "optional": True},
+            {"measurement": "lcp", "weight": 0.30, "p10": 2500.0, "p50": 4000.0, "optional": True},
+            {"measurement": "cls", "weight": 0.15, "p10": 0.1, "p50": 0.25, "optional": True},
+            {"measurement": "ttfb", "weight": 0.10, "p10": 800.0, "p50": 1800.0, "optional": True},
         ],
         "condition": {
             "op": "eq",

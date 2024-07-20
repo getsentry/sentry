@@ -1,6 +1,6 @@
 import * as Sentry from '@sentry/react';
 import memoize from 'lodash/memoize';
-import {type Duration, duration} from 'moment';
+import {type Duration, duration} from 'moment-timezone';
 
 import {defined} from 'sentry/utils';
 import domId from 'sentry/utils/domId';
@@ -14,7 +14,6 @@ import hydrateFrames from 'sentry/utils/replays/hydrateFrames';
 import {
   clipEndFrame,
   recordingEndFrame,
-  recordingStartFrame,
 } from 'sentry/utils/replays/hydrateRRWebRecordingFrames';
 import hydrateSpans from 'sentry/utils/replays/hydrateSpans';
 import {replayTimestamps} from 'sentry/utils/replays/replayDataUtils';
@@ -36,10 +35,8 @@ import {
   BreadcrumbCategories,
   EventType,
   IncrementalSource,
-  isBackgroundFrame,
   isDeadClick,
   isDeadRageClick,
-  isForegroundFrame,
   isPaintFrame,
   isWebVitalFrame,
 } from 'sentry/utils/replays/types';
@@ -246,8 +243,29 @@ export default class ReplayReader {
     this._optionFrame = optionFrame;
 
     // Insert extra records to satisfy minimum requirements for the UI
+    // e.g. we have buffered events from browser that happen *before* replay
+    // recording is started these can show up in the timeline (navigation) and
+    // in Network table
+    //
+    // We fake the start time so that the timelines of these UI components and
+    // the replay recording all match up
     this._sortedBreadcrumbFrames.unshift(replayInitBreadcrumb(replayRecord));
-    this._sortedRRWebEvents.unshift(recordingStartFrame(replayRecord));
+    const startTimestampMs = replayRecord.started_at.getTime();
+    const firstMeta = rrwebFrames.find(frame => frame.type === EventType.Meta);
+    const firstSnapshot = rrwebFrames.find(
+      frame => frame.type === EventType.FullSnapshot
+    );
+    if (firstMeta && firstSnapshot && firstMeta.timestamp > startTimestampMs) {
+      this._sortedRRWebEvents.unshift({
+        ...firstSnapshot,
+        timestamp: startTimestampMs,
+      });
+      this._sortedRRWebEvents.unshift({
+        ...firstMeta,
+        timestamp: startTimestampMs,
+      });
+    }
+
     this._sortedRRWebEvents.push(recordingEndFrame(replayRecord));
 
     this._duration = replayRecord.duration;
@@ -533,12 +551,6 @@ export default class ReplayReader {
       return this._sortedSpanFrames.filter(isWebVitalFrame);
     }
     return [];
-  });
-
-  getAppFrames = memoize(() => {
-    return this._sortedBreadcrumbFrames.filter(
-      frame => isBackgroundFrame(frame) || isForegroundFrame(frame)
-    );
   });
 
   getVideoEvents = () => this._videoEvents;

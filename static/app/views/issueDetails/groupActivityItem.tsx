@@ -1,6 +1,6 @@
 import {Fragment} from 'react';
 import styled from '@emotion/styled';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import CommitLink from 'sentry/components/commitLink';
 import {DateTime} from 'sentry/components/dateTime';

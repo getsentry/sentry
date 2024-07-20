@@ -42,6 +42,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleDetectionType,
     AlertRuleMonitorTypeInt,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
@@ -153,7 +154,11 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
 from sentry.types.region import Region, get_local_region, get_region_by_name
 from sentry.types.token import AuthTokenType
-from sentry.uptime.models import ProjectUptimeSubscription, UptimeSubscription
+from sentry.uptime.models import (
+    ProjectUptimeSubscription,
+    ProjectUptimeSubscriptionMode,
+    UptimeSubscription,
+)
 from sentry.users.services.user import RpcUser
 from sentry.utils import loremipsum
 from sentry.utils.performance_issues.performance_problem import PerformanceProblem
@@ -1544,6 +1549,9 @@ class Factories:
         monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS,
         activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
         description=None,
+        sensitivity=None,
+        seasonality=None,
+        detection_type=AlertRuleDetectionType.STATIC,
     ):
         if not name:
             name = petname.generate(2, " ", letters=10).title()
@@ -1573,6 +1581,9 @@ class Factories:
             monitor_type=monitor_type,
             activation_condition=activation_condition,
             description=description,
+            sensitivity=sensitivity,
+            seasonality=seasonality,
+            detection_type=detection_type,
         )
 
         if date_added is not None:
@@ -1935,8 +1946,13 @@ class Factories:
         )
 
     @staticmethod
-    def create_project_uptime_subscription(project, uptime_subscription):
+    def create_project_uptime_subscription(
+        project: Project,
+        uptime_subscription: UptimeSubscription,
+        mode: ProjectUptimeSubscriptionMode,
+    ):
         return ProjectUptimeSubscription.objects.create(
             uptime_subscription=uptime_subscription,
             project=project,
+            mode=mode,
         )

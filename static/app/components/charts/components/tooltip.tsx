@@ -3,7 +3,7 @@ import 'echarts/lib/component/tooltip';
 import type {Theme} from '@emotion/react';
 import {useTheme} from '@emotion/react';
 import type {TooltipComponentFormatterCallback, TooltipComponentOption} from 'echarts';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import type BaseChart from 'sentry/components/charts/baseChart';
 import {t} from 'sentry/locale';
@@ -119,6 +119,10 @@ export type FormatterOptions = Pick<
      */
     limit?: number;
     /**
+     * If true does not display sublabels with a value of 0.
+     */
+    skipZeroValuedSubLabels?: boolean;
+    /**
      * Array containing data that is used to display indented sublabels.
      */
     subLabels?: TooltipSubLabel[];
@@ -138,6 +142,7 @@ export function getFormatter({
   subLabels = [],
   addSecondsToTimeFormat = false,
   limit,
+  skipZeroValuedSubLabels,
 }: FormatterOptions): TooltipComponentFormatterCallback<any> {
   const getFilter = (seriesParam: any) => {
     // Series do not necessarily have `data` defined, e.g. releases don't have `data`, but rather
@@ -253,7 +258,11 @@ export function getFormatter({
           ];
 
           for (const subLabel of filteredSubLabels) {
-            const serieValue = subLabel.data[serie.dataIndex].value;
+            const serieValue = subLabel.data[serie.dataIndex]?.value ?? 0;
+
+            if (skipZeroValuedSubLabels && serieValue === 0) {
+              continue;
+            }
 
             labelWithSubLabels.push(
               `<div><span class="tooltip-label tooltip-label-indent"><strong>${
@@ -261,7 +270,7 @@ export function getFormatter({
               }</strong></span> ${valueFormatter(serieValue)}</div>`
             );
 
-            acc.total = acc.total + subLabel.data[serie.dataIndex].value;
+            acc.total = acc.total + serieValue;
           }
 
           acc.series.push(labelWithSubLabels.join(''));
@@ -336,6 +345,7 @@ export function computeChartTooltip(
     hideDelay,
     subLabels,
     chartId,
+    skipZeroValuedSubLabels,
     ...props
   }: Props,
   theme: Theme
@@ -355,6 +365,7 @@ export function computeChartTooltip(
       nameFormatter,
       markerFormatter,
       subLabels,
+      skipZeroValuedSubLabels,
     });
 
   return {

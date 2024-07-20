@@ -131,7 +131,7 @@ function BreadcrumbItem({
       <StyledTimelineItem
         icon={icon}
         title={title}
-        colorConfig={{primary: darkColor, secondary: color}}
+        colorConfig={{title: darkColor, icon: darkColor, iconBorder: color}}
         timestamp={
           <ReplayTimestamp>
             <TimestampButton
@@ -207,6 +207,7 @@ function CrumbHydrationButton({
         replay={replay}
         leftOffsetMs={leftOffsetMs}
         rightOffsetMs={rightOffsetMs}
+        surface="replay-breadcrumbs"
         size="xs"
       >
         {t('Open Hydration Diff')}
