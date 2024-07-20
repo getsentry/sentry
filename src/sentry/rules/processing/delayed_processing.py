@@ -273,6 +273,7 @@ def get_rules_to_fire(
                 ):
                     if action_match == "any":
                         rules_to_fire[alert_rule].add(group_id)
+                        break
                     elif action_match == "all":
                         conditions_matched += 1
 
