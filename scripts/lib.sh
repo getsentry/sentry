@@ -78,30 +78,6 @@ sudo-askpass() {
     fi
 }
 
-pip-install() {
-    pip install --constraint "${HERE}/../requirements-dev-frozen.txt" "$@"
-}
-
-upgrade-pip() {
-    pip-install pip
-}
-
-install-py-dev() {
-    upgrade-pip
-    # It places us within top src dir to be at the same path as setup.py
-    # This helps when getsentry calls into this script
-    cd "${HERE}/.." || exit
-
-    echo "--> Installing Sentry (for development)"
-
-    # pip doesn't do well with swapping drop-ins
-    pip uninstall -qqy djangorestframework-stubs django-stubs
-
-    pip-install -r requirements-dev-frozen.txt
-
-    python3 -m tools.fast_editable --path .
-}
-
 node-version-check() {
     # Checks to see if node's version matches the one specified in package.json for Volta.
     node -pe "process.exit(Number(!(process.version == 'v' + require('./.volta.json').volta.node )))" ||
@@ -193,16 +169,4 @@ reset-db() {
     apply-migrations
     create-superuser
     echo 'Finished resetting database. To load mock data, run `./bin/load-mocks`'
-}
-
-direnv-help() {
-    cat >&2 <<EOF
-If you're a Sentry employee and you're stuck or have questions, ask in #discuss-dev-infra.
-If you're not, please file an issue under https://github.com/getsentry/sentry/issues/new/choose and mention @getsentry/owners-sentry-dev
-
-You can configure the behaviour of direnv by adding the following variables to a .env file:
-
-- SENTRY_DIRENV_DEBUG=1: This will allow printing debug messages
-- SENTRY_DEVENV_NO_REPORT=1: Do not report development environment errors to Sentry.io
-EOF
 }
