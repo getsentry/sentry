@@ -26,7 +26,7 @@ install-py-dev :
 	@./scripts/do.sh $@
 
 develop:
-	devenv-sync
+	@make devenv-sync
 
 # This is to ensure devenv sync's only called once if the above
 # macros are combined e.g. `make install-js-dev install-py-dev`
