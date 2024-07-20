@@ -61,7 +61,6 @@ BACKEND = {
     "go-gin",
     "go-http",
     "go-iris",
-    "go-martini",
     "go-negroni",
     "java",
     "java-appengine",
