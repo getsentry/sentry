@@ -279,7 +279,7 @@ export function SetupReplaysCTA({
           href={
             allMobileProj
               ? 'https://docs.sentry.io/product/explore/session-replay/mobile/'
-              : 'https://docs.sentry.io/product/session-replay/getting-started/'
+              : 'https://docs.sentry.io/product/explore/session-replay/'
           }
           external
         >
