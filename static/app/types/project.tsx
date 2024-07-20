@@ -183,7 +183,6 @@ export type PlatformKey =
   | 'go-gin'
   | 'go-http'
   | 'go-iris'
-  | 'go-martini'
   | 'go-negroni'
   | 'groovy'
   | 'ionic'

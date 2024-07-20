@@ -59,7 +59,6 @@ const server: Set<PlatformKey> = new Set([
   'go-fasthttp',
   'go-gin',
   'go-iris',
-  'go-martini',
   'go-negroni',
   'java',
   'java-log4j2',
