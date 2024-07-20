@@ -13,6 +13,7 @@ bootstrap:
 	@echo "you probably want to run devenv sync to bring the"
 	@echo "sentry dev environment up to date!"
 
+build-platform-assets \
 clean \
 init-config \
 run-dependent-services \
@@ -21,11 +22,11 @@ create-db \
 apply-migrations \
 reset-db \
 node-version-check \
-install-js-dev \
-install-py-dev :
+install-js-dev :
 	@./scripts/do.sh $@
 
-develop:
+develop \
+install-py-dev :
 	@make devenv-sync
 
 # This is to ensure devenv sync's only called once if the above
@@ -33,11 +34,6 @@ develop:
 .PHONY: devenv-sync
 devenv-sync:
 	devenv sync
-
-build-platform-assets \
-direnv-help \
-upgrade-pip :
-	@SENTRY_NO_VENV_CHECK=1 ./scripts/do.sh $@
 
 build-js-po: node-version-check
 	mkdir -p build
