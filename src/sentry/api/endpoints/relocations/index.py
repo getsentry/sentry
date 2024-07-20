@@ -4,6 +4,7 @@ from datetime import timedelta
 from functools import reduce
 from string import Template
 
+from django.contrib.auth.models import AnonymousUser
 from django.db import router
 from django.db.models import Q
 from django.utils import timezone
@@ -24,12 +25,12 @@ from sentry.api.serializers.models.relocation import RelocationSerializer
 from sentry.auth.elevated_mode import has_elevated_mode
 from sentry.models.files.file import File
 from sentry.models.relocation import Relocation, RelocationFile
-from sentry.models.user import MAX_USERNAME_LENGTH
+from sentry.models.user import MAX_USERNAME_LENGTH, User
 from sentry.options import get
 from sentry.search.utils import tokenize_query
 from sentry.signals import relocation_link_promo_code
 from sentry.slug.patterns import ORG_SLUG_PATTERN
-from sentry.tasks.relocation import uploading_complete
+from sentry.tasks.relocation import uploading_start
 from sentry.users.services.user.model import RpcUser
 from sentry.users.services.user.service import user_service
 from sentry.utils.db import atomic_transaction
@@ -128,7 +129,7 @@ def validate_new_relocation_request(
     return None
 
 
-def validate_relocation_uniqueness(owner: RpcUser) -> Response | None:
+def validate_relocation_uniqueness(owner: RpcUser | AnonymousUser | User) -> Response | None:
     # Check that this `owner` does not have more than one active `Relocation` in flight.
     if Relocation.objects.filter(
         owner_id=owner.id,
@@ -277,7 +278,7 @@ class RelocationIndexEndpoint(Endpoint):
         relocation_link_promo_code.send_robust(
             relocation_uuid=relocation.uuid, promo_code=promo_code, sender=self.__class__
         )
-        uploading_complete.delay(relocation.uuid)
+        uploading_start.apply_async(args=[relocation.uuid, None, None])
         try:
             analytics.record(
                 "relocation.created",

@@ -1,4 +1,4 @@
-import {Fragment, useCallback} from 'react';
+import {useCallback} from 'react';
 import styled from '@emotion/styled';
 import * as qs from 'query-string';
 
@@ -27,6 +27,7 @@ import {computeAxisMax} from 'sentry/views/insights/common/components/chart';
 import DetailPanel from 'sentry/views/insights/common/components/detailPanel';
 import {MetricReadout} from 'sentry/views/insights/common/components/metricReadout';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
+import {Ribbon} from 'sentry/views/insights/common/components/ribbon';
 import {useSpanMetricsSeries} from 'sentry/views/insights/common/queries/useDiscoverSeries';
 import {AverageValueMarkLine} from 'sentry/views/insights/common/utils/averageValueMarkLine';
 import {useSampleScatterPlotSeries} from 'sentry/views/insights/common/views/spanSummaryPage/sampleList/durationChart/useSampleScatterPlotSeries';
@@ -368,7 +369,6 @@ export function MessageSpanSamplesPanel() {
                 onSearch={handleSearch}
                 placeholder={t('Search for span attributes')}
                 organization={organization}
-                metricAlert={false}
                 supportedTags={supportedTags}
                 dataset={DiscoverDatasets.SPANS_INDEXED}
                 projectIds={selection.projects}
@@ -428,7 +428,7 @@ function ProducerMetricsRibbon({
 }) {
   const errorRate = 1 - (metrics[0]?.['trace_status_rate(ok)'] ?? 0);
   return (
-    <Fragment>
+    <Ribbon>
       <MetricReadout
         align="left"
         title={t('Published')}
@@ -443,7 +443,7 @@ function ProducerMetricsRibbon({
         unit={'percentage'}
         isLoading={isLoading}
       />
-    </Fragment>
+    </Ribbon>
   );
 }
 
@@ -456,7 +456,7 @@ function ConsumerMetricsRibbon({
 }) {
   const errorRate = 1 - (metrics[0]?.['trace_status_rate(ok)'] ?? 0);
   return (
-    <Fragment>
+    <Ribbon>
       <MetricReadout
         align="left"
         title={t('Processed')}
@@ -483,7 +483,7 @@ function ConsumerMetricsRibbon({
         unit={DurationUnit.MILLISECOND}
         isLoading={false}
       />
-    </Fragment>
+    </Ribbon>
   );
 }
 

@@ -1,11 +1,11 @@
 import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';
-import BreadcrumbsItemContent from 'sentry/components/events/breadcrumbs/breadcrumbsItemContent';
+import BreadcrumbItemContent from 'sentry/components/events/breadcrumbs/breadcrumbItemContent';
 import type {EnhancedCrumb} from 'sentry/components/events/breadcrumbs/utils';
 import Timeline from 'sentry/components/timeline';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -100,7 +100,7 @@ export default function BreadcrumbsTimeline({
         data-index={virtualizedRow.index}
       >
         <ContentWrapper isCompact={isCompact}>
-          <BreadcrumbsItemContent
+          <BreadcrumbItemContent
             breadcrumb={breadcrumb}
             meta={meta}
             fullyExpanded={!isCompact}
@@ -140,5 +140,5 @@ const Timestamp = styled('div')`
 `;
 
 const ContentWrapper = styled('div')<{isCompact: boolean}>`
-  padding-bottom: ${p => space(p.isCompact ? 0.5 : 1.5)};
+  padding-bottom: ${p => space(p.isCompact ? 0.5 : 1.0)};
 `;

@@ -1,7 +1,7 @@
 import type {Location, LocationDescriptorObject} from 'history';
 
 import {PAGE_URL_PARAM} from 'sentry/constants/pageFilters';
-import type {Organization, OrganizationSummary} from 'sentry/types';
+import type {Organization} from 'sentry/types';
 import {getTimeStampFromTableDateField} from 'sentry/utils/dates';
 import type {
   EventLite,
@@ -29,7 +29,7 @@ export function getTraceDetailsUrl({
 }: {
   dateSelection;
   location: Location;
-  organization: Pick<OrganizationSummary, 'slug' | 'features'>;
+  organization: Organization;
   traceSlug: string;
   demo?: string;
   eventId?: string;
@@ -45,6 +45,17 @@ export function getTraceDetailsUrl({
     [PAGE_URL_PARAM.PAGE_START]: start,
     [PAGE_URL_PARAM.PAGE_END]: end,
   };
+
+  const oldTraceUrl = {
+    pathname: normalizeUrl(
+      `/organizations/${organization.slug}/performance/trace/${traceSlug}/`
+    ),
+    query: queryParams,
+  };
+
+  if (shouldForceRouteToOldView(organization, timestamp)) {
+    return oldTraceUrl;
+  }
 
   if (organization.features.includes('trace-view-v1')) {
     if (spanId) {
@@ -68,12 +79,28 @@ export function getTraceDetailsUrl({
     queryParams.limit = DEFAULT_TRACE_ROWS_LIMIT;
   }
 
-  return {
-    pathname: normalizeUrl(
-      `/organizations/${organization.slug}/performance/trace/${traceSlug}/`
-    ),
-    query: queryParams,
-  };
+  return oldTraceUrl;
+}
+
+/**
+ * Single tenant, on-premise etc. users may not have span extraction enabled.
+ *
+ * This code can be removed at the time we're sure all STs have rolled out span extraction.
+ */
+export function shouldForceRouteToOldView(
+  organization: Organization,
+  timestamp: string | number | undefined
+) {
+  const usableTimestamp = getTimeStampFromTableDateField(timestamp);
+  if (!usableTimestamp) {
+    // Timestamps must always be provided for the new view, if it doesn't exist, fall back to the old view.
+    return true;
+  }
+
+  return (
+    organization.extraOptions?.traces.checkSpanExtractionDate &&
+    organization.extraOptions?.traces.spansExtractionDate <= usableTimestamp
+  );
 }
 
 function transactionVisitor() {

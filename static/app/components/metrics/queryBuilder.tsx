@@ -3,30 +3,26 @@ import styled from '@emotion/styled';
 import uniqBy from 'lodash/uniqBy';
 
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
-import {Button} from 'sentry/components/button';
 import type {SelectOption} from 'sentry/components/compactSelect';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {MetricQuerySelect} from 'sentry/components/metrics/metricQuerySelect';
 import {MetricSearchBar} from 'sentry/components/metrics/metricSearchBar';
 import {MRISelect} from 'sentry/components/metrics/mriSelect';
 import {Tooltip} from 'sentry/components/tooltip';
-import {IconAdd, IconInfo, IconWarning} from 'sentry/icons';
+import {IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
-import type {MetricsExtractionCondition, MRI} from 'sentry/types/metrics';
+import type {MRI} from 'sentry/types/metrics';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {getDefaultAggregation, isAllowedAggregation} from 'sentry/utils/metrics';
-import {DEFAULT_METRICS_CARDINALITY_LIMIT} from 'sentry/utils/metrics/constants';
 import {parseMRI} from 'sentry/utils/metrics/mri';
 import type {MetricsQuery} from 'sentry/utils/metrics/types';
 import {useIncrementQueryMetric} from 'sentry/utils/metrics/useIncrementQueryMetric';
-import {useMetricsCardinality} from 'sentry/utils/metrics/useMetricsCardinality';
 import {useVirtualizedMetricsMeta} from 'sentry/utils/metrics/useMetricsMeta';
 import {useMetricsTags} from 'sentry/utils/metrics/useMetricsTags';
 import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
 import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
-import {useSelectedProjects} from 'sentry/views/metrics/utils/useSelectedProjects';
-import {openExtractionRuleEditModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleEditModal';
 
 type QueryBuilderProps = {
   index: number;
@@ -43,8 +39,8 @@ export const QueryBuilder = memo(function QueryBuilder({
 }: QueryBuilderProps) {
   const organization = useOrganization();
   const pageFilters = usePageFilters();
-  const {getConditions, getVirtualMeta, resolveVirtualMRI} = useVirtualMetricsContext();
-  const {data: cardinality} = useMetricsCardinality(pageFilters.selection);
+  const {getConditions, getVirtualMeta, resolveVirtualMRI, getTags} =
+    useVirtualMetricsContext();
 
   const {
     data: meta,
@@ -70,22 +66,42 @@ export const QueryBuilder = memo(function QueryBuilder({
     resolveVirtualMRI,
   ]);
 
-  const {data: tagsData = [], isLoading: tagsIsLoading} = useMetricsTags(
-    metricsQuery.mri,
-    {
-      projects: projectIds,
-    }
-  );
+  const {data: tagsData = [], isLoading: tagsIsLoading} = useMetricsTags(resolvedMRI, {
+    projects: projectIds,
+  });
 
   const groupByOptions = useMemo(() => {
-    return uniqBy(tagsData, 'key').map(tag => ({
+    // TODO insert more data - add all tags that exists only on a extraction rule
+
+    const options = uniqBy(tagsData, 'key').map(tag => ({
       key: tag.key,
       // So that we don't have to parse the query to determine if the tag is used
       trailingItems: metricsQuery.query?.includes(`${tag.key}:`) ? (
         <TagWarningIcon />
       ) : undefined,
+      isQueryable: true, // allow group by this tag
     }));
-  }, [tagsData, metricsQuery.query]);
+
+    const parsedMRI = parseMRI(metricsQuery.mri);
+    const isVirtualMetric = parsedMRI?.type === 'v';
+    if (isVirtualMetric) {
+      const tagsFromExtractionRules = getTags(metricsQuery.mri);
+      for (const tag of tagsFromExtractionRules) {
+        if (!options.find(o => o.key === tag.key)) {
+          // if the tag has not been seen in the selected time range
+          // but exists in the extraction rule, it should be disabled in the group by dropdown
+          options.push({
+            key: tag.key,
+            trailingItems: metricsQuery.query?.includes(`${tag.key}:`) ? (
+              <TagWarningIcon />
+            ) : undefined,
+            isQueryable: false, // do not allow group by this tag
+          });
+        }
+      }
+    }
+    return options;
+  }, [tagsData, metricsQuery.query, metricsQuery.mri, getTags]);
 
   const selectedMeta = useMemo(() => {
     return meta.find(metric => metric.mri === metricsQuery.mri);
@@ -191,14 +207,6 @@ export const QueryBuilder = memo(function QueryBuilder({
   );
 
   const projectIdStrings = useMemo(() => projectIds.map(String), [projectIds]);
-  const spanConditions = getConditions(metricsQuery.mri);
-
-  const getMaxCardinality = (condition?: MetricsExtractionCondition) => {
-    if (!cardinality || !condition) {
-      return 0;
-    }
-    return condition.mris.reduce((acc, mri) => Math.max(acc, cardinality[mri] || 0), 0);
-  };
 
   return (
     <QueryBuilderWrapper>
@@ -216,40 +224,12 @@ export const QueryBuilder = memo(function QueryBuilder({
             />
           </GuideAnchor>
           {selectedMeta?.type === 'v' ? (
-            <CompactSelect
-              size="md"
-              triggerProps={{
-                prefix: t('Query'),
-                icon:
-                  getMaxCardinality(
-                    spanConditions.find(c => c.id === metricsQuery.condition)
-                  ) > DEFAULT_METRICS_CARDINALITY_LIMIT ? (
-                    <CardinalityWarningIcon />
-                  ) : null,
-              }}
-              options={spanConditions.map(condition => ({
-                label: condition.value ? (
-                  <Tooltip showOnlyOnOverflow title={condition.value} skipWrapper>
-                    <QueryLabel>{condition.value}</QueryLabel>
-                  </Tooltip>
-                ) : (
-                  t('All spans')
-                ),
-                trailingItems: [
-                  getMaxCardinality(condition) > DEFAULT_METRICS_CARDINALITY_LIMIT ? (
-                    <CardinalityWarningIcon key="cardinality-warning" />
-                  ) : undefined,
-                ],
-                textValue: condition.value || t('All spans'),
-                value: condition.id,
-              }))}
-              value={metricsQuery.condition}
-              onChange={({value}) => {
+            <MetricQuerySelect
+              mri={metricsQuery.mri}
+              conditionId={metricsQuery.condition}
+              onChange={value => {
                 onChange({condition: value});
               }}
-              menuFooter={({closeOverlay}) => (
-                <QueryFooter mri={metricsQuery.mri} closeOverlay={closeOverlay} />
-              )}
             />
           ) : null}
         </FlexBlock>
@@ -284,6 +264,12 @@ export const QueryBuilder = memo(function QueryBuilder({
               options={groupByOptions.map(tag => ({
                 label: tag.key,
                 value: tag.key,
+                disabled: !tag.isQueryable,
+                tooltip: !tag.isQueryable
+                  ? t(
+                      'You can not group by a tag that has not been seen in the selected time range'
+                    )
+                  : undefined,
               }))}
               disabled={!metricsQuery.mri || tagsIsLoading}
               value={metricsQuery.groupBy}
@@ -306,20 +292,6 @@ export const QueryBuilder = memo(function QueryBuilder({
   );
 });
 
-function CardinalityWarningIcon() {
-  return (
-    <Tooltip
-      isHoverable
-      title={t(
-        "This query is exeeding the cardinality limit. Remove tags or add more filters in the metric's settings to receive accurate data."
-      )}
-      skipWrapper
-    >
-      <IconWarning size="xs" color="yellow300" />
-    </Tooltip>
-  );
-}
-
 function TagWarningIcon() {
   return (
     <TooltipIconWrapper>
@@ -329,47 +301,6 @@ function TagWarningIcon() {
         <IconWarning size="xs" color="warning" />
       </Tooltip>
     </TooltipIconWrapper>
-  );
-}
-
-function QueryFooter({mri, closeOverlay}) {
-  const {getVirtualMeta, getExtractionRule} = useVirtualMetricsContext();
-  const selectedProjects = useSelectedProjects();
-
-  const metricMeta = getVirtualMeta(mri);
-  const project = selectedProjects.find(p => p.id === String(metricMeta.projectIds[0]));
-
-  if (!project) {
-    return null;
-  }
-  return (
-    <QueryFooterWrapper>
-      <Button
-        size="xs"
-        icon={<IconAdd isCircled />}
-        onClick={() => {
-          closeOverlay();
-          const extractionRule = getExtractionRule(mri);
-          if (!extractionRule) {
-            return;
-          }
-          openExtractionRuleEditModal({metricExtractionRule: extractionRule});
-        }}
-      >
-        {t('Add Query')}
-      </Button>
-      <InfoWrapper>
-        <Tooltip
-          title={t(
-            'Ideally, you can visualize span data by any property you want. However, our infrastructure has limits as well, so pretty please define in advance what you want to see.'
-          )}
-          skipWrapper
-        >
-          <IconInfo size="xs" />
-        </Tooltip>
-        {t('What are queries?')}
-      </InfoWrapper>
-    </QueryFooterWrapper>
   );
 }
 
@@ -401,25 +332,4 @@ const AggregationSelect = styled(CompactSelect)`
 const SearchBarWrapper = styled('div')`
   flex: 1;
   min-width: 200px;
-`;
-
-const QueryLabel = styled('code')`
-  padding-left: 0;
-  max-width: 350px;
-  ${p => p.theme.overflowEllipsis}
-`;
-
-const InfoWrapper = styled('div')`
-  display: flex;
-  align-items: center;
-  gap: ${space(0.5)};
-  font-size: ${p => p.theme.fontSizeExtraSmall};
-  color: ${p => p.theme.subText};
-`;
-
-const QueryFooterWrapper = styled('div')`
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  min-width: 250px;
 `;

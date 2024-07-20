@@ -7,24 +7,26 @@ import {
   SearchQueryBuilerContext,
   useSearchQueryBuilder,
 } from 'sentry/components/searchQueryBuilder/context';
+import {useHandleSearch} from 'sentry/components/searchQueryBuilder/hooks/useHandleSearch';
+import {useQueryBuilderState} from 'sentry/components/searchQueryBuilder/hooks/useQueryBuilderState';
 import {PlainTextQueryInput} from 'sentry/components/searchQueryBuilder/plainTextQueryInput';
 import {TokenizedQueryGrid} from 'sentry/components/searchQueryBuilder/tokenizedQueryGrid';
 import {
+  type FieldDefinitionGetter,
   type FilterKeySection,
   QueryInterfaceType,
 } from 'sentry/components/searchQueryBuilder/types';
-import {useHandleSearch} from 'sentry/components/searchQueryBuilder/useHandleSearch';
-import {useQueryBuilderState} from 'sentry/components/searchQueryBuilder/useQueryBuilderState';
 import {parseQueryBuilderValue} from 'sentry/components/searchQueryBuilder/utils';
 import {IconClose, IconSearch} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {SavedSearchType, Tag, TagCollection} from 'sentry/types/group';
+import {getFieldDefinition} from 'sentry/utils/fields';
 import PanelProvider from 'sentry/utils/panelProvider';
 import {useDimensions} from 'sentry/utils/useDimensions';
 import {useEffectAfterFirstRender} from 'sentry/utils/useEffectAfterFirstRender';
 
-interface SearchQueryBuilderProps {
+export interface SearchQueryBuilderProps {
   /**
    * A complete mapping of all possible filter keys.
    * Filter keys not included will not show up when typing and may be shown as invalid.
@@ -38,6 +40,16 @@ interface SearchQueryBuilderProps {
    */
   searchSource: string;
   className?: string;
+  /**
+   * When true, parens and logical operators (AND, OR) will be marked as invalid.
+   */
+  disallowLogicalOperators?: boolean;
+  /**
+   * The lookup strategy for field definitions.
+   * Each SearchQueryBuilder instance can support a different list of fields and
+   * tags, their definitions may not overlap.
+   */
+  fieldDefinitionGetter?: FieldDefinitionGetter;
   /**
    * When provided, displays a tabbed interface for discovering filter keys.
    * Sections and filter keys are displayed in the order they are provided.
@@ -53,6 +65,7 @@ interface SearchQueryBuilderProps {
    * Called when the user presses enter
    */
   onSearch?: (query: string) => void;
+  placeholder?: string;
   queryInterface?: QueryInterfaceType;
   savedSearchType?: SavedSearchType;
 }
@@ -78,14 +91,17 @@ function ActionButtons() {
 
 export function SearchQueryBuilder({
   className,
+  disallowLogicalOperators,
   label,
   initialQuery,
+  fieldDefinitionGetter = getFieldDefinition,
   filterKeys,
   filterKeySections,
   getTagValues,
   onChange,
   onSearch,
   onBlur,
+  placeholder,
   searchSource,
   savedSearchType,
   queryInterface = QueryInterfaceType.TOKENIZED,
@@ -94,8 +110,12 @@ export function SearchQueryBuilder({
   const {state, dispatch} = useQueryBuilderState({initialQuery});
 
   const parsedQuery = useMemo(
-    () => parseQueryBuilderValue(state.query, {filterKeys}),
-    [filterKeys, state.query]
+    () =>
+      parseQueryBuilderValue(state.query, fieldDefinitionGetter, {
+        disallowLogicalOperators,
+        filterKeys,
+      }),
+    [disallowLogicalOperators, fieldDefinitionGetter, filterKeys, state.query]
   );
 
   useEffectAfterFirstRender(() => {
@@ -122,10 +142,13 @@ export function SearchQueryBuilder({
       filterKeySections: filterKeySections ?? [],
       filterKeys,
       getTagValues,
+      getFieldDefinition: fieldDefinitionGetter,
       dispatch,
       onSearch,
       wrapperRef,
       handleSearch,
+      placeholder,
+      savedSearchType,
       searchSource,
       size,
     };
@@ -135,9 +158,12 @@ export function SearchQueryBuilder({
     filterKeySections,
     filterKeys,
     getTagValues,
+    fieldDefinitionGetter,
     dispatch,
     onSearch,
+    placeholder,
     handleSearch,
+    savedSearchType,
     searchSource,
     size,
   ]);

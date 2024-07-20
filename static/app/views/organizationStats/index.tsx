@@ -4,7 +4,7 @@ import styled from '@emotion/styled';
 import type {LocationDescriptorObject} from 'history';
 import omit from 'lodash/omit';
 import pick from 'lodash/pick';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
 import {CompactSelect} from 'sentry/components/compactSelect';
@@ -52,6 +52,8 @@ export const PAGE_QUERY_PARAMS = [
   'query',
   'cursor',
   'spikeCursor',
+  // From show data discarded on client toggle
+  'clientDiscard',
 ];
 
 export type OrganizationStatsProps = {
@@ -117,6 +119,10 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
     }
 
     return {period: DEFAULT_STATS_PERIOD};
+  }
+
+  get clientDiscard(): boolean {
+    return this.props.location?.query?.clientDiscard === 'true';
   }
 
   // Validation and type-casting should be handled by chart
@@ -186,6 +192,7 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
    */
   setStateOnUrl = (
     nextState: {
+      clientDiscard?: boolean;
       cursor?: string;
       dataCategory?: DataCategoryInfo['plural'];
       query?: string;
@@ -270,8 +277,10 @@ export class OrganizationStats extends Component<OrganizationStatsProps> {
         organization={organization}
         dataCategory={this.dataCategory}
         dataCategoryName={this.dataCategoryInfo.titleName}
+        dataCategoryApiName={this.dataCategoryInfo.apiName}
         dataDatetime={this.dataDatetime}
         chartTransform={this.chartTransform}
+        clientDiscard={this.clientDiscard}
         handleChangeState={this.setStateOnUrl}
         router={router}
         location={location}

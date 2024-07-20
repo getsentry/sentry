@@ -42,6 +42,7 @@ class EventLookupError(Exception):
     pass
 
 
+@sentry_sdk.tracing.trace
 def save_event_from_occurrence(
     data: dict[str, Any],
     **kwargs: Any,
@@ -59,6 +60,7 @@ def save_event_from_occurrence(
         return event
 
 
+@sentry_sdk.tracing.trace
 def lookup_event(project_id: int, event_id: str) -> Event:
     data = nodestore.backend.get(Event.generate_node_id(project_id, event_id))
     if data is None:
@@ -68,6 +70,7 @@ def lookup_event(project_id: int, event_id: str) -> Event:
     return event
 
 
+@sentry_sdk.tracing.trace
 def create_event(project_id: int, event_id: str, event_data: dict[str, Any]) -> Event:
     return Event(
         event_id=event_id,
@@ -85,6 +88,7 @@ def create_event(project_id: int, event_id: str, event_data: dict[str, Any]) -> 
     )
 
 
+@sentry_sdk.tracing.trace
 def create_event_and_issue_occurrence(
     occurrence_data: IssueOccurrenceData, event_data: dict[str, Any]
 ) -> tuple[IssueOccurrence, GroupInfo | None]:
@@ -108,6 +112,7 @@ def create_event_and_issue_occurrence(
         return save_issue_occurrence(occurrence_data, event)
 
 
+@sentry_sdk.tracing.trace
 def process_event_and_issue_occurrence(
     occurrence_data: IssueOccurrenceData, event_data: dict[str, Any]
 ) -> tuple[IssueOccurrence, GroupInfo | None]:
@@ -124,6 +129,7 @@ def process_event_and_issue_occurrence(
         return save_issue_occurrence(occurrence_data, event)
 
 
+@sentry_sdk.tracing.trace
 def lookup_event_and_process_issue_occurrence(
     occurrence_data: IssueOccurrenceData,
 ) -> tuple[IssueOccurrence, GroupInfo | None]:
@@ -141,6 +147,7 @@ def lookup_event_and_process_issue_occurrence(
         return save_issue_occurrence(occurrence_data, event)
 
 
+@sentry_sdk.tracing.trace
 def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
     """
     Processes the incoming message payload into a format we can use.
@@ -276,6 +283,7 @@ def _get_kwargs(payload: Mapping[str, Any]) -> Mapping[str, Any]:
         raise InvalidEventPayloadError(e)
 
 
+@sentry_sdk.tracing.trace
 @metrics.wraps("occurrence_consumer.process_occurrence_message")
 def process_occurrence_message(
     message: Mapping[str, Any], txn: Transaction | NoOpSpan | Span
@@ -331,6 +339,7 @@ def process_occurrence_message(
             return lookup_event_and_process_issue_occurrence(kwargs["occurrence_data"])
 
 
+@sentry_sdk.tracing.trace
 @metrics.wraps("occurrence_consumer.process_message")
 def _process_message(
     message: Mapping[str, Any]
@@ -367,6 +376,7 @@ def _process_message(
     return None
 
 
+@sentry_sdk.tracing.trace
 @metrics.wraps("occurrence_consumer.process_batch")
 def _process_batch(worker: ThreadPoolExecutor, message: Message[ValuesBatch[KafkaPayload]]) -> None:
     """

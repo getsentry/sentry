@@ -2,14 +2,12 @@ import {t} from 'sentry/locale';
 
 export const MODULE_TITLE = t('Queues');
 export const BASE_URL = 'queues';
+export const DATA_TYPE = t('Queue');
+export const DATA_TYPE_PLURAL = t('Queues');
 
 export const CHART_HEIGHT = 160;
 
 export const DESTINATION_TITLE = t('Destination Summary');
-
-export const releaseLevelAsBadgeProps = {
-  isNew: true,
-};
 
 export const DEFAULT_QUERY_FILTER = 'span.op:[queue.process,queue.publish]';
 export const CONSUMER_QUERY_FILTER = 'span.op:queue.process';
@@ -47,13 +45,5 @@ export const MODULE_DESCRIPTION = t(
 );
 export const MODULE_DOC_LINK =
   'https://docs.sentry.io/product/insights/queue-monitoring/';
-
-export const ONBOARDING_CONTENT = {
-  title: t('Make sure your jobs complete without errors'),
-  description: t(
-    'Track the behavior of background jobs at each step in their processing, allowing you to see whether jobs are completing on time and making it easy to debug when they are failing.'
-  ),
-  link: MODULE_DOC_LINK,
-};
 
 export const TABLE_ROWS_LIMIT = 25;

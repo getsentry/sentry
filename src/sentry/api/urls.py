@@ -14,6 +14,7 @@ from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
+from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
 from sentry.api.endpoints.organization_integration_migrate_opsgenie import (
     OrganizationIntegrationMigrateOpsgenieEndpoint,
 )
@@ -33,6 +34,8 @@ from sentry.api.endpoints.project_backfill_similar_issues_embeddings_records imp
 )
 from sentry.api.endpoints.project_stacktrace_coverage import ProjectStacktraceCoverageEndpoint
 from sentry.api.endpoints.project_statistical_detectors import ProjectStatisticalDetectors
+from sentry.api.endpoints.project_template_detail import OrganizationProjectTemplateDetailEndpoint
+from sentry.api.endpoints.project_templates_index import OrganizationProjectTemplatesIndexEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold import ReleaseThresholdEndpoint
 from sentry.api.endpoints.release_thresholds.release_threshold_details import (
     ReleaseThresholdDetailsEndpoint,
@@ -113,7 +116,6 @@ from sentry.incidents.endpoints.team_alerts_triggered import (
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
     GroupEventsEndpoint,
-    OrganizationActivityEndpoint,
     OrganizationGroupIndexEndpoint,
     OrganizationGroupSearchViewsEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
@@ -208,6 +210,7 @@ from .endpoints.api_application_details import ApiApplicationDetailsEndpoint
 from .endpoints.api_application_rotate_secret import ApiApplicationRotateSecretEndpoint
 from .endpoints.api_applications import ApiApplicationsEndpoint
 from .endpoints.api_authorizations import ApiAuthorizationsEndpoint
+from .endpoints.api_token_details import ApiTokenDetailsEndpoint
 from .endpoints.api_tokens import ApiTokensEndpoint
 from .endpoints.artifact_bundles import ArtifactBundlesEndpoint
 from .endpoints.artifact_lookup import ProjectArtifactLookupEndpoint
@@ -449,7 +452,6 @@ from .endpoints.organization_profiling_functions import OrganizationProfilingFun
 from .endpoints.organization_profiling_profiles import (
     OrganizationProfilingChunksEndpoint,
     OrganizationProfilingChunksFlamegraphEndpoint,
-    OrganizationProfilingFiltersEndpoint,
     OrganizationProfilingFlamegraphEndpoint,
 )
 from .endpoints.organization_projects import (
@@ -1326,11 +1328,6 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-access-request-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/activity/$",
-        OrganizationActivityEndpoint.as_view(),
-        name="sentry-api-0-organization-activity",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/api-keys/$",
         OrganizationApiKeyIndexEndpoint.as_view(),
         name="sentry-api-0-organization-api-key-index",
@@ -1399,6 +1396,16 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/events-stats/$",
         OrganizationEventsStatsEndpoint.as_view(),
         name="sentry-api-0-organization-events-stats",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/project-templates/$",
+        OrganizationProjectTemplatesIndexEndpoint.as_view(),
+        name="sentry-api-0-organization-project-templates",
+    ),
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/project-templates/(?P<template_id>[^\/]+)/$",
+        OrganizationProjectTemplateDetailEndpoint.as_view(),
+        name="sentry-api-0-organization-project-template-detail",
     ),
     re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/trace/(?P<trace_id>(?:\d+|[A-Fa-f0-9-]{32,36}))/spans/$",
@@ -2089,11 +2096,6 @@ ORGANIZATION_URLS = [
         include(
             [
                 re_path(
-                    r"^filters/$",
-                    OrganizationProfilingFiltersEndpoint.as_view(),
-                    name="sentry-api-0-organization-profiling-filters",
-                ),
-                re_path(
                     r"^flamegraph/$",
                     OrganizationProfilingFlamegraphEndpoint.as_view(),
                     name="sentry-api-0-organization-profiling-flamegraph",
@@ -2160,6 +2162,12 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/region/$",
         OrganizationRegionEndpoint.as_view(),
         name="sentry-api-0-organization-region",
+    ),
+    # Trigger relocation
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/fork/$",
+        OrganizationForkEndpoint.as_view(),
+        name="sentry-api-0-organization-fork",
     ),
 ]
 
@@ -3133,6 +3141,11 @@ urlpatterns = [
         r"^api-tokens/$",
         ApiTokensEndpoint.as_view(),
         name="sentry-api-0-api-tokens",
+    ),
+    re_path(
+        r"^api-tokens/(?P<token_id>[^\/]+)/$",
+        ApiTokenDetailsEndpoint.as_view(),
+        name="sentry-api-0-api-token-details",
     ),
     re_path(
         r"^prompts-activity/$",

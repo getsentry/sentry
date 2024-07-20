@@ -1,6 +1,6 @@
 import {useCallback, useRef} from 'react';
 import type {InjectedRouter} from 'react-router';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import * as qs from 'query-string';
 
 import type {DateTimeObject} from 'sentry/components/charts/utils';
@@ -332,13 +332,12 @@ export function isCustomMetric({mri}: {mri: MRI}) {
   return mri.includes(':custom/');
 }
 
-export function isExtractedCustomMetric({mri}: {mri: MRI}) {
-  // Extraced metrics are prefixed with `span_attribute_`
-  return mri.substring(1).startsWith(':custom/span_attribute_');
-}
-
 export function isVirtualMetric({mri}: {mri: MRI}) {
   return mri.startsWith('v:');
+}
+
+export function isCounterMetric({mri}: {mri: MRI}) {
+  return mri.startsWith('c:');
 }
 
 export function isSpanDuration({mri}: {mri: MRI}) {

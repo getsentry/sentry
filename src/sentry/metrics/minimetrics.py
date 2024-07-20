@@ -118,19 +118,11 @@ def _set_metric_on_span(key: str, value: float | int, op: str, tags: Tags | None
     if not options.get("delightful_metrics.enable_span_attributes"):
         return
 
-    scope = sentry_sdk.Scope.get_isolation_scope()
-
+    scope = sentry_sdk.Scope.get_current_scope()
     span_or_tx = getattr(scope, "_span", None)
 
-    if not span_or_tx:
-        with scope.start_transaction():
-            with scope.start_span(op=f"minimetrics.{op}") as span:
-                return _add_metric_data_to_span(span, key, value, tags)
-    elif span_or_tx.parent_span_id is not None:
+    if span_or_tx and span_or_tx.parent_span_id is not None:
         return _add_metric_data_to_span(span_or_tx, key, value, tags)
-    else:
-        with scope.start_span(op=f"minimetrics.{op}") as span:
-            return _add_metric_data_to_span(span, key, value, tags)
 
 
 def _add_metric_data_to_span(

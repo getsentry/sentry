@@ -427,6 +427,7 @@ const LeadingItems = styled('div')<{
   gap: ${space(1)};
   margin-top: ${p => getVerticalPadding(p.size)};
   margin-right: ${space(1)};
+  flex-shrink: 0;
 
   ${p => p.disabled && `opacity: 0.5;`}
   ${p => p.spanFullHeight && `height: 100%;`}

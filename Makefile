@@ -27,7 +27,7 @@ install-js-dev :
 
 develop \
 install-py-dev :
-	devenv-sync
+	@make devenv-sync
 
 # This is to ensure devenv sync's only called once if the above
 # macros are combined e.g. `make install-js-dev install-py-dev`

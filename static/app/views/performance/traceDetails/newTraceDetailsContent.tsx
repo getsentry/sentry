@@ -258,7 +258,7 @@ function NewTraceDetailsContent(props: Props) {
       case TraceType.NO_ROOT:
         warning = (
           <Alert type="info" showIcon>
-            <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#orphan-traces-and-broken-subtraces">
+            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
               {t(
                 'A root transaction is missing. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
               )}
@@ -269,7 +269,7 @@ function NewTraceDetailsContent(props: Props) {
       case TraceType.BROKEN_SUBTRACES:
         warning = (
           <Alert type="info" showIcon>
-            <ExternalLink href="https://docs.sentry.io/product/performance/trace-view/#orphan-traces-and-broken-subtraces">
+            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#orphan-traces-and-broken-subtraces">
               {t(
                 'This trace has broken subtraces. Transactions linked by a dashed line have been orphaned and cannot be directly linked to the root.'
               )}
@@ -280,7 +280,7 @@ function NewTraceDetailsContent(props: Props) {
       case TraceType.MULTIPLE_ROOTS:
         warning = (
           <Alert type="info" showIcon>
-            <ExternalLink href="https://docs.sentry.io/product/sentry-basics/tracing/trace-view/#multiple-roots">
+            <ExternalLink href="https://docs.sentry.io/concepts/key-terms/tracing/trace-view/#multiple-roots">
               {t('Multiple root transactions have been found with this trace ID.')}
             </ExternalLink>
           </Alert>

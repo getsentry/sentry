@@ -27,6 +27,10 @@ describe('EditSavedSearchModal', function () {
       method: 'POST',
       body: [],
     });
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
+    });
   });
 
   const defaultProps = {

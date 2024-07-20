@@ -778,7 +778,6 @@ CELERY_IMPORTS = (
     "sentry.tasks.relocation",
     "sentry.tasks.summaries.weekly_reports",
     "sentry.tasks.summaries.daily_summary",
-    "sentry.tasks.reprocessing",
     "sentry.tasks.reprocessing2",
     "sentry.tasks.sentry_apps",
     "sentry.tasks.servicehooks",
@@ -867,8 +866,6 @@ CELERY_QUEUES_REGION = [
     Queue("email.inbound", routing_key="email.inbound"),
     Queue("events.preprocess_event", routing_key="events.preprocess_event"),
     Queue("events.process_event", routing_key="events.process_event"),
-    Queue("events.process_event_proguard", routing_key="events.process_event_proguard"),
-    Queue("events.reprocess_events", routing_key="events.reprocess_events"),
     Queue(
         "events.reprocessing.preprocess_event", routing_key="events.reprocessing.preprocess_event"
     ),
@@ -1073,12 +1070,6 @@ CELERYBEAT_SCHEDULE_REGION = {
         "schedule": crontab(minute="*/5"),
         "options": {"expires": 300},
     },
-    "clear-expired-raw-events": {
-        "task": "sentry.tasks.clear_expired_raw_events",
-        # Run every 15 minutes
-        "schedule": crontab(minute="*/15"),
-        "options": {"expires": 300},
-    },
     "collect-project-platforms": {
         "task": "sentry.tasks.collect_project_platforms",
         # Run every 3 hours
@@ -1270,7 +1261,6 @@ PROCESSING_QUEUES = [
     "events.preprocess_event",
     "events.process_event",
     "events.process_event_proguard",
-    "events.reprocess_events",
     "events.reprocessing.preprocess_event",
     "events.reprocessing.process_event",
     "events.reprocessing.symbolicate_event",
@@ -2480,7 +2470,7 @@ SENTRY_SELF_HOSTED = True
 SENTRY_SELF_HOSTED_ERRORS_ONLY = False
 # only referenced in getsentry to provide the stable beacon version
 # updated with scripts/bump-version.sh
-SELF_HOSTED_STABLE_VERSION = "24.6.0"
+SELF_HOSTED_STABLE_VERSION = "24.7.0"
 
 # Whether we should look at X-Forwarded-For header or not
 # when checking REMOTE_ADDR ip addresses
@@ -2988,7 +2978,7 @@ SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
 SENTRY_GROUPING_AUTO_UPDATE_ENABLED = False
 
 # How long the migration phase for grouping lasts
-SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 7 * 24 * 3600  # 7 days
+SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 30 * 24 * 3600  # 30 days
 
 SENTRY_USE_UWSGI = True
 
@@ -3437,9 +3427,6 @@ SEER_PROJECT_GROUPING_RECORDS_DELETE_URL = (
 SEER_HASH_GROUPING_RECORDS_DELETE_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete-by-hash"
 )
-
-# TODO: Remove this soon, just a way to configure a project for this before we implement properly
-UPTIME_POC_PROJECT_ID = 1
 
 SIMILARITY_BACKFILL_COHORT_MAP: dict[str, list[int]] = {}
 
