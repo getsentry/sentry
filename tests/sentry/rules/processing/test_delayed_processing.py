@@ -437,11 +437,11 @@ class GetRulesToFireTest(TestCase):
             self.project.id,
         )
 
-        assert self.rule1 not in result or result[self.rule1] == set()
+        assert self.rule1 not in result
 
     def test_comparison_any(self):
         self.rule1.data["action_match"] = "any"
-        self.mock_passes_comparison.return_value = False
+        self.mock_passes_comparison.return_value = True
 
         result = get_rules_to_fire(
             self.condition_group_results,
@@ -450,9 +450,9 @@ class GetRulesToFireTest(TestCase):
             self.project.id,
         )
 
-        assert self.rule1 not in result or result[self.rule1] == set()
+        assert result[self.rule1] == {self.group1.id, self.group2.id}
 
-    def test_comparison_fail_any(self):
+    def test_comparison_any_fail(self):
         self.rule1.data["action_match"] = "any"
         self.mock_passes_comparison.return_value = False
 
@@ -463,7 +463,7 @@ class GetRulesToFireTest(TestCase):
             self.project.id,
         )
 
-        assert self.rule1 not in result or result[self.rule1] == set()
+        assert self.rule1 not in result
 
     def test_empty_input(self):
         result = get_rules_to_fire({}, defaultdict(list), defaultdict(set), self.project.id)
