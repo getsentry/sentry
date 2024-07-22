@@ -1,7 +1,11 @@
 import {type Reducer, useCallback, useReducer} from 'react';
 
+import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
-import type {FocusOverride} from 'sentry/components/searchQueryBuilder/types';
+import type {
+  FieldDefinitionGetter,
+  FocusOverride,
+} from 'sentry/components/searchQueryBuilder/types';
 import {
   isDateToken,
   makeTokenKey,
@@ -273,12 +277,13 @@ function updateFreeText(
 
 function replaceTokensWithText(
   state: QueryBuilderState,
-  action: ReplaceTokensWithTextAction
+  action: ReplaceTokensWithTextAction,
+  getFieldDefinition: FieldDefinitionGetter
 ): QueryBuilderState {
   const newQuery = replaceTokensWithPadding(state.query, action.tokens, action.text);
   const cursorPosition =
     (action.tokens[0]?.location.start.offset ?? 0) + action.text.length;
-  const newParsedQuery = parseQueryBuilderValue(newQuery);
+  const newParsedQuery = parseQueryBuilderValue(newQuery, getFieldDefinition);
   const focusedToken = newParsedQuery?.find(
     token => token.type === Token.FREE_TEXT && token.location.end.offset >= cursorPosition
   );
@@ -313,7 +318,7 @@ function updateFilterMultipleValues(
     new Set(values.filter(value => value.length > 0))
   );
   if (uniqNonEmptyValues.length === 0) {
-    return {...state, query: replaceQueryToken(state.query, token.value, '')};
+    return {...state, query: replaceQueryToken(state.query, token.value, '""')};
   }
 
   const newValue =
@@ -344,10 +349,10 @@ function multiSelectTokenValue(
       if (tokenValue.text === action.value) {
         return updateFilterMultipleValues(state, action.token, ['']);
       }
-      return updateFilterMultipleValues(state, action.token, [
-        tokenValue.text,
-        action.value,
-      ]);
+      const newValue = tokenValue.value
+        ? [tokenValue.text, action.value]
+        : [action.value];
+      return updateFilterMultipleValues(state, action.token, newValue);
   }
 }
 
@@ -369,6 +374,7 @@ function deleteLastMultiSelectTokenValue(
 }
 
 export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
+  const {getFieldDefinition} = useSearchQueryBuilder();
   const initialState: QueryBuilderState = {query: initialQuery, focusOverride: null};
 
   const reducer: Reducer<QueryBuilderState, QueryBuilderActions> = useCallback(
@@ -403,7 +409,7 @@ export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
         case 'UPDATE_FREE_TEXT':
           return updateFreeText(state, action);
         case 'REPLACE_TOKENS_WITH_TEXT':
-          return replaceTokensWithText(state, action);
+          return replaceTokensWithText(state, action, getFieldDefinition);
         case 'UPDATE_FILTER_OP':
           return {
             ...state,
@@ -422,7 +428,7 @@ export function useQueryBuilderState({initialQuery}: {initialQuery: string}) {
           return state;
       }
     },
-    []
+    [getFieldDefinition]
   );
 
   const [state, dispatch] = useReducer(reducer, initialState);

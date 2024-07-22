@@ -4,7 +4,7 @@ import type {ListState} from '@react-stately/list';
 import type {Node} from '@react-types/shared';
 
 import type {ParseResultToken} from 'sentry/components/searchSyntax/parser';
-import {FieldKey, FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {type FieldDefinition, FieldKey, FieldValueType} from 'sentry/utils/fields';
 
 export function shiftFocusToChild(
   element: HTMLElement,
@@ -38,10 +38,14 @@ export function useShiftFocusToChild(
   };
 }
 
-export function getDefaultFilterValue({key}: {key: string}): string {
-  const fieldDef = getFieldDefinition(key);
-
-  if (!fieldDef) {
+export function getDefaultFilterValue({
+  key,
+  fieldDefinition,
+}: {
+  fieldDefinition: FieldDefinition | null;
+  key: string;
+}): string {
+  if (!fieldDefinition) {
     return '""';
   }
 
@@ -49,7 +53,7 @@ export function getDefaultFilterValue({key}: {key: string}): string {
     return 'unresolved';
   }
 
-  switch (fieldDef.valueType) {
+  switch (fieldDefinition.valueType) {
     case FieldValueType.BOOLEAN:
       return 'true';
     case FieldValueType.INTEGER:
@@ -57,6 +61,10 @@ export function getDefaultFilterValue({key}: {key: string}): string {
       return '100';
     case FieldValueType.DATE:
       return '-24h';
+    case FieldValueType.DURATION:
+      return '10ms';
+    case FieldValueType.PERCENTAGE:
+      return '0.5';
     case FieldValueType.STRING:
     default:
       return '""';

@@ -2978,7 +2978,7 @@ SENTRY_SIMILARITY2_INDEX_REDIS_CLUSTER = None
 SENTRY_GROUPING_AUTO_UPDATE_ENABLED = False
 
 # How long the migration phase for grouping lasts
-SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 7 * 24 * 3600  # 7 days
+SENTRY_GROUPING_UPDATE_MIGRATION_PHASE = 30 * 24 * 3600  # 30 days
 
 SENTRY_USE_UWSGI = True
 
@@ -3427,9 +3427,6 @@ SEER_PROJECT_GROUPING_RECORDS_DELETE_URL = (
 SEER_HASH_GROUPING_RECORDS_DELETE_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete-by-hash"
 )
-
-# TODO: Remove this soon, just a way to configure a project for this before we implement properly
-UPTIME_POC_PROJECT_ID = 1
 
 SIMILARITY_BACKFILL_COHORT_MAP: dict[str, list[int]] = {}
 

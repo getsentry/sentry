@@ -2,7 +2,7 @@ import {Component, Fragment} from 'react';
 import type {InjectedRouter} from 'react-router';
 import styled from '@emotion/styled';
 import type {Location, Query} from 'history';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import {resetPageFilters} from 'sentry/actionCreators/pageFilters';
 import type {Client} from 'sentry/api';

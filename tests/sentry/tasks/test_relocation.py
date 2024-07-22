@@ -31,7 +31,7 @@ from sentry.models.importchunk import (
     ControlImportChunkReplica,
     RegionImportChunk,
 )
-from sentry.models.organization import Organization
+from sentry.models.organization import Organization, OrganizationStatus
 from sentry.models.organizationmember import OrganizationMember
 from sentry.models.relocation import (
     Relocation,
@@ -68,6 +68,7 @@ from sentry.tasks.relocation import (
     completed,
     importing,
     notifying_owner,
+    notifying_unhide,
     notifying_users,
     postprocessing,
     preprocessing_baseline_config,
@@ -1993,6 +1994,12 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
 
         assert postprocessing_mock.call_count == 1
         assert Organization.objects.filter(slug__startswith="testing").count() == org_count + 1
+        assert (
+            Organization.objects.filter(
+                slug__startswith="testing", status=OrganizationStatus.RELOCATION_PENDING_APPROVAL
+            ).count()
+            == 1
+        )
 
         assert RegionImportChunk.objects.filter(import_uuid=self.uuid).count() == 9
         assert sorted(RegionImportChunk.objects.values_list("model", flat=True)) == [
@@ -2039,7 +2046,7 @@ class ImportingTest(RelocationTaskTestCase, TransactionTestCase):
 @patch("sentry.utils.relocation.MessageBuilder")
 @patch("sentry.signals.relocated.send_robust")
 @patch("sentry.signals.relocation_redeem_promo_code.send_robust")
-@patch("sentry.tasks.relocation.notifying_users.apply_async")
+@patch("sentry.tasks.relocation.notifying_unhide.apply_async")
 @patch("sentry.analytics.record")
 class PostprocessingTest(RelocationTaskTestCase):
     def setUp(self):
@@ -2053,7 +2060,10 @@ class PostprocessingTest(RelocationTaskTestCase):
             import_in_organization_scope(
                 fp,
                 flags=ImportFlags(
-                    merge_users=False, overwrite_configs=False, import_uuid=str(self.uuid)
+                    import_uuid=str(self.uuid),
+                    hide_organizations=True,
+                    merge_users=False,
+                    overwrite_configs=False,
                 ),
                 org_filter=set(self.relocation.want_org_slugs),
                 printer=Printer(),
@@ -2075,12 +2085,18 @@ class PostprocessingTest(RelocationTaskTestCase):
     def test_success(
         self,
         analytics_record_mock: Mock,
-        notifying_users_mock: Mock,
+        notifying_unhide_mock: Mock,
         relocation_redeem_promo_code_signal_mock: Mock,
         relocated_signal_mock: Mock,
         fake_message_builder: Mock,
     ):
         self.mock_message_builder(fake_message_builder)
+        assert (
+            Organization.objects.filter(
+                slug__startswith="testing", status=OrganizationStatus.RELOCATION_PENDING_APPROVAL
+            ).count()
+            == 1
+        )
         assert (
             OrganizationMember.objects.filter(
                 organization_id=self.imported_org_id, role="owner", has_global_access=True
@@ -2095,8 +2111,14 @@ class PostprocessingTest(RelocationTaskTestCase):
 
         assert relocated_signal_mock.call_count == 1
         assert relocation_redeem_promo_code_signal_mock.call_count == 1
-        assert notifying_users_mock.call_count == 1
+        assert notifying_unhide_mock.call_count == 1
 
+        assert (
+            Organization.objects.filter(
+                slug__startswith="testing", status=OrganizationStatus.RELOCATION_PENDING_APPROVAL
+            ).count()
+            == 1
+        )
         assert (
             OrganizationMember.objects.filter(
                 organization_id=self.imported_org_id, role="owner", has_global_access=True
@@ -2129,7 +2151,7 @@ class PostprocessingTest(RelocationTaskTestCase):
     def test_pause(
         self,
         analytics_record_mock: Mock,
-        notifying_users_mock: Mock,
+        notifying_unhide_mock: Mock,
         relocation_redeem_promo_code_signal_mock: Mock,
         relocated_signal_mock: Mock,
         fake_message_builder: Mock,
@@ -2141,7 +2163,7 @@ class PostprocessingTest(RelocationTaskTestCase):
 
         assert fake_message_builder.call_count == 0
         assert relocated_signal_mock.call_count == 0
-        assert notifying_users_mock.call_count == 0
+        assert notifying_unhide_mock.call_count == 0
 
         relocation: Relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.PAUSE.value
@@ -2155,7 +2177,7 @@ class PostprocessingTest(RelocationTaskTestCase):
     def test_retry_if_attempts_left(
         self,
         analytics_record_mock: Mock,
-        notifying_users_mock: Mock,
+        notifying_unhide_mock: Mock,
         relocation_redeem_promo_code_signal_mock: Mock,
         relocated_signal_mock: Mock,
         fake_message_builder: Mock,
@@ -2173,7 +2195,7 @@ class PostprocessingTest(RelocationTaskTestCase):
 
         assert fake_message_builder.call_count == 0
         assert relocated_signal_mock.call_count == 1
-        assert notifying_users_mock.call_count == 0
+        assert notifying_unhide_mock.call_count == 0
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.IN_PROGRESS.value
@@ -2187,7 +2209,7 @@ class PostprocessingTest(RelocationTaskTestCase):
     def test_fail_if_no_attempts_left(
         self,
         analytics_record_mock: Mock,
-        notifying_users_mock: Mock,
+        notifying_unhide_mock: Mock,
         relocation_redeem_promo_code_signal_mock: Mock,
         relocated_signal_mock: Mock,
         fake_message_builder: Mock,
@@ -2211,7 +2233,7 @@ class PostprocessingTest(RelocationTaskTestCase):
         )
 
         assert relocated_signal_mock.call_count == 1
-        assert notifying_users_mock.call_count == 0
+        assert notifying_unhide_mock.call_count == 0
 
         relocation = Relocation.objects.get(uuid=self.uuid)
         assert relocation.status == Relocation.Status.FAILURE.value
@@ -2222,13 +2244,97 @@ class PostprocessingTest(RelocationTaskTestCase):
 
 
 @patch("sentry.utils.relocation.MessageBuilder")
-@patch("sentry.tasks.relocation.notifying_owner.apply_async")
-class NotifyingUsersTest(RelocationTaskTestCase):
+@patch("sentry.tasks.relocation.notifying_users.apply_async")
+class NotifyingUnhideTest(RelocationTaskTestCase):
     def setUp(self):
         RelocationTaskTestCase.setUp(self)
         TransactionTestCase.setUp(self)
         self.relocation.step = Relocation.Step.POSTPROCESSING.value
         self.relocation.latest_task = OrderedTask.POSTPROCESSING.name
+        self.relocation.save()
+
+        with open(IMPORT_JSON_FILE_PATH, "rb") as fp:
+            import_in_organization_scope(
+                fp,
+                flags=ImportFlags(
+                    import_uuid=str(self.uuid),
+                    hide_organizations=True,
+                    merge_users=False,
+                    overwrite_configs=False,
+                ),
+                org_filter=set(self.relocation.want_org_slugs),
+                printer=Printer(),
+            )
+
+        imported_orgs = RegionImportChunk.objects.get(
+            import_uuid=self.uuid, model="sentry.organization"
+        )
+        assert len(imported_orgs.inserted_map) == 1
+        assert len(imported_orgs.inserted_identifiers) == 1
+
+        self.imported_org_id: int = next(iter(imported_orgs.inserted_map.values()))
+        self.imported_org_slug: str = next(iter(imported_orgs.inserted_identifiers.values()))
+        assert (
+            Organization.objects.filter(
+                slug=self.imported_org_slug, status=OrganizationStatus.RELOCATION_PENDING_APPROVAL
+            ).count()
+            == 1
+        )
+
+    def test_success(
+        self,
+        notifying_users_mock: Mock,
+        fake_message_builder: Mock,
+    ):
+        self.mock_message_builder(fake_message_builder)
+
+        notifying_unhide(self.uuid)
+
+        assert not (
+            Organization.objects.filter(
+                slug=self.imported_org_slug,
+                status=OrganizationStatus.RELOCATION_PENDING_APPROVAL,
+            ).exists()
+        )
+
+        assert fake_message_builder.call_count == 0
+        assert notifying_users_mock.call_count == 1
+
+    def test_pause(
+        self,
+        notifying_users_mock: Mock,
+        fake_message_builder: Mock,
+    ):
+        self.relocation.scheduled_pause_at_step = Relocation.Step.NOTIFYING.value
+        self.relocation.save()
+
+        notifying_unhide(self.uuid)
+
+        assert (
+            Organization.objects.filter(
+                slug=self.imported_org_slug, status=OrganizationStatus.RELOCATION_PENDING_APPROVAL
+            ).count()
+            == 1
+        )
+
+        assert fake_message_builder.call_count == 0
+        assert notifying_users_mock.call_count == 0
+
+        relocation: Relocation = Relocation.objects.get(uuid=self.uuid)
+        assert relocation.status == Relocation.Status.PAUSE.value
+        assert relocation.step == Relocation.Step.NOTIFYING.value
+        assert relocation.scheduled_pause_at_step is None
+        assert relocation.latest_task == OrderedTask.NOTIFYING_UNHIDE.name
+
+
+@patch("sentry.utils.relocation.MessageBuilder")
+@patch("sentry.tasks.relocation.notifying_owner.apply_async")
+class NotifyingUsersTest(RelocationTaskTestCase):
+    def setUp(self):
+        RelocationTaskTestCase.setUp(self)
+        TransactionTestCase.setUp(self)
+        self.relocation.step = Relocation.Step.NOTIFYING.value
+        self.relocation.latest_task = OrderedTask.NOTIFYING_UNHIDE.name
         self.relocation.want_usernames = ["admin@example.com", "member@example.com"]
         self.relocation.save()
 
@@ -2236,7 +2342,10 @@ class NotifyingUsersTest(RelocationTaskTestCase):
             import_in_organization_scope(
                 fp,
                 flags=ImportFlags(
-                    merge_users=False, overwrite_configs=False, import_uuid=str(self.uuid)
+                    import_uuid=str(self.uuid),
+                    hide_organizations=True,
+                    merge_users=False,
+                    overwrite_configs=False,
                 ),
                 org_filter=set(self.relocation.want_org_slugs),
                 printer=Printer(),
@@ -2312,25 +2421,6 @@ class NotifyingUsersTest(RelocationTaskTestCase):
 
             relocation: Relocation = Relocation.objects.get(uuid=self.uuid)
             assert relocation.latest_unclaimed_emails_sent_at is not None
-
-    def test_pause(
-        self,
-        notifying_owner_mock: Mock,
-        fake_message_builder: Mock,
-    ):
-        self.relocation.scheduled_pause_at_step = Relocation.Step.NOTIFYING.value
-        self.relocation.save()
-
-        notifying_users(self.uuid)
-
-        assert fake_message_builder.call_count == 0
-        assert notifying_owner_mock.call_count == 0
-
-        relocation: Relocation = Relocation.objects.get(uuid=self.uuid)
-        assert relocation.status == Relocation.Status.PAUSE.value
-        assert relocation.step == Relocation.Step.NOTIFYING.value
-        assert relocation.scheduled_pause_at_step is None
-        assert relocation.latest_task == OrderedTask.NOTIFYING_USERS.name
 
     def test_retry_if_attempts_left(
         self,

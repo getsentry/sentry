@@ -8,7 +8,7 @@ import isEqual from 'lodash/isEqual';
 import mapValues from 'lodash/mapValues';
 import omit from 'lodash/omit';
 import pickBy from 'lodash/pickBy';
-import moment from 'moment';
+import moment from 'moment-timezone';
 import * as qs from 'query-string';
 
 import {addMessage} from 'sentry/actionCreators/indicator';
@@ -466,8 +466,10 @@ class IssueListOverview extends Component<Props, State> {
   }
 
   fetchTags() {
-    const {api, organization, selection} = this.props;
-    loadOrganizationTags(api, organization.slug, selection);
+    if (!this.props.organization.features.includes('issue-stream-search-query-builder')) {
+      const {api, organization, selection} = this.props;
+      loadOrganizationTags(api, organization.slug, selection);
+    }
   }
 
   fetchStats = (groups: string[]) => {

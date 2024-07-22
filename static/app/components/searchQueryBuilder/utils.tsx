@@ -1,3 +1,4 @@
+import type {FieldDefinitionGetter} from 'sentry/components/searchQueryBuilder/types';
 import {
   BooleanOperator,
   FilterType,
@@ -9,16 +10,21 @@ import {
   type TokenResult,
 } from 'sentry/components/searchSyntax/parser';
 import type {TagCollection} from 'sentry/types/group';
-import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {FieldValueType} from 'sentry/utils/fields';
 
 export const INTERFACE_TYPE_LOCALSTORAGE_KEY = 'search-query-builder-interface';
 
-function getSearchConfigFromKeys(keys: TagCollection): Partial<SearchConfig> {
+function getSearchConfigFromKeys(
+  keys: TagCollection,
+  getFieldDefinition: FieldDefinitionGetter
+): Partial<SearchConfig> {
   const config = {
+    textOperatorKeys: new Set<string>(),
     booleanKeys: new Set<string>(),
     numericKeys: new Set<string>(),
     dateKeys: new Set<string>(),
     durationKeys: new Set<string>(),
+    percentageKeys: new Set<string>(),
   } satisfies Partial<SearchConfig>;
 
   for (const key in keys) {
@@ -27,12 +33,17 @@ function getSearchConfigFromKeys(keys: TagCollection): Partial<SearchConfig> {
       continue;
     }
 
+    if (fieldDef.allowComparisonOperators) {
+      config.textOperatorKeys.add(key);
+    }
+
     switch (fieldDef.valueType) {
       case FieldValueType.BOOLEAN:
         config.booleanKeys.add(key);
         break;
       case FieldValueType.NUMBER:
       case FieldValueType.INTEGER:
+      case FieldValueType.PERCENTAGE:
         config.numericKeys.add(key);
         break;
       case FieldValueType.DATE:
@@ -51,6 +62,7 @@ function getSearchConfigFromKeys(keys: TagCollection): Partial<SearchConfig> {
 
 export function parseQueryBuilderValue(
   value: string,
+  getFieldDefinition: FieldDefinitionGetter,
   options?: {filterKeys: TagCollection; disallowLogicalOperators?: boolean}
 ): ParseResult | null {
   return collapseTextTokens(
@@ -60,7 +72,7 @@ export function parseQueryBuilderValue(
         ? new Set([BooleanOperator.AND, BooleanOperator.OR])
         : undefined,
       disallowParens: options?.disallowLogicalOperators,
-      ...getSearchConfigFromKeys(options?.filterKeys ?? {}),
+      ...getSearchConfigFromKeys(options?.filterKeys ?? {}, getFieldDefinition),
     })
   );
 }

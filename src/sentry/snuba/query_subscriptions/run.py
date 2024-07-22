@@ -13,8 +13,8 @@ from arroyo.processing.strategies import (
 from arroyo.types import BrokerValue, Commit, Message, Partition
 from sentry_kafka_schemas import get_codec
 
+from sentry import options
 from sentry.conf.types.kafka_definition import Topic
-from sentry.features.rollout import in_random_rollout
 from sentry.snuba.dataset import Dataset
 from sentry.snuba.query_subscriptions.constants import dataset_to_logical_topic
 from sentry.utils.arroyo import MultiprocessingPool, run_task_with_multiprocessing
@@ -73,11 +73,14 @@ def process_message(
     from sentry.snuba.query_subscriptions.consumer import handle_message
     from sentry.utils import metrics
 
-    with sentry_sdk.start_transaction(
-        op="handle_message",
-        name="query_subscription_consumer_process_message",
-        sampled=in_random_rollout("subscriptions-query.sample-rate"),
-    ), metrics.timer("snuba_query_subscriber.handle_message", tags={"dataset": dataset.value}):
+    with (
+        sentry_sdk.start_transaction(
+            op="handle_message",
+            name="query_subscription_consumer_process_message",
+            custom_sampling_context={"sample_rate": options.get("subscriptions-query.sample-rate")},
+        ),
+        metrics.timer("snuba_query_subscriber.handle_message", tags={"dataset": dataset.value}),
+    ):
         value = message.value
         assert isinstance(value, BrokerValue)
         offset = value.offset

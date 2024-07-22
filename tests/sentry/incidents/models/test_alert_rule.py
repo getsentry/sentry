@@ -309,15 +309,18 @@ class AlertRuleTriggerActionActivateBaseTest:
     method: str
 
     def setUp(self):
-        self.old_handlers = AlertRuleTriggerAction._type_registrations
-        AlertRuleTriggerAction._type_registrations = {}
+        self.old_handlers = AlertRuleTriggerAction._factory_registrations
+        AlertRuleTriggerAction._factory_registrations = {}
 
     def tearDown(self):
-        AlertRuleTriggerAction._type_registrations = self.old_handlers
+        AlertRuleTriggerAction._factory_registrations = self.old_handlers
 
     def test_no_handler(self):
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)
-        assert trigger.fire(Mock(), Mock(), Mock(), 123, IncidentStatus.CRITICAL) is None
+        result = trigger.fire(Mock(), Mock(), Mock(), 123, IncidentStatus.CRITICAL)  # type: ignore[func-returns-value]
+
+        # TODO(RyanSkonnord): Remove assertion (see test_handler)
+        assert result is None
 
     def test_handler(self):
         mock_handler = Mock()
@@ -326,10 +329,13 @@ class AlertRuleTriggerActionActivateBaseTest:
         type = AlertRuleTriggerAction.Type.EMAIL
         AlertRuleTriggerAction.register_type("something", type, [])(mock_handler)
         trigger = AlertRuleTriggerAction(type=type.value)
-        assert (
-            getattr(trigger, self.method)(Mock(), Mock(), Mock(), 123, IncidentStatus.CRITICAL)
-            == mock_method.return_value
-        )
+        result = getattr(trigger, self.method)(Mock(), Mock(), Mock(), 123, IncidentStatus.CRITICAL)
+
+        # TODO(RyanSkonnord): Don't assert on return value.
+        # All concrete ActionHandlers return None from their fire and resolve
+        # methods. It seems that this return value's only purpose is to spy on
+        # whether the AlertRuleTriggerAction produced a handler.
+        assert result == mock_method.return_value
 
 
 class AlertRuleTriggerActionFireTest(AlertRuleTriggerActionActivateBaseTest, unittest.TestCase):
@@ -347,11 +353,11 @@ class AlertRuleTriggerActionActivateTest(TestCase):
             yield
 
     def setUp(self):
-        self.old_handlers = AlertRuleTriggerAction._type_registrations
-        AlertRuleTriggerAction._type_registrations = {}
+        self.old_handlers = AlertRuleTriggerAction._factory_registrations
+        AlertRuleTriggerAction._factory_registrations = {}
 
     def tearDown(self):
-        AlertRuleTriggerAction._type_registrations = self.old_handlers
+        AlertRuleTriggerAction._factory_registrations = self.old_handlers
 
     def test_unhandled(self):
         trigger = AlertRuleTriggerAction(type=AlertRuleTriggerAction.Type.EMAIL.value)

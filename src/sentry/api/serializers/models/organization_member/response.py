@@ -1,5 +1,7 @@
 from datetime import datetime
-from typing import TypedDict
+from typing import NotRequired, TypedDict
+
+from drf_spectacular.utils import extend_schema_serializer
 
 from sentry.api.serializers.models.role import (
     OrganizationRoleSerializerResponse,
@@ -64,17 +66,16 @@ class _TeamRole(TypedDict):
     role: str
 
 
-class OrganizationMemberResponseOptional(TypedDict, total=False):
-    externalUsers: list[ExternalActorResponse]
-    user: UserSerializerResponse
-    role: str  # Deprecated: use orgRole
-    roleName: str  # Deprecated
-
-
-class OrganizationMemberResponse(OrganizationMemberResponseOptional):
+@extend_schema_serializer(exclude_fields=["role", "roleName"])
+class OrganizationMemberResponse(TypedDict):
+    externalUsers: NotRequired[list[ExternalActorResponse]]
+    role: NotRequired[str]  # Deprecated: use orgRole
+    roleName: NotRequired[str]  # Deprecated
     id: str
     email: str
     name: str
+    # User may be optional b/c invites don't have users yet
+    user: NotRequired[UserSerializerResponse]
     orgRole: str
     pending: bool
     expired: bool
@@ -93,13 +94,9 @@ class OrganizationMemberWithProjectsResponse(OrganizationMemberResponse):
     projects: list[str]
 
 
-class OrganizationMemberWithRolesResponseOptional(TypedDict, total=False):
-    roles: list[OrganizationRoleSerializerResponse]  # Deprecated: use orgRoleList
-
-
-class OrganizationMemberWithRolesResponse(
-    OrganizationMemberWithTeamsResponse, OrganizationMemberWithRolesResponseOptional
-):
+@extend_schema_serializer(exclude_fields=["roles"])
+class OrganizationMemberWithRolesResponse(OrganizationMemberWithTeamsResponse):
+    roles: NotRequired[list[OrganizationRoleSerializerResponse]]  # Deprecated: use orgRoleList
     invite_link: str | None
     isOnlyOwner: bool
     orgRoleList: list[OrganizationRoleSerializerResponse]

@@ -13,7 +13,7 @@ from sentry.api.exceptions import ResourceDoesNotExist
 from sentry.api.serializers import serialize
 from sentry.discover.endpoints.bases import DiscoverSavedQueryPermission
 from sentry.discover.endpoints.serializers import DiscoverSavedQuerySerializer
-from sentry.discover.models import DiscoverSavedQuery
+from sentry.discover.models import DatasetSourcesTypes, DiscoverSavedQuery
 
 
 def get_homepage_query(organization, user):
@@ -84,6 +84,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
                 query=data["query"],
                 version=data["version"],
                 dataset=data["query_dataset"],
+                dataset_source=DatasetSourcesTypes.UNKNOWN.value,
             )
             previous_homepage.set_projects(data["project_ids"])
             return Response(serialize(previous_homepage), status=status.HTTP_200_OK)
@@ -94,6 +95,7 @@ class DiscoverHomepageQueryEndpoint(OrganizationEndpoint):
             query=data["query"],
             version=data["version"],
             dataset=data["query_dataset"],
+            dataset_source=DatasetSourcesTypes.UNKNOWN.value,
             created_by_id=request.user.id,
             is_homepage=True,
         )

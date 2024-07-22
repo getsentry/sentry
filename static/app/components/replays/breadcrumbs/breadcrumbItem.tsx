@@ -207,6 +207,7 @@ function CrumbHydrationButton({
         replay={replay}
         leftOffsetMs={leftOffsetMs}
         rightOffsetMs={rightOffsetMs}
+        surface="replay-breadcrumbs"
         size="xs"
       >
         {t('Open Hydration Diff')}

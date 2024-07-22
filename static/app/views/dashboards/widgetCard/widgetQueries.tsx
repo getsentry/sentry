@@ -17,9 +17,9 @@ import type {MetricsResultsMetaMapKey} from 'sentry/utils/performance/contexts/m
 import {useMetricsResultsMeta} from 'sentry/utils/performance/contexts/metricsEnhancedPerformanceDataContext';
 import {useMEPSettingContext} from 'sentry/utils/performance/contexts/metricsEnhancedSetting';
 import {OnDemandControlConsumer} from 'sentry/utils/performance/contexts/onDemandControl';
+import {getDatasetConfig} from 'sentry/views/dashboards/datasetConfig/base';
 
-import {ErrorsAndTransactionsConfig} from '../datasetConfig/errorsAndTransactions';
-import type {DashboardFilters, Widget} from '../types';
+import type {DashboardFilters, Widget, WidgetType} from '../types';
 
 import {DashboardsMEPContext} from './dashboardsMEPContext';
 import type {
@@ -132,7 +132,10 @@ function WidgetQueries({
   limit,
   onDataFetched,
 }: Props) {
-  const config = ErrorsAndTransactionsConfig;
+  // Discover and Errors datasets are the only datasets processed in this component
+  const config = getDatasetConfig(
+    widget.widgetType as WidgetType.DISCOVER | WidgetType.ERRORS | WidgetType.TRANSACTIONS
+  );
   const context = useContext(DashboardsMEPContext);
   const metricsMeta = useMetricsResultsMeta();
   const mepSettingContext = useMEPSettingContext();

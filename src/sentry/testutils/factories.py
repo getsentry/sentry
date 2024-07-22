@@ -42,6 +42,7 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleDetectionType,
     AlertRuleMonitorTypeInt,
     AlertRuleThresholdType,
     AlertRuleTriggerAction,
@@ -151,11 +152,13 @@ from sentry.snuba.models import QuerySubscription
 from sentry.testutils.outbox import outbox_runner
 from sentry.testutils.silo import assume_test_silo_mode
 from sentry.types.activity import ActivityType
+from sentry.types.actor import Actor
 from sentry.types.region import Region, get_local_region, get_region_by_name
 from sentry.types.token import AuthTokenType
 from sentry.uptime.models import (
     ProjectUptimeSubscription,
     ProjectUptimeSubscriptionMode,
+    UptimeStatus,
     UptimeSubscription,
 )
 from sentry.users.services.user import RpcUser
@@ -1548,6 +1551,9 @@ class Factories:
         monitor_type=AlertRuleMonitorTypeInt.CONTINUOUS,
         activation_condition=AlertRuleActivationConditionType.RELEASE_CREATION,
         description=None,
+        sensitivity=None,
+        seasonality=None,
+        detection_type=AlertRuleDetectionType.STATIC,
     ):
         if not name:
             name = petname.generate(2, " ", letters=10).title()
@@ -1577,6 +1583,9 @@ class Factories:
             monitor_type=monitor_type,
             activation_condition=activation_condition,
             description=description,
+            sensitivity=sensitivity,
+            seasonality=seasonality,
+            detection_type=detection_type,
         )
 
         if date_added is not None:
@@ -1943,9 +1952,24 @@ class Factories:
         project: Project,
         uptime_subscription: UptimeSubscription,
         mode: ProjectUptimeSubscriptionMode,
+        name: str,
+        owner: Actor | None,
+        uptime_status: UptimeStatus,
     ):
+        owner_team_id = None
+        owner_user_id = None
+        if owner:
+            if owner.is_team:
+                owner_team_id = owner.id
+            elif owner.is_user:
+                owner_user_id = owner.id
+
         return ProjectUptimeSubscription.objects.create(
             uptime_subscription=uptime_subscription,
             project=project,
             mode=mode,
+            name=name,
+            owner_team_id=owner_team_id,
+            owner_user_id=owner_user_id,
+            uptime_status=uptime_status,
         )

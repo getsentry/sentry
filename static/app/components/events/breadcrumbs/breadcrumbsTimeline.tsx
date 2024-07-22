@@ -1,7 +1,7 @@
 import {Fragment, useRef} from 'react';
 import styled from '@emotion/styled';
 import {useVirtualizer} from '@tanstack/react-virtual';
-import moment from 'moment';
+import moment from 'moment-timezone';
 
 import DateTime from 'sentry/components/dateTime';
 import Duration from 'sentry/components/duration';

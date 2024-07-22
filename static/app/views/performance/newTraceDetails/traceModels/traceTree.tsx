@@ -480,7 +480,7 @@ export class TraceTree {
     let traceStart = Number.POSITIVE_INFINITY;
     let traceEnd = Number.NEGATIVE_INFINITY;
 
-    const traceNode = new TraceTreeNode(tree.root, trace, {
+    const traceNode = new TraceTreeNode<TraceTree.Trace>(tree.root, trace, {
       event_id: undefined,
       project_slug: undefined,
     });
@@ -493,9 +493,18 @@ export class TraceTree {
       value: TraceTree.Transaction | TraceTree.TraceError
     ) {
       const node = new TraceTreeNode(parent, value, {
-        project_slug: value && 'project_slug' in value ? value.project_slug : undefined,
-        event_id: value && 'event_id' in value ? value.event_id : undefined,
+        project_slug:
+          value && 'project_slug' in value
+            ? value.project_slug
+            : parent.metadata.project_slug ??
+              parent.parent_transaction?.metadata.project_slug,
+        event_id:
+          value && 'event_id' in value
+            ? value.event_id
+            : parent.metadata.event_id ??
+              parent.parent_transaction?.metadata.project_slug,
       });
+
       node.canFetch = true;
       tree.eventsCount += 1;
 
@@ -869,8 +878,8 @@ export class TraceTree {
         childTransactions,
       };
       const node: TraceTreeNode<TraceTree.Span> = new TraceTreeNode(null, spanNodeValue, {
-        event_id: undefined,
-        project_slug: undefined,
+        event_id: parent.metadata.event_id,
+        project_slug: parent.metadata.project_slug,
       });
 
       if (

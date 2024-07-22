@@ -14,6 +14,7 @@ from sentry.api.endpoints.org_auth_tokens import OrgAuthTokensEndpoint
 from sentry.api.endpoints.organization_events_root_cause_analysis import (
     OrganizationEventsRootCauseAnalysisEndpoint,
 )
+from sentry.api.endpoints.organization_fork import OrganizationForkEndpoint
 from sentry.api.endpoints.organization_minimal_projects import OrganizationMinimalProjectsEndpoint
 from sentry.api.endpoints.organization_missing_org_members import OrganizationMissingMembersEndpoint
 from sentry.api.endpoints.organization_projects_experiment import (
@@ -149,7 +150,6 @@ from sentry.integrations.api.endpoints.organization.organization_integration_rep
 from sentry.issues.endpoints import (
     ActionableItemsEndpoint,
     GroupEventsEndpoint,
-    OrganizationActivityEndpoint,
     OrganizationGroupIndexEndpoint,
     OrganizationGroupSearchViewsEndpoint,
     OrganizationReleasePreviousCommitsEndpoint,
@@ -1340,11 +1340,6 @@ ORGANIZATION_URLS = [
         name="sentry-api-0-organization-access-request-details",
     ),
     re_path(
-        r"^(?P<organization_id_or_slug>[^\/]+)/activity/$",
-        OrganizationActivityEndpoint.as_view(),
-        name="sentry-api-0-organization-activity",
-    ),
-    re_path(
         r"^(?P<organization_id_or_slug>[^\/]+)/api-keys/$",
         OrganizationApiKeyIndexEndpoint.as_view(),
         name="sentry-api-0-organization-api-key-index",
@@ -2179,6 +2174,12 @@ ORGANIZATION_URLS = [
         r"^(?P<organization_id_or_slug>[^\/]+)/region/$",
         OrganizationRegionEndpoint.as_view(),
         name="sentry-api-0-organization-region",
+    ),
+    # Trigger relocation
+    re_path(
+        r"^(?P<organization_id_or_slug>[^\/]+)/fork/$",
+        OrganizationForkEndpoint.as_view(),
+        name="sentry-api-0-organization-fork",
     ),
 ]
 

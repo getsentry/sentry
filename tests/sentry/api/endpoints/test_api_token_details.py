@@ -32,13 +32,20 @@ class ApiTokenGetTest(APITestCase):
             == "max-age=0, no-cache, no-store, must-revalidate, private"
         )
 
-    def test_not_exists(self):
+    def test_invalid_token_id(self):
         self.login_as(self.user)
         self.get_error_response(-1, status_code=status.HTTP_404_NOT_FOUND)
 
     def test_no_auth(self):
         token = ApiToken.objects.create(user=self.user, name="token 1")
         self.get_error_response(token.id, status_code=status.HTTP_401_UNAUTHORIZED)
+
+    def test_invalid_user_id(self):
+        token = ApiToken.objects.create(user=self.user, name="token 1")
+        self.login_as(self.user, superuser=True)
+        self.get_error_response(
+            token.id, qs_params={"userId": "abc"}, status_code=status.HTTP_404_NOT_FOUND
+        )
 
 
 @control_silo_test
@@ -120,6 +127,15 @@ class ApiTokenPutTest(APITestCase):
 
         self.get_error_response(token.id, status_code=status.HTTP_401_UNAUTHORIZED, **payload)
 
+    def test_invalid_user_id(self):
+        token = ApiToken.objects.create(user=self.user, name="token 1")
+        payload = {"name": "new token"}
+
+        self.login_as(self.user, superuser=True)
+        self.get_error_response(
+            token.id, qs_params={"userId": "abc"}, status_code=status.HTTP_404_NOT_FOUND, **payload
+        )
+
 
 @control_silo_test
 class ApiTokenDeleteTest(APITestCase):
@@ -150,3 +166,11 @@ class ApiTokenDeleteTest(APITestCase):
         token = ApiToken.objects.create(user=self.user, name="token 1")
 
         self.get_error_response(token.id, status_code=status.HTTP_401_UNAUTHORIZED)
+
+    def test_invalid_user_id(self):
+        token = ApiToken.objects.create(user=self.user, name="token 1")
+
+        self.login_as(self.user, superuser=True)
+        self.get_error_response(
+            token.id, qs_params={"userId": "abc"}, status_code=status.HTTP_404_NOT_FOUND
+        )

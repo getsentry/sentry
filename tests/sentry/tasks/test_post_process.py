@@ -43,6 +43,7 @@ from sentry.models.groupowner import (
     GroupOwnerType,
 )
 from sentry.models.groupsnooze import GroupSnooze
+from sentry.models.organization import Organization
 from sentry.models.projectownership import ProjectOwnership
 from sentry.models.projectteam import ProjectTeam
 from sentry.models.userreport import UserReport
@@ -75,7 +76,7 @@ from sentry.testutils.silo import assume_test_silo_mode
 from sentry.testutils.skips import requires_snuba
 from sentry.types.activity import ActivityType
 from sentry.types.group import GroupSubStatus, PriorityLevel
-from sentry.uptime.detectors.ranking import _get_cluster, get_project_bucket_key
+from sentry.uptime.detectors.ranking import _get_cluster, get_organization_bucket_key
 from sentry.users.services.user.service import user_service
 from sentry.utils import json
 from sentry.utils.cache import cache
@@ -2149,10 +2150,10 @@ class UserReportEventLinkTestMixin(BasePostProgressGroupMixin):
 
 
 class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
-    def assert_project_key(self, project, exists: bool) -> None:
-        key = get_project_bucket_key(project)
+    def assert_organization_key(self, organization: Organization, exists: bool) -> None:
+        key = get_organization_bucket_key(organization)
         cluster = _get_cluster()
-        assert exists == cluster.hexists(key, str(project.id))
+        assert exists == cluster.sismember(key, str(organization.id))
 
     @with_feature("organizations:uptime-automatic-hostname-detection")
     def test_uptime_detection_feature_url(self):
@@ -2166,7 +2167,7 @@ class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
             is_new_group_environment=False,
             event=event,
         )
-        self.assert_project_key(self.project, True)
+        self.assert_organization_key(self.organization, True)
 
     @with_feature("organizations:uptime-automatic-hostname-detection")
     def test_uptime_detection_feature_no_url(self):
@@ -2180,7 +2181,7 @@ class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
             is_new_group_environment=False,
             event=event,
         )
-        self.assert_project_key(self.project, False)
+        self.assert_organization_key(self.organization, False)
 
     def test_uptime_detection_no_feature(self):
         event = self.create_event(
@@ -2193,7 +2194,7 @@ class DetectBaseUrlsForUptimeTestMixin(BasePostProgressGroupMixin):
             is_new_group_environment=False,
             event=event,
         )
-        self.assert_project_key(self.project, False)
+        self.assert_organization_key(self.organization, False)
 
 
 class DetectNewEscalationTestMixin(BasePostProgressGroupMixin):

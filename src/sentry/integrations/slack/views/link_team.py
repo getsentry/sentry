@@ -10,6 +10,7 @@ from django.core.signing import BadSignature, SignatureExpired
 from django.http.response import HttpResponseBase
 from django.utils.decorators import method_decorator
 from rest_framework.request import Request
+from slack_sdk.errors import SlackApiError
 
 from sentry import analytics, features
 from sentry.identity.services.identity import identity_service
@@ -19,7 +20,10 @@ from sentry.integrations.services.integration import RpcIntegration, integration
 from sentry.integrations.slack.metrics import (
     SLACK_BOT_COMMAND_LINK_TEAM_FAILURE_DATADOG_METRIC,
     SLACK_BOT_COMMAND_LINK_TEAM_SUCCESS_DATADOG_METRIC,
+    SLACK_LINK_TEAM_MSG_FAILURE_DATADOG_METRIC,
+    SLACK_LINK_TEAM_MSG_SUCCESS_DATADOG_METRIC,
 )
+from sentry.integrations.slack.sdk_client import SlackSdkClient
 from sentry.integrations.slack.views.types import TeamLinkRequest
 from sentry.integrations.types import ExternalProviderEnum, ExternalProviders
 from sentry.models.organizationmember import OrganizationMember
@@ -213,12 +217,15 @@ class SlackLinkTeamView(BaseView):
             message = ALREADY_LINKED_MESSAGE.format(slug=team.slug)
             metrics.incr(self._METRICS_FAILURE_KEY + ".team_already_linked", sample_rate=1.0)
 
-            integration_service.send_message(
-                integration_id=integration.id,
-                organization_id=team.organization_id,
-                channel=channel_id,
-                message=message,
-            )
+            try:
+                client = SlackSdkClient(integration_id=integration.id)
+                client.chat_postMessage(channel=channel_id, text=message)
+                metrics.incr(SLACK_LINK_TEAM_MSG_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
+            except SlackApiError:
+                # whether or not we send a Slack message, the team is already linked
+                metrics.incr(SLACK_LINK_TEAM_MSG_FAILURE_DATADOG_METRIC, sample_rate=1.0)
+                pass
+
             return render_to_response(
                 "sentry/integrations/slack/post-linked-team.html",
                 request=request,
@@ -248,12 +255,14 @@ class SlackLinkTeamView(BaseView):
             channel_name=channel_name,
         )
 
-        integration_service.send_message(
-            integration_id=integration.id,
-            organization_id=team.organization_id,
-            channel=channel_id,
-            message=message,
-        )
+        try:
+            client = SlackSdkClient(integration_id=integration.id)
+            client.chat_postMessage(channel=channel_id, text=message)
+            metrics.incr(SLACK_LINK_TEAM_MSG_SUCCESS_DATADOG_METRIC, sample_rate=1.0)
+        except SlackApiError:
+            # whether or not we send a Slack message, the team was linked successfully
+            metrics.incr(SLACK_LINK_TEAM_MSG_FAILURE_DATADOG_METRIC, sample_rate=1.0)
+            pass
 
         metrics.incr(self._METRICS_SUCCESS_KEY + ".link_team", sample_rate=1.0)
 

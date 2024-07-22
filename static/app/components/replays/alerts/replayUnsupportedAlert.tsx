@@ -11,17 +11,12 @@ export default function ReplayUnsupportedAlert({projectSlug}: Props) {
   const docsLink = (
     <ExternalLink href="https://docs.sentry.io/product/session-replay/getting-started/#supported-sdks" />
   );
-  const waitlistLink = <ExternalLink href="https://sentry.io/lp/mobile-replay-beta/" />;
   return (
     <Alert icon={<IconInfo />}>
       <strong>{t(`Session Replay isn't available for %s.`, projectSlug)}</strong>{' '}
-      {tct(
-        `Currently, [docsLink:Web is supported], and Mobile is being developed. Join our [waitlistLink:waitlist].`,
-        {
-          docsLink,
-          waitlistLink,
-        }
-      )}
+      {tct(`[docsLink: See our docs] to find out which platforms are supported.`, {
+        docsLink,
+      })}
     </Alert>
   );
 }

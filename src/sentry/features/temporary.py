@@ -43,20 +43,22 @@ def register_temporary_features(manager: FeatureManager):
     ###############################################################################
 
     # Enables activated alert rules
-    manager.add("organizations:activated-alert-rules", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:activated-alert-rules", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
+    # Enables IS_IN for issue alerts
+    manager.add("organizations:issues-alerts-is-in", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
-    manager.add("organizations:alert-allow-indexed", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:alert-allow-indexed", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Use metrics as the dataset for crash free metric alerts
-    manager.add("organizations:alert-crash-free-metrics", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:alert-crash-free-metrics", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     manager.add("organizations:alert-filters", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enables the migration of alerts (checked in a migration script).
     manager.add("organizations:alerts-migration-enabled", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable anomaly detection alerts
     manager.add("organizations:anomaly-detection-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable anr frame analysis
-    manager.add("organizations:anr-analyze-frames", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:anr-analyze-frames", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable anr improvements ui
-    manager.add("organizations:anr-improvements", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:anr-improvements", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable auth provider configuration through api
     manager.add("organizations:api-auth-provider", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:api-keys", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=False)
@@ -75,19 +77,19 @@ def register_temporary_features(manager: FeatureManager):
     # Enable daily summary
     manager.add("organizations:daily-summary", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
     # Enable dashboard widget indicators.
-    manager.add("organizations:dashboard-widget-indicators", OrganizationFeature, FeatureHandlerStrategy.REMOTE, default=True)
+    manager.add("organizations:dashboard-widget-indicators", OrganizationFeature, FeatureHandlerStrategy.REMOTE, default=True, api_expose=True)
     # Enables import/export functionality for dashboards
-    manager.add("organizations:dashboards-import", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:dashboards-import", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable metrics enhanced performance in dashboards
-    manager.add("organizations:dashboards-mep", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:dashboards-mep", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable release health widget in dashboards
-    manager.add("organizations:dashboards-rh-widget", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:dashboards-rh-widget", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     manager.add("organizations:dashboards-span-metrics", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Enable the dev toolbar PoC code for employees
     manager.add("organizations:devtoolbar", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False)
     # Delightful Developer Metrics (DDM):
     # Enables experimental WIP custom metrics related features
-    manager.add("organizations:custom-metrics-experimental", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:custom-metrics-experimental", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enables generation of custom metrics extraction rules
     manager.add("organizations:custom-metrics-extraction-rule", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enables UI for creation of custom metrics extraction rules
@@ -101,15 +103,13 @@ def register_temporary_features(manager: FeatureManager):
     # Enables synthesis of device.class in ingest
     manager.add("organizations:device-class-synthesis", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable device.class as a selectable column
-    manager.add("organizations:device-classification", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:device-classification", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable the 'discover' interface. (might be unused)
     manager.add("organizations:discover", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable the org recalibration
     manager.add("organizations:ds-org-recalibration", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enables data secrecy mode
     manager.add("organizations:enterprise-data-secrecy", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-    # Enable archive/escalating issue workflow in MS Teams
-    manager.add("organizations:escalating-issues-msteams", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable archive/escalating issue workflow features in v2
     manager.add("organizations:escalating-issues-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable emiting escalating data to the metrics backend
@@ -118,11 +118,11 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:gitlab-disable-on-broken", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable experimental new version of stacktrace component where additional
     # data related to grouping is shown on each frame
-    manager.add("organizations:grouping-stacktrace-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:grouping-stacktrace-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable only calculating a secondary hash when needed
     manager.add("organizations:grouping-suppress-unnecessary-secondary-hash", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable tweaks to group title in relation to hierarchical grouping.
-    manager.add("organizations:grouping-title-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:grouping-title-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Allows an org to have a larger set of project ownership rules per project
     manager.add("organizations:higher-ownership-limit", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable increased issue_owners rate limit for auto-assignment
@@ -130,7 +130,7 @@ def register_temporary_features(manager: FeatureManager):
     # Starfish: extract metrics from the spans
     manager.add("organizations:indexed-spans-extraction", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable custom alert priorities for Pagerduty and Opsgenie
-    manager.add("organizations:integrations-custom-alert-priorities", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:integrations-custom-alert-priorities", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable integration functionality to work deployment integrations like Vercel
     manager.add("organizations:integrations-deployment", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     manager.add("organizations:integrations-feature-flag-integration", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
@@ -141,9 +141,9 @@ def register_temporary_features(manager: FeatureManager):
     # Enable rate limits for inviting members.
     manager.add("organizations:invite-members-rate-limits", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Enables the UI for Autofix in issue details
-    manager.add("organizations:issue-details-autofix-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:issue-details-autofix-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enables a toggle for entering the new issue details UI
-    manager.add("organizations:issue-details-new-experience-toggle", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:issue-details-new-experience-toggle", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enables access to the streamlined issue details UI
     manager.add("organizations:issue-details-streamline", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Whether to allow issue only search on the issue list
@@ -153,71 +153,76 @@ def register_temporary_features(manager: FeatureManager):
     # Enable custom views features in the issue stream
     manager.add("organizations:issue-stream-custom-views", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Enable the updated empty state for issues
-    manager.add("organizations:issue-stream-empty-state", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:issue-stream-empty-state", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable additional platforms for issue stream empty state
     manager.add("organizations:issue-stream-empty-state-additional-platforms", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable issue stream performance improvements
-    manager.add("organizations:issue-stream-performance", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:issue-stream-performance", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
+    manager.add("organizations:issue-search-snuba", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable the new issue stream search bar UI
-    manager.add("organizations:issue-stream-search-query-builder", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:issue-stream-search-query-builder", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     manager.add("organizations:large-debug-files", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable v8 support for the Loader Script
     manager.add("organizations:js-sdk-loader-v8", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enabled latest adopted release filter for issue alerts
     manager.add("organizations:latest-adopted-release-filter", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    manager.add("organizations:mep-rollout-flag", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:mep-rollout-flag", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     manager.add("organizations:mep-use-default-tags", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    # Enable messaging integration onboarding when setting up alerts
+    manager.add("organizations:messaging-integration-onboarding", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable metric alert charts in email/slack
     manager.add("organizations:metric-alert-chartcuterie", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable load shedding for newly created metric alerts
     manager.add("organizations:metric-alert-load-shedding", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Enable threshold period in metric alert rule builder
-    manager.add("organizations:metric-alert-threshold-period", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:metric-alert-threshold-period", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enables the search bar for metrics samples list
-    manager.add("organizations:metrics-samples-list-search", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:metrics-samples-list-search", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable Session Stats down to a minute resolution
     manager.add("organizations:minute-resolution-sessions", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Display CPU and memory metrics in transactions with profiles
-    manager.add("organizations:mobile-cpu-memory-in-transactions", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:mobile-cpu-memory-in-transactions", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Adds the ttid & ttfd vitals to the frontend
-    manager.add("organizations:mobile-vitals", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:mobile-vitals", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enables higher limit for alert rules
     manager.add("organizations:more-fast-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:more-slow-alerts", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-    manager.add("organizations:new-page-filter", OrganizationFeature, FeatureHandlerStrategy.REMOTE, default=True)
+    manager.add("organizations:new-page-filter", OrganizationFeature, FeatureHandlerStrategy.REMOTE, default=True, api_expose=True)
     manager.add("organizations:new-weekly-report", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Display warning banner for every event issue alerts
-    manager.add("organizations:noisy-alert-warning", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:noisy-alert-warning", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Notify all project members when fallthrough is disabled, instead of just the auto-assignee
     manager.add("organizations:notification-all-recipients", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Drop obsoleted status changes in occurence consumer
     manager.add("organizations:occurence-consumer-prune-status-changes", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable User Feedback v1
-    manager.add("organizations:old-user-feedback", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:old-user-feedback", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Extract on demand metrics
-    manager.add("organizations:on-demand-metrics-extraction", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:on-demand-metrics-extraction", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Extract on demand metrics (experimental features)
-    manager.add("organizations:on-demand-metrics-extraction-experimental", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:on-demand-metrics-extraction-experimental", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Extract on demand metrics (widget extraction)
     manager.add("organizations:on-demand-metrics-extraction-widgets", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # This spec version includes the environment in the query hash
     manager.add("organizations:on-demand-metrics-query-spec-version-two", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    # Display metrics components with a new design
+    manager.add("organizations:metrics-new-inputs", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Display on demand metrics related UI elements
-    manager.add("organizations:on-demand-metrics-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:on-demand-metrics-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Display on demand metrics related UI elements, for dashboards and widgets. The other flag is for alerts.
-    manager.add("organizations:on-demand-metrics-ui-widgets", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:on-demand-metrics-ui-widgets", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Only enabled in sentry.io to enable onboarding flows.
     manager.add("organizations:onboarding", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable the SDK selection feature in the onboarding
-    manager.add("organizations:onboarding-sdk-selection", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:onboarding-sdk-selection", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable views for anomaly detection
-    manager.add("organizations:performance-anomaly-detection-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:performance-anomaly-detection-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable mobile performance score calculation for transactions in relay
     manager.add("organizations:performance-calculate-mobile-perf-score-relay", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable performance change explorer panel on trends page
-    manager.add("organizations:performance-change-explorer", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:performance-change-explorer", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable interpolation of null data points in charts instead of zerofilling in performance
-    manager.add("organizations:performance-chart-interpolation", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:performance-chart-interpolation", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable consecutive http performance issue type
     manager.add("organizations:performance-consecutive-http-detector", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable database view powered by span metrics
@@ -226,66 +231,64 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:performance-database-view-percentiles", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:performance-db-main-thread-detector", OrganizationFeature)
     # Enable Discover Saved Query dataset selector
-    manager.add("organizations:performance-discover-dataset-selector", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:performance-discover-dataset-selector", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable backend overriding and always making a fresh split decision
     manager.add("organizations:performance-discover-widget-split-override-save", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable UI sending a discover split for widget
-    manager.add("organizations:performance-discover-widget-split-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:performance-discover-widget-split-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     manager.add("organizations:performance-file-io-main-thread-detector", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enables updated all events tab in a performance issue
     manager.add("organizations:performance-issues-all-events-tab", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable performance issues dev options, includes changing parts of issues that we're using for development.
-    manager.add("organizations:performance-issues-dev", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:performance-issues-dev", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Temporary flag to test search performance that's running slow in S4S
     manager.add("organizations:performance-issues-search", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, default=True)
     # Enables a longer stats period for the performance landing page
-    manager.add("organizations:performance-landing-page-stats-period", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:performance-landing-page-stats-period", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable consecutive http performance issue type
     manager.add("organizations:performance-large-http-payload-detector", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable internal view for bannerless MEP view
-    manager.add("organizations:performance-mep-bannerless-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:performance-mep-bannerless-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Re-enable histograms for Metrics Enhanced Performance Views
-    manager.add("organizations:performance-mep-reintroduce-histograms", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:performance-mep-reintroduce-histograms", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable metrics-backed transaction summary view
     manager.add("organizations:performance-metrics-backed-transaction-summary", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable the UI for displaying mobile performance score
     manager.add("organizations:performance-mobile-perf-score-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable new trends
-    manager.add("organizations:performance-new-trends", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:performance-new-trends", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable updated landing page widget designs
-    manager.add("organizations:performance-new-widget-designs", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:performance-new-widget-designs", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable performance on-boarding checklist
-    manager.add("organizations:performance-onboarding-checklist", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:performance-onboarding-checklist", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable removing the fallback for metrics compatibility
-    manager.add("organizations:performance-remove-metrics-compatibility-fallback", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:performance-remove-metrics-compatibility-fallback", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable span search bar in Insights module sample panels
-    manager.add("organizations:performance-sample-panel-search", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
-    # Enables new empty state for insight modules
-    manager.add("organizations:insights-empty-state-page", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
+    manager.add("organizations:performance-sample-panel-search", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable platform selector for screens flow
     manager.add("organizations:performance-screens-platform-selector", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable screens view powered by span metrics
     manager.add("organizations:performance-screens-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable histogram view in span details
-    manager.add("organizations:performance-span-histogram-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:performance-span-histogram-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable trace details page with embedded spans
-    manager.add("organizations:performance-trace-details", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:performance-trace-details", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable trace explorer features
-    manager.add("organizations:performance-trace-explorer", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:performance-trace-explorer", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable trace explorer sorting by newest
     manager.add("organizations:performance-trace-explorer-sorting", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable linking to trace explorer from metrics
-    manager.add("organizations:performance-trace-explorer-with-metrics", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:performance-trace-explorer-with-metrics", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable FE/BE for tracing without performance
-    manager.add("organizations:performance-tracing-without-performance", OrganizationFeature, FeatureHandlerStrategy.REMOTE, default=True)
+    manager.add("organizations:performance-tracing-without-performance", OrganizationFeature, FeatureHandlerStrategy.REMOTE, default=True, api_expose=True)
     # Enable transaction name only search
-    manager.add("organizations:performance-transaction-name-only-search", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:performance-transaction-name-only-search", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable transaction name only search on indexed
     manager.add("organizations:performance-transaction-name-only-search-indexed", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Hides some fields and sections in the transaction summary page that are being deprecated
-    manager.add("organizations:performance-transaction-summary-cleanup", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:performance-transaction-summary-cleanup", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enables the new UI for span summary and the spans tab
-    manager.add("organizations:performance-spans-new-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:performance-spans-new-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Experimental performance issue for streamed spans - ingestion
     manager.add("organizations:performance-streamed-spans-exp-ingest", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Experimental performance issue for streamed spans - UI
@@ -306,11 +309,11 @@ def register_temporary_features(manager: FeatureManager):
     # Enables production profiling in sentry browser application
     manager.add("organizations:profiling-browser", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enables separate differential flamegraph page
-    manager.add("organizations:profiling-differential-flamegraph-page", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:profiling-differential-flamegraph-page", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable global suspect functions in profiling
-    manager.add("organizations:profiling-global-suspect-functions", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:profiling-global-suspect-functions", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable profiling summary redesign view
-    manager.add("organizations:profiling-summary-redesign", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:profiling-summary-redesign", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable the transactions backed profiling views
     manager.add("organizations:profiling-using-transactions", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable continuous profiling
@@ -322,27 +325,27 @@ def register_temporary_features(manager: FeatureManager):
     # Enable the continuous profiling compatible redesign
     manager.add("organizations:continuous-profiling-compat", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enable asking for feedback after project-create when replay is disabled
-    manager.add("organizations:project-create-replay-feedback", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:project-create-replay-feedback", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Limit project events endpoint to only query back a certain number of days
     manager.add("organizations:project-event-date-limit", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable the new Related Events feature
     manager.add("organizations:related-events", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable related issues feature
-    manager.add("organizations:related-issues", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:related-issues", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Metrics cardinality limiter in Relay
     manager.add("organizations:relay-cardinality-limiter", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable the release details performance section
-    manager.add("organizations:release-comparison-performance", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:release-comparison-performance", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable new release UI
-    manager.add("organizations:releases-v2", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:releases-v2", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     manager.add("organizations:releases-v2-banner", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     manager.add("organizations:releases-v2-internal", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     manager.add("organizations:releases-v2-st", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable playing replays from the replay tab
-    manager.add("organizations:replay-play-from-replay-tab", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:replay-play-from-replay-tab", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable version 2 of reprocessing (completely distinct from v1)
     manager.add("organizations:reprocessing-v2", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-    manager.add("organizations:required-email-verification", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:required-email-verification", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable resolve in upcoming release
     manager.add("organizations:resolve-in-upcoming-release", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Enable post create/edit rule confirmation notifications
@@ -352,8 +355,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:scim-team-roles", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable detecting SDK crashes during event processing
     manager.add("organizations:sdk-crash-detection", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
-    # Replace the footer Sentry logo with a Sentry pride logo
-    manager.add("organizations:sentry-pride-logo-footer", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable the Replay Details > Accessibility tab
     manager.add("organizations:session-replay-a11y-tab", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable the accessibility issues endpoint
@@ -361,9 +362,9 @@ def register_temporary_features(manager: FeatureManager):
     # Enable combined envelope Kafka items in Relay
     manager.add("organizations:session-replay-combined-envelope-items", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable canvas recording
-    manager.add("organizations:session-replay-enable-canvas", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:session-replay-enable-canvas", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable canvas replaying
-    manager.add("organizations:session-replay-enable-canvas-replayer", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:session-replay-enable-canvas-replayer", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable Hydration Error Issue Creation In Recording Consumer
     manager.add("organizations:session-replay-hydration-error-issue-creation", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Enable linking from 'new issue' email notifs to the issue replay list
@@ -371,7 +372,7 @@ def register_temporary_features(manager: FeatureManager):
     # Enable queries to materialized view from replay index endpoint
     manager.add("organizations:session-replay-materialized-view", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, default=False)
     # Enable mobile replay player
-    manager.add("organizations:session-replay-mobile-player", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:session-replay-mobile-player", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Disable select orgs from ingesting mobile replay events.
     manager.add("organizations:session-replay-video-disabled", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable replay player timeline gaps
@@ -423,21 +424,21 @@ def register_temporary_features(manager: FeatureManager):
     # Enable the aggregate span waterfall view
     manager.add("organizations:starfish-aggregate-span-waterfall", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable bundle analysis ui and endpoint
-    manager.add("organizations:starfish-browser-resource-module-bundle-analysis", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:starfish-browser-resource-module-bundle-analysis", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enables the resource module ui
     manager.add("organizations:starfish-browser-resource-module-image-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enables the resource module ui
     manager.add("organizations:starfish-browser-resource-module-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable mobile starfish app start module view
-    manager.add("organizations:starfish-mobile-appstart", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:starfish-mobile-appstart", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable mobile starfish ui module view
-    manager.add("organizations:starfish-mobile-ui-module", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:starfish-mobile-ui-module", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable starfish endpoint that's used for regressing testing purposes
     manager.add("organizations:starfish-test-endpoint", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable the new experimental starfish view
-    manager.add("organizations:starfish-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:starfish-view", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable UI for regression issues RCA using spans data
-    manager.add("organizations:statistical-detectors-rca-spans-only", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:statistical-detectors-rca-spans-only", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable starfish dropdown on the webservice view for switching chart visualization
     manager.add("organizations:starfish-wsv-chart-dropdown", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Allow organizations to configure all symbol sources.
@@ -445,11 +446,11 @@ def register_temporary_features(manager: FeatureManager):
     # Enable team workflow notifications
     manager.add("organizations:team-workflow-notifications", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable feature to load more than 100 rows in performance trace view.
-    manager.add("organizations:trace-view-load-more", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:trace-view-load-more", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable feature to load new trace view.
-    manager.add("organizations:trace-view-v1", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:trace-view-v1", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable feature to load new trace view in replay trace tab.
-    manager.add("organizations:replay-trace-view-v1", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:replay-trace-view-v1", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable feature to use span only trace endpoint.
     manager.add("organizations:trace-spans-format", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Extraction metrics for transactions during ingestion.
@@ -466,25 +467,27 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:uptime-automatic-hostname-detection", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enables automatic subscription creation in uptime
     manager.add("organizations:uptime-automatic-subscription-creation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
+    # Enabled returning uptime monitors from the rule api
+    manager.add("organizations:uptime-rule-api", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enables uptime related settings for projects and orgs
     manager.add('organizations:uptime-settings', OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     manager.add("organizations:use-metrics-layer", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
     # Enable User Feedback v2 ingest
     manager.add("organizations:user-feedback-ingest", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Use ReplayClipPreview inside the User Feedback Details panel
-    manager.add("organizations:user-feedback-replay-clip", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:user-feedback-replay-clip", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable User Feedback spam auto filtering feature ingest
     manager.add("organizations:user-feedback-spam-filter-ingest", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)
     # Enable User Feedback spam auto filtering feature actions
     manager.add("organizations:user-feedback-spam-filter-actions", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Enable User Feedback v2 UI
-    manager.add("organizations:user-feedback-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:user-feedback-ui", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # User Feedback Error Link Ingestion Changes
     manager.add("organizations:user-feedback-event-link-ingestion-changes", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     # Enable view hierarchies options
-    manager.add("organizations:view-hierarchies-options-dev", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:view-hierarchies-options-dev", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable minimap in the widget viewer modal in dashboards
-    manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, FeatureHandlerStrategy.REMOTE)
+    manager.add("organizations:widget-viewer-modal-minimap", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enabled unresolved issue webhook for organization
     manager.add("organizations:webhooks-unresolved", OrganizationFeature, FeatureHandlerStrategy.OPTIONS)
     manager.add("organizations:project-templates", OrganizationFeature, FeatureHandlerStrategy.INTERNAL)

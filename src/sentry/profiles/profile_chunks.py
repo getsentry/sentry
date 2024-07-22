@@ -1,6 +1,7 @@
 from snuba_sdk import Column, Condition, Direction, Op, OrderBy, Query, Request, Storage
 
 from sentry import options
+from sentry.search.events.fields import resolve_datetime64
 from sentry.search.events.types import ParamsType
 from sentry.snuba.dataset import Dataset, StorageKey
 from sentry.snuba.referrer import Referrer
@@ -20,12 +21,21 @@ def get_chunk_ids(
             Column("chunk_id"),
         ],
         where=[
-            Condition(Column("end_timestamp"), Op.GTE, params.get("start")),
-            Condition(Column("start_timestamp"), Op.LT, params.get("end")),
+            Condition(
+                Column("end_timestamp"),
+                Op.GTE,
+                resolve_datetime64(params.get("start")),
+            ),
+            Condition(
+                Column("start_timestamp"),
+                Op.LT,
+                resolve_datetime64(params.get("end")),
+            ),
             Condition(Column("project_id"), Op.EQ, project_id),
             Condition(Column("profiler_id"), Op.EQ, profiler_id),
         ],
-        orderby=[OrderBy(Column("start_timestamp"), Direction.ASC)],
+        # We want the generate the flamegraph using the newest data
+        orderby=[OrderBy(Column("start_timestamp"), Direction.DESC)],
     ).set_limit(max_chunks)
 
     request = Request(

@@ -57,6 +57,7 @@ from sentry.models.environment import Environment
 from sentry.models.group import Group
 from sentry.models.organization import Organization
 from sentry.models.project import Project
+from sentry.models.release import Release
 from sentry.models.team import Team
 from sentry.models.user import User
 from sentry.search.events.builder.discover import UnresolvedQuery
@@ -67,6 +68,8 @@ from sentry.users.services.user.model import RpcUser
 from sentry.utils import json, metrics, snuba
 from sentry.utils.cursors import Cursor, CursorResult
 from sentry.utils.snuba import SnubaQueryParams, aliased_query_params, bulk_raw_query
+
+FIRST_RELEASE_FILTERS = ["first_release", "firstRelease"]
 
 
 class TrendsSortWeights(TypedDict):
@@ -1499,6 +1502,45 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             1,
         )
 
+    def get_priority_condition(
+        self, search_filter: SearchFilter, joined_entity: Entity
+    ) -> Condition:
+        """
+        Returns the priority lookup for a search filter.
+        """
+        return Condition(
+            Column("group_priority", self.entities["attrs"]), Op.IN, search_filter.value.raw_value
+        )
+
+    def get_first_release_condition(
+        self, search_filter: SearchFilter, projects: list[Project]
+    ) -> Condition:
+        """
+        Returns the first_release lookup for a search filter.
+        """
+        versions = search_filter.value.raw_value
+        releases = {
+            version: release_id
+            for version, release_id in Release.objects.filter(
+                organization=projects[0].organization_id, version__in=versions
+            ).values_list("version", "id")
+        }
+
+        for version in versions:
+            if version not in releases:
+                # TODO: This is mostly around for legacy reasons - we should probably just
+                # raise a validation here an inform the user that they passed an invalid
+                # release
+                releases[None] = -1
+                # We only need to find the first non-existent release here
+                break
+
+        return Condition(
+            Column("group_first_release", self.entities["attrs"]),
+            Op.IN,
+            list(releases.values()),
+        )
+
     ISSUE_FIELD_NAME = "group_id"
 
     entities = {
@@ -1517,6 +1559,9 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
         "times_seen": (get_times_seen_filter, Clauses.HAVING),
         "error.handled": (get_handled_condition, Clauses.WHERE),
         "error.unhandled": (get_handled_condition, Clauses.WHERE),
+        "issue.priority": (get_priority_condition, Clauses.WHERE),
+        "first_release": (get_first_release_condition, Clauses.WHERE),
+        "firstRelease": (get_first_release_condition, Clauses.WHERE),
     }
     first_seen = Column("group_first_seen", entities["attrs"])
     times_seen_aggregation = Function("count", [], alias="times_seen")
@@ -1674,6 +1719,11 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
                 # we handle the date filter with calculate_start_end
                 if search_filter.key.name in ["issue.category", "issue.type", "date"]:
                     pass
+                # handle first_release filter separately
+                elif search_filter.key.name in FIRST_RELEASE_FILTERS:
+                    where_conditions.append(
+                        self.get_first_release_condition(search_filter, projects)
+                    )
                 elif fn:
                     # dynamic lookup of what clause to use
                     if clause == Clauses.WHERE:
@@ -1740,7 +1790,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
             select.append(sort_func)
 
             query = Query(
-                match=Join([Relationship(joined_entity, "attributes", attr_entity)]),
+                match=Join([Relationship(joined_entity, "attributes_inner", attr_entity)]),
                 select=select,
                 where=where_conditions,
                 groupby=groupby,
@@ -1759,7 +1809,7 @@ class GroupAttributesPostgresSnubaQueryExecutor(PostgresSnubaQueryExecutor):
 
             if count_hits:
                 hits_query = Query(
-                    match=Join([Relationship(joined_entity, "attributes", attr_entity)]),
+                    match=Join([Relationship(joined_entity, "attributes_inner", attr_entity)]),
                     select=[
                         Function("uniq", [Column("group_id", attr_entity)], alias="count"),
                     ],

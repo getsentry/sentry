@@ -19,7 +19,6 @@ import {isUrl} from 'sentry/utils/string/isUrl';
 import {usePrismTokens} from 'sentry/utils/usePrismTokens';
 
 const DEFAULT_STRUCTURED_DATA_PROPS = {
-  depth: 0,
   maxDefaultDepth: 2,
   withAnnotatedText: true,
   withOnlyFormattedText: true,

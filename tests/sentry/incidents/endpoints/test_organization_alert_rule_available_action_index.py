@@ -33,11 +33,13 @@ METADATA = {
 
 class OrganizationAlertRuleAvailableActionIndexEndpointTest(APITestCase):
     endpoint = "sentry-api-0-organization-alert-rule-available-actions"
-    email = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.EMAIL)
-    slack = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.SLACK)
-    sentry_app = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.SENTRY_APP)
-    pagerduty = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.PAGERDUTY)
-    opsgenie = AlertRuleTriggerAction.get_registered_type(AlertRuleTriggerAction.Type.OPSGENIE)
+    email = AlertRuleTriggerAction.get_registered_factory(AlertRuleTriggerAction.Type.EMAIL)
+    slack = AlertRuleTriggerAction.get_registered_factory(AlertRuleTriggerAction.Type.SLACK)
+    sentry_app = AlertRuleTriggerAction.get_registered_factory(
+        AlertRuleTriggerAction.Type.SENTRY_APP
+    )
+    pagerduty = AlertRuleTriggerAction.get_registered_factory(AlertRuleTriggerAction.Type.PAGERDUTY)
+    opsgenie = AlertRuleTriggerAction.get_registered_factory(AlertRuleTriggerAction.Type.OPSGENIE)
 
     def setUp(self):
         super().setUp()

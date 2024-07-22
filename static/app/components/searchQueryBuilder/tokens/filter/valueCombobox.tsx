@@ -9,6 +9,8 @@ import {getItemsWithKeys} from 'sentry/components/compactSelect/utils';
 import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/context';
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
+import {parseFilterValueDuration} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/duration/parser';
+import {parseFilterValuePercentage} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/percentage/parser';
 import SpecificDatePicker from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
 import {
   escapeTagValue,
@@ -34,7 +36,7 @@ import {space} from 'sentry/styles/space';
 import type {Tag, TagCollection} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
 import {uniq} from 'sentry/utils/array/uniq';
-import {FieldValueType, getFieldDefinition} from 'sentry/utils/fields';
+import {type FieldDefinition, FieldValueType} from 'sentry/utils/fields';
 import {isCtrlKeyPressed} from 'sentry/utils/isCtrlKeyPressed';
 import {type QueryKey, useQuery} from 'sentry/utils/queryClient';
 import {useDebouncedValue} from 'sentry/utils/useDebouncedValue';
@@ -81,7 +83,7 @@ function isStringFilterValues(
 
 const NUMERIC_UNITS = ['k', 'm', 'b'] as const;
 const RELATIVE_DATE_UNITS = ['m', 'h', 'd', 'w'] as const;
-const DURATION_UNITS = ['ms', 's', 'm', 'h', 'd', 'w'] as const;
+const DURATION_UNIT_SUGGESTIONS = ['ms', 's', 'm', 'h'] as const;
 
 const DEFAULT_NUMERIC_SUGGESTIONS: SuggestionSection[] = [
   {
@@ -93,7 +95,7 @@ const DEFAULT_NUMERIC_SUGGESTIONS: SuggestionSection[] = [
 const DEFAULT_DURATION_SUGGESTIONS: SuggestionSection[] = [
   {
     sectionText: '',
-    suggestions: [{value: '100'}, {value: '100k'}, {value: '100m'}, {value: '100b'}],
+    suggestions: DURATION_UNIT_SUGGESTIONS.map(unit => ({value: `10${unit}`})),
   },
 ];
 
@@ -131,13 +133,13 @@ function getMultiSelectInputValue(token: TokenResult<Token.FILTER>) {
 }
 
 function prepareInputValueForSaving(
-  token: TokenResult<Token.FILTER>,
+  fieldDefinition: FieldDefinition | null,
   inputValue: string
 ) {
   const values = uniq(
     inputValue
       .split(',')
-      .map(v => cleanFilterValue(token.key.text, v.trim()))
+      .map(v => cleanFilterValue(fieldDefinition, v.trim()))
       .filter(v => v && v.length > 0)
   );
 
@@ -276,23 +278,42 @@ function getNumericSuggestions(inputValue: string): SuggestionSection[] {
   return [];
 }
 
-function getDurationSuggestions(inputValue: string): SuggestionSection[] {
+function getDurationSuggestions(
+  inputValue: string,
+  token: TokenResult<Token.FILTER>
+): SuggestionSection[] {
   if (!inputValue) {
-    return DEFAULT_DURATION_SUGGESTIONS;
-  }
+    const currentValue =
+      token.value.type === Token.VALUE_DURATION ? token.value.value : null;
 
-  if (isNumeric(inputValue)) {
+    if (!currentValue) {
+      return DEFAULT_DURATION_SUGGESTIONS;
+    }
+
     return [
       {
         sectionText: '',
-        suggestions: DURATION_UNITS.map(unit => ({
-          value: `${inputValue}${unit}`,
+        suggestions: DURATION_UNIT_SUGGESTIONS.map(unit => ({
+          value: `${currentValue}${unit}`,
         })),
       },
     ];
   }
 
-  // If the value is not numeric, don't show any suggestions
+  const parsed = parseFilterValueDuration(inputValue);
+
+  if (parsed) {
+    return [
+      {
+        sectionText: '',
+        suggestions: DURATION_UNIT_SUGGESTIONS.map(unit => ({
+          value: `${parsed.value}${unit}`,
+        })),
+      },
+    ];
+  }
+
+  // If the value doesn't contain any valid number or duration, don't show any suggestions
   return [];
 }
 
@@ -339,33 +360,34 @@ function getSuggestionDescription(group: SearchGroup | SearchItem) {
 }
 
 function getPredefinedValues({
+  fieldDefinition,
   key,
   filterValue,
   token,
 }: {
+  fieldDefinition: FieldDefinition | null;
   filterValue: string;
   token: TokenResult<Token.FILTER>;
   key?: Tag;
-}): SuggestionSection[] {
+}): SuggestionSection[] | null {
   if (!key) {
-    return [];
+    return null;
   }
 
-  const fieldDef = getFieldDefinition(key.key);
-
   if (!key.values?.length) {
-    switch (fieldDef?.valueType) {
+    switch (fieldDefinition?.valueType) {
       case FieldValueType.NUMBER:
         return getNumericSuggestions(filterValue);
       case FieldValueType.DURATION:
-        return getDurationSuggestions(filterValue);
+        return getDurationSuggestions(filterValue, token);
+      case FieldValueType.PERCENTAGE:
+        return [];
       case FieldValueType.BOOLEAN:
         return DEFAULT_BOOLEAN_SUGGESTIONS;
-      // TODO(malwilley): Better date suggestions
       case FieldValueType.DATE:
         return getRelativeDateSuggestions(filterValue, token);
       default:
-        return [];
+        return null;
     }
   }
 
@@ -403,7 +425,8 @@ function getPredefinedValues({
 
 function tokenSupportsMultipleValues(
   token: TokenResult<Token.FILTER>,
-  keys: TagCollection
+  keys: TagCollection,
+  fieldDefinition: FieldDefinition | null
 ): boolean {
   switch (token.filter) {
     case FilterType.TEXT:
@@ -414,9 +437,9 @@ function tokenSupportsMultipleValues(
         return true;
       }
 
-      const fieldDef = getFieldDefinition(key.key);
-
-      return !fieldDef?.valueType || fieldDef.valueType === FieldValueType.STRING;
+      return (
+        !fieldDefinition?.valueType || fieldDefinition.valueType === FieldValueType.STRING
+      );
     case FilterType.NUMERIC:
       if (token.operator === TermOperator.DEFAULT) {
         return true;
@@ -430,13 +453,15 @@ function tokenSupportsMultipleValues(
   }
 }
 
-function cleanFilterValue(key: string, value: string): string | null {
-  const fieldDef = getFieldDefinition(key);
-  if (!fieldDef) {
+function cleanFilterValue(
+  fieldDefinition: FieldDefinition | null,
+  value: string
+): string | null {
+  if (!fieldDefinition) {
     return escapeTagValue(value);
   }
 
-  switch (fieldDef.valueType) {
+  switch (fieldDefinition.valueType) {
     case FieldValueType.NUMBER:
       if (FILTER_VALUE_NUMERIC.test(value)) {
         return value;
@@ -447,6 +472,29 @@ function cleanFilterValue(key: string, value: string): string | null {
         return value;
       }
       return null;
+    case FieldValueType.DURATION: {
+      const parsed = parseFilterValueDuration(value);
+      if (!parsed) {
+        return null;
+      }
+      // Default to ms if no unit is provided
+      if (!parsed.unit) {
+        return `${parsed.value}ms`;
+      }
+      return value;
+    }
+    case FieldValueType.PERCENTAGE: {
+      const parsed = parseFilterValuePercentage(value);
+      if (!parsed) {
+        return null;
+      }
+      // If the user passes "50%", convert to 0.5
+      if (parsed.unit) {
+        const numericValue = parseFloat(parsed.value);
+        return isNaN(numericValue) ? parsed.value : (numericValue / 100).toString();
+      }
+      return parsed.value;
+    }
     case FieldValueType.DATE:
       const parsed = parseFilterValueDate(value);
 
@@ -501,14 +549,25 @@ function useFilterSuggestions({
   selectedValues: string[];
   token: TokenResult<Token.FILTER>;
 }) {
-  const {getTagValues, filterKeys} = useSearchQueryBuilder();
+  const {getFieldDefinition, getTagValues, filterKeys} = useSearchQueryBuilder();
   const key: Tag | undefined = filterKeys[token.key.text];
+  const fieldDefinition = getFieldDefinition(token.key.text);
   const predefinedValues = useMemo(
-    () => getPredefinedValues({key, filterValue, token}),
-    [key, filterValue, token]
+    () =>
+      getPredefinedValues({
+        key,
+        filterValue,
+        token,
+        fieldDefinition,
+      }),
+    [key, filterValue, token, fieldDefinition]
   );
-  const shouldFetchValues = key && !key.predefined && !predefinedValues.length;
-  const canSelectMultipleValues = tokenSupportsMultipleValues(token, filterKeys);
+  const shouldFetchValues = key && !key.predefined && predefinedValues === null;
+  const canSelectMultipleValues = tokenSupportsMultipleValues(
+    token,
+    filterKeys,
+    fieldDefinition
+  );
 
   const queryKey = useMemo<QueryKey>(
     () => ['search-query-builder-tag-values', token.key.text, filterValue],
@@ -558,7 +617,7 @@ function useFilterSuggestions({
   const suggestionGroups: SuggestionSection[] = useMemo(() => {
     return shouldFetchValues
       ? [{sectionText: '', suggestions: data?.map(value => ({value})) ?? []}]
-      : predefinedValues;
+      : predefinedValues ?? [];
   }, [data, predefinedValues, shouldFetchValues]);
 
   // Grouped sections for rendering purposes
@@ -616,7 +675,11 @@ function ItemCheckbox({
   const {dispatch} = useSearchQueryBuilder();
 
   return (
-    <TrailingWrap onPointerUp={e => e.stopPropagation()}>
+    <TrailingWrap
+      onPointerUp={e => e.stopPropagation()}
+      onMouseUp={e => e.stopPropagation()}
+      onClick={e => e.stopPropagation()}
+    >
       <CheckWrap visible={isFocused || selected} role="presentation">
         <Checkbox
           size="sm"
@@ -629,7 +692,7 @@ function ItemCheckbox({
               value: escapeTagValue(value),
             });
           }}
-          aria-label={t('Select %s', value)}
+          aria-label={t('Toggle %s', value)}
           tabIndex={-1}
         />
       </CheckWrap>
@@ -659,8 +722,14 @@ export function SearchQueryBuilderValueCombobox({
   const ref = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const organization = useOrganization();
-  const {filterKeys, dispatch, searchSource, savedSearchType} = useSearchQueryBuilder();
-  const canSelectMultipleValues = tokenSupportsMultipleValues(token, filterKeys);
+  const {getFieldDefinition, filterKeys, dispatch, searchSource, savedSearchType} =
+    useSearchQueryBuilder();
+  const fieldDefinition = getFieldDefinition(token.key.text);
+  const canSelectMultipleValues = tokenSupportsMultipleValues(
+    token,
+    filterKeys,
+    fieldDefinition
+  );
   const [inputValue, setInputValue] = useState(() =>
     getInitialInputValue(token, canSelectMultipleValues)
   );
@@ -690,7 +759,9 @@ export function SearchQueryBuilderValueCombobox({
     if (canSelectMultipleValues) {
       setInputValue(getMultiSelectInputValue(token));
     }
-  }, [canSelectMultipleValues, token]);
+    // We want to avoid resetting the input value if the token text doesn't actually change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canSelectMultipleValues, token.text]);
 
   // On mount, scroll to the end of the input
   useEffect(() => {
@@ -712,16 +783,22 @@ export function SearchQueryBuilderValueCombobox({
       search_source: searchSource,
       filter_key: token.key.text,
       filter_operator: token.operator,
-      filter_value_type:
-        getFieldDefinition(token.key.text)?.valueType ?? FieldValueType.STRING,
+      filter_value_type: fieldDefinition?.valueType ?? FieldValueType.STRING,
       new_experience: true,
     }),
-    [organization, savedSearchType, searchSource, token.key.text, token.operator]
+    [
+      fieldDefinition?.valueType,
+      organization,
+      savedSearchType,
+      searchSource,
+      token.key.text,
+      token.operator,
+    ]
   );
 
   const updateFilterValue = useCallback(
     (value: string) => {
-      const cleanedValue = cleanFilterValue(token.key.text, value);
+      const cleanedValue = cleanFilterValue(fieldDefinition, value);
 
       // TODO(malwilley): Add visual feedback for invalid values
       if (cleanedValue === null) {
@@ -736,7 +813,7 @@ export function SearchQueryBuilderValueCombobox({
       if (canSelectMultipleValues) {
         if (selectedValues.includes(value)) {
           const newValue = prepareInputValueForSaving(
-            token,
+            fieldDefinition,
             selectedValues.filter(v => v !== value).join(',')
           );
           dispatch({
@@ -756,7 +833,7 @@ export function SearchQueryBuilderValueCombobox({
           type: 'UPDATE_TOKEN_VALUE',
           token: token,
           value: prepareInputValueForSaving(
-            token,
+            fieldDefinition,
             replaceValueAtPosition(inputValue, selectionIndex, value)
           ),
         });
@@ -776,6 +853,7 @@ export function SearchQueryBuilderValueCombobox({
       analyticsData,
       canSelectMultipleValues,
       dispatch,
+      fieldDefinition,
       inputValue,
       onCommit,
       selectedValues,
@@ -820,7 +898,7 @@ export function SearchQueryBuilderValueCombobox({
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
           token: token,
-          value: getDefaultFilterValue({key: token.key.text}),
+          value: getDefaultFilterValue({key: token.key.text, fieldDefinition}),
         });
         onCommit();
         return;
@@ -835,7 +913,7 @@ export function SearchQueryBuilderValueCombobox({
         dispatch({
           type: 'UPDATE_TOKEN_VALUE',
           token,
-          value: prepareInputValueForSaving(token, value),
+          value: prepareInputValueForSaving(fieldDefinition, value),
         });
         onCommit();
         if (!isUnchanged) {
@@ -855,7 +933,15 @@ export function SearchQueryBuilderValueCombobox({
         invalid,
       });
     },
-    [analyticsData, canSelectMultipleValues, dispatch, onCommit, token, updateFilterValue]
+    [
+      analyticsData,
+      canSelectMultipleValues,
+      dispatch,
+      fieldDefinition,
+      onCommit,
+      token,
+      updateFilterValue,
+    ]
   );
 
   const onKeyDown = useCallback(

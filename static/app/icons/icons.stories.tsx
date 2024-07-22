@@ -1033,7 +1033,7 @@ const SECTIONS: TSection[] = [
   },
   {
     id: 'chart',
-    label: 'Chart',
+    label: 'Visualizations',
     icons: [
       {
         id: 'graph-type-line',
@@ -1067,6 +1067,13 @@ const SECTIONS: TSection[] = [
         },
       },
       {
+        id: 'graph-type-scatter',
+        name: 'Graph',
+        defaultProps: {
+          type: 'scatter',
+        },
+      },
+      {
         id: 'stack',
         groups: ['chart'],
         keywords: ['group', 'combine', 'view'],
@@ -1090,6 +1097,11 @@ const SECTIONS: TSection[] = [
       {
         id: 'profiling',
         name: 'Profiling',
+        defaultProps: {},
+      },
+      {
+        id: 'table',
+        name: 'Table',
         defaultProps: {},
       },
     ],
