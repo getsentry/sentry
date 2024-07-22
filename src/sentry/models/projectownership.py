@@ -40,7 +40,7 @@ class ProjectOwnership(Model):
 
     project = FlexibleForeignKey("sentry.Project", unique=True)
     raw = models.TextField(null=True)
-    schema = JSONField(null=True)
+    schema: models.Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
     fallthrough = models.BooleanField(default=True)
     # Auto Assignment through Ownership Rules & Code Owners
     auto_assignment = models.BooleanField(default=True)

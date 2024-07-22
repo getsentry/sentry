@@ -30,6 +30,7 @@ from sentry.models.user import User
 from sentry.sentry_apps.services.app import app_service
 from sentry.sentry_apps.services.app.model import RpcSentryAppComponentContext
 from sentry.snuba.models import SnubaQueryEventType
+from sentry.uptime.models import ProjectUptimeSubscription
 from sentry.users.services.user import RpcUser
 from sentry.users.services.user.service import user_service
 
@@ -395,6 +396,14 @@ class CombinedRuleSerializer(Serializer):
             serialized_rule["id"]: serialized_rule for serialized_rule in serialized_issue_rules
         }
 
+        serialized_uptime_monitors = serialize(
+            [x for x in item_list if isinstance(x, ProjectUptimeSubscription)],
+            user=user,
+        )
+        serialized_uptime_monitor_map_by_id = {
+            item["id"]: item for item in serialized_uptime_monitors
+        }
+
         for item in item_list:
             item_id = str(item.id)
             if item_id in serialized_alert_rule_map_by_id:
@@ -418,6 +427,9 @@ class CombinedRuleSerializer(Serializer):
             elif item_id in serialized_issue_rule_map_by_id:
                 # This is an issue alert rule
                 results[item] = serialized_issue_rule_map_by_id[item_id]
+            elif item_id in serialized_uptime_monitor_map_by_id:
+                # This is an uptime monitor
+                results[item] = serialized_uptime_monitor_map_by_id[item_id]
             else:
                 logger.error(
                     "Alert Rule found but dropped during serialization",
@@ -432,18 +444,18 @@ class CombinedRuleSerializer(Serializer):
 
     def serialize(
         self,
-        obj: Rule | AlertRule,
+        obj: Rule | AlertRule | ProjectUptimeSubscription,
         attrs: Mapping[Any, Any],
         user: User | RpcUser,
         **kwargs: Any,
     ) -> MutableMapping[Any, Any]:
+        updated_attrs = {**attrs}
         if isinstance(obj, AlertRule):
-            alert_rule_attrs: MutableMapping[Any, Any] = {**attrs}
-            alert_rule_attrs["type"] = "alert_rule"
-            return alert_rule_attrs
+            updated_attrs["type"] = "alert_rule"
         elif isinstance(obj, Rule):
-            rule_attrs: MutableMapping[Any, Any] = {**attrs}
-            rule_attrs["type"] = "rule"
-            return rule_attrs
+            updated_attrs["type"] = "rule"
+        elif isinstance(obj, ProjectUptimeSubscription):
+            updated_attrs["type"] = "uptime"
         else:
             raise AssertionError(f"Invalid rule to serialize: {type(obj)}")
+        return updated_attrs

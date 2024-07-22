@@ -11,6 +11,7 @@ from sentry.db.models import DefaultFieldsModel, FlexibleForeignKey, region_silo
 from sentry.db.models.fields.hybrid_cloud_foreign_key import HybridCloudForeignKey
 from sentry.db.models.manager.base import BaseManager
 from sentry.remote_subscriptions.models import BaseRemoteSubscription
+from sentry.types.actor import Actor
 
 
 @region_silo_model
@@ -104,3 +105,7 @@ class ProjectUptimeSubscription(DefaultFieldsModel):
                 ),
             ),
         ]
+
+    @property
+    def owner(self) -> Actor | None:
+        return Actor.from_id(user_id=self.owner_user_id, team_id=self.owner_team_id)
