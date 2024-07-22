@@ -156,7 +156,7 @@ export function SpanSamplesContainer({
         )}
       </PaddedTitle>
 
-      <ReadoutRibbon>
+      <StyledReadoutRibbon>
         <MetricReadout
           title={DataTitles.avg}
           value={spanMetrics?.[`avg(${SPAN_SELF_TIME})`]}
@@ -169,7 +169,7 @@ export function SpanSamplesContainer({
           unit="count"
           isLoading={isLoading}
         />
-      </ReadoutRibbon>
+      </StyledReadoutRibbon>
 
       <DurationChart
         spanSearch={spanSearch}
@@ -243,6 +243,10 @@ export function SpanSamplesContainer({
     </Fragment>
   );
 }
+
+const StyledReadoutRibbon = styled(ReadoutRibbon)`
+  margin-bottom: ${space(2)};
+`;
 
 const SectionTitle = styled('div')`
   ${p => p.theme.text.cardTitle}

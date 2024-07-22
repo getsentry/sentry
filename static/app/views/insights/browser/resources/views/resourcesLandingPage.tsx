@@ -64,7 +64,7 @@ function ResourcesLandingPage() {
         <Layout.Body>
           <Layout.Main fullWidth>
             <PageAlert />
-            <HeaderContainer>
+            <StyledHeaderContainer>
               <ToolRibbon>
                 <PageFilterBar condensed>
                   <ProjectPageFilter />
@@ -82,7 +82,7 @@ function ResourcesLandingPage() {
                   />
                 )}
               </ToolRibbon>
-            </HeaderContainer>
+            </StyledHeaderContainer>
             <ModulesOnboarding moduleName={ModuleName.RESOURCE}>
               <ResourceView />
             </ModulesOnboarding>
@@ -100,6 +100,10 @@ function PageWithProviders() {
     </ModulePageProviders>
   );
 }
+
+const StyledHeaderContainer = styled(HeaderContainer)`
+  margin-bottom: ${space(2)};
+`;
 
 export default PageWithProviders;
 
