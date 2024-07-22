@@ -51,7 +51,7 @@ export default function FeedbackItemHeader({eventData, feedbackItem}: Props) {
         />
       </Flex>
 
-      {eventData && (
+      {eventData && feedbackItem.project ? (
         <Flex wrap="wrap" justify="flex-start" css={fixIssueLinkSpacing}>
           <ErrorBoundary mini>
             <IssueTrackingSection
@@ -61,7 +61,7 @@ export default function FeedbackItemHeader({eventData, feedbackItem}: Props) {
             />
           </ErrorBoundary>
         </Flex>
-      )}
+      ) : null}
     </VerticalSpacing>
   );
 }
