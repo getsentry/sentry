@@ -99,7 +99,9 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                     match_choices = context["formFields"]["match"]["choices"]
                     copied_context = copy.deepcopy(context)
                     copied_context["formFields"]["match"]["choices"] = [
-                        choice for choice in match_choices if choice[0] != MatchType.IS_IN
+                        choice
+                        for choice in match_choices
+                        if (choice[0] != MatchType.IS_IN or choice[0] != MatchType.NOT_IN)
                     ]
                     filter_list.append(copied_context)
                     continue
