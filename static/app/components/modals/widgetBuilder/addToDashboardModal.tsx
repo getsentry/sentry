@@ -34,7 +34,10 @@ import {
   getSavedFiltersAsPageFilters,
   getSavedPageFilters,
 } from 'sentry/views/dashboards/utils';
-import {NEW_DASHBOARD_ID} from 'sentry/views/dashboards/widgetBuilder/utils';
+import {
+  type DataSet,
+  NEW_DASHBOARD_ID,
+} from 'sentry/views/dashboards/widgetBuilder/utils';
 import WidgetCard from 'sentry/views/dashboards/widgetCard';
 import {OrganizationContext} from 'sentry/views/organizationContext';
 import {MetricsDataSwitcher} from 'sentry/views/performance/landing/metricsDataSwitcher';
@@ -47,6 +50,7 @@ type WidgetAsQueryParams = Query<{
   environment: string[];
   project: number[];
   source: string;
+  dataset?: DataSet;
   end?: DateString;
   start?: DateString;
   statsPeriod?: string | null;

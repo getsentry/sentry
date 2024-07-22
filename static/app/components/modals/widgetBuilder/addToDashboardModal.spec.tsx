@@ -7,7 +7,11 @@ import selectEvent from 'sentry-test/selectEvent';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import AddToDashboardModal from 'sentry/components/modals/widgetBuilder/addToDashboardModal';
 import type {DashboardDetails, DashboardListItem} from 'sentry/views/dashboards/types';
-import {DashboardWidgetSource, DisplayType} from 'sentry/views/dashboards/types';
+import {
+  DashboardWidgetSource,
+  DisplayType,
+  WidgetType,
+} from 'sentry/views/dashboards/types';
 
 const stubEl = (props: {children?: React.ReactNode}) => <div>{props.children}</div>;
 
@@ -366,7 +370,7 @@ describe('add to dashboard modal', () => {
         CloseButton={stubEl}
         closeModal={() => undefined}
         organization={initialData.organization}
-        widget={widget}
+        widget={{...widget, widgetType: WidgetType.ERRORS}}
         selection={defaultSelection}
         router={initialData.router}
         widgetAsQueryParams={mockWidgetAsQueryParams}
@@ -387,7 +391,11 @@ describe('add to dashboard modal', () => {
     await waitFor(() => {
       expect(dashboardDetailPutMock).toHaveBeenCalledWith(
         '/organizations/org-slug/dashboards/1/',
-        expect.objectContaining({data: expect.objectContaining({widgets: [widget]})})
+        expect.objectContaining({
+          data: expect.objectContaining({
+            widgets: [{...widget, widgetType: WidgetType.ERRORS}],
+          }),
+        })
       );
     });
   });
