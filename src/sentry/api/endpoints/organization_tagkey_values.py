@@ -10,6 +10,7 @@ from sentry.api.bases import NoProjects, OrganizationEventsEndpointBase
 from sentry.api.paginator import SequencePaginator
 from sentry.api.serializers import serialize
 from sentry.api.utils import handle_query_errors
+from sentry.snuba.dataset import Dataset
 from sentry.tagstore.base import TAG_KEY_RE
 
 
@@ -31,6 +32,13 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
 
         sentry_sdk.set_tag("query.tag_key", key)
 
+        dataset = None
+        if request.GET.get("dataset"):
+            try:
+                dataset = Dataset(request.GET.get("dataset"))
+            except ValueError:
+                raise ParseError(detail="Invalid dataset parameter")
+
         try:
             # still used by events v1 which doesn't require global views
             filter_params = self.get_snuba_params(request, organization, check_global_views=False)
@@ -47,6 +55,7 @@ class OrganizationTagKeyValuesEndpoint(OrganizationEventsEndpointBase):
                     key,
                     filter_params["start"],
                     filter_params["end"],
+                    dataset=dataset,
                     query=request.GET.get("query"),
                     order_by=validate_sort_field(request.GET.get("sort", "-last_seen")),
                     include_transactions=request.GET.get("includeTransactions") == "1",

@@ -7,9 +7,11 @@ from django.urls import reverse
 
 from sentry.replays.testutils import mock_replay
 from sentry.search.events.constants import RELEASE_ALIAS, SEMVER_ALIAS
+from sentry.snuba.dataset import Dataset
 from sentry.testutils.cases import APITestCase, ReplaysSnubaTestCase, SnubaTestCase
 from sentry.testutils.helpers.datetime import before_now, iso_format
 from sentry.utils.samples import load_data
+from tests.sentry.issues.test_utils import OccurrenceTestMixin
 
 
 class OrganizationTagKeyTestCase(APITestCase, SnubaTestCase):
@@ -808,3 +810,134 @@ class ReplayOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, ReplaysSnub
             "name",
             "value",
         ]
+
+
+class DatasetParamOrganizationTagKeyValuesTest(OrganizationTagKeyTestCase, OccurrenceTestMixin):
+    def setUp(self):
+        super().setUp()
+
+    def run_dataset_test(self, key, expected, dataset: Dataset, **kwargs):
+        # all tests here require that we search in transactions so make that the default here
+        qs_params = kwargs.get("qs_params", {})
+        qs_params["dataset"] = dataset.value
+        kwargs["qs_params"] = qs_params
+        super().run_test(key, expected, **kwargs)
+
+    def test_dataset_events(self):
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "tags": {"berry": "raspberry"},
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "b" * 32,
+                "tags": {"berry": "blueberry"},
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "c" * 32,
+                "tags": {"berry": "banana"},
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+        self.store_event(
+            data={
+                "event_id": "d" * 32,
+                "tags": {"berry": "banana"},
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+        # Should appear in Events and Discover datasets, but not IssuePlatform
+        self.run_dataset_test(
+            "berry",
+            expected=[("raspberry", 1), ("blueberry", 1), ("banana", 2)],
+            dataset=Dataset.Events,
+        )
+        self.run_dataset_test(
+            "berry",
+            expected=[("raspberry", 1), ("blueberry", 1), ("banana", 2)],
+            dataset=Dataset.Discover,
+        )
+        self.run_dataset_test(
+            "berry",
+            expected=[],
+            dataset=Dataset.IssuePlatform,
+        )
+
+    def test_dataset_issue_platform(self):
+        self.store_event(
+            data={
+                "event_id": "a" * 32,
+                "tags": {"stone_fruit": "peach"},
+                "timestamp": iso_format(self.min_ago),
+            },
+            project_id=self.project.id,
+        )
+        self.process_occurrence(
+            event_id=uuid.uuid4().hex,
+            project_id=self.project.id,
+            event_data={
+                "title": "some problem",
+                "platform": "python",
+                "tags": {"stone_fruit": "cherry"},
+                "timestamp": iso_format(self.min_ago),
+                "received": iso_format(self.min_ago),
+            },
+        )
+
+        # (stone_fruit: cherry) should appear in IssuePlatform dataset,
+        # but (sonte_fruit: peach) should not
+        self.run_dataset_test(
+            "stone_fruit",
+            expected=[("cherry", 1)],
+            dataset=Dataset.IssuePlatform,
+        )
+        self.run_dataset_test(
+            "stone_fruit",
+            expected=[("peach", 1)],
+            dataset=Dataset.Events,
+        )
+        self.run_dataset_test(
+            "stone_fruit",
+            expected=[("peach", 1)],
+            dataset=Dataset.Discover,
+        )
+
+    def test_dataset_discover(self):
+        event = load_data("transaction")
+        event["tags"].extend([["fake_fruit", "tomato"]])
+        event.update(
+            {
+                "transaction": "example_transaction",
+                "event_id": uuid.uuid4().hex,
+                "start_timestamp": iso_format(self.min_ago),
+                "timestamp": iso_format(self.min_ago),
+            }
+        )
+        event["measurements"]["lcp"]["value"] = 5000
+        self.store_event(data=event, project_id=self.project.id)
+
+        self.run_dataset_test(
+            "fake_fruit",
+            expected=[],
+            dataset=Dataset.IssuePlatform,
+        )
+        self.run_dataset_test(
+            "fake_fruit",
+            expected=[],
+            dataset=Dataset.Events,
+        )
+        self.run_dataset_test(
+            "fake_fruit",
+            expected=[("tomato", 1)],
+            dataset=Dataset.Discover,
+        )
