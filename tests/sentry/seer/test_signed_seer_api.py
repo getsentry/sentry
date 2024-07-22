@@ -12,6 +12,11 @@ def test_make_signed_seer_api_request():
     body = b'{"b": 12, "thing": "thing"}'
 
     def run_test_case(timeout: int | None = None):
+        """
+        Make a mock connection pool, call `make_signed_seer_api_request` on it, and return the
+        pool's `urlopen` method, so we can make assertions on how `make_signed_seer_api_request`
+        used it.
+        """
         mock = Mock()
         mock.host = "localhost"
         mock.port = None
