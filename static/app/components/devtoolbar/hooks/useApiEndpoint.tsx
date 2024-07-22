@@ -3,7 +3,7 @@ import {stringifyUrl} from 'query-string';
 
 import parseLinkHeader, {type ParsedHeader} from 'sentry/utils/parseLinkHeader';
 
-import type {ApiQueryKey, ApiResult} from '../types';
+import type {ApiEndpointQueryKey, ApiResult} from '../types';
 
 import useConfiguration from './useConfiguration';
 
@@ -18,7 +18,7 @@ const getNextPageParam = parsePageParam('next');
 const getPreviousPageParam = parsePageParam('previous');
 
 interface FetchParams {
-  queryKey: ApiQueryKey;
+  queryKey: ApiEndpointQueryKey;
 }
 
 interface InfiniteFetchParams extends FetchParams {

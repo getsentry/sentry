@@ -29,7 +29,7 @@ type QueryKeyEndpointOptions<
 
 // Prefix the key with a namespace, to avoid key collisions with other tanstack/query
 // cache requests that imported sentry modules make within the toolbar scope.
-export type ApiQueryKey =
+export type ApiEndpointQueryKey =
   | readonly ['io.sentry.toolbar', url: string]
   | readonly [
       'io.sentry.toolbar',

@@ -35,7 +35,7 @@ export default function AlertsPanel() {
   const {projectId, projectSlug, trackAnalytics} = useConfiguration();
   const queryResult = useInfiniteAlertsList();
 
-  const estimateSize = 108;
+  const estimateSize = 84;
   const placeholderHeight = `${estimateSize - 8}px`; // The real height of the items, minus the padding-block value
 
   return (
