@@ -5,6 +5,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import {
+  makeClosableHeader,
   makeCloseButton,
   ModalBody,
   ModalFooter,
@@ -14,7 +15,8 @@ import MessagingIntegrationModal from 'sentry/views/alerts/rules/issue/messaging
 jest.mock('sentry/actionCreators/modal');
 
 describe('MessagingIntegrationModal', function () {
-  let project, org, integrationSlug;
+  let project, org;
+  const integrationSlugs = ['slack', 'discord', 'msteams'];
   const providers = [GitHubIntegrationProviderFixture()];
 
   beforeEach(function () {
@@ -25,14 +27,12 @@ describe('MessagingIntegrationModal', function () {
       features: ['messaging-integration-onboarding'],
     });
 
-    integrationSlug = 'slack';
-
     jest.clearAllMocks();
   });
 
   const getComponent = (props = {}) => (
     <MessagingIntegrationModal
-      Header={() => <div />}
+      Header={makeClosableHeader(() => {})}
       Body={ModalBody}
       organization={org}
       project={project}
@@ -44,41 +44,31 @@ describe('MessagingIntegrationModal', function () {
   );
 
   it('renders', async function () {
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/config/integrations/?provider_key=slack`,
-      body: {providers: {providers}},
+    integrationSlugs.forEach(value => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/config/integrations/?provider_key=${value}`,
+        body: {providers: providers},
+      });
     });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/config/integrations/?provider_key=discord`,
-      body: {providers: {providers}},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/config/integrations/?provider_key=msteams`,
-      body: {providers: {providers}},
-    });
+
     render(getComponent());
-    screen.logTestingPlaygroundURL();
 
     await waitFor(() => {
       expect(screen.getByText('Connect with a messaging tool')).toBeInTheDocument();
+      const buttons = screen.getAllByRole('button', {name: /add integration/i});
+      expect(buttons).toHaveLength(3);
     });
   });
 
   it('closes on error', async function () {
     const closeModal = jest.fn();
 
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/config/integrations/?provider_key=${integrationSlug}`,
-      statusCode: 400,
-      body: {error: 'internal error'},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/config/integrations/?provider_key=discord`,
-      body: {providers: {providers}},
-    });
-    MockApiClient.addMockResponse({
-      url: `/organizations/${org.slug}/config/integrations/?provider_key=msteams`,
-      body: {providers: {providers}},
+    integrationSlugs.forEach(value => {
+      MockApiClient.addMockResponse({
+        url: `/organizations/${org.slug}/config/integrations/?provider_key=${value}`,
+        statusCode: 400,
+        body: {error: 'internal error'},
+      });
     });
 
     render(
@@ -97,7 +87,6 @@ describe('MessagingIntegrationModal', function () {
       const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
 
       expect(closeModal).toHaveBeenCalled();
-
       expect(consoleErrorSpy).toHaveBeenCalled();
 
       consoleErrorSpy.mockRestore();
