@@ -307,6 +307,15 @@ class ProcessCandidateUrlTest(TestCase):
         ):
             assert process_candidate_url(self.project, 100, url, 50)
 
+    def test_error_robots_txt(self):
+        # Supplying no robots txt should allow all urls
+        url = "https://sentry.io"
+        with mock.patch(
+            "sentry.uptime.detectors.tasks.get_robots_txt_parser",
+            side_effect=Exception("Robots.txt fetch failed"),
+        ):
+            assert process_candidate_url(self.project, 100, url, 50)
+
 
 class TestFailedUrl(TestCase):
     def test(self):
