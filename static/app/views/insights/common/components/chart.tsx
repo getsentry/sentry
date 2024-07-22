@@ -395,16 +395,6 @@ function Chart({
           onMouseOver={onMouseOver}
           onHighlight={onHighlight}
           series={[
-            ...(releaseSeries ?? []).map(({seriesName, data: seriesData, ...options}) =>
-              LineSeries({
-                ...options,
-                name: seriesName,
-                data: seriesData?.map(({value, name}) => [name, value]),
-                animation: false,
-                animationThreshold: 1,
-                animationDuration: 0,
-              })
-            ),
             ...series.map(({seriesName, data: seriesData, ...options}) =>
               LineSeries({
                 ...options,
@@ -424,6 +414,16 @@ function Chart({
               })
             ),
             ...incompleteSeries.map(({seriesName, data: seriesData, ...options}) =>
+              LineSeries({
+                ...options,
+                name: seriesName,
+                data: seriesData?.map(({value, name}) => [name, value]),
+                animation: false,
+                animationThreshold: 1,
+                animationDuration: 0,
+              })
+            ),
+            ...(releaseSeries ?? []).map(({seriesName, data: seriesData, ...options}) =>
               LineSeries({
                 ...options,
                 name: seriesName,
@@ -492,7 +492,7 @@ function Chart({
         forwardedRef={chartRef}
         height={height}
         {...zoomRenderProps}
-        series={[...series, ...(releaseSeries ?? []), ...incompleteSeries]}
+        series={[...series, ...incompleteSeries, ...(releaseSeries ?? [])]}
         previousPeriod={previousData}
         additionalSeries={transformedThroughput}
         xAxis={xAxis}

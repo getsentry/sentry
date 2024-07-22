@@ -71,6 +71,19 @@ describe('queuesLandingPage', () => {
       method: 'GET',
       body: {data: []},
     });
+
+    MockApiClient.addMockResponse({
+      url: `/organizations/${organization.slug}/releases/stats/`,
+      method: 'GET',
+      body: {
+        data: [
+          {
+            version: '123456',
+            date: '2024-07-22T19:14:05.457044Z',
+          },
+        ],
+      },
+    });
   });
 
   it('renders', async () => {
