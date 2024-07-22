@@ -505,8 +505,8 @@ class FlamegraphExecutor:
 
         for row in result["data"]:
             profiler_meta = profiler_metas_by_id[(row["project_id"], row["profiler_id"])]
-            start = datetime.fromisoformat(row["start"]).timestamp()
-            end = datetime.fromisoformat(row["end"]).timestamp()
+            start = datetime.fromisoformat(row["start_timestamp"]).timestamp()
+            end = datetime.fromisoformat(row["end_timestamp"]).timestamp()
 
             continuous_profile_candidates.append(
                 {
