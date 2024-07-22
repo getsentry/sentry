@@ -31,7 +31,7 @@ def run_test_case(timeout: int | None = None):
 
 
 @pytest.mark.django_db
-def test_make_signed_seer_api_request():
+def test_simple():
     mock_url_open = run_test_case()
     mock_url_open.assert_called_once_with(
         "POST",
@@ -40,6 +40,9 @@ def test_make_signed_seer_api_request():
         headers={"content-type": "application/json;charset=utf-8"},
     )
 
+
+@pytest.mark.django_db
+def test_uses_given_timeout():
     mock_url_open = run_test_case(timeout=5)
     mock_url_open.assert_called_once_with(
         "POST",
@@ -49,6 +52,9 @@ def test_make_signed_seer_api_request():
         timeout=5,
     )
 
+
+@pytest.mark.django_db
+def test_uses_shared_secret():
     with override_options({"seer.api.use-shared-secret": 1.0}):
         mock_url_open = run_test_case()
         mock_url_open.assert_called_once_with(
