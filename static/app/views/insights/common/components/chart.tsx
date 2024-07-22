@@ -18,10 +18,11 @@ import type {AreaChartProps} from 'sentry/components/charts/areaChart';
 import {AreaChart} from 'sentry/components/charts/areaChart';
 import {BarChart} from 'sentry/components/charts/barChart';
 import BaseChart from 'sentry/components/charts/baseChart';
-import ChartZoom from 'sentry/components/charts/chartZoom';
+import ChartZoom, {type ZoomRenderProps} from 'sentry/components/charts/chartZoom';
 import type {FormatterOptions} from 'sentry/components/charts/components/tooltip';
 import {getFormatter} from 'sentry/components/charts/components/tooltip';
 import ErrorPanel from 'sentry/components/charts/errorPanel';
+import ReleaseSeries from 'sentry/components/charts/releaseSeries';
 import LineSeries from 'sentry/components/charts/series/lineSeries';
 import ScatterSeries from 'sentry/components/charts/series/scatterSeries';
 import TransitionChart from 'sentry/components/charts/transitionChart';
@@ -63,7 +64,9 @@ export enum ChartType {
   AREA = 2,
 }
 
-export const ChartHeightContext = createContext<number | undefined>(undefined);
+export const ChartIsFullScreenContext = createContext<boolean | undefined>(undefined);
+
+const CHART_FULL_SCREEN_HEIGHT = 300;
 
 type Props = {
   data: Series[];
@@ -72,6 +75,7 @@ type Props = {
   aggregateOutputFormat?: AggregationOutputType;
   chartColors?: string[];
   chartGroup?: string;
+  chartShowLegend?: boolean;
   dataMax?: number;
   definedAxisTicks?: number;
   disableXAxis?: boolean;
@@ -98,7 +102,6 @@ type Props = {
   previousData?: Series[];
   rateUnit?: RateUnit;
   scatterPlot?: Series[];
-  showLegend?: boolean;
   stacked?: boolean;
   throughput?: {count: number; interval: string}[];
   tooltipFormatterOptions?: FormatterOptions;
@@ -120,7 +123,7 @@ function Chart({
   stacked,
   log,
   hideYAxisSplitLine,
-  showLegend,
+  chartShowLegend,
   scatterPlot,
   throughput,
   aggregateOutputFormat,
@@ -144,8 +147,12 @@ function Chart({
   const theme = useTheme();
   const pageFilters = usePageFilters();
   const {start, end, period, utc} = pageFilters.selection.datetime;
+  const {projects, environments} = pageFilters.selection;
 
-  const height = useContext(ChartHeightContext) ?? chartHeight;
+  const isFullScreen = useContext(ChartIsFullScreenContext);
+  // always show chart legend if chart is in full screen
+  const showLegend = chartShowLegend || isFullScreen;
+  const height = isFullScreen ? CHART_FULL_SCREEN_HEIGHT : chartHeight;
 
   const defaultRef = useRef<ReactEchartsRef>(null);
   const chartRef = forwardedRef || defaultRef;
@@ -355,6 +362,149 @@ function Chart({
     },
   } as Omit<AreaChartProps, 'series'>;
 
+  function getChartWithSeries(
+    zoomRenderProps: ZoomRenderProps,
+    releaseSeries: Series[] | undefined
+  ) {
+    if (error) {
+      return (
+        <ErrorPanel height={`${height}px`} data-test-id="chart-error-panel">
+          <IconWarning color="gray300" size="lg" />
+        </ErrorPanel>
+      );
+    }
+
+    if (type === ChartType.LINE) {
+      return (
+        <BaseChart
+          {...zoomRenderProps}
+          ref={chartRef}
+          height={height}
+          previousPeriod={previousData}
+          additionalSeries={transformedThroughput}
+          xAxis={xAxis}
+          yAxes={areaChartProps.yAxes}
+          tooltip={areaChartProps.tooltip}
+          colors={colors}
+          grid={grid}
+          legend={
+            showLegend ? {top: 0, right: 10, formatter: legendFormatter} : undefined
+          }
+          onClick={onClick}
+          onMouseOut={onMouseOut}
+          onMouseOver={onMouseOver}
+          onHighlight={onHighlight}
+          series={[
+            ...(releaseSeries ?? []).map(({seriesName, data: seriesData, ...options}) =>
+              LineSeries({
+                ...options,
+                name: seriesName,
+                data: seriesData?.map(({value, name}) => [name, value]),
+                animation: false,
+                animationThreshold: 1,
+                animationDuration: 0,
+              })
+            ),
+            ...series.map(({seriesName, data: seriesData, ...options}) =>
+              LineSeries({
+                ...options,
+                name: seriesName,
+                data: seriesData?.map(({value, name}) => [name, value]),
+                animation: false,
+                animationThreshold: 1,
+                animationDuration: 0,
+              })
+            ),
+            ...(scatterPlot ?? []).map(({seriesName, data: seriesData, ...options}) =>
+              ScatterSeries({
+                ...options,
+                name: seriesName,
+                data: seriesData?.map(({value, name}) => [name, value]),
+                animation: false,
+              })
+            ),
+            ...incompleteSeries.map(({seriesName, data: seriesData, ...options}) =>
+              LineSeries({
+                ...options,
+                name: seriesName,
+                data: seriesData?.map(({value, name}) => [name, value]),
+                animation: false,
+                animationThreshold: 1,
+                animationDuration: 0,
+              })
+            ),
+          ]}
+        />
+      );
+    }
+
+    if (type === ChartType.BAR) {
+      return (
+        <BarChart
+          height={height}
+          series={series}
+          xAxis={{
+            type: 'category',
+            axisTick: {show: true},
+            truncate: Infinity, // Show axis labels
+            axisLabel: {
+              interval: 0, // Show _all_ axis labels
+            },
+          }}
+          yAxis={{
+            minInterval: durationUnit ?? getDurationUnit(data),
+            splitNumber: definedAxisTicks,
+            max: dataMax,
+            axisLabel: {
+              color: theme.chartLabel,
+              formatter(value: number) {
+                return axisLabelFormatter(
+                  value,
+                  aggregateOutputFormat ?? aggregateOutputType(data[0].seriesName),
+                  undefined,
+                  durationUnit ?? getDurationUnit(data),
+                  rateUnit
+                );
+              },
+            },
+          }}
+          tooltip={{
+            valueFormatter: (value, seriesName) => {
+              return tooltipFormatter(
+                value,
+                aggregateOutputFormat ??
+                  aggregateOutputType(data?.length ? data[0].seriesName : seriesName)
+              );
+            },
+          }}
+          colors={colors}
+          grid={grid}
+          legend={
+            showLegend ? {top: 0, right: 10, formatter: legendFormatter} : undefined
+          }
+          onClick={onClick}
+        />
+      );
+    }
+
+    return (
+      <AreaChart
+        forwardedRef={chartRef}
+        height={height}
+        {...zoomRenderProps}
+        series={[...series, ...(releaseSeries ?? []), ...incompleteSeries]}
+        previousPeriod={previousData}
+        additionalSeries={transformedThroughput}
+        xAxis={xAxis}
+        stacked={stacked}
+        colors={colors}
+        onClick={onClick}
+        {...areaChartProps}
+        onLegendSelectChanged={onLegendSelectChanged}
+      />
+    );
+  }
+
   function getChart() {
     if (error) {
       return (
@@ -364,6 +514,13 @@ function Chart({
       );
     }
 
+    // add top-padding to the chart in full screen so that the legend
+    // and graph do not overlap
+    if (isFullScreen) {
+      grid = {...grid, top: '20px'};
+    }
+
+    // overlay additional series data such as releases and issues on top of the original insights chart
     return (
       <ChartZoom
         router={router}
@@ -374,133 +531,28 @@ function Chart({
         utc={utc}
         onDataZoom={onDataZoom}
       >
-        {zoomRenderProps => {
-          if (type === ChartType.LINE) {
-            return (
-              <BaseChart
-                {...zoomRenderProps}
-                ref={chartRef}
-                height={height}
-                previousPeriod={previousData}
-                additionalSeries={transformedThroughput}
-                xAxis={xAxis}
-                yAxes={areaChartProps.yAxes}
-                tooltip={areaChartProps.tooltip}
-                colors={colors}
-                grid={grid}
-                legend={
-                  showLegend ? {top: 0, right: 10, formatter: legendFormatter} : undefined
-                }
-                onClick={onClick}
-                onMouseOut={onMouseOut}
-                onMouseOver={onMouseOver}
-                onHighlight={onHighlight}
-                series={[
-                  ...series.map(({seriesName, data: seriesData, ...options}) =>
-                    LineSeries({
-                      ...options,
-                      name: seriesName,
-                      data: seriesData?.map(({value, name}) => [name, value]),
-                      animation: false,
-                      animationThreshold: 1,
-                      animationDuration: 0,
-                    })
-                  ),
-                  ...(scatterPlot ?? []).map(
-                    ({seriesName, data: seriesData, ...options}) =>
-                      ScatterSeries({
-                        ...options,
-                        name: seriesName,
-                        data: seriesData?.map(({value, name}) => [name, value]),
-                        animation: false,
-                      })
-                  ),
-                  ...incompleteSeries.map(({seriesName, data: seriesData, ...options}) =>
-                    LineSeries({
-                      ...options,
-                      name: seriesName,
-                      data: seriesData?.map(({value, name}) => [name, value]),
-                      animation: false,
-                      animationThreshold: 1,
-                      animationDuration: 0,
-                    })
-                  ),
-                ]}
-              />
-            );
-          }
-
-          if (type === ChartType.BAR) {
-            return (
-              <BarChart
-                height={height}
-                series={series}
-                xAxis={{
-                  type: 'category',
-                  axisTick: {show: true},
-                  truncate: Infinity, // Show axis labels
-                  axisLabel: {
-                    interval: 0, // Show _all_ axis labels
-                  },
-                }}
-                yAxis={{
-                  minInterval: durationUnit ?? getDurationUnit(data),
-                  splitNumber: definedAxisTicks,
-                  max: dataMax,
-                  axisLabel: {
-                    color: theme.chartLabel,
-                    formatter(value: number) {
-                      return axisLabelFormatter(
-                        value,
-                        aggregateOutputFormat ?? aggregateOutputType(data[0].seriesName),
-                        undefined,
-                        durationUnit ?? getDurationUnit(data),
-                        rateUnit
-                      );
-                    },
-                  },
-                }}
-                tooltip={{
-                  valueFormatter: (value, seriesName) => {
-                    return tooltipFormatter(
-                      value,
-                      aggregateOutputFormat ??
-                        aggregateOutputType(
-                          data?.length ? data[0].seriesName : seriesName
-                        )
-                    );
-                  },
-                }}
-                colors={colors}
-                grid={grid}
-                legend={
-                  showLegend ? {top: 0, right: 10, formatter: legendFormatter} : undefined
-                }
-                onClick={onClick}
-              />
-            );
-          }
-
-          return (
-            <AreaChart
-              forwardedRef={chartRef}
-              height={height}
-              {...zoomRenderProps}
-              series={[...series, ...incompleteSeries]}
-              previousPeriod={previousData}
-              additionalSeries={transformedThroughput}
-              xAxis={xAxis}
-              stacked={stacked}
-              colors={colors}
-              onClick={onClick}
-              {...areaChartProps}
-              onLegendSelectChanged={onLegendSelectChanged}
-            />
-          );
-        }}
+        {zoomRenderProps => (
+          <ReleaseSeries
+            start={start}
+            end={end}
+            queryExtra={undefined}
+            period={period}
+            utc={utc}
+            projects={projects}
+            environments={environments}
+          >
+            {({releaseSeries}) => {
+              return getChartWithSeries(
+                zoomRenderProps,
+                isFullScreen ? releaseSeries : undefined
+              );
+            }}
+          </ReleaseSeries>
+        )}
       </ChartZoom>
     );
   }
+
   return (
     <TransitionChart
       loading={loading}

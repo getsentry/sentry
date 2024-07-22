@@ -44,7 +44,7 @@ export function LatencyChart({error, destination, referrer}: Props) {
         error={error}
         chartColors={CHART_PALETTE[2].slice(1)}
         type={ChartType.AREA}
-        showLegend
+        chartShowLegend
         stacked
         aggregateOutputFormat="duration"
       />

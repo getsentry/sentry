@@ -102,7 +102,7 @@ export function TracesChart({}: Props) {
           chartColors={CHART_PALETTE[2]}
           type={ChartType.LINE}
           aggregateOutputFormat="number"
-          showLegend
+          chartShowLegend
           tooltipFormatterOptions={{
             valueFormatter: value => tooltipFormatter(value),
           }}

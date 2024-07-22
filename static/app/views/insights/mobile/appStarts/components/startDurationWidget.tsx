@@ -148,7 +148,7 @@ function StartDurationWidget({additionalFilters, chartHeight}: Props) {
           top: space(2),
           bottom: '0',
         }}
-        showLegend
+        chartShowLegend
         definedAxisTicks={2}
         type={ChartType.LINE}
         aggregateOutputFormat="duration"

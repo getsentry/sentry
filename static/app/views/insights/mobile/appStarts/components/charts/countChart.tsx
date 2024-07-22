@@ -141,7 +141,7 @@ export function CountChart({chartHeight}: Props) {
           top: space(2),
           bottom: '0',
         }}
-        showLegend
+        chartShowLegend
         definedAxisTicks={2}
         type={ChartType.LINE}
         aggregateOutputFormat={OUTPUT_TYPE[YAxis.COUNT]}

@@ -247,7 +247,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
                       top: '8px',
                       bottom: '0',
                     }}
-                    showLegend
+                    chartShowLegend
                     definedAxisTicks={2}
                     type={ChartType.LINE}
                     aggregateOutputFormat={OUTPUT_TYPE[YAxis.TTID]}
@@ -315,7 +315,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
                       top: '8px',
                       bottom: '0',
                     }}
-                    showLegend
+                    chartShowLegend
                     definedAxisTicks={2}
                     type={ChartType.LINE}
                     aggregateOutputFormat={OUTPUT_TYPE[YAxis.TTFD]}
@@ -357,7 +357,7 @@ export function ScreenCharts({yAxes, additionalFilters}: Props) {
                   top: '8px',
                   bottom: '0',
                 }}
-                showLegend
+                chartShowLegend
                 definedAxisTicks={2}
                 type={ChartType.LINE}
                 aggregateOutputFormat={OUTPUT_TYPE[YAxis.COUNT]}

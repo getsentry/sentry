@@ -5,7 +5,7 @@ import styled from '@emotion/styled';
 
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
 import {space} from 'sentry/styles/space';
-import {ChartHeightContext} from 'sentry/views/insights/common/components/chart';
+import {ChartIsFullScreenContext} from 'sentry/views/insights/common/components/chart';
 
 export type InsightChartModalOptions = {
   children: React.ReactNode;
@@ -21,7 +21,9 @@ export default function InsightChartModal({Header, title, children}: Props) {
           <h3>{title}</h3>
         </Header>
 
-        <ChartHeightContext.Provider value={300}>{children}</ChartHeightContext.Provider>
+        <ChartIsFullScreenContext.Provider value>
+          {children}
+        </ChartIsFullScreenContext.Provider>
       </Container>
     </Fragment>
   );

@@ -57,7 +57,7 @@ export function ThroughputChart({error, destination, referrer}: Props) {
         tooltipFormatterOptions={{
           valueFormatter: value => formatRate(value, RateUnit.PER_MINUTE),
         }}
-        showLegend
+        chartShowLegend
       />
     </ChartPanel>
   );

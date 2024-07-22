@@ -14,7 +14,7 @@ export function ResponseCodeCountChart({series, isLoading, error}: Props) {
   return (
     <ChartPanel title={t('Top 5 Response Codes')}>
       <Chart
-        showLegend
+        chartShowLegend
         height={CHART_HEIGHT}
         grid={{
           left: '4px',

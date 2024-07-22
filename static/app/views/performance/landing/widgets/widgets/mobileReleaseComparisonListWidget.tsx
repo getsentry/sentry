@@ -306,7 +306,7 @@ function MobileReleaseComparisonListWidget(props: PerformanceWidgetProps) {
         }}
         error={provided.widgetData.chart.error}
         disableXAxis
-        showLegend={false}
+        chartShowLegend={false}
       />
     );
   };
