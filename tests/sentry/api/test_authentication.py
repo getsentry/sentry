@@ -293,6 +293,85 @@ class TestTokenAuthenticationReplication(TestCase):
                 assert api_token.hashed_token == api_token_replica.hashed_token
 
 
+@control_silo_test
+class TestOrganizationTokenAuthentication(TestCase):
+    def setUp(self):
+        super().setUp()
+
+        other_user = self.create_user()
+        other_org = self.create_organization(owner=other_user)
+
+        self.auth = UserAuthTokenAuthentication()
+        self.org = self.create_organization(owner=self.user)
+        self.api_token = ApiToken.objects.create(
+            token_type=AuthTokenType.USER,
+            user=self.user,
+            scoping_organization_id=other_org.id,
+        )
+        self.token = self.api_token.plaintext_token
+
+    def test_authenticate(self):
+        request = HttpRequest()
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {self.token}"
+
+        result = self.auth.authenticate(request)
+        assert result is not None
+
+        user, auth = result
+        assert user.is_anonymous is False
+        assert user.id == self.user.id
+        assert AuthenticatedToken.from_token(auth) == AuthenticatedToken.from_token(self.api_token)
+
+    def test_no_match(self):
+        request = HttpRequest()
+        request.META["HTTP_AUTHORIZATION"] = "Bearer abc"
+
+        with pytest.raises(AuthenticationFailed):
+            self.auth.authenticate(request)
+
+    @override_options({"apitoken.save-hash-on-create": False})
+    @override_options({"apitoken.use-and-update-hash-rate": 1.0})
+    def test_token_hashed_with_option_off(self):
+        # see https://github.com/getsentry/sentry/pull/65941
+        # the UserAuthTokenAuthentication middleware was updated to hash tokens as
+        # they were used, this test verifies the hash
+        api_token = ApiToken.objects.create(user=self.user, token_type=AuthTokenType.USER)
+        expected_hash = hashlib.sha256(api_token.token.encode()).hexdigest()
+
+        # we haven't authenticated to the API endpoint yet, so this value should be empty
+        assert api_token.hashed_token is None
+
+        request = HttpRequest()
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {api_token.token}"
+
+        # trigger the authentication middleware, and thus the hashing
+        result = self.auth.authenticate(request)
+        assert result is not None
+
+        # check for the expected hash value
+        api_token.refresh_from_db()
+        assert api_token.hashed_token == expected_hash
+
+    @override_options({"apitoken.save-hash-on-create": False})
+    @override_options({"apitoken.use-and-update-hash-rate": 0.0})
+    def test_token_not_hashed_with_0_rate(self):
+        api_token = ApiToken.objects.create(user=self.user, token_type=AuthTokenType.USER)
+
+        # we haven't authenticated to the API endpoint yet, so this value should be empty
+        assert api_token.hashed_token is None
+
+        request = HttpRequest()
+        request.META["HTTP_AUTHORIZATION"] = f"Bearer {api_token.token}"
+
+        # trigger the authentication middleware
+        result = self.auth.authenticate(request)
+        assert result is not None
+
+        # check for the expected hash value
+        api_token.refresh_from_db()
+        assert api_token.hashed_token is None
+
+
 @django_db_all
 @pytest.mark.parametrize("internal", [True, False])
 def test_registered_relay(internal):
