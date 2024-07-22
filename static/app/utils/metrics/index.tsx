@@ -162,6 +162,25 @@ export function getDefaultAggregation(mri: MRI): MetricAggregation {
   return DEFAULT_AGGREGATES[parsedMRI.type] || fallbackAggregate;
 }
 
+// Using Records to ensure all MetricAggregations are covered
+const metricAggregationsCheck: Record<MetricAggregation, boolean> = {
+  count: true,
+  count_unique: true,
+  sum: true,
+  avg: true,
+  min: true,
+  max: true,
+  p50: true,
+  p75: true,
+  p90: true,
+  p95: true,
+  p99: true,
+};
+
+export function isMetricsAggregation(value: string): value is MetricAggregation {
+  return !!metricAggregationsCheck[value as MetricAggregation];
+}
+
 export function isAllowedAggregation(aggregation: MetricAggregation) {
   return !['max_timestamp', 'min_timestamp', 'histogram'].includes(aggregation);
 }
