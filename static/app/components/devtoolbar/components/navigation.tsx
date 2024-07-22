@@ -2,7 +2,7 @@ import {css} from '@emotion/react';
 
 import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
 import InteractionStateLayer from 'sentry/components/interactionStateLayer';
-import {IconClose, IconIssues, IconMegaphone} from 'sentry/icons';
+import {IconClose, IconIssues, IconMegaphone, IconSiren} from 'sentry/icons';
 
 import usePlacementCss from '../hooks/usePlacementCss';
 import useToolbarRoute from '../hooks/useToolbarRoute';
@@ -22,8 +22,9 @@ export default function Navigation({setIsHidden}: {setIsHidden: (val: boolean) =
         placement.navigation.css,
       ]}
     >
-      <NavButton panelName="issues" label={'Issues'} icon={<IconIssues />} />
-      <NavButton panelName="feedback" label={'User Feedback'} icon={<IconMegaphone />} />
+      <NavButton panelName="issues" label="Issues" icon={<IconIssues />} />
+      <NavButton panelName="feedback" label="User Feedback" icon={<IconMegaphone />} />
+      <NavButton panelName="alerts" label="Active Alerts" icon={<IconSiren />} />
       <HideButton
         onClick={() => {
           setIsHidden(true);

@@ -17,6 +17,7 @@ interface Props {
 
 export default function Providers({children, config, container}: Props) {
   const queryClient = useMemo(() => new QueryClient({}), []);
+
   const myCache = useMemo(
     () =>
       createCache({
