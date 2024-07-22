@@ -229,6 +229,27 @@ def test_numeric_conditions():
     }
 
 
+def test_greater_than_conditions():
+    rule = MetricsExtractionRule(
+        span_attribute="foobar",
+        type="d",
+        unit="none",
+        tags=set(),
+        condition="foo:>123 and bar:<=456",
+        id=1,
+    )
+
+    metric_spec = convert_to_metric_spec(rule)
+
+    assert metric_spec["condition"] == {
+        "op": "and",
+        "inner": [
+            {"op": "gt", "name": "span.data.foo", "value": 123},
+            {"op": "lte", "name": "span.data.bar", "value": 456},
+        ],
+    }
+
+
 def test_mixed_conditions():
     rule = MetricsExtractionRule(
         span_attribute="foobar",
