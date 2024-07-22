@@ -32,6 +32,7 @@ from sentry.rules.processing.delayed_processing import (
     get_rules_to_groups,
     get_rules_to_slow_conditions,
     get_slow_conditions,
+    parse_rulegroup_to_event_data,
     process_delayed_alert_conditions,
 )
 from sentry.rules.processing.processor import PROJECT_ID_BUFFER_LIST_KEY
@@ -562,8 +563,44 @@ class GetSlowConditionsTest(RuleTestCase):
 
 
 class ParseRuleGroupToEventDataTest(TestCase):
-    def test_parse_rulegroup_to_event_data(self):
-        pass
+    def setUp(self):
+        self.project = self.create_project()
+        self.group = self.create_group(self.project)
+        self.group_two = self.create_group(self.project)
+        self.rule = self.create_alert_rule(self.organization, [self.project])
+        self.rule_two = self.create_alert_rule(self.organization, [self.project])
+
+        self.event_data = {
+            "event_id": "1",
+            "occurrence_id": "1",
+        }
+
+    def test_parse_rulegroup(self):
+        input_data = {
+            f"{self.rule.id}:{self.group.id}": json.dumps(self.event_data),
+            f"{self.rule_two.id}:{self.group_two.id}": json.dumps(self.event_data),
+        }
+
+        result = parse_rulegroup_to_event_data(input_data)
+        assert result == {
+            (str(self.rule.id), str(self.group.id)): self.event_data,
+            (str(self.rule_two.id), str(self.group_two.id)): self.event_data,
+        }
+
+    def test_parse_rulegroup_empty(self):
+        input_data: dict[str, str] = {}
+        result = parse_rulegroup_to_event_data(input_data)
+        assert result == {}
+
+    def test_parse_rulegroup_basic(self):
+        input_data = {f"{self.rule.id}:{self.group.id}": json.dumps(self.event_data)}
+        result = parse_rulegroup_to_event_data(input_data)
+        assert result == {(str(self.rule.id), str(self.group.id)): self.event_data}
+
+    def test_parse_rulegroup_invalid_json(self):
+        input_data = {f"{self.rule.id}:{self.group.id}": "}"}
+        with pytest.raises(json.JSONDecodeError):
+            parse_rulegroup_to_event_data(input_data)
 
 
 class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTestCase):
