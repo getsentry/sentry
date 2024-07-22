@@ -68,7 +68,7 @@ def delete_remote_uptime_subscription(uptime_subscription_id, **kwargs):
         subscription.update(subscription_id=None)
 
     if subscription_id is not None:
-        send_uptime_config_deletion(subscription.subscription_id)
+        send_uptime_config_deletion(subscription_id)
 
 
 def send_uptime_subscription_config(subscription: UptimeSubscription) -> str:
