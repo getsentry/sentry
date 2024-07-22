@@ -123,7 +123,7 @@ function IssueListSearchBar({organization, tags, onClose, ...props}: Props) {
           : undefined,
         statsPeriod: pageFilters.datetime.period,
       };
-      const eventsDatasetValues = await fetchTagValues({
+      const eventsDatasetValues = fetchTagValues({
         api,
         orgSlug,
         tagKey: key,
@@ -133,7 +133,7 @@ function IssueListSearchBar({organization, tags, onClose, ...props}: Props) {
         dataset: Dataset.ERRORS,
       });
 
-      const issuePlatformDatasetValues = await fetchTagValues({
+      const issuePlatformDatasetValues = fetchTagValues({
         api,
         orgSlug,
         tagKey: key,
@@ -143,7 +143,9 @@ function IssueListSearchBar({organization, tags, onClose, ...props}: Props) {
         dataset: Dataset.ISSUE_PLATFORM,
       });
 
-      return mergeTagValues(eventsDatasetValues, issuePlatformDatasetValues);
+      return await Promise.all([eventsDatasetValues, issuePlatformDatasetValues]).then(
+        tagValues => mergeTagValues(tagValues[0], tagValues[1])
+      );
     },
     [
       api,
