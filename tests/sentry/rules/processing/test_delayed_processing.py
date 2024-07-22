@@ -180,12 +180,12 @@ class BulkFetchEventsTest(CreateEventTestCase):
         assert len(result) == 0
 
     def test_with_invalid_event_ids(self):
-        event_ids: list[str] = ["0", "1"]
+        event_ids: list[str] = ["-1", "0"]
         result = bulk_fetch_events(event_ids, self.project.id)
         assert len(result) == 0
 
     def test_event_ids_with_mixed_validity(self):
-        event_ids: list[str] = ["0", self.event.event_id, "1", self.event_two.event_id]
+        event_ids: list[str] = ["-1", self.event.event_id, "0", self.event_two.event_id]
         result = bulk_fetch_events(event_ids, self.project.id)
 
         assert len(result) == len(self.expected)
@@ -199,7 +199,7 @@ class BulkFetchEventsTest(CreateEventTestCase):
         Test that when the number of event_ids exceeds the EVENT_LIMIT,
         will batch into groups of EVENT_LIMIT and merge the results.
         """
-        event_ids: list[str] = ["0", self.event.event_id, "1", self.event_two.event_id]
+        event_ids: list[str] = ["-1", self.event.event_id, "0", self.event_two.event_id]
         mock_retry_instance = MagicMock()
         mock_retry_policy.return_value = mock_retry_instance
 
