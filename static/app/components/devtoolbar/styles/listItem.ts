@@ -13,7 +13,7 @@ export const listItemGridCss = css`
   grid-template-areas:
     'name time'
     'message message'
-    'project icons';
+    'owner icons';
   grid-template-columns: 1fr max-content;
 
   gap: var(--space50);

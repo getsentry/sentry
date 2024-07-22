@@ -142,7 +142,7 @@ function FeedbackListItem({item}: {item: FeedbackIssueListItem}) {
         </TextOverflow>
       </div>
 
-      <div css={[badgeWithLabelCss, xSmallCss]} style={{gridArea: 'project'}}>
+      <div css={[badgeWithLabelCss, xSmallCss]} style={{gridArea: 'owner'}}>
         <ProjectBadge
           css={css({'&& img': {boxShadow: 'none'}})}
           project={item.project}
