@@ -45,12 +45,19 @@ class ShouldCallSeerTest(TestCase):
         )
         self.primary_hashes = self.event.get_hashes()
 
-    def test_obeys_seer_similarity_flags(self):
-        for metadata_flag, grouping_flag, expected_result in [
-            (False, False, False),
-            (True, False, True),
-            (False, True, True),
-            (True, True, True),
+    def test_obeys_feature_enablement_check(self):
+        for metadata_flag, grouping_flag, backfill_completed_option, expected_result in [
+            # TODO: This manual cartesian product business is gross, but thankfully it's temporary -
+            # the metadata flag is about to go away and the backfill completed option will go away
+            # once all projects are backfilled.
+            (False, False, None, False),
+            (True, False, None, True),
+            (False, True, None, True),
+            (True, True, None, True),
+            (False, False, 11211231, True),
+            (True, False, 11211231, True),
+            (False, True, 11211231, True),
+            (True, True, 11211231, True),
         ]:
             with Feature(
                 {
@@ -58,10 +65,13 @@ class ShouldCallSeerTest(TestCase):
                     "projects:similarity-embeddings-grouping": grouping_flag,
                 }
             ):
+                self.project.update_option(
+                    "sentry:similarity_backfill_completed", backfill_completed_option
+                )
                 assert (
                     should_call_seer_for_grouping(self.event, self.primary_hashes)
                     is expected_result
-                ), f"Case ({metadata_flag}, {grouping_flag}) failed."
+                ), f"Case (metadata {metadata_flag}, grouping {grouping_flag}, backfill completed {backfill_completed_option}) failed."
 
     @with_feature("projects:similarity-embeddings-grouping")
     def test_obeys_content_filter(self):
