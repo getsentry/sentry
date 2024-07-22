@@ -2,45 +2,72 @@ import styled from '@emotion/styled';
 
 import {Button} from 'sentry/components/button';
 import {CompactSelect} from 'sentry/components/compactSelect';
+import {QueryFieldGroup} from 'sentry/components/metrics/queryFieldGroup';
 import {Tooltip} from 'sentry/components/tooltip';
 import {IconAdd, IconInfo, IconWarning} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {MetricsExtractionCondition, MRI} from 'sentry/types/metrics';
-import {useCardinalityLimitedMetricVolume} from 'sentry/utils/metrics/useCardinalityLimitedMetricVolume';
+import {hasMetricsNewInputs} from 'sentry/utils/metrics/features';
 import {useVirtualMetricsContext} from 'sentry/utils/metrics/virtualMetricsContext';
-import usePageFilters from 'sentry/utils/usePageFilters';
+import useOrganization from 'sentry/utils/useOrganization';
 import {useSelectedProjects} from 'sentry/views/metrics/utils/useSelectedProjects';
 import {openExtractionRuleEditModal} from 'sentry/views/settings/projectMetrics/metricsExtractionRuleEditModal';
 
 interface Props {
+  isCardinalityLimited: boolean;
   mri: MRI;
   onChange: (conditionId: number) => void;
+  spanConditions: MetricsExtractionCondition[];
   conditionId?: number;
 }
 
-export function MetricQuerySelect({onChange, conditionId, mri}: Props) {
-  const pageFilters = usePageFilters();
-  const {data: cardinality} = useCardinalityLimitedMetricVolume(pageFilters.selection);
-  const {getConditions} = useVirtualMetricsContext();
+export function MetricQuerySelect({
+  onChange,
+  conditionId,
+  mri,
+  isCardinalityLimited,
+  spanConditions,
+}: Props) {
+  const organization = useOrganization();
 
-  const isCardinalityLimited = (condition?: MetricsExtractionCondition): boolean => {
-    if (!cardinality || !condition) {
-      return false;
-    }
-    return condition.mris.some(conditionMri => cardinality[conditionMri] > 0);
-  };
-
-  const spanConditions = getConditions(mri);
+  if (hasMetricsNewInputs(organization)) {
+    return (
+      <QueryFieldGroup.CompactSelect
+        size="md"
+        options={spanConditions.map(condition => ({
+          label: condition.value ? (
+            <Tooltip showOnlyOnOverflow title={condition.value} skipWrapper>
+              <QueryLabel>{condition.value}</QueryLabel>
+            </Tooltip>
+          ) : (
+            t('All spans')
+          ),
+          trailingItems: [
+            isCardinalityLimited ? (
+              <CardinalityWarningIcon key="cardinality-warning" />
+            ) : undefined,
+          ],
+          textValue: condition.value || t('All spans'),
+          value: condition.id,
+        }))}
+        value={conditionId}
+        onChange={({value}) => {
+          onChange(value);
+        }}
+        menuFooter={({closeOverlay}) => (
+          <QueryFooter mri={mri} closeOverlay={closeOverlay} />
+        )}
+      />
+    );
+  }
 
   return (
     <CompactSelect
       size="md"
       triggerProps={{
         prefix: t('Query'),
-        icon: isCardinalityLimited(spanConditions.find(c => c.id === conditionId)) ? (
-          <CardinalityWarningIcon />
-        ) : null,
+        icon: isCardinalityLimited ? <CardinalityWarningIcon /> : null,
       }}
       options={spanConditions.map(condition => ({
         label: condition.value ? (
@@ -51,7 +78,7 @@ export function MetricQuerySelect({onChange, conditionId, mri}: Props) {
           t('All spans')
         ),
         trailingItems: [
-          isCardinalityLimited(condition) ? (
+          isCardinalityLimited ? (
             <CardinalityWarningIcon key="cardinality-warning" />
           ) : undefined,
         ],
@@ -69,7 +96,7 @@ export function MetricQuerySelect({onChange, conditionId, mri}: Props) {
   );
 }
 
-function CardinalityWarningIcon() {
+export function CardinalityWarningIcon() {
   return (
     <Tooltip
       isHoverable
