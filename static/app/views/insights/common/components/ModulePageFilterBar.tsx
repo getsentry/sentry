@@ -1,4 +1,4 @@
-import {type ComponentProps, useEffect, useState} from 'react';
+import {type ComponentProps, Fragment, useEffect, useState} from 'react';
 
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -13,12 +13,13 @@ import type {ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
   moduleName: ModuleName;
+  extraFilters?: React.ReactNode;
   onProjectChange?: ComponentProps<typeof ProjectPageFilter>['onChange'];
 };
 
 const CHANGE_PROJECT_TEXT = t('Make sure you have the correct project selected.');
 
-export function ModulePageFilterBar({moduleName, onProjectChange}: Props) {
+export function ModulePageFilterBar({moduleName, onProjectChange, extraFilters}: Props) {
   const {projects: allProjects} = useProjects();
 
   const hasDataWithSelectedProjects = useHasFirstSpan(moduleName);
@@ -37,31 +38,33 @@ export function ModulePageFilterBar({moduleName, onProjectChange}: Props) {
       setTimeout(() => setShowTooltip(true), startTime);
       setTimeout(() => setShowTooltip(false), endTime);
     }
-    // We intentially do not include hasDataWithSelectedProjects in the dependencies, as we only want to show the tooltip once per page load,
-    // not every time the data changes.
+    // We intentially do not include hasDataWithSelectedProjects in the dependencies,
+    // as we only want to show the tooltip once per component load and not every time the data changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasDataWithAllProjects]);
 
   useEffect(() => {
-    if (!showTooltip) return undefined;
     document.body.addEventListener('click', handleClickAnywhereOnPage);
     return () => {
       document.body.removeEventListener('click', handleClickAnywhereOnPage);
     };
-  }, [showTooltip]);
+  }, []);
 
   return (
-    <PageFilterBar condensed>
-      <Tooltip
-        title={CHANGE_PROJECT_TEXT}
-        forceVisible
-        position="bottom-start"
-        disabled={!showTooltip}
-      >
-        <ProjectPageFilter onChange={onProjectChange} />
-      </Tooltip>
-      <EnvironmentPageFilter />
-      <DatePageFilter />
-    </PageFilterBar>
+    <Fragment>
+      <PageFilterBar condensed>
+        <Tooltip
+          title={CHANGE_PROJECT_TEXT}
+          forceVisible
+          position="bottom-start"
+          disabled={!showTooltip}
+        >
+          <ProjectPageFilter onChange={onProjectChange} />
+        </Tooltip>
+        <EnvironmentPageFilter />
+        <DatePageFilter />
+      </PageFilterBar>
+      {hasDataWithSelectedProjects && extraFilters}
+    </Fragment>
   );
 }

@@ -15,7 +15,6 @@ import {useLocation} from 'sentry/utils/useLocation';
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/ModulePageFilterBar';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
-import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
 import {PlatformSelector} from 'sentry/views/insights/mobile/screenload/components/platformSelector';
@@ -40,7 +39,6 @@ export default function ScreensTemplate({
 }: ScreensTemplateProps) {
   const location = useLocation();
   const {isProjectCrossPlatform} = useCrossPlatformProject();
-  const hasModuleData = useHasFirstSpan(moduleName);
 
   const handleProjectChange = useCallback(() => {
     browserHistory.replace({
@@ -81,13 +79,13 @@ export default function ScreensTemplate({
               <ModulePageFilterBar
                 moduleName={moduleName}
                 onProjectChange={handleProjectChange}
+                extraFilters={
+                  <Fragment>
+                    <ReleaseComparisonSelector />
+                    {additionalSelectors}
+                  </Fragment>
+                }
               />
-              {hasModuleData && (
-                <Fragment>
-                  <ReleaseComparisonSelector />
-                  {additionalSelectors}
-                </Fragment>
-              )}
             </Container>
             <PageAlert />
             <ErrorBoundary mini>

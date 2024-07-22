@@ -33,14 +33,12 @@ import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/qu
 import {ModulePageFilterBar} from 'sentry/views/insights/common/components/ModulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
-import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useHasDataTrackAnalytics} from 'sentry/views/insights/common/utils/useHasDataTrackAnalytics';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {ModuleName, SpanIndexedField} from 'sentry/views/insights/types';
 
 export function WebVitalsLandingPage() {
   const location = useLocation();
-  const hasModuleData = useHasFirstSpan(ModuleName.VITAL);
 
   const router = useRouter();
 
@@ -87,8 +85,10 @@ export function WebVitalsLandingPage() {
       <Layout.Body>
         <Layout.Main fullWidth>
           <TopMenuContainer>
-            <ModulePageFilterBar moduleName={ModuleName.VITAL} />
-            {hasModuleData && <BrowserTypeSelector />}
+            <ModulePageFilterBar
+              moduleName={ModuleName.VITAL}
+              extraFilters={<BrowserTypeSelector />}
+            />
           </TopMenuContainer>
           <MainContentContainer>
             <ModulesOnboarding moduleName={ModuleName.VITAL}>

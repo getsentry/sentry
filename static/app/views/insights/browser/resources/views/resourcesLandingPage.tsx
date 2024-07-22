@@ -22,10 +22,9 @@ import {
   BrowserStarfishFields,
   useResourceModuleFilters,
 } from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
-import {ModuleLandingPageFilterBar} from 'sentry/views/insights/common/components/ModulePageFilterBar';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/ModulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
-import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import {DomainSelector} from 'sentry/views/insights/common/views/spans/selectors/domainSelector';
 import {ModuleName} from 'sentry/views/insights/types';
@@ -34,7 +33,6 @@ const {SPAN_OP, SPAN_DOMAIN} = BrowserStarfishFields;
 
 function ResourcesLandingPage() {
   const filters = useResourceModuleFilters();
-  const hasModuleData = useHasFirstSpan(ModuleName.RESOURCE);
   const crumbs = useModuleBreadcrumbs('resource');
 
   return (
@@ -62,17 +60,19 @@ function ResourcesLandingPage() {
           <Layout.Main fullWidth>
             <PageAlert />
             <FilterOptionsContainer columnCount={2}>
-              <ModuleLandingPageFilterBar moduleName={ModuleName.RESOURCE} />
-              {hasModuleData && (
-                <DomainSelector
-                  emptyOptionLocation="top"
-                  value={filters[SPAN_DOMAIN] || ''}
-                  additionalQuery={[
-                    ...DEFAULT_RESOURCE_FILTERS,
-                    `${SPAN_OP}:[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
-                  ]}
-                />
-              )}
+              <ModulePageFilterBar
+                moduleName={ModuleName.RESOURCE}
+                extraFilters={
+                  <DomainSelector
+                    emptyOptionLocation="top"
+                    value={filters[SPAN_DOMAIN] || ''}
+                    additionalQuery={[
+                      ...DEFAULT_RESOURCE_FILTERS,
+                      `${SPAN_OP}:[${DEFAULT_RESOURCE_TYPES.join(',')}]`,
+                    ]}
+                  />
+                }
+              />
             </FilterOptionsContainer>
             <ModulesOnboarding moduleName={ModuleName.RESOURCE}>
               <ResourceView />

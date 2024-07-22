@@ -5,18 +5,14 @@ import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {space} from 'sentry/styles/space';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import useOrganization from 'sentry/utils/useOrganization';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/ModulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
-import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
 import {useOnboardingProject} from 'sentry/views/insights/common/queries/useOnboardingProject';
 import {useModuleBreadcrumbs} from 'sentry/views/insights/common/utils/useModuleBreadcrumbs';
 import useCrossPlatformProject from 'sentry/views/insights/mobile/common/queries/useCrossPlatformProject';
@@ -34,7 +30,6 @@ import Onboarding from 'sentry/views/performance/onboarding';
 export function PageloadModule() {
   const organization = useOrganization();
   const onboardingProject = useOnboardingProject();
-  const hasModuleData = useHasFirstSpan(ModuleName.SCREEN_LOAD);
   const {isProjectCrossPlatform} = useCrossPlatformProject();
 
   const crumbs = useModuleBreadcrumbs('screen_load');
@@ -66,12 +61,10 @@ export function PageloadModule() {
         <Layout.Body>
           <Layout.Main fullWidth>
             <Container>
-              <PageFilterBar condensed>
-                <ProjectPageFilter />
-                <EnvironmentPageFilter />
-                <DatePageFilter />
-              </PageFilterBar>
-              {hasModuleData && <ReleaseComparisonSelector />}
+              <ModulePageFilterBar
+                moduleName={ModuleName.SCREEN_LOAD}
+                extraFilters={<ReleaseComparisonSelector />}
+              />
             </Container>
             <PageAlert />
             <ErrorBoundary mini>
