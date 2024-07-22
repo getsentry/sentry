@@ -88,6 +88,17 @@ export const ACCOUNT_NOTIFICATION_FIELDS: Record<string, FineTuneField> = {
       {value: '0', label: t('Off')},
     ],
   },
+  brokenMonitors: {
+    title: t('Broken Monitors'),
+    description: t(
+      'Notifications for monitors that have been in a failing state for a prolonged period of time'
+    ),
+    type: 'select',
+    options: [
+      {value: '1', label: t('On')},
+      {value: '0', label: t('Off')},
+    ],
+  },
   email: {
     title: t('Email Routing'),
     description: t(
