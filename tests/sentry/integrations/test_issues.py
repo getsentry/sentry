@@ -505,7 +505,7 @@ class IssueDefaultTest(TestCase):
         link = self.installation.get_issue_url(self.external_issue.key)
 
         assert self.installation.get_annotations_for_group_list([self.group]) == {
-            self.group.id: [f'<a href="{link}">{label}</a>']
+            self.group.id: [{"url": link, "displayName": label}]
         }
 
         with assume_test_silo_mode(SiloMode.CONTROL):

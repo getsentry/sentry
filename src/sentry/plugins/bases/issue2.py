@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from django.conf import settings
 from django.urls import re_path, reverse
-from django.utils.html import format_html
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -431,11 +430,10 @@ class IssueTrackingPlugin2(Plugin):
             return tag_list
 
         tag_list.append(
-            format_html(
-                '<a href="{}">{}</a>',
-                self._get_issue_url_compat(group, issue),
-                self._get_issue_label_compat(group, issue),
-            )
+            {
+                "url": self._get_issue_url_compat(group, issue),
+                "displayName": self._get_issue_label_compat(group, issue),
+            }
         )
 
         return tag_list
