@@ -1,12 +1,12 @@
-import {lazy, Suspense} from 'react';
 import styled from '@emotion/styled';
+import {PlatformIcon} from 'platformicons';
 
-import {generateIconName} from 'sentry/components/events/contexts/utils';
-import LoadingMask from 'sentry/components/loadingMask';
 import CountTooltipContent from 'sentry/components/replays/countTooltipContent';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
+import {generatePlatformIconName} from 'sentry/utils/replays/generatePlatformIconName';
+import commonTheme from 'sentry/utils/theme';
 
 type Props = {
   name: string;
@@ -16,20 +16,17 @@ type Props = {
   showVersion?: boolean;
 };
 
-const LazyContextIcon = lazy(
-  () => import('sentry/components/events/contexts/contextIcon')
-);
+const iconSize = '16px';
+const iconStyle = {
+  border: '1px solid ' + commonTheme.translucentGray100,
+};
 
 const ContextIcon = styled(
   ({className, name, version, showVersion, showTooltip}: Props) => {
-    const icon = generateIconName(name, version);
+    const icon = generatePlatformIconName(name, version);
 
     if (!showTooltip) {
-      return (
-        <Suspense fallback={<LoadingMask />}>
-          <LazyContextIcon name={icon} size="sm" />
-        </Suspense>
-      );
+      return <PlatformIcon platform={icon} size={iconSize} style={iconStyle} />;
     }
 
     const title = (
@@ -42,9 +39,7 @@ const ContextIcon = styled(
     );
     return (
       <Tooltip title={title} className={className}>
-        <Suspense fallback={<LoadingMask />}>
-          <LazyContextIcon name={icon} size="sm" />
-        </Suspense>
+        <PlatformIcon platform={icon} size={iconSize} style={iconStyle} />
         {showVersion ? (version ? version : null) : undefined}
       </Tooltip>
     );
