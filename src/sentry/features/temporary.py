@@ -469,6 +469,8 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:uptime-automatic-subscription-creation", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enabled returning uptime monitors from the rule api
     manager.add("organizations:uptime-rule-api", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
+    # Enable creating issues via the issue platform
+    manager.add("organizations:uptime-create-issues", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enables uptime related settings for projects and orgs
     manager.add('organizations:uptime-settings', OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=True)
     manager.add("organizations:use-metrics-layer", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=False)
