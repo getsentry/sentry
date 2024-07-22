@@ -513,7 +513,7 @@ class DashboardDetailsSerializer(CamelSnakeSerializer[Dashboard]):
         bad things will happen
         """
         self.instance = Dashboard.objects.create(
-            organization=self.context.get("organization"),
+            organization=self.context["organization"],
             title=validated_data["title"],
             created_by_id=self.context["request"].user.id,
         )
