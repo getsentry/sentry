@@ -21,10 +21,10 @@ export default function SentryAppLink({children, to, onClick}: Props) {
   return (
     <a
       css={inlineLinkCss}
-      onClick={onClick}
       href={url}
-      target="_blank"
+      onClick={onClick}
       rel="noreferrer noopener"
+      target="_blank"
     >
       {children}
     </a>

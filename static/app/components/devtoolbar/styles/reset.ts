@@ -15,6 +15,12 @@ export const resetFlexColumnCss = css`
   flex-grow: 1;
 `;
 
+export const resetFlexRowCss = css`
+  display: flex;
+  flex-direction: row;
+  flex-grow: 1;
+`;
+
 export const resetUlCss = css`
   padding: 0;
   margin: 0;

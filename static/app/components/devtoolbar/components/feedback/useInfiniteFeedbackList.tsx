@@ -2,7 +2,7 @@ import {useMemo} from 'react';
 
 import useConfiguration from '../../hooks/useConfiguration';
 import useFetchInfiniteApiData from '../../hooks/useFetchInfiniteApiData';
-import type {FeedbackIssueListItem} from '../../types';
+import type {ApiEndpointQueryKey, FeedbackIssueListItem} from '../../types';
 
 interface Props {
   query: string;
@@ -14,7 +14,8 @@ export default function useInfiniteFeedbackList({query}: Props) {
 
   return useFetchInfiniteApiData<FeedbackIssueListItem[]>({
     queryKey: useMemo(
-      () => [
+      (): ApiEndpointQueryKey => [
+        'io.sentry.toolbar',
         `/organizations/${organizationSlug}/issues/`,
         {
           query: {

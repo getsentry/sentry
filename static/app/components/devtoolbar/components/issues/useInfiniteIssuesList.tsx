@@ -5,6 +5,7 @@ import {IssueCategory} from 'sentry/types/group';
 
 import useConfiguration from '../../hooks/useConfiguration';
 import useFetchInfiniteApiData from '../../hooks/useFetchInfiniteApiData';
+import type {ApiEndpointQueryKey} from '../../types';
 
 interface Props {
   query: string;
@@ -16,7 +17,8 @@ export default function useInfiniteIssuesList({query}: Props) {
 
   return useFetchInfiniteApiData<Group[]>({
     queryKey: useMemo(
-      () => [
+      (): ApiEndpointQueryKey => [
+        'io.sentry.toolbar',
         `/organizations/${organizationSlug}/issues/`,
         {
           query: {
