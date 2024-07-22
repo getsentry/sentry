@@ -5,6 +5,8 @@ from collections import defaultdict
 from datetime import datetime, timedelta, timezone
 from typing import Any, DefaultDict, NamedTuple
 
+import sentry_sdk
+
 from sentry import buffer, nodestore
 from sentry.buffer.redis import BufferHookEvent, redis_buffer_registry
 from sentry.eventstore.models import Event, GroupEvent
@@ -232,10 +234,11 @@ def _passes_comparison(
         query_values = [
             condition_group_results[unique_query][group_id] for unique_query in unique_queries
         ]
-    except KeyError as e:
+    except KeyError as exception:
+        sentry_sdk.capture_exception(exception)
         logger.exception(
             "delayed_processing.missing_query_results",
-            extra={"exception": e, "group_id": group_id, "project_id": project_id},
+            extra={"exception": exception, "group_id": group_id, "project_id": project_id},
         )
         return False
 
