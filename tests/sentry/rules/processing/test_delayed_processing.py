@@ -169,12 +169,22 @@ class BulkFetchEventsTest(CreateEventTestCase):
         for expected, fetched in zip(self.expected, result):
             assert expected == fetched
 
-    def test_with_invalid_event_id(self):
+    def test_empty_list(self):
+        event_ids: list[str] = []
+        result = bulk_fetch_events(event_ids, self.project.id)
+        assert len(result) == 0
+
+    def test_invalid_project(self):
+        event_ids: list[str] = [self.event.event_id, self.event_two.event_id]
+        result = bulk_fetch_events(event_ids, 0)
+        assert len(result) == 0
+
+    def test_with_invalid_event_ids(self):
         event_ids: list[str] = ["0", "1"]
         result = bulk_fetch_events(event_ids, self.project.id)
         assert len(result) == 0
 
-    def test_with_mixed_validity(self):
+    def test_event_ids_with_mixed_validity(self):
         event_ids: list[str] = ["0", self.event.event_id, "1", self.event_two.event_id]
         result = bulk_fetch_events(event_ids, self.project.id)
 
@@ -184,7 +194,7 @@ class BulkFetchEventsTest(CreateEventTestCase):
 
     @patch("sentry.rules.processing.delayed_processing.ConditionalRetryPolicy")
     @patch("sentry.rules.processing.delayed_processing.EVENT_LIMIT", 2)
-    def test_bulk_fetch_events_over_limit(self, mock_retry_policy):
+    def test_more_than_limit_event_ids(self, mock_retry_policy):
         """
         Test that when the number of event_ids exceeds the EVENT_LIMIT,
         will batch into groups of EVENT_LIMIT and merge the results.
