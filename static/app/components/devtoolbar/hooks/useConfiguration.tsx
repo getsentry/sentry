@@ -9,6 +9,7 @@ const context = createContext<Configuration>({
   placement: 'right-edge',
   projectId: 0,
   projectSlug: '',
+  featureFlags: [],
 });
 
 export function ConfigurationContextProvider({
