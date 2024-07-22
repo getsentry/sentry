@@ -1,5 +1,8 @@
 import useEnabledFeatureFlags from 'sentry/components/devtoolbar/components/featureFlags/useEnabledFeatureFlags';
-import {panelScrollableCss} from 'sentry/components/devtoolbar/styles/infiniteList';
+import {
+  infiniteListScrollableWindowCss,
+  panelScrollableCss,
+} from 'sentry/components/devtoolbar/styles/infiniteList';
 import {PanelTable} from 'sentry/components/panels/panelTable';
 import {Cell} from 'sentry/components/replays/virtualizedGrid/bodyCell';
 
@@ -21,7 +24,10 @@ export default function FeatureFlagsPanel() {
         </span>
       </div>
 
-      <PanelTable headers={['Flag']} css={[resetFlexColumnCss, panelScrollableCss]}>
+      <PanelTable
+        headers={['Flags']}
+        css={[resetFlexColumnCss, infiniteListScrollableWindowCss, panelScrollableCss]}
+      >
         {featureFlags?.sort().map(flag => {
           return (
             <Cell key={flag} style={{alignItems: 'flex-start'}}>

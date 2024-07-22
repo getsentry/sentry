@@ -24,8 +24,8 @@ export default function Navigation({setIsHidden}: {setIsHidden: (val: boolean) =
     >
       <NavButton panelName="issues" label="Issues" icon={<IconIssues />} />
       <NavButton panelName="feedback" label="User Feedback" icon={<IconMegaphone />} />
-      <NavButton panelName="featureFlags" label={'Feature Flags'} icon={<IconFlag />} />
       <NavButton panelName="alerts" label="Active Alerts" icon={<IconSiren />} />
+      <NavButton panelName="featureFlags" label={'Feature Flags'} icon={<IconFlag />} />
       <HideButton
         onClick={() => {
           setIsHidden(true);

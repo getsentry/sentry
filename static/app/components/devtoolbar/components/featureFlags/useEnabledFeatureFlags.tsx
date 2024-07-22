@@ -1,6 +1,6 @@
-import useConfiguration from 'sentry/components/devtoolbar/hooks/useConfiguration';
+import {useToolbarOrganization} from 'sentry/components/devtoolbar/hooks/useConfiguration';
 
 export default function useEnabledFeatureFlags() {
-  const {organization} = useConfiguration();
+  const organization = useToolbarOrganization();
   return organization?.features;
 }

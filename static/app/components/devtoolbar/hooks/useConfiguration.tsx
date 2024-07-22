@@ -1,5 +1,7 @@
 import {createContext, useContext} from 'react';
 
+import {OrganizationContext} from 'sentry/views/organizationContext';
+
 import type {Configuration} from '../types';
 
 const context = createContext<Configuration>({
@@ -9,7 +11,6 @@ const context = createContext<Configuration>({
   placement: 'right-edge',
   projectId: 0,
   projectSlug: '',
-  organization: undefined,
 });
 
 export function ConfigurationContextProvider({
@@ -24,4 +25,8 @@ export function ConfigurationContextProvider({
 
 export default function useConfiguration() {
   return useContext(context);
+}
+
+export function useToolbarOrganization() {
+  return useContext(OrganizationContext);
 }

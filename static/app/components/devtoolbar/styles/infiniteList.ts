@@ -24,12 +24,9 @@ export const infiniteListScrollableWindowCss = css`
 `;
 
 export const panelScrollableCss = css`
-  ${resetUlCss}
-  top: 0;
-  left: 0;
-  width: 100%;
   height: 100%;
   overflow: scroll;
+  border-radius: 0;
 `;
 
 export const infiniteListFloatingMessageBottomCss = css`
