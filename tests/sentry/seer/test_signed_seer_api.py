@@ -7,6 +7,7 @@ from sentry.seer.signed_seer_api import make_signed_seer_api_request
 from sentry.testutils.helpers import override_options
 
 REQUEST_BODY = b'{"b": 12, "thing": "thing"}'
+PATH = "/v0/some/url"
 
 
 def run_test_case(timeout: int | None = None):
@@ -22,7 +23,7 @@ def run_test_case(timeout: int | None = None):
     with override_settings(SEER_API_SHARED_SECRET="secret-one"):
         make_signed_seer_api_request(
             mock,
-            path="/v0/some/url",
+            path=PATH,
             body=REQUEST_BODY,
             timeout=timeout,
         )
@@ -35,7 +36,7 @@ def test_simple():
     mock_url_open = run_test_case()
     mock_url_open.assert_called_once_with(
         "POST",
-        "/v0/some/url",
+        PATH,
         body=REQUEST_BODY,
         headers={"content-type": "application/json;charset=utf-8"},
     )
@@ -46,7 +47,7 @@ def test_uses_given_timeout():
     mock_url_open = run_test_case(timeout=5)
     mock_url_open.assert_called_once_with(
         "POST",
-        "/v0/some/url",
+        PATH,
         body=REQUEST_BODY,
         headers={"content-type": "application/json;charset=utf-8"},
         timeout=5,
@@ -59,7 +60,7 @@ def test_uses_shared_secret():
         mock_url_open = run_test_case()
         mock_url_open.assert_called_once_with(
             "POST",
-            "/v0/some/url",
+            PATH,
             body=REQUEST_BODY,
             headers={
                 "content-type": "application/json;charset=utf-8",
