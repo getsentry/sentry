@@ -22,9 +22,9 @@ from snuba_sdk import (
 )
 
 from sentry import options
-from sentry.profiles.profile_chunks import resolve_datetime64
 from sentry.search.events.builder.discover import DiscoverQueryBuilder
 from sentry.search.events.builder.profile_functions import ProfileFunctionsQueryBuilder
+from sentry.search.events.fields import resolve_datetime64
 from sentry.search.events.types import ParamsType, QueryBuilderConfig, SnubaParams
 from sentry.snuba import functions
 from sentry.snuba.dataset import Dataset, EntityKey, StorageKey
