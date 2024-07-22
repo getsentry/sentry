@@ -13,7 +13,10 @@ from sentry.api.helpers.constants import ALERT_RULES_COUNT_HEADER, MAX_QUERY_SUB
 from sentry.api.serializers import serialize
 from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleDetectionType,
     AlertRuleMonitorTypeInt,
+    AlertRuleSeasonality,
+    AlertRuleSensitivity,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -206,6 +209,31 @@ class AlertRuleCreateEndpointTest(AlertRuleIndexBase):
         alert_rule = AlertRule.objects.get(id=resp.data["id"])
         assert resp.data == serialize(alert_rule, self.user)
         assert alert_rule.description == resp.data.get("description")
+
+    @with_feature("organizations:anomaly-detection-alerts")
+    @with_feature("organizations:incidents")
+    @patch(
+        "sentry.seer.anomaly_detection.store_data.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_anomaly_detection_alert(self, mock_send_historical_data_to_seer):
+        data = {
+            **self.alert_rule_dict,
+            "detection_type": AlertRuleDetectionType.DYNAMIC,
+            "sensitivity": AlertRuleSensitivity.LOW,
+            "seasonality": AlertRuleSeasonality.AUTO,
+        }
+        with outbox_runner():
+            resp = self.get_success_response(
+                self.organization.slug,
+                status_code=201,
+                **data,
+            )
+        assert "id" in resp.data
+        alert_rule = AlertRule.objects.get(id=resp.data["id"])
+        assert resp.data == serialize(alert_rule, self.user)
+        assert alert_rule.seasonality == resp.data.get("seasonality")
+        assert alert_rule.sensitivity == resp.data.get("sensitivity")
+        assert mock_send_historical_data_to_seer.call_count == 1
 
     def test_monitor_type_with_condition(self):
         data = {

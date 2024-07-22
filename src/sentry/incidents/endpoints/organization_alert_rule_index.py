@@ -1,4 +1,3 @@
-import logging
 from copy import deepcopy
 from datetime import UTC, datetime
 
@@ -9,7 +8,6 @@ from drf_spectacular.utils import extend_schema, extend_schema_serializer
 from rest_framework import serializers, status
 from rest_framework.request import Request
 from rest_framework.response import Response
-from urllib3.exceptions import MaxRetryError, TimeoutError
 
 from sentry import features
 from sentry.api.api_owners import ApiOwner
@@ -30,7 +28,6 @@ from sentry.apidocs.constants import RESPONSE_FORBIDDEN, RESPONSE_NOT_FOUND, RES
 from sentry.apidocs.examples.metric_alert_examples import MetricAlertExamples
 from sentry.apidocs.parameters import GlobalParams
 from sentry.apidocs.utils import inline_sentry_response_serializer
-from sentry.conf.server import SEER_ANOMALY_DETECTION_URL
 from sentry.constants import ObjectStatus
 from sentry.exceptions import InvalidParams
 from sentry.incidents.endpoints.serializers.alert_rule import (
@@ -49,152 +46,15 @@ from sentry.models.organizationmemberteam import OrganizationMemberTeam
 from sentry.models.project import Project
 from sentry.models.rule import Rule, RuleSource
 from sentry.models.team import Team
-from sentry.models.user import User
-from sentry.net.http import connection_from_url
-from sentry.seer.signed_seer_api import make_signed_seer_api_request
+from sentry.seer.anomaly_detection.store_data import send_historical_data_to_seer
 from sentry.sentry_apps.services.app import app_service
 from sentry.signals import alert_rule_created
 from sentry.snuba.dataset import Dataset
-from sentry.snuba.models import SnubaQuery
-from sentry.snuba.referrer import Referrer
-from sentry.snuba.utils import get_dataset
 from sentry.tasks.integrations.slack import find_channel_id_for_alert_rule
 from sentry.uptime.models import ProjectUptimeSubscription, UptimeStatus
-from sentry.utils import json
 from sentry.utils.cursors import Cursor, StringCursor
-from sentry.utils.snuba import SnubaTSResult
-
-logger = logging.getLogger(__name__)
 
 
-def format_historical_data(data: SnubaTSResult) -> list[dict[str, int]]:
-    """
-    Format Snuba data into the format the Seer API expects.
-    If there are no results, it's just the timestamp
-    {'time': 1719012000}, {'time': 1719018000}, {'time': 1719024000}
-
-    If there are results, the count is added
-    {'time': 1721300400, 'count': 2}
-    """
-    formatted_data = []
-    for datum in data.data.get("data", []):
-        ts_entry = {}
-        if datum.get("count"):
-            ts_entry["value"] = datum.get("count")
-        else:
-            ts_entry["value"] = 0
-
-        ts_entry["timestamp"] = datum.get("time")
-        formatted_data.append(ts_entry)
-
-    return formatted_data
-
-
-def get_project_id_from_rule(rule: AlertRule) -> int | None:
-    project = None
-    subscriptions = rule.snuba_query.subscriptions.all()
-    if subscriptions:
-        project = subscriptions[0].project
-
-        if not project:
-            return None
-    return project.id
-
-
-def send_historical_data_to_seer(rule: AlertRule, user: User) -> None:
-    if not features.has("organizations:anomaly-detection-alerts", rule.organization, actor=user):
-        return None
-
-    project_id = get_project_id_from_rule(rule)
-    if not project_id:
-        logger.error(
-            "No project associated with rule. Skipping sending historical data to Seer",
-            extra={
-                "rule_id": rule.id,
-                "project_id": project_id,
-            },
-        )
-        return None
-
-    historical_data = fetch_historical_data(rule)
-    ad_config = {
-        "time_period": rule.threshold_period,
-        "sensitivity": rule.sensitivity,
-        "seasonality": rule.seasonality,
-        "direction": rule.threshold_type,
-    }
-    formatted_data = format_historical_data(historical_data)
-
-    seer_anomaly_detection_connection_pool = connection_from_url(
-        settings.SEER_ANOMALY_DETECTION_URL,
-        timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
-    )
-    try:
-        make_signed_seer_api_request(
-            seer_anomaly_detection_connection_pool,
-            SEER_ANOMALY_DETECTION_URL,
-            json.dumps(
-                {
-                    "organization_id": rule.organization.id,
-                    "project_id": project_id,
-                    "alert": rule.id,
-                    "config": ad_config,
-                    "timeseries": formatted_data,
-                }
-            ),
-        )
-    except (TimeoutError, MaxRetryError):
-        logger.warning(
-            "Timeout error when hitting Seer store data endpoint",
-            extra={
-                "rule_id": rule.id,
-                "project_id": project_id,
-            },
-        )
-        return None
-    return None
-
-
-def fetch_historical_data(rule: AlertRule) -> SnubaTSResult | None:
-    """
-    Fetch 28 days of historical data from Snuba to pass to Seer to build the anomaly detection model
-    """
-    # would this be better as an async task?
-    end = timezone.now()
-    start = end - timedelta(days=28)
-    # TODO add a check to the serializer that anomaly detection alerts
-    # only have threshold_periods of 15, 30, and 60 minutes
-    granularity = rule.threshold_period * 6000
-
-    snuba_query = SnubaQuery.objects.get(id=rule.snuba_query_id)
-    dataset_label = snuba_query.dataset
-    if dataset_label == "events":
-        # DATSET_OPTIONS expects the name 'errors'
-        dataset_label = "errors"
-    dataset = get_dataset(dataset_label)
-    project_id = get_project_id_from_rule(rule)
-    if not project_id:
-        return None
-
-    historical_data = dataset.timeseries_query(
-        selected_columns=[snuba_query.aggregate],
-        query=snuba_query.query,
-        params={
-            "organization_id": rule.organization.id,
-            "project_id": [project_id],
-            "granularity": granularity,
-            "start": start,
-            "end": end,
-        },
-        rollup=granularity,
-        referrer=Referrer.ANOMALY_DETECTION_HISTORICAL_DATA_QUERY.value,
-        zerofill_results=True,
-        allow_metric_aggregates=True,  # this is False by default, do we need it?
-    )
-    return historical_data
-
-
->>>>>>> 1675f6ce536 (format data, send to seer, typing)
 class AlertRuleIndexMixin(Endpoint):
     def fetch_metric_alert(self, request, organization, project=None):
         if not features.has("organizations:incidents", organization, actor=request.user):
@@ -261,7 +121,7 @@ class AlertRuleIndexMixin(Endpoint):
                 return Response({"uuid": client.uuid}, status=202)
             else:
                 alert_rule = serializer.save()
-                if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC:
+                if alert_rule.detection_type == AlertRuleDetectionType.DYNAMIC.value:
                     send_historical_data_to_seer(rule=alert_rule, user=request.user)
                 referrer = request.query_params.get("referrer")
                 session_id = request.query_params.get("sessionId")

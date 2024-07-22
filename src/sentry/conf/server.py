@@ -3436,6 +3436,11 @@ SEER_HASH_GROUPING_RECORDS_DELETE_URL = (
     f"/{SEER_SIMILARITY_MODEL_VERSION}/issues/similar-issues/grouping-record/delete-by-hash"
 )
 SEER_SIMILARITY_CIRCUIT_BREAKER_KEY = "seer.similarity"
+<<<<<<< HEAD
+=======
+SEER_ANOMALY_DETECTION_VERSION = "v1"
+SEER_ANOMALY_DETECTION_STORE_DATA_URL = f"/{SEER_ANOMALY_DETECTION_VERSION}/anomaly-detection/store"
+>>>>>>> 0b197e088b4 (move to it's own file, remove unused code in serializer test)
 
 SIMILARITY_BACKFILL_COHORT_MAP: dict[str, list[int]] = {}
 
