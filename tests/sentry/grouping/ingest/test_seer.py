@@ -59,11 +59,15 @@ class ShouldCallSeerTest(TestCase):
             (False, True, 11211231, True),
             (True, True, 11211231, True),
         ]:
-            with Feature(
-                {
-                    "projects:similarity-embeddings-metadata": metadata_flag,
-                    "projects:similarity-embeddings-grouping": grouping_flag,
-                }
+            with (
+                Feature(
+                    {
+                        "projects:similarity-embeddings-metadata": metadata_flag,
+                        "projects:similarity-embeddings-grouping": grouping_flag,
+                    }
+                ),
+                # Having too many cases above makes us hit the project rate limit if we don't patch this
+                patch("sentry.grouping.ingest.seer._ratelimiting_enabled", return_value=False),
             ):
                 self.project.update_option(
                     "sentry:similarity_backfill_completed", backfill_completed_option
