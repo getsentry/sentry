@@ -12,7 +12,6 @@ from sentry.models.apiapplication import ApiApplication, ApiApplicationStatus
 from sentry.models.apiauthorization import ApiAuthorization
 from sentry.models.apigrant import ApiGrant
 from sentry.models.apitoken import ApiToken
-from sentry.models.organizationmember import OrganizationMember
 from sentry.organizations.services.organization import organization_service
 from sentry.utils import metrics
 from sentry.web.frontend.auth_login import AuthLoginView
@@ -255,8 +254,9 @@ class OAuthAuthorizeView(AuthLoginView):
         op = request.POST.get("op")
         if op == "approve":
             if application.organization_id:
-                # For organization tied applications: if the user does not have access to the
-                # organization then absolutely do not issue an access-token.
+                # Before granting access to an untrusted third-party application we must
+                # verify the user is a member of the organization. Failure to do so could
+                # allow malicious third-parties to access private customer data.
                 member = organization_service.check_membership_by_id(
                     organization_id=application.organization_id,
                     user_id=request.user.id,

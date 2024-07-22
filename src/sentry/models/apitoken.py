@@ -120,7 +120,11 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     expires_at = models.DateTimeField(null=True, default=default_expiration)
     date_added = models.DateTimeField(default=timezone.now)
 
-    # Token's can be scoped to only access a single organization.
+    # Tokens can be scoped to only access a single organization.
+    #
+    # Failure to restrict access by the scoping organization id could enable
+    # cross-organization access for untrusted third-party clients. The scoping
+    # organization key should only be unset for trusted clients.
     scoping_organization_id = HybridCloudForeignKey("sentry.Organization", null=True)
 
     objects: ClassVar[ApiTokenManager] = ApiTokenManager(cache_fields=("token",))
