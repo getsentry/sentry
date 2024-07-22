@@ -37,3 +37,9 @@ class TestMatchValues:
     def test_is_in(self):
         assert match_values(["sentry.example"], "sentry.example, biz.baz, foo.bar", MatchType.IS_IN)
         assert not match_values(["sentry.example"], "biz.baz, foo.bar", MatchType.IS_IN)
+
+    def test_not_in(self):
+        assert match_values(["sentry.example"], "biz.baz, foo.bar", MatchType.NOT_IN)
+        assert not match_values(
+            ["sentry.example"], "sentry.example, biz.baz, foo.bar", MatchType.NOT_IN
+        )

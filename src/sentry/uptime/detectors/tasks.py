@@ -267,7 +267,7 @@ def check_url_robots_txt(url: str) -> bool:
         return get_robots_txt_parser(url).can_fetch(UPTIME_USER_AGENT, url)
     except Exception:
         logger.warning("Failed to check robots.txt", exc_info=True)
-        return False
+        return True
 
 
 def get_robots_txt_parser(url: str) -> RobotFileParser:

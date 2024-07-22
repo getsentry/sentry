@@ -444,7 +444,7 @@ class NotificationSettingsByTypeV2 extends DeprecatedAsyncComponent<Props, State
             fields={this.getFields()}
           />
         </Form>
-        {notificationType !== 'reports' ? (
+        {notificationType !== 'reports' && notificationType !== 'brokenMonitors' ? (
           <Form
             saveOnBlur
             apiMethod="PUT"
