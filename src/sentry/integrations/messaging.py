@@ -7,7 +7,7 @@ from django.views.generic import View
 
 from sentry import analytics
 from sentry.incidents.action_handlers import ActionHandler, DefaultActionHandler
-from sentry.incidents.models.alert_rule import AlertRuleActionHandlerFactory, AlertRuleTriggerAction
+from sentry.incidents.models.alert_rule import ActionHandlerFactory, AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.base import IntegrationProvider
 from sentry.models.notificationaction import ActionService, ActionTarget
@@ -199,7 +199,7 @@ class MessagingActionHandler(DefaultActionHandler):
             self.record_alert_sent_analytics(self.action.target_identifier, notification_uuid)
 
 
-class _MessagingHandlerFactory(AlertRuleActionHandlerFactory):
+class _MessagingHandlerFactory(ActionHandlerFactory):
     def __init__(self, spec: MessagingIntegrationSpec) -> None:
         super().__init__(
             slug=spec.provider_slug,
