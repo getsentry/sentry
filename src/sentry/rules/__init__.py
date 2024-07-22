@@ -1,5 +1,5 @@
 from .base import EventState, RuleBase
-from .match import LEVEL_MATCH_CHOICES, MATCH_CHOICES, MatchType
+from .match import LEVEL_MATCH_CHOICES, MATCH_CHOICES, MatchType, match_values
 from .registry import RuleRegistry
 
 __all__ = (
@@ -10,6 +10,7 @@ __all__ = (
     "MatchType",
     "RuleBase",
     "rules",
+    "match_values",
 )
 
 

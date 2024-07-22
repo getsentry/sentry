@@ -44,6 +44,8 @@ def register_temporary_features(manager: FeatureManager):
 
     # Enables activated alert rules
     manager.add("organizations:activated-alert-rules", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
+    # Enables IS_IN for issue alerts
+    manager.add("organizations:issues-alerts-is-in", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE)
     # Enables alert creation on indexed events in UI (use for PoC/testing only)
     manager.add("organizations:alert-allow-indexed", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Use metrics as the dataset for crash free metric alerts
@@ -353,8 +355,6 @@ def register_temporary_features(manager: FeatureManager):
     manager.add("organizations:scim-team-roles", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=False)
     # Enable detecting SDK crashes during event processing
     manager.add("organizations:sdk-crash-detection", OrganizationFeature, FeatureHandlerStrategy.INTERNAL, api_expose=False)
-    # Replace the footer Sentry logo with a Sentry pride logo
-    manager.add("organizations:sentry-pride-logo-footer", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=True)
     # Enable the Replay Details > Accessibility tab
     manager.add("organizations:session-replay-a11y-tab", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=False)
     # Enable the accessibility issues endpoint

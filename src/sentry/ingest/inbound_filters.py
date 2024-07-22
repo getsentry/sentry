@@ -391,6 +391,9 @@ def get_generic_filters(project: Project) -> GenericFiltersConfig | None:
     generic_filters: list[GenericFilter] = []
 
     for generic_filter_id, generic_filter_fn in ACTIVE_GENERIC_FILTERS:
+        # This option was defaulted to string but was changed at runtime to a boolean due to an error in the
+        # implementation. In order to bring it back to a string, we need to repair on read stored options. This is
+        # why the value true is determined by either `1` or `True`.
         if project.get_option(f"filters:{generic_filter_id}") not in ("1", True):
             continue
 

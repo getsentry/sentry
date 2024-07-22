@@ -33,15 +33,10 @@ export function EventTags({
 
   const tagsSource = defined(filteredTags) ? filteredTags : event.tags;
 
-  const tags = !organization.features.includes('device-classification')
-    ? tagsSource?.filter(tag => tag.key !== 'device.class')
-    : tagsSource;
+  const tags = tagsSource;
 
   useEffect(() => {
-    if (
-      organization.features.includes('device-classification') &&
-      isMobilePlatform(event.platform)
-    ) {
+    if (isMobilePlatform(event.platform)) {
       const deviceClass = tagsSource.find(tag => tag.key === 'device.class')?.value;
       const deviceFamily = tagsSource.find(tag => tag.key === 'device.family')?.value;
       const deviceModel = tagsSource.find(tag => tag.key === 'device.model')?.value;

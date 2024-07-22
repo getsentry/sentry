@@ -189,19 +189,8 @@ class EventManagerGroupingTest(TestCase):
         with override_settings(SENTRY_GROUPING_AUTO_UPDATE_ENABLED=True):
             update_grouping_config_if_needed(self.project)
             # Nothing changes
-            assert self.project.get_option("sentry:grouping_config") == "mobile:2021-02-12"
-            assert self.project.get_option("sentry:grouping_auto_update") is False
-
-            # XXX: In the future, once the mobile grouping is added to the list, we will remove this line
-            with mock.patch(
-                "sentry.grouping.ingest.config.CONFIGS_TO_DEPRECATE",
-                new=["mobile:2021-02-12"],
-            ):
-                update_grouping_config_if_needed(self.project)
-                # Even though auto update is disabled we have upgraded the project
-                assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
-                # We have also updated the auto_update option
-                assert self.project.get_option("sentry:grouping_auto_update") is True
+            assert self.project.get_option("sentry:grouping_config") == DEFAULT_GROUPING_CONFIG
+            assert self.project.get_option("sentry:grouping_auto_update") is True
 
 
 class PlaceholderTitleTest(TestCase):

@@ -2,6 +2,7 @@ from collections import defaultdict
 from collections.abc import Sequence
 from copy import deepcopy
 from datetime import datetime, timedelta
+from typing import cast
 from unittest.mock import Mock, patch
 from uuid import uuid4
 
@@ -24,6 +25,7 @@ from sentry.rules.processing.delayed_processing import (
     generate_unique_queries,
     get_condition_group_results,
     get_condition_query_groups,
+    get_group_to_groupevent,
     get_rules_to_groups,
     get_rules_to_slow_conditions,
     get_slow_conditions,
@@ -94,8 +96,12 @@ class CreateEventTestCase(TestCase, BaseEventFrequencyPercentTest):
         if tags:
             data["tags"] = tags
 
-        return self.store_event(
-            data=data, project_id=project_id, assert_no_errors=False, event_type=EventType.ERROR
+        # Cast the event to GroupEvent to avoid type errors
+        return cast(
+            GroupEvent,
+            self.store_event(
+                data=data, project_id=project_id, assert_no_errors=False, event_type=EventType.ERROR
+            ),
         )
 
     def create_event_frequency_condition(
@@ -280,9 +286,83 @@ class GetConditionGroupResultsTest(CreateEventTestCase):
         }
 
 
-class GetGroupToGroupEventTest(TestCase):
-    def test_get_group_to_groupevent(self):
-        pass
+class GetGroupToGroupEventTest(CreateEventTestCase):
+    def setUp(self):
+        super().setUp()
+        self.project = self.create_project()
+
+        self.rule = self.create_alert_rule(self.organization, [self.project])
+
+        # Create some groups
+        self.group1 = self.create_group(self.project)
+        self.group2 = self.create_group(self.project)
+
+        # Create some events
+        e1 = self.create_event(self.project.id, FROZEN_TIME, "group-1", self.environment.name)
+        e2 = self.create_event(self.project.id, FROZEN_TIME, "group-2", self.environment.name)
+
+        # Turn events into GroupEvents
+        self.event1 = GroupEvent(self.project.id, e1.event_id, self.group1, e1.data, e1._snuba_data)
+        self.event2 = GroupEvent(self.project.id, e2.event_id, self.group2, e2.data, e2._snuba_data)
+
+        self.occurrence1 = {"occurrence_id": "occ1"}
+        self.occurrence2 = {"occurrence_id": "occ2"}
+
+        self.parsed_data = {
+            (self.rule.id, self.group1.id): {
+                "event_id": self.event1.event_id,
+                **self.occurrence1,
+            },
+            (self.rule.id, self.group2.id): {
+                "event_id": self.event2.event_id,
+                **self.occurrence2,
+            },
+        }
+        self.group_ids = {self.group1.id, self.group2.id}
+
+    def test_basic(self):
+        self.parsed_data.pop((self.rule.id, self.group2.id))
+        result = get_group_to_groupevent(self.parsed_data, self.project.id, {self.group1.id})
+
+        assert len(result) == 1
+        assert result[self.group1] == self.event1
+
+    def test_many(self):
+        result = get_group_to_groupevent(self.parsed_data, self.project.id, self.group_ids)
+
+        assert len(result) == 2
+        assert result[self.group1] == self.event1
+        assert result[self.group2] == self.event2
+
+    def test_missing_event(self):
+        parsed_data = {
+            (self.rule.id, self.group2.id): {
+                "event_id": "0",
+                **self.occurrence2,
+            },
+            (self.rule.id, self.group1.id): {
+                "event_id": self.event1.event_id,
+                **self.occurrence1,
+            },
+        }
+
+        result = get_group_to_groupevent(parsed_data, self.project.id, self.group_ids)
+
+        assert len(result) == 1
+        assert result[self.group1] == self.event1
+
+    def test_invalid_project_id(self):
+        result = get_group_to_groupevent(self.parsed_data, 0, self.group_ids)
+        assert len(result) == 0
+
+    def test_empty_group_ids(self):
+        parsed_data: dict[tuple[str, str], dict[str, str]] = {}
+        result = get_group_to_groupevent(parsed_data, self.project.id, set())
+        assert len(result) == 0
+
+    def test_invalid_group_ids(self):
+        result = get_group_to_groupevent(self.parsed_data, self.project.id, {0})
+        assert len(result) == 0
 
 
 class GetRulesToFireTest(TestCase):
@@ -512,6 +592,23 @@ class ProcessDelayedAlertConditionsTest(CreateEventTestCase, PerformanceIssueTes
         orig_rules_to_groups = deepcopy(rules_to_groups)
         get_condition_query_groups([rule_1, rule_2], rules_to_groups)  # type: ignore[arg-type]
         assert orig_rules_to_groups == rules_to_groups
+
+    @patch("sentry.rules.processing.delayed_processing.logger")
+    def test_apply_delayed_nonexistent_project(self, mock_logger):
+        self.push_to_hash(self.project.id, self.rule1.id, self.group1.id, self.event1.event_id)
+        project_id = self.project.id
+        self.project.delete()
+
+        project_ids = buffer.backend.get_sorted_set(
+            PROJECT_ID_BUFFER_LIST_KEY, 0, self.buffer_timestamp
+        )
+        apply_delayed(project_ids[0][0])
+
+        assert RuleFireHistory.objects.count() == 0
+        mock_logger.info.assert_called_once_with(
+            "delayed_processing.project_does_not_exist",
+            extra={"project_id": project_id},
+        )
 
     @patch("sentry.rules.conditions.event_frequency.MIN_SESSIONS_TO_FIRE", 1)
     def test_apply_delayed_rules_to_fire(self):
