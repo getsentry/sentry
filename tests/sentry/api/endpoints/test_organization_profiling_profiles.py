@@ -402,8 +402,8 @@ class OrganizationProfilingFlamegraphTest(ProfilesSnubaTestCase):
             "project_id": self.project.id,
             "profiler_id": profiler_id,
             "chunk_id": uuid4().hex,
-            "start": (start_timestamp - buffer).isoformat(),
-            "end": (finish_timestamp + buffer).isoformat(),
+            "start_timestamp": (start_timestamp - buffer).isoformat(),
+            "end_timestamp": (finish_timestamp + buffer).isoformat(),
         }
         mock_query_chunks_for_profilers.return_value = {"data": [chunk]}
 
