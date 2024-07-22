@@ -39,10 +39,10 @@ class TestMRIUtils(TestCase):
             ],
         }
         project = self.create_project(organization=self.organization, name="my new project")
-        config = self.create_span_attribute_extraction_config(
+        config_object = self.create_span_attribute_extraction_config(
             dictionary=config, user_id=self.user.id, project=project
         )
-        condition_id = config.conditions.get().id
+        condition_id = config_object.conditions.get().id
         assert (
             format_mri_field(f"count_unique(c:custom/span_attribute_{condition_id}@none)")
             == 'count_unique(browser.name) filtered by "browser.name:Chrome or browser.name:Firefox"'
@@ -59,10 +59,10 @@ class TestMRIUtils(TestCase):
             ],
         }
         project = self.create_project(organization=self.organization, name="my new project")
-        config = self.create_span_attribute_extraction_config(
+        config_object = self.create_span_attribute_extraction_config(
             dictionary=config, user_id=self.user.id, project=project
         )
-        condition_id = config.conditions.get().id
+        condition_id = config_object.conditions.get().id
         assert (
             format_mri_field_value(f"avg(c:custom/span_attribute_{condition_id}@none)", "1000")
             == "1 s"
