@@ -38,7 +38,7 @@ def assert_valid_types(condition: type[ConditionBase], expected_types: list[Any]
         condition_dict = dict(property="test", value=value)
         json_condition = json.dumps(condition_dict)
         try:
-            parsed_condition = condition.parse_raw(json_condition)
+            parsed_condition = condition.model_validate_json(json_condition)
         except ValidationError as exc:
             raise AssertionError(
                 f"Expected value `{value}` to be a valid value for condition '{condition}'"
@@ -51,7 +51,7 @@ def assert_invalid_types(condition: type[ConditionBase], invalid_types: list[Any
         json_dict = dict(value=value)
         condition_json = json.dumps(json_dict)
         try:
-            condition.parse_raw(condition_json)
+            condition.model_validate_json(condition_json)
         except ValidationError:
             continue
 
