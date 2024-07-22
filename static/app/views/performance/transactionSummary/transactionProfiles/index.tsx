@@ -447,6 +447,7 @@ const RequestStateMessageContainer = styled('div')`
   justify-content: center;
   align-items: center;
   color: ${p => p.theme.subText};
+  pointer-events: none;
 `;
 
 const AggregateFlamegraphToolbarContainer = styled('div')`
