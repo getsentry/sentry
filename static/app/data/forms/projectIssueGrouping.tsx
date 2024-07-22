@@ -160,23 +160,6 @@ stack.function:mylibrary_* +app`}
       'Changing the expiration date will affect how many new issues are created.'
     ),
   },
-  groupingAutoUpdate: {
-    name: 'groupingAutoUpdate',
-    type: 'boolean',
-    label: t('Automatically Update Grouping'),
-    saveOnBlur: false,
-    help: t(
-      'When enabled projects will in the future automatically update to the latest grouping algorithm. Right now this setting does nothing.'
-    ),
-    saveMessage: ({value}) =>
-      value
-        ? t(
-            'Enabling automatic upgrading will take effect on the next incoming event once auto updating has been rolled out.'
-          )
-        : t(
-            'Disabling auto updates will cause you to no longer receive improvements to the grouping algorithm.'
-          ),
-  },
 };
 
 const RuleDescription = styled('div')`
