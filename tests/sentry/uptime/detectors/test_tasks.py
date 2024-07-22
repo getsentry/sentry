@@ -18,6 +18,7 @@ from sentry.uptime.detectors.ranking import (
     _get_cluster,
     add_base_url_to_rank,
     get_organization_bucket,
+    get_project_base_url_rank_key,
 )
 from sentry.uptime.detectors.tasks import (
     LAST_PROCESSED_KEY,
@@ -144,16 +145,37 @@ class ProcessOrganizationUrlRankingTest(TestCase):
                 ]
             )
 
-    def test_should_not_detect(self):
+    def test_should_not_detect_project(self):
         with mock.patch(
-            # TODO: Replace this mock with real tests when we implement this function properly
-            "sentry.uptime.detectors.tasks.should_detect_for_project",
-            return_value=False,
-        ), mock.patch(
             "sentry.uptime.detectors.tasks.get_candidate_urls_for_project"
         ) as mock_get_candidate_urls_for_project:
+            self.project.update_option("sentry:uptime_autodetection", False)
             assert not process_project_url_ranking(self.project, 5)
             mock_get_candidate_urls_for_project.assert_not_called()
+
+    def test_should_not_detect_organization(self):
+        url_1 = "https://sentry.io"
+        url_2 = "https://sentry.sentry.io"
+        project_2 = self.create_project()
+        add_base_url_to_rank(self.project, url_2)
+        add_base_url_to_rank(self.project, url_1)
+        add_base_url_to_rank(self.project, url_1)
+        add_base_url_to_rank(project_2, url_1)
+
+        keys = [
+            get_project_base_url_rank_key(self.project),
+            get_project_base_url_rank_key(project_2),
+        ]
+        redis = _get_cluster()
+        assert all(redis.exists(key) for key in keys)
+
+        with mock.patch(
+            "sentry.uptime.detectors.tasks.get_candidate_urls_for_project"
+        ) as mock_get_candidate_urls_for_project:
+            self.organization.update_option("sentry:uptime_autodetection", False)
+            assert not process_organization_url_ranking(self.organization.id)
+            mock_get_candidate_urls_for_project.assert_not_called()
+            assert all(not redis.exists(key) for key in keys)
 
 
 @freeze_time()
