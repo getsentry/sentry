@@ -252,9 +252,9 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
             "sentry.replays.slow_click",
             extra={
                 "event_type": "mobile_event",
-                "org_id": message.org_id,
-                "project_id": message.project_id,
-                "size": len(message.replay_video),
+                "org_id": decoded_message["org_id"],
+                "project_id": decoded_message["project_id"],
+                "size": len(replay_video),  # type: ignore[arg-type]
             },
         )
 
