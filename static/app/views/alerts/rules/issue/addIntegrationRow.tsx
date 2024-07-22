@@ -99,6 +99,7 @@ const RowWrapper = styled('div')`
   border-radius: 4px;
   border: 1px solid ${p => p.theme.gray200};
   justify-content: space-between;
+  align-items: center;
   padding: ${space(3)} ${space(4)};
 `;
 
