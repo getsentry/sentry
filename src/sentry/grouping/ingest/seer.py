@@ -30,11 +30,7 @@ def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes
 
     project = event.project
 
-    has_either_seer_grouping_feature = features.has(
-        "projects:similarity-embeddings-metadata", project
-    ) or features.has("projects:similarity-embeddings-grouping", project)
-
-    if not has_either_seer_grouping_feature:
+    if not _project_has_similarity_grouping_enabled(project):
         return False
 
     if _has_customized_fingerprint(event, primary_hashes):
@@ -58,6 +54,20 @@ def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes
         return False
 
     return True
+
+
+def _project_has_similarity_grouping_enabled(project: Project) -> bool:
+    has_either_seer_grouping_feature = features.has(
+        "projects:similarity-embeddings-metadata", project
+    ) or features.has("projects:similarity-embeddings-grouping", project)
+
+    # TODO: This is a hack to get ingest to turn on for projects as soon as they're backfilled. When
+    # the backfill script completes, we turn on this option, enabling ingest immediately rather than
+    # forcing the project to wait until it's been manually added to a feature handler. Once all
+    # projects have been backfilled, the option (and this check) can go away.
+    has_been_backfilled = project.get_option("sentry:similarity_backfill_completed")
+
+    return has_either_seer_grouping_feature or has_been_backfilled
 
 
 # TODO: Here we're including events with hybrid fingerprints (ones which are `{{ default }}`
