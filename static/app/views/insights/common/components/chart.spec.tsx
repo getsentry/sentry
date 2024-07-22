@@ -5,6 +5,18 @@ import MarkLine from 'sentry/components/charts/components/markLine';
 import type {Series} from 'sentry/types/echarts';
 import Chart, {ChartType} from 'sentry/views/insights/common/components/chart';
 
+jest.mock('sentry/components/charts/releaseSeries', () => {
+  return jest.fn().mockImplementation(({children}) => children({releaseSeries: []}));
+});
+jest.mock('sentry/components/charts/baseChart', () => {
+  return jest.fn().mockImplementation(() => <div />);
+});
+jest.mock('react', () => {
+  return {
+    ...jest.requireActual('react'),
+    useRef: jest.fn(),
+  };
+});
 // XXX: Mocking useRef throws an error for AnimatePrecense, so it must be mocked as well
 jest.mock('framer-motion', () => {
   return {
@@ -14,23 +26,6 @@ jest.mock('framer-motion', () => {
 });
 
 describe('Chart', function () {
-  beforeEach(() => {
-    jest.clearAllMocks();
-
-    MockApiClient.addMockResponse({
-      url: `/organizations/org-slug/releases/stats/`,
-      method: 'GET',
-      body: {
-        data: [
-          {
-            version: '123456',
-            date: '2024-07-22T19:14:05.457044Z',
-          },
-        ],
-      },
-    });
-  });
-
   test('it shows an error panel if an error prop is supplied', function () {
     const parsingError = new Error('Could not parse chart data');
 
