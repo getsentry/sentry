@@ -290,7 +290,12 @@ export const makeFetchOrganizationTagKeyValues = ({
   query.includeSessions = includeSessions ? '1' : '0';
   query.includeTransactions = includeTransactions ? '1' : '0';
 
-  query.project = projectIds;
+  if (search) {
+    query.query = search;
+  }
+  if (projectIds) {
+    query.project = projectIds;
+  }
 
   if (statsPeriod) {
     query.statsPeriod = statsPeriod;
@@ -300,9 +305,6 @@ export const makeFetchOrganizationTagKeyValues = ({
   }
   if (end) {
     query.end = end;
-  }
-  if (search) {
-    query.search = search;
   }
   if (sort) {
     query.sort = sort;
@@ -318,10 +320,11 @@ export const useFetchOrganizationTagKeyValues = (
   params: FetchOrganizationTagKeyValuesParams,
   options: Partial<UseApiQueryOptions<TagValue[]>>
 ) => {
-  return useApiQuery<TagValue[]>(makeFetchOrganizationTagKeyValues(params), {
+  const a = useApiQuery<TagValue[]>(makeFetchOrganizationTagKeyValues(params), {
     staleTime: Infinity,
     keepPreviousData: params.keepPreviousData,
     enabled: params.enabled ?? true,
     ...options,
   });
+  return a;
 };

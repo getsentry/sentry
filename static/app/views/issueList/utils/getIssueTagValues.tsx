@@ -21,8 +21,8 @@ export function makeGetIssueTagKeyValues({
   organization,
   pageFilters,
   useCache = true,
-}: FetchIssueTagValuesParams): (tag: Tag, query: string) => Promise<string[]> {
-  return async (tag: Tag, query: string): Promise<string[]> => {
+}: FetchIssueTagValuesParams): (tag: Tag, search: string) => Promise<string[]> {
+  return async (tag: Tag, search: string): Promise<string[]> => {
     const orgSlug = organization.slug;
     const projectIds = pageFilters.projects.map(id => id.toString());
     const endpointParams = {
@@ -34,11 +34,12 @@ export function makeGetIssueTagKeyValues({
         : undefined,
       statsPeriod: pageFilters.datetime.period,
     };
+
     const {data: eventsTagValues = []} = useFetchOrganizationTagKeyValues(
       {
         orgSlug,
         tagKey: tag.key,
-        search: query,
+        search,
         dataset: Dataset.ERRORS,
         useCache: useCache,
         projectIds,
@@ -51,7 +52,7 @@ export function makeGetIssueTagKeyValues({
       {
         orgSlug,
         tagKey: tag.key,
-        search: query,
+        search,
         dataset: Dataset.ISSUE_PLATFORM,
         useCache: useCache,
         projectIds,

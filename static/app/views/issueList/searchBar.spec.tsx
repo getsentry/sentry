@@ -1,13 +1,13 @@
 import {TagsFixture} from 'sentry-fixture/tags';
 
 import {initializeOrg} from 'sentry-test/initializeOrg';
-import {render, screen, userEvent} from 'sentry-test/reactTestingLibrary';
+import {render, screen, userEvent, waitFor} from 'sentry-test/reactTestingLibrary';
 
 import TagStore from 'sentry/stores/tagStore';
 import {IsFieldValues} from 'sentry/utils/fields';
 import IssueListSearchBar from 'sentry/views/issueList/searchBar';
 
-describe('IssueListSearchBar', function () {
+describe('IssueListSearchBar (old)', function () {
   let recentSearchMock;
   let defaultProps;
 
@@ -49,13 +49,15 @@ describe('IssueListSearchBar', function () {
       await userEvent.click(screen.getByRole('textbox'));
       await userEvent.paste('url:"fu"');
 
-      expect(tagValuesMock).toHaveBeenLastCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: 'fu',
-          }),
-        })
+      waitFor(() =>
+        expect(tagValuesMock).toHaveBeenLastCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query: 'fu',
+            }),
+          })
+        )
       );
 
       expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
@@ -74,8 +76,7 @@ describe('IssueListSearchBar', function () {
 
       await userEvent.click(screen.getByRole('textbox'));
       await userEvent.paste('url:', {delay: null});
-
-      expect(tagValuesMock).toHaveBeenCalled();
+      waitFor(() => expect(tagValuesMock).toHaveBeenCalled());
     });
 
     it('does not request values when tag is `timesSeen`', async function () {
@@ -92,7 +93,7 @@ describe('IssueListSearchBar', function () {
       await userEvent.click(screen.getByRole('textbox'));
       await userEvent.paste('timesSeen:', {delay: null});
 
-      expect(tagValuesMock).not.toHaveBeenCalled();
+      waitFor(() => expect(tagValuesMock).not.toHaveBeenCalled());
     });
   });
 
@@ -117,29 +118,34 @@ describe('IssueListSearchBar', function () {
       await userEvent.click(screen.getByRole('textbox'));
       await userEvent.paste('url:"fu"');
 
-      expect(tagValuesMock).toHaveBeenLastCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          query: expect.objectContaining({
-            query: 'fu',
-          }),
-        })
+      waitFor(() =>
+        expect(tagValuesMock).toHaveBeenLastCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: expect.objectContaining({
+              query: 'fu',
+            }),
+          })
+        )
       );
 
       expect(screen.getByTestId('smart-search-dropdown')).toBeInTheDocument();
 
       await userEvent.keyboard('{Enter}');
+
       expect(onSearch).toHaveBeenCalledWith('url:"fu"');
 
-      expect(saveRecentSearch).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          data: {
-            query: 'url:"fu"',
-            type: 0,
-          },
-        })
-      );
+      waitFor(() => {
+        expect(saveRecentSearch).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            data: {
+              query: 'url:"fu"',
+              type: 0,
+            },
+          })
+        );
+      });
     });
 
     it('queries for recent searches', async function () {
@@ -153,89 +159,105 @@ describe('IssueListSearchBar', function () {
 
       await userEvent.click(screen.getByRole('textbox'));
       await userEvent.paste('is:', {delay: null});
-
-      expect(recentSearchMock).toHaveBeenCalledWith(
-        expect.anything(),
-        expect.objectContaining({
-          query: {
-            query: 'is:',
-            limit: 3,
-            type: 0,
-          },
-        })
+      waitFor(() =>
+        expect(recentSearchMock).toHaveBeenCalledWith(
+          expect.anything(),
+          expect.objectContaining({
+            query: {
+              query: 'is:',
+              limit: 3,
+              type: 0,
+            },
+          })
+        )
       );
     });
   });
+});
 
-  describe('Tags and Fields', function () {
-    const {router: routerWithFlag, organization: orgWithFlag} = initializeOrg();
-    orgWithFlag.features = ['issue-stream-search-query-builder'];
+describe('IssueListSearchBar (new)', function () {
+  let defaultProps;
 
-    const newDefaultProps = {
-      organization: orgWithFlag,
+  const {router, organization} = initializeOrg();
+
+  beforeEach(function () {
+    TagStore.reset();
+    TagStore.loadTagsSuccess(TagsFixture());
+
+    organization.features = ['issue-stream-search-query-builder'];
+    defaultProps = {
+      organization,
       query: '',
-      statsPeriod: '7d',
       onSearch: jest.fn(),
     };
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/recent-searches/',
+      method: 'GET',
+      body: [],
+    });
+  });
 
-    it('displays the correct options for the is tag', async function () {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/tags/',
-        body: [],
-      });
+  afterEach(function () {
+    MockApiClient.clearMockResponses();
+  });
 
-      render(<IssueListSearchBar {...newDefaultProps} />, {
-        router: routerWithFlag,
-      });
-
-      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
-      await userEvent.paste('is:', {delay: null});
-      await userEvent.click(
-        await screen.findByRole('button', {name: 'Edit value for filter: is'})
-      );
-
-      Object.values(IsFieldValues).forEach(value => {
-        expect(screen.getByRole('option', {name: value})).toBeInTheDocument();
-      });
+  it('displays the correct options for the is tag', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [],
     });
 
-    it('displays the correct options under Event Tags', async function () {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/tags/',
-        body: [{key: 'someTag', name: 'Some Tag'}],
-      });
-
-      defaultProps.organization.features = ['issue-stream-search-query-builder'];
-
-      render(<IssueListSearchBar {...newDefaultProps} />, {
-        router: routerWithFlag,
-      });
-
-      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
-      await userEvent.click(screen.getByRole('button', {name: 'Event Tags'}));
-
-      expect(await screen.findByRole('option', {name: 'someTag'})).toBeInTheDocument();
+    render(<IssueListSearchBar {...defaultProps} />, {
+      router: router,
     });
 
-    it('displays tags in the has filter', async function () {
-      MockApiClient.addMockResponse({
-        url: '/organizations/org-slug/tags/',
-        body: [{key: 'someTag', name: 'Some Tag'}],
-      });
+    await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+    await userEvent.paste('is:', {delay: null});
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Edit value for filter: is'})
+    );
 
-      defaultProps.organization.features = ['issue-stream-search-query-builder'];
-
-      render(<IssueListSearchBar {...newDefaultProps} />, {
-        router: routerWithFlag,
-      });
-
-      await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
-      await userEvent.paste('has:', {delay: null});
-      await userEvent.click(
-        await screen.findByRole('button', {name: 'Edit value for filter: has'})
-      );
-
-      expect(await screen.findByRole('option', {name: 'someTag'})).toBeInTheDocument();
+    Object.values(IsFieldValues).forEach(value => {
+      expect(screen.getByRole('option', {name: value})).toBeInTheDocument();
     });
+  });
+
+  it('displays the correct options under Event Tags', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [{key: 'someTag', name: 'Some Tag'}],
+    });
+
+    defaultProps.organization.features = ['issue-stream-search-query-builder'];
+
+    render(<IssueListSearchBar {...defaultProps} />, {
+      router: router,
+    });
+
+    await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+    await userEvent.click(screen.getByRole('button', {name: 'Event Tags'}));
+
+    expect(await screen.findByRole('option', {name: 'someTag'})).toBeInTheDocument();
+  });
+
+  it('displays tags in the has filter', async function () {
+    MockApiClient.addMockResponse({
+      url: '/organizations/org-slug/tags/',
+      body: [{key: 'someTag', name: 'Some Tag'}],
+    });
+
+    defaultProps.organization.features = ['issue-stream-search-query-builder'];
+
+    render(<IssueListSearchBar {...defaultProps} />, {
+      router: router,
+    });
+
+    await userEvent.click(screen.getByRole('combobox', {name: 'Add a search term'}));
+    await userEvent.paste('has:', {delay: null});
+    await userEvent.click(
+      await screen.findByRole('button', {name: 'Edit value for filter: has'})
+    );
+
+    expect(await screen.findByRole('option', {name: 'someTag'})).toBeInTheDocument();
   });
 });
