@@ -23,6 +23,12 @@ export const infiniteListScrollableWindowCss = css`
   width: 100%;
 `;
 
+export const panelScrollableCss = css`
+  height: 100%;
+  overflow: scroll;
+  border-radius: 0;
+`;
+
 export const infiniteListFloatingMessageBottomCss = css`
   align-items: center;
   bottom: 0;
