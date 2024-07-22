@@ -218,6 +218,42 @@ function isJavascriptSDKTransaction(transaction: TraceTree.Transaction): boolean
   );
 }
 
+function isPageloadTransaction(node: TraceTreeNode<TraceTree.NodeValue>): boolean {
+  return isTransactionNode(node) && node.value['transaction.op'] === 'pageload';
+}
+
+function isSSRTransaction(node: TraceTreeNode<TraceTree.NodeValue>): boolean {
+  return isTransactionNode(node) && node.value['transaction.op'] === 'http.server';
+}
+
+function isBrowserRequestSpan(value: TraceTree.Span): boolean {
+  return value.op === 'browser' && value.description === 'request';
+}
+
+/**
+ * Swaps the two nodes in the graph.
+ */
+function childParentSwap({
+  parent,
+  child,
+}: {
+  child: TraceTreeNode<TraceTree.NodeValue>;
+  parent: TraceTreeNode<TraceTree.NodeValue>;
+}) {
+  const parentOfParent = parent.parent!;
+
+  parent.invalidate(parent);
+  child.invalidate(child);
+
+  const parentIndex = parentOfParent.children.indexOf(parent);
+  parentOfParent.children[parentIndex] = child;
+  child.parent = parentOfParent;
+
+  // We need to remove the portion of the tree that was previously a child, else we will have a circular reference
+  parent.parent = child;
+  child.children.push(parent.filter(parent, n => n !== child));
+}
+
 function measurementToTimestamp(
   start_timestamp: number,
   measurement: number,
@@ -552,6 +588,10 @@ export class TraceTree {
         );
       }
 
+      if (isPageloadTransaction(node) && isSSRTransaction(parent)) {
+        childParentSwap({parent, child: node});
+      }
+
       if (value && 'children' in value) {
         for (const child of value.children) {
           visit(node, child);
@@ -852,8 +892,10 @@ export class TraceTree {
       TraceTreeNode<TraceTree.Transaction>[]
     >();
 
+    let firstTransaction: TraceTreeNode<TraceTree.Transaction> | null = null;
     for (const child of parent.children) {
       if (isTransactionNode(child)) {
+        firstTransaction = firstTransaction || child;
         // keep track of the transaction nodes that should be reparented under the newly fetched spans.
         const key =
           'parent_span_id' in child.value &&
@@ -871,12 +913,25 @@ export class TraceTree {
     const remappedTransactionParents = new Set<TraceTreeNode<TraceTree.NodeValue>>();
 
     for (const span of spans) {
-      const childTransactions = transactionsToSpanMap.get(span.span_id) ?? [];
+      let childTransactions = transactionsToSpanMap.get(span.span_id) ?? [];
+
       const spanNodeValue: TraceTree.Span = {
         ...span,
         event: data as EventTransaction,
         childTransactions,
       };
+
+      if (
+        firstTransaction &&
+        !childTransactions.length &&
+        isBrowserRequestSpan(spanNodeValue) &&
+        isSSRTransaction(firstTransaction)
+      ) {
+        childTransactions = [firstTransaction];
+        spanNodeValue.childTransactions = childTransactions;
+        transactionsToSpanMap.delete(`unreachable-${firstTransaction.value.event_id}`);
+      }
+
       const node: TraceTreeNode<TraceTree.Span> = new TraceTreeNode(null, spanNodeValue, {
         event_id: parent.metadata.event_id,
         project_slug: parent.metadata.project_slug,
@@ -1831,6 +1886,26 @@ export class TraceTreeNode<T extends TraceTree.NodeValue = TraceTree.NodeValue> 
     }
 
     return clone;
+  }
+
+  filter(
+    node: TraceTreeNode<TraceTree.NodeValue>,
+    predicate: (node: TraceTreeNode) => boolean
+  ): TraceTreeNode<TraceTree.NodeValue> {
+    const queue = [node];
+
+    while (queue.length) {
+      const next = queue.pop()!;
+      for (let i = 0; i < next.children.length; i++) {
+        if (!predicate(next.children[i])) {
+          next.children.splice(i, 1);
+        } else {
+          queue.push(next.children[i]);
+        }
+      }
+    }
+
+    return node;
   }
 
   get isOrphaned() {
