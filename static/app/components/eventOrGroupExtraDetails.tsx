@@ -7,6 +7,7 @@ import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import IssueReplayCount from 'sentry/components/group/issueReplayCount';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChat} from 'sentry/icons';
@@ -94,14 +95,20 @@ function EventOrGroupExtraDetails({data, showAssignee, organization}: Props) {
           </GlobalSelectionLink>
         </LoggerAnnotation>
       )}
-      {annotations?.map((annotation, key) => (
-        <AnnotationNoMargin
-          dangerouslySetInnerHTML={{
-            __html: annotation,
-          }}
-          key={key}
-        />
-      ))}
+      {annotations?.map((annotation, key) =>
+        typeof annotation === 'string' ? (
+          <AnnotationNoMargin
+            dangerouslySetInnerHTML={{
+              __html: annotation,
+            }}
+            key={key}
+          />
+        ) : (
+          <AnnotationNoMargin key={key}>
+            <ExternalLink href={annotation.url}>{annotation.displayName}</ExternalLink>
+          </AnnotationNoMargin>
+        )
+      )}
 
       {showAssignee && assignedTo && (
         <div>{tct('Assigned to [name]', {name: assignedTo.name})}</div>
