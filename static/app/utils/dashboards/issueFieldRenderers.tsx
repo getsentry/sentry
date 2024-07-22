@@ -12,6 +12,7 @@ import {DEFAULT_STATS_PERIOD} from 'sentry/constants';
 import {t} from 'sentry/locale';
 import MemberListStore from 'sentry/stores/memberListStore';
 import {space} from 'sentry/styles/space';
+import type {Annotation} from 'sentry/types/group';
 import type {Organization} from 'sentry/types/organization';
 import type {EventData} from 'sentry/utils/discover/eventView';
 import EventView from 'sentry/utils/discover/eventView';
@@ -141,7 +142,23 @@ const SPECIAL_FIELDS: SpecialFields = {
   },
   links: {
     sortField: null,
-    renderFunc: ({links}) => <LinksContainer dangerouslySetInnerHTML={{__html: links}} />,
+    renderFunc: ({links}) => {
+      if (typeof links === 'string') {
+        return <LinksContainer dangerouslySetInnerHTML={{__html: links}} />;
+      }
+      if (isLinkAnnotation(links)) {
+        return (
+          <LinksContainer>
+            {links.map((link, index) => (
+              <a key={index} href={link.url}>
+                {link.display_name}
+              </a>
+            ))}
+          </LinksContainer>
+        );
+      }
+      return <LinksContainer />;
+    },
   },
 };
 
@@ -239,6 +256,10 @@ export function getSortField(field: string): string | null {
     default:
       return null;
   }
+}
+
+function isLinkAnnotation(value: unknown): value is Annotation[] {
+  return Array.isArray(value) && value.every(v => typeof v === 'object');
 }
 
 const contentStyle = css`
