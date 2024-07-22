@@ -26,14 +26,16 @@ def test_make_signed_seer_api_request():
 
         return mock.urlopen
 
-    url_request().assert_called_once_with(
+    mock_url_open = url_request()
+    mock_url_open.assert_called_once_with(
         "POST",
         "/v0/some/url",
         body=body,
         headers={"content-type": "application/json;charset=utf-8"},
     )
 
-    url_request(timeout=5).assert_called_once_with(
+    mock_url_open = url_request(timeout=5)
+    mock_url_open.assert_called_once_with(
         "POST",
         "/v0/some/url",
         body=body,
@@ -42,7 +44,8 @@ def test_make_signed_seer_api_request():
     )
 
     with override_options({"seer.api.use-shared-secret": 1.0}):
-        url_request().assert_called_once_with(
+        mock_url_open = url_request()
+        mock_url_open.assert_called_once_with(
             "POST",
             "/v0/some/url",
             body=body,
