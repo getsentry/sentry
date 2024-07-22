@@ -24,8 +24,6 @@ class ApiTokenReplica(Model, HasApiScopes):
     expires_at = models.DateTimeField(null=True)
     allowed_origins = models.TextField(blank=True, null=True)
     date_added = models.DateTimeField(default=timezone.now)
-
-    # Token's can be scoped to only access a single organization.
     scoping_organization_id = HybridCloudForeignKey("sentry.Organization", null=True)
 
     class Meta:
