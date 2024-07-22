@@ -246,9 +246,7 @@ export function Provider({
   const startTimeOffsetMs = replay?.getStartOffsetMs() ?? 0;
   const videoEvents = replay?.getVideoEvents();
   const startTimestampMs = replay?.getStartTimestampMs();
-  const isVideoReplay = Boolean(
-    organization.features.includes('session-replay-mobile-player') && videoEvents?.length
-  );
+  const isVideoReplay = Boolean(videoEvents?.length);
 
   const forceDimensions = (dimension: Dimensions) => {
     setDimensions(dimension);

@@ -10,6 +10,7 @@ import {CompactSelect} from 'sentry/components/compactSelect';
 import RadioGroup from 'sentry/components/forms/controls/radioGroup';
 import IdBadge from 'sentry/components/idBadge';
 import LoadingIndicator from 'sentry/components/loadingIndicator';
+import {MobileBetaBanner} from 'sentry/components/onboarding/gettingStartedDoc/utils';
 import useCurrentProjectState from 'sentry/components/onboarding/gettingStartedDoc/utils/useCurrentProjectState';
 import {useLoadGettingStarted} from 'sentry/components/onboarding/gettingStartedDoc/utils/useLoadGettingStarted';
 import {PlatformOptionDropdown} from 'sentry/components/replaysOnboarding/platformOptionDropdown';
@@ -43,6 +44,7 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
   const hasProjectAccess = organization.access.includes('project:read');
 
   const {
+    hasDocs,
     projects,
     allProjects,
     currentProject,
@@ -147,13 +149,19 @@ function ReplaysOnboardingSidebar(props: CommonSidebarProps) {
             />
           </div>
         </HeaderActions>
-        <OnboardingContent currentProject={selectedProject} />
+        <OnboardingContent currentProject={selectedProject} hasDocs={hasDocs} />
       </TaskList>
     </TaskSidebarPanel>
   );
 }
 
-function OnboardingContent({currentProject}: {currentProject: Project}) {
+function OnboardingContent({
+  currentProject,
+  hasDocs,
+}: {
+  currentProject: Project;
+  hasDocs: boolean;
+}) {
   const jsFrameworkSelectOptions = replayJsFrameworkOptions().map(platform => {
     return {
       value: platform.id,
@@ -276,7 +284,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
           onChange={setSetupMode}
         />
       ) : (
-        docs?.platformOptions && (
+        docs?.platformOptions &&
+        !isProjKeysLoading && (
           <PlatformSelect>
             {tct("I'm using [platformSelect]", {
               platformSelect: (
@@ -295,6 +304,22 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
         {radioButtons}
         <LoadingIndicator />
       </Fragment>
+    );
+  }
+
+  // TODO: remove once we have mobile replay onboarding
+  if (['android', 'react-native'].includes(currentPlatform.language)) {
+    return (
+      <MobileBetaBanner
+        link={`https://docs.sentry.io/platforms/${currentPlatform.language}/session-replay/`}
+      />
+    );
+  }
+  if (currentPlatform.language === 'apple') {
+    return (
+      <MobileBetaBanner
+        link={`https://docs.sentry.io/platforms/apple/guides/ios/session-replay/`}
+      />
     );
   }
 
@@ -324,8 +349,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
     );
   }
 
-  // No platform or no docs
-  if (!currentPlatform || !docs || !dsn) {
+  // No platform, docs import failed, no DSN, or the platform doesn't have onboarding yet
+  if (!currentPlatform || !docs || !dsn || !hasDocs) {
     return (
       <Fragment>
         <div>
