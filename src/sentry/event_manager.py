@@ -56,7 +56,7 @@ from sentry.grouping.api import (
 from sentry.grouping.ingest.config import (
     is_in_transition,
     project_uses_optimized_grouping,
-    update_grouping_config_if_needed,
+    update_grouping_config_if_permitted,
 )
 from sentry.grouping.ingest.hashing import (
     find_existing_grouphash,
@@ -1394,10 +1394,10 @@ def _save_aggregate(
     has_secondary_hashes = len(extract_hashes(secondary_hashes)) > 0
 
     # Now that we've used the current and possibly secondary grouping config(s) to calculate the
-    # hashes, we're free to perform a config update if needed. Future events will use the new
-    # config, but will also be grandfathered into the current config for a week, so as not to
+    # hashes, we're free to perform a config update if permitted. Future events will use the new
+    # config, but will also be grandfathered into the current config for a month, so as not to
     # erroneously create new groups.
-    update_grouping_config_if_needed(project)
+    update_grouping_config_if_permitted(project)
 
     _materialize_metadata_many([job])
     metadata = dict(job["event_metadata"])
@@ -1790,7 +1790,7 @@ def _save_aggregate_new(
     # hashes, we're free to perform a config update if needed. Future events will use the new
     # config, but will also be grandfathered into the current config for a week, so as not to
     # erroneously create new groups.
-    update_grouping_config_if_needed(project)
+    update_grouping_config_if_permitted(project)
 
     return group_info
 

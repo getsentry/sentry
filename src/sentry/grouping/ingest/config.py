@@ -26,6 +26,11 @@ CONFIGS_TO_DEPRECATE = "mobile:2021-02-12"
 DO_NOT_UPGRADE_YET = ("legacy:2019-03-12", "newstyle:2019-10-29", "newstyle:2019-05-08")
 
 
+# Used by getsentry script. Remove it once the script has been updated to call update_grouping_config_if_permitted
+def _auto_update_grouping(project: Project) -> None:
+    update_grouping_config_if_permitted(project)
+
+
 def _config_update_happened_recently(project: Project, tolerance: int) -> bool:
     """
     Determine whether an auto-upate happened within the last `tolerance` seconds.
@@ -41,7 +46,7 @@ def _config_update_happened_recently(project: Project, tolerance: int) -> bool:
     return time_since_update < 60
 
 
-def update_grouping_config_if_needed(project: Project) -> None:
+def update_grouping_config_if_permitted(project: Project) -> None:
     current_config = project.get_option("sentry:grouping_config")
     new_config = DEFAULT_GROUPING_CONFIG
 
