@@ -575,19 +575,17 @@ class ParseRuleGroupToEventDataTest(TestCase):
             "occurrence_id": "1",
         }
 
-        self.input_data = {
+    def test_parse_rulegroup(self):
+        input_data = {
             f"{self.rule.id}:{self.group.id}": json.dumps(self.event_data),
             f"{self.rule_two.id}:{self.group_two.id}": json.dumps(self.event_data),
         }
 
-        self.expected = {
+        result = parse_rulegroup_to_event_data(input_data)
+        assert result == {
             (str(self.rule.id), str(self.group.id)): self.event_data,
             (str(self.rule_two.id), str(self.group_two.id)): self.event_data,
         }
-
-    def test_parse_rulegroup(self):
-        result = parse_rulegroup_to_event_data(self.input_data)
-        assert result == self.expected
 
     def test_parse_rulegroup_empty(self):
         input_data: dict[str, str] = {}
