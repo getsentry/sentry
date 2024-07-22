@@ -101,7 +101,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                     copied_context["formFields"]["match"]["choices"] = [
                         choice
                         for choice in match_choices
-                        if (choice[0] != MatchType.IS_IN or choice[0] != MatchType.NOT_IN)
+                        if (choice[0] != MatchType.IS_IN and choice[0] != MatchType.NOT_IN)
                     ]
                     filter_list.append(copied_context)
                     continue
