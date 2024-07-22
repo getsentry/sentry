@@ -185,7 +185,7 @@ def track_initial_segment_event(
             reason=None,
             timestamp=datetime.fromtimestamp(received, timezone.utc),
             event_id=replay_id,
-            category=DataCategory.REPLAY_MOBILE,
+            category=DataCategory.REPLAY_VIDEO,
             quantity=1,
         )
     else:
