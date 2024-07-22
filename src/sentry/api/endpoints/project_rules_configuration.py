@@ -1,5 +1,3 @@
-import copy
-
 from rest_framework.request import Request
 from rest_framework.response import Response
 
@@ -10,7 +8,7 @@ from sentry.api.base import region_silo_endpoint
 from sentry.api.bases.project import ProjectEndpoint
 from sentry.constants import MIGRATED_CONDITIONS, SENTRY_APP_ACTIONS, TICKET_ACTIONS
 from sentry.receivers.rules import has_high_priority_issue_alerts
-from sentry.rules import MatchType, rules
+from sentry.rules import rules
 
 
 @region_silo_endpoint
@@ -37,7 +35,6 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
         has_latest_adopted_release = features.has(
             "organizations:latest-adopted-release-filter", project.organization
         )
-        has_is_in = features.has("organizations:issues-alerts-is-in", project.organization)
 
         # TODO: conditions need to be based on actions
         for rule_type, rule_cls in rules:
@@ -90,20 +87,6 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                     == "sentry.rules.filters.latest_adopted_release_filter.LatestAdoptedReleaseFilter"
                     and not has_latest_adopted_release
                 ):
-                    continue
-                if (
-                    context["id"] == "sentry.rules.filters.tagged_event.TaggedEventFilter"
-                    or context["id"] == "sentry.rules.filters.event_attribute.EventAttributeFilter"
-                ) and not has_is_in:
-                    # Filter the form_fields to strip `is_in` and `not_in` choices
-                    match_choices = context["formFields"]["match"]["choices"]
-                    copied_context = copy.deepcopy(context)
-                    copied_context["formFields"]["match"]["choices"] = [
-                        choice
-                        for choice in match_choices
-                        if (choice[0] != MatchType.IS_IN and choice[0] != MatchType.NOT_IN)
-                    ]
-                    filter_list.append(copied_context)
                     continue
                 filter_list.append(context)
             elif rule_type.startswith("action/"):

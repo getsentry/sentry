@@ -215,37 +215,19 @@ class ProjectRuleConfigurationTest(APITestCase):
                 in [filter["id"] for filter in response.data["conditions"]]
             )
 
-    def test_has_in_feature(self):
-        with self.feature({"organizations:issues-alerts-is-in": False}):
-            response = self.get_success_response(self.organization.slug, self.project.slug)
-            tagged_event_filter = next(
-                (
-                    filter
-                    for filter in response.data["filters"]
-                    if filter["id"] == "sentry.rules.filters.tagged_event.TaggedEventFilter"
-                ),
-                None,
-            )
-            assert tagged_event_filter
-            filter_list = [
-                choice[0] for choice in tagged_event_filter["formFields"]["match"]["choices"]
-            ]
-            assert MatchType.IS_IN not in filter_list
-            assert MatchType.NOT_IN not in filter_list
-
-        with self.feature({"organizations:issues-alerts-is-in": True}):
-            response = self.get_success_response(self.organization.slug, self.project.slug)
-            tagged_event_filter = next(
-                (
-                    filter
-                    for filter in response.data["filters"]
-                    if filter["id"] == "sentry.rules.filters.tagged_event.TaggedEventFilter"
-                ),
-                None,
-            )
-            assert tagged_event_filter
-            filter_list = [
-                choice[0] for choice in tagged_event_filter["formFields"]["match"]["choices"]
-            ]
-            assert MatchType.IS_IN in filter_list
-            assert MatchType.NOT_IN in filter_list
+    def test_is_in_feature(self):
+        response = self.get_success_response(self.organization.slug, self.project.slug)
+        tagged_event_filter = next(
+            (
+                filter
+                for filter in response.data["filters"]
+                if filter["id"] == "sentry.rules.filters.tagged_event.TaggedEventFilter"
+            ),
+            None,
+        )
+        assert tagged_event_filter
+        filter_list = [
+            choice[0] for choice in tagged_event_filter["formFields"]["match"]["choices"]
+        ]
+        assert MatchType.IS_IN in filter_list
+        assert MatchType.NOT_IN in filter_list
