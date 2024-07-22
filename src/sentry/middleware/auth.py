@@ -100,7 +100,9 @@ class OrganizationScopedAuthenticationMiddleware(MiddlewareMixin):
         # TODO: We only care about tokens authorization. Is this correct? Should we care about
         # more? I haven't restricted the org-application oauth flow yet to only produce tokens.
         # It can produce grants.
-        if not isinstance(request.auth, (ApiToken, ApiTokenReplica)):
+        if not hasattr(request, "auth") or not isinstance(
+            request.auth, (ApiToken, ApiTokenReplica)
+        ):
             return None
 
         # If the user's token does not allow them to access the organization we disable the
