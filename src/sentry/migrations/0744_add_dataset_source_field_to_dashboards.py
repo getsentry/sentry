@@ -26,9 +26,24 @@ class Migration(CheckedMigration):
     ]
 
     operations = [
-        migrations.AddField(
-            model_name="dashboardwidget",
-            name="dataset_source",
-            field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(default=0),
-        ),
+        migrations.SeparateDatabaseAndState(
+            database_operations=[
+                migrations.RunSQL(
+                    """
+                    ALTER TABLE "sentry_dashboardwidget" ADD COLUMN "dataset_source" integer NOT NULL DEFAULT 0;
+                    """,
+                    reverse_sql="""
+                    ALTER TABLE "sentry_dashboardwidget" DROP COLUMN "dataset_source";
+                    """,
+                    hints={"tables": ["sentry_dashboardwidget"]},
+                ),
+            ],
+            state_operations=[
+                migrations.AddField(
+                    model_name="dashboardwidget",
+                    name="dataset_source",
+                    field=sentry.db.models.fields.bounded.BoundedPositiveIntegerField(default=0),
+                ),
+            ],
+        )
     ]
