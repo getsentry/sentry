@@ -97,14 +97,23 @@ class OrganizationScopedAuthenticationMiddleware(MiddlewareMixin):
     """Restricts cross-organization access for organization-scoped tokens."""
 
     def process_request(self, request: HttpRequest) -> None:
-        if isinstance(request.auth, (ApiToken, ApiTokenReplica)) and not _can_access_scoping(
-            request, request.auth
-        ):
+        # TODO: We only care about tokens authorization. Is this correct? Should we care about
+        # more? I haven't restricted the org-application oauth flow yet to only produce tokens.
+        # It can produce grants.
+        if not isinstance(request.auth, (ApiToken, ApiTokenReplica)):
+            return None
+
+        # If the user's token does not allow them to access the organization we disable the
+        # authorization set by "AuthenticationMiddleware".
+        #
+        # TODO: This is how the auth middleware handles it but should we raise an auth
+        # exception or otherwise return a 401 response?
+        if not can_access_organization(request, request.auth):
             request.auth = None
             request.user = SimpleLazyObject(lambda: get_user(request))
 
 
-def _can_access_scoping(request: HttpRequest, token: ApiToken | ApiTokenReplica) -> bool:
+def can_access_organization(request: HttpRequest, token: ApiToken | ApiTokenReplica) -> bool:
     # Tokens which are not scoped are passed through.
     if not token.scoping_organization_id:
         return True
