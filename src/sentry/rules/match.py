@@ -9,6 +9,7 @@ class MatchType:
     GREATER_OR_EQUAL = "gte"
     GREATER = "gt"
     IS_SET = "is"
+    IS_IN = "in"
     LESS_OR_EQUAL = "lte"
     LESS = "lt"
     NOT_CONTAINS = "nc"
@@ -17,7 +18,6 @@ class MatchType:
     NOT_SET = "ns"
     NOT_STARTS_WITH = "nsw"
     STARTS_WITH = "sw"
-    IS_IN = "in"
 
 
 LEVEL_MATCH_CHOICES = {
@@ -37,13 +37,13 @@ MATCH_CHOICES = {
     MatchType.ENDS_WITH: "ends with",
     MatchType.EQUAL: "equals",
     MatchType.IS_SET: "is set",
+    MatchType.IS_IN: "is in (comma separated)",
     MatchType.NOT_CONTAINS: "does not contain",
     MatchType.NOT_ENDS_WITH: "does not end with",
     MatchType.NOT_EQUAL: "does not equal",
     MatchType.NOT_SET: "is not set",
     MatchType.NOT_STARTS_WITH: "does not start with",
     MatchType.STARTS_WITH: "starts with",
-    MatchType.IS_IN: "is in (comma separated)",
 }
 
 
