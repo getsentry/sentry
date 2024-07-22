@@ -253,7 +253,7 @@ export function displayModeToDisplayType(displayMode: DisplayModes): DisplayType
 
 export function getSavedQueryDataset(
   location: Location | undefined,
-  savedQuery: SavedQuery | undefined,
+  savedQuery: SavedQuery | NewQuery | undefined,
   splitDecision?: SavedQueryDatasets
 ): SavedQueryDatasets {
   const dataset = decodeScalar(location?.query?.[DATASET_PARAM]);
