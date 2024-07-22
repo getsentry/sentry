@@ -11,6 +11,7 @@ export default function useInfiniteFeedbackList() {
   return useFetchInfiniteApiData<Incident[]>({
     queryKey: useMemo(
       () => [
+        'io.sentry.toolbar',
         `/organizations/${organizationSlug}/incidents/`,
         {
           query: {

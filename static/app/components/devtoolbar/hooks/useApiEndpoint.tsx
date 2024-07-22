@@ -22,7 +22,7 @@ interface FetchParams {
 }
 
 interface InfiniteFetchParams extends FetchParams {
-  pageParam?: ParsedHeader; // TODO: is this really optional?
+  pageParam: ParsedHeader;
 }
 
 export default function useApiEndpoint() {
@@ -31,7 +31,7 @@ export default function useApiEndpoint() {
   const fetchFn = useMemo(
     () =>
       async <Data,>({
-        queryKey: [endpoint, options],
+        queryKey: [_ns, endpoint, options],
       }: FetchParams): Promise<ApiResult<Data>> => {
         const response = await fetch(
           stringifyUrl({url: apiPrefix + endpoint, query: options?.query}),
@@ -57,7 +57,7 @@ export default function useApiEndpoint() {
   const fetchInfiniteFn = useMemo(
     () =>
       <Data,>({
-        queryKey: [endpoint, options],
+        queryKey: [ns, endpoint, options],
         pageParam,
       }: InfiniteFetchParams): Promise<ApiResult<Data>> => {
         const query = {
@@ -65,7 +65,7 @@ export default function useApiEndpoint() {
           cursor: pageParam?.cursor,
         };
         return fetchFn<Data>({
-          queryKey: [endpoint, {...options, query}],
+          queryKey: [ns, endpoint, {...options, query}],
         });
       },
     [fetchFn]

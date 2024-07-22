@@ -17,6 +17,7 @@ export default function useInfiniteIssuesList({query}: Props) {
   return useFetchInfiniteApiData<Group[]>({
     queryKey: useMemo(
       () => [
+        'io.sentry.toolbar',
         `/organizations/${organizationSlug}/issues/`,
         {
           query: {

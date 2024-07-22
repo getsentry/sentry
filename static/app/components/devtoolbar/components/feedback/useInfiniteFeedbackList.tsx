@@ -15,6 +15,7 @@ export default function useInfiniteFeedbackList({query}: Props) {
   return useFetchInfiniteApiData<FeedbackIssueListItem[]>({
     queryKey: useMemo(
       () => [
+        'io.sentry.toolbar',
         `/organizations/${organizationSlug}/issues/`,
         {
           query: {

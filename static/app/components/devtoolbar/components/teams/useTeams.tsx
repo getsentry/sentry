@@ -15,6 +15,7 @@ export default function useTeams({idOrSlug}: Props, opts?: {enabled: boolean}) {
   return useFetchApiData<Team[]>({
     queryKey: useMemo(
       () => [
+        'io.sentry.toolbar',
         `/organizations/${organizationSlug}/teams/`,
         {
           query: {
