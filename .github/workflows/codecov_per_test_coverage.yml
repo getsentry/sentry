@@ -30,7 +30,7 @@ jobs:
       MATRIX_INSTANCE_TOTAL: 7
 
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -61,7 +61,7 @@ jobs:
       # it reduces large coverage fluctuations
       - name: Upload coverage - special case to test Codecov ATS
         if: ${{ always() }}
-        uses: codecov/codecov-action@v4-beta
+        uses: codecov/codecov-action@428cda1b1c731be3e8bfa389049c3f276d572ffb # v4-beta
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:

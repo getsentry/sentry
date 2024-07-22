@@ -9,7 +9,7 @@ jobs:
     runs-on: ubuntu-latest
     name: React to product-owners.yml changes
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f # v2.1.0
         with:
