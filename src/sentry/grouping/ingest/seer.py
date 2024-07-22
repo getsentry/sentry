@@ -61,7 +61,13 @@ def _project_has_similarity_grouping_enabled(project: Project) -> bool:
         "projects:similarity-embeddings-metadata", project
     ) or features.has("projects:similarity-embeddings-grouping", project)
 
-    return has_either_seer_grouping_feature
+    # TODO: This is a hack to get ingest to turn on for projects as soon as they're backfilled. When
+    # the backfill script completes, we turn on this option, enabling ingest immediately rather than
+    # forcing the project to wait until it's been manually added to a feature handler. Once all
+    # projects have been backfilled, the option (and this check) can go away.
+    has_been_backfilled = project.get_option("sentry:similarity_backfill_completed")
+
+    return has_either_seer_grouping_feature or has_been_backfilled
 
 
 # TODO: Here we're including events with hybrid fingerprints (ones which are `{{ default }}`
