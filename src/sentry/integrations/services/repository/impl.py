@@ -81,7 +81,7 @@ class DatabaseBackedRepositoryService(RepositoryService):
             if repository is None:
                 return
 
-            update_dict = update.dict()
+            update_dict = update.model_dump()
             del update_dict["id"]
 
             for field_name, field_value in update_dict.items():
