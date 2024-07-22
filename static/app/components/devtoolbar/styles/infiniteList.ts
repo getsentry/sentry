@@ -1,7 +1,5 @@
 import {css} from '@emotion/react';
 
-import {space} from 'sentry/styles/space';
-
 import {resetUlCss} from './reset';
 
 export const infiniteListParentContainerCss = css`
@@ -26,16 +24,10 @@ export const infiniteListScrollableWindowCss = css`
 `;
 
 export const panelScrollableCss = css`
+  position: relative;
   height: 100%;
   overflow: scroll;
   border-radius: 0;
-`;
-
-export const searchBarCss = css`
-  display: flex;
-  flex-direction: row;
-  align-items: center;
-  gap: ${space(2)};
 `;
 
 export const infiniteListFloatingMessageBottomCss = css`

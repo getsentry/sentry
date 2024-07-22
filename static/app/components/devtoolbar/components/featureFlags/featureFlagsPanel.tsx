@@ -4,7 +4,6 @@ import useEnabledFeatureFlags from 'sentry/components/devtoolbar/components/feat
 import {
   infiniteListScrollableWindowCss,
   panelScrollableCss,
-  searchBarCss,
 } from 'sentry/components/devtoolbar/styles/infiniteList';
 import Input from 'sentry/components/input';
 import {PanelTable} from 'sentry/components/panels/panelTable';
@@ -25,23 +24,16 @@ export default function FeatureFlagsPanel() {
   return (
     <PanelLayout title="Feature Flags">
       <div css={[smallCss, panelSectionCss, panelInsetContentCss]}>
-        <span>
-          Feature flags enabled for <code>{organizationSlug}</code>
-        </span>
+        <Input
+          ref={searchInput}
+          size="sm"
+          placeholder="Search flags"
+          onChange={e => setSearchTerm(e.target.value.toLowerCase())}
+        />
       </div>
 
       <PanelTable
-        headers={[
-          <div key="Flags" css={searchBarCss}>
-            <p>Flags</p>
-            <Input
-              ref={searchInput}
-              size="xs"
-              placeholder="Search flags"
-              onChange={e => setSearchTerm(e.target.value.toLowerCase())}
-            />
-          </div>,
-        ]}
+        headers={[<span key="Flags">Flags enabled for {organizationSlug}</span>]}
         css={[resetFlexColumnCss, infiniteListScrollableWindowCss, panelScrollableCss]}
       >
         {featureFlags
