@@ -95,7 +95,7 @@ class ProjectRulesConfigurationEndpoint(ProjectEndpoint):
                     context["id"] == "sentry.rules.filters.tagged_event.TaggedEventFilter"
                     or context["id"] == "sentry.rules.filters.event_attribute.EventAttributeFilter"
                 ) and not has_is_in:
-                    # Filter the form_fields to strip `is_in` choices
+                    # Filter the form_fields to strip `is_in` and `not_in` choices
                     match_choices = context["formFields"]["match"]["choices"]
                     copied_context = copy.deepcopy(context)
                     copied_context["formFields"]["match"]["choices"] = [
