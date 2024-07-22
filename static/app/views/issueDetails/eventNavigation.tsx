@@ -91,7 +91,7 @@ export default function EventNavigation({event, group}: EventNavigationProps) {
               icon={<IconChevron direction="left" />}
               disabled={!hasPreviousEvent}
               to={{
-                pathname: `${baseEventsPath}${event.nextEventID}/`,
+                pathname: `${baseEventsPath}${event.previousEventID}/`,
                 query: {...location.query, referrer: 'previous-event'},
               }}
             />
