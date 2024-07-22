@@ -143,7 +143,7 @@ describe('ReplayList', () => {
     expect(mockFetchReplayListRequest).toHaveBeenCalled();
   });
 
-  it('should fetch the replay table and show selector tables when the org is on AM2, has sent some replays, and has a newer SDK version', async () => {
+  it('should fetch the replay table when the org is on AM2, has sent some replays, and has a newer SDK version', async () => {
     const mockOrg = getMockOrganizationFixture({features: AM2_FEATURES});
     mockUseHaveSelectedProjectsSentAnyReplayEvents.mockReturnValue({
       fetching: false,
@@ -154,21 +154,13 @@ describe('ReplayList', () => {
       isFetching: false,
       needsUpdate: false,
     });
-    mockUseDeadRageSelectors.mockReturnValue({
-      isLoading: false,
-      isError: false,
-      data: [],
-      pageLinks: undefined,
-    });
 
     render(<ListPage />, {
       organization: mockOrg,
     });
 
     await waitFor(() => expect(screen.queryAllByTestId('replay-table')).toHaveLength(1));
-    await waitFor(() =>
-      expect(screen.queryAllByTestId('selector-widget')).toHaveLength(2)
-    );
+
     expect(mockFetchReplayListRequest).toHaveBeenCalled();
   });
 });

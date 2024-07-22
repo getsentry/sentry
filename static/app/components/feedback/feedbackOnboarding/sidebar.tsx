@@ -270,7 +270,8 @@ function OnboardingContent({currentProject}: {currentProject: Project}) {
       ) : (
         newDocs?.platformOptions &&
         widgetPlatform &&
-        !crashReportOnboarding && (
+        !crashReportOnboarding &&
+        !isLoading && (
           <PlatformSelect>
             {tct("I'm using [platformSelect]", {
               platformSelect: (

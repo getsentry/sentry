@@ -1,10 +1,8 @@
 import {mobile} from 'sentry/data/platformCategories';
-import useOrganization from 'sentry/utils/useOrganization';
 import usePageFilters from 'sentry/utils/usePageFilters';
 import useProjects from 'sentry/utils/useProjects';
 
 export default function useAllMobileProj() {
-  const organization = useOrganization();
   const {
     selection: {projects: projectIds},
   } = usePageFilters();
@@ -15,9 +13,7 @@ export default function useAllMobileProj() {
   // if no projects selected, look through all projects
   const proj = projectsSelected.length ? projectsSelected : projects;
 
-  const allMobileProj =
-    organization.features.includes('session-replay-mobile-player') &&
-    proj.every(p => mobile.includes(p.platform ?? 'other'));
+  const allMobileProj = proj.every(p => mobile.includes(p.platform ?? 'other'));
 
   return {allMobileProj};
 }
