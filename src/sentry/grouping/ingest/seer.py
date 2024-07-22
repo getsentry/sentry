@@ -30,11 +30,7 @@ def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes
 
     project = event.project
 
-    has_either_seer_grouping_feature = features.has(
-        "projects:similarity-embeddings-metadata", project
-    ) or features.has("projects:similarity-embeddings-grouping", project)
-
-    if not has_either_seer_grouping_feature:
+    if not _project_has_similarity_grouping_enabled(project):
         return False
 
     if _has_customized_fingerprint(event, primary_hashes):
@@ -58,6 +54,14 @@ def should_call_seer_for_grouping(event: Event, primary_hashes: CalculatedHashes
         return False
 
     return True
+
+
+def _project_has_similarity_grouping_enabled(project: Project) -> bool:
+    has_either_seer_grouping_feature = features.has(
+        "projects:similarity-embeddings-metadata", project
+    ) or features.has("projects:similarity-embeddings-grouping", project)
+
+    return has_either_seer_grouping_feature
 
 
 # TODO: Here we're including events with hybrid fingerprints (ones which are `{{ default }}`
