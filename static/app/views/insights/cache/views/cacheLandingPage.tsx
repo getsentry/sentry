@@ -134,7 +134,7 @@ export function CacheLandingPage() {
     isFetching: isTransactionDurationFetching,
   } = useMetrics(
     {
-      search: `transaction:[${transactionsList.map(({transaction}) => `"${transaction}"`).join(',')}]`,
+      search: `transaction:[${transactionsList.map(({transaction}) => `"${transaction.replaceAll('"', '\\"')}"`).join(',')}]`,
       fields: [`avg(transaction.duration)`, 'transaction'],
       enabled: !isTransactionsListFetching && transactionsList.length > 0,
     },
