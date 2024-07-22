@@ -7,6 +7,7 @@ import TimesTag from 'sentry/components/group/inboxBadges/timesTag';
 import UnhandledTag from 'sentry/components/group/inboxBadges/unhandledTag';
 import IssueReplayCount from 'sentry/components/group/issueReplayCount';
 import ProjectBadge from 'sentry/components/idBadge/projectBadge';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import Placeholder from 'sentry/components/placeholder';
 import {IconChat} from 'sentry/icons';
@@ -104,7 +105,7 @@ function EventOrGroupExtraDetails({data, showAssignee, organization}: Props) {
           />
         ) : (
           <AnnotationNoMargin key={key}>
-            <a href={annotation.url}>{annotation.display_name}</a>
+            <ExternalLink href={annotation.url}>{annotation.display_name}</ExternalLink>
           </AnnotationNoMargin>
         )
       )}

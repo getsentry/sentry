@@ -5,6 +5,7 @@ import type {Location} from 'history';
 
 import Count from 'sentry/components/count';
 import DeprecatedAssigneeSelector from 'sentry/components/deprecatedAssigneeSelector';
+import ExternalLink from 'sentry/components/links/externalLink';
 import Link from 'sentry/components/links/link';
 import {getRelativeSummary} from 'sentry/components/timeRangeSelector/utils';
 import {Tooltip} from 'sentry/components/tooltip';
@@ -150,9 +151,9 @@ const SPECIAL_FIELDS: SpecialFields = {
         return (
           <LinksContainer>
             {links.map((link, index) => (
-              <a key={index} href={link.url}>
+              <ExternalLink key={index} href={link.url}>
                 {link.display_name}
-              </a>
+              </ExternalLink>
             ))}
           </LinksContainer>
         );
