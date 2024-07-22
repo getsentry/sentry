@@ -197,14 +197,14 @@ class BulkFetchEventsTest(CreateEventTestCase):
     def test_more_than_limit_event_ids(self, mock_retry_policy):
         """
         Test that when the number of event_ids exceeds the EVENT_LIMIT,
-        will batch into groups of EVENT_LIMIT and merge the results.
+        batches into groups based on the EVENT_LIMT, and then merges results.
         """
         event_ids: list[str] = ["-1", self.event.event_id, "0", self.event_two.event_id]
         mock_retry_instance = MagicMock()
         mock_retry_policy.return_value = mock_retry_instance
 
-        def mock_return_value(lamda_func):
-            return lamda_func()
+        def mock_return_value(lambda_func):
+            return lambda_func()
 
         mock_retry_instance.side_effect = mock_return_value
 
