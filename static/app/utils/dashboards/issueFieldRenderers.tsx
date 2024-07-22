@@ -144,7 +144,7 @@ const SPECIAL_FIELDS: SpecialFields = {
   links: {
     sortField: null,
     renderFunc: ({links}) => {
-      if (Array.isArray(links) && links.every(v => typeof v === 'string')) {
+      if (typeof links === 'string') {
         return <LinksContainer dangerouslySetInnerHTML={{__html: links}} />;
       }
       if (isLinkAnnotation(links)) {
