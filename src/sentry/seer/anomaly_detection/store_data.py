@@ -111,9 +111,12 @@ def fetch_historical_data(rule: AlertRule) -> SnubaTSResult | None:
     """
     Fetch 28 days of historical data from Snuba to pass to Seer to build the anomaly detection model
     """
-    # would this be better as an async task?
+    # TODO: if we can pass the existing timeseries data we have on the front end along here, we can shorten
+    # the time period we query and combine the data
+    # TODO: make this an async task(?)
+    NUM_DAYS = 28
     end = timezone.now()
-    start = end - timedelta(days=28)
+    start = end - timedelta(days=NUM_DAYS)
     # TODO add a check to the serializer that anomaly detection alerts
     # only have threshold_periods of 15, 30, and 60 minutes
     granularity = rule.threshold_period * 6000
