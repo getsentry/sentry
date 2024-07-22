@@ -294,7 +294,7 @@ def register_temporary_features(manager: FeatureManager):
     # Experimental performance issue for streamed spans - UI
     manager.add("organizations:performance-streamed-spans-exp-visible", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=False)
     # Enable processing slow issue alerts
-    manager.add("organizations:process-slow-alerts", OrganizationFeature, FeatureHandlerStrategy.OPTIONS, api_expose=False)
+    manager.add("organizations:process-slow-alerts", OrganizationFeature, FeatureHandlerStrategy.FLAGPOLE, api_expose=False)
     # Enabled creating issues out of trends
     manager.add("organizations:performance-trends-issues", OrganizationFeature, FeatureHandlerStrategy.REMOTE, api_expose=False)
     # Bypass 30 day date range selection when fetching new trends data
