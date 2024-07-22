@@ -10,7 +10,6 @@ from sentry.users.services.user import RpcUser
 
 if TYPE_CHECKING:
     from sentry.features.base import Feature
-    from sentry.features.manager import FeatureCheckBatch
     from sentry.models.organization import Organization
     from sentry.models.project import Project
     from sentry.models.user import User
@@ -30,13 +29,6 @@ class FeatureHandler:
         self, feature: Feature, actor: User | RpcUser, skip_entity: bool | None = False
     ) -> bool | None:
         raise NotImplementedError
-
-    def has_for_batch(self, batch: FeatureCheckBatch) -> Mapping[Project, bool | None]:
-        # If not overridden, iterate over objects in the batch individually.
-        return {
-            obj: self.has(feature, batch.actor)
-            for (obj, feature) in batch.get_feature_objects().items()
-        }
 
     @abc.abstractmethod
     def batch_has(
@@ -65,7 +57,3 @@ class BatchFeatureHandler(FeatureHandler):
 
     def has(self, feature: Feature, actor: User, skip_entity: bool | None = False) -> bool | None:
         return self._check_for_batch(feature.name, feature.get_subject(), actor)
-
-    def has_for_batch(self, batch: FeatureCheckBatch) -> Mapping[Project, bool | None]:
-        flag = self._check_for_batch(batch.feature_name, batch.subject, batch.actor)
-        return {obj: flag for obj in batch.objects}

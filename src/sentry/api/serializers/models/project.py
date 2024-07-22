@@ -179,7 +179,7 @@ def get_environments_by_projects(projects: Sequence[Project]) -> MutableMapping[
 def get_features_for_projects(
     all_projects: Sequence[Project], user: User, filter_unused_on_frontend_features: bool = False
 ) -> MutableMapping[Project, list[str]]:
-    # Arrange to call features.has_for_batch rather than features.has
+    # Arrange to call features.batch_has rather than features.has
     # for performance's sake
     projects_by_org = defaultdict(list)
     for project in all_projects:
@@ -220,9 +220,8 @@ def get_features_for_projects(
             continue
         abbreviated_feature = feature_name[len(_PROJECT_SCOPE_PREFIX) :]
         for organization, projects in projects_by_org.items():
-            result = features.has_for_batch(feature_name, organization, projects, user)
-            for project, flag in result.items():
-                if flag:
+            if features.has(feature_name, organization, projects, user):
+                for project in projects:
                     features_by_project[project].append(abbreviated_feature)
 
     for project in all_projects:

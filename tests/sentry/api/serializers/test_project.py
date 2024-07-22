@@ -204,7 +204,6 @@ class ProjectSerializerTest(TestCase):
         mock_features.all = test_features.all
         mock_features.has = test_features.has
         mock_features.batch_has = test_features.batch_has
-        mock_features.has_for_batch = test_features.has_for_batch
 
         early_flag = "projects:TEST_early"
         red_flag = "projects:TEST_red"

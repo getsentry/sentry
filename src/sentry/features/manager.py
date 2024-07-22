@@ -9,7 +9,6 @@ from collections import defaultdict
 from collections.abc import Iterable, Mapping, MutableMapping, MutableSet, Sequence
 from typing import TYPE_CHECKING, Any
 
-import sentry_sdk
 from django.conf import settings
 
 from sentry.options import FLAG_AUTOMATOR_MODIFIABLE, register
@@ -62,72 +61,7 @@ class RegisteredFeatureManager:
 
     @abc.abstractmethod
     def _get_feature_class(self, name: str) -> type[Feature]:
-        """
-        We need this abstract method on this class because the `has_for_batch()`
-        method instantiates a `FeatureCheckBatch` and sets `manager` as `self`
-        as a `RegisteredFeatureManager`.
-        """
         raise NotImplementedError
-
-    def has_for_batch(
-        self,
-        name: str,
-        organization: Organization,
-        objects: Sequence[Project],
-        actor: User | None = None,
-    ) -> Mapping[Project, bool]:
-        """
-        Determine in a batch if a feature is enabled.
-
-        This applies the same procedure as ``FeatureManager.has``, but with a
-        performance benefit where the objects being checked all belong to the
-        same organization. The objects are entities (e.g., projects) with the
-        common parent organization, as would be passed individually to ``has``.
-
-        Feature handlers that depend only on organization attributes, and not
-        on attributes of the individual objects being checked, will generally
-        perform faster if this method is used in preference to ``has``.
-
-        The return value is a dictionary with the objects as keys. Each value
-        is what would be returned if the key were passed to ``has``.
-
-        The entity handler can handle both batch project/organization
-        contexts so it'll likely have an entirely different implementation
-        of this functionality.
-
-        >>> FeatureManager.has_for_batch('projects:feature', organization, [project1, project2], actor=request.user)
-        """
-
-        result = dict()
-        remaining = set(objects)
-
-        handlers = self._handler_registry[name]
-        for handler in handlers:
-            if not remaining:
-                break
-
-            with sentry_sdk.start_span(
-                op="feature.has_for_batch.handler",
-                description=f"{type(handler).__name__} ({name})",
-            ) as span:
-                batch_size = len(remaining)
-                span.set_data("Batch Size", batch_size)
-                span.set_data("Feature Name", name)
-                span.set_data("Handler Type", type(handler).__name__)
-
-                batch = FeatureCheckBatch(self, name, organization, remaining, actor)
-                handler_result = handler.has_for_batch(batch)
-                for obj, flag in handler_result.items():
-                    if flag is not None:
-                        remaining.remove(obj)
-                        result[obj] = flag
-                span.set_data("Flags Found", batch_size - len(remaining))
-
-        default_flag = settings.SENTRY_FEATURES.get(name, False)
-        for obj in remaining:
-            result[obj] = default_flag
-
-        return result
 
 
 FLAGPOLE_OPTION_PREFIX = "feature"
@@ -384,6 +318,8 @@ class FeatureCheckBatch:
     An instance of this class encapsulates a call to
     ``FeatureManager.has_for_batch``. The objects (such as projects) have a
     common parent organization.
+
+    :deprecated: Retained for compatibility with getsentry temporarily
     """
 
     def __init__(
