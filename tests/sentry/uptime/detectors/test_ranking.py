@@ -1,18 +1,20 @@
 from datetime import datetime
 from unittest import mock
 
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
 from sentry.uptime.detectors.ranking import (
-    NUMBER_OF_BUCKETS,
     _get_cluster,
     add_base_url_to_rank,
+    build_org_projects_key,
     delete_candidate_urls_for_project,
-    delete_project_bucket,
+    delete_organization_bucket,
+    get_candidate_projects_for_org,
     get_candidate_urls_for_project,
+    get_organization_bucket,
     get_project_base_url_rank_key,
-    get_project_bucket,
-    get_project_bucket_key,
+    should_detect_for_organization,
     should_detect_for_project,
 )
 
@@ -21,13 +23,13 @@ class AddBaseUrlToRankTest(TestCase):
     def assert_project_count(
         self, project: Project, count: int | None, expiry: int | None
     ) -> int | None:
-        key = get_project_bucket_key(project)
+        key = build_org_projects_key(project.organization)
         cluster = _get_cluster()
         if count is None:
-            assert not cluster.hexists(key, str(project.id))
+            assert not cluster.zscore(key, str(project.id))
             return None
         else:
-            assert int(str(cluster.hget(key, str(project.id)))) == count
+            assert int(float(str(cluster.zscore(key, str(project.id))))) == count
             return self.check_expiry(key, expiry)
 
     def assert_url_count(
@@ -104,6 +106,22 @@ class AddBaseUrlToRankTest(TestCase):
             assert cluster.zrange(key, 0, -1) == [url_2, url_1]
 
 
+class GetCandidateProjectsForOrgTest(TestCase):
+    def test(self):
+        assert get_candidate_projects_for_org(self.organization) == []
+        url_1 = "https://sentry.io"
+        url_2 = "https://sentry.sentry.io"
+        add_base_url_to_rank(self.project, url_1)
+        assert get_candidate_projects_for_org(self.organization) == [(self.project.id, 1)]
+        add_base_url_to_rank(self.project, url_2)
+        project_2 = self.create_project()
+        add_base_url_to_rank(project_2, url_2)
+        assert get_candidate_projects_for_org(self.organization) == [
+            (self.project.id, 2),
+            (project_2.id, 1),
+        ]
+
+
 class GetCandidateUrlsForProjectTest(TestCase):
     def test(self):
         assert get_candidate_urls_for_project(self.project) == []
@@ -126,26 +144,28 @@ class DeleteCandidateUrlsForProjectTest(TestCase):
         assert get_candidate_urls_for_project(self.project) == []
 
 
-class GetProjectBucketTest(TestCase):
+class GetOrganizationBucketTest(TestCase):
     def test(self):
-        bucket = datetime.now().replace(second=0, microsecond=0)
-        assert get_project_bucket(bucket) == {}
-        dummy_project_id = int(bucket.timestamp() % NUMBER_OF_BUCKETS)
-        self.project.id = dummy_project_id
+        bucket = datetime(2024, 7, 18, 0, 47)
+        assert get_organization_bucket(bucket) == set()
+        dummy_org_id = 47
+        self.project.organization = Organization(id=dummy_org_id)
+        self.project.organization_id = dummy_org_id
         add_base_url_to_rank(self.project, "https://sentry.io")
-        assert get_project_bucket(bucket) == {self.project.id: 1}
+        assert get_organization_bucket(bucket) == {self.project.organization_id}
 
 
-class DeleteProjectBucketTest(TestCase):
+class DeleteOrganizationBucketTest(TestCase):
     def test(self):
-        bucket = datetime.now().replace(second=0, microsecond=0)
-        delete_project_bucket(bucket)
-        dummy_project_id = int(bucket.timestamp() % NUMBER_OF_BUCKETS)
-        self.project.id = dummy_project_id
+        bucket = datetime(2024, 7, 18, 0, 47)
+        delete_organization_bucket(bucket)
+        dummy_org_id = 1487
+        self.project.organization = Organization(id=dummy_org_id)
+        self.project.organization_id = dummy_org_id
         add_base_url_to_rank(self.project, "https://sentry.io")
-        assert get_project_bucket(bucket) == {self.project.id: 1}
-        delete_project_bucket(bucket)
-        assert get_project_bucket(bucket) == {}
+        assert get_organization_bucket(bucket) == {self.project.organization_id}
+        delete_organization_bucket(bucket)
+        assert get_organization_bucket(bucket) == set()
 
 
 class ShouldDetectForProjectTest(TestCase):
@@ -155,3 +175,12 @@ class ShouldDetectForProjectTest(TestCase):
         assert not should_detect_for_project(self.project)
         self.project.update_option("sentry:uptime_autodetection", True)
         assert should_detect_for_project(self.project)
+
+
+class ShouldDetectForOrgTest(TestCase):
+    def test(self):
+        assert should_detect_for_organization(self.organization)
+        self.organization.update_option("sentry:uptime_autodetection", False)
+        assert not should_detect_for_organization(self.organization)
+        self.organization.update_option("sentry:uptime_autodetection", True)
+        assert should_detect_for_organization(self.organization)

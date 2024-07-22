@@ -177,10 +177,7 @@ function ReplayDetails({params: {replaySlug}}: Props) {
     );
   }
 
-  const isVideoReplay = Boolean(
-    organization.features.includes('session-replay-mobile-player') &&
-      replay?.isVideoReplay()
-  );
+  const isVideoReplay = replay?.isVideoReplay();
 
   return (
     <ReplayContextProvider

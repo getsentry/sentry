@@ -746,6 +746,7 @@ class Columns(Enum):
         alias="app_start_type",
     )
 
+    # For transaction profiles
     PROFILE_ID = Column(
         group_name=None,
         event_name=None,
@@ -754,13 +755,15 @@ class Columns(Enum):
         issue_platform_name="profile_id",
         alias="profile.id",
     )
-    PROFILE_PROFILER_ID = Column(
-        group_name="events.contexts[profile.profiler_id]",
-        event_name="contexts[profile.profiler_id]",
-        transaction_name="contexts[profile.profiler_id]",
-        discover_name="contexts[profile.profiler_id]",
-        issue_platform_name="contexts[profile.profiler_id]",
-        alias="profile.profiler_id",
+
+    # For continuous profiles
+    PROFILER_ID = Column(
+        group_name=None,
+        event_name=None,
+        transaction_name="profiler_id",
+        discover_name="profiler_id",
+        issue_platform_name=None,  # TODO: This doesn't exist yet
+        alias="profiler.id",
     )
 
     REPLAY_ID = Column(

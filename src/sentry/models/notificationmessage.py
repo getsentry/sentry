@@ -1,4 +1,8 @@
-from django.db.models import DateTimeField, IntegerField, Q
+from __future__ import annotations
+
+from typing import Any
+
+from django.db.models import DateTimeField, Field, IntegerField, Q
 from django.db.models.constraints import CheckConstraint, UniqueConstraint
 from django.utils import timezone
 
@@ -36,7 +40,7 @@ class NotificationMessage(Model):
 
     # Related information regarding failed notifications.
     # Leveraged to help give the user visibility into notifications that are consistently failing.
-    error_details = JSONField(null=True)
+    error_details: Field[dict[str, Any] | None, dict[str, Any] | None] = JSONField(null=True)
     error_code = IntegerField(null=True, db_index=True)
 
     # Resulting identifier from the vendor that can be leveraged for future interaction with the notification.

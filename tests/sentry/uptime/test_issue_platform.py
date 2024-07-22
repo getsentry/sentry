@@ -1,19 +1,20 @@
 import datetime
 import uuid
+from hashlib import md5
 from itertools import cycle
 from unittest.mock import patch
-
-from django.conf import settings
 
 from sentry.issues.grouptype import UptimeDomainCheckFailure
 from sentry.issues.issue_occurrence import IssueEvidence, IssueOccurrence
 from sentry.issues.producer import PayloadType
+from sentry.models.group import Group, GroupStatus
 from sentry.testutils.cases import UptimeTestCase
 from sentry.testutils.helpers.datetime import freeze_time
 from sentry.uptime.issue_platform import (
     build_event_data_for_occurrence,
     build_occurrence_from_result,
     create_issue_platform_occurrence,
+    resolve_uptime_issue,
 )
 
 
@@ -48,7 +49,7 @@ class BuildOccurrenceFromResultTest(UptimeTestCase):
         project_subscription = self.create_project_uptime_subscription()
         assert build_occurrence_from_result(result, project_subscription) == IssueOccurrence(
             id=occurrence_id.hex,
-            project_id=settings.UPTIME_POC_PROJECT_ID,
+            project_id=1,
             event_id=event_id.hex,
             fingerprint=[result["subscription_id"]],
             issue_title="Uptime Check Failed for https://sentry.io",
@@ -80,7 +81,7 @@ class BuildEventDataForOccurrenceTest(UptimeTestCase):
         fingerprint = [result["subscription_id"]]
         occurrence = IssueOccurrence(
             id=uuid.uuid4().hex,
-            project_id=settings.UPTIME_POC_PROJECT_ID,
+            project_id=1,
             event_id=event_id.hex,
             fingerprint=fingerprint,
             issue_title="Uptime Check Failed for https://sentry.io",
@@ -99,10 +100,27 @@ class BuildEventDataForOccurrenceTest(UptimeTestCase):
             "event_id": event_id.hex,
             "fingerprint": fingerprint,
             "platform": "other",
-            "project_id": settings.UPTIME_POC_PROJECT_ID,
+            "project_id": 1,
             "received": datetime.datetime.now().replace(microsecond=0),
             "sdk": None,
             "tags": {"subscription_id": result["subscription_id"]},
             "timestamp": occurrence.detection_time.isoformat(),
             "contexts": {"trace": {"trace_id": result["trace_id"], "span_id": None}},
         }
+
+
+class ResolveUptimeIssueTest(UptimeTestCase):
+    def test(self):
+        subscription = self.create_uptime_subscription(subscription_id=uuid.uuid4().hex)
+        project_subscription = self.create_project_uptime_subscription(
+            uptime_subscription=subscription
+        )
+        result = self.create_uptime_result(subscription.subscription_id)
+        with self.feature(UptimeDomainCheckFailure.build_ingest_feature_name()):
+            create_issue_platform_occurrence(result, project_subscription)
+        hashed_fingerprint = md5(str(project_subscription.id).encode("utf-8")).hexdigest()
+        group = Group.objects.get(grouphash__hash=hashed_fingerprint)
+        assert group.status == GroupStatus.UNRESOLVED
+        resolve_uptime_issue(project_subscription)
+        group.refresh_from_db()
+        assert group.status == GroupStatus.RESOLVED

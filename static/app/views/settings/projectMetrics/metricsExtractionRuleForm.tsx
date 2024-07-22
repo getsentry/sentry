@@ -87,7 +87,7 @@ export function explodeAggregateGroup(group: AggregateGroup): MetricAggregation[
     case 'min_max':
       return ['min', 'max', 'sum', 'avg'];
     case 'percentiles':
-      return ['p50', 'p75', 'p95', 'p99'];
+      return ['p50', 'p75', 'p90', 'p95', 'p99'];
     default:
       throw new Error(`Unknown aggregate group: ${group}`);
   }
@@ -107,7 +107,13 @@ export function aggregatesToGroups(aggregates: MetricAggregation[]): AggregateGr
     groups.push('min_max');
   }
 
-  const percentileAggregates = new Set<MetricAggregation>(['p50', 'p75', 'p95', 'p99']);
+  const percentileAggregates = new Set<MetricAggregation>([
+    'p50',
+    'p75',
+    'p90',
+    'p95',
+    'p99',
+  ]);
   if (aggregates.find(aggregate => percentileAggregates.has(aggregate))) {
     groups.push('percentiles');
   }

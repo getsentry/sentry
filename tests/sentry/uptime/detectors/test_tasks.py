@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import timedelta
+from datetime import datetime, timedelta
 from unittest import mock
 from unittest.mock import call
 from urllib.robotparser import RobotFileParser
@@ -8,6 +8,7 @@ from urllib.robotparser import RobotFileParser
 from django.utils import timezone
 
 from sentry.locks import locks
+from sentry.models.organization import Organization
 from sentry.models.project import Project
 from sentry.testutils.cases import TestCase
 from sentry.testutils.helpers import with_feature
@@ -16,7 +17,8 @@ from sentry.uptime.detectors.ranking import (
     NUMBER_OF_BUCKETS,
     _get_cluster,
     add_base_url_to_rank,
-    get_project_bucket,
+    get_organization_bucket,
+    get_project_base_url_rank_key,
 )
 from sentry.uptime.detectors.tasks import (
     LAST_PROCESSED_KEY,
@@ -26,6 +28,7 @@ from sentry.uptime.detectors.tasks import (
     monitor_url_for_project,
     process_candidate_url,
     process_detection_bucket,
+    process_organization_url_ranking,
     process_project_url_ranking,
     schedule_detections,
     set_failed_url,
@@ -90,28 +93,89 @@ class ScheduleDetectionsTest(TestCase):
 class ProcessDetectionBucketTest(TestCase):
     def test_empty_bucket(self):
         with mock.patch(
-            "sentry.uptime.detectors.tasks.process_project_url_ranking"
+            "sentry.uptime.detectors.tasks.process_organization_url_ranking"
         ) as mock_process_project_url_ranking:
             process_detection_bucket(timezone.now().replace(second=0, microsecond=0))
             mock_process_project_url_ranking.delay.assert_not_called()
 
     def test_bucket(self):
-        bucket = timezone.now().replace(second=0, microsecond=0)
-        dummy_project_id = int(bucket.timestamp() % NUMBER_OF_BUCKETS)
-        self.project.id = dummy_project_id
-        other_project = Project(dummy_project_id + NUMBER_OF_BUCKETS)
+        bucket = datetime(2024, 7, 18, 0, 21)
+        dummy_organization_id = 21
+
+        self.project.organization = Organization(id=dummy_organization_id)
+
+        other_project = Project(
+            id=1245, organization=Organization(id=dummy_organization_id + NUMBER_OF_BUCKETS)
+        )
         add_base_url_to_rank(self.project, "https://sentry.io")
         add_base_url_to_rank(other_project, "https://sentry.io")
 
         with mock.patch(
-            "sentry.uptime.detectors.tasks.process_project_url_ranking"
-        ) as mock_process_project_url_ranking:
+            "sentry.uptime.detectors.tasks.process_organization_url_ranking"
+        ) as mock_process_organization_url_ranking:
             process_detection_bucket(bucket)
-            mock_process_project_url_ranking.delay.assert_has_calls(
-                [call(self.project.id, 1), call(other_project.id, 1)], any_order=True
+            mock_process_organization_url_ranking.delay.assert_has_calls(
+                [call(self.project.organization.id), call(other_project.organization.id)],
+                any_order=True,
             )
 
-        assert get_project_bucket(bucket) == {}
+        assert get_organization_bucket(bucket) == set()
+
+
+@freeze_time()
+class ProcessOrganizationUrlRankingTest(TestCase):
+    def test(self):
+        # TODO: Better testing for this function when we implement things that happen on success
+        url_1 = "https://sentry.io"
+        url_2 = "https://sentry.sentry.io"
+        project_2 = self.create_project()
+        add_base_url_to_rank(self.project, url_2)
+        add_base_url_to_rank(self.project, url_1)
+        add_base_url_to_rank(self.project, url_1)
+        add_base_url_to_rank(project_2, url_1)
+        with mock.patch(
+            "sentry.uptime.detectors.tasks.process_project_url_ranking",
+            return_value=False,
+        ) as mock_process_project_url_ranking:
+            process_organization_url_ranking(self.organization)
+            mock_process_project_url_ranking.assert_has_calls(
+                [
+                    call(self.project, 3),
+                    call(project_2, 1),
+                ]
+            )
+
+    def test_should_not_detect_project(self):
+        with mock.patch(
+            "sentry.uptime.detectors.tasks.get_candidate_urls_for_project"
+        ) as mock_get_candidate_urls_for_project:
+            self.project.update_option("sentry:uptime_autodetection", False)
+            assert not process_project_url_ranking(self.project, 5)
+            mock_get_candidate_urls_for_project.assert_not_called()
+
+    def test_should_not_detect_organization(self):
+        url_1 = "https://sentry.io"
+        url_2 = "https://sentry.sentry.io"
+        project_2 = self.create_project()
+        add_base_url_to_rank(self.project, url_2)
+        add_base_url_to_rank(self.project, url_1)
+        add_base_url_to_rank(self.project, url_1)
+        add_base_url_to_rank(project_2, url_1)
+
+        keys = [
+            get_project_base_url_rank_key(self.project),
+            get_project_base_url_rank_key(project_2),
+        ]
+        redis = _get_cluster()
+        assert all(redis.exists(key) for key in keys)
+
+        with mock.patch(
+            "sentry.uptime.detectors.tasks.get_candidate_urls_for_project"
+        ) as mock_get_candidate_urls_for_project:
+            self.organization.update_option("sentry:uptime_autodetection", False)
+            assert not process_organization_url_ranking(self.organization.id)
+            mock_get_candidate_urls_for_project.assert_not_called()
+            assert all(not redis.exists(key) for key in keys)
 
 
 @freeze_time()
@@ -127,7 +191,7 @@ class ProcessProjectUrlRankingTest(TestCase):
             "sentry.uptime.detectors.tasks.process_candidate_url",
             return_value=False,
         ) as mock_process_candidate_url:
-            process_project_url_ranking(self.project.id, 5)
+            assert not process_project_url_ranking(self.project, 5)
             mock_process_candidate_url.assert_has_calls(
                 [
                     call(self.project, 5, url_1, 2),
@@ -140,7 +204,7 @@ class ProcessProjectUrlRankingTest(TestCase):
         with mock.patch(
             "sentry.uptime.detectors.tasks.get_candidate_urls_for_project"
         ) as mock_get_candidate_urls_for_project:
-            process_project_url_ranking(self.project.id, 5)
+            assert not process_project_url_ranking(self.project, 5)
             mock_get_candidate_urls_for_project.assert_not_called()
 
 

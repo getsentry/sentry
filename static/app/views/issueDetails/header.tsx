@@ -1,4 +1,4 @@
-import {Fragment, useMemo} from 'react';
+import {Fragment, useEffect, useMemo} from 'react';
 import styled from '@emotion/styled';
 import type {LocationDescriptor} from 'history';
 import omit from 'lodash/omit';
@@ -20,7 +20,8 @@ import {IconChat} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Event, Group, Organization, Project} from 'sentry/types';
-import {IssueCategory} from 'sentry/types/group';
+import {IssueCategory, IssueType} from 'sentry/types/group';
+import {trackAnalytics} from 'sentry/utils/analytics';
 import {getMessage} from 'sentry/utils/events';
 import {getConfigForIssueType} from 'sentry/utils/issueTypeConfig';
 import useReplayCountForIssues from 'sentry/utils/replayCount/useReplayCountForIssues';
@@ -82,6 +83,12 @@ function GroupHeaderTabs({
   useRouteAnalyticsParams({
     group_has_replay: (replaysCount ?? 0) > 0,
   });
+
+  useEffect(() => {
+    if (group.issueType === IssueType.REPLAY_HYDRATION_ERROR) {
+      trackAnalytics('replay.hydration-error.issue-details-opened', {organization});
+    }
+  }, [group.issueType, organization]);
 
   return (
     <StyledTabList hideBorder>
@@ -236,6 +243,8 @@ function GroupHeader({
 
   const issueTypeConfig = getConfigForIssueType(group, project);
 
+  const NEW_ISSUE_TYPES = [IssueType.REPLAY_HYDRATION_ERROR]; // adds a "new" banner next to the title
+
   return (
     <Layout.Header>
       <div className={className}>
@@ -264,9 +273,7 @@ function GroupHeader({
         <HeaderRow>
           <TitleWrapper>
             <TitleHeading>
-              {group.issueCategory === IssueCategory.REPLAY && (
-                <StyledFeatureBadge type="new" />
-              )}
+              {group.issueType in NEW_ISSUE_TYPES && <StyledFeatureBadge type="new" />}
               <h3>
                 <StyledEventOrGroupTitle data={group} />
               </h3>

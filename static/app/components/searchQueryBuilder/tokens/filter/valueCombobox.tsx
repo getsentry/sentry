@@ -10,6 +10,7 @@ import {useSearchQueryBuilder} from 'sentry/components/searchQueryBuilder/contex
 import {SearchQueryBuilderCombobox} from 'sentry/components/searchQueryBuilder/tokens/combobox';
 import {parseFilterValueDate} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/date/parser';
 import {parseFilterValueDuration} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/duration/parser';
+import {parseFilterValuePercentage} from 'sentry/components/searchQueryBuilder/tokens/filter/parsers/percentage/parser';
 import SpecificDatePicker from 'sentry/components/searchQueryBuilder/tokens/filter/specificDatePicker';
 import {
   escapeTagValue,
@@ -379,6 +380,8 @@ function getPredefinedValues({
         return getNumericSuggestions(filterValue);
       case FieldValueType.DURATION:
         return getDurationSuggestions(filterValue, token);
+      case FieldValueType.PERCENTAGE:
+        return [];
       case FieldValueType.BOOLEAN:
         return DEFAULT_BOOLEAN_SUGGESTIONS;
       case FieldValueType.DATE:
@@ -479,6 +482,18 @@ function cleanFilterValue(
         return `${parsed.value}ms`;
       }
       return value;
+    }
+    case FieldValueType.PERCENTAGE: {
+      const parsed = parseFilterValuePercentage(value);
+      if (!parsed) {
+        return null;
+      }
+      // If the user passes "50%", convert to 0.5
+      if (parsed.unit) {
+        const numericValue = parseFloat(parsed.value);
+        return isNaN(numericValue) ? parsed.value : (numericValue / 100).toString();
+      }
+      return parsed.value;
     }
     case FieldValueType.DATE:
       const parsed = parseFilterValueDate(value);
@@ -660,7 +675,11 @@ function ItemCheckbox({
   const {dispatch} = useSearchQueryBuilder();
 
   return (
-    <TrailingWrap onPointerUp={e => e.stopPropagation()}>
+    <TrailingWrap
+      onPointerUp={e => e.stopPropagation()}
+      onMouseUp={e => e.stopPropagation()}
+      onClick={e => e.stopPropagation()}
+    >
       <CheckWrap visible={isFocused || selected} role="presentation">
         <Checkbox
           size="sm"
@@ -673,7 +692,7 @@ function ItemCheckbox({
               value: escapeTagValue(value),
             });
           }}
-          aria-label={t('Select %s', value)}
+          aria-label={t('Toggle %s', value)}
           tabIndex={-1}
         />
       </CheckWrap>
@@ -740,7 +759,9 @@ export function SearchQueryBuilderValueCombobox({
     if (canSelectMultipleValues) {
       setInputValue(getMultiSelectInputValue(token));
     }
-  }, [canSelectMultipleValues, token]);
+    // We want to avoid resetting the input value if the token text doesn't actually change
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [canSelectMultipleValues, token.text]);
 
   // On mount, scroll to the end of the input
   useEffect(() => {

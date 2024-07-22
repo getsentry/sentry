@@ -99,6 +99,7 @@ function getInitialFilterText(key: string, fieldDefinition: FieldDefinition | nu
     case FieldValueType.INTEGER:
     case FieldValueType.NUMBER:
     case FieldValueType.DURATION:
+    case FieldValueType.PERCENTAGE:
       return `${key}:>${defaultValue}`;
     case FieldValueType.STRING:
     default:

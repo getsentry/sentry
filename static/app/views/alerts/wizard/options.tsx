@@ -64,7 +64,10 @@ export enum MEPAlertsDataset {
 
 export type MetricAlertType = Exclude<AlertType, 'issues'>;
 
-export const DatasetMEPAlertQueryTypes: Record<Dataset, MEPAlertsQueryType> = {
+export const DatasetMEPAlertQueryTypes: Record<
+  Exclude<Dataset, 'search_issues'>, // IssuePlatform (search_issues) is not used in alerts, so we can exclude it here
+  MEPAlertsQueryType
+> = {
   [Dataset.ERRORS]: MEPAlertsQueryType.ERROR,
   [Dataset.TRANSACTIONS]: MEPAlertsQueryType.PERFORMANCE,
   [Dataset.GENERIC_METRICS]: MEPAlertsQueryType.PERFORMANCE,

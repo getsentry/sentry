@@ -271,11 +271,8 @@ def get_rules_to_fire(
                     if action_match == "any":
                         rules_to_fire[alert_rule].add(group_id)
                         break
-                    conditions_matched += 1
-                else:
-                    if action_match == "all":
-                        # We failed to match all conditions for this group, skip
-                        break
+                    elif action_match == "all":
+                        conditions_matched += 1
             if action_match == "all" and conditions_matched == len(slow_conditions):
                 rules_to_fire[alert_rule].add(group_id)
     return rules_to_fire
@@ -384,14 +381,13 @@ def get_group_to_groupevent(
     bulk_occurrence_id_to_occurrence = {
         occurrence.id: occurrence for occurrence in bulk_occurrences if occurrence
     }
-    group_to_groupevent = build_group_to_groupevent(
+    return build_group_to_groupevent(
         parsed_rulegroup_to_event_data,
         bulk_event_id_to_events,
         bulk_occurrence_id_to_occurrence,
         group_id_to_group,
         project_id,
     )
-    return group_to_groupevent
 
 
 def bucket_num_groups(num_groups: int) -> str:
@@ -432,7 +428,16 @@ def apply_delayed(project_id: int, *args: Any, **kwargs: Any) -> None:
     Grab rules, groups, and events from the Redis buffer, evaluate the "slow" conditions in a bulk snuba query, and fire them if they pass
     """
     # STEP 1: Fetch the rulegroup_to_event_data mapping for the project from redis
-    project = Project.objects.get_from_cache(id=project_id)
+    try:
+        project = Project.objects.get_from_cache(id=project_id)
+    except Project.DoesNotExist:
+        # The TTL of the buffer is 1 hr so the rule_group to event data for the
+        # nonexistent project will eventually be cleaned up.
+        logger.info(
+            "delayed_processing.project_does_not_exist",
+            extra={"project_id": project_id},
+        )
+        return
     rulegroup_to_event_data = buffer.backend.get_hash(
         model=Project, field={"project_id": project.id}
     )

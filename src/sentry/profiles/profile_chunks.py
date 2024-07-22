@@ -1,8 +1,7 @@
-from datetime import datetime
-
-from snuba_sdk import Column, Condition, Direction, Function, Op, OrderBy, Query, Request, Storage
+from snuba_sdk import Column, Condition, Direction, Op, OrderBy, Query, Request, Storage
 
 from sentry import options
+from sentry.search.events.fields import resolve_datetime64
 from sentry.search.events.types import ParamsType
 from sentry.snuba.dataset import Dataset, StorageKey
 from sentry.snuba.referrer import Referrer
@@ -55,23 +54,3 @@ def get_chunk_ids(
     )
 
     return [row["chunk_id"] for row in result["data"]]
-
-
-def resolve_datetime64(value: datetime | None, precision: int = 6) -> Function | None:
-    # This is normally handled by the snuba-sdk but it assumes that the underlying
-    # table uses DateTime. Because we use DateTime64(6) as the underlying column,
-    # we need to cast to the same type or we risk truncating the timestamp which
-    # can lead to subtle errors.
-
-    if value is None:
-        return None
-
-    if isinstance(value, datetime) and value.tzinfo is not None:
-        # This is adapted from snuba-sdk
-        # See https://github.com/getsentry/snuba-sdk/blob/2f7f014920b4f527a87f18c05b6aa818212bec6e/snuba_sdk/visitors.py#L168-L172
-        delta = value.utcoffset()
-        assert delta is not None
-        value -= delta
-        value = value.replace(tzinfo=None)
-
-    return Function("toDateTime64", [value.isoformat(), precision])

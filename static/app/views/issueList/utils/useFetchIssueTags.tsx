@@ -1,3 +1,5 @@
+import {useMemo} from 'react';
+
 import {useFetchOrganizationTags} from 'sentry/actionCreators/tags';
 import {ItemType, type SearchGroup} from 'sentry/components/smartSearchBar/types';
 import {escapeTagValue} from 'sentry/components/smartSearchBar/utils';
@@ -64,7 +66,7 @@ export const useFetchIssueTags = ({
     {
       orgSlug: org.slug,
       projectIds,
-      dataset: 'search_issues',
+      dataset: Dataset.ISSUE_PLATFORM,
       useCache,
       enabled,
       keepPreviousData,
@@ -73,67 +75,71 @@ export const useFetchIssueTags = ({
     {}
   );
 
-  const userTeams = teams.filter(team => team.isMember).map(team => `#${team.slug}`);
-  const usernames: string[] = members.map(getUsername);
-  const nonMemberTeams = teams
-    .filter(team => !team.isMember)
-    .map(team => `#${team.slug}`);
+  const allTags = useMemo(() => {
+    const userTeams = teams.filter(team => team.isMember).map(team => `#${team.slug}`);
+    const usernames: string[] = members.map(getUsername);
+    const nonMemberTeams = teams
+      .filter(team => !team.isMember)
+      .map(team => `#${team.slug}`);
 
-  const suggestedAssignees: string[] = [
-    'me',
-    'my_teams',
-    'none',
-    // New search builder only works with single value suggestions
-    ...(org.features.includes('issue-stream-search-query-builder')
-      ? []
-      : ['[me, my_teams, none]']),
-    ...userTeams,
-  ];
-  const assignedValues: SearchGroup[] | string[] = [
-    {
-      title: t('Suggested Values'),
-      type: 'header',
-      icon: <IconStar size="xs" />,
-      children: suggestedAssignees.map(convertToSearchItem),
-    },
-    {
-      title: t('All Values'),
-      type: 'header',
-      icon: <IconUser size="xs" />,
-      children: [
-        ...usernames.map(convertToSearchItem),
-        ...nonMemberTeams.map(convertToSearchItem),
-      ],
-    },
-  ];
-  const eventsTags: Tag[] = eventsTagsQuery.data || [];
-  const issuePlatformTags: Tag[] = issuePlatformTagsQuery.data || [];
+    const suggestedAssignees: string[] = [
+      'me',
+      'my_teams',
+      'none',
+      // New search builder only works with single value suggestions
+      ...(org.features.includes('issue-stream-search-query-builder')
+        ? []
+        : ['[me, my_teams, none]']),
+      ...userTeams,
+    ];
 
-  const allTagsCollection: TagCollection = eventsTags.reduce<TagCollection>(
-    (acc, tag) => {
-      acc[tag.key] = {...tag, kind: FieldKind.TAG};
-      return acc;
-    },
-    {}
-  );
-  issuePlatformTags.forEach(tag => {
-    if (allTagsCollection[tag.key]) {
-      allTagsCollection[tag.key].totalValues =
-        (allTagsCollection[tag.key].totalValues ?? 0) + (tag.totalValues ?? 0);
-    } else {
-      allTagsCollection[tag.key] = {...tag, kind: FieldKind.TAG};
-    }
-  });
+    const assignedValues: SearchGroup[] | string[] = [
+      {
+        title: t('Suggested Values'),
+        type: 'header',
+        icon: <IconStar size="xs" />,
+        children: suggestedAssignees.map(convertToSearchItem),
+      },
+      {
+        title: t('All Values'),
+        type: 'header',
+        icon: <IconUser size="xs" />,
+        children: [
+          ...usernames.map(convertToSearchItem),
+          ...nonMemberTeams.map(convertToSearchItem),
+        ],
+      },
+    ];
 
-  const additionalTags = builtInIssuesFields(org, allTagsCollection, assignedValues, [
-    'me',
-    ...usernames,
-  ]);
+    const eventsTags: Tag[] = eventsTagsQuery.data || [];
+    const issuePlatformTags: Tag[] = issuePlatformTagsQuery.data || [];
 
-  const allTags = {
-    ...allTagsCollection,
-    ...additionalTags,
-  };
+    const allTagsCollection: TagCollection = eventsTags.reduce<TagCollection>(
+      (acc, tag) => {
+        acc[tag.key] = {...tag, kind: FieldKind.TAG};
+        return acc;
+      },
+      {}
+    );
+    issuePlatformTags.forEach(tag => {
+      if (allTagsCollection[tag.key]) {
+        allTagsCollection[tag.key].totalValues =
+          (allTagsCollection[tag.key].totalValues ?? 0) + (tag.totalValues ?? 0);
+      } else {
+        allTagsCollection[tag.key] = {...tag, kind: FieldKind.TAG};
+      }
+    });
+
+    const additionalTags = builtInIssuesFields(org, allTagsCollection, assignedValues, [
+      'me',
+      ...usernames,
+    ]);
+
+    return {
+      ...allTagsCollection,
+      ...additionalTags,
+    };
+  }, [eventsTagsQuery.data, issuePlatformTagsQuery.data, members, org, teams]);
 
   return {
     tags: allTags,
