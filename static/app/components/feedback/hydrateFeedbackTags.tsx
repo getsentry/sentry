@@ -28,7 +28,7 @@ export default function hydrateFeedbackTags(
       ? {transaction: eventTags.find(e => e.key === 'transaction')?.value}
       : {}),
     ...(eventData.platform
-      ? {platform: issueData?.project.platform ?? eventData.platform}
+      ? {platform: issueData?.project?.platform ?? eventData.platform}
       : {}),
     ...(eventData.sdk?.name ? {'sdk.name': eventData.sdk?.name} : {}),
     ...(eventData.sdk?.version ? {'sdk.version': eventData.sdk?.version} : {}),

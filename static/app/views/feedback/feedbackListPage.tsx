@@ -15,6 +15,7 @@ import useHaveSelectedProjectsSetupFeedback, {
   useHaveSelectedProjectsSetupNewFeedback,
 } from 'sentry/components/feedback/useFeedbackOnboarding';
 import {FeedbackQueryKeys} from 'sentry/components/feedback/useFeedbackQueryKeys';
+import useRedirectToFeedbackFromEvent from 'sentry/components/feedback/useRedirectToFeedbackFromEvent';
 import FullViewport from 'sentry/components/layouts/fullViewport';
 import * as Layout from 'sentry/components/layouts/thirds';
 import PageFiltersContainer from 'sentry/components/organizations/pageFilters/container';
@@ -37,8 +38,10 @@ export default function FeedbackListPage({}: Props) {
 
   const showWhatsNewBanner = hasSetupOneFeedback && !hasSetupNewFeedback;
 
-  const feedbackSlug = useCurrentFeedbackId();
-  const hasSlug = Boolean(feedbackSlug);
+  useRedirectToFeedbackFromEvent();
+
+  const feedbackId = useCurrentFeedbackId();
+  const hasSlug = Boolean(feedbackId);
 
   const pageFilters = usePageFilters();
   const projects = useProjects();

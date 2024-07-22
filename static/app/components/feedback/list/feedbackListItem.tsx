@@ -16,7 +16,7 @@ import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Group} from 'sentry/types/group';
 import {trackAnalytics} from 'sentry/utils/analytics';
-import type {FeedbackIssue} from 'sentry/utils/feedback/types';
+import type {FeedbackIssueListItem} from 'sentry/utils/feedback/types';
 import {decodeScalar} from 'sentry/utils/queryString';
 import useReplayCountForFeedbacks from 'sentry/utils/replayCount/useReplayCountForFeedbacks';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
@@ -25,13 +25,13 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 
 interface Props {
-  feedbackItem: FeedbackIssue;
+  feedbackItem: FeedbackIssueListItem;
   isSelected: 'all-selected' | boolean;
   onSelect: (isSelected: boolean) => void;
   style?: CSSProperties;
 }
 
-function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssue}) {
+function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssueListItem}) {
   const {feedbackSlug} = useLocationQuery({
     fields: {feedbackSlug: decodeScalar},
   });
@@ -39,7 +39,12 @@ function useIsSelectedFeedback({feedbackItem}: {feedbackItem: FeedbackIssue}) {
   return feedbackId === feedbackItem.id;
 }
 
-function FeedbackListItem({feedbackItem, isSelected, onSelect, style}: Props) {
+export default function FeedbackListItem({
+  feedbackItem,
+  isSelected,
+  onSelect,
+  style,
+}: Props) {
   const organization = useOrganization();
   const isOpen = useIsSelectedFeedback({feedbackItem});
   const {feedbackHasReplay} = useReplayCountForFeedbacks();
@@ -60,7 +65,7 @@ function FeedbackListItem({feedbackItem, isSelected, onSelect, style}: Props) {
           query: {
             ...location.query,
             referrer: 'feedback_list_page',
-            feedbackSlug: `${feedbackItem.project.slug}:${feedbackItem.id}`,
+            feedbackSlug: `${feedbackItem.project?.slug}:${feedbackItem.id}`,
           },
         }}
         onClick={() => {
@@ -110,12 +115,14 @@ function FeedbackListItem({feedbackItem, isSelected, onSelect, style}: Props) {
 
         <BottomGrid style={{gridArea: 'bottom'}}>
           <Row justify="flex-start" gap={space(0.75)}>
-            <StyledProjectBadge
-              project={feedbackItem.project}
-              avatarSize={14}
-              hideName
-              avatarProps={{hasTooltip: false}}
-            />
+            {feedbackItem.project ? (
+              <StyledProjectBadge
+                project={feedbackItem.project}
+                avatarSize={14}
+                hideName
+                avatarProps={{hasTooltip: false}}
+              />
+            ) : null}
             <ShortId>{feedbackItem.shortId}</ShortId>
           </Row>
 
@@ -246,5 +253,3 @@ const StyledTimeSince = styled(TimeSince)`
 const CardSpacing = styled('div')`
   padding: ${space(0.5)} ${space(0.5)} 0 ${space(0.5)};
 `;
-
-export default FeedbackListItem;
