@@ -232,6 +232,7 @@ class TagStorage(Service):
         key,
         start=None,
         end=None,
+        dataset: Dataset | None = None,
         query=None,
         order_by="-last_seen",
         include_transactions: bool = False,
