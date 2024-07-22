@@ -152,7 +152,7 @@ const SPECIAL_FIELDS: SpecialFields = {
           <LinksContainer>
             {links.map((link, index) => (
               <ExternalLink key={index} href={link.url}>
-                {link.display_name}
+                {link.displayName}
               </ExternalLink>
             ))}
           </LinksContainer>

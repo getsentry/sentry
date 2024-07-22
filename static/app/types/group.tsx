@@ -300,7 +300,7 @@ export type TagWithTopValues = {
  * Inbox, issue owners and Activity
  */
 export type Annotation = {
-  display_name: string;
+  displayName: string;
   url: string;
 };
 

@@ -105,7 +105,7 @@ function EventOrGroupExtraDetails({data, showAssignee, organization}: Props) {
           />
         ) : (
           <AnnotationNoMargin key={key}>
-            <ExternalLink href={annotation.url}>{annotation.display_name}</ExternalLink>
+            <ExternalLink href={annotation.url}>{annotation.displayName}</ExternalLink>
           </AnnotationNoMargin>
         )
       )}
