@@ -2,6 +2,7 @@ from collections import defaultdict
 
 import orjson
 
+from sentry import features
 from sentry.api.serializers import Serializer, register, serialize
 from sentry.constants import ALL_ACCESS_PROJECTS
 from sentry.models.dashboard import Dashboard
@@ -36,6 +37,21 @@ class DashboardWidgetSerializer(Serializer):
         return result
 
     def serialize(self, obj, attrs, user, **kwargs):
+        widget_type = (
+            DashboardWidgetTypes.get_type_name(obj.widget_type)
+            or DashboardWidgetTypes.TYPE_NAMES[0]
+        )
+
+        if (
+            features.has(
+                "organizations:performance-discover-dataset-selector",
+                obj.dashboard.organization,
+                actor=user,
+            )
+            and obj.discover_widget_split is not None
+        ):
+            widget_type = DashboardWidgetTypes.get_type_name(obj.discover_widget_split)
+
         return {
             "id": str(obj.id),
             "title": obj.title,
@@ -49,8 +65,7 @@ class DashboardWidgetSerializer(Serializer):
             "queries": attrs["queries"],
             "limit": obj.limit,
             # Default to discover type if null
-            "widgetType": DashboardWidgetTypes.get_type_name(obj.widget_type)
-            or DashboardWidgetTypes.TYPE_NAMES[0],
+            "widgetType": widget_type,
             "layout": obj.detail.get("layout") if obj.detail else None,
         }
 
