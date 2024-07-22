@@ -40,7 +40,9 @@ class Actor(RpcModel):
         pass
 
     @classmethod
-    def resolve_many(cls, actors: Sequence["Actor"]) -> list["Team | RpcUser"]:
+    def resolve_many(
+        cls, actors: Sequence["Actor"], filter_none: bool = True
+    ) -> list["Team | RpcUser | None"]:
         """
         Resolve a list of actors in a batch to the Team/User the Actor references.
 
@@ -64,7 +66,10 @@ class Actor(RpcModel):
                 for team in Team.objects.filter(id__in=[t.id for t in actor_list]):
                     results[(actor_type, team.id)] = team
 
-        return list(filter(None, [results.get((actor.actor_type, actor.id)) for actor in actors]))
+        final_results = [results.get((actor.actor_type, actor.id)) for actor in actors]
+        if filter_none:
+            final_results = list(filter(None, final_results))
+        return final_results
 
     @classmethod
     def many_from_object(cls, objects: Iterable[ActorTarget]) -> list["Actor"]:
