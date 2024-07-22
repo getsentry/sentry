@@ -22,7 +22,7 @@ import {
   BrowserStarfishFields,
   useResourceModuleFilters,
 } from 'sentry/views/insights/browser/resources/utils/useResourceFilters';
-import {ModulePageFilterBar} from 'sentry/views/insights/common/components/ModulePageFilterBar';
+import {ModuleLandingPageFilterBar} from 'sentry/views/insights/common/components/ModulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
@@ -62,7 +62,7 @@ function ResourcesLandingPage() {
           <Layout.Main fullWidth>
             <PageAlert />
             <FilterOptionsContainer columnCount={2}>
-              <ModulePageFilterBar moduleName={ModuleName.RESOURCE} />
+              <ModuleLandingPageFilterBar moduleName={ModuleName.RESOURCE} />
               {hasModuleData && (
                 <DomainSelector
                   emptyOptionLocation="top"

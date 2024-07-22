@@ -9,10 +9,6 @@ import ButtonBar from 'sentry/components/buttonBar';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
 import ExternalLink from 'sentry/components/links/externalLink';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {Tooltip} from 'sentry/components/tooltip';
 import {t, tct} from 'sentry/locale';
@@ -34,6 +30,7 @@ import {
 } from 'sentry/views/insights/browser/webVitals/settings';
 import type {WebVitals} from 'sentry/views/insights/browser/webVitals/types';
 import decodeBrowserTypes from 'sentry/views/insights/browser/webVitals/utils/queryParameterDecoders/browserType';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/ModulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
@@ -90,11 +87,7 @@ export function WebVitalsLandingPage() {
       <Layout.Body>
         <Layout.Main fullWidth>
           <TopMenuContainer>
-            <PageFilterBar condensed>
-              <ProjectPageFilter />
-              <EnvironmentPageFilter />
-              <DatePageFilter />
-            </PageFilterBar>
+            <ModulePageFilterBar moduleName={ModuleName.VITAL} />
             {hasModuleData && <BrowserTypeSelector />}
           </TopMenuContainer>
           <MainContentContainer>

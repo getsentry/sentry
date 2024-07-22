@@ -16,7 +16,7 @@ import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
 import {useSynchronizeCharts} from 'sentry/views/insights/common/components/chart';
 import * as ModuleLayout from 'sentry/views/insights/common/components/moduleLayout';
-import {ModulePageFilterBar} from 'sentry/views/insights/common/components/ModulePageFilterBar';
+import {ModuleLandingPageFilterBar} from 'sentry/views/insights/common/components/ModulePageFilterBar';
 import {ModulePageProviders} from 'sentry/views/insights/common/components/modulePageProviders';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {useSpanMetrics} from 'sentry/views/insights/common/queries/useDiscover';
@@ -171,7 +171,7 @@ export function HTTPLandingPage() {
         <Layout.Main fullWidth>
           <ModuleLayout.Layout>
             <ModuleLayout.Full>
-              <ModulePageFilterBar moduleName={ModuleName.HTTP} />
+              <ModuleLandingPageFilterBar moduleName={ModuleName.HTTP} />
             </ModuleLayout.Full>
 
             <ModulesOnboarding moduleName={ModuleName.HTTP}>

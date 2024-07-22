@@ -1,4 +1,4 @@
-import {useEffect, useState} from 'react';
+import {type ComponentProps, useEffect, useState} from 'react';
 
 import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
@@ -13,11 +13,12 @@ import type {ModuleName} from 'sentry/views/insights/types';
 
 type Props = {
   moduleName: ModuleName;
+  onProjectChange?: ComponentProps<typeof ProjectPageFilter>['onChange'];
 };
 
 const CHANGE_PROJECT_TEXT = t('Make sure you have the correct project selected.');
 
-export function ModulePageFilterBar({moduleName}: Props) {
+export function ModulePageFilterBar({moduleName, onProjectChange}: Props) {
   const {projects: allProjects} = useProjects();
 
   const hasDataWithSelectedProjects = useHasFirstSpan(moduleName);
@@ -57,7 +58,7 @@ export function ModulePageFilterBar({moduleName}: Props) {
         position="bottom-start"
         disabled={!showTooltip}
       >
-        <ProjectPageFilter />
+        <ProjectPageFilter onChange={onProjectChange} />
       </Tooltip>
       <EnvironmentPageFilter />
       <DatePageFilter />

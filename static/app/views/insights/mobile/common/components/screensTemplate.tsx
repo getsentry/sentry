@@ -7,15 +7,12 @@ import ButtonBar from 'sentry/components/buttonBar';
 import ErrorBoundary from 'sentry/components/errorBoundary';
 import FeedbackWidgetButton from 'sentry/components/feedback/widget/feedbackWidgetButton';
 import * as Layout from 'sentry/components/layouts/thirds';
-import {DatePageFilter} from 'sentry/components/organizations/datePageFilter';
-import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import PageFilterBar from 'sentry/components/organizations/pageFilterBar';
-import {ProjectPageFilter} from 'sentry/components/organizations/projectPageFilter';
 import {PageHeadingQuestionTooltip} from 'sentry/components/pageHeadingQuestionTooltip';
 import {space} from 'sentry/styles/space';
 import {browserHistory} from 'sentry/utils/browserHistory';
 import {PageAlert, PageAlertProvider} from 'sentry/utils/performance/contexts/pageAlert';
 import {useLocation} from 'sentry/utils/useLocation';
+import {ModulePageFilterBar} from 'sentry/views/insights/common/components/ModulePageFilterBar';
 import {ModulesOnboarding} from 'sentry/views/insights/common/components/modulesOnboarding';
 import {ReleaseComparisonSelector} from 'sentry/views/insights/common/components/releaseSelector';
 import {useHasFirstSpan} from 'sentry/views/insights/common/queries/useHasFirstSpan';
@@ -81,11 +78,10 @@ export default function ScreensTemplate({
         <Layout.Body>
           <Layout.Main fullWidth>
             <Container>
-              <PageFilterBar condensed>
-                <ProjectPageFilter onChange={handleProjectChange} />
-                <EnvironmentPageFilter />
-                <DatePageFilter />
-              </PageFilterBar>
+              <ModulePageFilterBar
+                moduleName={moduleName}
+                onProjectChange={handleProjectChange}
+              />
               {hasModuleData && (
                 <Fragment>
                   <ReleaseComparisonSelector />
