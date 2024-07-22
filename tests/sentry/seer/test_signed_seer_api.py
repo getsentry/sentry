@@ -10,7 +10,7 @@ REQUEST_BODY = b'{"b": 12, "thing": "thing"}'
 PATH = "/v0/some/url"
 
 
-def run_test_case(timeout: int | None = None):
+def run_test_case(path: str = PATH, timeout: int | None = None):
     """
     Make a mock connection pool, call `make_signed_seer_api_request` on it, and return the
     pool's `urlopen` method, so we can make assertions on how `make_signed_seer_api_request`
@@ -23,7 +23,7 @@ def run_test_case(timeout: int | None = None):
     with override_settings(SEER_API_SHARED_SECRET="secret-one"):
         make_signed_seer_api_request(
             mock,
-            path=PATH,
+            path=path,
             body=REQUEST_BODY,
             timeout=timeout,
         )
