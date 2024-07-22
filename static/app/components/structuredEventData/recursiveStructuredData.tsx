@@ -5,10 +5,10 @@ import AnnotatedValue from 'sentry/components/structuredEventData/annotatedValue
 import {CollapsibleValue} from 'sentry/components/structuredEventData/collapsibleValue';
 import LinkHint from 'sentry/components/structuredEventData/linkHint';
 import {
-  looksLikeMultiLineString,
   looksLikeStrippedValue,
   naturalCaseInsensitiveSort,
 } from 'sentry/components/structuredEventData/utils';
+import containsCRLF from 'sentry/utils/string/containsCRLF';
 
 type Config = {
   isBoolean?: (value: unknown) => boolean;
@@ -146,7 +146,7 @@ export function RecursiveStructuredData({
       );
     }
 
-    if (looksLikeMultiLineString(value)) {
+    if (containsCRLF(value)) {
       return (
         <Wrapper>
           <ValueMultiLineString data-test-id="value-multiline-string">

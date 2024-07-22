@@ -24,7 +24,6 @@ export function CollapsibleValue({
 }: Props) {
   const {collapse, expand, isExpanded: isInitiallyExpanded} = useExpandedState({path});
   const [isExpanded, setIsExpanded] = useState(isInitiallyExpanded);
-  // const isExpanded = expandedPaths.includes(path);
 
   const numChildren = Children.count(children);
 

@@ -1,35 +1,6 @@
 import isPlainObject from 'lodash/isPlainObject';
 
-const STRIPPED_VALUE_REGEX = /^['"]?\*{8,}['"]?$/;
-
-export function looksLikeObjectRepr(value: string) {
-  const a = value[0];
-  const z = value[value.length - 1];
-
-  if (a === '<' && z === '>') {
-    return true;
-  }
-
-  if (a === '[' && z === ']') {
-    return true;
-  }
-
-  if (a === '(' && z === ')') {
-    return true;
-  }
-
-  if (z === ')' && value.match(/^[\w\d._-]+\(/)) {
-    return true;
-  }
-
-  return false;
-}
-
-export function looksLikeMultiLineString(value: string) {
-  return !!value.match(/[\r\n]/);
-}
-
-export function padNumbersInString(string: string) {
+function padNumbersInString(string: string) {
   return string.replace(/(\d+)/g, (num: string) => {
     let isNegative = false;
     let realNum = parseInt(num, 10);
@@ -51,6 +22,8 @@ export function naturalCaseInsensitiveSort(a: string, b: string) {
   b = padNumbersInString(b).toLowerCase();
   return a === b ? 0 : a < b ? -1 : 1;
 }
+
+const STRIPPED_VALUE_REGEX = /^['"]?\*{8,}['"]?$/;
 
 export function looksLikeStrippedValue(value: string) {
   return STRIPPED_VALUE_REGEX.test(value);
