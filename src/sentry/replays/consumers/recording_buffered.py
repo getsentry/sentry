@@ -247,7 +247,19 @@ def process_message(buffer: RecordingBuffer, message: bytes) -> None:
     )
 
     if replay_video := decoded_message.get("replay_video"):
+        # Logging org info for bigquery
+        logger.info(
+            "sentry.replays.slow_click",
+            extra={
+                "event_type": "mobile_event",
+                "org_id": message.org_id,
+                "project_id": message.project_id,
+                "size": len(message.replay_video),
+            },
+        )
+
         # Record video size for COGS analysis.
+        metrics.incr("replays.recording_consumer.replay_video_count")
         metrics.distribution(
             "replays.recording_consumer.replay_video_size",
             len(replay_video),  # type: ignore[arg-type]
