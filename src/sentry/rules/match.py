@@ -9,6 +9,7 @@ class MatchType:
     GREATER_OR_EQUAL = "gte"
     GREATER = "gt"
     IS_SET = "is"
+    IS_IN = "in"
     LESS_OR_EQUAL = "lte"
     LESS = "lt"
     NOT_CONTAINS = "nc"
@@ -16,8 +17,8 @@ class MatchType:
     NOT_EQUAL = "ne"
     NOT_SET = "ns"
     NOT_STARTS_WITH = "nsw"
+    NOT_IN = "nin"
     STARTS_WITH = "sw"
-    IS_IN = "in"
 
 
 LEVEL_MATCH_CHOICES = {
@@ -37,13 +38,14 @@ MATCH_CHOICES = {
     MatchType.ENDS_WITH: "ends with",
     MatchType.EQUAL: "equals",
     MatchType.IS_SET: "is set",
+    MatchType.IS_IN: "is in (comma separated)",
     MatchType.NOT_CONTAINS: "does not contain",
     MatchType.NOT_ENDS_WITH: "does not end with",
     MatchType.NOT_EQUAL: "does not equal",
     MatchType.NOT_SET: "is not set",
     MatchType.NOT_STARTS_WITH: "does not start with",
+    MatchType.NOT_IN: "not in (comma separated)",
     MatchType.STARTS_WITH: "starts with",
-    MatchType.IS_IN: "is in (comma separated)",
 }
 
 
@@ -91,5 +93,9 @@ def match_values(group_values: Iterable[Any], match_value: str, match_type: str)
     elif match_type == MatchType.IS_IN:
         values_set = set(match_value.replace(" ", "").split(","))
         return any(g_value in values_set for g_value in group_values)
+
+    elif match_type == MatchType.NOT_IN:
+        values_set = set(match_value.replace(" ", "").split(","))
+        return not any(g_value in values_set for g_value in group_values)
 
     raise RuntimeError("Invalid Match")

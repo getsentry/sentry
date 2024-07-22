@@ -3076,6 +3076,55 @@ class GroupListTest(APITestCase, SnubaTestCase, SearchIssueTestMixin):
         autospec=True,
     )
     @override_options({"issues.group_attributes.send_kafka": True})
+    def test_snuba_query_unlinked(self, mock_query: MagicMock) -> None:
+        self.project = self.create_project(organization=self.organization)
+        event1 = self.store_event(
+            data={"fingerprint": ["group-1"], "message": "MyMessage"},
+            project_id=self.project.id,
+        )
+        event2 = self.store_event(
+            data={"fingerprint": ["group-2"], "message": "AnotherMessage"},
+            project_id=self.project.id,
+        )
+        PlatformExternalIssue.objects.create(project_id=self.project.id, group_id=event1.group.id)
+        self.external_issue = ExternalIssue.objects.create(
+            organization_id=self.organization.id, integration_id=self.integration.id, key="123"
+        )
+        GroupLink.objects.create(
+            project_id=self.project.id,
+            group_id=event1.group.id,
+            linked_type=GroupLink.LinkedType.issue,
+            linked_id=self.external_issue.id,
+        )
+
+        self.login_as(user=self.user)
+        # give time for consumers to run and propogate changes to clickhouse
+        sleep(1)
+
+        for value in [0, 5]:
+            with override_options({"snuba.search.max-pre-snuba-candidates": value}):
+                response = self.get_success_response(
+                    sort="new",
+                    useGroupSnubaDataset=1,
+                    query="is:linked",
+                )
+                assert len(response.data) == 1
+                assert int(response.data[0]["id"]) == event1.group.id
+
+                response = self.get_success_response(
+                    sort="new",
+                    useGroupSnubaDataset=1,
+                    query="is:unlinked",
+                )
+                assert len(response.data) == 1
+                assert int(response.data[0]["id"]) == event2.group.id
+
+    @patch(
+        "sentry.search.snuba.executors.GroupAttributesPostgresSnubaQueryExecutor.query",
+        side_effect=GroupAttributesPostgresSnubaQueryExecutor.query,
+        autospec=True,
+    )
+    @override_options({"issues.group_attributes.send_kafka": True})
     def test_snuba_perf_issue(self, mock_query: MagicMock) -> None:
         self.project = self.create_project(organization=self.organization)
         # create a performance issue

@@ -231,6 +231,7 @@ class ProjectRuleConfigurationTest(APITestCase):
                 choice[0] for choice in tagged_event_filter["formFields"]["match"]["choices"]
             ]
             assert MatchType.IS_IN not in filter_list
+            assert MatchType.NOT_IN not in filter_list
 
         with self.feature({"organizations:issues-alerts-is-in": True}):
             response = self.get_success_response(self.organization.slug, self.project.slug)
@@ -247,3 +248,4 @@ class ProjectRuleConfigurationTest(APITestCase):
                 choice[0] for choice in tagged_event_filter["formFields"]["match"]["choices"]
             ]
             assert MatchType.IS_IN in filter_list
+            assert MatchType.NOT_IN in filter_list

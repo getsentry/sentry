@@ -29,7 +29,7 @@ jobs:
       backend_any_type: ${{ steps.changes.outputs.backend_any_type }}
       migration_lockfile: ${{ steps.changes.outputs.migration_lockfile }}
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Check for backend file changes
         uses: dorny/paths-filter@0bc4621a3135347011ad047f9ecf449bf72ce2bd # v3.0.0
@@ -44,7 +44,7 @@ jobs:
     name: api docs test
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - uses: getsentry/action-setup-volta@e4939d337b83760d13a9d7030a6f68c9d0ee7581 # v2.0.0
 
@@ -85,7 +85,7 @@ jobs:
       MATRIX_INSTANCE_TOTAL: 11
 
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -136,7 +136,7 @@ jobs:
         pg-version: ['14']
 
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -168,7 +168,7 @@ jobs:
       matrix:
         pg-version: ['14']
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -202,7 +202,7 @@ jobs:
         with:
           app_id: ${{ vars.SENTRY_INTERNAL_APP_ID }}
           private_key: ${{ secrets.SENTRY_INTERNAL_APP_PRIVATE_KEY }}
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
       - uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f # v2.1.0
         with:
           python-version: 3.11.8
@@ -233,7 +233,7 @@ jobs:
 
     steps:
       - name: Checkout sentry
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -258,7 +258,7 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - name: Setup sentry env
         uses: ./.github/actions/setup-sentry
@@ -294,7 +294,7 @@ jobs:
     runs-on: ubuntu-22.04
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11 # v4.1.1
+      - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
 
       - uses: getsentry/action-setup-venv@a133e6fd5fa6abd3f590a1c106abda344f5df69f # v2.1.0
         with:

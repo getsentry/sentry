@@ -54,7 +54,7 @@ class AuthProvider(ReplicatedControlModel):
 
     organization_id = HybridCloudForeignKey("sentry.Organization", on_delete="cascade", unique=True)
     provider = models.CharField(max_length=128)
-    config = JSONField()
+    config: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
 
     date_added = models.DateTimeField(default=timezone.now)
     sync_time = BoundedPositiveIntegerField(null=True)
