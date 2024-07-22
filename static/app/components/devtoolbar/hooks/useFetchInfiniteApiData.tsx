@@ -8,7 +8,7 @@ interface Props {
   queryKey: ApiQueryKey;
 }
 
-export default function useInfiniteApiData<Data extends Array<unknown>>({
+export default function useFetchInfiniteApiData<Data extends Array<unknown>>({
   queryKey,
 }: Props) {
   const {fetchInfiniteFn, getNextPageParam, getPreviousPageParam} = useApiEndpoint();
