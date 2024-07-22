@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import hashlib
-import os
 from collections import defaultdict
 from typing import Any
 
