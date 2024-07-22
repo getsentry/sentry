@@ -10,14 +10,20 @@ import useApi from 'sentry/utils/useApi';
 import {AddIntegrationButton} from 'sentry/views/settings/organizationIntegrations/addIntegrationButton';
 
 type Props = {
-  closeModal: () => void;
   integrationSlug: string;
   organization: Organization;
   project: Project;
+  closeModal: () => void;
+  setHasError: (boolean) => void;
 };
 
-function AddIntegrationRow({integrationSlug, organization, project, closeModal}: Props) {
-  const [hasError, setHasError] = useState(false);
+function AddIntegrationRow({
+  integrationSlug,
+  organization,
+  project,
+  closeModal,
+  setHasError,
+}: Props) {
   const [provider, setProvider] = useState<IntegrationProvider | null>(null);
 
   const api = useApi();
@@ -31,11 +37,10 @@ function AddIntegrationRow({integrationSlug, organization, project, closeModal}:
       .requestPromise(endpoint)
       .then(integrations => {
         setProvider(integrations.providers[0]);
-        setHasError(false);
       })
       .catch(error => {
+        console.error('Error fetching data:', error);
         setHasError(true);
-        throw error;
       });
   }, [integrationSlug, api, organization.slug]);
 
@@ -43,7 +48,7 @@ function AddIntegrationRow({integrationSlug, organization, project, closeModal}:
     fetchData();
   }, [fetchData]);
 
-  if (!provider || hasError) {
+  if (!provider) {
     return null;
   }
 
@@ -67,7 +72,7 @@ function AddIntegrationRow({integrationSlug, organization, project, closeModal}:
       external
       {...buttonProps}
     >
-      Add Installationq
+      Add Installation
     </Button>
   ) : (
     <AddIntegrationButton

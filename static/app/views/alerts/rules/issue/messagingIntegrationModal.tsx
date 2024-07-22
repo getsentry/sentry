@@ -1,7 +1,9 @@
-import {Fragment} from 'react';
+import {Fragment, useEffect, useState} from 'react';
 import styled from '@emotion/styled';
 
+import {addErrorMessage} from 'sentry/actionCreators/indicator';
 import type {ModalRenderProps} from 'sentry/actionCreators/modal';
+import {t} from 'sentry/locale';
 import {space} from 'sentry/styles/space';
 import type {Project} from 'sentry/types';
 import type {Organization} from 'sentry/types/organization';
@@ -19,7 +21,16 @@ function MessagingIntegrationModal({
   organization,
   project,
 }: Props) {
+  const [hasError, setHasError] = useState(false);
   const integrationValues = ['slack', 'discord', 'msteams'];
+
+  useEffect(() => {
+    if (hasError) {
+      closeModal();
+      addErrorMessage(t('Failed to load integration data'));
+    }
+  }, [hasError, closeModal]);
+
   return (
     <Fragment>
       <Header closeButton>
@@ -36,6 +47,7 @@ function MessagingIntegrationModal({
                 organization={organization}
                 project={project}
                 closeModal={closeModal}
+                setHasError={setHasError}
               />
             );
           })}
