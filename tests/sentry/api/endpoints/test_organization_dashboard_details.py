@@ -216,6 +216,52 @@ class OrganizationDashboardDetailsGetTest(OrganizationDashboardDetailsTestCase):
             expected_adjusted_retention_start.replace(second=0)
         )
 
+    def test_dashboard_widget_type_returns_split_decision(self):
+        dashboard = Dashboard.objects.create(
+            title="Dashboard With Split Widgets",
+            created_by_id=self.user.id,
+            organization=self.organization,
+        )
+        DashboardWidget.objects.create(
+            dashboard=dashboard,
+            order=0,
+            title="error widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+            discover_widget_split=DashboardWidgetTypes.ERROR_EVENTS,
+        )
+        DashboardWidget.objects.create(
+            dashboard=dashboard,
+            order=1,
+            title="transaction widget",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+            discover_widget_split=DashboardWidgetTypes.TRANSACTION_LIKE,
+        )
+        DashboardWidget.objects.create(
+            dashboard=dashboard,
+            order=2,
+            title="no split",
+            display_type=DashboardWidgetDisplayTypes.LINE_CHART,
+            widget_type=DashboardWidgetTypes.DISCOVER,
+            interval="1d",
+            detail={"layout": {"x": 0, "y": 0, "w": 1, "h": 1, "minH": 2}},
+        )
+
+        with self.feature({"organizations:performance-discover-dataset-selector": True}):
+            response = self.do_request(
+                "get",
+                self.url(dashboard.id),
+            )
+        assert response.status_code == 200, response.content
+        assert response.data["widgets"][0]["widgetType"] == "error-events"
+        assert response.data["widgets"][1]["widgetType"] == "transaction-like"
+        assert response.data["widgets"][2]["widgetType"] == "discover"
+
 
 class OrganizationDashboardDetailsDeleteTest(OrganizationDashboardDetailsTestCase):
     def test_delete(self):
