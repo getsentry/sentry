@@ -1,9 +1,13 @@
 from __future__ import annotations
 
+import concurrent.futures
 import configparser
+import functools
 import os
 import shlex
 import subprocess
+
+from libdevinfra.jobs import Job, Task, run_jobs
 
 from devenv import constants
 from devenv.lib import colima, config, fs, limactl, proc, venv, volta
@@ -114,100 +118,115 @@ def main(context: dict[str, str]) -> int:
             # this is needed for devenv <=1.4.0,>1.2.3 to finish syncing and therefore update itself
             limactl.install()
 
-    if not run_procs(
-        repo,
-        reporoot,
-        venv_dir,
-        (
-            # TODO: devenv should provide a job runner (jobs run in parallel, tasks run sequentially)
+    jp1 = Task(
+        name="upgrade pip",
+        func=functools.partial(
+            proc.run,
             (
-                "python dependencies (1/4)",
-                (
-                    # upgrading pip first
-                    "pip",
-                    "install",
-                    "--constraint",
-                    "requirements-dev-frozen.txt",
-                    "pip",
-                ),
-                {},
+                f"{venv_dir}/bin/python3",
+                "-m",
+                "pip",
+                "--disable-pip-version-check",
+                "install",
+                "--constraint",
+                "requirements-dev-frozen.txt",
+                "pip",
             ),
+            stdout=True,
         ),
-    ):
-        return 1
+    )
+    jp2 = Task(
+        name="uninstall some problems",
+        func=functools.partial(
+            proc.run,
+            (
+                f"{venv_dir}/bin/python3",
+                "-m",
+                "pip",
+                "--disable-pip-version-check",
+                "uninstall",
+                "-qqy",
+                "djangorestframework-stubs",
+                "django-stubs",
+            ),
+            stdout=True,
+        ),
+    )
+    jp3 = Task(
+        name="install dependencies",
+        # could opt out of syncing python if FRONTEND_ONLY but only if repo-local devenv
+        # and pre-commit were moved to inside devenv and not the sentry venv
+        func=functools.partial(
+            proc.run,
+            (
+                f"{venv_dir}/bin/python3",
+                "-m",
+                "pip",
+                "--disable-pip-version-check",
+                "install",
+                "--constraint",
+                "requirements-dev-frozen.txt",
+                "-r",
+                "requirements-dev-frozen.txt",
+            ),
+            stdout=True,
+        ),
+    )
+    jp4 = Task(
+        name="install editable",
+        # could opt out of syncing python if FRONTEND_ONLY but only if repo-local devenv
+        # and pre-commit were moved to inside devenv and not the sentry venv
+        func=functools.partial(
+            proc.run,
+            (f"{venv_dir}/bin/python3", "-m", "tools.fast_editable", "--path", "."),
+            stdout=True,
+        ),
+    )
 
-    if not run_procs(
-        repo,
-        reporoot,
-        venv_dir,
-        (
-            (
-                # Spreading out the network load by installing js,
-                # then py in the next batch.
-                "javascript dependencies (1/1)",
-                (
-                    "yarn",
-                    "install",
-                    "--frozen-lockfile",
-                    "--no-progress",
-                    "--non-interactive",
-                ),
-                {
-                    "NODE_ENV": "development",
-                },
-            ),
-            (
-                "python dependencies (2/4)",
-                (
-                    "pip",
-                    "uninstall",
-                    "-qqy",
-                    "djangorestframework-stubs",
-                    "django-stubs",
-                ),
-                {},
-            ),
-        ),
-    ):
-        return 1
+    # jp5 shoudl start devservices iff freontend-only
 
-    if not run_procs(
-        repo,
-        reporoot,
-        venv_dir,
-        (
-            # could opt out of syncing python if FRONTEND_ONLY but only if repo-local devenv
-            # and pre-commit were moved to inside devenv and not the sentry venv
-            (
-                "python dependencies (3/4)",
-                (
-                    "pip",
-                    "install",
-                    "--constraint",
-                    "requirements-dev-frozen.txt",
-                    "-r",
-                    "requirements-dev-frozen.txt",
-                ),
-                {},
-            ),
+    jpc1 = Task(
+        name="install pre-commit dependencies",
+        # could opt out of syncing python if FRONTEND_ONLY but only if repo-local devenv
+        # and pre-commit were moved to inside devenv and not the sentry venv
+        func=functools.partial(
+            proc.run,
+            (f"{venv_dir}/bin/pre-commit", "install", "--install-hooks", "-f"),
+            # pathprepend=f"{venv_path}/bin:{reporoot}/.devenv/bin",
+            stdout=True,
         ),
-    ):
-        return 1
+    )
+    jt1 = Task(
+        name="install js dependencies",
+        # could opt out of syncing python if FRONTEND_ONLY but only if repo-local devenv
+        # and pre-commit were moved to inside devenv and not the sentry venv
+        func=functools.partial(
+            proc.run,
+            (
+                "yarn",
+                "install",
+                "--frozen-lockfile",
+                "--no-progress",
+                "--non-interactive",
+            ),
+            pathprepend=f"{venv_dir}/bin:{reporoot}/.devenv/bin",
+            env={
+                "NODE_ENV": "development",
+                "VOLTA_HOME": f"{reporoot}/.devenv/bin/volta-home",
+            },
+            stdout=True,
+        ),
+    )
 
-    if not run_procs(
-        repo,
-        reporoot,
-        venv_dir,
-        (
-            (
-                "python dependencies (4/4)",
-                ("python3", "-m", "tools.fast_editable", "--path", "."),
-                {},
-            ),
-            ("pre-commit dependencies", ("pre-commit", "install", "--install-hooks", "-f"), {}),
-        ),
-    ):
-        return 1
+    jp = Job(name="python dependencies", tasks=(jp1, jp2, jp3, jp4))
+    jpc = Job(name="pre-commit dependencies", tasks=(jpc1,))
+    jt = Job(name="javascript dependencies", tasks=(jt1,))
+
+    # after python deps are installed we can install pre-commit deps
+    jp3.spawn_jobs = (jpc,)
+
+    with concurrent.futures.ThreadPoolExecutor() as tpe:
+        run_jobs((jp, jt), tpe)
 
     fs.ensure_symlink("../../config/hooks/post-merge", f"{reporoot}/.git/hooks/post-merge")
 
