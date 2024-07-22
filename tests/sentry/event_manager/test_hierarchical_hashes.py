@@ -5,12 +5,11 @@ from unittest.mock import patch
 
 import pytest
 
-from sentry.event_manager import EventManager, _save_aggregate
+from sentry.event_manager import _save_aggregate
 from sentry.eventstore.models import Event
 from sentry.grouping.result import CalculatedHashes
 from sentry.models.group import Group
 from sentry.models.grouphash import GroupHash
-from sentry.testutils.cases import TestCase
 from sentry.testutils.pytest.fixtures import django_db_all
 
 
@@ -199,98 +198,3 @@ def test_partial_move(default_project, fast_save):
     assert not new_group_info.is_new
     assert not new_group_info.is_regression
     assert new_group_info.group.id == group_info.group.id
-
-
-class EventManagerGroupingTest(TestCase):
-    def test_can_upgrade_to_hierarchical_config(self):
-        self.set_options("legacy:2019-03-12")  # Starting configuration
-
-        event = self.save_event()
-
-        self.transition_to_new_config("mobile:2021-02-12")
-
-        # This event will have two sets of hashes
-        event2 = self.save_event()
-
-        # The hashes property between the two events do not intersect
-        assert not set(event.get_hashes().hashes) & set(event2.get_hashes().hashes)
-        # They are both grouped together
-        assert event.group_id == event2.group_id
-
-        group = Group.objects.get(id=event.group_id)
-
-        assert group.times_seen == 2
-        assert group.last_seen == event2.datetime
-
-        # After expiry, new events are still assigned to the same group:
-        self.project.update_option("sentry:secondary_grouping_expiry", 0)
-        event3 = self.save_event()
-        assert event3.group_id == event2.group_id
-
-    def test_can_downgrade_from_hierarchical_config(self):
-        self.set_options("mobile:2021-02-12")  # Starting configuration
-
-        event = self.save_event()
-
-        self.transition_to_new_config("legacy:2019-03-12")
-
-        # This event will have two sets of hashes
-        event2 = self.save_event()
-
-        # The hashes property between the two events do not intersect
-        assert not set(event.get_hashes().hashes) & set(event2.get_hashes().hashes)
-        # They are both grouped together
-        assert event.group_id == event2.group_id
-
-        group = Group.objects.get(id=event.group_id)
-
-        group_hashes = GroupHash.objects.filter(
-            project=self.project, hash__in=event.get_hashes().hashes
-        )
-        assert group_hashes
-        for hash in group_hashes:
-            assert hash.group_id == event.group_id
-
-        assert group.times_seen == 2
-        assert group.last_seen == event2.datetime
-
-        # After expiry, new events are still assigned to the same group:
-        self.project.update_option("sentry:secondary_grouping_expiry", 0)
-        event3 = self.save_event()
-        assert event3.group_id == event2.group_id
-
-    def save_event(self):
-        manager = EventManager(
-            make_event(
-                message="foo 123",
-                event_id=hex(2**127)[-32:],
-                exception={
-                    "values": [
-                        {
-                            "type": "Hello",
-                            "stacktrace": {
-                                "frames": [
-                                    {"function": "not_in_app_function"},
-                                    {"function": "in_app_function"},
-                                ]
-                            },
-                        }
-                    ]
-                },
-            )
-        )
-        manager.normalize()
-        with self.tasks():
-            return manager.save(self.project.id)
-
-    def set_options(self, primary_config):
-        self.project.update_option("sentry:grouping_config", primary_config)
-        self.project.update_option("sentry:secondary_grouping_expiry", 0)
-
-    def transition_to_new_config(self, new_config):
-        original_config = self.project.get_option("sentry:grouping_config")
-        self.project.update_option("sentry:grouping_config", new_config)
-        self.project.update_option("sentry:secondary_grouping_config", original_config)
-        self.project.update_option(
-            "sentry:secondary_grouping_expiry", time.time() + (24 * 90 * 3600)
-        )
