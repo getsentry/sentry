@@ -16,8 +16,14 @@ import ResolveActions from 'sentry/components/actions/resolve';
 import GuideAnchor from 'sentry/components/assistant/guideAnchor';
 import {Button} from 'sentry/components/button';
 import {DropdownMenu} from 'sentry/components/dropdownMenu';
+import Divider from 'sentry/components/events/interfaces/debugMeta/debugImageDetails/candidate/information/divider';
 import {EnvironmentPageFilter} from 'sentry/components/organizations/environmentPageFilter';
-import {IconEllipsis, IconSubscribed, IconUnsubscribed} from 'sentry/icons';
+import {
+  IconCheckmark,
+  IconEllipsis,
+  IconSubscribed,
+  IconUnsubscribed,
+} from 'sentry/icons';
 import {t} from 'sentry/locale';
 import GroupStore from 'sentry/stores/groupStore';
 import IssueListCacheStore from 'sentry/stores/IssueListCacheStore';
@@ -45,7 +51,6 @@ import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import withApi from 'sentry/utils/withApi';
 import withOrganization from 'sentry/utils/withOrganization';
-import {NewIssueExperienceButton} from 'sentry/views/issueDetails/actions/newIssueExperienceButton';
 
 import ShareIssueModal from './shareModal';
 import SubscribeAction from './subscribeAction';
@@ -94,7 +99,6 @@ export function Actions(props: Props) {
       share: shareCap,
       resolveInRelease: resolveInReleaseCap,
     },
-    discover: discoverCap,
   } = config;
 
   const getDiscoverUrl = () => {
@@ -357,27 +361,26 @@ export function Actions(props: Props) {
   return (
     <ActionWrapper>
       {isResolved || isIgnored ? (
-        <ActionButton
-          priority="primary"
-          title={
-            isAutoResolved
-              ? t(
-                  'This event is resolved due to the Auto Resolve configuration for this project'
-                )
-              : t('Change status to unresolved')
-          }
-          size="sm"
-          disabled={disabled || isAutoResolved}
-          onClick={() =>
-            onUpdate({
-              status: GroupStatus.UNRESOLVED,
-              statusDetails: {},
-              substatus: GroupSubstatus.ONGOING,
-            })
-          }
-        >
-          {isIgnored ? t('Archived') : t('Resolved')}
-        </ActionButton>
+        <ResolvedActionWapper>
+          <ResolvedWrapper>
+            <IconCheckmark />
+            {t('Resolved')}
+          </ResolvedWrapper>
+          <Divider />
+          <ActionButton
+            size="sm"
+            disabled={disabled || isAutoResolved}
+            onClick={() =>
+              onUpdate({
+                status: GroupStatus.UNRESOLVED,
+                statusDetails: {},
+                substatus: GroupSubstatus.ONGOING,
+              })
+            }
+          >
+            {t('Unresolve')}
+          </ActionButton>
+        </ResolvedActionWapper>
       ) : (
         <Fragment>
           <GuideAnchor target="resolve" position="bottom" offset={20}>
@@ -403,23 +406,18 @@ export function Actions(props: Props) {
             disabled={disabled}
             disableArchiveUntilOccurrence={!archiveUntilOccurrenceCap.enabled}
           />
+          <EnvironmentPageFilter position="bottom-end" size="sm" />
+          <SubscribeAction
+            className="hidden-xs"
+            disabled={disabled}
+            disablePriority
+            group={group}
+            onClick={handleClick(onToggleSubscribe)}
+            icon={group.isSubscribed ? <IconSubscribed /> : <IconUnsubscribed />}
+            size="sm"
+          />
         </Fragment>
       )}
-      {organization.features.includes('issue-details-new-experience-toggle') ? (
-        <NewIssueExperienceButton />
-      ) : null}
-      <SubscribeAction
-        className="hidden-xs"
-        disabled={disabled}
-        disablePriority
-        group={group}
-        onClick={handleClick(onToggleSubscribe)}
-        icon={group.isSubscribed ? <IconSubscribed /> : <IconUnsubscribed />}
-        size="sm"
-      />
-      <div className="hidden-xs">
-        <EnvironmentPageFilter position="bottom-end" size="sm" />
-      </div>
       <DropdownMenu
         triggerProps={{
           'aria-label': t('More Actions'),
@@ -507,6 +505,21 @@ const ActionWrapper = styled('div')`
   display: flex;
   align-items: center;
   gap: ${space(0.5)};
+`;
+
+const ResolvedWrapper = styled('div')`
+  display: flex;
+  gap: ${space(0.5)};
+  align-items: center;
+  color: ${p => p.theme.green400};
+  font-weight: bold;
+  font-size: ${p => p.theme.fontSizeLarge};
+`;
+
+const ResolvedActionWapper = styled('div')`
+  display: flex;
+  gap: ${space(1)};
+  align-items: center;
 `;
 
 export default withApi(withOrganization(Actions));

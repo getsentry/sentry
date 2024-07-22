@@ -44,7 +44,10 @@ import {isMobilePlatform} from 'sentry/utils/platform';
 import {getAnalyicsDataForProject} from 'sentry/utils/projects';
 import {useApiQuery} from 'sentry/utils/queryClient';
 import {useLocation} from 'sentry/utils/useLocation';
-import {getGroupDetailsQueryData} from 'sentry/views/issueDetails/utils';
+import {
+  getGroupDetailsQueryData,
+  useHasStreamlinedUI,
+} from 'sentry/views/issueDetails/utils';
 
 import {ParticipantList} from './participantList';
 
@@ -88,6 +91,8 @@ export default function GroupSidebar({
 }: Props) {
   const {data: allEnvironmentsGroupData} = useFetchAllEnvsGroupData(organization, group);
   const {data: currentRelease} = useFetchCurrentRelease(organization, group);
+  const hasStreamlinedUI = useHasStreamlinedUI();
+
   const location = useLocation();
 
   const onAssign: OnAssignCallback = (type, _assignee, suggestedAssignee) => {
@@ -257,7 +262,9 @@ export default function GroupSidebar({
 
   return (
     <Container>
-      <AssignedTo group={group} event={event} project={project} onAssign={onAssign} />
+      {!hasStreamlinedUI && (
+        <AssignedTo group={group} event={event} project={project} onAssign={onAssign} />
+      )}
       {issueTypeConfig.stats.enabled && (
         <GroupReleaseStats
           organization={organization}
@@ -301,8 +308,8 @@ export default function GroupSidebar({
       {issueTypeConfig.regression.enabled && event && (
         <EventThroughput event={event} group={group} />
       )}
-      {renderParticipantData()}
-      {renderSeenByList()}
+      {!hasStreamlinedUI && renderParticipantData()}
+      {!hasStreamlinedUI && renderSeenByList()}
     </Container>
   );
 }

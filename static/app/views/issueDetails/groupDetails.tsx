@@ -685,6 +685,8 @@ function GroupDetailsContent({
 
   const environments = useEnvironmentsFromUrl();
 
+  const hasStreamlinedUI = useHasStreamlinedUI();
+
   useTrackView({group, event, project, tab: currentTab});
 
   const childProps = {
@@ -704,7 +706,7 @@ function GroupDetailsContent({
       value={currentTab}
       onChange={tab => trackTabChanged({tab, group, project, event, organization})}
     >
-      {useHasStreamlinedUI() ? (
+      {hasStreamlinedUI ? (
         <UpdatedGroupHeader
           group={group}
           project={project}
