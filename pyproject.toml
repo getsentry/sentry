@@ -512,6 +512,7 @@ module = [
     "sentry.auth.services.*",
     "sentry.buffer.*",
     "sentry.build.*",
+    "sentry.db.models.fields.citext",
     "sentry.db.models.fields.hybrid_cloud_foreign_key",
     "sentry.db.models.fields.types",
     "sentry.db.models.manager.*",
