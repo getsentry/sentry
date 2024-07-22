@@ -1,19 +1,34 @@
 from abc import ABC, abstractmethod
+from collections.abc import Mapping
 from dataclasses import dataclass
+from typing import Any
 
+from django.core.signing import BadSignature, SignatureExpired
+from django.http import HttpResponse
 from django.urls import re_path
 from django.urls.resolvers import URLPattern
+from django.utils.decorators import method_decorator
+from django.views.decorators.cache import never_cache
 from django.views.generic import View
+from rest_framework.request import Request
 
 from sentry import analytics
 from sentry.incidents.action_handlers import ActionHandler, DefaultActionHandler
 from sentry.incidents.models.alert_rule import ActionHandlerFactory, AlertRuleTriggerAction
 from sentry.incidents.models.incident import Incident, IncidentStatus
 from sentry.integrations.base import IntegrationProvider
+from sentry.integrations.types import ExternalProviders
+from sentry.integrations.utils import get_identity_or_404
+from sentry.models.identity import Identity
+from sentry.models.integrations import Integration
 from sentry.models.notificationaction import ActionService, ActionTarget
 from sentry.models.project import Project
 from sentry.rules import rules
 from sentry.rules.actions import IntegrationEventAction
+from sentry.types.actor import ActorType
+from sentry.utils.signing import unsign
+from sentry.web.frontend.base import BaseView, control_silo_view
+from sentry.web.helpers import render_to_response
 
 
 @dataclass(frozen=True)
@@ -213,3 +228,74 @@ class _MessagingHandlerFactory(ActionHandlerFactory):
         self, action: AlertRuleTriggerAction, incident: Incident, project: Project
     ) -> ActionHandler:
         return MessagingActionHandler(action, incident, project, self.spec)
+
+
+@control_silo_view
+class LinkIdentityView(BaseView, ABC):
+    @property
+    @abstractmethod
+    def parent_messaging_spec(self) -> MessagingIntegrationSpec:
+        raise NotImplementedError
+
+    # TODO: Replace thw two template properties below with base templates for all
+    #       integrations to use. Add service-specific parts to the context as needed.
+
+    @property
+    @abstractmethod
+    def expired_link_template(self) -> str:
+        """Path to the HTML template to show when a link is expired."""
+        raise NotImplementedError
+
+    @property
+    @abstractmethod
+    def linked_template(self) -> str:
+        """Path to the HTML template to show when an identity has been linked."""
+        raise NotImplementedError
+
+    def notify_on_success(self, integration: Integration, params: Mapping[str, Any]) -> None:
+        pass
+
+    @method_decorator(never_cache)
+    def handle(self, request: Request, signed_params) -> HttpResponse:
+        try:
+            params = unsign(signed_params)
+        except (SignatureExpired, BadSignature):
+            return render_to_response(
+                self.expired_link_template,
+                request=request,
+            )
+
+        organization, integration, idp = get_identity_or_404(
+            ExternalProviders.MSTEAMS,
+            request.user,
+            integration_id=params["integration_id"],
+            organization_id=params["organization_id"],
+        )
+
+        if request.method != "POST":
+            return render_to_response(
+                "sentry/auth-link-identity.html",
+                request=request,
+                context={"organization": organization, "provider": integration.get_provider()},
+            )
+
+        Identity.objects.link_identity(
+            user=request.user, idp=idp, external_id=params["teams_user_id"]
+        )
+
+        self.notify_on_success(integration, params)
+
+        if False:  # TODO: Generalize for all providers
+            provider_slug = self.parent_messaging_spec.provider_slug
+            analytics.record(
+                f"integrations.{provider_slug}.identity_linked",
+                provider=provider_slug,
+                actor_id=request.user.id,
+                actor_type=ActorType.USER,
+            )
+
+        return render_to_response(
+            "sentry/integrations/msteams/linked.html",
+            request=request,
+            context={"team_id": params["team_id"]},
+        )

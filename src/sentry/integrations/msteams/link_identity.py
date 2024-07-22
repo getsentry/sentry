@@ -1,17 +1,12 @@
-from django.core.signing import BadSignature, SignatureExpired
-from django.http import HttpResponse
-from django.urls import reverse
-from django.utils.decorators import method_decorator
-from django.views.decorators.cache import never_cache
-from rest_framework.request import Request
+from collections.abc import Mapping
+from typing import Any
 
-from sentry.integrations.types import ExternalProviders
-from sentry.integrations.utils import get_identity_or_404
-from sentry.models.identity import Identity
+from django.urls import reverse
+
+from sentry.integrations.messaging import LinkIdentityView, MessagingIntegrationSpec
+from sentry.models.integrations import Integration
 from sentry.utils.http import absolute_uri
-from sentry.utils.signing import sign, unsign
-from sentry.web.frontend.base import BaseView, control_silo_view
-from sentry.web.helpers import render_to_response
+from sentry.utils.signing import sign
 
 from .card_builder.identity import build_linked_card
 from .client import MsTeamsClient
@@ -31,45 +26,25 @@ def build_linking_url(integration, organization, teams_user_id, team_id, tenant_
     )
 
 
-@control_silo_view
-class MsTeamsLinkIdentityView(BaseView):
-    @method_decorator(never_cache)
-    def handle(self, request: Request, signed_params) -> HttpResponse:
-        try:
-            params = unsign(signed_params)
-        except (SignatureExpired, BadSignature):
-            return render_to_response(
-                "sentry/integrations/msteams/expired-link.html",
-                request=request,
-            )
+class MsTeamsLinkIdentityView(LinkIdentityView):
+    @property
+    def parent_messaging_spec(self) -> MessagingIntegrationSpec:
+        from sentry.integrations.msteams import MsTeamsMessagingSpec
 
-        organization, integration, idp = get_identity_or_404(
-            ExternalProviders.MSTEAMS,
-            request.user,
-            integration_id=params["integration_id"],
-            organization_id=params["organization_id"],
-        )
+        return MsTeamsMessagingSpec()
 
-        if request.method != "POST":
-            return render_to_response(
-                "sentry/auth-link-identity.html",
-                request=request,
-                context={"organization": organization, "provider": integration.get_provider()},
-            )
+    @property
+    def expired_link_template(self) -> str:
+        return "sentry/integrations/msteams/expired-link.html"
 
-        Identity.objects.link_identity(
-            user=request.user, idp=idp, external_id=params["teams_user_id"]
-        )
+    @property
+    def linked_template(self) -> str:
+        return "sentry/integrations/msteams/linked.html"
 
+    def notify_on_success(self, integration: Integration, params: Mapping[str, Any]) -> None:
         card = build_linked_card()
         client = MsTeamsClient(integration)
         user_conversation_id = client.get_user_conversation_id(
             params["teams_user_id"], params["tenant_id"]
         )
         client.send_card(user_conversation_id, card)
-
-        return render_to_response(
-            "sentry/integrations/msteams/linked.html",
-            request=request,
-            context={"team_id": params["team_id"]},
-        )
