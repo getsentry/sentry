@@ -6,10 +6,10 @@ To resolve this, rebase against latest master and regenerate your migration. Thi
 will then be regenerated, and you should be able to merge without conflicts.
 
 feedback: 0004_index_together
-hybridcloud: 0016_add_control_cacheversion
+hybridcloud: 0017_add_public_api_applications
 nodestore: 0002_nodestore_no_dictfield
 remote_subscriptions: 0003_drop_remote_subscription
 replays: 0004_index_together
-sentry: 0742_backfill_alertrule_detection_type
+sentry: 0743_add_public_api_applications
 social_auth: 0002_default_auto_field
 uptime: 0005_uptime_status
