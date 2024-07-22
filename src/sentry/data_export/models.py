@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import Any
 
 import orjson
 from django.conf import settings
@@ -39,7 +42,7 @@ class ExportedData(Model):
     date_finished = models.DateTimeField(null=True)
     date_expired = models.DateTimeField(null=True, db_index=True)
     query_type = BoundedPositiveIntegerField(choices=ExportQueryType.as_choices())
-    query_info = JSONField()
+    query_info: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
 
     @property
     def status(self) -> ExportStatus:

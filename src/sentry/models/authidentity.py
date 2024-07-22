@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from collections.abc import Collection
 from typing import Any
 
@@ -25,7 +27,7 @@ class AuthIdentity(ReplicatedControlModel):
     user = FlexibleForeignKey(settings.AUTH_USER_MODEL)
     auth_provider = FlexibleForeignKey("sentry.AuthProvider")
     ident = models.CharField(max_length=128)
-    data = JSONField()
+    data: models.Field[dict[str, Any], dict[str, Any]] = JSONField()
     last_verified = models.DateTimeField(default=timezone.now)
     last_synced = models.DateTimeField(default=timezone.now)
     date_added = models.DateTimeField(default=timezone.now)

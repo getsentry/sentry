@@ -1,4 +1,7 @@
+from __future__ import annotations
+
 import logging
+from typing import Any
 
 from django.db import models
 
@@ -29,7 +32,9 @@ class GroupTombstone(Model):
     )
     message = models.TextField()
     culprit = models.CharField(max_length=MAX_CULPRIT_LENGTH, blank=True, null=True)
-    data = GzippedDictField(blank=True, null=True)
+    data: models.Field[dict[str, Any] | None, dict[str, Any]] = GzippedDictField(
+        blank=True, null=True
+    )
     actor_id = BoundedPositiveIntegerField(null=True)
 
     class Meta:

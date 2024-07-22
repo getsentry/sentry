@@ -596,7 +596,7 @@ class Fixtures:
     def create_identity_provider(
         self,
         integration: Integration | None = None,
-        config: Mapping[str, Any] | None = None,
+        config: dict[str, Any] | None = None,
         **kwargs: Any,
     ) -> IdentityProvider:
         return Factories.create_identity_provider(integration=integration, config=config, **kwargs)
