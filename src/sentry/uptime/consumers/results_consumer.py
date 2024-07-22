@@ -62,6 +62,8 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         return result["subscription_id"]
 
     def handle_result(self, subscription: UptimeSubscription | None, result: CheckResult):
+        logger.info("process_result", extra=result)
+
         if subscription is None:
             # TODO: We probably want to want to publish a tombstone
             # subscription here
@@ -78,8 +80,6 @@ class UptimeResultProcessor(ResultProcessor[CheckResult, UptimeSubscription]):
         for last_update_raw, project_subscription in zip(last_updates, project_subscriptions):
             last_update_ms = 0 if last_update_raw is None else int(last_update_raw)
             self.handle_result_for_project(project_subscription, result, last_update_ms)
-
-        logger.info("process_result", extra=result)
 
     def handle_result_for_project(
         self,
