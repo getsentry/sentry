@@ -94,7 +94,7 @@ def match_values(group_values: Iterable[Any], match_value: str, match_type: str)
         values_set = set(match_value.replace(" ", "").split(","))
         return any(g_value in values_set for g_value in group_values)
 
-    elif match_type == MatchType.IS_IN:
+    elif match_type == MatchType.NOT_IN:
         values_set = set(match_value.replace(" ", "").split(","))
         return not any(g_value in values_set for g_value in group_values)
 
