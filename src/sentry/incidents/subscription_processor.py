@@ -95,6 +95,11 @@ class SubscriptionProcessor:
         AlertRuleThresholdType.BELOW: (operator.lt, operator.gt),
     }
 
+    seer_anomaly_detection_connection_pool = connection_from_url(
+        settings.SEER_ANOMALY_DETECTION_URL,
+        timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
+    )
+
     def __init__(self, subscription: QuerySubscription) -> None:
         self.subscription = subscription
         try:
@@ -625,28 +630,25 @@ class SubscriptionProcessor:
         anomaly type and the alert rule's threshold type.
         """
         # need to define constants for anomaly types
-        anomaly_type = anomaly.anomaly_type
+        anomaly_type = anomaly.get("anomaly").get("anomaly_type")
+
         if anomaly_type == "none" or anomaly_type == "no_data":
             return False
         elif anomaly_type == "anomaly_high":
             if (
-                self.alert_rule.threshold_type == AlertRuleThresholdType.ABOVE
-                or self.alert_rule.threshold_type == AlertRuleThresholdType.ABOVE_AND_BELOW
+                self.alert_rule.threshold_type == AlertRuleThresholdType.ABOVE.value
+                or self.alert_rule.threshold_type == AlertRuleThresholdType.ABOVE_AND_BELOW.value
             ):
                 return True
         else:
             if (
-                self.alert_rule.threshold_type == AlertRuleThresholdType.BELOW
-                or self.alert_rule.threshold_type == AlertRuleThresholdType.ABOVE_AND_BELOW
+                self.alert_rule.threshold_type == AlertRuleThresholdType.BELOW.value
+                or self.alert_rule.threshold_type == AlertRuleThresholdType.ABOVE_AND_BELOW.value
             ):
                 return True
         return False
 
     def get_anomaly_data_from_seer(self, aggregation_value: float | None):
-        seer_anomaly_detection_connection_pool = connection_from_url(
-            settings.SEER_ANOMALY_DETECTION_URL,
-            timeout=settings.SEER_ANOMALY_DETECTION_TIMEOUT,
-        )
         try:
             ad_config = {
                 "time_period": self.alert_rule.threshold_period,
@@ -663,7 +665,7 @@ class SubscriptionProcessor:
                 },
             }
             response = make_signed_seer_api_request(
-                seer_anomaly_detection_connection_pool,
+                self.seer_anomaly_detection_connection_pool,
                 SEER_ANOMALY_DETECTION_URL,
                 json.dumps(
                     {
@@ -683,6 +685,7 @@ class SubscriptionProcessor:
                     # TODO (MF): add other, relevant fields here
                 },
             )
+            raise Exception
             return None
 
         # TODO (MF): handle response codes if status code != 200
@@ -690,6 +693,17 @@ class SubscriptionProcessor:
 
         try:
             anomalies = json.loads(response.data.decode("utf-8")).get("anomalies")
+            if not anomalies:
+                logger.warning(
+                    "Seer anomaly detection response returned an empty list",
+                    extra={
+                        "ad_config": ad_config,
+                        "context": context,
+                        "response_data": response.data,
+                        "reponse_code": response.status,
+                    },
+                )
+                return None
             return anomalies
         except (
             AttributeError,
@@ -698,17 +712,6 @@ class SubscriptionProcessor:
         ):
             logger.exception(
                 "Failed to parse Seer anomaly detection response",
-                extra={
-                    "ad_config": ad_config,
-                    "context": context,
-                    "response_data": response.data,
-                    "reponse_code": response.status,
-                },
-            )
-            return None
-        if not anomalies:
-            logger.warning(
-                "Seer anomaly detection response returned an empty list",
                 extra={
                     "ad_config": ad_config,
                     "context": context,

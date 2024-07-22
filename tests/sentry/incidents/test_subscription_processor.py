@@ -4,12 +4,15 @@ from datetime import timedelta
 from functools import cached_property
 from random import randint
 from unittest import mock
-from unittest.mock import Mock, call, patch
+from unittest.mock import MagicMock, Mock, call, patch
 from uuid import uuid4
 
+import orjson
 import pytest
 from django.utils import timezone
+from urllib3.response import HTTPResponse
 
+# from sentry.conf.server import SEER_ANOMALY_DETECTION_URL
 from sentry.incidents.logic import (
     CRITICAL_TRIGGER_LABEL,
     WARNING_TRIGGER_LABEL,
@@ -19,7 +22,10 @@ from sentry.incidents.logic import (
 )
 from sentry.incidents.models.alert_rule import (
     AlertRule,
+    AlertRuleDetectionType,
     AlertRuleMonitorTypeInt,
+    AlertRuleSeasonality,
+    AlertRuleSensitivity,
     AlertRuleThresholdType,
     AlertRuleTrigger,
     AlertRuleTriggerAction,
@@ -286,6 +292,18 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         return rule
 
     @cached_property
+    def dynamic_rule(self):
+        rule = self.rule
+        rule.update(
+            detection_type=AlertRuleDetectionType.DYNAMIC,
+            sensitivity=AlertRuleSensitivity.HIGH,
+            seasonality=AlertRuleSeasonality.AUTO,
+        )
+        # dynamic alert rules have a threshold of 0.0
+        self.trigger.update(alert_threshold=0)
+        return rule
+
+    @cached_property
     def trigger(self):
         return self.rule.alertruletrigger_set.get()
 
@@ -407,6 +425,65 @@ class ProcessUpdateTest(ProcessUpdateBaseClass):
         self.assert_no_active_incident(self.rule)
         self.assert_trigger_does_not_exist(self.trigger)
         self.assert_action_handler_called_with_actions(None, [])
+
+    @mock.patch(
+        "sentry.incidents.subscription_processor.SubscriptionProcessor.seer_anomaly_detection_connection_pool.urlopen"
+    )
+    def test_seer_call(self, mock_seer_request: MagicMock):
+        seer_return_value = {
+            "anomalies": [
+                {
+                    "anomaly": {"anomaly_score": 0.9, "anomaly_type": "anomaly_high"},
+                    "timestamp": 1,
+                    "value": 10,
+                }
+            ]
+        }
+
+        mock_seer_request.return_value = HTTPResponse(orjson.dumps(seer_return_value), status=200)
+
+        with self.feature(["organizations:incidents", "organizations:anomaly-detection-alerts"]):
+            rule = self.dynamic_rule
+            processor = self.send_update(rule, 10)
+            # mock_seer_request.assert_called_with(
+            #     "POST",
+            #     SEER_ANOMALY_DETECTION_URL,
+            #     body=orjson.dumps(
+            #         {
+            #             "organization_id": self.sub.project.organization.id,
+            #             "project_id": self.sub.project_id,
+            #             "config": {
+            #                 "time_period": rule.threshold_period,
+            #                 "sensitivity": rule.sensitivity.value,
+            #                 "seasonality": rule.seasonality.value,
+            #                 "direction": rule.detection_type.value,
+            #             },
+            #             "context": {
+            #                 "id": rule.id,
+            #                 "cur_window": {
+            #                     "timestamp": timestamp.now(),
+            #                     "value": 10
+            #                 }
+            #             }
+            #         }
+            #     ),
+            #     headers={"content-type": "application/json;charset=utf-8"},
+            # )
+            mock_seer_request.assert_called_once()  # placeholder for now until I figure out timestamp
+            self.assert_trigger_counts(processor, self.trigger, 0, 0)
+            incident = self.assert_active_incident(rule)
+            assert incident.date_started == (
+                timezone.now().replace(microsecond=0)
+                - timedelta(seconds=rule.snuba_query.time_window)
+            )
+            self.assert_trigger_exists_with_status(incident, self.trigger, TriggerStatus.ACTIVE)
+            latest_activity = self.latest_activity(incident)
+            uuid = str(latest_activity.notification_uuid)
+            self.assert_actions_fired_for_incident(
+                incident,
+                [self.action],
+                [(10, IncidentStatus.CRITICAL, uuid)],
+            )
 
     def test_alert(self):
         # Verify that an alert rule that only expects a single update to be over the
