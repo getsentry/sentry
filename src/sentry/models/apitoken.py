@@ -125,7 +125,11 @@ class ApiToken(ReplicatedControlModel, HasApiScopes):
     # Failure to restrict access by the scoping organization id could enable
     # cross-organization access for untrusted third-party clients. The scoping
     # organization key should only be unset for trusted clients.
-    scoping_organization_id = HybridCloudForeignKey("sentry.Organization", null=True)
+    scoping_organization_id = HybridCloudForeignKey(
+        "sentry.Organization",
+        null=True,
+        on_delete="CASCADE",
+    )
 
     objects: ClassVar[ApiTokenManager] = ApiTokenManager(cache_fields=("token",))
 
