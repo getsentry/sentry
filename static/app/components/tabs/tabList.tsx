@@ -104,6 +104,7 @@ function BaseTabList({
   className,
   outerWrapStyles,
   hideSelection = false,
+  showPressed = false,
   ...props
 }: BaseTabListProps) {
   const tabListRef = useRef<HTMLUListElement>(null);
@@ -194,7 +195,7 @@ function BaseTabList({
             overflowing={orientation === 'horizontal' && overflowTabs.includes(item.key)}
             ref={element => (tabItemsRef.current[item.key] = element)}
             hideSelection={hideSelection}
-            showPressed={props.showPressed}
+            showPressed={showPressed}
           />
         ))}
       </TabListWrap>
