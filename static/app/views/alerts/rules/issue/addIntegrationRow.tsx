@@ -38,11 +38,10 @@ function AddIntegrationRow({
       .then(integrations => {
         setProvider(integrations.providers[0]);
       })
-      .catch(error => {
-        console.error('Error fetching data:', error);
+      .catch(() => {
         setHasError(true);
       });
-  }, [integrationSlug, api, organization.slug]);
+  }, [integrationSlug, api, organization.slug, setHasError]);
 
   useEffect(() => {
     fetchData();

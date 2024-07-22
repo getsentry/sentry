@@ -92,12 +92,7 @@ describe('AddIntegrationRow', function () {
     );
 
     await waitFor(() => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
       expect(setHasError).toHaveBeenCalled();
-      expect(consoleErrorSpy).toHaveBeenCalled();
-
-      consoleErrorSpy.mockRestore();
     });
   });
 });

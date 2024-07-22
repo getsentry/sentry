@@ -4,6 +4,7 @@ import {ProjectFixture} from 'sentry-fixture/project';
 
 import {render, screen, waitFor} from 'sentry-test/reactTestingLibrary';
 
+import * as indicators from 'sentry/actionCreators/indicator';
 import {
   makeClosableHeader,
   makeCloseButton,
@@ -62,6 +63,7 @@ describe('MessagingIntegrationModal', function () {
 
   it('closes on error', async function () {
     const closeModal = jest.fn();
+    jest.spyOn(indicators, 'addErrorMessage');
 
     integrationSlugs.forEach(value => {
       MockApiClient.addMockResponse({
@@ -84,12 +86,8 @@ describe('MessagingIntegrationModal', function () {
     );
 
     await waitFor(() => {
-      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
-
       expect(closeModal).toHaveBeenCalled();
-      expect(consoleErrorSpy).toHaveBeenCalled();
-
-      consoleErrorSpy.mockRestore();
+      expect(indicators.addErrorMessage).toHaveBeenCalled();
     });
   });
 });
