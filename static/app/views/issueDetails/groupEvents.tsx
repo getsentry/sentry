@@ -18,6 +18,8 @@ import normalizeUrl from 'sentry/utils/url/normalizeUrl';
 import useApi from 'sentry/utils/useApi';
 import useCleanQueryParamsOnRouteLeave from 'sentry/utils/useCleanQueryParamsOnRouteLeave';
 import useOrganization from 'sentry/utils/useOrganization';
+import {Dataset} from 'sentry/views/alerts/rules/metric/types';
+import {mergeTagValues} from 'sentry/views/issueDetails/utils';
 import {makeGetIssueTagValues} from 'sentry/views/issueList/utils/getIssueTagValues';
 
 import AllEventsTable from './allEventsTable';
@@ -101,17 +103,28 @@ function UpdatedSearchBar({
   }, [data]);
 
   const tagValueLoader = useCallback(
-    (key: string, search: string) => {
+    async (key: string, search: string) => {
       const orgSlug = organization.slug;
       const projectIds = [group.project.id];
 
-      return fetchTagValues({
+      const eventsDatasetValues = await fetchTagValues({
         api,
         orgSlug,
         tagKey: key,
         search,
         projectIds,
+        dataset: Dataset.ERRORS,
       });
+
+      const issuePlatformDatasetValues = await fetchTagValues({
+        api,
+        orgSlug,
+        tagKey: key,
+        search,
+        projectIds,
+        dataset: Dataset.ISSUE_PLATFORM,
+      });
+      return mergeTagValues(eventsDatasetValues, issuePlatformDatasetValues);
     },
     [api, group.project.id, organization.slug]
   );

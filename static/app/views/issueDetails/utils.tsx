@@ -6,7 +6,7 @@ import {Client} from 'sentry/api';
 import {t} from 'sentry/locale';
 import ConfigStore from 'sentry/stores/configStore';
 import {useLegacyStore} from 'sentry/stores/useLegacyStore';
-import type {Group, GroupActivity} from 'sentry/types';
+import type {Group, GroupActivity, TagValue} from 'sentry/types';
 import type {Event} from 'sentry/types/event';
 import {useLocation} from 'sentry/utils/useLocation';
 import useOrganization from 'sentry/utils/useOrganization';
@@ -47,6 +47,30 @@ export function useDefaultIssueEvent() {
   const user = useLegacyStore(ConfigStore).user;
   const options = user ? user.options : null;
   return options?.defaultIssueEvent ?? 'recommended';
+}
+/**
+ * Combines two TagValue arrays and combines TagValue.count upon conflict
+ */
+export function mergeTagValues(
+  tagValues1: TagValue[],
+  tagValues2: TagValue[]
+): TagValue[] {
+  const tagValueCollection = tagValues1.reduce<Record<string, TagValue>>(
+    (acc, tagValue) => {
+      acc[tagValue.name] = tagValue;
+      return acc;
+    },
+    {}
+  );
+  tagValues2.forEach(tagValue => {
+    if (tagValueCollection[tagValue.name]) {
+      tagValueCollection[tagValue.name].count += tagValue.count;
+    } else {
+      tagValueCollection[tagValue.name] = tagValue;
+    }
+  });
+
+  return Object.values(tagValueCollection);
 }
 
 /**
