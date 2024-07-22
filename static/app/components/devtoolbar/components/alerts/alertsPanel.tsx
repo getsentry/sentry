@@ -152,8 +152,8 @@ function AlertListItem({item}: {item: Incident}) {
           }}
           onClick={() => {
             trackAnalytics?.({
-              eventKey: `devtoolbar.feedback-list.item.click`,
-              eventName: `devtoolbar: Click feedback-list item`,
+              eventKey: `devtoolbar.alert-list.item.click`,
+              eventName: `devtoolbar: Click alert-list item`,
             });
           }}
         >
