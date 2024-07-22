@@ -7,7 +7,6 @@ from dataclasses import dataclass
 from django.core.exceptions import ValidationError
 from slack_sdk.errors import SlackApiError
 
-from sentry import features
 from sentry.integrations.models.integration import Integration
 from sentry.integrations.services.integration import RpcIntegration
 from sentry.integrations.slack.metrics import (
