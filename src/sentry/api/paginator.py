@@ -659,6 +659,8 @@ class CombinedQuerysetPaginator:
             sort_keys = []
             sort_keys.append(self.get_item_key(item))
             if len(self.model_key_map.get(type(item))) > 1:
+                # XXX: This doesn't do anything - it just uses a column name as the sort key. It should be pulling the
+                # value of the other keys out instead.
                 sort_keys.extend(iter(self.model_key_map.get(type(item))[1:]))
             sort_keys.append(type(item).__name__)
             return tuple(sort_keys)
